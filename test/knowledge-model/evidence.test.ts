@@ -610,3 +610,68 @@ test("sectioned payload is not a flat list of sentences and history carries an i
   assert.equal(composed.payload.claims[0]?.status, "asserted");
   assert.equal(composed.payload.state.length, 0);
 });
+
+test("INGEST provenance defaults to appears_in for the dialogue path", () => {
+  const store = new EvidenceStore();
+  const ingested = ingest(
+    {
+      content: "The invoice total is 4500 SEK.",
+      speaker: "user",
+      locator: "turn:task-1",
+      scope: verifiedScope(),
+    },
+    { store, idFactory: sequentialIds() },
+  );
+
+  const provenance = store.listProvenance();
+  assert.equal(provenance.length, 1);
+  assert.equal(provenance[0]?.relation, "appears_in");
+  assert.equal(provenance[0]?.toId, ingested.artifact.id);
+});
+
+test("INGEST records a caller-named derived_from relation", () => {
+  const store = new EvidenceStore();
+  // A vision model's account of an uploaded image. The text never appeared in
+  // the file, so recording it as appears_in would be a false provenance claim.
+  const ingested = ingest(
+    {
+      content: "The image shows an invoice totalling 4500 SEK.",
+      speaker: "vision-model",
+      locator: "file:uploads/receipt.jpg",
+      relation: "derived_from",
+      scope: verifiedScope(),
+    },
+    { store, idFactory: sequentialIds() },
+  );
+
+  const provenance = store.listProvenance();
+  assert.equal(provenance.length, 1);
+  assert.equal(provenance[0]?.relation, "derived_from");
+  assert.equal(provenance[0]?.toLabel, "file:uploads/receipt.jpg");
+  assert.equal(ingested.utterances[0]?.speaker, "vision-model");
+});
+
+test("INGEST rejects an unknown relation and writes nothing", () => {
+  const store = new EvidenceStore();
+
+  assert.throws(
+    () =>
+      ingest(
+        {
+          content: "anything",
+          speaker: "user",
+          relation: "invented_by" as never,
+          scope: verifiedScope(),
+        },
+        { store, idFactory: sequentialIds() },
+      ),
+    (error: unknown) =>
+      error instanceof KnowledgeModelError && error.code === "invalid_input",
+  );
+
+  // Validation runs before addArtifact, so a rejected call leaves no partial
+  // write behind.
+  assert.equal(store.listArtifacts().length, 0);
+  assert.equal(store.listUtterances().length, 0);
+  assert.equal(store.listProvenance().length, 0);
+});
