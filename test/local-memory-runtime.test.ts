@@ -5,11 +5,11 @@ import test from "node:test";
 import { ChatError } from "../src/core/errors.js";
 import { parseRuntimeId } from "../src/identity/runtime-id.js";
 import { MemoryError } from "../src/memory/errors.js";
+import { SqliteKnowledgeStore } from "../src/memory/knowledge/index.js";
 import { SqliteMemoryRepository } from "../src/memory/sqlite-memory-repository.js";
 import type { KnowledgeItem } from "../src/memory/types.js";
 import {
   createLocalMemoryRuntime,
-  LIVE_RECONCILIATION_REINFORCEMENT,
 } from "../src/runtime/local-memory-runtime.js";
 import {
   isolatedMemoryEnv,
@@ -138,17 +138,28 @@ test("restart with existing SQLite still projects the active assertion", async (
       reread.memory.projection.projection.items[0]?.proposition,
       PROPOSITION,
     );
-    const repository = new SqliteMemoryRepository({
+    const store = new SqliteKnowledgeStore({
       filename: isolated.sqlitePath,
       projectId: parseRuntimeId(TEST_PROJECT_ID, "project"),
     });
     try {
-      const items = await repository.read((view) => view.listCurrent());
-      assert.equal(items[0]?.activationStatus, "active");
-      assert.equal(items[0]?.revision, 1);
-      assert.equal(items[0]?.proposition, PROPOSITION);
+      const snapshot = store.load();
+      assert.equal(
+        snapshot.state.bindings.some(
+          (binding) =>
+            binding.label === PROPOSITION && binding.interval.to === null,
+        ),
+        true,
+      );
+      assert.equal(
+        snapshot.state.bindings.some(
+          (binding) =>
+            "activationStatus" in binding || "canonicalStatus" in binding,
+        ),
+        false,
+      );
     } finally {
-      repository.close();
+      store.close();
     }
   } finally {
     secondRuntime.close();
@@ -213,11 +224,11 @@ test("chat rollback, staging failure, stale commit, and read failure stay distin
     env: isolated.env,
     surface: "test",
     createTransport: () => stale,
-    memoryDecorator: (memory) => ({
-      projectId: memory.projectId,
-      async reconcile() {
+    committerDecorator: (committer) => ({
+      async commit() {
         throw new MemoryError("stale_state", "revision changed");
       },
+      repairIndex: (pending) => committer.repairIndex(pending),
     }),
   });
   try {
@@ -252,21 +263,10 @@ test("chat rollback, staging failure, stale commit, and read failure stay distin
 
 test("pending index repair is retried once and sink failure does not rewrite the answer", async () => {
   const isolated = isolatedMemoryEnv();
-  let failures = 1;
   const runtime = createLocalMemoryRuntime({
     env: isolated.env,
     surface: "test",
     createTransport: () => assertionTransport(),
-    indexWriterDecorator: (writer) => ({
-      projectId: writer.projectId,
-      async upsertRetrievalDocument(document) {
-        if (failures > 0) {
-          failures -= 1;
-          throw new Error("index unavailable");
-        }
-        return writer.upsertRetrievalDocument(document);
-      },
-    }),
   });
   try {
     const result = await runtime.openSession().turn(ASSERTION);
@@ -482,7 +482,7 @@ function restatementTransport() {
   });
 }
 
-test("live restatement boosts an active item without changing the read path", async () => {
+test("live restatement boosts evidence without changing the read path or state lifecycle", async () => {
   const isolated = isolatedMemoryEnv();
   await seedCanonical(
     isolated.sqlitePath,
@@ -500,10 +500,13 @@ test("live restatement boosts an active item without changing the read path", as
     const session = runtime.openSession();
     const read = await session.turn("What is the local memory project code?");
     assert.equal(read.postOutput.status, "completed");
+    assert.equal(
+      read.memory.projection.projection.items[0]?.proposition,
+      PROPOSITION,
+    );
     const afterRead = await readCanonical(isolated.sqlitePath);
     assert.equal(afterRead?.revision, 1);
     assert.equal(afterRead?.relevanceScore, 0.7);
-    assert.equal(afterRead?.activationStatus, "active");
 
     const restated = await session.turn(
       "The local memory project code is alpha-seven.",
@@ -514,23 +517,18 @@ test("live restatement boosts an active item without changing the read path", as
         restated.postOutput.records[0]?.result.reconciliation.relation,
         "restatement",
       );
+      assert.equal(restated.postOutput.records[0]?.result.reconciliation.item, null);
     }
     const afterWrite = await readCanonical(isolated.sqlitePath);
-    assert.equal(afterWrite?.activationStatus, "active");
-    assert.ok(
-      Math.abs(
-        (afterWrite?.relevanceScore ?? 0) -
-          (0.7 + LIVE_RECONCILIATION_REINFORCEMENT),
-      ) < 1e-12,
-    );
-    assert.equal(afterWrite?.revision, 2);
+    assert.equal(afterWrite?.revision, 1);
+    assert.equal(afterWrite?.relevanceScore, 0.7);
   } finally {
     runtime.close();
     rmSync(isolated.directory, { recursive: true, force: true });
   }
 });
 
-test("live restatement reactivates dormant knowledge that crosses the threshold", async () => {
+test("migrated dormant v0 exact hits remain answerable on the live read path", async () => {
   const isolated = isolatedMemoryEnv();
   await seedCanonical(
     isolated.sqlitePath,
@@ -544,23 +542,22 @@ test("live restatement reactivates dormant knowledge that crosses the threshold"
   try {
     const result = await runtime
       .openSession()
-      .turn("The local memory project code is alpha-seven.");
+      .turn("What is the local memory project code?");
     assert.equal(result.postOutput.status, "completed");
-    const current = await readCanonical(isolated.sqlitePath);
-    assert.equal(current?.activationStatus, "active");
-    assert.ok(
-      Math.abs(
-        (current?.relevanceScore ?? 0) -
-          (0.35 + LIVE_RECONCILIATION_REINFORCEMENT),
-      ) < 1e-12,
+    assert.equal(
+      result.memory.projection.projection.items[0]?.proposition,
+      PROPOSITION,
     );
+    const current = await readCanonical(isolated.sqlitePath);
+    assert.equal(current?.activationStatus, "dormant");
+    assert.equal(current?.relevanceScore, 0.35);
   } finally {
     runtime.close();
     rmSync(isolated.directory, { recursive: true, force: true });
   }
 });
 
-test("live restatement leaves dormant knowledge dormant when still below threshold", async () => {
+test("live restatement does not write lifecycle onto state bindings", async () => {
   const isolated = isolatedMemoryEnv();
   await seedCanonical(
     isolated.sqlitePath,
@@ -576,14 +573,24 @@ test("live restatement leaves dormant knowledge dormant when still below thresho
       .openSession()
       .turn("The local memory project code is alpha-seven.");
     assert.equal(result.postOutput.status, "completed");
-    const current = await readCanonical(isolated.sqlitePath);
-    assert.equal(current?.activationStatus, "dormant");
-    assert.ok(
-      Math.abs(
-        (current?.relevanceScore ?? 0) -
-          (0.1 + LIVE_RECONCILIATION_REINFORCEMENT),
-      ) < 1e-12,
-    );
+    const store = new SqliteKnowledgeStore({
+      filename: isolated.sqlitePath,
+      projectId: parseRuntimeId(TEST_PROJECT_ID, "project"),
+    });
+    try {
+      const snapshot = store.load();
+      assert.equal(
+        snapshot.state.bindings.some(
+          (binding) =>
+            "activationStatus" in binding ||
+            "relevanceScore" in binding ||
+            "keepAlive" in binding,
+        ),
+        false,
+      );
+    } finally {
+      store.close();
+    }
   } finally {
     runtime.close();
     rmSync(isolated.directory, { recursive: true, force: true });
@@ -653,9 +660,8 @@ test("overlapping turns are rejected and cannot rewrite sourceMessage", async ()
     if (result.postOutput.status === "completed") {
       assert.equal(result.postOutput.batch.sourceMessage, ASSERTION);
       assert.equal(
-        result.postOutput.records[0]?.result.reconciliation.item
-          ?.activationStatus,
-        "active",
+        result.postOutput.records[0]?.result.reconciliation.item,
+        null,
       );
     }
   } finally {

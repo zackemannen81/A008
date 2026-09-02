@@ -190,6 +190,30 @@ export class EvidenceStore {
     return cloneClaim(stored);
   }
 
+  hydrate(input: {
+    readonly artifacts: readonly Artifact[];
+    readonly utterances: readonly Utterance[];
+    readonly claims: readonly Claim[];
+    readonly provenance: readonly ProvenanceRecord[];
+  }): void {
+    this.#artifacts.clear();
+    this.#utterances.clear();
+    this.#claims.clear();
+    this.#provenance.clear();
+    for (const artifact of input.artifacts) {
+      this.#artifacts.set(artifact.id, cloneArtifact(artifact));
+    }
+    for (const utterance of input.utterances) {
+      this.#utterances.set(utterance.id, cloneUtterance(utterance));
+    }
+    for (const claim of input.claims) {
+      this.#claims.set(claim.id, cloneClaim(claim));
+    }
+    for (const record of input.provenance) {
+      this.#provenance.set(record.id, cloneProvenance(record));
+    }
+  }
+
   applyAcceptance(
     claimId: ClaimId,
     status: ClaimStatus,

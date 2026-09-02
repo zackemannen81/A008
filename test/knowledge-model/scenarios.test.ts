@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import { accept } from "../../src/memory/knowledge/accept.js";
 import { recordClaimsFromUtterance } from "../../src/memory/knowledge/evidence.js";
@@ -10,6 +13,7 @@ import { ingest } from "../../src/memory/knowledge/ingest.js";
 import {
   asEntityId,
   createKnowledgeContext,
+  createSqliteKnowledgeContext,
   decay,
   define,
   interpret,
@@ -17,6 +21,7 @@ import {
   reactivate,
   reinforce,
   scoreRetrieved,
+  sqliteKnowledgeTestProjectId,
   weaken,
   type KnowledgeReadContext,
   type ReadResult,
@@ -248,8 +253,30 @@ function attachEvidence(
   });
 }
 
-function playS1(includePaint = false) {
-  const world = createKnowledgeContext();
+function eachBackend(
+  title: string,
+  fn: (world: KnowledgeReadContext) => void,
+): void {
+  test(`${title} (in-memory)`, () => {
+    fn(createKnowledgeContext());
+  });
+  test(`${title} (sqlite)`, () => {
+    const handle = createSqliteKnowledgeContext({
+      filename: ":memory:",
+      projectId: sqliteKnowledgeTestProjectId(),
+    });
+    try {
+      fn(handle.context);
+    } finally {
+      handle.close();
+    }
+  });
+}
+
+function playS1(
+  includePaint = false,
+  world: KnowledgeReadContext = createKnowledgeContext(),
+) {
   const { ref, definition } = registerHouse(world);
   const ids = sequentialIds();
   const relations = world.relations as RelationIndex;
@@ -458,8 +485,8 @@ function dormantAll(world: KnowledgeReadContext, at: Instant): void {
   }
 }
 
-test("S1 — Changing house colour", () => {
-  const { world, ref } = playS1();
+eachBackend("S1 — Changing house colour", (seed) => {
+  const { world, ref } = playS1(false, seed);
   assert.equal(world.state.currentValue(ref), "green");
 
   const current = ask(world, "Vilken färg har Brittans hus?");
@@ -512,8 +539,8 @@ test("S1 — Changing house colour", () => {
   );
 });
 
-test("S2 — Correction versus change", () => {
-  const { world, ref, definition, white } = playS1();
+eachBackend("S2 — Correction versus change", (seed) => {
+  const { world, ref, definition, white } = playS1(false, seed);
   const correction = colorClaim({
     id: "claim:never-white",
     slot: ref,
@@ -547,8 +574,8 @@ test("S2 — Correction versus change", () => {
   assert.equal(world.state.corrections(ref)[0]?.correctedBy, "observer");
 });
 
-test("S3 — Source code", () => {
-  const { world, proposal } = playS3();
+eachBackend("S3 — Source code", (seed) => {
+  const { world, proposal } = playS3(seed);
   assert.equal(proposal.entities.length, 1);
   assert.equal(proposal.bindings.length, 2);
 
@@ -572,8 +599,7 @@ test("S3 — Source code", () => {
   assert.equal("why" in (proposal.artifacts[0] ?? {}), false);
 });
 
-test("S4 — Attributed prediction", () => {
-  const world = createKnowledgeContext();
+eachBackend("S4 — Attributed prediction", (world) => {
   const ids = sequentialIds();
   const ingested = ingest(
     {
@@ -636,8 +662,7 @@ test("S4 — Attributed prediction", () => {
   );
 });
 
-test("S5 — Recitation", () => {
-  const world = createKnowledgeContext();
+eachBackend("S5 — Recitation", (world) => {
   const ids = sequentialIds();
   const ingested = ingest(
     {
@@ -681,8 +706,8 @@ test("S5 — Recitation", () => {
   );
 });
 
-test("S6 — Dormant direct hit", () => {
-  const { world } = playS1();
+eachBackend("S6 — Dormant direct hit", (seed) => {
+  const { world } = playS1(false, seed);
   dormantAll(world, T3);
   assert.equal(
     world.lifecycle.list().every((record) => record.lifecycle.state === "dormant"),
@@ -712,8 +737,8 @@ test("S6 — Dormant direct hit", () => {
   ]);
 });
 
-test("S7 — Associative recall respects dormancy", () => {
-  const { world } = playS1(true);
+eachBackend("S7 — Associative recall respects dormancy", (seed) => {
+  const { world } = playS1(true, seed);
   const result = ask(world, "Berätta något om Brittan", {
     tags: ["house", "color", "brittan"],
     entities: ["Brittan"],
@@ -736,8 +761,7 @@ test("S7 — Associative recall respects dormancy", () => {
   );
 });
 
-test("S8 — Conflict", () => {
-  const world = createKnowledgeContext();
+eachBackend("S8 — Conflict", (world) => {
   const { ref, definition } = colorSlot("rickards_bil");
   world.entities.register({
     id: asEntityId("rickards_bil"),
@@ -783,8 +807,7 @@ test("S8 — Conflict", () => {
   );
 });
 
-test("S9 — Attribution without acceptance", () => {
-  const world = createKnowledgeContext();
+eachBackend("S9 — Attribution without acceptance", (world) => {
   world.entities.register({
     id: asEntityId("rickard"),
     type: "person",
@@ -860,8 +883,8 @@ test("S9 — Attribution without acceptance", () => {
   );
 });
 
-test("S10 — Retraction", () => {
-  const { world, ref, definition, green } = playS1();
+eachBackend("S10 — Retraction", (seed) => {
+  const { world, ref, definition, green } = playS1(false, seed);
   const retraction = colorClaim({
     id: "claim:retract-green",
     slot: ref,
@@ -891,8 +914,8 @@ test("S10 — Retraction", () => {
   assert.equal(world.state.currentValue(ref), undefined);
 });
 
-test("decay sweep does not change any direct-question answer", () => {
-  const { world } = playS1();
+eachBackend("decay sweep does not change any direct-question answer", (seed) => {
+  const { world } = playS1(false, seed);
   let extra = 5000;
   playS3(world, () => String((extra += 1)));
 
@@ -959,16 +982,18 @@ test("PROJECT writes nothing and strength is not a direct-match score term", () 
     }),
   );
 
-  const { world } = playS1();
-  const lifeBefore = world.lifecycle.snapshot();
-  const stateBefore = world.state.snapshot();
-  ask(world, "Vilken färg har Brittans hus?");
-  assert.deepEqual(world.lifecycle.snapshot(), lifeBefore);
-  assert.deepEqual(world.state.snapshot(), stateBefore);
+  eachBackend("PROJECT writes nothing against a populated world", (seed) => {
+    const { world } = playS1(false, seed);
+    const lifeBefore = world.lifecycle.snapshot();
+    const stateBefore = world.state.snapshot();
+    ask(world, "Vilken färg har Brittans hus?");
+    assert.deepEqual(world.lifecycle.snapshot(), lifeBefore);
+    assert.deepEqual(world.state.snapshot(), stateBefore);
+  });
 });
 
-test("DEFINE consumes mentionsPast so closed intervals are reachable", () => {
-  const { world } = playS1();
+eachBackend("DEFINE consumes mentionsPast so closed intervals are reachable", (seed) => {
+  const { world } = playS1(false, seed);
   const withoutHint = define(
     {
       message: "What color is the house?",
@@ -1003,8 +1028,8 @@ test("DEFINE consumes mentionsPast so closed intervals are reachable", () => {
   assert.deepEqual(historyValues(history), ["white", "red", "green"]);
 });
 
-test("tags do not gate a direct slot match", () => {
-  const { world } = playS1();
+eachBackend("tags do not gate a direct slot match", (seed) => {
+  const { world } = playS1(false, seed);
   const result = ask(world, "Vilken färg har Brittans hus?", {
     tags: ["coding"],
     taskTags: ["coding"],
@@ -1012,8 +1037,8 @@ test("tags do not gate a direct slot match", () => {
   assert.deepEqual(currentValues(result), ["green"]);
 });
 
-test("closed intervals are unreachable without history intent", () => {
-  const { world } = playS1();
+eachBackend("closed intervals are unreachable without history intent", (seed) => {
+  const { world } = playS1(false, seed);
   const current = ask(world, "Vilken färg har Brittans hus?");
   assert.equal(current.projected.payload.history.length, 0);
   assert.equal(
@@ -1029,8 +1054,8 @@ test("closed intervals are unreachable without history intent", () => {
   );
 });
 
-test("DECAY / WEAKEN / REINFORCE / REACTIVATE write evidence lifecycle only", () => {
-  const { world, ref } = playS1();
+eachBackend("DECAY / WEAKEN / REINFORCE / REACTIVATE write evidence lifecycle only", (seed) => {
+  const { world, ref } = playS1(false, seed);
   const stateBefore = world.state.snapshot();
   const claim = world.lifecycle.list().find((record) => record.evidenceKind === "claim");
   assert.ok(claim);
@@ -1081,4 +1106,60 @@ test("DECAY / WEAKEN / REINFORCE / REACTIVATE write evidence lifecycle only", ()
       .every((transition) => transition.caller.length > 0),
     true,
   );
+});
+
+test("S1–S10 sqlite payloads are identical to the in-memory reference", () => {
+  const memory = playS1();
+  const handle = createSqliteKnowledgeContext({
+    filename: ":memory:",
+    projectId: sqliteKnowledgeTestProjectId(),
+  });
+  try {
+    const sqlite = playS1(false, handle.context);
+    const questions = [
+      "Vilken färg har Brittans hus?",
+      "Vilka färger har huset haft?",
+      "Vem målade huset rött?",
+    ];
+    for (const question of questions) {
+      assert.deepEqual(
+        ask(sqlite.world, question).projected.payload,
+        ask(memory.world, question).projected.payload,
+      );
+    }
+  } finally {
+    handle.close();
+  }
+});
+
+test("sqlite close/reopen preserves S1 current and history answers", () => {
+  const directory = mkdtempSync(join(tmpdir(), "A008-knowledge-"));
+  const filename = join(directory, "knowledge.sqlite");
+  const first = createSqliteKnowledgeContext({
+    filename,
+    projectId: sqliteKnowledgeTestProjectId(),
+  });
+  try {
+    playS1(false, first.context);
+    first.persist();
+  } finally {
+    first.close();
+  }
+  const second = createSqliteKnowledgeContext({
+    filename,
+    projectId: sqliteKnowledgeTestProjectId(),
+  });
+  try {
+    assert.deepEqual(currentValues(ask(second.context, "Vilken färg har Brittans hus?")), [
+      "green",
+    ]);
+    assert.deepEqual(historyValues(ask(second.context, "Vilka färger har huset haft?")), [
+      "white",
+      "red",
+      "green",
+    ]);
+  } finally {
+    second.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

@@ -269,6 +269,47 @@ export class KnowledgeState {
     };
   }
 
+  transitionSequence(): number {
+    return this.#nextTransition;
+  }
+
+  hydrate(snapshot: KnowledgeStateSnapshot, nextTransition?: number): void {
+    this.#bindings.clear();
+    this.#transitions.clear();
+    this.#claims.clear();
+    this.#events.clear();
+    this.#corrections.length = 0;
+    this.#contested.clear();
+    for (const binding of snapshot.bindings) {
+      const key = slotKey(binding.slot);
+      const list = this.#bindings.get(key) ?? [];
+      list.push(cloneBinding(binding));
+      this.#bindings.set(key, list);
+    }
+    for (const transition of snapshot.transitions) {
+      const key = slotKey(transition.slot);
+      const list = this.#transitions.get(key) ?? [];
+      list.push(cloneTransition(transition));
+      this.#transitions.set(key, list);
+    }
+    for (const claim of snapshot.claims) {
+      this.#claims.set(claim.id, cloneClaim(claim));
+    }
+    for (const event of snapshot.events) {
+      this.#events.set(event.id, cloneEvent(event));
+    }
+    for (const correction of snapshot.corrections) {
+      this.#corrections.push(cloneCorrection(correction));
+    }
+    for (const key of snapshot.contestedSlotKeys) {
+      this.#contested.add(key);
+    }
+    this.#nextTransition =
+      nextTransition === undefined
+        ? inferredTransitionSequence(snapshot.transitions)
+        : nextTransition;
+  }
+
   #applyChange(decision: ReconcileDecision, decidedBy: string): UpdateResult {
     const key = slotKey(decision.slot);
     const existing = [...(this.#bindings.get(key) ?? [])];
@@ -768,4 +809,21 @@ function cloneInstant(instant: Instant): Instant {
     return instant;
   }
   return { unknown: true };
+}
+
+function inferredTransitionSequence(
+  transitions: readonly StateTransition[],
+): number {
+  let max = 0;
+  for (const transition of transitions) {
+    const match = /^A008_knowledge_transition_(\d+)$/.exec(transition.id);
+    if (match === null) {
+      continue;
+    }
+    const parsed = Number(match[1]);
+    if (Number.isSafeInteger(parsed) && parsed > max) {
+      max = parsed;
+    }
+  }
+  return max;
 }

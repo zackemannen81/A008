@@ -24,15 +24,14 @@ import type {
   ProjectId,
   RuntimeTaskId,
 } from "../identity/types.js";
-import { CodingAgentMemoryPolicy } from "../memory/coding-agent-policy.js";
-import { DeterministicRetrievalPlanner } from "../memory/deterministic-retrieval-planner.js";
 import { MemoryError, isMemoryError } from "../memory/errors.js";
-import { HybridMemoryReader } from "../memory/hybrid-memory-reader.js";
-import { NeutralHybridMemoryReadPolicy } from "../memory/hybrid-retrieval-policy.js";
-import { SemanticMemory } from "../memory/memory-engine.js";
+import {
+  createSqliteKnowledgeContext,
+  KnowledgeEngineCommit,
+  KnowledgeMemoryReader,
+  type SqliteKnowledgeContextHandle,
+} from "../memory/knowledge/index.js";
 import type { HybridMemoryReadResult } from "../memory/retrieval-types.js";
-import { Utf8ByteContextMeasurer } from "../memory/serialization.js";
-import { SqliteMemoryRepository } from "../memory/sqlite-memory-repository.js";
 import { MemoryAwareChatSession } from "../orchestration/memory-aware-chat-session.js";
 import type { MemoryReadPort } from "../orchestration/memory-aware-chat-session.js";
 import {
@@ -42,12 +41,11 @@ import {
 import {
   PostOutputMemoryCoordinator,
   type PostOutputMemoryResult,
+  type StagedProposalCommitter,
 } from "../orchestration/post-output-memory-coordinator.js";
-import { IndexedRelationCandidateSource } from "../orchestration/relation-candidate-source.js";
-import {
-  RelationGatedMemoryCommit,
-  type RelationIndexWriter,
-  type RelationMemoryPort,
+import type {
+  RelationIndexWriter,
+  RelationMemoryPort,
 } from "../orchestration/relation-gated-memory-commit.js";
 import {
   ChatTransportSemanticJsonGenerator,
@@ -77,7 +75,7 @@ import {
   createNvidiaTransportOptions,
   DEFAULT_SYSTEM_MESSAGE,
 } from "./nvidia-session.js";
-import { applyUserAssertionActivation } from "./user-assertion-gate.js";
+
 
 export const LOCAL_MEMORY_SCOPES = ["local"] as const;
 export const LIVE_PROJECTION_REINFORCEMENT = 0;
@@ -96,6 +94,9 @@ export interface LocalMemoryRuntimeOptions {
     options: NvidiaChatTransportOptions,
   ) => ChatTransport;
   readonly readerDecorator?: (reader: MemoryReadPort) => MemoryReadPort;
+  readonly committerDecorator?: (
+    committer: StagedProposalCommitter,
+  ) => StagedProposalCommitter;
   readonly indexWriterDecorator?: (
     writer: RelationIndexWriter,
   ) => RelationIndexWriter;
@@ -416,11 +417,11 @@ export class LocalMemoryRuntime {
   readonly agentId: AgentId;
   readonly sqlitePath: string;
   readonly tracer: DebugTraceObserver;
-  readonly #repository: SqliteMemoryRepository;
-  readonly #memory: SemanticMemory;
+  readonly #knowledge: SqliteKnowledgeContextHandle;
   readonly #reader: MemoryReadPort;
-  readonly #indexWriter: RelationIndexWriter;
-  readonly #commitMemory: RelationMemoryPort;
+  readonly #committerDecorator:
+    | ((committer: StagedProposalCommitter) => StagedProposalCommitter)
+    | undefined;
   readonly #transport: ChatTransport;
   readonly #registry: ModelRegistry;
   readonly #identityFactory: RuntimeIdentityFactory;
@@ -432,11 +433,11 @@ export class LocalMemoryRuntime {
     readonly agentId: AgentId;
     readonly sqlitePath: string;
     readonly tracer: DebugTraceObserver;
-    readonly repository: SqliteMemoryRepository;
-    readonly memory: SemanticMemory;
+    readonly knowledge: SqliteKnowledgeContextHandle;
     readonly reader: MemoryReadPort;
-    readonly indexWriter: RelationIndexWriter;
-    readonly commitMemory: RelationMemoryPort;
+    readonly committerDecorator?: (
+      committer: StagedProposalCommitter,
+    ) => StagedProposalCommitter;
     readonly transport: ChatTransport;
     readonly registry: ModelRegistry;
     readonly identityFactory: RuntimeIdentityFactory;
@@ -446,11 +447,9 @@ export class LocalMemoryRuntime {
     this.agentId = options.agentId;
     this.sqlitePath = options.sqlitePath;
     this.tracer = options.tracer;
-    this.#repository = options.repository;
-    this.#memory = options.memory;
+    this.#knowledge = options.knowledge;
     this.#reader = options.reader;
-    this.#indexWriter = options.indexWriter;
-    this.#commitMemory = options.commitMemory;
+    this.#committerDecorator = options.committerDecorator;
     this.#transport = options.transport;
     this.#registry = options.registry;
     this.#identityFactory = options.identityFactory;
@@ -497,20 +496,13 @@ export class LocalMemoryRuntime {
       },
       budget: intakeBudget,
     });
-    const committer = new RelationGatedMemoryCommit({
-      memory: this.#commitMemory,
-      candidateSource: new IndexedRelationCandidateSource({
-        memory: this.#memory,
-        candidateStore: this.#repository,
-      }),
+    const committer = new KnowledgeEngineCommit({
+      context: this.#knowledge.context,
       classifier: new ModelBackedKnowledgeRelationClassifier(generator),
-      classifierBudget: intakeBudget,
-      indexWriter: this.#indexWriter,
-      activateNewProposal: applyUserAssertionActivation,
     });
     const coordinator = new PostOutputMemoryCoordinator({
       stager: intake,
-      committer,
+      committer: this.#committerDecorator?.(committer) ?? committer,
     });
     return new LocalMemorySession({
       runtime: this,
@@ -526,7 +518,7 @@ export class LocalMemoryRuntime {
       return;
     }
     this.#closed = true;
-    this.#repository.close();
+    this.#knowledge.close();
     void this.tracer.close();
   }
 }
@@ -573,23 +565,13 @@ export function createLocalMemoryRuntime(
       : { createTransport: options.createTransport }),
   });
   const transport = tracedChatTransport(innerTransport, tracer, surface);
-  const repository = new SqliteMemoryRepository({
+  const knowledge = createSqliteKnowledgeContext({
     filename: config.sqlitePath,
     projectId,
+    migrateV0: true,
   });
-  const memory = new SemanticMemory({
-    repository,
-    policy: new CodingAgentMemoryPolicy({
-      projectionReinforcement: LIVE_PROJECTION_REINFORCEMENT,
-      reconciliationReinforcement: LIVE_RECONCILIATION_REINFORCEMENT,
-    }),
-    measurer: new Utf8ByteContextMeasurer(),
-  });
-  const reader = new HybridMemoryReader({
-    memory,
-    candidateStore: repository,
-    planner: new DeterministicRetrievalPlanner(),
-    policy: new NeutralHybridMemoryReadPolicy(),
+  const reader = new KnowledgeMemoryReader({
+    context: knowledge.context,
   });
   const baseReader = options.readerDecorator?.(reader) ?? reader;
   const tracedReader: MemoryReadPort = {
@@ -615,11 +597,11 @@ export function createLocalMemoryRuntime(
     agentId,
     sqlitePath: config.sqlitePath,
     tracer,
-    repository,
-    memory,
+    knowledge,
     reader: tracedReader,
-    indexWriter: options.indexWriterDecorator?.(repository) ?? repository,
-    commitMemory: options.memoryDecorator?.(memory) ?? memory,
+    ...(options.committerDecorator === undefined
+      ? {}
+      : { committerDecorator: options.committerDecorator }),
     transport,
     registry: options.registry ?? defaultModelRegistry,
     identityFactory,

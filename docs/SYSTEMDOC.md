@@ -51,11 +51,11 @@ result, and updates this document.
 ```text
 CLI / A008-acp -> createLocalMemoryRuntime
   |- NVIDIA credential + one ChatTransport
-  |- project-namespaced SQLite
-  |- HybridMemoryReader
+  |- project-namespaced SQLite knowledge store
+  |- KnowledgeMemoryReader (DEFINE..PROJECT; writes nothing)
   |- MemoryAwareChatSession
-  |- stateless analyzer/classifier
-  |- RelationGatedMemoryCommit (activateNewProposal from sourceMessage)
+  |- stateless analyzer/classifier (classifier is a comparator)
+  |- KnowledgeEngineCommit (INGEST/ACCEPT/RECONCILE/UPDATE)
   `- PostOutputMemoryCoordinator
                  |
                  v
@@ -163,34 +163,34 @@ local CLI/ACP composition
   |- write -> PostOutputMemoryCoordinator
   |          |- PostOutputKnowledgeIntake (once)
   |          |  `- model-backed analyzer ----.
-  |          `- RelationGatedMemoryCommit (sequential per proposal)
-  |             |- IndexedRelationCandidateSource
-  |             |- model-backed ID-free classifier ----.
-  |             `- guarded SemanticMemory.reconcile + explicit index state
-  |                                                |   |
+  |          `- KnowledgeEngineCommit (sequential per proposal)
+  |             |- model-backed ID-free classifier as comparator ----.
+  |             `- INGEST + ACCEPT + RECONCILE/UPDATE
+  |                                                |
   |                      shared stateless generator <--'
   |                              `- existing ChatTransport
-  `- read  -> HybridMemoryReader
-             |- DeterministicRetrievalPlanner
-             |- exact/entity + FTS5 lexical + tag + domain
-             |  + optional injected-vector candidates
-             |- dedupe + weighted score + separate thresholds
-             `- SemanticMemory.projectSelected
-                `- exact serialized projection + hard budget
+  `- read  -> KnowledgeMemoryReader
+             |- DEFINE / RETRIEVE / EXPAND / FILTER / COMPOSE / PROJECT
+             |- direct slot/entity/exact match ignores lifecycle
+             `- PROJECT writes nothing; sectioned payload mapped to envelope
 
-MemoryRepository / MemoryCandidateStore
-  |- InMemoryMemoryRepository (reference/test adapter)
-  `- SqliteMemoryRepository (durable local project namespace)
+Knowledge SQLite (live)
+  |- SqliteKnowledgeStore (interval, evidence, lifecycle families)
+  `- v0 A008_memory_knowledge rows migrate into unknown-bounded intervals
 
-separate control query -> memory audit events
-separate history query -> explicit supersede chain
+v0 compatibility
+  |- InMemoryMemoryRepository
+  `- SqliteMemoryRepository (KnowledgeItem canon/audit)
+
+separate control query -> v0 memory audit events
+separate history query -> slot interval list (live) or supersede chain (v0)
 ```
 
-`KnowledgeItem` separates `current/superseded` canonical state from
-`active/dormant` activation state. Current active and dormant items participate
-in normal discovery. Superseded items remain dormant history. The repository
-validates IDs, value ranges, successor references, legal activation, and cycle-
-free supersede chains before committing a complete working copy.
+Live knowledge state is current open bindings (`validTo = null`) plus closed
+intervals for history. Evidence lifecycle is `active`/`dormant` on utterances,
+claims, events, and artifact summaries only. `KnowledgeItem`
+`current`/`superseded` plus `active`/`dormant` remains the v0 compatibility
+record; live CLI/ACP do not write it.
 
 `SemanticMemory.reconcile` applies caller-supplied `new`, `restatement`,
 `extend`, `supersede`, or `conflict` decisions. It performs no extraction,
@@ -378,16 +378,16 @@ guarantees.
 
 `createLocalMemoryRuntime` is the live local composition root. It validates the
 NVIDIA credential first, then opens a SQLite file outside the repository,
-resolves a stable project ID, and wraps one transport for both chat and
-stateless semantic calls.
+resolves a stable project ID, migrates any v0 supersede chains into intervals
+with unknown boundaries, and wraps one transport for both chat and stateless
+semantic calls.
 
 Each CLI process or ACP session gets one conversation ID. Each turn allocates a
-fresh task ID, reads memory, streams the answer, then awaits post-output. A
-runtime-owned user-assertion gate may set `keepAlive` on a `new` reconcile when
-the proposition is a contiguous substring of a non-question user message.
-Assistant-only extraction stays dormant. Live `restatement` and `extend` add
-`0.2` to `relevanceScore` and then re-evaluate the activation threshold.
-Hybrid reads do not reinforce.
+fresh task ID, reads the knowledge engine, streams the answer, then awaits
+post-output. `ACCEPT` policy `user-assertion-v1` may accept a verified user
+assertion; it does not write `keepAlive`, strength, or activation onto state.
+Assistant-only extraction stays unaccepted. Restatement `REINFORCE`s evidence
+only. `PROJECT` writes nothing. Direct matches ignore evidence dormancy.
 
 Debug tracing is off by default. Safe/raw JSONL files are optional and
 secret-redacted. CLI may emit safe `trace>` lines to stderr. ACP stdout stays
@@ -395,10 +395,9 @@ protocol-only. HTTP traces carry `httpCallId` and
 `operation=chat|knowledge_analysis|relation_classification`. `turn_complete`
 records `chatStatus` and `memoryStatus`.
 
-Live hybrid read constructs `DeterministicRetrievalPlanner()` with empty
-taxonomy and no embedding provider, so recall is entity/exact plus lexical FTS.
-Vector RAG and tag/domain read channels are optional adapters, not live. See
-`docs/LOCAL_MEMORY_SURFACES.md` and `docs/DEBUG_TRACE.md`.
+Live read uses `KnowledgeMemoryReader` over SQLite knowledge tables. Direct
+matches ignore evidence dormancy. Vector RAG remains a v0 optional adapter, not
+live. See `docs/LOCAL_MEMORY_SURFACES.md` and `docs/DEBUG_TRACE.md`.
 
 ## Runtime identity core
 

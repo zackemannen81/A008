@@ -1,22 +1,46 @@
-# Semantic Memory v0
+# Semantic Memory
 
-Status: Implemented v0 reference core. The accepted target constitution is
-[`KNOWLEDGE_MEMORY_MODEL.md`](KNOWLEDGE_MEMORY_MODEL.md) via
-[ADR 0018](adr/0018-knowledge-and-memory-model.md). This document describes
-the v0 `KnowledgeItem` engine that
-[`KNOWLEDGE_MODEL_GAP_ANALYSIS.md`](KNOWLEDGE_MODEL_GAP_ANALYSIS.md) measures.
-A008-0021 is closing that gap; do not treat v0 invariants 3–6 as the
-destination model.
+Status: The accepted knowledge model is implemented in
+`src/memory/knowledge/` and persisted by SQLite. Live CLI/ACP compose that
+engine. `KnowledgeItem` / `SemanticMemory` remain a v0 compatibility surface
+for tests, the memory-loop benchmark, and migration of existing supersede
+chains. Do not treat v0 invariants 3–6 as live destination behavior.
+
+Authority: [`KNOWLEDGE_MEMORY_MODEL.md`](KNOWLEDGE_MEMORY_MODEL.md) via
+[ADR 0018](adr/0018-knowledge-and-memory-model.md). Gap close: ADR 0018 D9.
+
+## Accepted model as implemented
+
+Knowledge is addressable slots, not sentences. State, history, and evidence
+are three record families. Memory lifecycle attaches to evidence only.
+
+Live local composition (`createLocalMemoryRuntime`) uses:
+
+- `SqliteKnowledgeStore` — interval tables, slot indexes, FTS over labels,
+  separate evidence tables, evidence-only lifecycle tables
+- `KnowledgeMemoryReader` — `DEFINE` → `PROJECT`; direct match ignores
+  lifecycle; `PROJECT` writes nothing
+- `KnowledgeEngineCommit` — `INGEST` + `ACCEPT` (`user-assertion-v1`) +
+  `RECONCILE` / `UPDATE`; the five-way classifier is a comparator only
+- unknown interval boundaries stored as `{ unknown: true }`, never `now`
+
+`UPDATE` writes no lifecycle field (V3 closed). Dormant evidence remains
+eligible for a direct slot/entity/exact hit (V4 closed). `PROJECT` writes
+nothing (V7 closed).
+
+`KnowledgeItem` is not grown. Existing v0 SQLite rows migrate into slot
+intervals with unknown `from`/`to` on closed history and unknown `from` with
+`to = null` on current bindings.
+
+S1–S10 pass in-memory and against SQLite with identical projection payloads.
 
 ## Purpose
 
-Semantic Memory v0 gives A008 a project-owned state and projection boundary. A
-caller supplies a validated knowledge proposal and explicit relation decision
-on the write side. The read side accepts a deterministic bounded retrieval plan
-and selects from indexed canonical knowledge. Neither side claims provider-
-backed extraction, classification, or embedding generation. The engine owns
-deterministic canonical updates, activation, bounded materialization, and audit
-separation.
+The v0 `SemanticMemory` surface still exists as compatibility. A caller
+supplies a validated knowledge proposal and explicit relation decision on
+that write side. The v0 read side accepts a deterministic bounded retrieval
+plan and selects from indexed canonical `KnowledgeItem` rows. Live CLI/ACP
+no longer compose that path.
 
 The design derives from the owner-supplied Context-First Knowledge Architecture
 (SHA-256
@@ -282,21 +306,21 @@ runtime control state and never model context. They are not persisted. See
 
 ## Persistence and concurrency
 
-`MemoryRepository` separates the application service from storage. Its
-transaction callback sees a working copy and commits only after full state
-validation. `InMemoryMemoryRepository` serializes concurrent transactions and
-returns defensive copies. It is suitable for deterministic tests and local
-reference use only; restart loses all state.
+The live engine persists the new record families through
+`SqliteKnowledgeStore` in the same local SQLite file. Bindings (intervals),
+slot claims, transitions, utterances, evidence claims, artifacts, provenance,
+and lifecycle occupy separate tables. FTS5 indexes labels; a slot index tracks
+open versus closed bindings. Schema version is 1.
 
-`SqliteMemoryRepository` is the durable single-process local adapter. It accepts
-an explicit filename and validated `ProjectId`, initializes schema v1, persists
-canonical JSON and audit atomically, validates state on open, and maintains
-project-scoped FTS5/tag/entity/domain/optional-vector indexes. It survives
-reopen and serializes transactions inside one process. Canonical-derived FTS
-and tags update inside that transaction. Proposition changes invalidate
-entity/domain/vector metadata until the caller explicitly re-indexes it; the
-relation gate performs the staged entity/domain upsert and exposes failure as
-`pending_repair`.
+`MemoryRepository` remains the v0 application/storage boundary.
+`InMemoryMemoryRepository` serializes concurrent transactions and returns
+defensive copies for that compatibility surface. Restart of an in-memory
+repository loses all state.
+
+`SqliteMemoryRepository` remains the v0 durable adapter: schema v1, canonical
+JSON plus audit, FTS5/tag/entity/domain/optional-vector indexes. Live CLI/ACP
+do not write `KnowledgeItem` rows. On open, `SqliteKnowledgeStore` migrates
+existing v0 supersede chains into intervals with unknown boundaries.
 
 This local adapter does not claim multi-process/server scale, backup/recovery,
 encryption, account ACLs, retention, deletion/export, or production migration
