@@ -1,11 +1,29 @@
-/* Layout for the A008 chat transcript. Brand may override these variables. */
+/*
+ * Layout for the A008 chat transcript. Every colour reads an A008 brand token
+ * with a local fallback, so the pane follows `gui/src/brand/a008.css` when it
+ * is loaded and still renders legibly on its own.
+ */
 .a008-chat {
-  --a008-chat-user-bg: #e8eef6;
-  --a008-chat-assistant-bg: #f4f4f5;
-  --a008-chat-thought-fg: #5c5c5c;
-  --a008-chat-error-fg: #8b1e1e;
-  --a008-chat-error-bg: #fdecec;
-  --a008-chat-muted: #6b6b6b;
+  --a008-chat-fg: var(--a008-fg, #101418);
+  --a008-chat-user-bg: color-mix(
+    in srgb,
+    var(--a008-cyan, #2f7d76) 14%,
+    transparent
+  );
+  --a008-chat-assistant-bg: color-mix(
+    in srgb,
+    var(--a008-border, #6b6b6b) 26%,
+    transparent
+  );
+  --a008-chat-thought-fg: var(--a008-muted, #5c5c5c);
+  --a008-chat-error-fg: var(--a008-danger, #8b1e1e);
+  --a008-chat-error-bg: color-mix(
+    in srgb,
+    var(--a008-danger, #8b1e1e) 14%,
+    transparent
+  );
+  --a008-chat-muted: var(--a008-muted, #6b6b6b);
+  --a008-chat-rule: var(--a008-border, #d0d0d0);
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -64,6 +82,7 @@
   margin: 0;
   padding: 0.6rem 0.8rem;
   border-radius: 0.75rem;
+  color: var(--a008-chat-fg);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -94,7 +113,7 @@
 .a008-chat-thought-body {
   margin: 0.35rem 0 0;
   padding: 0.4rem 0 0.2rem 0.75rem;
-  border-left: 2px solid #d0d0d0;
+  border-left: 2px solid var(--a008-chat-rule);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }

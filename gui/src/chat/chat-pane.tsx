@@ -1,20 +1,19 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { GuiSession } from "../session/types.js";
 import { captureSessionPrompt } from "./capture-prompt.js";
+import {
+  initialChatHistory,
+  reduceChatHistory,
+  shouldSuppressLive,
+} from "./chat-history.js";
 import {
   buildChatTranscript,
   CHAT_CHANNEL,
   emptyStateCopy,
   type ChatAssistantTurn,
-  type ChatTurn,
   type ChatUserTurn,
 } from "./chat-transcript.js";
 import "./chat-pane.css";
-
-function nextId(prefix: string, counter: { current: number }): string {
-  counter.current += 1;
-  return `a008-chat-${prefix}-${String(counter.current)}`;
-}
 
 function ThoughtBlock({ turn }: { readonly turn: ChatAssistantTurn }) {
   const [open, setOpen] = useState(turn.live);
@@ -86,91 +85,47 @@ function AssistantTurnView({ turn }: { readonly turn: ChatAssistantTurn }) {
   );
 }
 
-function commitLiveAssistant(
-  history: readonly ChatTurn[],
-  session: GuiSession,
-  ids: { current: number },
-): ChatTurn[] {
-  if (session.answer === "") {
-    return [...history];
-  }
-  const last = history.at(-1);
-  if (last?.kind === "assistant" && last.answer === session.answer) {
-    return [...history];
-  }
-  return [
-    ...history,
-    {
-      kind: "assistant",
-      id: nextId("assistant", ids),
-      thought: session.thought,
-      answer: session.answer,
-      live: false,
-    },
-  ];
-}
-
-/** A008-0034 replaces this stub. Keep the ChatPane export. */
+/** A008 chat transcript. Keep the ChatPane export. */
 export function ChatPane(props: { readonly session: GuiSession }) {
   const { session } = props;
-  const ids = useRef(0);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
   const sessionRef = useRef(session);
   sessionRef.current = session;
 
-  const [history, setHistory] = useState<readonly ChatTurn[]>([]);
-  const [suppressLive, setSuppressLive] = useState(false);
-  const frozenLive = useRef({ thought: "", answer: "" });
-  const previousLive = useRef({ thought: session.thought, answer: session.answer });
+  const [history, dispatch] = useReducer(reduceChatHistory, initialChatHistory);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     return captureSessionPrompt(session, (text) => {
       const current = sessionRef.current;
-      frozenLive.current = {
+      dispatch({
+        kind: "user",
+        text,
         thought: current.thought,
         answer: current.answer,
-      };
-      setSuppressLive(true);
-      setHistory((prev) => [
-        ...commitLiveAssistant(prev, current, ids),
-        { kind: "user", id: nextId("user", ids), text },
-      ]);
+      });
     });
   }, [session]);
 
   useEffect(() => {
-    const previous = previousLive.current;
-    const hadLive = previous.thought !== "" || previous.answer !== "";
-    const hasLive = session.thought !== "" || session.answer !== "";
-    if (hadLive && !hasLive) {
-      setHistory((prev) => commitLiveAssistant(prev, {
-        ...session,
-        thought: previous.thought,
-        answer: previous.answer,
-      }, ids));
-    }
-    previousLive.current = {
+    dispatch({
+      kind: "live",
       thought: session.thought,
       answer: session.answer,
-    };
-  }, [session, session.thought, session.answer]);
-
-  useEffect(() => {
-    if (!suppressLive) {
-      return;
-    }
-    if (
-      session.thought !== frozenLive.current.thought ||
-      session.answer !== frozenLive.current.answer
-    ) {
-      setSuppressLive(false);
-    }
-  }, [suppressLive, session.thought, session.answer]);
+    });
+  }, [session.thought, session.answer]);
 
   const transcript = useMemo(
-    () => buildChatTranscript({ session, history, suppressLive }),
-    [session, history, suppressLive],
+    () =>
+      buildChatTranscript({
+        session,
+        history: history.turns,
+        suppressLive: shouldSuppressLive(history, {
+          thought: session.thought,
+          answer: session.answer,
+        }),
+      }),
+    [session, history],
   );
 
   useEffect(() => {

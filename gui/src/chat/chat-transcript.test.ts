@@ -202,3 +202,13 @@ test("error stays off thought and answer channels", () => {
     false,
   );
 });
+
+test("empty-state copy survives a widened session status", () => {
+  assert.equal(emptyStateCopy("idle"), "Connect to start a conversation with A008.");
+  // A008-0033 may add a status member; the pane must still render copy.
+  const widened: string = "cancelled";
+  assert.equal(
+    emptyStateCopy(widened as GuiSession["status"]),
+    "A008 is ready when you are.",
+  );
+});

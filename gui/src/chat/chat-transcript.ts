@@ -197,6 +197,11 @@ export function channelTexts(turns: readonly ChatTurn[]): {
   return { user, thought, answer };
 }
 
+/**
+ * Empty-transcript copy. The `default` arm is unreachable for today's status
+ * union and exists so a widened `GuiSession["status"]` from the session module
+ * stays a compiling, rendering state instead of a build break.
+ */
 export function emptyStateCopy(status: GuiSession["status"]): string {
   switch (status) {
     case "idle":
@@ -207,5 +212,7 @@ export function emptyStateCopy(status: GuiSession["status"]): string {
       return "A008 could not start this conversation.";
     case "ready":
       return "A008 is ready. Send a message to start.";
+    default:
+      return "A008 is ready when you are.";
   }
 }
