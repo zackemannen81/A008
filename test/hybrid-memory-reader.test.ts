@@ -5,7 +5,10 @@ import { DeterministicRetrievalPlanner } from "../src/memory/deterministic-retri
 import { CodingAgentMemoryPolicy } from "../src/memory/coding-agent-policy.js";
 import { MemoryError } from "../src/memory/errors.js";
 import { HybridMemoryReader } from "../src/memory/hybrid-memory-reader.js";
-import { NeutralHybridMemoryReadPolicy } from "../src/memory/hybrid-retrieval-policy.js";
+import {
+  NeutralHybridMemoryReadPolicy,
+  strengthWeightForChannels,
+} from "../src/memory/hybrid-retrieval-policy.js";
 import { SemanticMemory } from "../src/memory/memory-engine.js";
 import { Utf8ByteContextMeasurer } from "../src/memory/serialization.js";
 import { SqliteMemoryRepository } from "../src/memory/sqlite-memory-repository.js";
@@ -192,7 +195,7 @@ test("five retrieval channels merge into one scored candidate and one projection
   repository.close();
 });
 
-test("dormant current knowledge is discovered but not projected or mutated", async () => {
+test("S6 reduced: dormant exact/direct hit is projected without mutation", async () => {
   const dormant = storedItem("dormant", {
     proposition: "Dormant SQLite memory remains searchable.",
     activationStatus: "dormant",
@@ -217,13 +220,156 @@ test("dormant current knowledge is discovered but not projected or mutated", asy
     request,
   );
   assert.deepEqual(result.evidence.dormantCandidateIds, ["dormant"]);
-  assert.deepEqual(result.evidence.selectedKnowledgeIds, []);
-  assert.equal(
-    result.evidence.rankedCandidates[0]?.exclusionReason,
-    "persistent_activation_dormant",
+  assert.deepEqual(result.evidence.selectedKnowledgeIds, ["dormant"]);
+  assert.equal(result.evidence.rankedCandidates[0]?.exclusionReason, null);
+  assert.equal(result.evidence.rankedCandidates[0]?.included, true);
+  assert.ok(
+    result.evidence.rankedCandidates[0]?.channels.includes("exact"),
   );
+  assert.ok(
+    result.evidence.rankedCandidates[0]?.reasons.includes(
+      "direct_match_ignores_activation",
+    ),
+  );
+  assert.equal(result.evidence.rankedCandidates[0]?.components.strength, 0);
   assert.deepEqual(await repository.read((view) => view.get("dormant")), before);
   assert.deepEqual(await repository.readAudit(), auditBefore);
+  repository.close();
+});
+
+test("S7 reduced: dormant associative hit is omitted with an explicit reason", async () => {
+  const paint = storedItem("paint-shop", {
+    proposition: "Brittan bought paint at Bauhaus.",
+    tags: ["house"],
+    kind: "event",
+    activationStatus: "dormant",
+    relevanceScore: 0.1,
+    activationThreshold: 0.9,
+  });
+  const repository = new SqliteMemoryRepository({
+    filename: ":memory:",
+    projectId: PROJECT,
+  });
+  await seed(repository, [paint]);
+  await repository.upsertRetrievalDocument({
+    knowledgeId: "paint-shop",
+    domains: ["color"],
+  });
+  const associativePlan: RetrievalPlanner = {
+    plan: () => ({
+      projectId: PROJECT,
+      conversationId: CONVERSATION,
+      taskId: TASK,
+      agentId: AGENT,
+      queryText: "Beratta nagot om Brittan",
+      intents: ["question"],
+      domains: [{ value: "color", weight: 1 }],
+      tags: [{ value: "house", weight: 1 }],
+      entities: [],
+      terms: ["brittan", "paint"],
+      semanticQueries: [],
+      temporalHints: {
+        currentOnly: true,
+        mentionsPast: false,
+        mentionsFuture: false,
+      },
+      applicabilityScopes: ["core"],
+      confidence: 0.5,
+    }),
+  };
+  const before = await repository.read((view) => view.get("paint-shop"));
+  const auditBefore = await repository.readAudit();
+  const result = await reader(repository, { planner: associativePlan }).read(
+    request,
+  );
+  assert.ok(!result.evidence.rankedCandidates[0]?.channels.includes("exact"));
+  assert.deepEqual(result.evidence.dormantCandidateIds, ["paint-shop"]);
+  assert.deepEqual(result.evidence.selectedKnowledgeIds, []);
+  assert.equal(result.evidence.rankedCandidates[0]?.included, false);
+  assert.equal(
+    result.evidence.rankedCandidates[0]?.exclusionReason,
+    "associative_activation_dormant",
+  );
+  assert.ok(
+    (result.evidence.rankedCandidates[0]?.score ?? 0) >=
+      new NeutralHybridMemoryReadPolicy().projectionThreshold,
+  );
+  assert.deepEqual(await repository.read((view) => view.get("paint-shop")), before);
+  assert.deepEqual(await repository.readAudit(), auditBefore);
+  repository.close();
+});
+
+test("exact-channel scoring zeros memory strength; associative scoring keeps it", async () => {
+  assert.equal(
+    strengthWeightForChannels(
+      new NeutralHybridMemoryReadPolicy().weights,
+      ["exact", "lexical"],
+    ),
+    0,
+  );
+  assert.equal(
+    strengthWeightForChannels(new NeutralHybridMemoryReadPolicy().weights, [
+      "lexical",
+      "tag",
+    ]),
+    0.05,
+  );
+
+  const repository = new SqliteMemoryRepository({
+    filename: ":memory:",
+    projectId: PROJECT,
+  });
+  await seed(repository, [
+    storedItem("exact-hit", {
+      proposition: "SQLite entity remains the durable store.",
+      relevanceScore: 1,
+    }),
+    storedItem("associative-hit", {
+      proposition: "Tag-only associative neighbor.",
+      tags: ["memory"],
+      relevanceScore: 1,
+      activationStatus: "active",
+    }),
+  ]);
+  await repository.upsertRetrievalDocument({
+    knowledgeId: "exact-hit",
+    entities: ["sqlite"],
+  });
+  const mixedPlan: RetrievalPlanner = {
+    plan: () => ({
+      projectId: PROJECT,
+      conversationId: CONVERSATION,
+      taskId: TASK,
+      agentId: AGENT,
+      queryText: "sqlite memory",
+      intents: ["question"],
+      domains: [],
+      tags: [{ value: "memory", weight: 1 }],
+      entities: ["sqlite"],
+      terms: [],
+      semanticQueries: [],
+      temporalHints: {
+        currentOnly: true,
+        mentionsPast: false,
+        mentionsFuture: false,
+      },
+      applicabilityScopes: ["core"],
+      confidence: 0.5,
+    }),
+  };
+  const result = await reader(repository, { planner: mixedPlan }).read(request);
+  const exact = result.evidence.rankedCandidates.find(
+    (candidate) => candidate.knowledgeId === "exact-hit",
+  );
+  const associative = result.evidence.rankedCandidates.find(
+    (candidate) => candidate.knowledgeId === "associative-hit",
+  );
+  assert.ok(exact);
+  assert.ok(associative);
+  assert.ok(exact.channels.includes("exact"));
+  assert.ok(!associative.channels.includes("exact"));
+  assert.equal(exact.components.strength, 0);
+  assert.equal(associative.components.strength, 0.05);
   repository.close();
 });
 

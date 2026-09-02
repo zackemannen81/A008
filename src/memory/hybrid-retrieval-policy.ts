@@ -3,6 +3,7 @@ import type {
   CandidateChannelLimits,
   HybridMemoryReadPolicy,
   HybridRetrievalWeights,
+  RetrievalChannel,
 } from "./retrieval-types.js";
 
 export interface HybridMemoryReadPolicyOptions {
@@ -100,4 +101,22 @@ export class NeutralHybridMemoryReadPolicy implements HybridMemoryReadPolicy {
       throw new MemoryError("invalid_input", "hybrid retrieval weights must sum to 1");
     }
   }
+}
+
+export function isExactChannelCandidate(
+  channels: Iterable<RetrievalChannel>,
+): boolean {
+  for (const channel of channels) {
+    if (channel === "exact") {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function strengthWeightForChannels(
+  weights: HybridRetrievalWeights,
+  channels: Iterable<RetrievalChannel>,
+): number {
+  return isExactChannelCandidate(channels) ? 0 : weights.strength;
 }
