@@ -6,13 +6,14 @@ Read `AGENTS.md` and its ordered authority list before changing the repository.
 
 ## Working loop
 
-1. Claim a task identity on `main`.
-2. Draft and review `docs/CURRENT_TASK.md`.
-3. Move it to Ready to freeze the charter.
-4. Work the checklist and keep it truthful.
-5. Verify against the named gates.
-6. Update current truth and durable system documentation with the change.
-7. Archive the task, append the journal, and restore a clean active state.
+1. The operator claims a task identity on `main` and delegates a frozen charter.
+2. A worker may copy that charter into `docs/CURRENT_TASK.md` on its branch.
+3. Work the checklist and keep it truthful.
+4. Verify against the named gates.
+5. Update owned documents in the same change as behavior.
+6. Archive the task under `docs/finished/`, restore `docs/CURRENT_TASK.md` from
+   the template, write the handoff, then push and open a pull request.
+7. The operator merges to `main` and appends the journal.
 
 ## Source intake
 

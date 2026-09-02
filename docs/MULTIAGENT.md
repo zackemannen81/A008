@@ -66,11 +66,26 @@ The five-worker limit is advisory until a configured process layer proves
 enforcement. The optional local MCP add-on can supervise processes but cannot
 allocate IDs, decide scope, merge, or accept completion.
 
+## Delegation
+
+The operator claims the identity on `main` and delegates one frozen charter
+under `docs/tasks/`. A worker does not claim IDs, does not merge to `main`,
+and does not leave a filled `docs/CURRENT_TASK.md` in the pull request.
+
 ## Evidence and handoff
 
 Workers report modified files, commits, exact checks, skipped checks, blockers,
-and next action. Git and owning documents outrank process logs. Cross-worker
-messages are observations until integrated through normal authority updates.
+and next action in `docs/handoffs/A008-NNNN.md`. Git and owning documents
+outrank process logs. Code plus that handoff is integration evidence. Worker
+transcripts are not.
+
+Before push, the worker archives its charter to `docs/finished/` and restores
+`docs/CURRENT_TASK.md` from `docs/template_CURRENT_TASK.md`. `main` keeps that
+same empty template, so the file cannot conflict.
+
+Cross-worker messages are observations until integrated through normal
+authority updates. Workers do not append `docs/JOURNAL.md`; the operator does
+that on merge.
 
 ## Failure recovery
 

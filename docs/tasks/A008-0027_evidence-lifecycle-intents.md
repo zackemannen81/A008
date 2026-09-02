@@ -72,7 +72,7 @@ PROJECT writes nothing.
 - [ ] Wait for M4 and M5 merge.
 - [ ] Implement lifecycle and intents.
 - [ ] Full suite.
-- [ ] Verify, commit, push, PR, handoff.
+- [ ] Verify, archive to `docs/finished/`, restore CURRENT_TASK template, handoff, push, PR.
 
 ## Decisions and Notes
 
@@ -98,4 +98,9 @@ PROJECT writes nothing.
 
 ## Finalize When Complete
 
-- Operator merges.
+- Archive this charter to `docs/finished/A008-0027_evidence-lifecycle-intents.md`
+  with Status: Complete.
+- Restore `docs/CURRENT_TASK.md` from `docs/template_CURRENT_TASK.md` before
+  the last commit and push.
+- Write `docs/handoffs/A008-0027.md`. Do not append `docs/JOURNAL.md`.
+- Open a PR. Do not merge. Operator merges.

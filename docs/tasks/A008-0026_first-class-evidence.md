@@ -85,7 +85,7 @@ policy does not write keepAlive or strength.
 - [x] File split locked by operator: evidence-* vs state/reconcile/update.
 - [ ] Implement INGEST, evidence records, ACCEPT, payload.
 - [ ] Scenario tests.
-- [ ] Verify, commit, push, PR, handoff.
+- [ ] Verify, archive to `docs/finished/`, restore CURRENT_TASK template, handoff, push, PR.
 
 ## Decisions and Notes
 
@@ -113,4 +113,9 @@ policy does not write keepAlive or strength.
 
 ## Finalize When Complete
 
-- Operator merges.
+- Archive this charter to `docs/finished/A008-0026_first-class-evidence.md`
+  with Status: Complete.
+- Restore `docs/CURRENT_TASK.md` from `docs/template_CURRENT_TASK.md` before
+  the last commit and push. Do not leave this charter in CURRENT_TASK.
+- Write `docs/handoffs/A008-0026.md`. Do not append `docs/JOURNAL.md`.
+- Open a PR. Do not merge. Operator merges.

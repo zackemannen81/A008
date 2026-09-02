@@ -32,7 +32,9 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
 
 ## Truth Ownership
 
-- `docs/CURRENT_TASK.md`: the one active task on this branch.
+- `docs/CURRENT_TASK.md`: empty template on `main`. A worker may fill it on
+  its branch while implementing, then must restore the template before push.
+  Active program records live under `docs/tasks/`.
 - `docs/PROJECT_BRIEF.md`: approved product direction and non-goals.
 - `docs/CURRENT_STATUS.md`: observed current reality and verified gaps.
 - `docs/SYSTEMDOC.md`: durable behavior that actually exists.
@@ -60,13 +62,17 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
 ## Task Workflow
 
 - Claim the next task ID on `main` before moving a charter from Draft to Ready.
+  The operator owns allocation and delegates frozen charters; workers do not
+  claim IDs.
 - Ready freezes goal, primary deliverable, scope, out-of-scope, definition of
   done, and minimum gates.
 - Do not absorb discoveries into a frozen task. Route them through the checklist,
   a bounded child, the backlog, or the concepts sandbox.
 - Update owning documentation in the same change as behavior.
-- Finish only after verification, a journal entry, immutable task archive, and
-  restoration of the active-task template.
+- Finish only after verification, an immutable archive under `docs/finished/`,
+  a handoff, and restoration of `docs/CURRENT_TASK.md` from
+  `docs/template_CURRENT_TASK.md` before push. `main` keeps that empty
+  template. The operator appends the journal on merge.
 
 ## Multi-Agent Work
 
@@ -76,7 +82,8 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
 - Writing clones live under `C:\code\A008-workers`, never inside the canonical
   `C:\code\A008` working tree.
 - The operator owns task-ID allocation, the canonical working tree, integration,
-  merge order, and release decisions.
+  merge order, and release decisions. Workers restore the current-task template
+  before they push so that file cannot conflict with `main`.
 - The declared maximum is five concurrent writing workers, or any lower runtime
   limit. It is advisory until an execution layer enforces it.
 

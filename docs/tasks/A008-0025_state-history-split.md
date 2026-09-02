@@ -82,7 +82,7 @@ claims and leaves no accepted binding.
 - [x] Wait for A008-0024 merge.
 - [ ] Implement RECONCILE and UPDATE.
 - [ ] Scenario tests.
-- [ ] Verify, commit, push, PR, handoff.
+- [ ] Verify, archive to `docs/finished/`, restore CURRENT_TASK template, handoff, push, PR.
 
 ## Decisions and Notes
 
@@ -110,4 +110,9 @@ claims and leaves no accepted binding.
 
 ## Finalize When Complete
 
-- Operator merges.
+- Archive this charter to `docs/finished/A008-0025_state-history-split.md`
+  with Status: Complete.
+- Restore `docs/CURRENT_TASK.md` from `docs/template_CURRENT_TASK.md` before
+  the last commit and push. Do not leave this charter in CURRENT_TASK.
+- Write `docs/handoffs/A008-0025.md`. Do not append `docs/JOURNAL.md`.
+- Open a PR. Do not merge. Operator merges.

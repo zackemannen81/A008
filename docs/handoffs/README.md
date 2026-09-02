@@ -3,9 +3,11 @@
 Discoverability: naming convention `A008-NNNN.md`.
 Member state: required. Every member declares a `Status:` line.
 
-A writing worker writes one handoff when it opens a pull request. The
-operator treats repository state plus this file as integration evidence.
-Worker transcripts are not authority.
+A writing worker writes one handoff when it opens a pull request, after
+archiving its charter to `docs/finished/` and restoring
+`docs/CURRENT_TASK.md` from the template. The operator treats repository
+state plus this file as integration evidence. Worker transcripts are not
+authority. Workers do not append `docs/JOURNAL.md`.
 
 ## Required fields
 

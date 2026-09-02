@@ -91,7 +91,7 @@ A008/
    |- LOCAL_MEMORY_SURFACES.md        implemented CLI/ACP memory composition
    |- DEBUG_TRACE.md                  implemented opt-in secret-safe diagnostics
    |- RUNTIME_IDENTITY.md             implemented v0 IDs and ACP binding limits
-   |- CURRENT_TASK.md                one active task per branch
+   |- CURRENT_TASK.md                empty template on `main`; workers restore it before push
    |- template_CURRENT_TASK.md       clean task form
    |- TASK_WORKFLOW.md               lifecycle, freeze, and routing
    |- PROJECT_BRIEF.md               approved direction and open decisions
@@ -105,7 +105,7 @@ A008/
    |- TASK_IDS.md                    task address allocation
    |- KNOWLEDGE_MEMORY_MODEL.md      accepted knowledge constitution (ADR 0018)
    |- KNOWLEDGE_MODEL_GAP_ANALYSIS.md v0-vs-model violations and sequence
-   |- tasks/                         frozen child charters for active programs
+   |- tasks/                         frozen program and child charters; operator delegates from here
    |- handoffs/                      worker integration handoffs
    |- evidence/                      indexed safe verification records/artifacts
    |- _legacy/

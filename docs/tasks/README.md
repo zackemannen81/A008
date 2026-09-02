@@ -3,12 +3,16 @@
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 Member state: required. Every member declares a `Status:` line.
 
-This directory holds frozen child charters for a program whose active task
-lives in `docs/CURRENT_TASK.md`. A writing worker copies its charter into
-`docs/CURRENT_TASK.md` on its branch. The operator restores the parent
-current-task record when merging to `main`.
+This directory holds frozen program and child charters. `docs/CURRENT_TASK.md`
+on `main` is the empty template. The operator claims IDs and delegates one
+charter per worker. A worker may copy its charter into `docs/CURRENT_TASK.md`
+on its branch while working, then archives it to `docs/finished/` and restores
+the template before push.
 
 ## Records
+
+- [`A008-0021_close-knowledge-model-gap.md`](A008-0021_close-knowledge-model-gap.md)
+  — In Progress; parent program. Operator-owned.
 
 - [`A008-0023_repair-direct-match-eligibility.md`](A008-0023_repair-direct-match-eligibility.md)
   — Merged to `main` 2026-09-02 (PR #2).

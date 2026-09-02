@@ -71,7 +71,7 @@ ADR 0018 D9 items 3–5.
 - [ ] Wait for M6 merge.
 - [ ] Design storage only then.
 - [ ] Migrate, prove parity, cut over local surfaces.
-- [ ] Verify, commit, push, PR, handoff.
+- [ ] Verify, archive to `docs/finished/`, restore CURRENT_TASK template, handoff, push, PR.
 
 ## Decisions and Notes
 
@@ -100,4 +100,9 @@ ADR 0018 D9 items 3–5.
 
 ## Finalize When Complete
 
-- Operator merges. Parent A008-0021 can then complete.
+- Archive this charter to `docs/finished/A008-0028_storage-redesign.md`
+  with Status: Complete.
+- Restore `docs/CURRENT_TASK.md` from `docs/template_CURRENT_TASK.md` before
+  the last commit and push.
+- Write `docs/handoffs/A008-0028.md`. Do not append `docs/JOURNAL.md`.
+- Open a PR. Do not merge. Operator merges. Parent A008-0021 can then complete.

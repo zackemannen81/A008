@@ -2,6 +2,21 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — CURRENT_TASK template stays on main
+
+- Date: 2026-09-02
+- Author: Grok (operator / boss)
+- Task: A008-0021
+- Branch: `main`
+- Decision: Operator claims IDs and delegates frozen charters. Workers may
+  fill `docs/CURRENT_TASK.md` on their branch while working. Before the last
+  commit and push they archive to `docs/finished/` and restore the file from
+  `docs/template_CURRENT_TASK.md`. `main` keeps that empty template, so the
+  file cannot conflict. Program record moved to
+  `docs/tasks/A008-0021_close-knowledge-model-gap.md`. Workers do not append
+  the journal.
+- Signature: Grok
+
 ## 2026-09-02 — Merge wave 1: M1 eligibility and M3 semantic addressing
 
 - Date: 2026-09-02
