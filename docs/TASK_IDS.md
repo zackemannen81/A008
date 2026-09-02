@@ -62,3 +62,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0043 | runtime source-ingest surface and ACP method | operator-delegated | 2026-09-02 | src/runtime and src/acp |
 | A008-0044 | GUI host upload route and blob store | operator-delegated | 2026-09-02 | src/gui-host |
 | A008-0045 | GUI upload module | operator-delegated | 2026-09-02 | gui/src/upload |
+| A008-0046 | Memory staging budget increase | mrWhite81 | 2026-09-02 | src/runtime |
