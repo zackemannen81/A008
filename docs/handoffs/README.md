@@ -26,3 +26,4 @@ authority. Workers do not append `docs/JOURNAL.md`.
 - A008-0023 — no worker handoff file; PR #2 code is the handoff. Merged 2026-09-02.
 - [`A008-0025.md`](A008-0025.md) — M4 state/history split. Merged 2026-09-02 (PR #4).
 - [`A008-0026.md`](A008-0026.md) — M5 evidence and ACCEPT. Merged 2026-09-02 (PR #3).
+- [`A008-0027.md`](A008-0027.md) — M6 lifecycle and retrieval intents. Merged 2026-09-02 (PR #5).

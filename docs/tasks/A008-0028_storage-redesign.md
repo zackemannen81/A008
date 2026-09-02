@@ -3,7 +3,7 @@
 Task ID: A008-0028
 Parent Task: A008-0021
 Status: Ready
-Owner: unassigned (wave 4)
+Owner: A008-worker03
 Created: 2026-09-02
 Last updated: 2026-09-02
 Charter frozen at: 2026-09-02
@@ -19,7 +19,7 @@ Charter frozen at: 2026-09-02
 
 Storage only after the in-memory suite is green. Interval tables, slot
 indexes, FTS over labels, and migration of existing supersede chains with
-unknown boundaries recorded as `unknown`. Blocked until A008-0027 is merged.
+unknown boundaries recorded as `unknown`. Unblocked after A008-0027 merged.
 
 ## Task Charter
 
@@ -47,6 +47,8 @@ SQLite adapter for the knowledge engine and live local-surface cutover.
 - OpenHands mutation
 - Server-scale PostgreSQL
 - Merging to `main`
+- Growing `KnowledgeItem` instead of storing the new record families
+- Leaving a filled `docs/CURRENT_TASK.md` in the pull request
 
 ### Definition of Done
 
@@ -63,12 +65,13 @@ ADR 0018 D9 items 3–5.
 ## References
 
 - ADR 0018 D9
-- Depends on: A008-0027 merged
+- Depends on: A008-0027 merged (done)
+- Worker clone: `C:\code\A008-workers\A008-worker03`
 - Branch: `grok/A008-0028-storage-redesign`
 
 ## Checklist
 
-- [ ] Wait for M6 merge.
+- [x] Wait for M6 merge.
 - [ ] Design storage only then.
 - [ ] Migrate, prove parity, cut over local surfaces.
 - [ ] Verify, archive to `docs/finished/`, restore CURRENT_TASK template, handoff, push, PR.
@@ -94,8 +97,9 @@ ADR 0018 D9 items 3–5.
 
 ## Handoff and Follow-ups
 
-- Current state: Ready, blocked on A008-0027.
-- Blockers: M6.
+- Current state: Ready, unblocked.
+- Next recommended step: implement on worker03.
+- Blockers: none. The in-memory suite is the contract; SQLite must match it.
 - Open questions: none.
 
 ## Finalize When Complete

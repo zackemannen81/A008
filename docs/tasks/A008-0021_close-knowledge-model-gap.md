@@ -96,7 +96,7 @@ identical results; live CLI/ACP uses the new engine without V3/V4/V7;
 - [x] Put `docs/CURRENT_TASK.md` back to the empty template on `main`.
 - [x] Brief and merge A008-0025 (M4) from worker02 PR #4.
 - [x] Brief and merge A008-0026 (M5) from worker03 PR #3.
-- [ ] Brief and merge A008-0027 (M6).
+- [x] Brief and merge A008-0027 (M6) from worker02 PR #5.
 - [ ] Brief and merge A008-0028 (M7).
 - [ ] Combined verification and documentation cutover.
 - [ ] Archive this task under `docs/finished/`.
@@ -128,11 +128,11 @@ identical results; live CLI/ACP uses the new engine without V3/V4/V7;
 
 ## Handoff and Follow-ups
 
-- Current state: Wave 2 merged (M4 + M5). CURRENT_TASK on `main` is the
-  template. Wave 2 PRs still had filled CURRENT_TASK (launched before the
-  template rule); operator kept the template.
-- Next recommended step: brief A008-0027 (M6).
-- Blockers: none for wave 3.
-- Child tasks: A008-0022..A008-0026 landed; A008-0027 and A008-0028 remain.
-- Resume condition: A008-0027 PR open.
+- Current state: Wave 3 merged (M6). In-memory S1–S10 green per handoff.
+  CURRENT_TASK on `main` is the template. A008-0027 restored the template
+  before push.
+- Next recommended step: brief A008-0028 (M7 storage).
+- Blockers: none for wave 4.
+- Child tasks: A008-0022..A008-0027 landed; A008-0028 remains.
+- Resume condition: A008-0028 PR open.
 - Open questions: none that reopen ADR 0018.

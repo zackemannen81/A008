@@ -41,12 +41,31 @@ A008/
 |  |  |- hybrid-memory-reader.ts     deduplicated scoring and read-only projection funnel
 |  |  |- sqlite-memory-repository.ts durable local canon, audit, FTS5, and retrieval indexes
 |  |  `- knowledge/
-|  |     |- types.ts                 new-model ontology, slots, clocks, and INTERPRET proposals
+|  |     |- types.ts                 ontology, slots, clocks, INTERPRET proposals
 |  |     |- errors.ts                knowledge-model input/proposal errors
 |  |     |- ids.ts                   branded artifact and entity identifiers
 |  |     |- clocks.ts                Instant/Interval unknown round-trip
 |  |     |- registry.ts              in-memory entity and slot registries
 |  |     |- interpret.ts             INTERPRET: proposes only, writes nothing
+|  |     |- state-types.ts           bindings, intervals, transitions
+|  |     |- state.ts                 current state and history
+|  |     |- reconcile.ts             deterministic slot RECONCILE
+|  |     |- update.ts                atomic interval UPDATE
+|  |     |- evidence-types.ts        utterance, claim, event, provenance
+|  |     |- evidence.ts              evidence store
+|  |     |- ingest.ts                INGEST: artifact and raw utterance
+|  |     |- accept.ts                ACCEPT: claim status only
+|  |     |- payload.ts               sectioned projection payload
+|  |     |- lifecycle-types.ts       evidence-only memory lifecycle
+|  |     |- lifecycle.ts             REINFORCE/WEAKEN/DECAY/REACTIVATE
+|  |     |- read-types.ts            intents, scope, retrieved records
+|  |     |- define.ts                DEFINE semantic scope and intents
+|  |     |- retrieve.ts              RETRIEVE; direct match ignores lifecycle
+|  |     |- expand.ts                EXPAND depth 1; dormant filter
+|  |     |- filter.ts                FILTER applicability and budget
+|  |     |- compose.ts               COMPOSE grouping and order
+|  |     |- project.ts               PROJECT: typed payload, writes nothing
+|  |     |- read.ts                  DEFINE..PROJECT coordinator
 |  |     `- index.ts                 knowledge-tree barrel
 |  |- orchestration/
 |  |  |- memory-prompt-composer.ts   ID-free materialized memory/user envelope
@@ -76,7 +95,10 @@ A008/
 |  |  |- nvidia-live-reasoning-leak.json  live Nemotron channel-leak characterization
 |  |  `- nvidia-live-relation-alias.json  live classifier relation-vs-type payload
 |  |- knowledge-model/
-|  |  `- semantic-addressing.test.ts S3 source-code INTERPRET and slot addressing
+|  |  |- semantic-addressing.test.ts S3 INTERPRET and slot addressing
+|  |  |- state-history.test.ts     S1/S2/S8/S10 state and history
+|  |  |- evidence.test.ts          S4/S5/S9 utterance, ACCEPT, payload
+|  |  `- scenarios.test.ts         full S1–S10 plus decay sweep
 |  `- fake-nvidia-server.test.ts      fixture success and auth rejection
 `- docs/
    |- AGENT_CANVAS_INTEGRATION.md     Custom ACP operator boundary and runbook

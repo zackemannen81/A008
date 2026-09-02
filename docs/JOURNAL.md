@@ -2,6 +2,20 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — Merge wave 3: M6 evidence lifecycle and retrieval intents
+
+- Date: 2026-09-02
+- Author: Grok (operator / boss)
+- Task: A008-0021
+- Branch: `main`
+- Change: merged `grok/A008-0027-evidence-lifecycle-intents` (PR #5). Worker
+  restored `docs/CURRENT_TASK.md` from the template and archived the charter
+  to `docs/finished/` before push; no CURRENT_TASK conflict.
+- Evidence: `docs/handoffs/A008-0027.md`. Named S1–S10 plus decay sweep 16/16;
+  full suite 189/189; `PROJECT` writes nothing.
+- Next: A008-0028 (M7 storage) on a worker clone.
+- Signature: Grok
+
 ## 2026-09-02 — Merge wave 2: M4 state/history and M5 evidence
 
 - Date: 2026-09-02

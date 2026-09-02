@@ -23,6 +23,6 @@ the template before push.
 - [`A008-0026_first-class-evidence.md`](A008-0026_first-class-evidence.md)
   — Merged to `main` 2026-09-02 (PR #3).
 - [`A008-0027_evidence-lifecycle-intents.md`](A008-0027_evidence-lifecycle-intents.md)
-  — Ready; M6 lifecycle and retrieval intents. Unblocked.
+  — Merged to `main` 2026-09-02 (PR #5). Also archived under `docs/finished/`.
 - [`A008-0028_storage-redesign.md`](A008-0028_storage-redesign.md)
-  — Ready; M7 storage. Blocked on A008-0027 merge.
+  — Ready; M7 storage. Unblocked.
