@@ -44,6 +44,10 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
       .onRequest("session/prompt", (context) =>
         agent.prompt(context.params, sessionNotifier(context.client)),
       )
+      // The fluent agent builder registers nothing implicitly, so the optional
+      // `session/close` method needs its own handler even though the agent
+      // advertises the capability from `initialize`.
+      .onRequest("session/close", (context) => agent.closeSession(context.params))
       .onNotification("session/cancel", (context) => agent.cancel(context.params))
       .connect(stream);
 

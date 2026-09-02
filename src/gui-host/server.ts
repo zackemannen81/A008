@@ -105,6 +105,34 @@ export async function startGuiHost(
     }
   };
 
+  /**
+   * Give back every ACP session a closing socket owned.
+   *
+   * This deliberately reads `bridge` instead of calling `getBridge()`: a socket
+   * that never opened a session must not spawn an ACP subprocess on its way
+   * out. Failures are swallowed because this runs on a close path with no one
+   * left to tell — the socket is already gone, and a rejection here would
+   * surface as an unhandled rejection and could take the host down. The set is
+   * cleared either way, so a failed release is never retried against an agent
+   * that has likely already dropped the session itself.
+   */
+  const releaseSessions = async (sessionIds: Set<string>): Promise<void> => {
+    const started = bridge;
+    if (started === undefined || sessionIds.size === 0) {
+      sessionIds.clear();
+      return;
+    }
+    const releases = [...sessionIds].map(async (sessionId) => {
+      try {
+        await started.closeSession(sessionId);
+      } catch {
+        // Intentionally ignored; see the note above.
+      }
+    });
+    sessionIds.clear();
+    await Promise.all(releases);
+  };
+
   const sendJson = (
     response: ServerResponse,
     status: number,
@@ -165,12 +193,13 @@ export async function startGuiHost(
     }
     session.ws = ws;
     sockets.add(ws);
-    void ws.closed.then(() => {
+    void ws.closed.then(async () => {
       sockets.delete(ws);
       for (const controller of activePrompts.values()) {
         controller.abort();
       }
       activePrompts.clear();
+      await releaseSessions(ownedSessions);
     });
   });
 

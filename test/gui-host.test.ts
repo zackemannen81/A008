@@ -15,12 +15,19 @@ import { startGuiHost, type GuiHost, type GuiHostOptions } from "../src/gui-host
 const SECRET = "gui-host-secret-do-not-leak-A008-0032";
 const SESSION_ID = "sess-1";
 
-function injectedBridge(): AcpBridge {
+/**
+ * @param released - when given, every session the host releases is appended to
+ * it, so a test can assert the release itself rather than infer it.
+ */
+function injectedBridge(released?: string[]): AcpBridge {
   let created = 0;
   return {
     async newSession() {
       created += 1;
       return { sessionId: created === 1 ? SESSION_ID : `sess-${String(created)}` };
+    },
+    async closeSession(sessionId) {
+      released?.push(sessionId);
     },
     async prompt(_sessionId, text, handlers, signal) {
       if (text === "fail") {
@@ -421,6 +428,153 @@ test("WebSocket session streams thought and answer then prompt/ok", async () => 
       client.close();
     }
   });
+});
+
+/** Waits for a condition the host reaches asynchronously after a socket close. */
+async function eventually(
+  check: () => boolean,
+  what: string,
+  timeoutMs = 5_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (check()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error(`Timed out waiting for ${what}.`);
+}
+
+test("a disconnecting renderer releases every session it owned", async () => {
+  const released: string[] = [];
+  await withHost(
+    { createAcpBridge: () => injectedBridge(released) },
+    async (host) => {
+      const client = await SessionClient.open(host.port);
+      client.send({ type: "session/new", requestId: "n1" });
+      await client.next();
+      client.send({ type: "session/new", requestId: "n2" });
+      await client.next();
+      assert.deepEqual(released, [], "sessions must survive while the socket is open");
+
+      client.close();
+      await eventually(() => released.length === 2, "both sessions to be released");
+      assert.deepEqual([...released].sort(), ["sess-1", "sess-2"]);
+    },
+  );
+});
+
+test("one renderer disconnecting leaves another renderer's session alone", async () => {
+  const released: string[] = [];
+  await withHost(
+    { createAcpBridge: () => injectedBridge(released) },
+    async (host) => {
+      const first = await SessionClient.open(host.port);
+      first.send({ type: "session/new", requestId: "n1" });
+      await first.next();
+      const second = await SessionClient.open(host.port);
+      second.send({ type: "session/new", requestId: "n2" });
+      await second.next();
+
+      first.close();
+      await eventually(() => released.length === 1, "the first session to be released");
+      assert.deepEqual(released, ["sess-1"]);
+
+      // The survivor is still usable, which is the point of per-socket ownership.
+      second.send({
+        type: "prompt",
+        requestId: "p1",
+        sessionId: "sess-2",
+        text: "hello",
+      });
+      assert.deepEqual(await second.next(), {
+        type: "thought",
+        sessionId: "sess-2",
+        text: "thinking",
+      });
+      second.close();
+      await eventually(() => released.length === 2, "the second session to be released");
+    },
+  );
+});
+
+test("a socket that opened no session releases nothing and starts no bridge", async () => {
+  const released: string[] = [];
+  let bridgesCreated = 0;
+  await withHost(
+    {
+      createAcpBridge: () => {
+        bridgesCreated += 1;
+        return injectedBridge(released);
+      },
+    },
+    async (host) => {
+      const client = await SessionClient.open(host.port);
+      client.close();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      assert.equal(bridgesCreated, 0, "closing an idle socket must not spawn ACP");
+      assert.deepEqual(released, []);
+    },
+  );
+});
+
+test("a failing release does not take the host down", async () => {
+  const attempted: string[] = [];
+  await withHost(
+    {
+      createAcpBridge: () => {
+        const bridge = injectedBridge();
+        return {
+          ...bridge,
+          async closeSession(sessionId) {
+            attempted.push(sessionId);
+            throw new Error("synthetic release failure");
+          },
+        };
+      },
+    },
+    async (host) => {
+      const client = await SessionClient.open(host.port);
+      client.send({ type: "session/new", requestId: "n1" });
+      await client.next();
+      client.close();
+      await eventually(() => attempted.length === 1, "the release attempt");
+
+      // The host is still serving after the rejected release.
+      const health = await httpJson(host, "/health");
+      assert.deepEqual(health.body, { ok: true, name: "A008-gui-host" });
+    },
+  );
+});
+
+test("disconnecting while a prompt streams aborts the turn and still releases", async () => {
+  const released: string[] = [];
+  await withHost(
+    { createAcpBridge: () => injectedBridge(released) },
+    async (host) => {
+      const client = await SessionClient.open(host.port);
+      client.send({ type: "session/new", requestId: "n1" });
+      await client.next();
+      client.send({
+        type: "prompt",
+        requestId: "p1",
+        sessionId: SESSION_ID,
+        text: "wait",
+      });
+      assert.deepEqual(await client.next(), {
+        type: "thought",
+        sessionId: SESSION_ID,
+        text: "thinking",
+      });
+
+      // "wait" only resolves when the prompt signal aborts, so a release that
+      // arrives at all proves the in-flight turn was abandoned, not orphaned.
+      client.close();
+      await eventually(() => released.length === 1, "release after an aborted turn");
+      assert.deepEqual(released, [SESSION_ID]);
+    },
+  );
 });
 
 test("WebSocket cancel ends an in-flight prompt", async () => {

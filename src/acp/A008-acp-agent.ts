@@ -3,6 +3,8 @@ import {
   RequestError,
   type AgentContext,
   type CancelNotification,
+  type CloseSessionRequest,
+  type CloseSessionResponse,
   type InitializeRequest,
   type InitializeResponse,
   type NewSessionRequest,
@@ -79,6 +81,12 @@ export class A008AcpAgent {
           image: false,
           audio: false,
           embeddedContext: false,
+        },
+        // `session/close` is the only session-lifecycle method A008 implements.
+        // An empty object is how ACP v1 advertises support; a client that never
+        // calls the method sees no other change to this response.
+        sessionCapabilities: {
+          close: {},
         },
       },
       agentInfo: {
@@ -246,6 +254,32 @@ export class A008AcpAgent {
 
   cancel(params: CancelNotification): void {
     this.#sessions.get(params.sessionId)?.activeTurn?.abort();
+  }
+
+  /**
+   * ACP `session/close`. The client is done with a session it created, so any
+   * active turn is aborted exactly as `session/cancel` would and every
+   * process-local trace of the session is dropped.
+   *
+   * Closing a session A008 does not hold fails closed with the same typed
+   * `invalid params` error every other session-scoped method here uses, so a
+   * double close or a stale identity is observable instead of silently
+   * succeeding.
+   */
+  closeSession(params: CloseSessionRequest): CloseSessionResponse {
+    const state = this.#requireSession(params.sessionId);
+    state.activeTurn?.abort();
+    this.#sessions.delete(params.sessionId);
+    return {};
+  }
+
+  /**
+   * Session identities this agent still holds. Released sessions disappear
+   * from it, which makes leaked session state directly observable instead of
+   * something a test has to infer from a later failure.
+   */
+  openSessionIds(): readonly string[] {
+    return [...this.#sessions.keys()];
   }
 
   #requireSession(sessionId: string): AcpSessionState {
