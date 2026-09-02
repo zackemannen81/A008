@@ -2,6 +2,38 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — Correct the named blocker for document upload
+
+- Date: 2026-09-02
+- Author: Claude (operator / boss)
+- Task: none; correction and backlog record
+- Branch: `main`
+- Correction: the previous entry, and the A008-0040 archive and handoff, name
+  `ContentKind` as the remaining blocker for a correct upload ingest. That is
+  wrong. `ContentKind` is a genre axis, not a medium axis — a PDF containing a
+  forecast is a `forecast`, and that it arrived as a file is already carried by
+  `Artifact.locator` and by the `relation` parameter A008-0040 added. No enum
+  value is needed for "uploaded document". Those three records are immutable, so
+  the correction lives in the new backlog entry rather than as an edit.
+- Supporting checks: `contentKind` drives exactly one behaviour in `src/` —
+  `interpret()` returns an empty proposal unless it is `source_code` — and
+  ADR 0018 does not mention the enum, so changing it later needs no amendment.
+- Actual finding: `ingest()` creates exactly one `Utterance` from any length of
+  content, and `classifySpeech()` decides its act and kind with heuristics
+  written for chat messages. Correct for a dialogue turn, wrong for a document.
+  `IngestResult.utterances` is already plural; the implementation is not. That
+  granularity is the real blocker for uploads, and it is baked into every stored
+  record, so it is expensive to change after the fact.
+- Change: recorded in `docs/backlog/document-ingest-granularity.md` with the
+  open questions that need settling first — where splitting belongs, what the
+  unit is, how order is preserved, and whether a non-dialogue caller should be
+  required to state the kind rather than have it guessed.
+- Owner decision: stop here. `speaker` plus `relation` are sufficient for an
+  upload path to be built correctly, and the remaining choices are better made
+  against a real consumer.
+- Not performed: no code change, no ontology change, no upload or vision path.
+- Signature: Claude
+
 ## 2026-09-02 — Let a caller name the INGEST provenance relation
 
 - Date: 2026-09-02
