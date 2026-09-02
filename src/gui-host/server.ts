@@ -22,6 +22,7 @@ import {
   createSpawnedAcpBridge,
   type AcpBridge,
 } from "./acp-bridge.js";
+import { firstHeaderValue, isAllowedOrigin } from "./origin.js";
 import {
   DEFAULT_GUI_HOST_BIND,
   DEFAULT_GUI_HOST_PORT,
@@ -135,8 +136,11 @@ export async function startGuiHost(
   server.on("upgrade", (request, socket, head) => {
     const pathname = requestPath(request);
     if (pathname !== "/v1/session" || !isWebSocketUpgrade(request)) {
-      socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
-      socket.destroy();
+      socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
+      return;
+    }
+    if (!requestOriginAllowed(request)) {
+      socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
       return;
     }
     const ownedSessions = new Set<string>();
@@ -185,10 +189,13 @@ export async function startGuiHost(
         socket.close();
       }
       sockets.clear();
-      if (bridge !== undefined) {
-        await bridge.close();
-        bridge = undefined;
+      const pending = bridgePending;
+      bridgePending = undefined;
+      if (pending !== undefined) {
+        const started = await pending.catch(() => undefined);
+        await started?.close();
       }
+      bridge = undefined;
       await new Promise<void>((resolve, reject) => {
         server.close((error) => {
           if (error !== null && error !== undefined) {
@@ -197,6 +204,9 @@ export async function startGuiHost(
           }
           resolve();
         });
+        // Keep-alive sockets from `fetch` would otherwise hold the listener
+        // open until their idle timeout expires.
+        server.closeAllConnections();
       });
     },
   };
@@ -217,6 +227,11 @@ async function handleHttp(input: {
   const method = request.method ?? "GET";
   const pathname = requestPath(request);
 
+  if (!requestOriginAllowed(request)) {
+    sendJson(response, 403, errorBody("Cross-origin requests are refused."));
+    return;
+  }
+
   try {
     if (method === "GET" && pathname === "/health") {
       sendJson(response, 200, { ok: true, name: GUI_HOST_NAME });
@@ -232,9 +247,17 @@ async function handleHttp(input: {
       return;
     }
     if (method === "POST" && pathname === "/v1/shell") {
+      if (!isJsonContentType(request)) {
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
+        return;
+      }
       const body = await readJsonBody(request);
       if (!isRecord(body) || typeof body.command !== "string") {
-        sendJson(response, 400, { error: "command must be a string." });
+        sendJson(response, 400, errorBody("command must be a string."));
         return;
       }
       const result = await input.runTerminal({
@@ -262,14 +285,42 @@ async function handleHttp(input: {
         return;
       }
     }
-    sendJson(response, 404, { error: "Not found." });
+    sendJson(response, 404, errorBody("Not found."));
   } catch (error) {
     if (isChatError(error) && error.code === "configuration") {
-      sendJson(response, 400, { error: publicErrorMessage(error) });
+      sendJson(response, 400, errorBody(publicErrorMessage(error)));
       return;
     }
-    sendJson(response, 500, { error: publicErrorMessage(error) });
+    sendJson(response, 500, errorBody(publicErrorMessage(error)));
   }
+}
+
+/**
+ * HTTP failure body. `message` is the field the A008 GUI shell client reads
+ * (`gui/src/terminal/run-shell-command.ts`); `error` is kept for curl and log
+ * readers.
+ */
+function errorBody(message: string): {
+  readonly error: string;
+  readonly message: string;
+} {
+  return { error: message, message };
+}
+
+function requestOriginAllowed(request: IncomingMessage): boolean {
+  return isAllowedOrigin(
+    firstHeaderValue(request.headers.origin),
+    firstHeaderValue(request.headers.host),
+  );
+}
+
+function isJsonContentType(request: IncomingMessage): boolean {
+  const header = firstHeaderValue(request.headers["content-type"]);
+  if (header === undefined) {
+    return false;
+  }
+  const mime = header.split(";")[0]?.trim().toLowerCase() ?? "";
+  return mime === "application/json" || mime.endsWith("+json");
 }
 
 async function handleSocketMessage(input: {

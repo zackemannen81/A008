@@ -44,8 +44,7 @@ export function acceptWebSocket(
   const key = headerValue(request.headers["sec-websocket-key"]);
   const version = headerValue(request.headers["sec-websocket-version"]);
   if (key === undefined || version !== "13") {
-    socket.write("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
-    socket.destroy();
+    socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
     return undefined;
   }
   const accept = createHash("sha1")

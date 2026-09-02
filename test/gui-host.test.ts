@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
 import { mkdtempSync, writeFileSync } from "node:fs";
+import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { createSpawnedAcpBridge, type AcpBridge } from "../src/gui-host/acp-bridge.js";
+import { isAllowedOrigin } from "../src/gui-host/origin.js";
 import { parseClientMessage } from "../src/gui-host/protocol.js";
 import { redactWireText } from "../src/gui-host/redact.js";
 import { startGuiHost, type GuiHost, type GuiHostOptions } from "../src/gui-host/server.js";
@@ -137,6 +140,41 @@ class SessionClient {
   }
 }
 
+interface UpgradeAttempt {
+  readonly status: number | undefined;
+  readonly upgraded: boolean;
+}
+
+async function attemptUpgrade(
+  port: number,
+  extraHeaders: Readonly<Record<string, string>> = {},
+): Promise<UpgradeAttempt> {
+  const outgoing = httpRequest({
+    host: "127.0.0.1",
+    port,
+    path: "/v1/session",
+    headers: {
+      connection: "Upgrade",
+      upgrade: "websocket",
+      "sec-websocket-key": randomBytes(16).toString("base64"),
+      "sec-websocket-version": "13",
+      ...extraHeaders,
+    },
+  });
+  return await new Promise<UpgradeAttempt>((resolve, reject) => {
+    outgoing.on("upgrade", (_response, socket) => {
+      socket.destroy();
+      resolve({ status: undefined, upgraded: true });
+    });
+    outgoing.on("response", (response) => {
+      response.resume();
+      resolve({ status: response.statusCode, upgraded: false });
+    });
+    outgoing.on("error", reject);
+    outgoing.end();
+  });
+}
+
 function assertWireClean(raw: readonly string[]): void {
   const joined = raw.join("\n");
   assert.equal(joined.includes(SECRET), false);
@@ -176,6 +214,17 @@ test("redactWireText removes credential names and values", () => {
   assert.equal(redacted.includes(SECRET), false);
   assert.doesNotMatch(redacted, /NVIDIA_API_KEY/u);
   assert.doesNotMatch(redacted, /authorization/iu);
+});
+
+test("isAllowedOrigin admits loopback and same-origin browsers only", () => {
+  assert.equal(isAllowedOrigin(undefined, "127.0.0.1:8787"), true);
+  assert.equal(isAllowedOrigin("http://127.0.0.1:8787", "127.0.0.1:8787"), true);
+  assert.equal(isAllowedOrigin("http://localhost:5173", "127.0.0.1:8787"), true);
+  assert.equal(isAllowedOrigin("https://a008.example", "a008.example"), true);
+  assert.equal(isAllowedOrigin("https://evil.example", "127.0.0.1:8787"), false);
+  assert.equal(isAllowedOrigin("null", "127.0.0.1:8787"), false);
+  assert.equal(isAllowedOrigin("not a url", "127.0.0.1:8787"), false);
+  assert.equal(isAllowedOrigin("file://", "127.0.0.1:8787"), false);
 });
 
 test("GET /health and /v1/models do not require a credential", async () => {
@@ -254,6 +303,85 @@ test("POST /v1/shell runs a local node process through runTerminalCommand", asyn
       body: JSON.stringify({ command: "   " }),
     });
     assert.equal(empty.status, 400);
+  });
+});
+
+test("POST /v1/shell refuses cross-origin and non-JSON callers", async () => {
+  let ran = 0;
+  await withHost(
+    {
+      runTerminal: async (input) => {
+        ran += 1;
+        return {
+          command: input.command,
+          cwd: input.cwd,
+          exitCode: 0,
+          signal: null,
+          stdout: "",
+          stderr: "",
+          timedOut: false,
+          truncated: false,
+        };
+      },
+    },
+    async (host) => {
+      const crossOrigin = await httpJson(host, "/v1/shell", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          origin: "https://evil.example",
+        },
+        body: JSON.stringify({ command: "echo owned" }),
+      });
+      assert.equal(crossOrigin.status, 403);
+
+      // A cross-origin HTML form can only send these content types, so a
+      // simple-request CSRF must not reach the shell.
+      const formShaped = await httpJson(host, "/v1/shell", {
+        method: "POST",
+        headers: { "content-type": "text/plain;charset=UTF-8" },
+        body: JSON.stringify({ command: "echo owned" }),
+      });
+      assert.equal(formShaped.status, 415);
+
+      assert.equal(ran, 0);
+    },
+  );
+});
+
+test("HTTP failures carry the message field the GUI shell client reads", async () => {
+  await withHost({}, async (host) => {
+    const missing = await httpJson(host, "/v1/nope");
+    assert.equal(missing.status, 404);
+    assert.deepEqual(missing.body, {
+      error: "Not found.",
+      message: "Not found.",
+    });
+    const empty = await httpJson(host, "/v1/shell", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ command: "   " }),
+    });
+    assert.equal(empty.status, 400);
+    const body = empty.body as { readonly message: string };
+    assert.equal(body.message, "Terminal command must not be empty.");
+  });
+});
+
+test("WebSocket upgrade refuses a cross-origin page", async () => {
+  await withHost({}, async (host) => {
+    const blocked = await attemptUpgrade(host.port, {
+      origin: "https://evil.example",
+    });
+    assert.deepEqual(blocked, { status: 403, upgraded: false });
+    const allowed = await attemptUpgrade(host.port, {
+      origin: `http://127.0.0.1:${String(host.port)}`,
+    });
+    assert.equal(allowed.upgraded, true);
+    const wrongPath = await httpJson(host, "/health", {
+      headers: { origin: "https://evil.example" },
+    });
+    assert.equal(wrongPath.status, 403);
   });
 });
 
@@ -389,18 +517,36 @@ test("GUI host serves static files from the configured directory", async () => {
   });
 });
 
+function spawnedFakeAcp(): GuiHostOptions {
+  return {
+    createAcpBridge: () =>
+      createSpawnedAcpBridge({
+        env: { ...process.env, NVIDIA_API_KEY: SECRET },
+        cwd: process.cwd(),
+        agentPath: fileURLToPath(
+          new URL("./gui-host/fake-acp.js", import.meta.url),
+        ),
+      }),
+  };
+}
+
+async function openFakeAcpSession(
+  host: GuiHost,
+): Promise<{ readonly client: SessionClient; readonly sessionId: string }> {
+  const client = await SessionClient.open(host.port);
+  client.send({ type: "session/new", requestId: "n1" });
+  const created = (await client.next()) as {
+    readonly type: string;
+    readonly sessionId: string;
+  };
+  assert.equal(created.type, "session/new/ok");
+  assert.match(created.sessionId, /^A008_v1_acp_session_/u);
+  return { client, sessionId: created.sessionId };
+}
+
 test("spawned fake ACP bridge streams thought and answer", async () => {
   await withHost(
-    {
-      createAcpBridge: () =>
-        createSpawnedAcpBridge({
-          env: { ...process.env, NVIDIA_API_KEY: SECRET },
-          cwd: process.cwd(),
-          agentPath: fileURLToPath(
-            new URL("./gui-host/fake-acp.js", import.meta.url),
-          ),
-        }),
-    },
+    spawnedFakeAcp(),
     async (host) => {
       const client = await SessionClient.open(host.port);
       try {
@@ -442,4 +588,63 @@ test("spawned fake ACP bridge streams thought and answer", async () => {
       }
     },
   );
+});
+
+test("spawned fake ACP bridge cancels an in-flight prompt over stdio", async () => {
+  await withHost(spawnedFakeAcp(), async (host) => {
+    const { client, sessionId } = await openFakeAcpSession(host);
+    try {
+      client.send({ type: "prompt", requestId: "p1", sessionId, text: "wait" });
+      assert.deepEqual(await client.next(), {
+        type: "thought",
+        sessionId,
+        text: "thinking",
+      });
+      client.send({ type: "cancel", requestId: "c1", sessionId });
+      assert.deepEqual(await client.next(), {
+        type: "prompt/ok",
+        requestId: "p1",
+        sessionId,
+      });
+      assertWireClean(client.raw);
+    } finally {
+      client.close();
+    }
+  });
+});
+
+test("spawned fake ACP bridge reports a failed turn as an error frame", async () => {
+  await withHost(spawnedFakeAcp(), async (host) => {
+    const { client, sessionId } = await openFakeAcpSession(host);
+    try {
+      client.send({ type: "prompt", requestId: "p1", sessionId, text: "fail" });
+      assert.deepEqual(await client.next(), {
+        type: "error",
+        requestId: "p1",
+        sessionId,
+        message: "synthetic ACP failure",
+      });
+
+      // The ACP subprocess survives a failed turn and the session still works.
+      client.send({ type: "prompt", requestId: "p2", sessionId, text: "hello" });
+      assert.deepEqual(await client.next(), {
+        type: "thought",
+        sessionId,
+        text: "thinking",
+      });
+      assert.deepEqual(await client.next(), {
+        type: "answer",
+        sessionId,
+        text: "hello",
+      });
+      assert.deepEqual(await client.next(), {
+        type: "prompt/ok",
+        requestId: "p2",
+        sessionId,
+      });
+      assertWireClean(client.raw);
+    } finally {
+      client.close();
+    }
+  });
 });
