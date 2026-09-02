@@ -46,3 +46,11 @@ never whether work is active or complete. Task state belongs in
 | A008-0027 | evidence lifecycle and retrieval intents | unassigned | 2026-09-02 | M6 lifecycle on evidence; history surface |
 | A008-0028 | knowledge storage redesign | unassigned | 2026-09-02 | M7 SQLite after in-memory S1–S10 |
 | A008-0029 | CLI slash commands and native terminal tool | Grok (operator) | 2026-09-02 | interactive /commands and /shell; reject LangChain community |
+| A008-0030 | A008-owned GUI program | Grok (operator / boss) | 2026-09-02 | parent; sole main merger |
+| A008-0031 | adopt A008 GUI boundary | Grok (operator / boss) | 2026-09-02 | ADR 0019 and gui stub shell |
+| A008-0032 | GUI host ACP WebSocket bridge | A008-worker01 | 2026-09-02 | src/gui-host spawn A008-acp |
+| A008-0033 | GUI session client | A008-worker02 | 2026-09-02 | gui/src/session |
+| A008-0034 | GUI chat transcript | A008-worker03 | 2026-09-02 | gui/src/chat |
+| A008-0035 | GUI composer and slash commands | A008-worker04 | 2026-09-02 | gui/src/composer |
+| A008-0036 | GUI terminal pane | A008-worker05 | 2026-09-02 | gui/src/terminal |
+| A008-0037 | GUI settings and brand | A008-worker06 | 2026-09-02 | gui/src/settings and gui/src/brand |

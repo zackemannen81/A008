@@ -1,0 +1,25 @@
+/* A008-0037 owns visual identity. Keep these layout class names. */
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+}
+.a008-app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr 16rem;
+  min-height: 100%;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+.a008-header {
+  grid-column: 1 / -1;
+}
+.a008-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.a008-aside {
+  min-width: 0;
+}

@@ -11,6 +11,15 @@ the template before push.
 
 ## Records
 
+- [`A008-0030_a008-owned-gui.md`](A008-0030_a008-owned-gui.md) — In Progress;
+  product GUI program.
+- [`A008-0032_gui-host.md`](A008-0032_gui-host.md) — Ready.
+- [`A008-0033_gui-session.md`](A008-0033_gui-session.md) — Ready.
+- [`A008-0034_gui-chat.md`](A008-0034_gui-chat.md) — Ready.
+- [`A008-0035_gui-composer.md`](A008-0035_gui-composer.md) — Ready.
+- [`A008-0036_gui-terminal.md`](A008-0036_gui-terminal.md) — Ready.
+- [`A008-0037_gui-settings-brand.md`](A008-0037_gui-settings-brand.md) — Ready.
+
 - [`A008-0029_cli-slash-and-terminal.md`](A008-0029_cli-slash-and-terminal.md)
   — Complete; archived
   [`../finished/A008-0029_cli-slash-and-terminal.md`](../finished/A008-0029_cli-slash-and-terminal.md).

@@ -10,8 +10,19 @@ A008/
 |- package.json                      Node package, scripts, exports, CLI metadata
 |- package-lock.json                 exact npm dependency graph
 |- tsconfig.json                     strict ESM TypeScript build
+|- gui/                              A008-owned product UI (ADR 0019)
+|  |- package.json                   Vite/React GUI package
+|  |- src/
+|  |  |- app.tsx                     shell layout (operator-owned)
+|  |  |- session/                    A008-0033 WebSocket session client
+|  |  |- chat/                       A008-0034 transcript
+|  |  |- composer/                   A008-0035 slash composer
+|  |  |- terminal/                   A008-0036 terminal pane
+|  |  |- settings/                   A008-0037 settings
+|  |  `- brand/                      A008-0037 identity
 |- src/
 |  |- index.ts                       public core/provider exports
+|  |- gui-host/                      A008-0032 HTTP/WS ACP bridge (product GUI)
 |  |- cli.ts                         terminal composition root
 |  |- cli/
 |  |  `- slash.ts                    interactive /command parser

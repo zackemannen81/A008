@@ -18,8 +18,9 @@ replacement.
   — Accepted; Node.js/TypeScript single package with provider-neutral core and
   NVIDIA behind an injected transport.
 - [`0004-agent-canvas-acp-boundary.md`](0004-agent-canvas-acp-boundary.md) —
-  Accepted; standalone Agent Canvas reaches the shared A008 chat core through
-  Agent Server and a custom stdio ACP bridge.
+  Accepted (amended by ADR 0019); standalone Agent Canvas reaches the shared
+  A008 chat core through Agent Server and a custom stdio ACP bridge. That
+  path is operator compatibility, not the product GUI.
 - [`0005-semantic-memory-v0-boundary.md`](0005-semantic-memory-v0-boundary.md) —
   Accepted (amended by ADR 0018); provider-neutral memory service, atomic
   persistence port, explicit reconciliation, and bounded materialized
@@ -72,3 +73,6 @@ replacement.
   — Accepted; `KNOWLEDGE_MEMORY_MODEL.md` is constitution. Amends 0005, 0007,
   0010, and 0014. Dual-path new engine; do not grow `KnowledgeItem`; clocks
   on new types; INTERPRET proposes; RECONCILE is a slot state machine.
+- [`0019-a008-owned-gui.md`](0019-a008-owned-gui.md) — Accepted; product GUI
+  is A008-owned `gui/` plus `src/gui-host/` ACP WebSocket bridge. Amends 0004.
+  Canvas+Agent Server remains operator compatibility only.

@@ -92,8 +92,8 @@ introduces opt-in secret-safe provider tracing.
 
 ## Open decisions
 
-1. Whether a later product phase keeps standalone Agent Canvas or consumes its
-   library exports after the ACP proof.
+1. Closed by ADR 0019: the product GUI is A008-owned `gui/` plus `src/gui-host/`.
+   Standalone Agent Canvas + Agent Server remains an operator ACP path only.
 2. Durable retry, background repair ownership, and production failure UX
    beyond the local CLI/ACP composition that now injects the existing
    transport/model/budgets and awaits in-process post-output settlement.

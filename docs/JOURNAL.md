@@ -2,6 +2,20 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — Adopt A008-owned GUI boundary
+
+- Date: 2026-09-02
+- Author: Grok (operator / boss)
+- Task: A008-0031 (parent A008-0030)
+- Branch: `main`
+- Decision: ADR 0019. Product GUI is A008-owned `gui/` and `src/gui-host/`
+  bridging ACP WebSocket to `A008-acp`. OpenHands is not modified. Canvas is
+  operator compatibility only. No credentials in the renderer. No wholesale
+  Canvas copy. POST `/v1/shell` reuses `src/tools/terminal.ts`.
+- Change: claimed A008-0030 through A008-0037; stub `gui/` shell with
+  per-module ownership; PROJECT_BRIEF decision 1 closed.
+- Signature: Grok
+
 ## 2026-09-02 — CLI slash commands and native terminal tool
 
 - Date: 2026-09-02

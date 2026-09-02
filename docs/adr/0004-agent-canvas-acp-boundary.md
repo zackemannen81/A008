@@ -1,6 +1,6 @@
 # ADR 0004 — Agent Canvas ACP boundary
 
-Status: Accepted
+Status: Accepted (amended by ADR 0019)
 
 Date: 2026-09-01
 
@@ -74,3 +74,11 @@ renderer-facing system, and creates a second provider owner beside A008.
 - A separate task must install/start the current Canvas and Agent Server stack,
   configure the custom command, and record a real browser/E2E result against a
   local fake endpoint before claiming GUI integration works on this host.
+
+## Amendment
+
+Amended 2026-09-02 by [ADR 0019](0019-a008-owned-gui.md). This record remains
+the operator Canvas + Agent Server + `A008-acp` compatibility path. The product
+GUI is an A008-owned `gui/` application and `src/gui-host/` ACP WebSocket
+bridge. OpenHands source is not modified. PROJECT_BRIEF open decision 1 is
+closed: standalone Canvas is not the product client.
