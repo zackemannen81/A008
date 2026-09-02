@@ -54,3 +54,5 @@ never whether work is active or complete. Task state belongs in
 | A008-0035 | GUI composer and slash commands | A008-worker04 | 2026-09-02 | gui/src/composer |
 | A008-0036 | GUI terminal pane | A008-worker05 | 2026-09-02 | gui/src/terminal |
 | A008-0037 | GUI settings and brand | A008-worker06 | 2026-09-02 | gui/src/settings and gui/src/brand |
+| A008-0038 | release ACP sessions on renderer disconnect | operator-delegated | 2026-09-02 | ACP session_close and GUI host session lifecycle |
+| A008-0039 | one command for the GUI module tests | operator-delegated | 2026-09-02 | shared gui test runner and script wiring |

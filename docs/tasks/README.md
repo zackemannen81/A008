@@ -21,6 +21,11 @@ the template before push.
 - [`A008-0036_gui-terminal.md`](A008-0036_gui-terminal.md) — Merged PR #7.
 - [`A008-0037_gui-settings-brand.md`](A008-0037_gui-settings-brand.md) — Merged PR #9.
 
+- [`A008-0038_acp-session-release.md`](A008-0038_acp-session-release.md) — Ready;
+  releases ACP sessions when a renderer disconnects.
+- [`A008-0039_gui-test-command.md`](A008-0039_gui-test-command.md) — Ready;
+  one command for the GUI module tests.
+
 - [`A008-0029_cli-slash-and-terminal.md`](A008-0029_cli-slash-and-terminal.md)
   — Complete; archived
   [`../finished/A008-0029_cli-slash-and-terminal.md`](../finished/A008-0029_cli-slash-and-terminal.md).
