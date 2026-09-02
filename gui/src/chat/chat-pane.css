@@ -1,0 +1,124 @@
+/*
+ * Layout for the A008 chat transcript. Every colour reads an A008 brand token
+ * with a local fallback, so the pane follows `gui/src/brand/a008.css` when it
+ * is loaded and still renders legibly on its own.
+ */
+.a008-chat {
+  --a008-chat-fg: var(--a008-fg, #101418);
+  --a008-chat-user-bg: color-mix(
+    in srgb,
+    var(--a008-cyan, #2f7d76) 14%,
+    transparent
+  );
+  --a008-chat-assistant-bg: color-mix(
+    in srgb,
+    var(--a008-border, #6b6b6b) 26%,
+    transparent
+  );
+  --a008-chat-thought-fg: var(--a008-muted, #5c5c5c);
+  --a008-chat-error-fg: var(--a008-danger, #8b1e1e);
+  --a008-chat-error-bg: color-mix(
+    in srgb,
+    var(--a008-danger, #8b1e1e) 14%,
+    transparent
+  );
+  --a008-chat-muted: var(--a008-muted, #6b6b6b);
+  --a008-chat-rule: var(--a008-border, #d0d0d0);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.a008-chat-error {
+  margin: 0.5rem 0.75rem 0;
+  padding: 0.5rem 0.75rem;
+  color: var(--a008-chat-error-fg);
+  background: var(--a008-chat-error-bg);
+  border-radius: 0.375rem;
+}
+
+.a008-chat-transcript {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.75rem;
+}
+
+.a008-chat-empty {
+  margin: auto;
+  max-width: 28rem;
+  color: var(--a008-chat-muted);
+  text-align: center;
+}
+
+.a008-chat-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 44rem;
+}
+
+.a008-chat-turn-user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.a008-chat-turn-assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.a008-chat-label {
+  font-size: 0.75rem;
+  color: var(--a008-chat-muted);
+}
+
+.a008-chat-bubble {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.75rem;
+  color: var(--a008-chat-fg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.a008-chat-bubble-user {
+  background: var(--a008-chat-user-bg);
+}
+
+.a008-chat-bubble-answer {
+  background: var(--a008-chat-assistant-bg);
+}
+
+.a008-chat-thought {
+  width: 100%;
+  color: var(--a008-chat-thought-fg);
+  font-size: 0.875rem;
+}
+
+.a008-chat-thought > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.a008-chat-thought > summary::-webkit-details-marker {
+  display: none;
+}
+
+.a008-chat-thought-body {
+  margin: 0.35rem 0 0;
+  padding: 0.4rem 0 0.2rem 0.75rem;
+  border-left: 2px solid var(--a008-chat-rule);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.a008-chat-live {
+  font-size: 0.75rem;
+  color: var(--a008-chat-muted);
+}
