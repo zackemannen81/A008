@@ -11,6 +11,10 @@ the template before push.
 
 ## Records
 
+- [`A008-0029_cli-slash-and-terminal.md`](A008-0029_cli-slash-and-terminal.md)
+  — Complete; archived
+  [`../finished/A008-0029_cli-slash-and-terminal.md`](../finished/A008-0029_cli-slash-and-terminal.md).
+
 - [`A008-0021_close-knowledge-model-gap.md`](A008-0021_close-knowledge-model-gap.md)
   — Complete; archived
   [`../finished/A008-0021_close-knowledge-model-gap.md`](../finished/A008-0021_close-knowledge-model-gap.md).

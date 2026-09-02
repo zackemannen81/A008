@@ -51,6 +51,19 @@ export class ChatSession {
     this.#messages = this.#messages.filter((message) => message.role === "system");
   }
 
+  undoLastTurn(): boolean {
+    let index = this.#messages.length - 1;
+    if (index < 0 || this.#messages[index]?.role !== "assistant") {
+      return false;
+    }
+    index -= 1;
+    if (index < 0 || this.#messages[index]?.role !== "user") {
+      return false;
+    }
+    this.#messages = this.#messages.slice(0, index);
+    return true;
+  }
+
   async send(
     content: string,
     options: SendMessageOptions = {},

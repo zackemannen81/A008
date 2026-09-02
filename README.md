@@ -99,8 +99,11 @@ For local chat, copy `.env.example` to `.env.local`, set
 npm run cli -- chat
 ```
 
-Inside chat, `/reset` clears conversation turns while preserving the system
-message and SQLite namespace, and `/exit` ends the session. See
+Inside chat, `/help` lists interactive commands. `/reset` and `/clear` clear
+conversation turns while preserving the system message and SQLite namespace.
+`/exit` ends the session. `/shell <command>` (alias `/!`) runs a local
+terminal command in the process working directory through A008's native
+runner — not LangChain. See
 `docs/LOCAL_MEMORY_SURFACES.md` and `docs/DEBUG_TRACE.md` for SQLite path,
 identity, activation, and tracing settings. Default memory state is
 `~/.A008/memory.sqlite`.

@@ -13,6 +13,10 @@ A008/
 |- src/
 |  |- index.ts                       public core/provider exports
 |  |- cli.ts                         terminal composition root
+|  |- cli/
+|  |  `- slash.ts                    interactive /command parser
+|  |- tools/
+|  |  `- terminal.ts                 native shell runner for /shell
 |  |- acp/
 |  |  |- A008-acp-agent.ts           injectable ACP session/event bridge
 |  |  |- prompt-content.ts           baseline ACP prompt normalization

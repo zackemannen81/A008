@@ -2,6 +2,7 @@
 
 import { createInterface } from "node:readline/promises";
 import { pathToFileURL } from "node:url";
+import { parseSlash, SLASH_HELP } from "./cli/slash.js";
 import { ChatError, isChatError } from "./core/errors.js";
 import { isIdentityError } from "./identity/errors.js";
 import { isMemoryError } from "./memory/errors.js";
@@ -12,8 +13,17 @@ import {
 } from "./core/model-registry.js";
 import type { ChatTransport } from "./core/types.js";
 import type { NvidiaChatTransportOptions } from "./providers/nvidia/nvidia-chat-transport.js";
-import { createLocalMemoryRuntime } from "./runtime/local-memory-runtime.js";
+import {
+  createLocalMemoryRuntime,
+  type LocalMemoryRuntime,
+  type LocalMemorySession,
+} from "./runtime/local-memory-runtime.js";
 import { DEFAULT_SYSTEM_MESSAGE } from "./runtime/nvidia-session.js";
+import {
+  formatTerminalResult,
+  runTerminalCommand,
+  type TerminalRunner,
+} from "./tools/terminal.js";
 
 export interface CliDependencies {
   readonly env: NodeJS.ProcessEnv;
@@ -21,6 +31,8 @@ export interface CliDependencies {
   readonly stdout: NodeJS.WritableStream;
   readonly stderr: NodeJS.WritableStream;
   readonly registry: ModelRegistry;
+  readonly cwd: string;
+  readonly runTerminal: TerminalRunner;
   readonly createTransport?: (
     options: NvidiaChatTransportOptions,
   ) => ChatTransport;
@@ -49,13 +61,11 @@ Environment:
   A008_DEBUG_TRACE            off (default), safe, or raw.
   A008_DEBUG_TRACE_FILE       Absolute JSONL path required for raw traces and for ACP traces.
 
-Interactive commands:
-  /exit            End the session.
-  /reset           Keep the system message and clear conversation turns.
-
+${SLASH_HELP}
 Raw debug traces write local prompts, projected memory, reasoning, answers, and
 semantic JSON. They never include API keys or authorization headers. Delete the
-SQLite file and JSONL trace to reset local state.
+SQLite file and JSONL trace to reset local state. Terminal access is native
+\`/shell\`; A008 does not install LangChain or Stagehand.
 `;
 
 function dependencies(overrides: Partial<CliDependencies>): CliDependencies {
@@ -65,8 +75,125 @@ function dependencies(overrides: Partial<CliDependencies>): CliDependencies {
     stdout: process.stdout,
     stderr: process.stderr,
     registry: defaultModelRegistry,
+    cwd: process.cwd(),
+    runTerminal: runTerminalCommand,
     ...overrides,
   };
+}
+
+function preview(text: string, max = 200): string {
+  const compact = text.replace(/\s+/gu, " ").trim();
+  if (compact.length <= max) {
+    return compact;
+  }
+  return `${compact.slice(0, max - 3)}...`;
+}
+
+async function handleSlash(
+  input: string,
+  ctx: {
+    readonly deps: CliDependencies;
+    readonly runtime: LocalMemoryRuntime;
+    systemMessage: string;
+    session: LocalMemorySession;
+  },
+): Promise<"quit" | "continue" | "unhandled"> {
+  let parsed;
+  try {
+    parsed = parseSlash(input);
+  } catch (error) {
+    writeError(ctx.deps.stderr, error);
+    return "continue";
+  }
+  if (parsed === undefined) {
+    return "unhandled";
+  }
+
+  const out = ctx.deps.stdout;
+  switch (parsed.name) {
+    case "help":
+      out.write(SLASH_HELP);
+      return "continue";
+    case "exit":
+      return "quit";
+    case "reset":
+      ctx.session.reset();
+      out.write("Session reset.\n");
+      return "continue";
+    case "undo":
+      out.write(
+        ctx.session.undoLastTurn()
+          ? "Last turn undone.\n"
+          : "Nothing to undo.\n",
+      );
+      return "continue";
+    case "history": {
+      const turns = ctx.session.messages.filter(
+        (message) => message.role !== "system",
+      );
+      if (turns.length === 0) {
+        out.write("No conversation turns.\n");
+        return "continue";
+      }
+      for (const message of turns) {
+        out.write(`${message.role}: ${preview(message.content)}\n`);
+      }
+      return "continue";
+    }
+    case "model": {
+      if (parsed.argument.length === 0) {
+        out.write(`Current: ${ctx.session.model}\n`);
+        for (const profile of ctx.deps.registry.list()) {
+          out.write(`${profile.id}\t${profile.name}\n`);
+        }
+        return "continue";
+      }
+      const profile = ctx.deps.registry.require(parsed.argument);
+      ctx.session = ctx.runtime.openSession({
+        model: profile.id,
+        systemMessage: ctx.systemMessage,
+      });
+      out.write(`Model: ${profile.name} (${profile.id}). Conversation reset.\n`);
+      return "continue";
+    }
+    case "status":
+      out.write(`model: ${ctx.session.model}\n`);
+      out.write(`cwd: ${ctx.deps.cwd}\n`);
+      out.write(`project: ${ctx.runtime.projectId}\n`);
+      out.write(`memory: ${ctx.runtime.sqlitePath}\n`);
+      out.write(`turns: ${ctx.session.messages.filter((m) => m.role !== "system").length}\n`);
+      out.write("tools: terminal via /shell (user-initiated; not LangChain)\n");
+      return "continue";
+    case "cwd":
+      out.write(`${ctx.deps.cwd}\n`);
+      return "continue";
+    case "tools":
+      out.write(
+        "terminal  /shell <command>  native A008 runner in cwd\n" +
+          "          /! <command>      alias\n" +
+          "Model-invoked tool_calls are not on ChatTransport (ADR 0003).\n" +
+          "@langchain/community is not a dependency (zod 4 vs Stagehand zod 3).\n",
+      );
+      return "continue";
+    case "shell": {
+      if (parsed.argument.length === 0) {
+        writeError(
+          ctx.deps.stderr,
+          new ChatError("configuration", "Usage: /shell <command>"),
+        );
+        return "continue";
+      }
+      out.write(`shell> ${parsed.argument}\n`);
+      const result = await ctx.deps.runTerminal({
+        command: parsed.argument,
+        cwd: ctx.deps.cwd,
+      });
+      out.write(formatTerminalResult(result));
+      return "continue";
+    }
+    default:
+      return "continue";
+  }
 }
 
 function parseChatOptions(args: readonly string[]): ChatCommandOptions {
@@ -145,10 +272,15 @@ async function runChat(
       ? {}
       : { createTransport: deps.createTransport }),
   });
-  const session = runtime.openSession({
-    model: profile.id,
+  const ctx = {
+    deps,
+    runtime,
     systemMessage: options.systemMessage,
-  });
+    session: runtime.openSession({
+      model: profile.id,
+      systemMessage: options.systemMessage,
+    }),
+  };
   const terminal = createInterface({
     input: deps.stdin,
     output: deps.stdout,
@@ -156,7 +288,7 @@ async function runChat(
   });
 
   deps.stdout.write(`Model: ${profile.name} (${profile.id})\n`);
-  deps.stdout.write("Type /exit to quit or /reset to clear conversation turns.\n");
+  deps.stdout.write("Type /help for commands, /shell for a local terminal, /exit to quit.\n");
 
   try {
     while (true) {
@@ -168,15 +300,14 @@ async function runChat(
       }
 
       const command = input.trim();
-      if (command === "/exit") {
-        break;
-      }
-      if (command === "/reset") {
-        session.reset();
-        deps.stdout.write("Session reset.\n");
+      if (command.length === 0) {
         continue;
       }
-      if (command.length === 0) {
+      const slash = await handleSlash(command, ctx);
+      if (slash === "quit") {
+        break;
+      }
+      if (slash === "continue") {
         continue;
       }
 
@@ -185,7 +316,7 @@ async function runChat(
       deps.stdout.write("assistant> ");
 
       try {
-        const result = await session.turn(command, {
+        const result = await ctx.session.turn(command, {
           onDelta: (delta) => {
             if (delta.type === "reasoning") {
               if (!reasoningStarted) {

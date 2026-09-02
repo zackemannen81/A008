@@ -287,6 +287,10 @@ export class LocalMemorySession {
     this.#chat.reset();
   }
 
+  undoLastTurn(): boolean {
+    return this.#chat.undoLastTurn();
+  }
+
   consumeMemoryDiagnostic(): string | undefined {
     const diagnostic = this.#lastDiagnostic;
     this.#lastDiagnostic = undefined;

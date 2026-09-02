@@ -67,6 +67,23 @@ test("session returns and streams reasoning without committing or replaying it",
   assert.equal(JSON.stringify(requests[1]?.messages).includes(reasoning), false);
 });
 
+test("undoLastTurn drops the last user and assistant pair", async () => {
+  const transport: ChatTransport = {
+    async complete() {
+      return { message: { role: "assistant", content: "answer" } };
+    },
+  };
+  const session = new ChatSession({
+    model: "provider/model",
+    transport,
+    systemMessage: "system",
+  });
+  await session.send("hi");
+  assert.equal(session.undoLastTurn(), true);
+  assert.deepEqual(session.messages, [{ role: "system", content: "system" }]);
+  assert.equal(session.undoLastTurn(), false);
+});
+
 test("session rolls back the user turn when the transport fails", async () => {
   const transport: ChatTransport = {
     async complete() {

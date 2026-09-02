@@ -106,8 +106,11 @@ with failed post-output is a degraded memory outcome, not a failed chat turn.
 The CLI is one composition surface. `models` and help work without a key. `chat`
 uses the shared memory runtime, streams reasoning to stderr and answers to
 stdout, then awaits post-output settlement. Memory failures print to stderr
-without failing the delivered answer. `/reset` clears turns in the current
-conversation and keeps the SQLite namespace.
+without failing the delivered answer. Slash commands (`/help`, `/exit`,
+`/quit`, `/reset`, `/clear`, `/undo`, `/history`, `/model`, `/status`, `/cwd`,
+`/tools`, `/shell`, `/!`) are handled in the CLI and never sent to the model.
+`/shell` runs a local process in `process.cwd()` through `runTerminalCommand`.
+`@langchain/community` is not a dependency.
 
 ## Agent Canvas ACP surface
 

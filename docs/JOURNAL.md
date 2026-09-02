@@ -2,6 +2,20 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — CLI slash commands and native terminal tool
+
+- Date: 2026-09-02
+- Author: Grok (operator)
+- Task: A008-0029
+- Branch: `main`
+- Decision: Do not add `@langchain/community`. It cannot resolve against
+  A008's `zod@4.5.4` because `@browserbasehq/stagehand` peers `zod@^3.23.8`.
+  Terminal access is `src/tools/terminal.ts` and `/shell`.
+- Change: interactive `/help` `/exit` `/quit` `/reset` `/clear` `/undo`
+  `/history` `/model` `/status` `/cwd` `/tools` `/shell` `/!`. Unknown
+  `/commands` are not sent to the model. `ChatSession.undoLastTurn` added.
+- Signature: Grok
+
 ## 2026-09-02 — Close knowledge-model gap (A008-0021 complete)
 
 - Date: 2026-09-02

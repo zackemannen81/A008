@@ -155,6 +155,16 @@ export class MemoryAwareChatSession {
     this.#chat.reset();
   }
 
+  undoLastTurn(): boolean {
+    if (this.#active) {
+      throw new ChatError(
+        "configuration",
+        "Cannot undo a memory-aware session during an active turn.",
+      );
+    }
+    return this.#chat.undoLastTurn();
+  }
+
   async send(
     input: MemoryAwareTurnInput,
     options: MemoryAwareTurnOptions = {},
