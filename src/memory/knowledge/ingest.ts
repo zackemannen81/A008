@@ -7,7 +7,11 @@ import {
   asUtteranceId,
   cloneInstant,
 } from "./evidence.js";
-import type { SpeechAct, Utterance } from "./evidence-types.js";
+import type {
+  ProvenanceRelation,
+  SpeechAct,
+  Utterance,
+} from "./evidence-types.js";
 import { asArtifactId } from "./ids.js";
 import type {
   Artifact,
@@ -28,12 +32,31 @@ export interface IngestBudget {
   readonly maximumUtf8Bytes: number;
 }
 
+/**
+ * Utterance-to-artifact relation used when a caller names none.
+ *
+ * `appears_in` is correct for the dialogue path, where the utterance text is
+ * literally part of the turn artifact. Content produced *about* an artifact
+ * rather than taken *from* it must pass `derived_from` instead — a model's
+ * description of an uploaded image never appeared in that image, and recording
+ * it as though it did would put a false claim into the provenance graph.
+ */
+export const DEFAULT_INGEST_RELATION: ProvenanceRelation = "appears_in";
+
+const INGEST_RELATIONS: readonly ProvenanceRelation[] = [
+  "appears_in",
+  "derived_from",
+  "caused_by",
+];
+
 export interface IngestInput {
   readonly content: string;
   readonly speaker: string;
   readonly locator?: string;
   readonly contentKind?: ContentKind;
   readonly act?: SpeechAct;
+  /** Defaults to {@link DEFAULT_INGEST_RELATION}. */
+  readonly relation?: ProvenanceRelation;
   readonly assertedAt?: Instant;
   readonly ingestedAt?: Instant;
   readonly scope: IngestScope;
@@ -56,6 +79,9 @@ export function ingest(input: IngestInput, options: IngestOptions): IngestResult
     throw new KnowledgeModelError("invalid_input", "content must be a string");
   }
   const speaker = requireNonEmpty(input.speaker, "speaker");
+  // Resolved before any store mutation so a rejected relation cannot leave a
+  // half-written artifact behind.
+  const relation = resolveRelation(input.relation);
   const content = input.content;
   const classified = classifySpeech(content, input.act, input.contentKind);
   const ingestedAt = input.ingestedAt ?? UNKNOWN_INSTANT;
@@ -94,7 +120,7 @@ export function ingest(input: IngestInput, options: IngestOptions): IngestResult
   const storedUtterance = options.store.addUtterance(utterance);
   options.store.addProvenance({
     id: asProvenanceId(`A008_knowledge_provenance_${nextId()}`),
-    relation: "appears_in",
+    relation,
     fromKind: "utterance",
     fromId: storedUtterance.id,
     fromLabel: storedUtterance.content,
@@ -211,6 +237,21 @@ function failIfOverBudget(
       `INGEST budget exceeded: ${bytes} utf8-bytes > ${budget.maximumUtf8Bytes}`,
     );
   }
+}
+
+function resolveRelation(
+  relation: ProvenanceRelation | undefined,
+): ProvenanceRelation {
+  if (relation === undefined) {
+    return DEFAULT_INGEST_RELATION;
+  }
+  if (!INGEST_RELATIONS.includes(relation)) {
+    throw new KnowledgeModelError(
+      "invalid_input",
+      `relation must be one of ${INGEST_RELATIONS.join(", ")}`,
+    );
+  }
+  return relation;
 }
 
 function requireNonEmpty(value: string, field: string): string {
