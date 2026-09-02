@@ -15,6 +15,42 @@ export { asArtifactId, asEntityId, isArtifactId, isEntityId } from "./ids.js";
 export { interpret } from "./interpret.js";
 export type { InterpretOptions } from "./interpret.js";
 export { EntityRegistry, SlotRegistry, slotKey } from "./registry.js";
+export {
+  EvidenceLifecycleStore,
+  decay,
+  derivedLifecycleState,
+  reactivate,
+  reinforce,
+  weaken,
+} from "./lifecycle.js";
+export type {
+  AttachLifecycleInput,
+  DecayInput,
+  EvidenceLifecycleKind,
+  LifecycleRecord,
+  LifecycleSnapshot,
+  LifecycleTransition,
+  LifecycleWriteInput,
+  MemoryLifecycle,
+  MemoryLifecycleState,
+} from "./lifecycle-types.js";
+export { classifyIntents, define } from "./define.js";
+export type { DefineInput } from "./define.js";
+export { retrieve, scoreRetrieved } from "./retrieve.js";
+export { RelationIndex, expand } from "./expand.js";
+export { filter } from "./filter.js";
+export { compose } from "./compose.js";
+export { project } from "./project.js";
+export type { ProjectResult } from "./project.js";
+export { createKnowledgeContext, readKnowledge } from "./read.js";
+export type { ReadResult } from "./read.js";
+export type {
+  KnowledgeReadContext,
+  RetrievedRecord,
+  RetrievalIntent,
+  SemanticScope,
+  TemporalHints,
+} from "./read-types.js";
 export type {
   Artifact,
   ArtifactId,
