@@ -2,6 +2,16 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — Merge GUI composer and terminal panes
+
+- Date: 2026-09-02
+- Author: Grok (operator / boss)
+- Task: A008-0030
+- Change: merged PR #7 (A008-0036 terminal) and PR #8 (A008-0035 composer).
+  Both restored the CURRENT_TASK template. Remaining: 0032 host, 0033
+  session, 0034 chat, 0037 brand.
+- Signature: Grok
+
 ## 2026-09-02 — Adopt A008-owned GUI boundary
 
 - Date: 2026-09-02

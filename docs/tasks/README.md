@@ -16,8 +16,8 @@ the template before push.
 - [`A008-0032_gui-host.md`](A008-0032_gui-host.md) — Ready.
 - [`A008-0033_gui-session.md`](A008-0033_gui-session.md) — Ready.
 - [`A008-0034_gui-chat.md`](A008-0034_gui-chat.md) — Ready.
-- [`A008-0035_gui-composer.md`](A008-0035_gui-composer.md) — Ready.
-- [`A008-0036_gui-terminal.md`](A008-0036_gui-terminal.md) — Ready.
+- [`A008-0035_gui-composer.md`](A008-0035_gui-composer.md) — Merged PR #8.
+- [`A008-0036_gui-terminal.md`](A008-0036_gui-terminal.md) — Merged PR #7.
 - [`A008-0037_gui-settings-brand.md`](A008-0037_gui-settings-brand.md) — Ready.
 
 - [`A008-0029_cli-slash-and-terminal.md`](A008-0029_cli-slash-and-terminal.md)
