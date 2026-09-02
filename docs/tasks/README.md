@@ -19,11 +19,10 @@ the template before push.
 - [`A008-0024_semantic-addressing.md`](A008-0024_semantic-addressing.md)
   — Merged to `main` 2026-09-02 (PR #1).
 - [`A008-0025_state-history-split.md`](A008-0025_state-history-split.md)
-  — Ready; M4 state/history split. Unblocked.
+  — Merged to `main` 2026-09-02 (PR #4).
 - [`A008-0026_first-class-evidence.md`](A008-0026_first-class-evidence.md)
-  — Ready; M5 evidence and acceptance. Unblocked.
+  — Merged to `main` 2026-09-02 (PR #3).
 - [`A008-0027_evidence-lifecycle-intents.md`](A008-0027_evidence-lifecycle-intents.md)
-  — Ready; M6 lifecycle and retrieval intents. Blocked on A008-0025 and
-  A008-0026 merge.
+  — Ready; M6 lifecycle and retrieval intents. Unblocked.
 - [`A008-0028_storage-redesign.md`](A008-0028_storage-redesign.md)
   — Ready; M7 storage. Blocked on A008-0027 merge.

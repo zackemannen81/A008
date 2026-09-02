@@ -3,7 +3,7 @@
 Task ID: A008-0027
 Parent Task: A008-0021
 Status: Ready
-Owner: unassigned (wave 3)
+Owner: A008-worker02
 Created: 2026-09-02
 Last updated: 2026-09-02
 Charter frozen at: 2026-09-02
@@ -18,8 +18,8 @@ Charter frozen at: 2026-09-02
 ## Task Summary
 
 Move lifecycle onto evidence only. Named DECAY / WEAKEN / REACTIVATE /
-REINFORCE. Retrieval intents including history. Full S1–S10 suite. Blocked
-until A008-0025 and A008-0026 are merged.
+REINFORCE. Retrieval intents including history. Full S1–S10 suite. Unblocked
+after A008-0025 and A008-0026 merged.
 
 ## Task Charter
 
@@ -35,17 +35,27 @@ suite green in-memory.
 
 ### In Scope
 
-- Lifecycle processes and intented RETRIEVE / EXPAND / FILTER / COMPOSE /
-  PROJECT on the new engine
-- Consume planner temporal hints for history intent
-- Tests: full §11 plus a decay sweep that changes no direct-question answer
-- Handoff `docs/handoffs/A008-0027.md`
+- New files under `src/memory/knowledge/` for lifecycle and the read-path
+  processes DEFINE / RETRIEVE / EXPAND / FILTER / COMPOSE / PROJECT
+- May export them from `src/memory/knowledge/index.ts`
+- May add `test/knowledge-model/scenarios.test.ts` to `package.json` `test`
+- Consume temporal hints (`mentionsPast` / history intent) so closed
+  intervals are reachable
+- Tests: full model §11 (S1–S10) plus a decay sweep that changes no
+  direct-question answer
+- `docs/handoffs/A008-0027.md`
+- Branch copy of this charter into `docs/CURRENT_TASK.md` while working only
 
 ### Out of Scope
 
 - SQLite redesign (M7)
 - Live provider
 - Merging to `main`
+- Growing `KnowledgeItem`
+- Editing `interpret.ts`, `state.ts`, `reconcile.ts`, `update.ts`,
+  `ingest.ts`, `accept.ts` unless a one-line export/import is required to
+  call them
+- Leaving a filled `docs/CURRENT_TASK.md` in the pull request
 
 ### Definition of Done
 
@@ -64,19 +74,22 @@ PROJECT writes nothing.
 ## References
 
 - ADR 0018 D7, D9
-- Depends on: A008-0025 and A008-0026 merged
+- Depends on: A008-0025 and A008-0026 merged (done)
+- Worker clone: `C:\code\A008-workers\A008-worker02`
 - Branch: `grok/A008-0027-evidence-lifecycle-intents`
 
 ## Checklist
 
-- [ ] Wait for M4 and M5 merge.
+- [x] Wait for M4 and M5 merge.
 - [ ] Implement lifecycle and intents.
 - [ ] Full suite.
 - [ ] Verify, archive to `docs/finished/`, restore CURRENT_TASK template, handoff, push, PR.
 
 ## Decisions and Notes
 
-- Blocked on M4 and M5.
+- Unblocked. Direct match ignores memory state. Associative expansion
+  filters dormant evidence. PROJECT writes nothing. Strength is not a
+  direct-match score term.
 
 ## Charter Amendment Log
 
@@ -92,8 +105,9 @@ PROJECT writes nothing.
 
 ## Handoff and Follow-ups
 
-- Current state: Ready, blocked on A008-0025 and A008-0026.
-- Blockers: M4 and M5.
+- Current state: Ready, unblocked.
+- Next recommended step: implement on worker02.
+- Blockers: none.
 - Open questions: none.
 
 ## Finalize When Complete

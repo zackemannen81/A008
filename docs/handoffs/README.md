@@ -22,7 +22,7 @@ authority. Workers do not append `docs/JOURNAL.md`.
 
 ## Records
 
-- [`A008-0024.md`](A008-0024.md) — Ready for operator merge; M3 semantic
-  addressing. Merged to `main` 2026-09-02.
-- A008-0023 — no worker handoff file; PR #2 code is the handoff. Merged to
-  `main` 2026-09-02.
+- [`A008-0024.md`](A008-0024.md) — M3 semantic addressing. Merged 2026-09-02.
+- A008-0023 — no worker handoff file; PR #2 code is the handoff. Merged 2026-09-02.
+- [`A008-0025.md`](A008-0025.md) — M4 state/history split. Merged 2026-09-02 (PR #4).
+- [`A008-0026.md`](A008-0026.md) — M5 evidence and ACCEPT. Merged 2026-09-02 (PR #3).

@@ -2,6 +2,21 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — Merge wave 2: M4 state/history and M5 evidence
+
+- Date: 2026-09-02
+- Author: Grok (operator / boss)
+- Task: A008-0021
+- Branch: `main`
+- Change: merged `grok/A008-0025-state-history-split` (PR #4) and
+  `grok/A008-0026-first-class-evidence` (PR #3). Kept empty CURRENT_TASK
+  template on `main`. Write scopes did not overlap. Wave 2 launched before
+  the template-restore rule, so workers left filled CURRENT_TASK; operator
+  discarded those copies.
+- Evidence: `docs/handoffs/A008-0025.md`, `docs/handoffs/A008-0026.md`.
+- Next: A008-0027 (M6) on a worker clone.
+- Signature: Grok
+
 ## 2026-09-02 — CURRENT_TASK template stays on main
 
 - Date: 2026-09-02
