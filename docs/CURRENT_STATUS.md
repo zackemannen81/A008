@@ -37,7 +37,7 @@ belongs in `docs/PROJECT_BRIEF.md`.
 | Local memory surfaces | `createLocalMemoryRuntime` owns SQLite path/project identity, one NVIDIA transport, the SQLite knowledge engine, memory-aware chat, post-output through `KnowledgeEngineCommit`, and `user-assertion-v1` ACCEPT. Live restatement reinforces evidence only. `PROJECT` writes nothing. Direct matches ignore dormancy. `KnowledgeItem` remains a compatibility/migration surface. Opt-in off/safe/raw JSONL tracing is secret-redacted and off by default. |
 | Committed memory-loop proof | `npm run benchmark:memory-loop` composes actual in-memory SQLite read/write/index state with two memory-aware chat turns and one shared fake transport. Exact call order is chat/analyze/classify/chat; active canon extends from revision one to two and the second turn projects the new proposition. New-draft auto-activation remains explicitly unproven. |
 | Runtime identity core | Exported branded/parser-validated project, conversation, runtime-task, agent, and ACP-session IDs use versioned lowercase UUIDv4 values. A namespaced external-reference contract, atomic in-memory ACP binding repository, conflict/idempotency rules, and defensive lookup surfaces exist. No complete external conversation binding is created at runtime. |
-| Automated tests | 297 Node test-runner cases, verified 2026-09-02: 234 in the root suite (`npm test`), 34 across the GUI composer, session, terminal, and settings modules, and 29 in the GUI chat module. The root count includes in-memory and SQLite S1–S10 with identical payloads, v0 supersede-chain migration, live CLI/ACP cutover, and 16 GUI-host cases that cover `session/new`, thought-then-answer streaming, cancel, and the error path twice over — once against an injected in-process bridge and once against a real spawned ACP stdio subprocess. GUI module tests run under `node --experimental-strip-types` with the loaders in `gui/src/composer/` and `gui/src/chat/`; they are not yet wired into a single repository-level command. No test loads `.env.local` or makes a live call. |
+| Automated tests | 297 Node test-runner cases, verified 2026-09-02: 234 in the root suite (`npm test`), 34 across the GUI composer, session, terminal, and settings modules, and 29 in the GUI chat module. The root count includes in-memory and SQLite S1–S10 with identical payloads, v0 supersede-chain migration, live CLI/ACP cutover, and 16 GUI-host cases that cover `session/new`, thought-then-answer streaming, cancel, and the error path twice over — once against an injected in-process bridge and once against a real spawned ACP stdio subprocess. Root `npm test` is the full gate: it runs `test:core` against compiled output and then `test:gui`. `npm --prefix gui run test` discovers `gui/src/**/*.test.ts` under `node --experimental-strip-types` through one shared loader at `gui/test/`, so a new GUI test file runs with no script edit and a failing GUI test fails the root command. No test loads `.env.local` or makes a live call. |
 
 ## Security observation
 
@@ -68,9 +68,8 @@ unexecuted. The replacement exists only in ignored `.env.local` as
 - No browser-level end-to-end run of the A008 GUI. A008-0030 was proven over
   HTTP and WebSocket against a real host and a real ACP subprocess, not through
   a rendered browser session, and no live NVIDIA GUI run is authorized.
-- No single repository-level command runs the GUI module tests. They execute
-  today through two `node --experimental-strip-types` loaders under
-  `gui/src/composer/` and `gui/src/chat/`.
+- No CI runs any of this. Root `npm test` is now the full gate and covers the
+  GUI, but nothing enforces that a human or a pipeline runs it before a merge.
 - No enforced multi-agent worker limit or configured process supervisor. Ten
   allocated task worktrees, A008-0004 through A008-0015, exist under the
   registered worker root; allocation does not assert current activity.

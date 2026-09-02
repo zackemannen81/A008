@@ -30,6 +30,10 @@ A008/
 |  |  |- terminal/                   A008-0036 terminal pane
 |  |  |- settings/                   A008-0037 settings
 |  |  `- brand/                      A008-0037 identity
+|  `- test/                          A008-0039 shared GUI test runner
+|     |- loader.mjs                  registers the resolver for node --test
+|     |- resolve.mjs                 .ts/.tsx resolution, esbuild, CSS stubbing
+|     `- node-test-env.d.ts          the one ambient Node declaration for tests
 |- src/
 |  |- index.ts                       public core/provider exports
 |  |- gui-host/                      A008-0032 HTTP/WS ACP bridge (product GUI)
@@ -224,8 +228,11 @@ only through `A008-acp`. `gui/` is a separate npm package with its own
 code. Each `gui/src/` feature directory has a single owning task per ADR 0019
 D7; `gui/src/app.tsx`, `gui/index.html`, and `gui/vite.config.ts` are shell
 files the operator owns. GUI unit tests live beside their modules as
-`*.test.ts` and run under `node --experimental-strip-types` through the loaders
-in `gui/src/composer/` and `gui/src/chat/`, not through the root `npm test`.
+`*.test.ts`. `gui/test/` holds the shared Node test runner for the whole GUI
+tree — one loader, one resolver, and the single ambient declaration of the Node
+modules those tests import — and `npm --prefix gui run test` discovers every
+`gui/src/**/*.test.ts` through it. Root `npm test` runs `test:core` and then
+`test:gui`, so it is the full gate.
 
 Compiled `dist/` (root and `gui/`), dependencies,
 `.env.local`, and raw legacy input are ignored and are not repository structure.

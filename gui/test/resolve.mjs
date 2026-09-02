@@ -5,12 +5,21 @@ import { transformSync } from "esbuild";
 const TS_CANDIDATES = [".ts", ".tsx"];
 
 /**
- * Node test hooks for `gui/src/chat`.
+ * The single Node test resolver for the whole GUI tree (A008-0039).
  *
- * Extends the `gui/src/composer` pattern so a Node test can import the React
- * component itself: `./x.js` also resolves to `./x.tsx`, `.tsx` is compiled
- * with the esbuild that Vite already installs, and a CSS side-effect import
- * becomes an empty module instead of a parse error.
+ * Promoted from the `gui/src/chat` resolver, which was already a strict
+ * superset of the `gui/src/composer` one. It gives every GUI module test the
+ * same three behaviours:
+ *
+ * - a relative `./x.js` specifier also resolves to `./x.ts` or `./x.tsx`, so
+ *   test sources keep the extension `verbatimModuleSyntax` requires;
+ * - `.tsx` is compiled with the esbuild that Vite already installs, so a test
+ *   can import a React component directly;
+ * - a relative CSS side-effect import becomes an empty module instead of a
+ *   parse error.
+ *
+ * No test framework and no bundler is introduced: `node --test` plus esbuild
+ * is the whole runner.
  */
 export async function resolve(specifier, context, nextResolve) {
   if (specifier.startsWith(".") && specifier.endsWith(".css")) {
