@@ -2,6 +2,50 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — Let a caller name the INGEST provenance relation
+
+- Date: 2026-09-02
+- Author: Claude (operator / boss)
+- Task: A008-0040
+- Branch: `main`
+- Identity evidence: claimed on `main` as `4049091` with a frozen charter
+  before the branch was created.
+- Origin: owner design review of the document and image upload flow. The
+  question was how uploads should reach the knowledge store, and whether a
+  vision-capable model changes that. It does not — normalising to text is a
+  requirement of the store, not a workaround for a model — but the review
+  surfaced that `ingest()` hardcoded `relation: "appears_in"`.
+- Change: merged PR #15. `IngestInput` takes an optional `relation`, defaulting
+  to the exported `DEFAULT_INGEST_RELATION`, validated before `addArtifact` so a
+  rejected value cannot leave a partial write.
+- Why it matters: `appears_in` is true of the dialogue path and false for
+  content produced about an artifact rather than taken from it. A vision
+  model's description of an uploaded image never appeared in that image.
+  Recording it as `appears_in` would have written a false claim into the
+  provenance graph. `derived_from` already existed in the vocabulary; only
+  `ingest()` stood between a caller and it.
+- Finding: `test/knowledge-model/evidence.test.ts` and `state-history.test.ts`
+  were absent from `test:core` and had never run — 20 cases, both passing once
+  executed. `evidence.test.ts` is where `ingest()`'s own tests live, so this
+  change could not have been honestly verified while it sat outside the gate. A
+  sweep confirmed those were the only two; 43 of 43 test files are now
+  referenced. This is the same defect class A008-0039 closed for the GUI.
+- Verification: `npm run typecheck` clean; `npm test` 266 core and 63 GUI, 0
+  fail, exit 0. 266 accounts exactly for the 243 baseline, the 20 restored
+  cases, and 3 new ones. Mutation-checked: restoring the hardcoded relation
+  fails one case, making the validation unreachable fails one, and both reverts
+  return the suite to green.
+- Not performed: no live provider call, no CI, no upload or vision path, no
+  `ContentKind` change, no deployment, publication, or release.
+- Handoff: the root fix for the hand-maintained test list is routed to
+  `docs/backlog/discovery-based-core-suite.md`, which weighs three options; it
+  is deliberately not a copy of the A008-0039 glob, because `dist/` is not
+  cleaned on build and a glob there could keep running a test whose source was
+  deleted. The remaining blocker for a correct upload ingest is `ContentKind`:
+  no value fits an uploaded document or a model-written image description, and
+  `classifySpeech()` picks one on the caller's behalf.
+- Signature: Claude
+
 ## 2026-09-02 — Close the two highest-priority GUI hardening follow-ups
 
 - Date: 2026-09-02

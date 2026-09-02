@@ -27,6 +27,9 @@ the template before push.
 - [`A008-0039_gui-test-command.md`](A008-0039_gui-test-command.md) —
   Merged PR #14; archived
   [`../finished/A008-0039_gui-test-command.md`](../finished/A008-0039_gui-test-command.md).
+- [`A008-0040_ingest-provenance-relation.md`](A008-0040_ingest-provenance-relation.md) —
+  Merged PR #15; archived
+  [`../finished/A008-0040_ingest-provenance-relation.md`](../finished/A008-0040_ingest-provenance-relation.md).
 
 - [`A008-0029_cli-slash-and-terminal.md`](A008-0029_cli-slash-and-terminal.md)
   — Complete; archived

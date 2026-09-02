@@ -36,3 +36,4 @@ authority. Workers do not append `docs/JOURNAL.md`.
 - [`A008-0037.md`](A008-0037.md) — GUI settings and brand identity. Merged 2026-09-02 (PR #9).
 - [`A008-0038.md`](A008-0038.md) — ACP session release on renderer disconnect. Merged 2026-09-02 (PR #13).
 - [`A008-0039.md`](A008-0039.md) — one command for the GUI module tests. Merged 2026-09-02 (PR #14).
+- [`A008-0040.md`](A008-0040.md) — caller-named INGEST provenance relation. Merged 2026-09-02 (PR #15).
