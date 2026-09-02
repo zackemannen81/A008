@@ -33,6 +33,10 @@ deferred.
   network, configuration, unknown-model, and invalid-response errors.
 - One verified model profile: `nvidia/nemotron-3.5-lightning-30b-a3b`.
 - Thin CLI for model listing and interactive memory-aware chat.
+- A008-owned product GUI: a Vite/React client in `gui/` served by an A008 GUI
+  host in `src/gui-host/` that bridges a documented WebSocket to `A008-acp`.
+  Chat, streaming thought as a separate channel, slash composer, host-side
+  `/shell`, settings, and A008 branding. No credential reaches the renderer.
 - Stable-v1 `A008-acp` stdio bridge that Agent Server can launch as a Custom
   Agent Canvas agent.
 - Visible Agent Canvas round trip through that bridge and the same provider
@@ -108,7 +112,46 @@ runner — not LangChain. See
 identity, activation, and tracing settings. Default memory state is
 `~/.A008/memory.sqlite`.
 
+## A008 GUI
+
+The product GUI is A008-owned. It does not require Agent Server.
+
+```bash
+npm run gui
+```
+
+That builds `gui/` and starts the A008 GUI host, which serves the built client
+and the API from one origin at `http://127.0.0.1:8787`. `NVIDIA_API_KEY` and
+memory settings are read from the host process environment; nothing is sent to
+the browser.
+
+For renderer development with hot reload, run the host and Vite separately:
+
+```bash
+npm run gui-host
+```
+
+```bash
+npm --prefix gui run dev
+```
+
+Vite serves the client on `http://127.0.0.1:5173` and proxies `/health` and
+`/v1`, including the `/v1/session` WebSocket upgrade, to the host.
+
+The host exposes `GET /health`, `GET /v1/models`, `POST /v1/shell`, and
+`WS /v1/session`. Session frames are `session/new`, `prompt`, and `cancel` in,
+and `session/new/ok`, `thought`, `answer`, `prompt/ok`, and `error` out.
+Reasoning arrives as `thought` and is never merged into `answer`. `POST
+/v1/shell` runs in the host process working directory through the same terminal
+runner as the CLI `/shell` command, and refuses any cross-origin request that
+is not loopback. See `docs/adr/0019-a008-owned-gui.md` for the boundary and
+`docs/evidence/A008-0030_gui-runtime-proof.md` for the end-to-end proof.
+
+`A008_GUI_HOST_PORT` overrides the host port.
+
 ## Agent Canvas bridge
+
+Agent Canvas is an operator compatibility path, not the product GUI.
 
 After building, configure Agent Canvas's Custom ACP command as:
 
@@ -127,6 +170,8 @@ safe proof record.
 
 ```text
 CLI ------------------------.
+                             |
+browser -> A008 GUI host ----|   (product path, ADR 0019)
                              v
 Agent Canvas -> Agent Server -> A008-acp -> createLocalMemoryRuntime
                                          -> one NVIDIA ChatTransport

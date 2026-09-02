@@ -28,3 +28,9 @@ authority. Workers do not append `docs/JOURNAL.md`.
 - [`A008-0026.md`](A008-0026.md) — M5 evidence and ACCEPT. Merged 2026-09-02 (PR #3).
 - [`A008-0027.md`](A008-0027.md) — M6 lifecycle and retrieval intents. Merged 2026-09-02 (PR #5).
 - [`A008-0028.md`](A008-0028.md) — M7 storage and live cutover. Merged 2026-09-02 (PR #6).
+- [`A008-0032.md`](A008-0032.md) — GUI host ACP WebSocket bridge. Merged 2026-09-02 (PR #11).
+- [`A008-0033.md`](A008-0033.md) — GUI session client. Merged 2026-09-02 (PR #10).
+- [`A008-0034.md`](A008-0034.md) — GUI chat transcript. Merged 2026-09-02 (PR #12).
+- [`A008-0035.md`](A008-0035.md) — GUI composer slash commands. Merged 2026-09-02 (PR #8).
+- [`A008-0036.md`](A008-0036.md) — GUI terminal pane. Merged 2026-09-02 (PR #7).
+- [`A008-0037.md`](A008-0037.md) — GUI settings and brand identity. Merged 2026-09-02 (PR #9).

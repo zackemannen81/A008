@@ -156,6 +156,85 @@ claimed. The external Canvas/Agent Server proof did trigger optional OpenAI
 subscription control-plane checks and failed title generation without
 credentials; therefore it does not prove globally blocked external egress.
 
+## A008 GUI host
+
+`src/gui-host/` is the A008-owned Node process that makes the shared core
+reachable from a browser without Agent Server. It is the product path in
+ADR 0019 D2. `npm run gui-host` starts it against an already-built GUI;
+`npm run gui` builds `gui/` first and then starts it on one origin.
+
+The host serves `gui/dist` as static content when that directory exists, and
+answers three HTTP routes:
+
+```text
+GET  /health    -> { ok: true, name: "A008-gui-host" }
+GET  /v1/models -> { models: [{ id, name }] }
+POST /v1/shell  -> { stdout, stderr, exitCode, timedOut, truncated }
+```
+
+`POST /v1/shell` delegates to the existing `runTerminalCommand` in
+`src/tools/terminal.ts`, so the GUI terminal and the CLI `/shell` command share
+one implementation and one working directory. The renderer never executes a
+command itself.
+
+`WS /v1/session` is bridged to an `A008-acp` stdio subprocess that the host
+owns. Frames follow ADR 0019 D4 exactly: the client sends `session/new`,
+`prompt`, and `cancel`; the host answers `session/new/ok`, `thought`, `answer`,
+`prompt/ok`, and `error`. Reasoning arrives as `thought` frames and is never
+concatenated into an `answer` frame. No Agent Server schema and no OpenHands
+TypeScript client participate.
+
+Credentials stay in the host process. `NVIDIA_API_KEY`, the optional endpoint
+override, and memory settings are read from process environment only. Outbound
+text is redacted so neither a credential value, the literal token
+`NVIDIA_API_KEY`, nor the string `authorization` reaches the renderer; the
+trade is that an answer legitimately discussing those names is shown redacted.
+
+Two guards protect the shell surface. Any request carrying an `Origin` that is
+neither same-origin nor loopback is refused with 403 on every route and on the
+WebSocket upgrade, which is what stops a cross-origin page from reaching
+`/v1/shell` through a simple form post that would skip a CORS preflight.
+`POST /v1/shell` additionally requires `application/json`. Clients that send no
+`Origin`, and the Vite dev proxy on loopback, are unaffected.
+
+An ACP failure is reported with its real reason recovered from the SDK error
+details, and a host that cannot start `A008-acp` appends the subprocess stderr
+tail, so an unset credential or a malformed runtime ID is diagnosable from the
+GUI instead of surfacing as a generic internal error.
+
+A008-0030 proved this chain end to end against a real host process, a real ACP
+subprocess, the real local memory runtime, and a loopback fake endpoint. See
+`docs/evidence/A008-0030_gui-runtime-proof.md`.
+
+## A008 GUI client
+
+`gui/` is an A008-owned Vite + React + TypeScript application. It follows Agent
+Canvas UX but imports no `@openhands/*` package, no Canvas route, and no
+telemetry. `gui/src/app.tsx` is the shell; each feature module owns only its own
+directory per ADR 0019 D7.
+
+`useGuiSession` in `gui/src/session/` is the browser client for host protocol
+v1. It owns one socket per mount, resolves its URL from `location` so the
+production single-origin path and the dev proxy both work, and publishes
+status, `sessionId`, model, separate `thought` and `answer` buffers, `error`,
+`connect`, `prompt`, and `cancel`. It does not connect on mount; the settings
+pane offers an explicit Connect action. The hook-facing `connect` settles rather
+than rejecting, because the settings pane fires it and forgets it, while the
+underlying client still rejects for programmatic callers. Failure is carried by
+`status` and `error`.
+
+`gui/src/chat/` renders user text, the assistant answer, and streaming thought
+as three distinct DOM channels, with the thought channel display-only. A
+rendered-DOM test asserts that the answer node's text equals the answer exactly
+and that thought text appears exactly once in the document, inside the thought
+node. Turn commits go through a pure reducer, so a buffer clear after a new
+prompt cannot land a duplicate assistant turn.
+
+`gui/src/composer/` carries the A008-0029 slash set, `gui/src/terminal/` calls
+`POST /v1/shell` rather than executing anything in the browser, and
+`gui/src/settings/` plus `gui/src/brand/` own the shell chrome and A008
+identity. No provider call, credential, or telemetry ships in the renderer.
+
 ## Semantic-memory core
 
 The memory capability is an independent provider-neutral application surface

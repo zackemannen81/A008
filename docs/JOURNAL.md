@@ -2,6 +2,54 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — Complete the A008-owned GUI program
+
+- Date: 2026-09-02
+- Author: Claude (operator / boss) with three delegated writing workers
+- Task: A008-0030, closing children A008-0032, A008-0033, A008-0034
+- Branch: `main`
+- Recovered state: the previous operator's wave was cut off when its worker
+  runtime exhausted its provider quota. `main` carried an unpushed merge of
+  A008-0037 and PR #9 was still open; A008-0032 and A008-0033 existed only as
+  uncommitted work in their clones; A008-0034 was committed but never pushed.
+  Nothing was restarted. Every clone's work was preserved and finished in
+  place, and the original briefs' `git reset --hard` setup step was explicitly
+  withdrawn because it would have destroyed exactly that work.
+- Change: pushed `main`, which closed PR #9 (A008-0037). Delegated the three
+  unfinished children to one worker per clone under `C:\code\A008-workers`,
+  then merged PR #11 (A008-0032 host), PR #10 (A008-0033 session), and PR #12
+  (A008-0034 chat) in that order. Added operator-owned integration: `ws: true`
+  on the `gui/vite.config.ts` `/v1` proxy, and `npm run gui`.
+- Defects found and fixed during the second pass: `POST /v1/shell` had no
+  origin guard, so a cross-origin form post could have reached a command
+  runner; the session client registered its pending connect one microtask too
+  late and deadlocked its own tests; and the chat module's headline test
+  asserted on the transcript model while its archive claimed it proved the
+  rendered DOM contract. Each is covered by a test that now fails without the
+  fix.
+- Verification: `npm test` 234 pass, 0 fail. GUI composer, session, terminal,
+  and settings 34 pass, 0 fail. GUI chat 29 pass, 0 fail. `npm run typecheck`
+  and `npm --prefix gui run typecheck` clean. `npm --prefix gui run build`
+  built. The A008-0030 definition of done was then proved end to end, 15 of 15
+  checks, against a real GUI host process, a real `A008-acp` stdio subprocess,
+  the real local memory runtime, and a loopback fake SSE endpoint: session
+  opened, two `thought` frames and one `answer` frame streamed on separate
+  channels, `POST /v1/shell` ran in the host, the host served the built GUI,
+  and the credential sentinel, the token name `NVIDIA_API_KEY`, and the string
+  `authorization` appeared in no observed frame or body. Recorded in
+  `docs/evidence/A008-0030_gui-runtime-proof.md`.
+- Not performed: no live provider call, no paid usage, no browser-level GUI
+  run, no desktop packaging, no deployment, publication, or release. No
+  OpenHands source was modified and no OpenHands file was copied.
+- Correction to the record: the previous operator merged A008-0037 into local
+  `main` without a journal entry. That merge is `43d5e3e` and is now on
+  `origin/main`; this entry is where it is first recorded.
+- Handoff: A008-0030 is Complete and archived. Five follow-ups are routed to
+  `docs/backlog/gui-hardening.md`; the two worth taking first are giving the
+  GUI module tests a single command, because the root `npm test` cannot see
+  them today, and releasing ACP sessions when a renderer disconnects.
+- Signature: Claude
+
 ## 2026-09-02 — Merge GUI composer and terminal panes
 
 - Date: 2026-09-02

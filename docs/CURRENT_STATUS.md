@@ -23,7 +23,10 @@ belongs in `docs/PROJECT_BRIEF.md`.
 | Shared NVIDIA composition | `createNvidiaChatTransport` owns credential validation, model defaults, optional trusted endpoint override, and construction of the existing adapter. `createLocalMemoryRuntime` injects that one transport into CLI and ACP memory turns. Core remains environment-neutral. |
 | Agent Canvas ACP bridge | `A008-acp` implements stable ACP v1 over stdio with initialize, canonical `A008_v1_acp_session_<UUIDv4>` in-memory sessions, the verified model option, text/resource-link prompts, thought/answer streaming, cancellation, and the shared local memory runtime. Agent Server is expected to own the process. |
 | Agent Canvas runtime proof | Real Canvas 1.16.0 and Agent Server 1.44.1 processes on Windows configured the compiled A008 Custom ACP command, sent a browser prompt, reached the existing adapter at a loopback fake SSE endpoint, rendered `A008-CANVAS-LOOPBACK-OK`, and finished the conversation. Safe evidence and screenshot are tracked under `docs/evidence/`. |
-| A008 GUI program | A008-0030 In Progress. ADR 0019 accepted: product GUI is `gui/` plus `src/gui-host/`. Canvas+Agent Server remains operator ACP only. Wave 1 workers A008-0032..A008-0037. |
+| A008 GUI program | A008-0030 Complete. ADR 0019 wave 1 landed all six children (A008-0032..A008-0037) on `main`. The product GUI is `gui/` plus `src/gui-host/`; Canvas + Agent Server remains an operator ACP path and is not the product. |
+| A008 GUI host | `src/gui-host/` is a Node process that serves the built `gui/dist`, answers `GET /health`, `GET /v1/models`, and `POST /v1/shell` through the existing `runTerminalCommand`, and bridges `WS /v1/session` to an `A008-acp` stdio subprocess using the ADR 0019 D4 frame schema. It reads `NVIDIA_API_KEY` and memory settings from process environment only, redacts credential values and the `authorization` token from outbound text, rejects any cross-origin request that is neither same-origin nor loopback on every route and on the WebSocket upgrade, and requires `application/json` on `POST /v1/shell`. `npm run gui-host` starts it; `npm run gui` builds the GUI first and then starts it. |
+| A008 GUI client | `gui/` is a Vite/React/TypeScript app with A008 branding and no OpenHands imports. `useGuiSession` speaks host protocol v1 over one WebSocket and exposes status, sessionId, model, separate thought and answer buffers, error, `connect`, `prompt`, and `cancel`. The chat pane renders user, answer, and thought as distinct DOM channels; the composer carries the A008-0029 slash set; the terminal pane calls `POST /v1/shell`; settings and brand own the shell chrome. No provider call, credential, or telemetry ships in the renderer. |
+| A008 GUI runtime proof | A real GUI host process, a real `A008-acp` subprocess, the real local memory runtime, and a loopback fake SSE endpoint completed one session: `session/new`, two `thought` frames, one `answer` frame, `prompt/ok`. The credential sentinel reached the provider server-side and appeared in no observed frame or body. Recorded in `docs/evidence/A008-0030_gui-runtime-proof.md`. |
 | Knowledge-model program | A008-0021 is Complete (`docs/finished/A008-0021_close-knowledge-model-gap.md`). ADR 0018 D9 holds: S1–S10 pass in-memory and against SQLite with identical payloads; live CLI/ACP use `src/memory/knowledge/` without V3/V4/V7; `KnowledgeItem` is compatibility only. `docs/CURRENT_TASK.md` on `main` is the empty template. |
 | Semantic-memory core | Exported provider-neutral contracts, `SemanticMemory`, explicit five-way reconciliation, active+dormant discovery, exact-budget projection, and separate audit/history exist. This is the v0 surface the gap analysis measures; it is not the accepted model. A project-namespaced SQLite adapter durably stores canon/audit and indexes exact entities, FTS5 lexical content, tags, domains, and optional vectors. A deterministic planner and hybrid reader deduplicate/score bounded candidates, keep three thresholds distinct, and project selected active canon without mutation. The reader is consumed by the exported orchestration surface below, not directly by CLI/ACP/Canvas. |
 | Memory-aware orchestration | Exported `MemoryAwareChatSession` validates project/conversation/task/agent context, reads hybrid memory once, strips routing/control fields into a deterministic user-level envelope, sends at most two prior dialogue messages through one existing `ChatSession` transport call, applies an exact serialized-message budget, and commits only original user/assistant history. CLI and A008 ACP construct it through `createLocalMemoryRuntime`. |
@@ -34,7 +37,7 @@ belongs in `docs/PROJECT_BRIEF.md`.
 | Local memory surfaces | `createLocalMemoryRuntime` owns SQLite path/project identity, one NVIDIA transport, the SQLite knowledge engine, memory-aware chat, post-output through `KnowledgeEngineCommit`, and `user-assertion-v1` ACCEPT. Live restatement reinforces evidence only. `PROJECT` writes nothing. Direct matches ignore dormancy. `KnowledgeItem` remains a compatibility/migration surface. Opt-in off/safe/raw JSONL tracing is secret-redacted and off by default. |
 | Committed memory-loop proof | `npm run benchmark:memory-loop` composes actual in-memory SQLite read/write/index state with two memory-aware chat turns and one shared fake transport. Exact call order is chat/analyze/classify/chat; active canon extends from revision one to two and the second turn projects the new proposition. New-draft auto-activation remains explicitly unproven. |
 | Runtime identity core | Exported branded/parser-validated project, conversation, runtime-task, agent, and ACP-session IDs use versioned lowercase UUIDv4 values. A namespaced external-reference contract, atomic in-memory ACP binding repository, conflict/idempotency rules, and defensive lookup surfaces exist. No complete external conversation binding is created at runtime. |
-| Automated tests | 210 Node test-runner cases, including in-memory and SQLite S1–S10 with identical payloads, v0 supersede-chain migration, and live CLI/ACP cutover. No test loads `.env.local` or makes a live call. |
+| Automated tests | 297 Node test-runner cases, verified 2026-09-02: 234 in the root suite (`npm test`), 34 across the GUI composer, session, terminal, and settings modules, and 29 in the GUI chat module. The root count includes in-memory and SQLite S1–S10 with identical payloads, v0 supersede-chain migration, live CLI/ACP cutover, and 16 GUI-host cases that cover `session/new`, thought-then-answer streaming, cancel, and the error path twice over — once against an injected in-process bridge and once against a real spawned ACP stdio subprocess. GUI module tests run under `node --experimental-strip-types` with the loaders in `gui/src/composer/` and `gui/src/chat/`; they are not yet wired into a single repository-level command. No test loads `.env.local` or makes a live call. |
 
 ## Security observation
 
@@ -62,6 +65,12 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   provider runs remain separate.
 - No installed-package, desktop-packaging, live-provider, security-sandbox, or
   conformance suite.
+- No browser-level end-to-end run of the A008 GUI. A008-0030 was proven over
+  HTTP and WebSocket against a real host and a real ACP subprocess, not through
+  a rendered browser session, and no live NVIDIA GUI run is authorized.
+- No single repository-level command runs the GUI module tests. They execute
+  today through two `node --experimental-strip-types` loaders under
+  `gui/src/composer/` and `gui/src/chat/`.
 - No enforced multi-agent worker limit or configured process supervisor. Ten
   allocated task worktrees, A008-0004 through A008-0015, exist under the
   registered worker root; allocation does not assert current activity.
@@ -81,6 +90,24 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   telemetry state; deep embedding needs a focused spike.
 - OpenHands host mode and extensions have broad trust surfaces. Extensions run
   unsandboxed in the renderer realm.
+- The GUI host does not release an ACP session when a renderer disconnects, so a
+  long-lived host accumulates session state. Bounded for local single-user use;
+  it needs an owner before any shared deployment.
+- `POST /v1/shell` runs arbitrary commands in the host process working
+  directory. The origin guard and JSON content-type requirement keep a
+  cross-origin page from reaching it, but the endpoint is only as safe as the
+  host binding; it is a loopback developer surface, not a hardened one.
+- Host wire redaction strips the literal tokens `NVIDIA_API_KEY` and
+  `authorization` from assistant text as well as from credentials, so an answer
+  that legitimately discusses those names is shown redacted. That is the
+  intended ADR 0019 D6 trade.
+- `gui/src/chat/capture-prompt.ts` observes user text by temporarily replacing
+  `session.prompt` on the shared session object, because the frozen `GuiSession`
+  contract carries no message list. It restores on unmount and degrades safely
+  against a frozen object. The durable fix is a `messages` array on the session.
+- `gui/src/chat/node-test-shims.d.ts` and `gui/src/composer/node-test.d.ts` both
+  declare `node:test` and `node:assert/strict`. They coexist only because
+  `gui/tsconfig.json` sets `skipLibCheck: true`.
 - The SQLite memory adapter is single-process and the projection is byte-
   budgeted. Its optional vector channel compares the bounded local namespace in
   process. Production use still needs complete verified runtime-context intake,

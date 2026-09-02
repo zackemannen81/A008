@@ -12,10 +12,20 @@ A008/
 |- tsconfig.json                     strict ESM TypeScript build
 |- gui/                              A008-owned product UI (ADR 0019)
 |  |- package.json                   Vite/React GUI package
+|  |- index.html                     Vite entry document
+|  |- vite.config.ts                 dev server and /health + /v1 proxy (ws enabled)
 |  |- src/
+|  |  |- main.tsx                    renderer bootstrap
 |  |  |- app.tsx                     shell layout (operator-owned)
 |  |  |- session/                    A008-0033 WebSocket session client
+|  |  |  |- protocol.ts              host protocol v1 frames and URL resolution
+|  |  |  |- gui-session-client.ts    socket lifecycle and buffers
+|  |  |  `- use-gui-session.ts       React hook exposing GuiSession
 |  |  |- chat/                       A008-0034 transcript
+|  |  |  |- chat-pane.tsx            user, answer, and thought DOM channels
+|  |  |  |- chat-history.ts          pure turn-commit reducer
+|  |  |  |- chat-transcript.ts       transcript model
+|  |  |  `- capture-prompt.ts        user-text observation shim
 |  |  |- composer/                   A008-0035 slash composer
 |  |  |- terminal/                   A008-0036 terminal pane
 |  |  |- settings/                   A008-0037 settings
@@ -23,6 +33,12 @@ A008/
 |- src/
 |  |- index.ts                       public core/provider exports
 |  |- gui-host/                      A008-0032 HTTP/WS ACP bridge (product GUI)
+|  |  |- server.ts                   HTTP routes, static GUI, upgrade handling
+|  |  |- acp-bridge.ts               A008-acp stdio subprocess bridge
+|  |  |- protocol.ts                 host protocol v1 frames and defaults
+|  |  |- websocket.ts                minimal dependency-free WebSocket server
+|  |  |- origin.ts                   same-origin/loopback guard
+|  |  `- redact.ts                   credential and authorization redaction
 |  |- cli.ts                         terminal composition root
 |  |- cli/
 |  |  `- slash.ts                    interactive /command parser
@@ -110,6 +126,9 @@ A008/
 |     |- user-assertion-gate.ts       runtime-owned new-memory activation
 |     `- local-memory-runtime.ts      CLI/ACP memory composition root
 |- test/                              fake/local chat, ACP, memory, retrieval, identity, and orchestration tests
+|  |- gui-host.test.ts                host routes, WS bridge, and credential gate
+|  |- gui-host/
+|  |  `- fake-acp.ts                  spawnable ACP stdio stand-in
 |  |- fixtures/
 |  |  |- fake-nvidia-server.ts        loopback runtime-proof SSE fixture
 |  |  |- nvidia-live-reasoning-leak.json  live Nemotron channel-leak characterization
@@ -195,5 +214,18 @@ only through `createLocalMemoryRuntime`.
 `src/benchmark/` contains deterministic local architecture
 proofs, not production runtime composition. `src/identity/` owns
 opaque runtime routing types and an in-memory binding reference; only canonical
-ACP-session generation is integrated today. Compiled `dist/`, dependencies,
+ACP-session generation is integrated today.
+
+`src/gui-host/` and `gui/` are the two halves of the product GUI path in
+ADR 0019 D2. `src/gui-host/` is a third I/O composition surface beside CLI and
+ACP; like them it owns no second provider implementation and reaches the core
+only through `A008-acp`. `gui/` is a separate npm package with its own
+`tsconfig.json` and dependency graph, so the root build never compiles renderer
+code. Each `gui/src/` feature directory has a single owning task per ADR 0019
+D7; `gui/src/app.tsx`, `gui/index.html`, and `gui/vite.config.ts` are shell
+files the operator owns. GUI unit tests live beside their modules as
+`*.test.ts` and run under `node --experimental-strip-types` through the loaders
+in `gui/src/composer/` and `gui/src/chat/`, not through the root `npm test`.
+
+Compiled `dist/` (root and `gui/`), dependencies,
 `.env.local`, and raw legacy input are ignored and are not repository structure.
