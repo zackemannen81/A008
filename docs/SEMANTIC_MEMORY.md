@@ -1,13 +1,16 @@
 # Semantic Memory v0
 
-Status: Implemented reference core, durable local hybrid read path, exported
-memory-aware chat orchestration, bounded post-output staging, and guarded
-relation-gated commit plus sequential batch coordination. Not wired to
-CLI/ACP/Canvas and does not perform automatic post-output writes.
+Status: Implemented v0 reference core. The accepted target constitution is
+[`KNOWLEDGE_MEMORY_MODEL.md`](KNOWLEDGE_MEMORY_MODEL.md) via
+[ADR 0018](adr/0018-knowledge-and-memory-model.md). This document describes
+the v0 `KnowledgeItem` engine that
+[`KNOWLEDGE_MODEL_GAP_ANALYSIS.md`](KNOWLEDGE_MODEL_GAP_ANALYSIS.md) measures.
+A008-0021 is closing that gap; do not treat v0 invariants 3–6 as the
+destination model.
 
 ## Purpose
 
-Semantic Memory v0 gives a007 a project-owned state and projection boundary. A
+Semantic Memory v0 gives A008 a project-owned state and projection boundary. A
 caller supplies a validated knowledge proposal and explicit relation decision
 on the write side. The read side accepts a deterministic bounded retrieval plan
 and selects from indexed canonical knowledge. Neither side claims provider-
@@ -161,7 +164,7 @@ The serialized v0 payload is stable JSON:
   "items": [
     {
       "id": "knowledge-17",
-      "proposition": "The provider call remains owned by a007.",
+      "proposition": "The provider call remains owned by A008.",
       "kind": "architecture-decision",
       "tags": ["provider"],
       "scope": ["runtime"],

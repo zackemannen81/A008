@@ -6,9 +6,9 @@ import { Writable } from "node:stream";
 import type { ChatRequest, ChatTransport } from "../src/core/types.js";
 
 export const TEST_PROJECT_ID =
-  "a007_v1_project_40000000-0000-4000-8000-000000000016";
+  "A008_v1_project_40000000-0000-4000-8000-000000000016";
 export const TEST_AGENT_ID =
-  "a007_v1_agent_40000000-0000-4000-8000-000000000017";
+  "A008_v1_agent_40000000-0000-4000-8000-000000000017";
 
 export function isolatedMemoryEnv(
   overrides: NodeJS.ProcessEnv = {},
@@ -17,17 +17,17 @@ export function isolatedMemoryEnv(
   readonly sqlitePath: string;
   readonly env: NodeJS.ProcessEnv;
 } {
-  const directory = mkdtempSync(join(tmpdir(), "a007-memory-"));
+  const directory = mkdtempSync(join(tmpdir(), "A008-memory-"));
   const sqlitePath = join(directory, "memory.sqlite");
   return {
     directory,
     sqlitePath,
     env: {
       NVIDIA_API_KEY: "test-token",
-      A007_PROJECT_ID: TEST_PROJECT_ID,
-      A007_AGENT_ID: TEST_AGENT_ID,
-      A007_MEMORY_SQLITE_PATH: sqlitePath,
-      A007_DEBUG_TRACE: "off",
+      A008_PROJECT_ID: TEST_PROJECT_ID,
+      A008_AGENT_ID: TEST_AGENT_ID,
+      A008_MEMORY_SQLITE_PATH: sqlitePath,
+      A008_DEBUG_TRACE: "off",
       ...overrides,
     },
   };

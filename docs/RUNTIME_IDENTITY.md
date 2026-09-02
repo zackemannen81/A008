@@ -7,7 +7,7 @@ cross-component ACP mapping exists.
 
 ## Purpose
 
-Runtime Identity v0 gives a007 stable opaque handles for application state
+Runtime Identity v0 gives A008 stable opaque handles for application state
 without confusing an ID with the knowledge behind it. The contract is owned by
 [ADR 0006](adr/0006-runtime-identity-v0.md).
 
@@ -15,29 +15,29 @@ without confusing an ID with the knowledge behind it. The contract is owned by
 
 | Kind | Meaning |
 | --- | --- |
-| `project` | Stable a007 application/project scope. |
+| `project` | Stable A008 application/project scope. |
 | `conversation` | Stable logical conversation across runtime surfaces. |
 | `task` | Product runtime work scope; not a docs-first task record. |
-| `agent` | Stable logical a007 agent identity. |
-| `acp_session` | One ACP protocol session owned by the a007 process boundary. |
+| `agent` | Stable logical A008 agent identity. |
+| `acp_session` | One ACP protocol session owned by the A008 process boundary. |
 
 Every value has this exact form:
 
 ```text
-a007_v1_<kind>_<lowercase UUIDv4>
+A008_v1_<kind>_<lowercase UUIDv4>
 ```
 
 Example:
 
 ```text
-a007_v1_conversation_01234567-89ab-4cde-8abc-0123456789ab
+A008_v1_conversation_01234567-89ab-4cde-8abc-0123456789ab
 ```
 
 `v1` is the format version. The kind is routing metadata. UUIDv4 provides
 locally generated entropy. No username, email, path, prompt, title, project
 name, or other mutable/user-semantic value is encoded.
 
-`A007-0007` is not a runtime task ID. It is a docs-first repository task
+`A008-0007` is not a runtime task ID. It is a docs-first repository task
 address whose status lives in the task record.
 
 ## Public primitives
@@ -76,7 +76,7 @@ External systems keep ownership of their identifiers:
 
 `system` and `kind` are lowercase namespaces. `value` is bounded to 512 trimmed,
 control-free characters. It is stored and compared opaquely. It does not become
-an a007 canonical ID and must not be sent to a model as a substitute for the
+an A008 canonical ID and must not be sent to a model as a substitute for the
 conversation or task semantics.
 
 External values may contain sensitive or correlatable data. Control-plane
@@ -123,13 +123,13 @@ on restart and is not a production registry.
 
 ## Current ACP adoption
 
-The default `a007-acp` session ID now uses `RuntimeIdentityFactory` with kind
+The default `A008-acp` session ID now uses `RuntimeIdentityFactory` with kind
 `acp_session`. A deterministic `createSessionId` injection remains available.
 The result is parsed before the session map changes, and a duplicate is rejected
 instead of replacing the prior session.
 
 The bridge does not register `AcpIdentityBinding` yet. ACP `session/new` gives
-a007 a working directory and MCP server descriptions, not a verified Agent
+A008 a working directory and MCP server descriptions, not a verified Agent
 Server conversation handle, project, logical conversation, runtime task, or
 agent identity. Inventing those values would be false mapping. A later
 orchestration boundary must supply the complete context explicitly.

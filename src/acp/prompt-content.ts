@@ -20,7 +20,7 @@ export function promptToText(blocks: readonly ContentBlock[]): string {
     }
     throw RequestError.invalidParams(
       { contentType: block.type },
-      `a007 does not support ACP ${block.type} prompt content.`,
+      `A008 does not support ACP ${block.type} prompt content.`,
     );
   });
 

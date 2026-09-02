@@ -22,19 +22,19 @@ import {
 } from "../src/orchestration/relation-gated-memory-commit.js";
 
 const PROJECT = parseRuntimeId(
-  "a007_v1_project_60000000-0000-4000-8000-000000000001",
+  "A008_v1_project_60000000-0000-4000-8000-000000000001",
   "project",
 );
 const CONVERSATION = parseRuntimeId(
-  "a007_v1_conversation_60000000-0000-4000-8000-000000000002",
+  "A008_v1_conversation_60000000-0000-4000-8000-000000000002",
   "conversation",
 );
 const TASK = parseRuntimeId(
-  "a007_v1_task_60000000-0000-4000-8000-000000000003",
+  "A008_v1_task_60000000-0000-4000-8000-000000000003",
   "task",
 );
 const AGENT = parseRuntimeId(
-  "a007_v1_agent_60000000-0000-4000-8000-000000000004",
+  "A008_v1_agent_60000000-0000-4000-8000-000000000004",
   "agent",
 );
 

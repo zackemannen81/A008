@@ -33,21 +33,21 @@ interface ChatCommandOptions {
   readonly debugTraceFile?: string;
 }
 
-const HELP = `a007 - provider-neutral AI chat CLI
+const HELP = `A008 - provider-neutral AI chat CLI
 
 Usage:
-  a007 models
-  a007 chat [--model <model-id>] [--system <message>] [--debug-trace off|safe|raw] [--debug-trace-file <absolute-path>]
-  a007 --help
+  A008 models
+  A008 chat [--model <model-id>] [--system <message>] [--debug-trace off|safe|raw] [--debug-trace-file <absolute-path>]
+  A008 --help
 
 Environment:
   NVIDIA_API_KEY              Required only for the chat command.
   NVIDIA_CHAT_COMPLETIONS_URL Optional trusted endpoint override.
-  A007_PROJECT_ID             Optional stable project runtime ID.
-  A007_AGENT_ID               Optional stable agent runtime ID.
-  A007_MEMORY_SQLITE_PATH     SQLite path outside the repository. Defaults to ~/.a007/memory.sqlite.
-  A007_DEBUG_TRACE            off (default), safe, or raw.
-  A007_DEBUG_TRACE_FILE       Absolute JSONL path required for raw traces and for ACP traces.
+  A008_PROJECT_ID             Optional stable project runtime ID.
+  A008_AGENT_ID               Optional stable agent runtime ID.
+  A008_MEMORY_SQLITE_PATH     SQLite path outside the repository. Defaults to ~/.A008/memory.sqlite.
+  A008_DEBUG_TRACE            off (default), safe, or raw.
+  A008_DEBUG_TRACE_FILE       Absolute JSONL path required for raw traces and for ACP traces.
 
 Interactive commands:
   /exit            End the session.

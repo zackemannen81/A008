@@ -1,7 +1,7 @@
-![alt text](https://github.com/zackemannen81/a007/blob/main/a007hero.jpg?raw=true)
-# a007
+![alt text](https://github.com/zackemannen81/A008/blob/main/A008hero.jpg?raw=true)
+# A008
 
-a007 is an early AI-client implementation built around one provider-neutral
+A008 is an early AI-client implementation built around one provider-neutral
 chat core shared by terminal and GUI-facing surfaces. The current product slice
 contains a tested CLI, NVIDIA adapter, custom ACP bridge for OpenHands Agent
 Canvas, provider-neutral semantic-memory reference core, and typed runtime
@@ -16,7 +16,7 @@ exported relation gate now compares one proposal with bounded materialized
 current candidates, maps an ID-free five-way decision, and performs guarded
 reconciliation plus explicit index repair. A provider-neutral coordinator now
 stages once and processes multi-proposal results sequentially with explicit
-partial-failure and repair checkpoints. Local CLI and a007 ACP now share that
+partial-failure and repair checkpoints. Local CLI and A008 ACP now share that
 memory-aware runtime, a narrow user-assertion activation gate, and opt-in
 secret-safe debug tracing. Agent Server conversation binding and resume remain
 deferred.
@@ -33,7 +33,7 @@ deferred.
   network, configuration, unknown-model, and invalid-response errors.
 - One verified model profile: `nvidia/nemotron-3.5-lightning-30b-a3b`.
 - Thin CLI for model listing and interactive memory-aware chat.
-- Stable-v1 `a007-acp` stdio bridge that Agent Server can launch as a Custom
+- Stable-v1 `A008-acp` stdio bridge that Agent Server can launch as a Custom
   Agent Canvas agent.
 - Visible Agent Canvas round trip through that bridge and the same provider
   adapter using a deterministic loopback endpoint.
@@ -103,21 +103,21 @@ Inside chat, `/reset` clears conversation turns while preserving the system
 message and SQLite namespace, and `/exit` ends the session. See
 `docs/LOCAL_MEMORY_SURFACES.md` and `docs/DEBUG_TRACE.md` for SQLite path,
 identity, activation, and tracing settings. Default memory state is
-`~/.a007/memory.sqlite`.
+`~/.A008/memory.sqlite`.
 
 ## Agent Canvas bridge
 
 After building, configure Agent Canvas's Custom ACP command as:
 
 ```text
-node C:/code/a007/dist/src/acp/server.js
+node C:/code/A008/dist/src/acp/server.js
 ```
 
 Select `nvidia/nemotron-3.5-lightning-30b-a3b` and provide `NVIDIA_API_KEY`
 through Agent Server's secret boundary. The bridge is protocol-tested and has a
 visible local Canvas/browser result against a loopback fake endpoint. See
 `docs/AGENT_CANVAS_INTEGRATION.md` for the exact boundary, Windows notes, and
-limitations, and `docs/evidence/A007-0005_agent-canvas-runtime-proof.md` for the
+limitations, and `docs/evidence/A008-0005_agent-canvas-runtime-proof.md` for the
 safe proof record.
 
 ## Architecture boundary
@@ -125,7 +125,7 @@ safe proof record.
 ```text
 CLI ------------------------.
                              v
-Agent Canvas -> Agent Server -> a007-acp -> createLocalMemoryRuntime
+Agent Canvas -> Agent Server -> A008-acp -> createLocalMemoryRuntime
                                          -> one NVIDIA ChatTransport
                                          -> MemoryAwareChatSession
                                          -> post-output coordinator
@@ -198,6 +198,6 @@ Read `AGENTS.md`, then `docs/CURRENT_TASK.md` and the reading order it names.
 
 ## License
 
-a007-owned repository contents are licensed under Apache License 2.0. Reused
+A008-owned repository contents are licensed under Apache License 2.0. Reused
 third-party code retains its original license and notice requirements.
 # A008

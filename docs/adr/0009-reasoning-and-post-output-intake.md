@@ -9,13 +9,13 @@ Decision owner: mrWhite81 and felixnissen
 ## Context
 
 The provider can return a reasoning stream in addition to the final assistant
-answer. A007 already represents these as separate `ChatDelta` and
+answer. A008 already represents these as separate `ChatDelta` and
 `ChatCompletion` fields, but the exclusion from history, retrieval, and future
 knowledge analysis was implicit. Replaying a verbose reasoning transcript would
 undo bounded-context work and would treat speculative intermediate text as if
 it were an answer or verified evidence.
 
-A007 also needs the first post-output boundary before relation classification
+A008 also needs the first post-output boundary before relation classification
 and canonical reconciliation can be added. That boundary must not allow raw
 provider output to write memory or silently create a second provider owner.
 
@@ -27,11 +27,11 @@ provider output to write memory or silently create a second provider owner.
     assistant text committed to `ChatSession`; and
   - finish reason and usage are operational metadata.
 - Reasoning may be streamed to CLI stderr or emitted as ACP thought events and
-  may be returned to the immediate caller as `ChatCompletion.reasoning`. A007
+  may be returned to the immediate caller as `ChatCompletion.reasoning`. A008
   does not convert it to `ChatMessage`, history, retrieval input, subsequent
   provider context, or knowledge-analysis input.
 - External ACP hosts may render or retain their own event logs. Those logs are
-  outside a007 chat/memory state and must never be rebound as memory input
+  outside A008 chat/memory state and must never be rebound as memory input
   without a later explicit decision.
 - `PostOutputKnowledgeIntake` is the first provider-neutral post-output service.
   Its analyzer receives a newly allocated object with exactly two properties:
@@ -70,7 +70,7 @@ type makes the intended information boundary explicit.
 
 Rejected. It increases persistent transcript size, creates another sensitive
 data class, and leaves multiple future replay paths that must remember to filter
-it. A007 has no product requirement for durable reasoning transcripts.
+it. A008 has no product requirement for durable reasoning transcripts.
 
 ### Let the analyzer emit complete `KnowledgeProposal` records
 
@@ -100,4 +100,4 @@ concerns. The current proof targets channel isolation and bounded request shape.
   calling `SemanticMemory.reconcile`.
 - The benchmark can detect regressions where reasoning or control IDs enter a
   later request, while its observed timings remain non-guaranteed evidence.
-- A007 still does not automatically learn from a chat response.
+- A008 still does not automatically learn from a chat response.

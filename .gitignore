@@ -7,8 +7,8 @@
 .env.local
 
 # Local memory runtime state and opt-in diagnostics
-.a007/
-a007-project-id
+.A008/
+A008-project-id
 *.debug.jsonl
 
 # JavaScript and generated output
@@ -29,7 +29,7 @@ coverage/
 Thumbs.db
 
 # Bootstrap/reference packages intentionally kept outside product history
-/a007-docs-first-bootstrap/
+/A008-docs-first-bootstrap/
 /docs-first-multiagent-orchestrator-addon/
 /baseline/
 /extraction/

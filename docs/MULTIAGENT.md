@@ -1,6 +1,6 @@
 # Multi-Agent Operation
 
-Status: Prepared policy; process enforcement is not installed for a007.
+Status: Prepared policy; process enforcement is not installed for A008.
 
 ## Control and process planes
 
@@ -12,7 +12,7 @@ completion evidence.
 
 ```text
 one child task
-  = one claimed A007 identity
+  = one claimed A008 identity
   = one frozen charter
   = one branch
   = one physical worktree or clone
@@ -28,12 +28,12 @@ them. Writing agents do not share a working directory.
 The configured root is:
 
 ```text
-C:\code\a007-workers
+C:\code\A008-workers
 ```
 
-It is a sibling of the canonical repository at `C:\code\a007`, not a child of
-it. A worker directory uses `A007-NNNN_task-slug`; the corresponding default
-branch uses `codex/a007-nnnn-task-slug` unless its charter names another branch.
+It is a sibling of the canonical repository at `C:\code\A008`, not a child of
+it. A worker directory uses `A008-NNNN_task-slug`; the corresponding default
+branch uses `codex/A008-nnnn-task-slug` unless its charter names another branch.
 
 Before creating a clone or worktree, the operator verifies that the exact target
 path does not already contain unrelated data, records the source remote and base
@@ -45,7 +45,7 @@ task authority; an old worker directory is never overwritten for convenience.
 The operator owns:
 
 - `docs/TASK_IDS.md` allocation on `main`;
-- the canonical a007 working tree;
+- the canonical A008 working tree;
 - cross-task decisions and shared contracts;
 - merge order, combined verification, release, and external effects;
 - credentials, paid-provider authority, shared ports, and test environments.
@@ -56,7 +56,7 @@ Before a writing wave:
 
 1. Claim every child ID on `main`.
 2. Freeze non-overlapping child charters.
-3. Allocate a unique directory under `C:\code\a007-workers` and verify it is
+3. Allocate a unique directory under `C:\code\A008-workers` and verify it is
    outside the canonical repository.
 4. Record base revision, branch, write scope, read dependencies, and gates.
 5. Confirm real permissions and external-effect boundaries.

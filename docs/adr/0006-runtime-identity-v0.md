@@ -8,7 +8,7 @@ Decision owner: mrWhite81 and felixnissen
 
 ## Context
 
-A007 has a shared chat core, an ACP session boundary, and a semantic-memory
+A008 has a shared chat core, an ACP session boundary, and a semantic-memory
 service, but their runtime identifiers were unrelated strings. The ACP bridge
 generated a process-local bare UUID, the memory task contract accepted any
 string, and no project-owned mapping contract existed for a project,
@@ -23,15 +23,15 @@ as model-visible knowledge.
 - Runtime identity v0 defines five kinds: `project`, `conversation`, `task`,
   `agent`, and `acp_session`.
 - The canonical form is
-  `a007_v1_<kind>_<lowercase UUIDv4>`. The prefix/version/kind are routing and
+  `A008_v1_<kind>_<lowercase UUIDv4>`. The prefix/version/kind are routing and
   validation metadata; the UUID carries no user or task semantics.
 - Branded TypeScript aliases prevent accidental cross-kind assignment at
   compile time. Runtime parsing verifies the complete format and expected kind.
 - A runtime `task` ID is product state. It is unrelated to the docs-first task
-  address `A007-NNNN`, which remains repository governance and status routing.
+  address `A008-NNNN`, which remains repository governance and status routing.
 - External handles use a bounded `{system, kind, value}` reference. System and
   kind are canonical lowercase namespaces. The value is opaque control-plane
-  data, not canonical a007 identity or model context.
+  data, not canonical A008 identity or model context.
 - `AcpIdentityBinding` links one project, conversation, runtime task, agent, ACP
   session, and zero or more external references.
 - `AcpIdentityBindingRepository` exposes idempotent registration plus lookups by
@@ -42,13 +42,13 @@ as model-visible knowledge.
 - The first adapter is an atomic, concurrency-serialized in-memory reference.
   It registers on working copies, resolves conflicts before commit, and returns
   defensive records. It is not durable storage.
-- The a007 ACP agent now generates canonical `acp_session` IDs by default.
+- The A008 ACP agent now generates canonical `acp_session` IDs by default.
   Injected IDs remain supported for tests/operators but must be canonical and
   unique within the process; malformed or duplicate values are rejected before
   session-map mutation.
 - No binding is automatically registered by the ACP bridge yet. The current ACP
   new-session request provides working directory/MCP configuration but not an
-  Agent Server conversation ID or the other four a007 application identities.
+  Agent Server conversation ID or the other four A008 application identities.
 
 ## Alternatives considered
 
@@ -57,10 +57,10 @@ as model-visible knowledge.
 Rejected. A bare value cannot be runtime-validated for project versus task
 versus ACP-session use and offers no format version for migrations.
 
-### Use Agent Server or Canvas IDs as a007 canonical IDs
+### Use Agent Server or Canvas IDs as A008 canonical IDs
 
 Rejected. External ownership and lifecycle would leak through the application
-core, prevent CLI parity, and make upstream format changes an a007 migration.
+core, prevent CLI parity, and make upstream format changes an A008 migration.
 
 ### Encode names, paths, prompts, or user identity in IDs
 

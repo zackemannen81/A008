@@ -11,12 +11,12 @@ import { fileURLToPath } from "node:url";
 import { ChatError } from "../core/errors.js";
 import type { DebugTraceMode } from "./debug-trace.js";
 
-export const PROJECT_ID_ENV = "A007_PROJECT_ID";
-export const AGENT_ID_ENV = "A007_AGENT_ID";
-export const SQLITE_PATH_ENV = "A007_MEMORY_SQLITE_PATH";
-export const DEBUG_TRACE_ENV = "A007_DEBUG_TRACE";
-export const DEBUG_TRACE_FILE_ENV = "A007_DEBUG_TRACE_FILE";
-export const PROJECT_ID_SIDECAR = "a007-project-id";
+export const PROJECT_ID_ENV = "A008_PROJECT_ID";
+export const AGENT_ID_ENV = "A008_AGENT_ID";
+export const SQLITE_PATH_ENV = "A008_MEMORY_SQLITE_PATH";
+export const DEBUG_TRACE_ENV = "A008_DEBUG_TRACE";
+export const DEBUG_TRACE_FILE_ENV = "A008_DEBUG_TRACE_FILE";
+export const PROJECT_ID_SIDECAR = "A008-project-id";
 
 export interface LocalRuntimeCliTraceOptions {
   readonly debugTrace?: string;
@@ -33,7 +33,7 @@ export interface LocalRuntimeConfig {
 }
 
 export function defaultSqlitePath(): string {
-  return join(homedir(), ".a007", "memory.sqlite");
+  return join(homedir(), ".A008", "memory.sqlite");
 }
 
 export function findRepositoryRoot(startDirectory: string): string {
@@ -49,7 +49,7 @@ export function findRepositoryRoot(startDirectory: string): string {
     if (parent === current) {
       throw new ChatError(
         "configuration",
-        "Unable to locate the a007 repository root.",
+        "Unable to locate the A008 repository root.",
       );
     }
     current = parent;
@@ -67,7 +67,7 @@ export function parseDebugTraceMode(value: string | undefined): DebugTraceMode {
   }
   throw new ChatError(
     "configuration",
-    "A007_DEBUG_TRACE must be off, safe, or raw.",
+    "A008_DEBUG_TRACE must be off, safe, or raw.",
   );
 }
 
@@ -91,7 +91,7 @@ function resolvedSqlitePath(raw: string, repositoryRoot: string): string {
   ) {
     throw new ChatError(
       "configuration",
-      "A007_MEMORY_SQLITE_PATH must be outside the a007 repository.",
+      "A008_MEMORY_SQLITE_PATH must be outside the A008 repository.",
     );
   }
   return resolved;
@@ -109,13 +109,13 @@ function resolvedTraceFile(
     if (mode === "raw") {
       throw new ChatError(
         "configuration",
-        "A007_DEBUG_TRACE_FILE must be an absolute path when raw tracing is enabled.",
+        "A008_DEBUG_TRACE_FILE must be an absolute path when raw tracing is enabled.",
       );
     }
     if (surface === "acp") {
       throw new ChatError(
         "configuration",
-        "A007_DEBUG_TRACE_FILE must be an absolute path when ACP tracing is enabled.",
+        "A008_DEBUG_TRACE_FILE must be an absolute path when ACP tracing is enabled.",
       );
     }
     return undefined;
@@ -123,7 +123,7 @@ function resolvedTraceFile(
   if (!isAbsolute(raw)) {
     throw new ChatError(
       "configuration",
-      "A007_DEBUG_TRACE_FILE must be an absolute path.",
+      "A008_DEBUG_TRACE_FILE must be an absolute path.",
     );
   }
   return resolve(raw);

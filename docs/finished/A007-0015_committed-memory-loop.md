@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0015
+Task ID: A008-0015
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -94,7 +94,7 @@ benchmark documentation.
 - [x] Upgrade the executable benchmark to the full committed loop.
 - [x] Strengthen the compiled-process contract test.
 - [x] Run regression, benchmark, package, security, and documentation gates.
-- [x] Update durable docs, archive A007-0015, and restore the task template.
+- [x] Update durable docs, archive A008-0015, and restore the task template.
 
 ## Decisions and Notes
 

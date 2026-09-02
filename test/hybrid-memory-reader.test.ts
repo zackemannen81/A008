@@ -19,35 +19,35 @@ import type { KnowledgeItem } from "../src/memory/types.js";
 import { parseRuntimeId } from "../src/identity/runtime-id.js";
 
 const PROJECT = parseRuntimeId(
-  "a007_v1_project_10000000-0000-4000-8000-000000000001",
+  "A008_v1_project_10000000-0000-4000-8000-000000000001",
   "project",
 );
 const OTHER_PROJECT = parseRuntimeId(
-  "a007_v1_project_10000000-0000-4000-8000-000000000002",
+  "A008_v1_project_10000000-0000-4000-8000-000000000002",
   "project",
 );
 const CONVERSATION = parseRuntimeId(
-  "a007_v1_conversation_10000000-0000-4000-8000-000000000003",
+  "A008_v1_conversation_10000000-0000-4000-8000-000000000003",
   "conversation",
 );
 const TASK = parseRuntimeId(
-  "a007_v1_task_10000000-0000-4000-8000-000000000004",
+  "A008_v1_task_10000000-0000-4000-8000-000000000004",
   "task",
 );
 const AGENT = parseRuntimeId(
-  "a007_v1_agent_10000000-0000-4000-8000-000000000005",
+  "A008_v1_agent_10000000-0000-4000-8000-000000000005",
   "agent",
 );
 const OTHER_CONVERSATION = parseRuntimeId(
-  "a007_v1_conversation_10000000-0000-4000-8000-000000000006",
+  "A008_v1_conversation_10000000-0000-4000-8000-000000000006",
   "conversation",
 );
 const OTHER_TASK = parseRuntimeId(
-  "a007_v1_task_10000000-0000-4000-8000-000000000007",
+  "A008_v1_task_10000000-0000-4000-8000-000000000007",
   "task",
 );
 const OTHER_AGENT = parseRuntimeId(
-  "a007_v1_agent_10000000-0000-4000-8000-000000000008",
+  "A008_v1_agent_10000000-0000-4000-8000-000000000008",
   "agent",
 );
 

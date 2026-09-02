@@ -1,6 +1,6 @@
-# A007-0006 — Semantic-memory core
+# A008-0006 — Semantic-memory core
 
-Task ID: A007-0006
+Task ID: A008-0006
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -22,7 +22,7 @@ Charter frozen at: 2026-09-01
 
 ## Task Summary
 
-The shared CLI/Canvas provider path is proven, but a007 has no project-owned
+The shared CLI/Canvas provider path is proven, but A008 has no project-owned
 semantic-memory contract or implementation. Establish the first bounded memory
 core from the owner's Context-First Knowledge Architecture without coupling it
 to a provider, UI, persistence product, or probabilistic classifier.
@@ -44,7 +44,7 @@ materialized context projections, and fake-only automated evidence.
 
 ### In Scope
 
-- Adopt a007-owned terminology and invariants from the owner-supplied reference
+- Adopt A008-owned terminology and invariants from the owner-supplied reference
   document while recording its provenance and non-authority boundary.
 - Define orthogonal current/superseded and active/dormant state, materialized
   knowledge, scope, provenance, reconciliation, discovery, projection, budget,
@@ -128,11 +128,11 @@ materialized context projections, and fake-only automated evidence.
 - [x] Add invariant, scaling, rollback, regression, and package tests.
 - [x] Update durable status, system, structure, backlog, and journal records.
 - [x] Run every minimum verification gate and record exact evidence.
-- [x] Archive A007-0006 and restore the clean current-task template.
+- [x] Archive A008-0006 and restore the clean current-task template.
 
 ## Decisions and Notes
 
-- The owner document is design input. Its MUST language is not a007 authority
+- The owner document is design input. Its MUST language is not A008 authority
   until adopted by this frozen charter and the task's accepted decision.
 - Serialized size is measured over the exact context string by an injected
   measurer. The reference implementation uses exact UTF-8 bytes; a future
@@ -185,7 +185,7 @@ materialized context projections, and fake-only automated evidence.
 
 ## Handoff and Follow-ups
 
-- Current state: complete; the first a007-owned memory contract and reference
+- Current state: complete; the first A008-owned memory contract and reference
   engine are exported, documented, and fake-only verified.
 - Next recommended step: define stable project, conversation, task, agent, and
   ACP-session identity contracts before persistent or automatic integration.

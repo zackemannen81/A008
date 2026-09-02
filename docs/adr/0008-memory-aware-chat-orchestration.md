@@ -8,7 +8,7 @@ Decision owner: mrWhite81 and felixnissen
 
 ## Context
 
-A007 has one transactional provider-neutral `ChatSession`, typed runtime
+A008 has one transactional provider-neutral `ChatSession`, typed runtime
 identities, and a durable hybrid semantic-memory read path. They were
 deliberately disconnected: current CLI and ACP requests do not supply a complete
 verified project/conversation/task/agent context, and the existing chat session
@@ -92,7 +92,7 @@ and is unnecessary to prove deterministic bounded composition.
 
 ### Infer runtime identity from ACP working directory or session ID
 
-Rejected. Paths and external/protocol handles do not establish a007 project,
+Rejected. Paths and external/protocol handles do not establish A008 project,
 conversation, task, and agent identity. Invented bindings would be false state.
 
 ## Consequences

@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0013
+Task ID: A008-0013
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -144,7 +144,7 @@ durable contract documentation.
 
 ## References
 
-- A007-0012 handoff in `docs/JOURNAL.md`.
+- A008-0012 handoff in `docs/JOURNAL.md`.
 - `docs/POST_OUTPUT_KNOWLEDGE_INTAKE.md`
 - `docs/RELATION_GATED_MEMORY_COMMIT.md`
 - `docs/adr/0009-reasoning-and-post-output-intake.md`
@@ -156,7 +156,7 @@ durable contract documentation.
 - [x] Implement coordinator state/result/checkpoint validation and resume.
 - [x] Export and test fake/local plus actual SQLite multi-proposal flow.
 - [x] Run regression, benchmark, package, security, and documentation gates.
-- [x] Update durable docs, archive A007-0013, and restore the task template.
+- [x] Update durable docs, archive A008-0013, and restore the task template.
 
 ## Decisions and Notes
 

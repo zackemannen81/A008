@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0016
+Task ID: A008-0016
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -23,7 +23,7 @@ Charter frozen at: 2026-09-01
 ## Task Summary
 
 Connect the implemented memory-aware read/chat/post-output loop to the local CLI
-and a007 ACP surface used by Agent Canvas, then make the exact provider-visible
+and A008 ACP surface used by Agent Canvas, then make the exact provider-visible
 requests and raw provider responses inspectable through an explicitly enabled,
 secret-safe debug trace.
 
@@ -38,7 +38,7 @@ safe opt-in observability.
 
 ### Primary Deliverable
 
-A shared local memory-runtime composition root consumed by CLI and a007 ACP,
+A shared local memory-runtime composition root consumed by CLI and A008 ACP,
 plus an opt-in `off | safe | raw` diagnostic trace contract, deterministic
 two-turn surface proofs, and exact operator instructions for local CLI and
 Agent Canvas testing.
@@ -59,7 +59,7 @@ Agent Canvas testing.
 - Route CLI chat through the memory-aware read path, retain streaming reasoning
   and answer presentation, and invoke post-output processing only from original
   user text plus final answer.
-- Route each a007 ACP session used by Agent Canvas through the same application
+- Route each A008 ACP session used by Agent Canvas through the same application
   composition while preserving ACP thought/answer/cancellation behavior and
   keeping protocol stdout free of diagnostics.
 - Stream the visible answer without waiting for memory analysis. Treat later
@@ -71,8 +71,8 @@ Agent Canvas testing.
     commit/index outcomes, and redacted summaries; and
   - `raw`: exact serialized provider message bodies and raw SSE/JSON response
     frames/content, with explicit local-content exposure warnings.
-- Use `A007_DEBUG_TRACE=off|safe|raw` and
-  `A007_DEBUG_TRACE_FILE=<absolute path>` as the cross-surface settings, with an
+- Use `A008_DEBUG_TRACE=off|safe|raw` and
+  `A008_DEBUG_TRACE_FILE=<absolute path>` as the cross-surface settings, with an
   equivalent CLI option that shares one parser/config owner.
 - Exclude authorization headers, API keys, environment dumps, secret-bearing
   request metadata, and transport internals from every trace mode. Raw mode may
@@ -109,7 +109,7 @@ Agent Canvas testing.
 
 ### Definition of Done
 
-- [x] CLI and a007 ACP/Canvas use the same shared memory-aware application
+- [x] CLI and A008 ACP/Canvas use the same shared memory-aware application
       composition and credential/transport owner.
 - [x] A two-turn CLI proof and a two-prompt ACP process proof each demonstrate
       read -> streamed answer -> post-output commit/index -> next-turn reread
@@ -152,7 +152,7 @@ Agent Canvas testing.
       sink failure, and restart with existing SQLite.
 - [x] Package dry-run, ignored-artifact, staged-secret/content, Markdown link/
       fence/index, task-template, and `git diff --check` gates pass.
-- [x] Manual Agent Canvas loopback runbook was updated and the compiled a007 ACP
+- [x] Manual Agent Canvas loopback runbook was updated and the compiled A008 ACP
       process was replayed against a loopback fake NVIDIA endpoint. The external
       OpenHands checkout remained at `744e8652` with no source changes. The full
       browser Canvas/Agent Server GUI was not re-driven in this session. A live
@@ -177,7 +177,7 @@ Agent Canvas testing.
 - `docs/LOCAL_MEMORY_SURFACES.md`
 - `docs/DEBUG_TRACE.md`
 - `src/cli.ts`
-- `src/acp/a007-acp-agent.ts`
+- `src/acp/A008-acp-agent.ts`
 - `src/runtime/nvidia-session.ts`
 - `src/orchestration/memory-aware-chat-session.ts`
 
@@ -227,7 +227,7 @@ Agent Canvas testing.
 ### Pre-freeze owner review
 
 1. **New-memory activation:** approved — implement the narrow user-assertion
-   activation gate inside A007-0016.
+   activation gate inside A008-0016.
 2. **Debug presentation:** approved — JSONL file is the canonical raw/safe sink,
    with optional safe CLI stderr summaries.
 3. **Turn completion:** approved — answer-first then awaited memory settlement.
@@ -261,7 +261,7 @@ Agent Canvas testing.
       the new records; `git diff --check` was clean.
 - [x] Record skipped checks and reasons: the full browser Canvas/Agent Server
       GUI was not re-driven. OpenHands remained at
-      `744e8652f254613045b779eb148bf4f741177975` unmodified. The a007-owned ACP
+      `744e8652f254613045b779eb148bf4f741177975` unmodified. The A008-owned ACP
       process loopback and updated runbook were the substitute. No live/paid
       provider call, `.env.local` load, push, or deployment.
 
@@ -277,7 +277,7 @@ Agent Canvas testing.
 
 ## Handoff and Follow-ups
 
-- Current state: Complete. Local CLI and a007 ACP share one memory runtime,
+- Current state: Complete. Local CLI and A008 ACP share one memory runtime,
   user-assertion activation, and opt-in tracing.
 - Next recommended step: owner-executed live NVIDIA run, or a later task for
   Agent Server conversation binding, durable retry, or conflict/review UX.

@@ -5,7 +5,7 @@ import {
   RequestError,
   type NewSessionRequest,
 } from "@agentclientprotocol/sdk";
-import { A007AcpAgent } from "../src/acp/a007-acp-agent.js";
+import { A008AcpAgent } from "../src/acp/A008-acp-agent.js";
 import { ChatSession } from "../src/core/chat-session.js";
 import { ChatError } from "../src/core/errors.js";
 import type {
@@ -19,10 +19,10 @@ const NEW_SESSION: NewSessionRequest = {
   mcpServers: [],
 };
 const SESSION_ID =
-  "a007_v1_acp_session_00000000-0000-4000-8000-000000000001";
+  "A008_v1_acp_session_00000000-0000-4000-8000-000000000001";
 
 test("ACP agent advertises stable v1 and the verified model", () => {
-  const agent = new A007AcpAgent({
+  const agent = new A008AcpAgent({
     createSession: () => {
       throw new Error("not needed");
     },
@@ -33,14 +33,14 @@ test("ACP agent advertises stable v1 and the verified model", () => {
   const created = agent.newSession(NEW_SESSION);
 
   assert.equal(initialized.protocolVersion, PROTOCOL_VERSION);
-  assert.equal(initialized.agentInfo?.name, "a007");
+  assert.equal(initialized.agentInfo?.name, "A008");
   assert.equal(initialized.agentCapabilities?.loadSession, false);
   assert.equal(created.sessionId, SESSION_ID);
   assert.deepEqual(created.configOptions?.[0], {
     type: "select",
     id: "model",
     name: "Model",
-    description: "Provider model used by the shared a007 chat core.",
+    description: "Provider model used by the shared A008 chat core.",
     category: "model",
     currentValue: "nvidia/nemotron-3.5-lightning-30b-a3b",
     options: [
@@ -67,7 +67,7 @@ test("ACP prompt streams thought and answer through one ChatSession", async () =
     },
   };
   const session = new ChatSession({ model: "model", transport });
-  const agent = new A007AcpAgent({
+  const agent = new A008AcpAgent({
     createSession: () => session,
     createSessionId: () => SESSION_ID,
   });
@@ -124,7 +124,7 @@ test("ACP prompt streams thought and answer through one ChatSession", async () =
 });
 
 test("ACP agent rejects unknown sessions, unsupported content, and models", async () => {
-  const agent = new A007AcpAgent({
+  const agent = new A008AcpAgent({
     createSession: () => {
       throw new Error("not needed");
     },
@@ -173,7 +173,7 @@ test("ACP cancellation rolls back the pending ChatSession turn", async () => {
       });
     },
   };
-  const agent = new A007AcpAgent({
+  const agent = new A008AcpAgent({
     createSession: () => {
       session = new ChatSession({ model: "model", transport });
       return session;
@@ -194,7 +194,7 @@ test("ACP cancellation rolls back the pending ChatSession turn", async () => {
 });
 
 test("ACP default session identity is canonical", () => {
-  const agent = new A007AcpAgent({
+  const agent = new A008AcpAgent({
     createSession: () => {
       throw new Error("not needed");
     },
@@ -205,7 +205,7 @@ test("ACP default session identity is canonical", () => {
 });
 
 test("ACP rejects malformed and duplicate injected session identities", () => {
-  const malformed = new A007AcpAgent({
+  const malformed = new A008AcpAgent({
     createSession: () => {
       throw new Error("not needed");
     },
@@ -216,7 +216,7 @@ test("ACP rejects malformed and duplicate injected session identities", () => {
     (error: unknown) => error instanceof RequestError && error.code === -32602,
   );
 
-  const duplicate = new A007AcpAgent({
+  const duplicate = new A008AcpAgent({
     createSession: () => {
       throw new Error("not needed");
     },

@@ -10,7 +10,7 @@ Decision owner: mrWhite81 and felixnissen
 
 The legacy CLI mixed model configuration, mutable conversation state, NVIDIA
 HTTP details, terminal presentation, and a credential in one script. The first
-a007 implementation must be reusable by a future GUI without making NVIDIA or
+A008 implementation must be reusable by a future GUI without making NVIDIA or
 the terminal the application's internal architecture.
 
 ## Decision

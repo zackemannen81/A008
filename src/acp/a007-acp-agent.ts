@@ -44,7 +44,7 @@ interface AcpSessionState {
   activeTurn?: AbortController;
 }
 
-export interface A007AcpAgentOptions {
+export interface A008AcpAgentOptions {
   readonly createSession: (model: string) => AcpTurnSession;
   readonly registry?: ModelRegistry;
   readonly createSessionId?: () => string;
@@ -53,14 +53,14 @@ export interface A007AcpAgentOptions {
 
 type NotifySession = (notification: SessionNotification) => Promise<void>;
 
-export class A007AcpAgent {
+export class A008AcpAgent {
   readonly #createSession: (model: string) => AcpTurnSession;
   readonly #registry: ModelRegistry;
   readonly #createSessionId: () => string;
   readonly #onMemoryDiagnostic: ((message: string) => void) | undefined;
   readonly #sessions = new Map<string, AcpSessionState>();
 
-  constructor(options: A007AcpAgentOptions) {
+  constructor(options: A008AcpAgentOptions) {
     this.#createSession = options.createSession;
     this.#registry = options.registry ?? defaultModelRegistry;
     this.#onMemoryDiagnostic = options.onMemoryDiagnostic;
@@ -82,8 +82,8 @@ export class A007AcpAgent {
         },
       },
       agentInfo: {
-        name: "a007",
-        title: "a007 shared chat",
+        name: "A008",
+        title: "A008 shared chat",
         version: "0.0.0",
       },
     };
@@ -97,7 +97,7 @@ export class A007AcpAgent {
       if (error instanceof IdentityError) {
         throw RequestError.invalidParams(
           {},
-          `a007 generated an invalid ACP session identity: ${error.message}`,
+          `A008 generated an invalid ACP session identity: ${error.message}`,
         );
       }
       throw error;
@@ -105,7 +105,7 @@ export class A007AcpAgent {
     if (this.#sessions.has(sessionId)) {
       throw RequestError.invalidParams(
         { sessionId },
-        "a007 generated a duplicate ACP session identity.",
+        "A008 generated a duplicate ACP session identity.",
       );
     }
     this.#sessions.set(sessionId, { model: DEFAULT_MODEL_ID });
@@ -122,7 +122,7 @@ export class A007AcpAgent {
     if (params.configId !== "model" || "type" in params) {
       throw RequestError.invalidParams(
         { configId: params.configId },
-        "a007 supports only the model select option.",
+        "A008 supports only the model select option.",
       );
     }
 
@@ -130,13 +130,13 @@ export class A007AcpAgent {
     if (profile === undefined) {
       throw RequestError.invalidParams(
         { model: params.value },
-        `Unknown a007 model: ${params.value}`,
+        `Unknown A008 model: ${params.value}`,
       );
     }
     if (state.chat !== undefined && state.model !== profile.id) {
       throw RequestError.invalidParams(
         { model: params.value },
-        "Runtime model switching is not supported by this a007 slice.",
+        "Runtime model switching is not supported by this A008 slice.",
       );
     }
 
@@ -253,7 +253,7 @@ export class A007AcpAgent {
     if (state === undefined) {
       throw RequestError.invalidParams(
         { sessionId },
-        `Unknown a007 ACP session: ${sessionId}`,
+        `Unknown A008 ACP session: ${sessionId}`,
       );
     }
     return state;
@@ -265,7 +265,7 @@ export class A007AcpAgent {
         type: "select",
         id: "model",
         name: "Model",
-        description: "Provider model used by the shared a007 chat core.",
+        description: "Provider model used by the shared A008 chat core.",
         category: "model",
         currentValue,
         options: this.#registry.list().map((profile) => ({

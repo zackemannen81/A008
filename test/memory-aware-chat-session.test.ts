@@ -30,23 +30,23 @@ import {
 import { MEMORY_CONTEXT_SYSTEM_INSTRUCTION } from "../src/orchestration/memory-prompt-composer.js";
 
 const PROJECT = parseRuntimeId(
-  "a007_v1_project_20000000-0000-4000-8000-000000000001",
+  "A008_v1_project_20000000-0000-4000-8000-000000000001",
   "project",
 );
 const OTHER_PROJECT = parseRuntimeId(
-  "a007_v1_project_20000000-0000-4000-8000-000000000002",
+  "A008_v1_project_20000000-0000-4000-8000-000000000002",
   "project",
 );
 const CONVERSATION = parseRuntimeId(
-  "a007_v1_conversation_20000000-0000-4000-8000-000000000003",
+  "A008_v1_conversation_20000000-0000-4000-8000-000000000003",
   "conversation",
 );
 const TASK = parseRuntimeId(
-  "a007_v1_task_20000000-0000-4000-8000-000000000004",
+  "A008_v1_task_20000000-0000-4000-8000-000000000004",
   "task",
 );
 const AGENT = parseRuntimeId(
-  "a007_v1_agent_20000000-0000-4000-8000-000000000005",
+  "A008_v1_agent_20000000-0000-4000-8000-000000000005",
   "agent",
 );
 

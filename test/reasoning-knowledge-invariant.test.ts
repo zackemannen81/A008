@@ -91,8 +91,8 @@ test("holy invariant: no emitted reasoning substring reaches knowledge surfaces"
   const runtime = createLocalMemoryRuntime({
     env: {
       ...isolated.env,
-      A007_DEBUG_TRACE: "raw",
-      A007_DEBUG_TRACE_FILE: traceFile,
+      A008_DEBUG_TRACE: "raw",
+      A008_DEBUG_TRACE_FILE: traceFile,
     },
     surface: "test",
     createTransport: () => transport,
@@ -158,8 +158,8 @@ test("memory timeout is a degraded outcome and is traced once after successful c
   const runtime = createLocalMemoryRuntime({
     env: {
       ...isolated.env,
-      A007_DEBUG_TRACE: "safe",
-      A007_DEBUG_TRACE_FILE: traceFile,
+      A008_DEBUG_TRACE: "safe",
+      A008_DEBUG_TRACE_FILE: traceFile,
     },
     surface: "test",
     createTransport: () => ({

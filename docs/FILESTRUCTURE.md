@@ -1,10 +1,10 @@
 # File Structure
 
 ```text
-a007/
+A008/
 |- AGENTS.md                         entry point and safety rules
 |- README.md                         public project overview
-|- LICENSE                           Apache License 2.0 for a007-owned content
+|- LICENSE                           Apache License 2.0 for A008-owned content
 |- .gitignore                        secret, build, provenance, and input bounds
 |- .env.example                      non-secret local credential template
 |- package.json                      Node package, scripts, exports, CLI metadata
@@ -14,7 +14,7 @@ a007/
 |  |- index.ts                       public core/provider exports
 |  |- cli.ts                         terminal composition root
 |  |- acp/
-|  |  |- a007-acp-agent.ts           injectable ACP session/event bridge
+|  |  |- A008-acp-agent.ts           injectable ACP session/event bridge
 |  |  |- prompt-content.ts           baseline ACP prompt normalization
 |  |  `- server.ts                   stdio ACP executable composition root
 |  |- core/
@@ -93,6 +93,10 @@ a007/
    |- JOURNAL.md                     append-only work waves
    |- FILESTRUCTURE.md               this repository map
    |- TASK_IDS.md                    task address allocation
+   |- KNOWLEDGE_MEMORY_MODEL.md      accepted knowledge constitution (ADR 0018)
+   |- KNOWLEDGE_MODEL_GAP_ANALYSIS.md v0-vs-model violations and sequence
+   |- tasks/                         frozen child charters for active programs
+   |- handoffs/                      worker integration handoffs
    |- evidence/                      indexed safe verification records/artifacts
    |- _legacy/
    |  `- README.md                   tracked boundary for ignored raw provenance
@@ -106,14 +110,14 @@ a007/
 The local bootstrap bundle, protocol baseline/extraction, raw legacy tree, and
 multi-agent add-on source package remain ignored reference inputs. The OpenHands
 clone and related prior-work repositories live outside this repository. None
-becomes a007 authority merely by existing locally.
+becomes A008 authority merely by existing locally.
 
-The configured external worker-clone root is `C:\code\a007-workers`. It is a
-sibling of this repository and is not part of a007's tracked file tree. The
-A007-0004 through A007-0015 writing worktrees use task-specific directories
-there; A007-0015 is
-`C:\code\a007-workers\A007-0015_committed-memory-loop`.
-A007-0005 runtime state and browser helpers remain external evidence under the
+The configured external worker-clone root is `C:\code\A008-workers`. It is a
+sibling of this repository and is not part of A008's tracked file tree. The
+A008-0004 through A008-0015 writing worktrees use task-specific directories
+there; A008-0015 is
+`C:\code\A008-workers\A008-0015_committed-memory-loop`.
+A008-0005 runtime state and browser helpers remain external evidence under the
 worker root and are not tracked product structure.
 
 ## Addressing

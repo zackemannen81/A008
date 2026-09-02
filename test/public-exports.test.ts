@@ -51,7 +51,7 @@ test("memory and orchestration surfaces are exported from the package root", () 
   const identities = new RuntimeIdentityFactory(
     () => "00000000-0000-4000-8000-000000000001",
   );
-  assert.match(identities.create("project"), /^a007_v1_project_/);
+  assert.match(identities.create("project"), /^A008_v1_project_/);
   assert.ok(
     new InMemoryAcpIdentityBindingRepository() instanceof
       InMemoryAcpIdentityBindingRepository,

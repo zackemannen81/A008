@@ -107,11 +107,11 @@ export type {
   DebugTracePhase,
   DebugTraceSurface,
 } from "./runtime/debug-trace.js";
-export { A007AcpAgent } from "./acp/a007-acp-agent.js";
+export { A008AcpAgent } from "./acp/A008-acp-agent.js";
 export type {
-  A007AcpAgentOptions,
+  A008AcpAgentOptions,
   AcpTurnSession,
-} from "./acp/a007-acp-agent.js";
+} from "./acp/A008-acp-agent.js";
 export { promptToText } from "./acp/prompt-content.js";
 export { CodingAgentMemoryPolicy } from "./memory/coding-agent-policy.js";
 export type { CodingAgentMemoryPolicyOptions } from "./memory/coding-agent-policy.js";

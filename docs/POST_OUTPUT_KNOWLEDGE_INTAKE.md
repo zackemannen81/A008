@@ -20,7 +20,7 @@ completion metadata. The memory-aware reader therefore sees only prior user and
 assistant messages, never the reasoning stream.
 
 An ACP host can keep its own thought-event log for display. That external log is
-not a007 conversation or memory state and is not accepted back as semantic
+not A008 conversation or memory state and is not accepted back as semantic
 history.
 
 ## Staged flow
@@ -169,7 +169,7 @@ budget, and cancellation contract.
 The staged batch is the input contract for
 [Relation-gated memory commit](RELATION_GATED_MEMORY_COMMIT.md). That separate
 service revalidates the batch and processes one proposal per call. This does not
-make staging itself a write, and no live a007 surface currently joins the two
+make staging itself a write, and no live A008 surface currently joins the two
 services automatically. `PostOutputMemoryCoordinator` is the implemented manual
 application join and preserves explicit partial outcomes; see
 [Post-output memory coordinator](POST_OUTPUT_MEMORY_COORDINATOR.md).

@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0010
+Task ID: A008-0010
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -51,7 +51,7 @@ once, and calls the existing chat transport once.
 ### In Scope
 
 - Record the application read-path composition decision and trust boundary in
-  an a007-owned ADR and operator-facing contract document.
+  an A008-owned ADR and operator-facing contract document.
 - Add a provider-neutral runtime context type. Project, conversation, and agent
   identity are fixed for one memory-aware session; each turn supplies one
   parsed runtime-task identity, original message, applicability scopes, and
@@ -111,7 +111,7 @@ once, and calls the existing chat transport once.
   verified identities, original message, task scopes/requirements, and no more
   than two prior committed dialogue messages.
 - The transport receives exactly one request containing persistent system
-  context, one fixed a007 context-contract system message, no more than two
+  context, one fixed A008 context-contract system message, no more than two
   prior dialogue messages, and one JSON user envelope with selected
   materialized memory plus the exact original message.
 - Runtime IDs, knowledge IDs, retrieval evidence/plans, scores, state,
@@ -151,7 +151,7 @@ once, and calls the existing chat transport once.
 
 ## References
 
-- A007-0009 handoff in `docs/JOURNAL.md`.
+- A008-0009 handoff in `docs/JOURNAL.md`.
 - `docs/HYBRID_MEMORY_READ_PATH.md`
 - `docs/SEMANTIC_MEMORY.md`
 - `docs/RUNTIME_IDENTITY.md`
@@ -166,7 +166,7 @@ once, and calls the existing chat transport once.
 - [x] Implement prompt envelope and memory-aware application session.
 - [x] Export and test the complete provider-neutral surface.
 - [x] Run regression, package, security, and documentation gates.
-- [x] Update durable docs, archive A007-0010, and restore the task template.
+- [x] Update durable docs, archive A008-0010, and restore the task template.
 
 ## Decisions and Notes
 

@@ -1,6 +1,6 @@
 # Debug trace
 
-Status: Implemented opt-in local diagnostics for CLI and a007 ACP.
+Status: Implemented opt-in local diagnostics for CLI and A008 ACP.
 
 ## Modes
 
@@ -18,8 +18,8 @@ answers, and semantic JSON may be stored locally.
 Cross-surface environment:
 
 ```text
-A007_DEBUG_TRACE=off|safe|raw
-A007_DEBUG_TRACE_FILE=<absolute path>
+A008_DEBUG_TRACE=off|safe|raw
+A008_DEBUG_TRACE_FILE=<absolute path>
 ```
 
 CLI also accepts `--debug-trace` and `--debug-trace-file`. Those flags share

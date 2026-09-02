@@ -5,7 +5,7 @@ architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
 ## Implemented system
 
-a007 implements a repository control plane and its first bounded application
+A008 implements a repository control plane and its first bounded application
 surfaces:
 
 ```text
@@ -24,7 +24,7 @@ a bounded child, backlog, or concepts sandbox.
 ## Current source boundary
 
 ```text
-a007 repository authority
+A008 repository authority
   |- tracked docs and decisions
   |- provider-neutral chat core, NVIDIA adapter, CLI, and ACP bridge
   |- semantic-memory contracts, service, hybrid reader, and repositories
@@ -34,22 +34,22 @@ a007 repository authority
   |- runtime identity contracts and ACP binding reference repository
   `- tracked provenance boundary documents
 
-local/external evidence (not a007 authority)
+local/external evidence (not A008 authority)
   |- docs/_legacy/agenten007  raw CLI, ignored and secret-bearing
   |- C:\code\OpenHands         MIT Agent Canvas source clone
-  |- owner Context-First doc   source input; a007 memory v0 now exists
+  |- owner Context-First doc   source input; A008 memory v0 now exists
   |- C:\code\acme             related prior work; not an adopted baseline
   `- bootstrap/protocol/add-on reference packages
 ```
 
-External source becomes a007 behavior only through a claimed task that pins its
+External source becomes A008 behavior only through a claimed task that pins its
 revision, records its license, imports or adapts a bounded surface, verifies the
 result, and updates this document.
 
 ## Application runtime
 
 ```text
-CLI / a007-acp -> createLocalMemoryRuntime
+CLI / A008-acp -> createLocalMemoryRuntime
   |- NVIDIA credential + one ChatTransport
   |- project-namespaced SQLite
   |- HybridMemoryReader
@@ -85,7 +85,7 @@ validates `NVIDIA_API_KEY`, resolves the optional trusted endpoint override,
 and constructs `NvidiaChatTransport`. `createNvidiaChatSession` still returns a
 bare `ChatSession` for tests and direct callers.
 
-CLI chat and a007 ACP now use `createLocalMemoryRuntime`, which calls that
+CLI chat and A008 ACP now use `createLocalMemoryRuntime`, which calls that
 transport owner once and injects the same transport into answer and semantic
 calls. Identity, SQLite path, and debug settings are read only at this outer
 composition.
@@ -111,9 +111,9 @@ conversation and keeps the SQLite namespace.
 
 ## Agent Canvas ACP surface
 
-`a007-acp` uses the official `@agentclientprotocol/sdk` 1.4.0 stable-v1 stream
+`A008-acp` uses the official `@agentclientprotocol/sdk` 1.4.0 stable-v1 stream
 implementation on stdin/stdout. It creates an independent in-memory
-`ChatSession` for each ACP session, creates a canonical versioned a007
+`ChatSession` for each ACP session, creates a canonical versioned A008
 `acp_session` runtime ID, exposes the one verified model as a session config
 option, converts text and non-fetched resource links into a bounded chat turn,
 maps reasoning/content deltas to standard ACP thought/answer chunks, and
@@ -123,17 +123,17 @@ before the process-local session map changes.
 
 Agent Server is the process owner and protocol client. Agent Canvas is the
 external UI that configures a Custom ACP command and renders Agent Server
-events. A007-0005 observed this exact chain in real local Canvas 1.16.0 and Agent
+events. A008-0005 observed this exact chain in real local Canvas 1.16.0 and Agent
 Server 1.44.1 processes: a browser prompt reached the compiled bridge, the
 existing adapter called a loopback fake endpoint, Canvas rendered the expected
 answer, and Agent Server finished the conversation. The external repositories
-remain unmodified and outside a007 authority.
+remain unmodified and outside A008 authority.
 
 On the verified Windows path, Custom ACP commands use forward-slash absolute
 paths (`C:/code/...`); backslashes were consumed as shell escapes. The standard
 `dev:minimal` launcher also timed out at 30 seconds before the backend's observed
 42-second readiness. Starting its exact locked Agent Server and Vite commands
-separately is the documented development fallback, not an a007 product runtime.
+separately is the documented development fallback, not an A008 product runtime.
 
 The ACP process supports no tools, filesystem operations, permission prompts,
 MCP, rich prompt media, load/resume, authentication method, or runtime model
@@ -147,7 +147,7 @@ and agent. Protocol thought/answer/cancellation behavior is unchanged. Memory
 diagnostics never enter ACP stdout. Debug traces, when enabled, use an
 explicit JSONL file.
 
-All a007 model-inference evidence uses injected fake fetch responses or the
+All A008 model-inference evidence uses injected fake fetch responses or the
 loopback HTTP fixture. No live model call or paid usage has been made or
 claimed. The external Canvas/Agent Server proof did trigger optional OpenAI
 subscription control-plane checks and failed title generation without
@@ -254,7 +254,7 @@ synthetic context is ephemeral. Pre-transport failures make no call or state
 change, provider failures retain normal rollback, and overlapping turns are
 rejected.
 
-CLI and a007 ACP now construct this orchestration through
+CLI and A008 ACP now construct this orchestration through
 `createLocalMemoryRuntime`. That root supplies a local identity profile, one
 SQLite namespace, and the existing transport. Provider-backed
 planning/embeddings, exact model-token measurement, privacy/user controls,
@@ -406,13 +406,13 @@ Runtime identity is an independent control-plane surface:
 
 ```text
 RuntimeIdentityFactory / parseRuntimeId
-  -> a007_v1_<project|conversation|task|agent|acp_session>_<UUIDv4>
+  -> A008_v1_<project|conversation|task|agent|acp_session>_<UUIDv4>
 
 complete verified context
   -> AcpIdentityBindingRepository
      `- InMemoryAcpIdentityBindingRepository (reference adapter)
 
-a007-acp session/new -> canonical acp_session ID only
+A008-acp session/new -> canonical acp_session ID only
 local CLI/ACP composition -> configured project, session conversation,
   process agent, and per-turn task
 SQLite memory adapter -> validated project ID as hard namespace
@@ -420,9 +420,9 @@ MemoryAwareChatSession -> validated project/conversation/task/agent envelope
 ```
 
 Runtime IDs are branded by kind for TypeScript and fully parsed at runtime. The
-format uses a fixed a007 prefix, v1 marker, kind, and lowercase UUIDv4. It stores
+format uses a fixed A008 prefix, v1 marker, kind, and lowercase UUIDv4. It stores
 no user, path, prompt, task-description, or other semantic content. Product
-runtime task IDs are distinct from docs-first addresses such as `A007-0007`.
+runtime task IDs are distinct from docs-first addresses such as `A008-0007`.
 
 `AcpIdentityBinding` links project, conversation, runtime task, agent, ACP
 session, and bounded namespaced external references. Registration is idempotent
@@ -443,16 +443,16 @@ accounts/ACLs, and load/resume remain unimplemented.
 The repository has a documented multi-agent control policy in
 `docs/MULTIAGENT.md`. It defines isolated write units, operator locks, handoff,
 and evidence order. Future writing clones or worktrees are allocated under the
-external worker root `C:\code\a007-workers`, never inside the canonical
-`C:\code\a007` tree. A007-0004 through A007-0015 have allocated worktrees. No
-a007-specific process server or hard concurrency enforcement exists yet.
+external worker root `C:\code\A008-workers`, never inside the canonical
+`C:\code\A008` tree. A008-0004 through A008-0015 have allocated worktrees. No
+A008-specific process server or hard concurrency enforcement exists yet.
 
 ## Security boundary
 
 Git ignore rules contain raw legacy material and common credential files.
 The legacy key was revoked/rotated by the owner, but ignoring does not sanitize
 the raw source. The replacement key is local environment input and is not read
-by core or tests. A007-0005 also left `.env.local` unread and supplied only a
+by core or tests. A008-0005 also left `.env.local` unread and supplied only a
 fixed test key plus loopback URL to the ACP process. The ACP process receives
 credentials only through its process environment. Its optional endpoint
 override is operator-controlled and must not be derived from chat input. Live

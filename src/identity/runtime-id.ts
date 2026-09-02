@@ -20,7 +20,7 @@ const UUID_V4_PATTERN =
   "[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}";
 const UUID_V4_REGEX = new RegExp(`^${UUID_V4_PATTERN}$`);
 const RUNTIME_ID_REGEX = new RegExp(
-  `^a007_${RUNTIME_ID_VERSION}_(project|conversation|task|agent|acp_session)_(${UUID_V4_PATTERN})$`,
+  `^A008_${RUNTIME_ID_VERSION}_(project|conversation|task|agent|acp_session)_(${UUID_V4_PATTERN})$`,
 );
 
 export function parseRuntimeId<Kind extends RuntimeIdentityKind>(
@@ -36,7 +36,7 @@ export function parseRuntimeId<Kind extends RuntimeIdentityKind>(
   if (match === null) {
     throw new IdentityError(
       "invalid_id",
-      "Runtime ID must use canonical a007_v1_<kind>_<lowercase UUIDv4> format.",
+      "Runtime ID must use canonical A008_v1_<kind>_<lowercase UUIDv4> format.",
     );
   }
   const actualKind = match[1] as RuntimeIdentityKind;
@@ -94,6 +94,6 @@ export class RuntimeIdentityFactory {
         "UUID factory must return a canonical lowercase UUIDv4.",
       );
     }
-    return parseRuntimeId(`a007_${RUNTIME_ID_VERSION}_${kind}_${uuid}`, kind);
+    return parseRuntimeId(`A008_${RUNTIME_ID_VERSION}_${kind}_${uuid}`, kind);
   }
 }

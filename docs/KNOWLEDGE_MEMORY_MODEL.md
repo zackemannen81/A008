@@ -1,9 +1,10 @@
 # Knowledge and Memory Model
 
-Status: Proposed. Not accepted. No implementation authority until an ADR
-adopts it and a task charter is frozen.
+Status: Accepted. Authority: [ADR 0018](adr/0018-knowledge-and-memory-model.md).
+Implementation proceeds through A008-0021 children; storage remains deferred
+until §11 passes in-memory.
 
-Owns: what a007 knowledge means, what exists in the model, what is versioned,
+Owns: what A008 knowledge means, what exists in the model, what is versioned,
 what truth is, what memory is, and what each process may and may not change.
 
 Does not own: storage layout, table design, index strategy, embedding

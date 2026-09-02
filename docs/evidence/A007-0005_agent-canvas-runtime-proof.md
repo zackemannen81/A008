@@ -1,6 +1,6 @@
-# A007-0005 Agent Canvas runtime proof
+# A008-0005 Agent Canvas runtime proof
 
-Task: A007-0005
+Task: A008-0005
 
 Date: 2026-09-01
 
@@ -9,22 +9,22 @@ Evidence boundary: local fake-provider runtime; no live model inference
 ## Result
 
 OpenHands Agent Canvas 1.16.0 visibly completed one conversation through
-OpenHands Agent Server 1.44.1, the compiled a007 stable-v1 ACP process, the
-existing a007 NVIDIA adapter, and a loopback fake chat-completions server.
+OpenHands Agent Server 1.44.1, the compiled A008 stable-v1 ACP process, the
+existing A008 NVIDIA adapter, and a loopback fake chat-completions server.
 
 The stable browser capture shows both the user prompt and the deterministic
-answer `A007-CANVAS-LOOPBACK-OK` after Agent Server reported the conversation
+answer `A008-CANVAS-LOOPBACK-OK` after Agent Server reported the conversation
 `execution_status` as `finished`:
 
-![Completed Agent Canvas loopback conversation](A007-0005_agent-canvas-chat.png)
+![Completed Agent Canvas loopback conversation](A008-0005_agent-canvas-chat.png)
 
 ## Observed chain
 
 1. Canvas saved the active `default` Agent profile as `agent_kind: acp` with
-   `node C:/code/a007-workers/A007-0005_agent-canvas-runtime-proof/dist/src/acp/server.js`.
+   `node C:/code/A008-workers/A008-0005_agent-canvas-runtime-proof/dist/src/acp/server.js`.
 2. Canvas created conversation `8fd38dd7-9b82-4f88-8521-8cf54974161a` and sent
-   `A007 browser proof: answer with the deterministic local token.`
-3. Agent Server initialized a007 0.0.0 over ACP, selected
+   `A008 browser proof: answer with the deterministic local token.`
+3. Agent Server initialized A008 0.0.0 over ACP, selected
    `nvidia/nemotron-3.5-lightning-30b-a3b`, and retained the ACP session ID in
    the conversation state.
 4. The loopback fixture at `127.0.0.1:18999/v1/chat/completions` received one
@@ -36,7 +36,7 @@ answer `A007-CANVAS-LOOPBACK-OK` after Agent Server reported the conversation
 
 ## Verification facts
 
-- A007: clean `npm ci`, strict typecheck, build, and 38/38 Node tests passed.
+- A008: clean `npm ci`, strict typecheck, build, and 38/38 Node tests passed.
   Two new cases cover the loopback fixture's deterministic SSE and rejection of
   an incorrect test key.
 - OpenHands: `npm ci` installed 1,394 packages; `npm run build` completed both
@@ -46,7 +46,7 @@ answer `A007-CANVAS-LOOPBACK-OK` after Agent Server reported the conversation
   interactive elements, no error overlay, zero console errors, and zero page
   errors.
 - Completed turn: six persisted events across conversation-state, system-
-  prompt, and message kinds; `execution_status: finished`; expected a007 model
+  prompt, and message kinds; `execution_status: finished`; expected A008 model
   and ACP agent state present.
 - Cleanup: the Vite, Agent Server, and fake-provider processes were stopped;
   ports 3015, 18115, 18116, and 18999 were no longer listening.
@@ -76,7 +76,7 @@ answer `A007-CANVAS-LOOPBACK-OK` after Agent Server reported the conversation
 - `.env.local` was not read. The real replacement NVIDIA credential was not
   validated, displayed, exported, or used. The ACP process inherited only a
   fixed test key and a loopback-only endpoint.
-- No live model inference or paid usage occurred. The successful a007 provider
+- No live model inference or paid usage occurred. The successful A008 provider
   turn reached only the loopback fixture.
 - OpenHands did make ancillary OpenAI subscription device-auth/status requests
   and attempted title generation without credentials around the failed first
@@ -87,8 +87,8 @@ answer `A007-CANVAS-LOOPBACK-OK` after Agent Server reported the conversation
   OpenHands paths before claiming zero external egress.
 - The first conversation failed before ACP initialization because of the
   backslash command defect. It neither reached the loopback server nor any live
-  a007 provider endpoint; the corrected forward-slash command produced the
+  A008 provider endpoint; the corrected forward-slash command produced the
   completed proof above.
-- No OpenHands source file, a007 `.env.local`, raw legacy file, memory engine,
+- No OpenHands source file, A008 `.env.local`, raw legacy file, memory engine,
   tool, permission flow, MCP server, automation service, desktop package,
   deployment, publication, or release participated.

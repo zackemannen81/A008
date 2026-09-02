@@ -12,7 +12,7 @@ and must be reviewed before distribution.
 | `better-sqlite3` | 13.0.3 | MIT | Synchronous SQLite runtime used by the explicitly configured local semantic-memory repository and retrieval index. |
 | OpenHands Agent Canvas | `744e8652f254613045b779eb148bf4f741177975` | MIT | External integration evidence only; not copied and not an npm dependency. |
 
-The root Apache-2.0 license applies only to a007-owned content. Dependency
+The root Apache-2.0 license applies only to A008-owned content. Dependency
 packages retain their own terms and notices. A complete transitive audit and
 distribution notice bundle remain release gates.
 

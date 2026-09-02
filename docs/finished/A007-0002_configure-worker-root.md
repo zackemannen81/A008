@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0002
+Task ID: A008-0002
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -22,7 +22,7 @@ Charter frozen at: 2026-09-01 after claim commit `e7f7604` and direct owner desi
 
 ## Task Summary
 
-Register the owner-created `C:\code\a007-workers` directory as a007's durable
+Register the owner-created `C:\code\A008-workers` directory as A008's durable
 multi-agent worker-clone root so future writing waves do not depend on chat
 history for clone placement.
 
@@ -34,12 +34,12 @@ Configure one verified external root for isolated worker clones.
 
 ### Primary Deliverable
 
-Updated repository authority naming `C:\code\a007-workers` as the worker-clone
+Updated repository authority naming `C:\code\A008-workers` as the worker-clone
 root with safe naming and preflight rules.
 
 ### In Scope
 
-- Verify the path exists, resolves outside `C:\code\a007`, and inspect its
+- Verify the path exists, resolves outside `C:\code\A008`, and inspect its
   current contents.
 - Record the path and clone naming convention in multi-agent policy.
 - Update current status, implemented system description, entry guardrails, and
@@ -60,7 +60,7 @@ root with safe naming and preflight rules.
   canonical repository.
 - Current status truthfully states that no worker clone or process enforcement
   exists yet.
-- Documentation checks pass and A007-0002 is archived.
+- Documentation checks pass and A008-0002 is archived.
 
 ### Minimum Verification Gates
 
@@ -75,11 +75,11 @@ root with safe naming and preflight rules.
 
 - `docs/MULTIAGENT.md`
 - `docs/CURRENT_STATUS.md`
-- Owner message designating `C:\code\a007-workers`
+- Owner message designating `C:\code\A008-workers`
 
 ## Checklist
 
-- [x] Claim A007-0002 on `main`.
+- [x] Claim A008-0002 on `main`.
 - [x] Verify the external directory read-only.
 - [x] Update multi-agent and current-truth documents.
 - [x] Run verification and record skipped actions.
@@ -87,8 +87,8 @@ root with safe naming and preflight rules.
 
 ## Decisions and Notes
 
-- Default worker directory name: `A007-NNNN_task-slug`.
-- Default worker branch name: `codex/a007-nnnn-task-slug` unless a charter names
+- Default worker directory name: `A008-NNNN_task-slug`.
+- Default worker branch name: `codex/A008-nnnn-task-slug` unless a charter names
   another branch.
 - The directory was empty when registered; emptiness is an observation, not a
   permanent invariant.
@@ -99,7 +99,7 @@ root with safe naming and preflight rules.
 
 ## Verification
 
-- [x] Resolved `C:\code\a007` and `C:\code\a007-workers`; paths were unequal
+- [x] Resolved `C:\code\A008` and `C:\code\A008-workers`; paths were unequal
   and the worker root was not inside the canonical root.
 - [x] Worker root existed with zero child items at verification.
 - [x] All 26 tracked Markdown files had resolving relative links and balanced
@@ -129,6 +129,6 @@ root with safe naming and preflight rules.
 
 ## Finalize When Complete
 
-- Archive under `docs/finished/A007-0002_configure-worker-root.md`.
+- Archive under `docs/finished/A008-0002_configure-worker-root.md`.
 - Restore `docs/CURRENT_TASK.md` from the clean template.
 - Append a signed journal entry.

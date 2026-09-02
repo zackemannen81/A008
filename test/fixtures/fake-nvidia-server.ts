@@ -6,8 +6,8 @@ import {
 } from "node:http";
 import { pathToFileURL } from "node:url";
 
-export const FAKE_NVIDIA_REPLY_TOKEN = "A007-CANVAS-LOOPBACK-OK";
-export const FAKE_NVIDIA_REASONING = "Verified by the local a007 fixture.";
+export const FAKE_NVIDIA_REPLY_TOKEN = "A008-CANVAS-LOOPBACK-OK";
+export const FAKE_NVIDIA_REASONING = "Verified by the local A008 fixture.";
 
 export interface FakeNvidiaRequestEvidence {
   readonly authorizationAccepted: boolean;
@@ -201,14 +201,14 @@ export async function startFakeNvidiaServer(
 }
 
 async function main(): Promise<void> {
-  const expectedApiKey = process.env.A007_FAKE_NVIDIA_API_KEY?.trim();
+  const expectedApiKey = process.env.A008_FAKE_NVIDIA_API_KEY?.trim();
   if (!expectedApiKey) {
-    throw new Error("A007_FAKE_NVIDIA_API_KEY is required.");
+    throw new Error("A008_FAKE_NVIDIA_API_KEY is required.");
   }
-  const portText = process.env.A007_FAKE_NVIDIA_PORT ?? "18999";
+  const portText = process.env.A008_FAKE_NVIDIA_PORT ?? "18999";
   const port = Number.parseInt(portText, 10);
   if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-    throw new Error(`A007_FAKE_NVIDIA_PORT is invalid: ${portText}`);
+    throw new Error(`A008_FAKE_NVIDIA_PORT is invalid: ${portText}`);
   }
 
   const running = await startFakeNvidiaServer({

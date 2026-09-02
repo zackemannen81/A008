@@ -8,20 +8,20 @@ Decision owner: mrWhite81 and felixnissen
 
 ## Context
 
-A007 already had the memory-aware read path, post-output coordinator, stateless
-semantic JSON adapters, and a two-turn architecture benchmark. CLI and a007 ACP
+A008 already had the memory-aware read path, post-output coordinator, stateless
+semantic JSON adapters, and a two-turn architecture benchmark. CLI and A008 ACP
 still constructed a bare `ChatSession`. Operators could not locally test the
 closed memory loop through the same surfaces Agent Canvas uses, and they could
 not inspect exact provider-visible requests without risking credential leakage.
 
-Four owner decisions were frozen in A007-0016: a narrow user-assertion
+Four owner decisions were frozen in A008-0016: a narrow user-assertion
 activation gate, JSONL as the canonical diagnostic sink, answer-first then
 awaited memory settlement, and process/session-local identities without an
 Agent Server conversation binding.
 
 ## Decision
 
-- `createLocalMemoryRuntime` is the one outer composition root for CLI and a007
+- `createLocalMemoryRuntime` is the one outer composition root for CLI and A008
   ACP. It owns the existing NVIDIA credential/`ChatTransport`, one
   project-namespaced SQLite repository, hybrid reader, memory-aware chat,
   analyzer/classifier, relation commit, index writer, and post-output
@@ -30,8 +30,8 @@ Agent Server conversation binding.
   conversation per CLI/ACP session, one process-stable agent, and a fresh
   runtime task per turn. Those IDs never enter provider messages, canon, or
   traces as model context.
-- SQLite lives outside the repository, defaulting to `~/.a007/memory.sqlite`.
-  Paths inside the a007 tree are rejected. Deleting the file and project-id
+- SQLite lives outside the repository, defaulting to `~/.A008/memory.sqlite`.
+  Paths inside the A008 tree are rejected. Deleting the file and project-id
   sidecar resets local memory.
 - Turns stream the visible answer first, then await bounded post-output
   settlement. Memory failures are reported independently and never roll back or
@@ -47,7 +47,7 @@ Agent Server conversation binding.
   `raw` records exact provider message bodies and raw SSE/JSON frames after
   explicit opt-in. Authorization headers, API keys, environment dumps, and
   secret-bearing metadata are excluded from every mode.
-- `A007_DEBUG_TRACE` and `A007_DEBUG_TRACE_FILE` are the cross-surface
+- `A008_DEBUG_TRACE` and `A008_DEBUG_TRACE_FILE` are the cross-surface
   settings. CLI `--debug-trace` / `--debug-trace-file` share that parser.
   ACP stdout remains protocol-only; CLI may print safe one-line summaries to
   stderr. Raw frames use the JSONL file. Trace IDs correlate events and never

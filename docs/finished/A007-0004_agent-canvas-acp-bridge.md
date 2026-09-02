@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0004
+Task ID: A008-0004
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -25,7 +25,7 @@ Charter frozen at: 2026-09-01T02:52:50+02:00
 ## Task Summary
 
 Agent Canvas already supports custom stdio ACP agents through OpenHands Agent
-Server. This task establishes that boundary as executable a007 behavior without
+Server. This task establishes that boundary as executable A008 behavior without
 forking Canvas or adding a second provider implementation.
 
 ## Task Charter
@@ -33,11 +33,11 @@ forking Canvas or adding a second provider implementation.
 ### Goal
 
 Provide a launchable ACP bridge through which Agent Canvas can send a text turn
-to the existing a007 chat core.
+to the existing A008 chat core.
 
 ### Primary Deliverable
 
-An `a007-acp` stdio executable plus a process-level contract test that completes
+An `A008-acp` stdio executable plus a process-level contract test that completes
 one streamed text turn through `ChatSession` and the existing NVIDIA adapter
 using only a local fake endpoint.
 
@@ -71,7 +71,7 @@ using only a local fake endpoint.
 
 ### Definition of Done
 
-- `a007-acp` speaks stable ACP v1 over newline-delimited JSON on stdio.
+- `A008-acp` speaks stable ACP v1 over newline-delimited JSON on stdio.
 - A compiled child process completes initialize -> session/new ->
   session/prompt and emits the expected Agent Canvas-compatible answer update.
 - That process reaches the existing NVIDIA adapter against a local fake endpoint
@@ -96,8 +96,8 @@ using only a local fake endpoint.
 ## References
 
 - Base revision: `ebbc0ea4641df5fff02d66b21f384b45a74e223f`.
-- Branch: `codex/a007-0004-agent-canvas-shared-chat`.
-- Worker path: `C:\code\a007-workers\A007-0004_agent-canvas-shared-chat`.
+- Branch: `codex/A008-0004-agent-canvas-shared-chat`.
+- Worker path: `C:\code\A008-workers\A008-0004_agent-canvas-shared-chat`.
 - OpenHands Agent Canvas: local clean MIT clone at
   `744e8652f254613045b779eb148bf4f741177975`.
 - OpenHands `docs/ACP_AGENTS.md`: custom stdio agents are launched by Agent
@@ -122,7 +122,7 @@ using only a local fake endpoint.
   through Agent Server; direct browser-to-provider calls are prohibited by its
   repository boundary.
 - Supported inference: stdio ACP is the narrowest existing integration path and
-  lets a007 retain sole ownership of its provider call.
+  lets A008 retain sole ownership of its provider call.
 - Open hypothesis for the next task: the current Windows host can run the full
   Canvas/Agent Server stack; `uv` is not installed and no Canvas dependency
   install or local build has yet run.
@@ -136,7 +136,7 @@ using only a local fake endpoint.
 - [x] `npm ci`: five packages installed, six audited, zero vulnerabilities.
 - [x] `npm run typecheck` and `npm run build`: exited 0.
 - [x] `npm test`: 36/36 passed with zero failed, cancelled, skipped, or todo.
-  The official ACP client spawned compiled `a007-acp`, negotiated v1, created a
+  The official ACP client spawned compiled `A008-acp`, negotiated v1, created a
   session, applied the model option, sent one prompt, reached a loopback fake
   NVIDIA SSE endpoint, and received thought plus answer updates.
 - [x] Negative coverage passed for missing credential before transport creation,
@@ -170,7 +170,7 @@ using only a local fake endpoint.
 
 - Current state: complete; bridge, tests, decision, runbook, provenance, and
   owning documentation are ready for integration.
-- Next recommended step: activate A007-0005 to install/start the pinned Agent
+- Next recommended step: activate A008-0005 to install/start the pinned Agent
   Canvas and Agent Server runtime, use a loopback fake NVIDIA endpoint, and
   capture a visible browser result through this bridge.
 - Blockers: none for the ACP bridge.

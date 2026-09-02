@@ -30,19 +30,19 @@ import {
 } from "../orchestration/semantic-json-model.js";
 
 const PROJECT = parseRuntimeId(
-  "a007_v1_project_40000000-0000-4000-8000-000000000001",
+  "A008_v1_project_40000000-0000-4000-8000-000000000001",
   "project",
 );
 const CONVERSATION = parseRuntimeId(
-  "a007_v1_conversation_40000000-0000-4000-8000-000000000002",
+  "A008_v1_conversation_40000000-0000-4000-8000-000000000002",
   "conversation",
 );
 const TASK = parseRuntimeId(
-  "a007_v1_task_40000000-0000-4000-8000-000000000003",
+  "A008_v1_task_40000000-0000-4000-8000-000000000003",
   "task",
 );
 const AGENT = parseRuntimeId(
-  "a007_v1_agent_40000000-0000-4000-8000-000000000004",
+  "A008_v1_agent_40000000-0000-4000-8000-000000000004",
   "agent",
 );
 const KNOWLEDGE_ID = "benchmark_reasoning_boundary";
@@ -479,7 +479,7 @@ try {
   );
   assertProof(
     !semanticRequestSerialized.includes("BENCH_PRIVATE_CHAT_REASONING") &&
-      !semanticRequestSerialized.includes("a007_v1_") &&
+      !semanticRequestSerialized.includes("A008_v1_") &&
       !semanticRequestSerialized.includes(KNOWLEDGE_ID),
     "semantic requests must exclude reasoning and durable/runtime IDs",
   );
@@ -502,7 +502,7 @@ try {
   process.stdout.write(
     `${JSON.stringify(
       {
-        benchmark: "a007_committed_memory_loop_v2",
+        benchmark: "A008_committed_memory_loop_v2",
         mode: "fake_shared_transport_actual_sqlite",
         turns: 2,
         memoryReads,

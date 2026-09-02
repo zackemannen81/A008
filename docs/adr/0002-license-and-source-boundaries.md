@@ -8,14 +8,14 @@ Decision owner: mrWhite81 and felixnissen
 
 ## Context
 
-The bootstrap input declares Apache-2.0 for a007. Candidate source material has
+The bootstrap input declares Apache-2.0 for A008. Candidate source material has
 separate provenance: OpenHands Agent Canvas is MIT, while raw legacy material
 has no reviewed repository license boundary and contains a credential. The
 memory-engine has not been created and has no source baseline to import.
 
 ## Decision
 
-- a007-owned repository content uses Apache License 2.0.
+- A008-owned repository content uses Apache License 2.0.
 - Third-party code is imported only by a task that pins its source revision,
   records its license, preserves required notices, and audits the bounded
   dependency surface.

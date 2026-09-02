@@ -19,7 +19,7 @@ legacy client. The value is deliberately not repeated here.
 
 ## Why it is not active
 
-A007-0001 only establishes repository state and may not modify product or raw
+A008-0001 only establishes repository state and may not modify product or raw
 provenance code. Revocation also requires provider-account authority.
 
 ## Dependencies
@@ -37,7 +37,7 @@ provenance code. Revocation also requires provider-account authority.
 
 ## Resolution
 
-The owner reported the exposed key revoked and rotated on 2026-09-01. A007-0003
+The owner reported the exposed key revoked and rotated on 2026-09-01. A008-0003
 implemented environment-only credential composition, the provider-neutral core,
 NVIDIA adapter, fake HTTP/SSE coverage, and missing-key failure before transport
 construction. Live provider validation remains separately authorized work.

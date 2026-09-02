@@ -2,15 +2,39 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — Adopt knowledge and memory model; open gap-close program
+
+- Date: 2026-09-02
+- Author: Grok (operator / boss)
+- Task: A008-0022 (parent A008-0021)
+- Branch: `main`
+- Isolation: canonical working tree `C:\code\A008`
+- Decision: ADR 0018 accepts `KNOWLEDGE_MEMORY_MODEL.md` as constitution and
+  amends ADRs 0005, 0007, 0010, and 0014. Dual-path new engine under
+  `src/memory/knowledge/`; do not grow `KnowledgeItem`; clocks on new types
+  (M2 is not a task); INTERPRET proposes; RECONCILE is a deterministic slot
+  state machine; user-assertion becomes ACCEPT policy `user-assertion-v1`.
+  100% gap close is ADR 0018 D9. Operator is sole `main` merger. Operational
+  concurrent-writer cap for this program is eight.
+- Change: claimed A008-0021 through A008-0028; froze parent CURRENT_TASK and
+  child charters under `docs/tasks/`; added `docs/handoffs/`; product identity
+  strings that still said A007 in the working tree are A008. Historical
+  archive filenames under `docs/finished/` and `docs/evidence/` remain
+  provenance.
+- Verification: documentation landing; no product behavior change in this
+  commit. Child implementation is A008-0023 and A008-0024 on worker clones.
+- Security: no live provider, credential, or OpenHands mutation.
+- Signature: Grok
+
 ## 2026-09-01 — Bounded relation-classifier type aliases
 
 - Date: 2026-09-01
 - Author: Grok
-- Task: A007-0020
-- Branch: `codex/a007-0020-classifier-relation-alias`
-- Isolation: canonical working tree `C:\code\a007`, based on claim commit
+- Task: A008-0020
+- Branch: `codex/A008-0020-classifier-relation-alias`
+- Isolation: canonical working tree `C:\code\A008`, based on claim commit
   `ce6fc9b`.
-- Identity and freeze evidence: A007-0020 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0020 was claimed and pushed on `main` in
   `ce6fc9b`; the Ready charter was committed before implementation in
   `7766176`.
 - Decision: ADR 0017. Live Nemotron returned `{ relation: "new", targetHandle:
@@ -29,9 +53,9 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Grok
-- Task: A007-0019
-- Branch: `codex/a007-0019-write-path-context`
-- Isolation: canonical working tree `C:\code\a007`, based on claim commit
+- Task: A008-0019
+- Branch: `codex/A008-0019-write-path-context`
+- Isolation: canonical working tree `C:\code\A008`, based on claim commit
   `5e0c9b3`.
 - Decision: ADR 0016. User-assertion activation reads `batch.sourceMessage`.
   Overlapping session turns are rejected through post-output. Restatement/
@@ -48,11 +72,11 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Grok
-- Task: A007-0018
-- Branch: `codex/a007-0018-reasoning-isolation`
-- Isolation: canonical working tree `C:\code\a007`, based on claim commit
+- Task: A008-0018
+- Branch: `codex/A008-0018-reasoning-isolation`
+- Isolation: canonical working tree `C:\code\A008`, based on claim commit
   `8fdd2d2`.
-- Identity and freeze evidence: A007-0018 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0018 was claimed and pushed on `main` in
   `8fdd2d2`; the Ready charter was committed before implementation in
   `861a076`.
 - Decision: ADR 0015. Live Nemotron may switch from `reasoning_content` to
@@ -74,11 +98,11 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Grok
-- Task: A007-0017
-- Branch: `codex/a007-0017-write-path-reinforcement`
-- Isolation: canonical working tree `C:\code\a007`, based on claim commit
-  `d3aaa50` after A007-0016 merged as PR #14.
-- Identity and freeze evidence: A007-0017 was claimed and pushed on `main` in
+- Task: A008-0017
+- Branch: `codex/A008-0017-write-path-reinforcement`
+- Isolation: canonical working tree `C:\code\A008`, based on claim commit
+  `d3aaa50` after A008-0016 merged as PR #14.
+- Identity and freeze evidence: A008-0017 was claimed and pushed on `main` in
   `d3aaa50`; the Ready charter was committed before implementation in
   `f1e908c`.
 - Decision: ADR 0014 turns on live `reconciliationReinforcement` `0.2` and
@@ -100,14 +124,14 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Grok
-- Task: A007-0016
-- Branch: `codex/a007-0016-live-memory-surfaces`
-- Isolation: canonical working tree `C:\code\a007`, based on draft commit
+- Task: A008-0016
+- Branch: `codex/A008-0016-live-memory-surfaces`
+- Isolation: canonical working tree `C:\code\A008`, based on draft commit
   `4144218` and freeze commit `d791769`.
-- Identity and freeze evidence: A007-0016 was claimed on `main` in `4144218`;
+- Identity and freeze evidence: A008-0016 was claimed on `main` in `4144218`;
   the Ready charter with four owner decisions was committed before
   implementation in `d791769`.
-- Decision: ADR 0013 selects one local composition root for CLI and a007 ACP,
+- Decision: ADR 0013 selects one local composition root for CLI and A008 ACP,
   JSONL as the canonical diagnostic sink, answer-first then awaited memory
   settlement, process/session-local identities, and a runtime-owned user-
   assertion activation gate applied at `new` reconcile.
@@ -133,12 +157,12 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0015
-- Branch: `codex/a007-0015-committed-memory-loop`
+- Task: A008-0015
+- Branch: `codex/A008-0015-committed-memory-loop`
 - Isolation: Git worktree
-  `C:\code\a007-workers\A007-0015_committed-memory-loop`, based on claim commit
+  `C:\code\A008-workers\A008-0015_committed-memory-loop`, based on claim commit
   `56f9da6`.
-- Identity and freeze evidence: A007-0015 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0015 was claimed and pushed on `main` in
   `56f9da6`; the Ready charter was committed/pushed before benchmark changes in
   `430f267`.
 - Decision: prove the closed loop by extending already-active canon. Brand-new
@@ -167,12 +191,12 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0014
-- Branch: `codex/a007-0014-semantic-json-model-calls`
+- Task: A008-0014
+- Branch: `codex/A008-0014-semantic-json-model-calls`
 - Isolation: Git worktree
-  `C:\code\a007-workers\A007-0014_semantic-json-model-calls`, based on claim
+  `C:\code\A008-workers\A008-0014_semantic-json-model-calls`, based on claim
   commit `97152bd`.
-- Identity and freeze evidence: A007-0014 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0014 was claimed and pushed on `main` in
   `97152bd`; the Ready charter was committed and pushed before implementation in
   `78bab19`.
 - Decision: ADR 0012 selects one stateless strict-JSON owner over an injected
@@ -204,12 +228,12 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0013
-- Branch: `codex/a007-0013-post-output-memory-coordinator`
+- Task: A008-0013
+- Branch: `codex/A008-0013-post-output-memory-coordinator`
 - Isolation: Git worktree
-  `C:\code\a007-workers\A007-0013_post-output-memory-coordinator`, based on
+  `C:\code\A008-workers\A008-0013_post-output-memory-coordinator`, based on
   claim commit `0efac5a`.
-- Identity and freeze evidence: A007-0013 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0013 was claimed and pushed on `main` in
   `0efac5a`; the Ready charter was committed and pushed before implementation in
   `2a5a402`.
 - Decision: ADR 0011 makes the multi-proposal flow sequential and explicitly
@@ -246,13 +270,13 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0012
-- Branch: `codex/a007-0012-relation-gated-memory-commit`
+- Task: A008-0012
+- Branch: `codex/A008-0012-relation-gated-memory-commit`
 - Isolation: Git worktree
-  `C:\code\a007-workers\A007-0012_relation-gated-memory-commit`, based on claim
+  `C:\code\A008-workers\A008-0012_relation-gated-memory-commit`, based on claim
   commit `6540e15f09da5c7b96e0080629faa6499e063517` and rebased after the owner's
   README/image commits on `main`.
-- Identity and freeze evidence: A007-0012 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0012 was claimed and pushed on `main` in
   `6540e15`; the Ready charter was committed and pushed before implementation in
   original commit `20bccf2` (rebased equivalent `27e77e8`).
 - Decision: ADR 0010 establishes one-proposal relation gating. Current active
@@ -279,7 +303,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   provenance, and audit do not enter classifier context. No live provider,
   `.env.local`, external OpenHands process, Supabase service, Docker mutation,
   external database, deployment, publication, or release participated. The
-  owner's `README.md` and `a007hero.jpg` changes were retained; the unrelated
+  owner's `README.md` and `A008hero.jpg` changes were retained; the unrelated
   canonical lockfile metadata edit stayed outside this worktree and task.
 - Handoff: next choose and implement the application-owned coordinator and
   provider-call ownership for analyzer/classifier adapters, failure
@@ -291,12 +315,12 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0011
-- Branch: `codex/a007-0011-safe-post-output-knowledge-intake`
+- Task: A008-0011
+- Branch: `codex/A008-0011-safe-post-output-knowledge-intake`
 - Isolation: Git worktree
-  `C:\code\a007-workers\A007-0011_safe-post-output-knowledge-intake`, based on
+  `C:\code\A008-workers\A008-0011_safe-post-output-knowledge-intake`, based on
   claim commit `04f9446c3368ec5a53c37348004de829c8405d7a`.
-- Identity and freeze evidence: A007-0011 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0011 was claimed and pushed on `main` in
   `04f9446`; the Ready charter was committed and pushed before implementation in
   `dcd577c`.
 - Decision: ADR 0009 makes reasoning an ephemeral presentation channel.
@@ -332,12 +356,12 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0010
-- Branch: `codex/a007-0010-memory-aware-chat-orchestration`
+- Task: A008-0010
+- Branch: `codex/A008-0010-memory-aware-chat-orchestration`
 - Isolation: Git worktree
-  `C:\code\a007-workers\A007-0010_memory-aware-chat-orchestration`, based on
+  `C:\code\A008-workers\A008-0010_memory-aware-chat-orchestration`, based on
   claim commit `b480c3ba65ca3cededb7ae456f8bb61e4251de17`.
-- Identity and freeze evidence: A007-0010 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0010 was claimed and pushed on `main` in
   `b480c3b`; the Ready charter was committed and pushed before implementation in
   `0212cb7`.
 - Decision: ADR 0008 defines one provider-neutral read-before-chat coordinator.
@@ -371,12 +395,12 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0009
-- Branch: `codex/a007-0009-sqlite-hybrid-memory-read-path`
+- Task: A008-0009
+- Branch: `codex/A008-0009-sqlite-hybrid-memory-read-path`
 - Isolation: Git worktree
-  `C:\code\a007-workers\A007-0009_sqlite-hybrid-memory-read-path`, based on
+  `C:\code\A008-workers\A008-0009_sqlite-hybrid-memory-read-path`, based on
   claim commit `83b523f9ab172cf9f13ecf4bbe62de5b2f0abd79`.
-- Identity and freeze evidence: A007-0009 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0009 was claimed and pushed on `main` in
   `83b523f`; the Ready charter was committed and pushed before implementation in
   `6954c42`.
 - Decision: ADR 0007 chooses SQLite for the first durable single-process local
@@ -408,24 +432,24 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0008
-- Branch: `codex/a007-0008-current-truth-repair`
+- Task: A008-0008
+- Branch: `codex/A008-0008-current-truth-repair`
 - Isolation: Git worktree
-  `C:\code\a007-workers\A007-0008_current-truth-repair`, based on local `main`
+  `C:\code\A008-workers\A008-0008_current-truth-repair`, based on local `main`
   at claim commit `fab787f2a91b586a4f2b8822d5e50dff2edd0b23`.
-- Identity and freeze evidence: A007-0008 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0008 was claimed and pushed on `main` in
   `fab787f`; the Ready charter was committed before corrections in `cc52604`.
-- Trigger: the post-A007-0007 audit found current-facing contradictions: one
-  status section listed A007-0004 through A007-0007 worktrees while another said
-  only A007-0004 existed, and the memory section still called stable identities
+- Trigger: the post-A008-0007 audit found current-facing contradictions: one
+  status section listed A008-0004 through A008-0007 worktrees while another said
+  only A008-0004 existed, and the memory section still called stable identities
   unimplemented after runtime identity v0 merged.
-- Change: synchronized repository/worktree inventory through A007-0008, stated
+- Change: synchronized repository/worktree inventory through A008-0008, stated
   that allocated worktrees do not imply activity, changed the memory gap to
   verified identity integration, and repaired the affected project-brief wrap.
   Historical ADRs, completed archives, prior journal entries, and product source
   were not edited.
 - Verification: Git reported canonical main plus five allocated task worktrees,
-  A007-0004 through A007-0008. The targeted current-facing stale-phrase audit
+  A008-0004 through A008-0008. The targeted current-facing stale-phrase audit
   returned zero contradictions after excluding the active task's description.
   All 43 final Markdown files passed link/fence/index checks; staged secret/raw-
   legacy and diff checks passed; `CURRENT_TASK` matched its template.
@@ -441,18 +465,18 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0007
-- Branch: `codex/a007-0007-runtime-identity`
-- Isolation: Git worktree `C:\code\a007-workers\A007-0007_runtime-identity`,
+- Task: A008-0007
+- Branch: `codex/A008-0007-runtime-identity`
+- Isolation: Git worktree `C:\code\A008-workers\A008-0007_runtime-identity`,
   based on local `main` at claim commit
   `4d5f6face3b3ac26372d6fad6b0eb13a4dbecca4`.
-- Identity and freeze evidence: A007-0007 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0007 was claimed and pushed on `main` in
   `4d5f6fa`; the Ready charter was committed before product changes in
   `ff33203`.
 - Decision: ADR 0006 defines opaque versioned `project`, `conversation`, runtime
   `task`, `agent`, and `acp_session` identities as
-  `a007_v1_<kind>_<lowercase UUIDv4>`. Product task IDs are explicitly distinct
-  from docs-first addresses such as A007-0007.
+  `A008_v1_<kind>_<lowercase UUIDv4>`. Product task IDs are explicitly distinct
+  from docs-first addresses such as A008-0007.
 - Change: added branded/public identity types, strict parser/kind inspection,
   injected/default UUIDv4 factory, typed errors, bounded namespaced external
   references, an ACP binding repository port, and an atomic concurrency-
@@ -463,7 +487,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   changes. The compiled official-client loopback turn uses the canonical ID.
 - Honest boundary: the bridge does not register a complete binding. Current ACP
   `session/new` does not provide a verified Agent Server conversation ID or the
-  a007 project/conversation/task/agent context; those values were not invented.
+  A008 project/conversation/task/agent context; those values were not invented.
 - Verification: clean `npm ci` installed five packages with zero vulnerabilities;
   strict typecheck/build passed; all 66 fake-only tests passed with zero failures,
   skips, cancellations, or todo. Package dry-run contained 91 entries and did
@@ -487,17 +511,17 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0006
-- Branch: `codex/a007-0006-semantic-memory-core`
+- Task: A008-0006
+- Branch: `codex/A008-0006-semantic-memory-core`
 - Isolation: Git worktree
-  `C:\code\a007-workers\A007-0006_semantic-memory-core`, based on local `main`
+  `C:\code\A008-workers\A008-0006_semantic-memory-core`, based on local `main`
   at claim commit `ef188740887968ce227a306f5e88960e04c79aa6`.
-- Identity and freeze evidence: A007-0006 was claimed and pushed on `main` in
+- Identity and freeze evidence: A008-0006 was claimed and pushed on `main` in
   `ef18874`; the Ready charter was committed before product changes in
   `6ba1551`.
 - Source boundary: the owner's Context-First Knowledge Architecture at SHA-256
   `770A78D02218F73EA867218CF23B88B8A09997F0EAA1CC5062B045179A7337E2`
-  was read as design input. ADR 0005 adopts a bounded a007-owned contract; no
+  was read as design input. ADR 0005 adopts a bounded A008-owned contract; no
   external memory implementation, ACME source, or prototype code was adopted.
 - Change: added exported memory state/policy/repository/projection contracts,
   typed errors, stable context serialization, exact UTF-8-byte measurement, a
@@ -527,42 +551,42 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   implementation, chat/CLI/ACP/Canvas integration, deployment, publication,
   release, or worker-path deletion.
 - Handoff: define stable project/conversation/task/agent/ACP-session identities
-  before persistent or automatic memory integration. Preserve one a007 provider-
+  before persistent or automatic memory integration. Preserve one A008 provider-
   call owner and require an explicit bounded post-output analysis contract.
 - Signature: Codex
 
-## 2026-09-01 — Agent Canvas runtime proof through a007 ACP
+## 2026-09-01 — Agent Canvas runtime proof through A008 ACP
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0005
-- Branch: `codex/a007-0005-agent-canvas-runtime-proof`
+- Task: A008-0005
+- Branch: `codex/A008-0005-agent-canvas-runtime-proof`
 - Isolation: Git worktree
-  `C:\code\a007-workers\A007-0005_agent-canvas-runtime-proof`, based on local
+  `C:\code\A008-workers\A008-0005_agent-canvas-runtime-proof`, based on local
   `main` at `1ac51fc49af97626ceec20db15bc7912c373865e`.
-- Identity and freeze evidence: A007-0005 was claimed on local `main` in
+- Identity and freeze evidence: A008-0005 was claimed on local `main` in
   `1ac51fc`; the Ready charter was committed before runtime/code changes in
   `487abea`.
-- Change: added an a007-owned loopback fake NVIDIA SSE server and two tests,
+- Change: added an A008-owned loopback fake NVIDIA SSE server and two tests,
   installed/built the clean external Canvas clone, supplied Agent Server 1.44.1
-  through `uvx`, configured the compiled a007 Custom ACP command through the
+  through `uvx`, configured the compiled A008 Custom ACP command through the
   real Canvas UI, completed a deterministic browser turn, and added an indexed
   safe evidence collection with the stable screenshot.
 - Runtime evidence: Canvas 1.16.0 saved `agent_kind: acp`, Agent Server
-  initialized a007 and selected the verified Nemotron model, the loopback
+  initialized A008 and selected the verified Nemotron model, the loopback
   fixture received the exact two-message request, Canvas rendered
-  `A007-CANVAS-LOOPBACK-OK`, and the conversation ended `finished`. The final UI
+  `A008-CANVAS-LOOPBACK-OK`, and the conversation ended `finished`. The final UI
   had no Running state, error banner, framework overlay, or page error.
 - Windows findings: Canvas shell parsing requires `C:/...` in the Custom command
   field; backslashes were consumed. `dev:minimal` timed out at 30 seconds while
   the pinned backend needed about 42 seconds, so its exact locked Agent Server
   and Vite commands were run separately without modifying OpenHands.
-- Verification: a007 clean install, typecheck/build, 38/38 tests, and package
+- Verification: A008 clean install, typecheck/build, 38/38 tests, and package
   dry-run passed. OpenHands `npm ci` installed 1,394 packages and its app build
   passed; the external checkout remained clean. The spawned frontend, backend,
   and fake server were stopped and ports 3015, 18115, 18116, and 18999 were
   free. Exact browser/runtime facts are in
-  `docs/evidence/A007-0005_agent-canvas-runtime-proof.md`.
+  `docs/evidence/A008-0005_agent-canvas-runtime-proof.md`.
 - Security: `.env.local` and the replacement NVIDIA key were not read. The
   successful model turn used only a fixed test key and loopback endpoint; no
   live model inference or paid usage occurred. OpenHands nevertheless attempted
@@ -586,18 +610,18 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0004
-- Branch: `codex/a007-0004-agent-canvas-shared-chat`
+- Task: A008-0004
+- Branch: `codex/A008-0004-agent-canvas-shared-chat`
 - Isolation: Git worktree
-  `C:\code\a007-workers\A007-0004_agent-canvas-shared-chat`, based on local
+  `C:\code\A008-workers\A008-0004_agent-canvas-shared-chat`, based on local
   `main` at `ebbc0ea4641df5fff02d66b21f384b45a74e223f`.
-- Identity and freeze evidence: A007-0004 was claimed on local `main` in
+- Identity and freeze evidence: A008-0004 was claimed on local `main` in
   `ebbc0ea`; the Ready charter was committed before product edits in `54eceda`.
 - Boundary decision: ADR 0004 selects standalone Agent Canvas -> Agent Server
-  -> Custom stdio ACP -> shared a007 core. Canvas, software-agent-sdk, and the
+  -> Custom stdio ACP -> shared A008 core. Canvas, software-agent-sdk, and the
   TypeScript client were not modified or vendored.
 - Change: added exact runtime dependencies `@agentclientprotocol/sdk` 1.4.0 and
-  Zod 4.5.4; shared `createNvidiaChatSession`; the `a007-acp` executable;
+  Zod 4.5.4; shared `createNvidiaChatSession`; the `A008-acp` executable;
   per-session chat state; model config; baseline text/resource-link prompts;
   thought/answer event mapping; cancellation; operator runbook; direct
   dependency inventory; and ten additional automated cases.
@@ -607,7 +631,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   client.
 - Verification: `npm ci` installed five packages, audited six, and reported zero
   vulnerabilities. Typecheck and build passed. All 36 tests passed. The official
-  ACP client spawned compiled `a007-acp`, negotiated v1, created a session,
+  ACP client spawned compiled `A008-acp`, negotiated v1, created a session,
   selected the verified model, sent one prompt through the existing adapter to
   a loopback fake SSE endpoint, and observed thought plus answer chunks. CLI
   help/model smokes exited 0; missing-key chat exited 2. Package dry-run listed
@@ -621,8 +645,8 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   call, paid usage, OpenHands install/build, Agent Server, GUI/browser, desktop
   packaging, publication, release, tools, persistence, memory, or deletion of
   the task worktree.
-- Handoff: A007-0005 should provide the current Canvas/Agent Server runtime on
-  Windows, configure `node C:\code\a007\dist\src\acp\server.js` as the Custom
+- Handoff: A008-0005 should provide the current Canvas/Agent Server runtime on
+  Windows, configure `node C:\code\A008\dist\src\acp\server.js` as the Custom
   agent, use a loopback fake provider, and capture the first visible response.
 - Signature: Codex
 
@@ -630,9 +654,9 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0003
-- Branch: `codex/a007-0003-secure-provider-core`
-- Identity and freeze evidence: A007-0003 was claimed on local `main` in
+- Task: A008-0003
+- Branch: `codex/A008-0003-secure-provider-core`
+- Identity and freeze evidence: A008-0003 was claimed on local `main` in
   `3e61dd0`; the Ready charter was committed before product edits in `b4a430e`.
 - Owner security input: the exposed legacy NVIDIA credential was deleted at the
   provider and replaced. The replacement was verified only as a non-empty
@@ -669,18 +693,18 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Date: 2026-09-01
 - Author: Codex
-- Task: A007-0002
+- Task: A008-0002
 - Branch: `main`
 - Identity evidence: claim committed locally as `e7f7604` before the charter
   moved to Ready/In Progress.
-- Owner input: `C:\code\a007-workers` may be used for multi-agent repository
+- Owner input: `C:\code\A008-workers` may be used for multi-agent repository
   clones.
 - Change: registered the path in entry guardrails, multi-agent policy, current
   status, system behavior, and the external-path note in the file map. Worker
-  directories use `A007-NNNN_task-slug`; the default branch convention is
-  `codex/a007-nnnn-task-slug` unless a charter says otherwise.
-- Verification: canonical root resolved to `C:\code\a007`; worker root resolved
-  to `C:\code\a007-workers`; they were unequal and the worker root was not
+  directories use `A008-NNNN_task-slug`; the default branch convention is
+  `codex/A008-nnnn-task-slug` unless a charter says otherwise.
+- Verification: canonical root resolved to `C:\code\A008`; worker root resolved
+  to `C:\code\A008-workers`; they were unequal and the worker root was not
   inside the canonical tree. The worker root existed and contained zero child
   items. All 26 tracked Markdown files passed relative-link, fence, and
   collection-index checks; `git diff --cached --check` passed.
@@ -691,22 +715,22 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   approvals are ready.
 - Signature: Codex
 
-## 2026-09-01 — A007 canonical repository bootstrap
+## 2026-09-01 — A008 canonical repository bootstrap
 
 - Date: 2026-09-01
 - Author: Codex with read-only mapping agents
-- Task: A007-0001
+- Task: A008-0001
 - Branch: `main`
 - Identity evidence: claim committed locally as `5768c41` before the charter
   moved to Ready/In Progress.
-- Change: replaced copied protocol-project truth with a007-owned entry, workflow,
+- Change: replaced copied protocol-project truth with A008-owned entry, workflow,
   brief, status, system document, file map, task template, decisions, backlog,
   provenance boundary, and multi-agent policy. Raw bootstrap/protocol/add-on
   packages remain ignored reference input.
 - Product direction recorded: one shared core for CLI and GUI, Agent Canvas as
   candidate GUI/client source, and a future optional semantic-memory engine
   designed from the owner-supplied Context-First architecture.
-- Owner correction: no a007 memory-engine or implementation baseline exists.
+- Owner correction: no A008 memory-engine or implementation baseline exists.
   Related ACME code is not adopted source or a dependency.
 - Source evidence: the raw legacy Node.js CLI exposes model selection, settings,
   streaming, history, error, and fallback behavior. OpenHands Agent Canvas was
@@ -721,7 +745,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   paths were absent from the staged set; `git diff --cached --check` passed after
   one whitespace defect was repaired. A read-only worker ran `node --check` on
   the legacy script successfully.
-- Not performed: no a007 product build, unit/integration/package test, OpenHands
+- Not performed: no A008 product build, unit/integration/package test, OpenHands
   install/build, live provider call, MCP add-on installation, push, deployment,
   publication, or release. There is no product source to test yet, OpenHands
   intake was read-only, and external effects were not authorized.

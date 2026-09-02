@@ -1,6 +1,6 @@
 # ADR 0010 — Relation-gated memory commit
 
-Status: Accepted
+Status: Accepted (amended by ADR 0018)
 
 Date: 2026-09-01
 
@@ -94,7 +94,7 @@ unambiguous. Batch policy and cross-proposal atomicity require a later decision.
 
 ## Consequences
 
-- A007 now has a provider-neutral write-side orchestration boundary, but no
+- A008 now has a provider-neutral write-side orchestration boundary, but no
   provider-backed analyzer or relation-classifier adapter and no automatic
   invocation from chat, CLI, ACP, Agent Server, or Canvas.
 - Dormant current knowledge participates in duplicate/conflict comparison even
@@ -106,3 +106,16 @@ unambiguous. Batch policy and cross-proposal atomicity require a later decision.
 - Actual in-memory SQLite integration tests prove all five relations, dormant
   comparison, stale revision rejection, audit/canonical state, and subsequent
   exact, lexical, tag, and domain retrieval.
+
+## Amendment
+
+Amended 2026-09-02 by
+[ADR 0018](0018-knowledge-and-memory-model.md). The ID-free classifier
+envelope, revision guards, sequential commit, and explicit index-repair
+barrier survive as v0 write-path machinery. Withdrawn: the five-way relation
+set (`new|restatement|extend|supersede|conflict`) as canonical truth
+versioning; discarding conflict proposals. `INTERPRET` proposes; `RECONCILE`
+is a deterministic slot state machine whose outcomes are
+`re_assertion|change|correction|conflict|retraction|no_op`. `supersede` is
+not an outcome. `SemanticMemory.reconcile` remains the v0 compatibility owner
+until M4 cutover.

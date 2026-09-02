@@ -1,12 +1,12 @@
 # Local memory surfaces
 
-Status: Implemented local CLI and a007 ACP composition for the memory-aware
+Status: Implemented local CLI and A008 ACP composition for the memory-aware
 read/chat/post-output loop.
 
 ## Boundary
 
 ```text
-CLI / a007-acp
+CLI / A008-acp
   -> createLocalMemoryRuntime
      |- NVIDIA credential + one ChatTransport
      |- project-namespaced SQLite
@@ -24,8 +24,8 @@ read credentials below composition. Core modules remain environment-neutral.
 
 | ID | Lifetime | Source |
 | --- | --- | --- |
-| project | stable namespace | `A007_PROJECT_ID`, or `a007-project-id` beside the SQLite file, or generated once |
-| agent | process | `A007_AGENT_ID` or generated at runtime start |
+| project | stable namespace | `A008_PROJECT_ID`, or `A008-project-id` beside the SQLite file, or generated once |
+| agent | process | `A008_AGENT_ID` or generated at runtime start |
 | conversation | CLI process / ACP session | generated |
 | task | one turn | generated |
 
@@ -36,11 +36,11 @@ Agent Server conversation binding and load/resume remain unimplemented.
 
 ## SQLite
 
-- Default path: `~/.a007/memory.sqlite`
-- Override: `A007_MEMORY_SQLITE_PATH` as an absolute path outside the
+- Default path: `~/.A008/memory.sqlite`
+- Override: `A008_MEMORY_SQLITE_PATH` as an absolute path outside the
   repository, or `:memory:` for tests
 - The parent directory is created if needed
-- Reset: delete the SQLite file, WAL/SHM sidecars, and `a007-project-id`
+- Reset: delete the SQLite file, WAL/SHM sidecars, and `A008-project-id`
 - Inspect: any SQLite client against that file; knowledge is JSON payloads
   under the project namespace
 
@@ -93,7 +93,7 @@ user-backed evidence is a later policy.
 ## Operator test from a clean install
 
 ```powershell
-Set-Location C:\code\a007
+Set-Location C:\code\A008
 npm ci
 npm run build
 npm test
@@ -104,7 +104,7 @@ CLI with ignored local credentials and isolated SQLite:
 ```powershell
 Copy-Item .env.example .env.local
 # set NVIDIA_API_KEY in .env.local
-$env:A007_MEMORY_SQLITE_PATH = "$env:TEMP\a007-memory\memory.sqlite"
+$env:A008_MEMORY_SQLITE_PATH = "$env:TEMP\A008-memory\memory.sqlite"
 npm run cli -- chat
 ```
 
@@ -117,5 +117,5 @@ Cost, credential, and data expectations:
 - Raw traces additionally persist reasoning and semantic JSON. Treat the file
   as sensitive local content.
 
-Agent Canvas uses the same compiled `a007-acp` command. See
+Agent Canvas uses the same compiled `A008-acp` command. See
 `docs/AGENT_CANVAS_INTEGRATION.md` and `docs/DEBUG_TRACE.md`.

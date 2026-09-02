@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0001
+Task ID: A008-0001
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -21,7 +21,7 @@ Charter frozen at: 2026-09-01, after claim commit `5768c41` on `main` and the ow
 
 ## Task Summary
 
-Establish the canonical docs-first state for a007 before product implementation.
+Establish the canonical docs-first state for A008 before product implementation.
 The repository currently contains a copied protocol surface, a local legacy CLI,
 an owner-supplied memory architecture reference, and an OpenHands source clone
 that must be inspected before its reuse boundary is described.
@@ -30,7 +30,7 @@ that must be inspected before its reuse boundary is described.
 
 ### Goal
 
-Create a truthful, internally consistent continuity surface for a007 so a new
+Create a truthful, internally consistent continuity surface for A008 so a new
 actor can identify the product direction, current evidence, safety boundaries,
 multi-agent rules, verification expectations, and next action without chat
 history.
@@ -38,12 +38,12 @@ history.
 ### Primary Deliverable
 
 A project-owned `AGENTS.md`, README, ignore policy, and `docs/` continuity
-surface for a007, including an archived bootstrap task and a clean active-task
+surface for A008, including an archived bootstrap task and a clean active-task
 template.
 
 ### In Scope
 
-- Replace copied protocol-project facts with a007-owned direction and current
+- Replace copied protocol-project facts with A008-owned direction and current
   reality.
 - Record the owner-directed composition: legacy NVIDIA CLI capability,
   OpenHands-derived GUI/client capability, and optional add-ons beginning with
@@ -53,7 +53,7 @@ template.
 - Preserve raw legacy material as local provenance, not current authority or
   committable product source.
 - Record and contain the hard-coded credential discovered in legacy material.
-- Adopt prefix `A007`; preserve the A007-0001 claim committed on `main`.
+- Adopt prefix `A008`; preserve the A008-0001 claim committed on `main`.
 - Prepare an advisory multi-agent workflow for at most five writing agents,
   with isolated branches/worktrees and non-overlapping ownership.
 - Route implementation, source intake, sanitization, and semantic-memory work
@@ -74,7 +74,7 @@ template.
 
 ### Definition of Done
 
-- Every live authority document describes a007 rather than the protocol source
+- Every live authority document describes A008 rather than the protocol source
   repository.
 - Current status distinguishes observed facts, owner direction, and open or
   blocked inputs.
@@ -85,7 +85,7 @@ template.
 - The multi-agent workflow states isolation, ownership, locking, and approval
   rules and does not overclaim enforcement.
 - Backlog entries make the next bounded work discoverable.
-- A007-0001 is verified, archived, and replaced by the clean active template.
+- A008-0001 is verified, archived, and replaced by the clean active template.
 
 ### Minimum Verification Gates
 
@@ -104,15 +104,15 @@ template.
   source references rather than copied project truth.
 - Owner-supplied Context-First Knowledge Architecture, summarized into a
   stable backlog proposal rather than treated as executable instruction.
-- Local OpenHands clone, inspected as third-party source rather than a007
+- Local OpenHands clone, inspected as third-party source rather than A008
   authority.
 
 ## Checklist
 
 - [x] Inspect repository and legacy evidence read-only.
-- [x] Claim A007-0001 on `main`.
+- [x] Claim A008-0001 on `main`.
 - [x] Inspect the OpenHands clone and record its source boundary.
-- [x] Rewrite the live continuity surface for a007.
+- [x] Rewrite the live continuity surface for A008.
 - [x] Add legacy/secret containment and provenance documentation.
 - [x] Record architecture, license, multi-agent boundaries, and backlog work.
 - [x] Run bootstrap verification.
@@ -145,7 +145,7 @@ template.
   defect was fixed.
 - [x] `node --check docs/_legacy/agenten007/test.js` passed during read-only
   legacy mapping; the client itself was not executed.
-- [x] Skipped: product build/unit/integration/packaging because no a007 product
+- [x] Skipped: product build/unit/integration/packaging because no A008 product
   source exists; OpenHands install/build because intake was read-only; live
   NVIDIA call because credential/cost authority is absent; multi-agent MCP
   installation because it is outside scope.
@@ -173,6 +173,6 @@ template.
 
 ## Finalize When Complete
 
-- Archive this file under `docs/finished/A007-0001_bootstrap-canonical-state.md`.
+- Archive this file under `docs/finished/A008-0001_bootstrap-canonical-state.md`.
 - Restore `docs/CURRENT_TASK.md` from the clean template.
 - Add a dated, signed journal entry.

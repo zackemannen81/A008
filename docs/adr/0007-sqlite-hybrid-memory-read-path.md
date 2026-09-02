@@ -1,6 +1,6 @@
 # ADR 0007 — SQLite hybrid-memory read path
 
-Status: Accepted
+Status: Accepted (amended by ADR 0018)
 
 Date: 2026-09-01
 
@@ -27,7 +27,7 @@ production privacy behavior is selected.
 ## Decision
 
 - The first durable memory adapter is SQLite. `SqliteMemoryRepository` accepts
-  an explicitly injected filename and validated a007 `ProjectId`; it reads no
+  an explicitly injected filename and validated A008 `ProjectId`; it reads no
   environment configuration.
 - One SQLite file may contain multiple project namespaces. Every canonical,
   audit, retrieval-document, tag, entity, domain, and FTS operation includes the
@@ -106,7 +106,7 @@ are useful domain evidence but are not neutral core policy.
 
 ## Consequences
 
-- A007 now has durable local canonical memory, audit, FTS metadata, and optional
+- A008 now has durable local canonical memory, audit, FTS metadata, and optional
   vector metadata behind the existing repository boundary.
 - The read path can scale model-visible context independently of total stored
   knowledge and produces one projection rather than additive memory sections.
@@ -118,3 +118,14 @@ are useful domain evidence but are not neutral core policy.
 - In-process vector comparison and transaction snapshot validation are bounded
   proof implementations. Server-scale storage and multi-process coordination
   remain future adapters rather than hidden promises of this one.
+
+## Amendment
+
+Amended 2026-09-02 by
+[ADR 0018](0018-knowledge-and-memory-model.md). The project-namespace
+boundary, atomic SQLite adapter, five-channel candidate funnel, exact
+serialized budget, and read-only hybrid projection survive. Withdrawn: the
+hard `canonical_status = current` filter as the only retrieval path; mixing
+memory strength into exact-channel scores; excluding dormant exact hits from
+execution context. History intent must read closed intervals. Storage redesign
+for the accepted ontology is A008-0028 and must not start before M6 is green.

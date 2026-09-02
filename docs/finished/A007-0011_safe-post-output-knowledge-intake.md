@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0011
+Task ID: A008-0011
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -49,7 +49,7 @@ reasoning-isolation benchmark.
 
 ### In Scope
 
-- Record the output-channel and staged-intake decision in an a007-owned ADR and
+- Record the output-channel and staged-intake decision in an A008-owned ADR and
   operator-facing contract document.
 - Define reasoning as ephemeral presentation data. It may stream to CLI stderr
   or ACP thought events and may be returned as completion metadata, but it is
@@ -147,8 +147,8 @@ reasoning-isolation benchmark.
 
 ## References
 
-- Owner reasoning/display-only clarification in the A007-0011 activation turn.
-- A007-0010 handoff in `docs/JOURNAL.md`.
+- Owner reasoning/display-only clarification in the A008-0011 activation turn.
+- A008-0010 handoff in `docs/JOURNAL.md`.
 - `docs/SEMANTIC_MEMORY.md`
 - `docs/MEMORY_AWARE_CHAT_ORCHESTRATION.md`
 - `docs/adr/0005-semantic-memory-v0-boundary.md`
@@ -161,7 +161,7 @@ reasoning-isolation benchmark.
 - [x] Export and test the provider-neutral surface.
 - [x] Add and run the local two-turn memory-loop benchmark.
 - [x] Run regression, package, security, and documentation gates.
-- [x] Update durable docs, archive A007-0011, and restore the task template.
+- [x] Update durable docs, archive A008-0011, and restore the task template.
 
 ## Decisions and Notes
 

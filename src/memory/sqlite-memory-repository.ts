@@ -203,7 +203,7 @@ class SqliteReadView implements MemoryReadView {
   get(id: string): KnowledgeItem | undefined {
     const row = this.database
       .prepare(
-        "SELECT id, payload_json FROM a007_memory_knowledge WHERE namespace = ? AND id = ?",
+        "SELECT id, payload_json FROM A008_memory_knowledge WHERE namespace = ? AND id = ?",
       )
       .get(this.namespace, id) as KnowledgeRow | undefined;
     return row === undefined ? undefined : cloneItem(parseItem(row));
@@ -215,7 +215,7 @@ class SqliteReadView implements MemoryReadView {
     }
     const rows = this.database
       .prepare(
-        `SELECT id, payload_json FROM a007_memory_knowledge
+        `SELECT id, payload_json FROM A008_memory_knowledge
          WHERE namespace = ? AND id IN (${placeholders(ids.length)})`,
       )
       .all(this.namespace, ...ids) as KnowledgeRow[];
@@ -265,7 +265,7 @@ class SqliteReadView implements MemoryReadView {
   private queryItems(predicate: string): readonly KnowledgeItem[] {
     const rows = this.database
       .prepare(
-        `SELECT id, payload_json FROM a007_memory_knowledge
+        `SELECT id, payload_json FROM A008_memory_knowledge
          WHERE namespace = ? AND ${predicate} ORDER BY id`,
       )
       .all(this.namespace) as KnowledgeRow[];
@@ -372,7 +372,7 @@ export class SqliteMemoryRepository
     try {
       const row = this.database
         .prepare(
-          `SELECT id, revision FROM a007_memory_knowledge
+          `SELECT id, revision FROM A008_memory_knowledge
            WHERE namespace = ? AND id = ? AND canonical_status = 'current'`,
         )
         .get(this.namespace, knowledgeId) as
@@ -386,7 +386,7 @@ export class SqliteMemoryRepository
       }
       this.database
         .prepare(
-          `INSERT INTO a007_memory_retrieval_documents
+          `INSERT INTO A008_memory_retrieval_documents
              (namespace, knowledge_id, entities_json, domains_json,
               embedding_model, embedding_json, indexed_revision)
            VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -408,22 +408,22 @@ export class SqliteMemoryRepository
         );
       this.database
         .prepare(
-          "DELETE FROM a007_memory_entities WHERE namespace = ? AND knowledge_id = ?",
+          "DELETE FROM A008_memory_entities WHERE namespace = ? AND knowledge_id = ?",
         )
         .run(this.namespace, knowledgeId);
       this.database
         .prepare(
-          "DELETE FROM a007_memory_domains WHERE namespace = ? AND knowledge_id = ?",
+          "DELETE FROM A008_memory_domains WHERE namespace = ? AND knowledge_id = ?",
         )
         .run(this.namespace, knowledgeId);
       const insertEntity = this.database.prepare(
-        "INSERT INTO a007_memory_entities(namespace, knowledge_id, value) VALUES (?, ?, ?)",
+        "INSERT INTO A008_memory_entities(namespace, knowledge_id, value) VALUES (?, ?, ?)",
       );
       for (const entity of entities) {
         insertEntity.run(this.namespace, knowledgeId, entity);
       }
       const insertDomain = this.database.prepare(
-        "INSERT INTO a007_memory_domains(namespace, knowledge_id, value) VALUES (?, ?, ?)",
+        "INSERT INTO A008_memory_domains(namespace, knowledge_id, value) VALUES (?, ?, ?)",
       );
       for (const domain of domains) {
         insertDomain.run(this.namespace, knowledgeId, domain);
@@ -474,7 +474,7 @@ export class SqliteMemoryRepository
     ) as Record<RetrievalChannel, number>;
     const count = this.database
       .prepare(
-        `SELECT count(*) AS count FROM a007_memory_knowledge
+        `SELECT count(*) AS count FROM A008_memory_knowledge
          WHERE namespace = ? AND canonical_status = 'current'`,
       )
       .get(this.namespace) as { readonly count: number };
@@ -494,14 +494,14 @@ export class SqliteMemoryRepository
 
   private initializeSchema(): void {
     this.database.exec(`
-      CREATE TABLE IF NOT EXISTS a007_memory_schema (
+      CREATE TABLE IF NOT EXISTS A008_memory_schema (
         singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
         version INTEGER NOT NULL
       );
-      INSERT OR IGNORE INTO a007_memory_schema(singleton, version)
+      INSERT OR IGNORE INTO A008_memory_schema(singleton, version)
         VALUES (1, ${SQLITE_SCHEMA_VERSION});
 
-      CREATE TABLE IF NOT EXISTS a007_memory_knowledge (
+      CREATE TABLE IF NOT EXISTS A008_memory_knowledge (
         namespace TEXT NOT NULL,
         id TEXT NOT NULL,
         payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
@@ -511,17 +511,17 @@ export class SqliteMemoryRepository
         revision INTEGER NOT NULL,
         PRIMARY KEY(namespace, id)
       );
-      CREATE INDEX IF NOT EXISTS a007_memory_knowledge_current_idx
-        ON a007_memory_knowledge(namespace, canonical_status, keep_alive, id);
+      CREATE INDEX IF NOT EXISTS A008_memory_knowledge_current_idx
+        ON A008_memory_knowledge(namespace, canonical_status, keep_alive, id);
 
-      CREATE TABLE IF NOT EXISTS a007_memory_audit (
+      CREATE TABLE IF NOT EXISTS A008_memory_audit (
         namespace TEXT NOT NULL,
         sequence INTEGER NOT NULL,
         payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
         PRIMARY KEY(namespace, sequence)
       );
 
-      CREATE TABLE IF NOT EXISTS a007_memory_retrieval_documents (
+      CREATE TABLE IF NOT EXISTS A008_memory_retrieval_documents (
         namespace TEXT NOT NULL,
         knowledge_id TEXT NOT NULL,
         entities_json TEXT NOT NULL CHECK (json_valid(entities_json)),
@@ -531,43 +531,43 @@ export class SqliteMemoryRepository
         indexed_revision INTEGER NOT NULL,
         PRIMARY KEY(namespace, knowledge_id),
         FOREIGN KEY(namespace, knowledge_id)
-          REFERENCES a007_memory_knowledge(namespace, id) ON DELETE CASCADE
+          REFERENCES A008_memory_knowledge(namespace, id) ON DELETE CASCADE
       );
 
-      CREATE TABLE IF NOT EXISTS a007_memory_entities (
+      CREATE TABLE IF NOT EXISTS A008_memory_entities (
         namespace TEXT NOT NULL,
         knowledge_id TEXT NOT NULL,
         value TEXT NOT NULL,
         PRIMARY KEY(namespace, knowledge_id, value),
         FOREIGN KEY(namespace, knowledge_id)
-          REFERENCES a007_memory_knowledge(namespace, id) ON DELETE CASCADE
+          REFERENCES A008_memory_knowledge(namespace, id) ON DELETE CASCADE
       );
-      CREATE INDEX IF NOT EXISTS a007_memory_entities_value_idx
-        ON a007_memory_entities(namespace, value, knowledge_id);
+      CREATE INDEX IF NOT EXISTS A008_memory_entities_value_idx
+        ON A008_memory_entities(namespace, value, knowledge_id);
 
-      CREATE TABLE IF NOT EXISTS a007_memory_domains (
+      CREATE TABLE IF NOT EXISTS A008_memory_domains (
         namespace TEXT NOT NULL,
         knowledge_id TEXT NOT NULL,
         value TEXT NOT NULL,
         PRIMARY KEY(namespace, knowledge_id, value),
         FOREIGN KEY(namespace, knowledge_id)
-          REFERENCES a007_memory_knowledge(namespace, id) ON DELETE CASCADE
+          REFERENCES A008_memory_knowledge(namespace, id) ON DELETE CASCADE
       );
-      CREATE INDEX IF NOT EXISTS a007_memory_domains_value_idx
-        ON a007_memory_domains(namespace, value, knowledge_id);
+      CREATE INDEX IF NOT EXISTS A008_memory_domains_value_idx
+        ON A008_memory_domains(namespace, value, knowledge_id);
 
-      CREATE TABLE IF NOT EXISTS a007_memory_tags (
+      CREATE TABLE IF NOT EXISTS A008_memory_tags (
         namespace TEXT NOT NULL,
         knowledge_id TEXT NOT NULL,
         value TEXT NOT NULL,
         PRIMARY KEY(namespace, knowledge_id, value),
         FOREIGN KEY(namespace, knowledge_id)
-          REFERENCES a007_memory_knowledge(namespace, id) ON DELETE CASCADE
+          REFERENCES A008_memory_knowledge(namespace, id) ON DELETE CASCADE
       );
-      CREATE INDEX IF NOT EXISTS a007_memory_tags_value_idx
-        ON a007_memory_tags(namespace, value, knowledge_id);
+      CREATE INDEX IF NOT EXISTS A008_memory_tags_value_idx
+        ON A008_memory_tags(namespace, value, knowledge_id);
 
-      CREATE VIRTUAL TABLE IF NOT EXISTS a007_memory_fts USING fts5(
+      CREATE VIRTUAL TABLE IF NOT EXISTS A008_memory_fts USING fts5(
         namespace UNINDEXED,
         knowledge_id UNINDEXED,
         proposition,
@@ -578,7 +578,7 @@ export class SqliteMemoryRepository
       );
     `);
     const version = this.database
-      .prepare("SELECT version FROM a007_memory_schema WHERE singleton = 1")
+      .prepare("SELECT version FROM A008_memory_schema WHERE singleton = 1")
       .get() as { readonly version: number } | undefined;
     if (version?.version !== SQLITE_SCHEMA_VERSION) {
       throw new MemoryError(
@@ -602,7 +602,7 @@ export class SqliteMemoryRepository
     return (
       this.database
         .prepare(
-          `SELECT id, payload_json FROM a007_memory_knowledge
+          `SELECT id, payload_json FROM A008_memory_knowledge
            WHERE namespace = ? ORDER BY id`,
         )
         .all(this.namespace) as KnowledgeRow[]
@@ -613,7 +613,7 @@ export class SqliteMemoryRepository
     return (
       this.database
         .prepare(
-          `SELECT payload_json FROM a007_memory_audit
+          `SELECT payload_json FROM A008_memory_audit
            WHERE namespace = ? ORDER BY sequence`,
         )
         .all(this.namespace) as AuditRow[]
@@ -628,7 +628,7 @@ export class SqliteMemoryRepository
     const beforeById = new Map(beforeItems.map((item) => [item.id, item]));
     const afterIds = new Set(afterItems.map((item) => item.id));
     const deleteKnowledge = this.database.prepare(
-      "DELETE FROM a007_memory_knowledge WHERE namespace = ? AND id = ?",
+      "DELETE FROM A008_memory_knowledge WHERE namespace = ? AND id = ?",
     );
     for (const before of beforeItems) {
       if (!afterIds.has(before.id)) {
@@ -637,7 +637,7 @@ export class SqliteMemoryRepository
     }
 
     const upsertKnowledge = this.database.prepare(`
-      INSERT INTO a007_memory_knowledge
+      INSERT INTO A008_memory_knowledge
         (namespace, id, payload_json, canonical_status, activation_status,
          keep_alive, revision)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -649,13 +649,13 @@ export class SqliteMemoryRepository
         revision = excluded.revision
     `);
     const deleteRetrieval = this.database.prepare(
-      "DELETE FROM a007_memory_retrieval_documents WHERE namespace = ? AND knowledge_id = ?",
+      "DELETE FROM A008_memory_retrieval_documents WHERE namespace = ? AND knowledge_id = ?",
     );
     const deleteEntities = this.database.prepare(
-      "DELETE FROM a007_memory_entities WHERE namespace = ? AND knowledge_id = ?",
+      "DELETE FROM A008_memory_entities WHERE namespace = ? AND knowledge_id = ?",
     );
     const deleteDomains = this.database.prepare(
-      "DELETE FROM a007_memory_domains WHERE namespace = ? AND knowledge_id = ?",
+      "DELETE FROM A008_memory_domains WHERE namespace = ? AND knowledge_id = ?",
     );
     for (const item of afterItems) {
       const before = beforeById.get(item.id);
@@ -675,7 +675,7 @@ export class SqliteMemoryRepository
       } else if (before !== undefined && before.revision !== item.revision) {
         this.database
           .prepare(
-            `UPDATE a007_memory_retrieval_documents
+            `UPDATE A008_memory_retrieval_documents
              SET indexed_revision = ?
              WHERE namespace = ? AND knowledge_id = ?`,
           )
@@ -684,10 +684,10 @@ export class SqliteMemoryRepository
     }
 
     this.database
-      .prepare("DELETE FROM a007_memory_audit WHERE namespace = ?")
+      .prepare("DELETE FROM A008_memory_audit WHERE namespace = ?")
       .run(this.namespace);
     const insertAudit = this.database.prepare(
-      `INSERT INTO a007_memory_audit(namespace, sequence, payload_json)
+      `INSERT INTO A008_memory_audit(namespace, sequence, payload_json)
        VALUES (?, ?, ?)`,
     );
     for (const event of audit) {
@@ -698,18 +698,18 @@ export class SqliteMemoryRepository
 
   private rebuildDerivedIndex(items: readonly KnowledgeItem[]): void {
     this.database
-      .prepare("DELETE FROM a007_memory_fts WHERE namespace = ?")
+      .prepare("DELETE FROM A008_memory_fts WHERE namespace = ?")
       .run(this.namespace);
     this.database
-      .prepare("DELETE FROM a007_memory_tags WHERE namespace = ?")
+      .prepare("DELETE FROM A008_memory_tags WHERE namespace = ?")
       .run(this.namespace);
     const insertFts = this.database.prepare(
-      `INSERT INTO a007_memory_fts
+      `INSERT INTO A008_memory_fts
          (namespace, knowledge_id, proposition, kind, tags, scopes)
        VALUES (?, ?, ?, ?, ?, ?)`,
     );
     const insertTag = this.database.prepare(
-      "INSERT INTO a007_memory_tags(namespace, knowledge_id, value) VALUES (?, ?, ?)",
+      "INSERT INTO A008_memory_tags(namespace, knowledge_id, value) VALUES (?, ?, ?)",
     );
     for (const item of items) {
       if (item.canonicalStatus !== "current") {
@@ -742,8 +742,8 @@ export class SqliteMemoryRepository
     const rows = this.database
       .prepare(
         `SELECT DISTINCT e.knowledge_id
-         FROM a007_memory_entities e
-         JOIN a007_memory_knowledge k
+         FROM A008_memory_entities e
+         JOIN A008_memory_knowledge k
            ON k.namespace = e.namespace AND k.id = e.knowledge_id
          WHERE e.namespace = ?
            AND e.value IN (${placeholders(entities.length)})
@@ -776,11 +776,11 @@ export class SqliteMemoryRepository
     const scope = scopeClause("k", scopes);
     const rows = this.database
       .prepare(
-        `SELECT f.knowledge_id, bm25(a007_memory_fts) AS rank
-         FROM a007_memory_fts f
-         JOIN a007_memory_knowledge k
+        `SELECT f.knowledge_id, bm25(A008_memory_fts) AS rank
+         FROM A008_memory_fts f
+         JOIN A008_memory_knowledge k
            ON k.namespace = f.namespace AND k.id = f.knowledge_id
-         WHERE a007_memory_fts MATCH ?
+         WHERE A008_memory_fts MATCH ?
            AND f.namespace = ?
            AND k.canonical_status = 'current'
            AND ${scope.sql}
@@ -810,8 +810,8 @@ export class SqliteMemoryRepository
     const rows = this.database
       .prepare(
         `SELECT DISTINCT t.knowledge_id, t.value
-         FROM a007_memory_tags t
-         JOIN a007_memory_knowledge k
+         FROM A008_memory_tags t
+         JOIN A008_memory_knowledge k
            ON k.namespace = t.namespace AND k.id = t.knowledge_id
          WHERE t.namespace = ?
            AND t.value IN (${placeholders(tags.length)})
@@ -843,8 +843,8 @@ export class SqliteMemoryRepository
     const rows = this.database
       .prepare(
         `SELECT DISTINCT d.knowledge_id, d.value
-         FROM a007_memory_domains d
-         JOIN a007_memory_knowledge k
+         FROM A008_memory_domains d
+         JOIN A008_memory_knowledge k
            ON k.namespace = d.namespace AND k.id = d.knowledge_id
          WHERE d.namespace = ?
            AND d.value IN (${placeholders(domains.length)})
@@ -879,8 +879,8 @@ export class SqliteMemoryRepository
     const rows = this.database
       .prepare(
         `SELECT d.knowledge_id, d.embedding_model, d.embedding_json
-         FROM a007_memory_retrieval_documents d
-         JOIN a007_memory_knowledge k
+         FROM A008_memory_retrieval_documents d
+         JOIN A008_memory_knowledge k
            ON k.namespace = d.namespace AND k.id = d.knowledge_id
          WHERE d.namespace = ?
            AND d.embedding_json IS NOT NULL

@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0009
+Task ID: A008-0009
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -35,7 +35,7 @@ Retrieval remains separate from lifecycle and post-output writes.
 
 ### Goal
 
-Prove that a007 can retrieve task-relevant canonical knowledge from a durable
+Prove that A008 can retrieve task-relevant canonical knowledge from a durable
 local store without exposing the full store, treating retrieval as activation,
 or coupling the memory core to a provider or UI.
 
@@ -48,12 +48,12 @@ candidate scoring, hard thresholds/budgets, and separate debug evidence.
 ### In Scope
 
 - Record the adopted read-path direction and the SQLite-over-Supabase decision
-  in a007-owned documentation and an ADR.
+  in A008-owned documentation and an ADR.
 - Add an exact, pinned SQLite dependency compatible with Node.js `>=22.12` and
   record license/provenance.
 - Implement a file-backed SQLite repository adapter that preserves the existing
   atomic knowledge+audit contract, validates schema version, survives reopen,
-  scopes every operation to one validated a007 `ProjectId`, and accepts an
+  scopes every operation to one validated A008 `ProjectId`, and accepts an
   explicitly injected path rather than reading environment configuration.
 - Maintain a SQLite retrieval index for canonical proposition/kind/tags/scopes
   plus explicitly indexed entities, domains, and optional embeddings.
@@ -160,7 +160,7 @@ candidate scoring, hard thresholds/budgets, and separate debug evidence.
 - [x] Implement and test retrieval planning and hybrid candidate ranking.
 - [x] Implement read-only selected projection and separate evidence.
 - [x] Run scale, regression, package, security, and documentation gates.
-- [x] Update durable docs, archive A007-0009, and restore the task template.
+- [x] Update durable docs, archive A008-0009, and restore the task template.
 
 ## Decisions and Notes
 

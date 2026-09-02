@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0014
+Task ID: A008-0014
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -124,7 +124,7 @@ fake/local tests, ADR 0012, and durable contract documentation.
 
 ## References
 
-- A007-0013 handoff in `docs/JOURNAL.md`.
+- A008-0013 handoff in `docs/JOURNAL.md`.
 - `docs/SEMANTIC_JSON_MODEL_CALLS.md`
 - `docs/adr/0012-stateless-semantic-json-model-calls.md`
 - `src/core/types.ts`
@@ -136,7 +136,7 @@ fake/local tests, ADR 0012, and durable contract documentation.
 - [x] Implement generator, analyzer/classifier adapters, and cancellation path.
 - [x] Export and test focused fake plus actual SQLite coordinated flow.
 - [x] Run regression, benchmark, package, security, and documentation gates.
-- [x] Update durable docs, archive A007-0014, and restore the task template.
+- [x] Update durable docs, archive A008-0014, and restore the task template.
 
 ## Decisions and Notes
 

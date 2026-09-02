@@ -1,6 +1,6 @@
-# A007-0008 — Current-truth repair
+# A008-0008 — Current-truth repair
 
-Task ID: A007-0008
+Task ID: A008-0008
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -10,7 +10,7 @@ Charter frozen at: 2026-09-01
 
 ## Task Summary
 
-The post-A007-0007 audit found contradictory current-facing statements about
+The post-A008-0007 audit found contradictory current-facing statements about
 allocated worker worktrees and whether stable runtime identities exist. Repair
 current truth before activating another product task.
 
@@ -28,12 +28,12 @@ implemented identity versus deferred integration, and the next product boundary.
 
 ### In Scope
 
-- Replace the stale single-A007-0004 worker claim with the observed allocated
-  A007-0004-through-A007-0008 worktree state.
+- Replace the stale single-A008-0004 worker claim with the observed allocated
+  A008-0004-through-A008-0008 worktree state.
 - Replace the stale claim that stable identities are unimplemented with the
   accurate remaining gap: verified identity integration/lifecycle.
 - Synchronize current status, system document, file map, and repository count
-  for the A007-0008 worktree/task.
+  for the A008-0008 worktree/task.
 - Repair the accidental PROJECT_BRIEF line wrapping without changing direction.
 - Re-run a current-facing stale-phrase audit and docs-first verification.
 
@@ -48,7 +48,7 @@ implemented identity versus deferred integration, and the next product boundary.
 
 ### Definition of Done
 
-- Current-facing docs agree that A007-0004 through A007-0008 have allocated
+- Current-facing docs agree that A008-0004 through A008-0008 have allocated
   worktrees and that no hard worker/process enforcement exists.
 - Current-facing docs distinguish implemented runtime identity v0 from deferred
   verified integration, external intake, lifecycle, and persistence.
@@ -71,14 +71,14 @@ implemented identity versus deferred integration, and the next product boundary.
 - `docs/SYSTEMDOC.md`
 - `docs/FILESTRUCTURE.md`
 - `docs/PROJECT_BRIEF.md`
-- `docs/finished/A007-0007_runtime-identity.md`
+- `docs/finished/A008-0007_runtime-identity.md`
 
 ## Checklist
 
 - [x] Correct the observed current-facing contradictions.
 - [x] Verify worktree and stale-phrase truth.
 - [x] Run documentation/security/diff gates.
-- [x] Update journal, archive A007-0008, and restore the task template.
+- [x] Update journal, archive A008-0008, and restore the task template.
 
 ## Decisions and Notes
 
@@ -94,7 +94,7 @@ implemented identity versus deferred integration, and the next product boundary.
 ## Verification
 
 - [x] `git worktree list --porcelain` reported canonical `main` plus the five
-  allocated task worktrees A007-0004 through A007-0008 at the documented paths.
+  allocated task worktrees A008-0004 through A008-0008 at the documented paths.
 - [x] Current-facing search outside historical ADR/archive/journal records and
   the active task returned zero stale worker-range, single-worktree, no-engine,
   and stable-identities-unimplemented phrases.

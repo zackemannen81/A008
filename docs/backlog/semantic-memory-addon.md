@@ -6,13 +6,13 @@ Status: Partially implemented
 
 The owner's Context-First Knowledge Architecture defines bounded, semantically
 closed model context and separate persistent, canonical, activation, and audit
-concerns. The owner clarified that the a007 memory-engine and its implementation
+concerns. The owner clarified that the A008 memory-engine and its implementation
 baseline have not been created. Related local repositories and loose Downloads
 prototypes are reference material only, not source authority.
 
 ## Proposed outcome
 
-Define an a007-owned coding-agent memory contract, then implement the engine in
+Define an A008-owned coding-agent memory contract, then implement the engine in
 bounded slices. CLI and GUI call one application service and never read memory
 tables directly. The contract must preserve:
 
@@ -26,49 +26,49 @@ tables directly. The contract must preserve:
 
 ## Implemented foundation
 
-A007-0006 defines the orthogonal canonical/activation state model, explicit
+A008-0006 defines the orthogonal canonical/activation state model, explicit
 reconciliation, active+dormant discovery, threshold-owned reactivation, a
 no-decay coding-agent reference policy, exact serialized-payload measurement,
 an atomic persistence port and in-memory adapter, separate application queries,
 and a materialized bounded projection. It uses no model or network call.
 
-A007-0009 adds a durable project-namespaced SQLite adapter, a deterministic
+A008-0009 adds a durable project-namespaced SQLite adapter, a deterministic
 bounded retrieval planner, and one hybrid exact/entity, lexical, tag, domain,
 and optional-vector candidate funnel. Selected projection is read-only and
 debug evidence remains outside execution context.
 
-A007-0010 adds the exported provider-neutral application read path. Verified
+A008-0010 adds the exported provider-neutral application read path. Verified
 runtime context, one hybrid read, at most two committed dialogue messages, and
 the original user message become a deterministic budgeted envelope for exactly
 one existing `ChatSession` transport call. Routing/control fields are stripped,
 and ephemeral context is not committed to history.
 
-A007-0011 makes provider reasoning display-only and adds a bounded staging
+A008-0011 makes provider reasoning display-only and adds a bounded staging
 service whose analyzer receives only original message plus final answer.
 Runtime-owned scopes/defaults, exact batch budget, structural limits, and
 duplicate rejection yield untrusted proposals without a relation decision or
 write. A deterministic actual-SQLite/fake-provider benchmark proves two-turn
 reasoning isolation and repeated retrieval.
 
-A007-0012 adds the explicit provider-neutral write-side gate. One staged
+A008-0012 adds the explicit provider-neutral write-side gate. One staged
 proposal produces one bounded indexed search, materialized active+dormant
 candidates, an exact-budget semantic classifier envelope with local handles,
 validated five-way output, all-candidate revision guarding, canonical
 reconciliation, and observable entity/domain index completion or repair. Actual
 SQLite tests prove every relation and stale-state rejection.
 
-A007-0013 adds the provider-neutral sequential application join. One staging
+A008-0013 adds the provider-neutral sequential application join. One staging
 call feeds ordered per-proposal commits; explicit stage/commit/index-repair
 states and validated checkpoints allow retry or repair-then-resume without
 replaying earlier canon. Actual SQLite proves a later proposal sees an earlier
 committed/indexed item in the same batch.
 
-A007-0014 adds concrete model-backed analyzer and relation-classifier adapters
+A008-0014 adds concrete model-backed analyzer and relation-classifier adapters
 over one injected stateless semantic JSON generator and the existing
 `ChatTransport`. Exact request budgeting, strict JSON, reasoning exclusion, and
 cancellation propagation are implemented; no live surface composes them.
 
-A007-0015 proves the complete deterministic local order over one shared fake
+A008-0015 proves the complete deterministic local order over one shared fake
 transport and actual SQLite: read/project, streamed answer, analyze, classify,
 guarded indexed `extend`, and next-turn reread of revision two. The proof starts
 from active canon and explicitly does not auto-activate a brand-new draft.
@@ -86,7 +86,7 @@ completed tasks.
 ## Dependencies
 
 - Complete verified identity context supplied to chat/memory orchestration;
-  A007-0007 defines the ID/binding contract but does not create a live mapping.
+  A008-0007 defines the ID/binding contract but does not create a live mapping.
 - Decision on production sidecar versus in-process topology and server-scale
   storage; SQLite already covers the single-process local proof.
 - Data classification, encryption, retention, export, deletion, and ACL policy.

@@ -7,7 +7,7 @@ Status: ACP bridge and local Canvas runtime path verified on Windows.
 ```text
 Agent Canvas
   -> OpenHands Agent Server
-     -> custom stdio command: a007-acp
+     -> custom stdio command: A008-acp
         -> createLocalMemoryRuntime
            -> one NVIDIA ChatTransport
            -> MemoryAwareChatSession + post-output coordinator
@@ -15,16 +15,16 @@ Agent Canvas
               -> NVIDIA chat-completions endpoint
 ```
 
-Canvas and Agent Server remain external components. Agent Server owns the a007
-subprocess; a007 owns chat state and the only provider call. No browser code
+Canvas and Agent Server remain external components. Agent Server owns the A008
+subprocess; A008 owns chat state and the only provider call. No browser code
 receives `NVIDIA_API_KEY`.
 
-## Prepare a007
+## Prepare A008
 
 From the canonical repository:
 
 ```powershell
-Set-Location C:\code\a007
+Set-Location C:\code\A008
 npm ci
 npm run build
 ```
@@ -33,7 +33,7 @@ The executable command for a local Agent Server is shown with forward slashes
 because the observed Canvas shell parser removes Windows backslashes:
 
 ```text
-node C:/code/a007/dist/src/acp/server.js
+node C:/code/A008/dist/src/acp/server.js
 ```
 
 `npm run acp` is useful for direct protocol development, but Agent Server should
@@ -45,7 +45,7 @@ In Settings -> Agent:
 
 1. Select `ACP` as the agent.
 2. Select `Custom` as the preset.
-3. Enter `node C:/code/a007/dist/src/acp/server.js` as the command.
+3. Enter `node C:/code/A008/dist/src/acp/server.js` as the command.
 4. Enter `nvidia/nemotron-3.5-lightning-30b-a3b` as the custom model.
 
 Add `NVIDIA_API_KEY` through the Agent Server-backed Secrets screen. Agent
@@ -59,16 +59,16 @@ chat value and must not point at an untrusted service.
 Optional memory and diagnostics for the ACP subprocess, also supplied through
 Agent Server secrets or the launching environment:
 
-- `A007_PROJECT_ID` — stable project runtime ID. Generated and persisted beside
+- `A008_PROJECT_ID` — stable project runtime ID. Generated and persisted beside
   the SQLite file when omitted.
-- `A007_MEMORY_SQLITE_PATH` — absolute SQLite path outside the repository.
-  Defaults to `~/.a007/memory.sqlite`.
-- `A007_DEBUG_TRACE=off|safe|raw` — off by default. Raw writes local prompts
+- `A008_MEMORY_SQLITE_PATH` — absolute SQLite path outside the repository.
+  Defaults to `~/.A008/memory.sqlite`.
+- `A008_DEBUG_TRACE=off|safe|raw` — off by default. Raw writes local prompts
   and answers.
-- `A007_DEBUG_TRACE_FILE` — required absolute JSONL path whenever ACP tracing
+- `A008_DEBUG_TRACE_FILE` — required absolute JSONL path whenever ACP tracing
   is enabled. ACP stdout remains protocol-only.
 
-Reset local memory by deleting the SQLite file and `a007-project-id` sidecar.
+Reset local memory by deleting the SQLite file and `A008-project-id` sidecar.
 See `docs/LOCAL_MEMORY_SURFACES.md` and `docs/DEBUG_TRACE.md`. The loopback
 fake NVIDIA fixture now answers non-streaming semantic JSON with `[]` so a
 Canvas chat turn can complete without writing memory.
@@ -98,7 +98,7 @@ that isolated state. Do not let the command read an unrelated OpenHands `.env`.
 
 ### Observed Windows startup limitation
 
-On the A007-0005 host, the pinned Agent Server needed about 42 seconds to become
+On the A008-0005 host, the pinned Agent Server needed about 42 seconds to become
 ready while `dev:minimal` allowed only 30 seconds, including after its `uvx`
 environment was warm. The bounded fallback was to run the exact command emitted
 by `scripts/dev-safe.mjs` in one shell:
@@ -119,7 +119,7 @@ constructs: `PYTHONUTF8`, isolated `OH_PERSISTENCE_DIR`,
 `OH_CONVERSATIONS_PATH`, `OH_BASH_EVENTS_DIR`, `OH_SECRET_KEY`,
 `OH_SESSION_API_KEYS_0`, `AGENT_SERVER_URL`, `OH_EXTRA_PYTHON_PATH`, and
 `DO_NOT_TRACK=1`. Provider values must come from the reviewed secret boundary;
-the A007-0005 proof instead supplied a fixed test key and loopback URL.
+the A008-0005 proof instead supplied a fixed test key and loopback URL.
 
 In a second shell, start the matching Vite surface:
 
@@ -127,19 +127,19 @@ In a second shell, start the matching Vite surface:
 $env:VITE_BACKEND_HOST = "127.0.0.1:18115"
 $env:VITE_BACKEND_BASE_URL = "http://127.0.0.1:18115"
 $env:VITE_SESSION_API_KEY = "<same local session key>"
-$env:VITE_WORKING_DIR = "C:/code/a007"
+$env:VITE_WORKING_DIR = "C:/code/A008"
 $env:VITE_DO_NOT_TRACK = "1"
 npm run dev:frontend
 ```
 
-This fallback is development evidence, not a maintained a007 launcher. Stop
+This fallback is development evidence, not a maintained A008 launcher. Stop
 both shells after use and verify their ports are free.
 
 ## Implemented protocol surface
 
 - ACP stable protocol version 1 on newline-delimited JSON stdio.
 - Initialize and new in-memory session.
-- One model select option backed by the a007 registry.
+- One model select option backed by the A008 registry.
 - Text prompts and non-fetched resource links.
 - Streamed reasoning as `agent_thought_chunk` and answer text as
   `agent_message_chunk`.
@@ -148,18 +148,18 @@ both shells after use and verify their ports are free.
 Not implemented: tools, permissions, files, MCP, images, audio, embedded
 resources, authentication methods, load/resume, persistence, runtime model
 switching, memory, or durable identity mapping. New ACP sessions now use the
-canonical a007 runtime-ID format, but no Agent Server conversation binding is
+canonical A008 runtime-ID format, but no Agent Server conversation binding is
 available through the current request.
 
 ## Current evidence
 
 The official ACP client still provides the compiled-process contract evidence.
-A007-0005 additionally installed and built the pinned Canvas clone, started real
+A008-0005 additionally installed and built the pinned Canvas clone, started real
 Canvas and Agent Server processes, configured the Custom ACP command through the
-UI, and visibly rendered `A007-CANVAS-LOOPBACK-OK`. The loopback fixture observed
+UI, and visibly rendered `A008-CANVAS-LOOPBACK-OK`. The loopback fixture observed
 the exact prompt and verified model; Agent Server ended the conversation as
 `finished`. The safe screenshot and limitations are in
-[`evidence/A007-0005_agent-canvas-runtime-proof.md`](evidence/A007-0005_agent-canvas-runtime-proof.md).
+[`evidence/A008-0005_agent-canvas-runtime-proof.md`](evidence/A008-0005_agent-canvas-runtime-proof.md).
 
 No real NVIDIA credential, live model inference, paid usage, tool, memory,
 automation backend, desktop package, publication, or release participated.

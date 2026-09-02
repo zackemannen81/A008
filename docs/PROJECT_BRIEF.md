@@ -20,8 +20,8 @@ add-on model for capabilities such as semantic memory.
   contracts and repository boundaries must be respected rather than bypassed
   with direct browser-to-provider calls.
 - Semantic memory is an optional backend capability to be created from the
-  owner's Context-First Knowledge Architecture. A007-0006 establishes the first
-  a007-owned contract and deterministic in-memory reference engine. A007-0009
+  owner's Context-First Knowledge Architecture. A008-0006 establishes the first
+  A008-owned contract and deterministic in-memory reference engine. A008-0009
   adds project-namespaced SQLite persistence and a bounded hybrid read path; no
   external implementation baseline was adopted. Runtime owns state; model
   invocations receive bounded, task-specific, semantically closed projections.
@@ -30,47 +30,47 @@ add-on model for capabilities such as semantic memory.
 
 ## First product proof
 
-A007-0003 establishes the provider-neutral shared chat core, secure NVIDIA
-adapter, one verified model profile, and thin CLI. A007-0004 establishes the
+A008-0003 establishes the provider-neutral shared chat core, secure NVIDIA
+adapter, one verified model profile, and thin CLI. A008-0004 establishes the
 standalone Agent Canvas -> Agent Server -> custom ACP boundary and a launchable
-bridge to that same core. A007-0005 completes the first product proof by sending
+bridge to that same core. A008-0005 completes the first product proof by sending
 one message from a running Agent Canvas instance and visibly rendering the
 deterministic loopback response through the bridge.
 
 The proof deliberately excludes live model inference, tool execution, automatic
-fallback, semantic retrieval, and production persistence. A007-0006 adds the
+fallback, semantic retrieval, and production persistence. A008-0006 adds the
 first project-owned semantic-memory contract and in-memory reference engine
 without reopening provider ownership or the demonstrated GUI boundary. Runtime
 integration, automatic semantic analysis, identity lifecycle/mapping, privacy
-policy, and durable persistence remain later bounded slices. A007-0007
+policy, and durable persistence remain later bounded slices. A008-0007
 establishes typed runtime identities and an ACP binding port; actual Agent
 Server conversation intake, durable mapping, lifecycle, and memory orchestration
-remain deferred. A007-0009 establishes the first durable local memory adapter
+remain deferred. A008-0009 establishes the first durable local memory adapter
 and provider-neutral candidate funnel without connecting it to chat or defining
-the automatic post-output write loop. A007-0010 establishes the exported
+the automatic post-output write loop. A008-0010 establishes the exported
 provider-neutral application read path: complete verified runtime context,
 read-only memory, bounded recent dialogue, and the original message become one
 budgeted request through the existing chat/provider owner. Live surface intake
-and the post-output write loop remain separate. A007-0011 makes reasoning an
+and the post-output write loop remain separate. A008-0011 makes reasoning an
 explicit display-only channel and establishes bounded post-output staging from
 only original message plus final answer. Staging remains untrusted and performs
-no relation decision or memory write. A007-0012 adds the provider-neutral
+no relation decision or memory write. A008-0012 adds the provider-neutral
 write-side boundary: bounded current-candidate materialization, ID-free explicit
 five-way classification, revision-guarded canonical reconciliation, and
 observable retrieval-index completion/repair. It still has no provider-backed
-classifier and is not automatically invoked by a live surface. A007-0013 joins
+classifier and is not automatically invoked by a live surface. A008-0013 joins
 staging and per-proposal commit behind an exported sequential coordinator with
 explicit partial-failure, resume, and repair barriers. Its checkpoints remain
-in-memory caller state; no live or background owner invokes it. A007-0014
+in-memory caller state; no live or background owner invokes it. A008-0014
 implements concrete model-backed analyzer and relation-classifier adapters
 through one injected, stateless, strict-JSON owner over the existing chat
 transport. Semantic calls remain outside `ChatSession`, discard reasoning, and
-are not yet composed by a live surface. A007-0015 upgrades the deterministic
+are not yet composed by a live surface. A008-0015 upgrades the deterministic
 architecture proof: an active SQLite item is projected into turn one, extended
 through the full post-output pipeline, and projected at revision two into turn
 two through one shared fake transport. It does not authorize automatic
-activation of a brand-new untrusted draft. A007-0016 connects that loop to
-local CLI and a007 ACP, adds a narrow user-assertion activation gate, and
+activation of a brand-new untrusted draft. A008-0016 connects that loop to
+local CLI and A008 ACP, adds a narrow user-assertion activation gate, and
 introduces opt-in secret-safe provider tracing.
 
 ## Goals
@@ -85,7 +85,7 @@ introduces opt-in secret-safe provider tracing.
 ## Non-goals for the bootstrap phase
 
 - Shipping or claiming a working client.
-- Treating a copied OpenHands frontend as the whole a007 architecture.
+- Treating a copied OpenHands frontend as the whole A008 architecture.
 - Copying the raw legacy directory into product source.
 - Calling a long prompt, transcript replay, or opaque ID list semantic memory.
 - Making the optional multi-agent process layer part of the application runtime.

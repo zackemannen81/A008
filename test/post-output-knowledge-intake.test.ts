@@ -12,19 +12,19 @@ import {
 } from "../src/orchestration/post-output-knowledge-intake.js";
 
 const PROJECT = parseRuntimeId(
-  "a007_v1_project_30000000-0000-4000-8000-000000000001",
+  "A008_v1_project_30000000-0000-4000-8000-000000000001",
   "project",
 );
 const CONVERSATION = parseRuntimeId(
-  "a007_v1_conversation_30000000-0000-4000-8000-000000000002",
+  "A008_v1_conversation_30000000-0000-4000-8000-000000000002",
   "conversation",
 );
 const TASK = parseRuntimeId(
-  "a007_v1_task_30000000-0000-4000-8000-000000000003",
+  "A008_v1_task_30000000-0000-4000-8000-000000000003",
   "task",
 );
 const AGENT = parseRuntimeId(
-  "a007_v1_agent_30000000-0000-4000-8000-000000000004",
+  "A008_v1_agent_30000000-0000-4000-8000-000000000004",
   "agent",
 );
 
@@ -130,7 +130,7 @@ test("intake exposes only message and final answer and applies runtime-owned fie
   assert.equal(result.measuredUnits, Buffer.byteLength(result.serialized, "utf8"));
   assert.equal(result.measurementUnit, "utf8_bytes");
   assert.equal(result.serialized.includes("private chain of thought"), false);
-  assert.equal(result.serialized.includes("a007_v1_"), false);
+  assert.equal(result.serialized.includes("A008_v1_"), false);
 
   untrusted[0]!.tags[0] = "mutated";
   assert.deepEqual(result.proposals[0]!.proposal.tags, ["memory", "reasoning"]);

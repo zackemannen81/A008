@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0012
+Task ID: A008-0012
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -50,7 +50,7 @@ result/repair state, and actual SQLite integration tests for all five relations.
 ### In Scope
 
 - Record the relation-classification, control-handle, stale-state, and
-  post-reconcile index decision in an a007-owned ADR and durable contract doc.
+  post-reconcile index decision in an A008-owned ADR and durable contract doc.
 - Process exactly one proposal from a validated `StagedKnowledgeBatch` per call;
   never auto-commit a complete batch with partial-success ambiguity.
 - Revalidate batch identities, exact staged serialization, proposal index, and
@@ -163,7 +163,7 @@ result/repair state, and actual SQLite integration tests for all five relations.
 
 ## References
 
-- A007-0011 handoff in `docs/JOURNAL.md`.
+- A008-0011 handoff in `docs/JOURNAL.md`.
 - `docs/POST_OUTPUT_KNOWLEDGE_INTAKE.md`
 - `docs/SEMANTIC_MEMORY.md`
 - `docs/HYBRID_MEMORY_READ_PATH.md`
@@ -178,7 +178,7 @@ result/repair state, and actual SQLite integration tests for all five relations.
 - [x] Implement classifier validation, guarded reconciliation, and index state.
 - [x] Export and test all five relations with actual SQLite.
 - [x] Run regression, benchmark, package, security, and documentation gates.
-- [x] Update durable docs, archive A007-0012, and restore the task template.
+- [x] Update durable docs, archive A008-0012, and restore the task template.
 
 ## Decisions and Notes
 

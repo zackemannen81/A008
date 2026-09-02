@@ -130,7 +130,7 @@ test("compiled ACP process completes one turn through a local fake NVIDIA endpoi
 
   try {
     const result = await acp
-      .client({ name: "a007-contract-test" })
+      .client({ name: "A008-contract-test" })
       .onNotification("session/update", (context) => {
         updates.push(context.params);
       })
@@ -139,7 +139,7 @@ test("compiled ACP process completes one turn through a local fake NVIDIA endpoi
           protocolVersion: acp.PROTOCOL_VERSION,
           clientCapabilities: { session: { configOptions: {} } },
         });
-        assert.equal(initialized.agentInfo?.name, "a007");
+        assert.equal(initialized.agentInfo?.name, "A008");
 
         const created = await context.request("session/new", {
           cwd: process.cwd(),
@@ -276,8 +276,8 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
       ...isolated.env,
       NVIDIA_API_KEY: "local-test-key",
       NVIDIA_CHAT_COMPLETIONS_URL: `http://127.0.0.1:${address.port}/v1/chat/completions`,
-      A007_DEBUG_TRACE: "raw",
-      A007_DEBUG_TRACE_FILE: traceFile,
+      A008_DEBUG_TRACE: "raw",
+      A008_DEBUG_TRACE_FILE: traceFile,
     },
     stdio: ["pipe", "pipe", "pipe"],
   });
@@ -296,7 +296,7 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
 
   try {
     await acp
-      .client({ name: "a007-memory-contract-test" })
+      .client({ name: "A008-memory-contract-test" })
       .onNotification("session/update", (context) => {
         updates.push(context.params);
       })
@@ -326,7 +326,7 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
     );
     assert.equal(chatPayloads.length, 2);
     assert.match(String(chatPayloads[1]?.messages?.at(-1)?.content), new RegExp(PROPOSITION, "u"));
-    assert.equal(String(chatPayloads[1]?.messages?.at(-1)?.content).includes("a007_v1_"), false);
+    assert.equal(String(chatPayloads[1]?.messages?.at(-1)?.content).includes("A008_v1_"), false);
     assert.match(
       updates.map((notification) => JSON.stringify(notification.update)).join("\n"),
       /alpha-seven/u,

@@ -65,7 +65,7 @@ test("chat invocation enforces an exact multibyte UTF-8 budget", () => {
 function projection(items = 1): ProjectionResult {
   return {
     projection: {
-      taskId: "a007_v1_task_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      taskId: "A008_v1_task_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       items: Array.from({ length: items }, (_, index) => ({
         id: `knowledge-private-${index}`,
         proposition: index === 0 ? "Use SQLite locally." : "Keep context bounded.",
@@ -103,7 +103,7 @@ test("memory prompt exposes semantic data and strips all identity/control fields
       authority: 0.9,
     },
   ]);
-  assert.equal(prompt.userEnvelope.includes("a007_v1_"), false);
+  assert.equal(prompt.userEnvelope.includes("A008_v1_"), false);
   assert.equal(prompt.userEnvelope.includes("knowledge-private"), false);
   assert.equal(
     prompt.userEnvelope.includes("CONTROL_PLANE_SERIALIZATION_MUST_NOT_LEAK"),

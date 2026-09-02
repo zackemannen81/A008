@@ -31,7 +31,7 @@ function assertionTransport() {
       if (chatTurn === 2) {
         const envelope = request.messages.at(-1)?.content ?? "";
         assert.match(envelope, new RegExp(PROPOSITION, "u"));
-        assert.equal(envelope.includes("a007_v1_"), false);
+        assert.equal(envelope.includes("A008_v1_"), false);
         assert.equal(envelope.includes("PRIVATE"), false);
       }
       return {
@@ -281,8 +281,8 @@ test("pending index repair is retried once and sink failure does not rewrite the
   const blocked = createLocalMemoryRuntime({
     env: {
       ...isolated.env,
-      A007_DEBUG_TRACE: "safe",
-      A007_DEBUG_TRACE_FILE: join(isolated.directory, "blocked", "trace.debug.jsonl"),
+      A008_DEBUG_TRACE: "safe",
+      A008_DEBUG_TRACE_FILE: join(isolated.directory, "blocked", "trace.debug.jsonl"),
     },
     surface: "test",
     createTransport: () =>
@@ -309,8 +309,8 @@ test("safe and raw traces correlate a turn without credentials or control IDs in
   const runtime = createLocalMemoryRuntime({
     env: {
       ...isolated.env,
-      A007_DEBUG_TRACE: "raw",
-      A007_DEBUG_TRACE_FILE: rawFile,
+      A008_DEBUG_TRACE: "raw",
+      A008_DEBUG_TRACE_FILE: rawFile,
       NVIDIA_API_KEY: "super-secret-test-key",
     },
     surface: "test",
@@ -334,8 +334,8 @@ test("safe and raw traces correlate a turn without credentials or control IDs in
   const safeRuntime = createLocalMemoryRuntime({
     env: {
       ...isolated.env,
-      A007_DEBUG_TRACE: "safe",
-      A007_DEBUG_TRACE_FILE: safeFile,
+      A008_DEBUG_TRACE: "safe",
+      A008_DEBUG_TRACE_FILE: safeFile,
     },
     surface: "test",
     createTransport: () => assertionTransport(),
@@ -358,7 +358,7 @@ test("trace off creates no file and cancellation skips post-output", async () =>
   const unusedFile = uniqueTraceFile(isolated.directory);
   let semanticCalls = 0;
   const runtime = createLocalMemoryRuntime({
-    env: { ...isolated.env, A007_DEBUG_TRACE_FILE: unusedFile },
+    env: { ...isolated.env, A008_DEBUG_TRACE_FILE: unusedFile },
     surface: "test",
     createTransport: () => ({
       async complete(request, callbacks) {

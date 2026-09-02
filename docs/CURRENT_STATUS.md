@@ -1,30 +1,31 @@
 # Current Status
 
-Reality as of 2026-09-01. This document records observed state; intended design
+Reality as of 2026-09-02. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
 | Surface | Observed state |
 | --- | --- |
-| Repository | Git repository with A007-0001 through A007-0020 implemented. |
-| Docs-first control state | A007-owned entry point, workflow, brief, status, system document, journal, file map, task register, decisions, backlog, and multi-agent policy are established by A007-0001. |
+| Repository | Git repository with A008-0001 through A008-0020 implemented. |
+| Docs-first control state | A008-owned entry point, workflow, brief, status, system document, journal, file map, task register, decisions, backlog, and multi-agent policy are established by A008-0001. |
 | Legacy CLI provenance | Local untracked Node.js ES-module client under `docs/_legacy/agenten007/`; Axios, readline, NVIDIA chat-completions, four model profiles, streamed/non-streamed responses, tool-call aggregation, settings, history, and fallback behavior were observed. `node --check test.js` passed. |
 | OpenHands source | Clean external `C:\code\OpenHands` clone on `main` at `744e8652f254613045b779eb148bf4f741177975`; Agent Canvas 1.16.0 dependencies are installed and its application build passed without source changes. Agent Server 1.44.1 was supplied by `uvx`; MIT source boundary remains external. |
-| Memory architecture input | The owner supplied a Context-First Knowledge Architecture document. A007-0006 adopted bounded invariants into an a007-owned decision and implementation without adopting an external code baseline. `C:\code\acme` remains related prior work only and is not a source or dependency. |
+| Memory architecture input | The owner supplied a Context-First Knowledge Architecture document. A008-0006 adopted bounded invariants into an A008-owned decision and implementation without adopting an external code baseline. `C:\code\acme` remains related prior work only and is not a source or dependency. |
 | Bootstrap bundle | Generated input/prompt/charter/summary manifest verified: all four SHA-256 entries match. The bundle remains ignored intake material. |
-| Multi-agent add-on | Local ignored Apache-2.0 reference package exists. Its process server was not installed or configured for a007. |
-| Worker-clone root | `C:\code\a007-workers` is the configured sibling root. A007-0004 through A007-0015 use isolated Git worktrees; A007-0005 runtime state/evidence helpers are external siblings. No cleanup of those task paths is authorized or claimed. |
+| Multi-agent add-on | Local ignored Apache-2.0 reference package exists. Its process server was not installed or configured for A008. |
+| Worker-clone root | `C:\code\A008-workers` is the configured sibling root. A008-0004 through A008-0015 use isolated Git worktrees; A008-0005 runtime state/evidence helpers are external siblings. No cleanup of those task paths is authorized or claimed. |
 | Runtime package | Private single-package Node.js/TypeScript ESM application. Node.js `>=22.12`, npm lockfile, TypeScript build/typecheck, public core exports, and CLI binary metadata exist. |
 | Chat core | Provider-neutral messages, generation options, separate reasoning/content stream deltas, completions, usage, typed errors, model profiles, transport port, and transactional in-memory `ChatSession` are implemented. Failed turns do not mutate history; reasoning is returned/displayed but never committed or replayed. |
 | NVIDIA adapter | Native-fetch adapter for `POST /v1/chat/completions`, injected endpoint/fetch/timeout, streaming SSE and non-streaming JSON, reasoning/content deltas, live channel-leak normalization, cancellation, timeout, and typed HTTP/network errors. It reads no environment itself. |
 | Model registry | One current official profile: `nvidia/nemotron-3.5-lightning-30b-a3b`, with the documented sampling/reasoning defaults checked on 2026-09-01. |
 | CLI | `models`, `chat`, `--help`, `/reset`, and `/exit`; chat uses the shared local memory runtime while model/help paths require no credential. Optional `--debug-trace` / `--debug-trace-file` share the environment parser. |
 | Shared NVIDIA composition | `createNvidiaChatTransport` owns credential validation, model defaults, optional trusted endpoint override, and construction of the existing adapter. `createLocalMemoryRuntime` injects that one transport into CLI and ACP memory turns. Core remains environment-neutral. |
-| Agent Canvas ACP bridge | `a007-acp` implements stable ACP v1 over stdio with initialize, canonical `a007_v1_acp_session_<UUIDv4>` in-memory sessions, the verified model option, text/resource-link prompts, thought/answer streaming, cancellation, and the shared local memory runtime. Agent Server is expected to own the process. |
-| Agent Canvas runtime proof | Real Canvas 1.16.0 and Agent Server 1.44.1 processes on Windows configured the compiled a007 Custom ACP command, sent a browser prompt, reached the existing adapter at a loopback fake SSE endpoint, rendered `A007-CANVAS-LOOPBACK-OK`, and finished the conversation. Safe evidence and screenshot are tracked under `docs/evidence/`. |
-| Semantic-memory core | Exported provider-neutral contracts, `SemanticMemory`, explicit five-way reconciliation, active+dormant discovery, exact-budget projection, and separate audit/history exist. A project-namespaced SQLite adapter durably stores canon/audit and indexes exact entities, FTS5 lexical content, tags, domains, and optional vectors. A deterministic planner and hybrid reader deduplicate/score bounded candidates, keep three thresholds distinct, and project selected active canon without mutation. The reader is consumed by the exported orchestration surface below, not directly by CLI/ACP/Canvas. |
-| Memory-aware orchestration | Exported `MemoryAwareChatSession` validates project/conversation/task/agent context, reads hybrid memory once, strips routing/control fields into a deterministic user-level envelope, sends at most two prior dialogue messages through one existing `ChatSession` transport call, applies an exact serialized-message budget, and commits only original user/assistant history. CLI and a007 ACP construct it through `createLocalMemoryRuntime`. |
+| Agent Canvas ACP bridge | `A008-acp` implements stable ACP v1 over stdio with initialize, canonical `A008_v1_acp_session_<UUIDv4>` in-memory sessions, the verified model option, text/resource-link prompts, thought/answer streaming, cancellation, and the shared local memory runtime. Agent Server is expected to own the process. |
+| Agent Canvas runtime proof | Real Canvas 1.16.0 and Agent Server 1.44.1 processes on Windows configured the compiled A008 Custom ACP command, sent a browser prompt, reached the existing adapter at a loopback fake SSE endpoint, rendered `A008-CANVAS-LOOPBACK-OK`, and finished the conversation. Safe evidence and screenshot are tracked under `docs/evidence/`. |
+| Knowledge-model program | A008-0021 is In Progress. ADR 0018 accepts `KNOWLEDGE_MEMORY_MODEL.md` and amends ADRs 0005, 0007, 0010, and 0014. V1–V15 remain in the v0 engine. Wave 1 children: A008-0023 (M1 eligibility) and A008-0024 (M3 addressing). M2 is not a task. |
+| Semantic-memory core | Exported provider-neutral contracts, `SemanticMemory`, explicit five-way reconciliation, active+dormant discovery, exact-budget projection, and separate audit/history exist. This is the v0 surface the gap analysis measures; it is not the accepted model. A project-namespaced SQLite adapter durably stores canon/audit and indexes exact entities, FTS5 lexical content, tags, domains, and optional vectors. A deterministic planner and hybrid reader deduplicate/score bounded candidates, keep three thresholds distinct, and project selected active canon without mutation. The reader is consumed by the exported orchestration surface below, not directly by CLI/ACP/Canvas. |
+| Memory-aware orchestration | Exported `MemoryAwareChatSession` validates project/conversation/task/agent context, reads hybrid memory once, strips routing/control fields into a deterministic user-level envelope, sends at most two prior dialogue messages through one existing `ChatSession` transport call, applies an exact serialized-message budget, and commits only original user/assistant history. CLI and A008 ACP construct it through `createLocalMemoryRuntime`. |
 | Post-output staging | Exported `PostOutputKnowledgeIntake` gives an analyzer only normalized original message and final answer, never reasoning or control state. It validates and exact-budgets semantic drafts, applies runtime-owned scopes and conservative defaults, and returns untrusted proposal batches without repository access, relation decisions, or memory writes. |
 | Relation-gated memory commit | Exported `IndexedRelationCandidateSource` and `RelationGatedMemoryCommit` process one staged proposal through one bounded current-candidate search, an exact-budget semantic envelope with invocation-local handles, validated five-way output, all-candidate revision guards, the existing canonical reconcile owner, and explicit `updated`/`not_required`/`pending_repair` index state. Classifier JSON may name a canonical relation as `type` or `relation`; unknown labels fail closed with the returned value. Live CLI/ACP construct a model-backed classifier and invoke the coordinator after each delivered answer. |
 | Post-output memory coordination | Exported `PostOutputMemoryCoordinator` stages once, processes proposals sequentially, distinguishes stage/commit/index-repair outcomes, and validates in-memory checkpoints for retry or repair-then-resume without replaying earlier completed work. Local CLI/ACP invoke it after each delivered answer and attempt one index repair. |
@@ -44,24 +45,24 @@ unexecuted. The replacement exists only in ignored `.env.local` as
 
 ## What does not exist
 
-- No maintained a007 launcher for the external Canvas/Agent Server source stack,
+- No maintained A008 launcher for the external Canvas/Agent Server source stack,
   installed desktop package, deployment, published package, or release artifact.
   The verified Windows fallback remains a development runbook.
 - No checked-in cross-repository browser automation suite, fully hermetic
   external-egress harness, complete runtime identity context supplied to ACP, or
-  durable mapping between an Agent Server conversation and an a007 ACP session.
+  durable mapping between an Agent Server conversation and an A008 ACP session.
   The identity/binding contract exists, but the current request lacks the
   external and application handles needed to register a verified binding.
 - No provider-backed retrieval planning/embedding generation, model-tokenizer
   adapter, graph retrieval, server-scale database adapter, or production memory
-  API exists in a007. Local CLI/ACP now supply a bounded identity context,
+  API exists in A008. Local CLI/ACP now supply a bounded identity context,
   inject the existing transport/model/budgets, and invoke post-output in
   process. Durable queues, Agent Server conversation binding, and paid live
   provider runs remain separate.
 - No installed-package, desktop-packaging, live-provider, security-sandbox, or
   conformance suite.
 - No enforced multi-agent worker limit or configured process supervisor. Ten
-  allocated task worktrees, A007-0004 through A007-0015, exist under the
+  allocated task worktrees, A008-0004 through A008-0015, exist under the
   registered worker root; allocation does not assert current activity.
 
 ## Known gaps and risks
@@ -91,9 +92,9 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   and strips routing/control fields, but adversarial remembered text still
   requires defense-in-depth and evaluation; prompt-injection safety is not
   claimed.
-- CLI and a007 chat state treat reasoning as display-only. ACP correctly emits
+- CLI and A008 chat state treat reasoning as display-only. ACP correctly emits
   it as thought events, but an external Agent Server/Canvas event log is outside
-  a007 ownership and must not later be rebound as semantic history.
+  A008 ownership and must not later be rebound as semantic history.
 - Post-output intake stages only untrusted proposals. Provider-neutral candidate
   comparison, relation validation, guarded reconciliation, explicit index
   repair, sequential checkpoints, and stateless model-backed analyzer/
@@ -108,18 +109,18 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   remains dormant unless that write-path threshold is crossed. Analyzer
   confidence still cannot grant activation. Cyclic weaken/decay is not
   implemented.
-- a007 owns the provider call on the selected ACP path. Future memory analysis
+- A008 owns the provider call on the selected ACP path. Future memory analysis
   now has one stateless shared call contract, but live composition must inject
   the existing transport rather than construct another provider client.
 - Third-party and transitive licenses have not received a complete audit.
 
 ## Verification performed during bootstrap
 
-- Read-only tree and Git inspection of a007 and OpenHands; related ACME code was
+- Read-only tree and Git inspection of A008 and OpenHands; related ACME code was
   inspected but explicitly not adopted as the memory-engine baseline.
 - Legacy JavaScript syntax check only; no execution or network call.
 - Bootstrap manifest SHA-256 verification.
-- Documentation verification is recorded in the A007-0001 archive and journal.
+- Documentation verification is recorded in the A008-0001 archive and journal.
 
 ## Verification performed for the first code slice
 
@@ -128,7 +129,7 @@ unexecuted. The replacement exists only in ignored `.env.local` as
 - CLI help/model-list and negative missing-credential smoke tests without
   loading `.env.local`.
 - Secret-pattern, raw-legacy staging, Markdown, collection-index, and diff checks
-  recorded in the A007-0003 archive and journal.
+  recorded in the A008-0003 archive and journal.
 
 ## Verification performed for the ACP bridge
 
@@ -143,21 +144,21 @@ unexecuted. The replacement exists only in ignored `.env.local` as
 
 ## Verification performed for the Agent Canvas runtime
 
-- A007 clean install, typecheck, build, and 38/38 fake-only tests passed.
+- A008 clean install, typecheck, build, and 38/38 fake-only tests passed.
 - OpenHands clean install and application build passed; the pinned external
   checkout remained clean after runtime use.
 - The initial Canvas home route rendered 27 interactive elements with no error
   overlay, console error, or page error.
 - The browser configured Custom ACP, sent one prompt, displayed the user turn
   and deterministic answer, showed no error banner, and later showed no Running
-  state. Agent Server recorded `execution_status: finished` with a007 agent/model
+  state. Agent Server recorded `execution_status: finished` with A008 agent/model
   state.
 - The loopback fixture observed the exact prompt, verified model, authorized
   test header, and two-message payload on `127.0.0.1:18999`; `.env.local` and the
   real NVIDIA key were not read.
 - The safe proof, screenshot, Windows findings, OpenHands warnings, ancillary
   no-credential control-plane behavior, and negative evidence are recorded in
-  `docs/evidence/A007-0005_agent-canvas-runtime-proof.md`.
+  `docs/evidence/A008-0005_agent-canvas-runtime-proof.md`.
 - All spawned proof processes were stopped and their four ports were free.
 
 ## Verification performed for semantic memory v0
@@ -346,7 +347,7 @@ unexecuted. The replacement exists only in ignored `.env.local` as
 - Existing direct chat, CLI, ACP, NVIDIA adapter, identity, lifecycle,
   retrieval, five-way relation, index repair, and compiled memory-loop tests
   remained green. The standalone benchmark, CLI no-key smokes, package dry-run,
-  and final documentation/security gates are recorded in the A007-0014 archive.
+  and final documentation/security gates are recorded in the A008-0014 archive.
 - No live provider, `.env.local`, external OpenHands process, Supabase service,
   Docker mutation, external database, deployment, publication, or release
   participated.

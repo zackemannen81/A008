@@ -1,8 +1,10 @@
 # Knowledge Model Gap Analysis
 
-Status: Proposed. Analysis only. No implementation authority.
+Status: Accepted analysis. Implementation authority is
+[ADR 0018](adr/0018-knowledge-and-memory-model.md) and parent A008-0021.
+Identities below are claimed. M2 is not a task; clocks land on new types.
 
-Scope: what in the a007 source as of 2026-09-01 conflicts with
+Scope: what in the A008 source as of 2026-09-01 conflicts with
 [`KNOWLEDGE_MEMORY_MODEL.md`](KNOWLEDGE_MEMORY_MODEL.md), what must change,
 what survives unchanged, and in what order the change is safe.
 
@@ -14,7 +16,7 @@ was changed.
 
 ## 1. What exists today, stated fairly
 
-a007 has one knowledge record type, `KnowledgeItem`
+A008 has one knowledge record type, `KnowledgeItem`
 (`src/memory/types.ts`), carrying four concerns at once:
 
 | Concern | Fields |
@@ -50,7 +52,7 @@ deduplication, comparison, and search:
   (`post-output-knowledge-intake.ts:298`);
 - the relation classifier compares propositions, not addresses
   (`relation-gated-memory-commit.ts`, `classifierCandidate`);
-- FTS indexes `proposition` (`sqlite-memory-repository.ts`, `a007_memory_fts`);
+- FTS indexes `proposition` (`sqlite-memory-repository.ts`, `A008_memory_fts`);
 - `extend` overwrites `proposition` in place while keeping the id
   (`memory-engine.ts`, `merged.proposition`), silently changing what a record
   means without changing what it is.
@@ -443,16 +445,17 @@ against SQLite with identical results.
 Following `docs/TASK_WORKFLOW.md`. Identities are suggestions; claim them in
 `docs/TASK_IDS.md` on `main` before any charter goes to Ready.
 
-| Phase | Suggested charter | Notes |
+| Phase | Claimed charter | Notes |
 | --- | --- | --- |
-| M0 | adopt knowledge and memory model | Documentation and ADR only |
-| M1 | repair direct-match retrieval eligibility | Bug fix; do this even if the rest is deferred |
-| M2 | introduce temporal fields | Additive |
-| M3 | introduce semantic addressing | First model change |
-| M4 | split state from history | Breaking; needs a child task for migration |
-| M5 | first-class evidence and acceptance | Depends on M3 |
-| M6 | lifecycle on evidence only, retrieval intents | Depends on M4, M5 |
-| M7 | storage redesign | Blocked until M6 is green |
+| Program | A008-0021 close knowledge-model gap | Parent; operator merges to `main` |
+| M0 | A008-0022 adopt knowledge and memory model | ADR 0018; documentation only |
+| M1 | A008-0023 repair direct-match retrieval eligibility | Bug fix on v0 path |
+| M2 | not a task | Clocks land on new types (ADR 0018 D3) |
+| M3 | A008-0024 introduce semantic addressing | First model change; new tree |
+| M4 | A008-0025 split state from history | Breaking; blocked on M3 |
+| M5 | A008-0026 first-class evidence and acceptance | Depends on M3 |
+| M6 | A008-0027 lifecycle on evidence only, retrieval intents | Depends on M4, M5 |
+| M7 | A008-0028 storage redesign | Blocked until M6 is green |
 
 M1 is worth doing on its own regardless of when the rest lands: it is a
 correctness defect in shipped behaviour, it is small, and it is required by the

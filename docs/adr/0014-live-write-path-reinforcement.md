@@ -1,6 +1,6 @@
 # ADR 0014 — Live write-path reconciliation reinforcement
 
-Status: Accepted
+Status: Accepted (amended by ADR 0018)
 
 Date: 2026-09-01
 
@@ -10,7 +10,7 @@ Decision owner: mrWhite81 and felixnissen
 
 The memory engine already reinforces on `restatement` and `extend`: it adds
 `reconciliationReinforcement` to `relevanceScore`, then sets activation from
-`keepAlive || score >= activationThreshold`. A007-0016 wired CLI/ACP to that
+`keepAlive || score >= activationThreshold`. A008-0016 wired CLI/ACP to that
 engine but set both live boosts to `0`, so the marked Reinforce flow did not
 change canonical strength.
 
@@ -52,3 +52,14 @@ decision.
   its threshold.
 - The architecture benchmark still uses zero boosts and does not claim live
   reinforcement.
+
+## Amendment
+
+Amended 2026-09-02 by
+[ADR 0018](0018-knowledge-and-memory-model.md). Retrieval remains
+non-mutating; projection reinforcement stays zero. Withdrawn: encoding
+acceptance as `keepAlive` / activation inside the user-assertion gate, and
+treating restatement/extend score boost as a truth transition. `REINFORCE` is
+a named process on evidence only (M6). User assertion becomes ACCEPT policy
+`user-assertion-v1` (M5) and must not write strength or bindings. Decay
+remains later work until A008-0027.

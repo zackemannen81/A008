@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0003
+Task ID: A008-0003
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -23,7 +23,7 @@ Charter frozen at: 2026-09-01 after claim commit `3e61dd0` and direct owner appr
 
 ## Task Summary
 
-Create a007's first product code by extracting the useful legacy chat behavior
+Create A008's first product code by extracting the useful legacy chat behavior
 into a secure provider-neutral TypeScript core, one NVIDIA transport, and a thin
 CLI. The owner has revoked the exposed legacy key and placed the replacement in
 ignored `.env.local` as `NVIDIA_API_KEY`.
@@ -112,7 +112,7 @@ errors, and CLI commands for model listing and interactive chat.
 
 ## Checklist
 
-- [x] Claim A007-0003 on `main` and create task branch.
+- [x] Claim A008-0003 on `main` and create task branch.
 - [x] Verify ignored `.env.local` contains non-empty `NVIDIA_API_KEY` without
   exposing or using its value.
 - [x] Freeze and commit this charter before product edits (`b4a430e`).
@@ -181,6 +181,6 @@ errors, and CLI commands for model listing and interactive chat.
 
 ## Finalize When Complete
 
-- Archive under `docs/finished/A007-0003_secure-chat-core.md`.
+- Archive under `docs/finished/A008-0003_secure-chat-core.md`.
 - Restore `docs/CURRENT_TASK.md` from the clean template.
 - Append a signed journal entry.

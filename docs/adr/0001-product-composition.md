@@ -15,14 +15,14 @@ not become parallel, conflicting state owners.
 
 ## Decision
 
-a007 will be one product with:
+A008 will be one product with:
 
 - a shared application core used by both CLI and GUI;
 - legacy CLI behavior preserved through clean contracts and tests rather than
   wholesale source copying;
 - OpenHands Agent Canvas used as the candidate GUI/client source;
 - a new semantic-memory engine implemented as an optional backend capability
-  from an a007-owned contract derived from the Context-First model; and
+  from an A008-owned contract derived from the Context-First model; and
 - docs-first repository governance with isolated multi-agent execution.
 
 This decision fixes product composition only. It does not yet choose standalone

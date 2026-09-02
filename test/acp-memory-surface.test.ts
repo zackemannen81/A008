@@ -5,7 +5,7 @@ import {
   PROTOCOL_VERSION,
   type NewSessionRequest,
 } from "@agentclientprotocol/sdk";
-import { A007AcpAgent } from "../src/acp/a007-acp-agent.js";
+import { A008AcpAgent } from "../src/acp/A008-acp-agent.js";
 import { createLocalMemoryRuntime } from "../src/runtime/local-memory-runtime.js";
 import {
   isolatedMemoryEnv,
@@ -18,7 +18,7 @@ const NEW_SESSION: NewSessionRequest = {
   mcpServers: [],
 };
 const SESSION_ID =
-  "a007_v1_acp_session_00000000-0000-4000-8000-000000000001";
+  "A008_v1_acp_session_00000000-0000-4000-8000-000000000001";
 const ASSERTION =
   "Durable fact: the local memory project code is alpha-seven.";
 const PROPOSITION = "the local memory project code is alpha-seven";
@@ -52,7 +52,7 @@ test("ACP agent streams thought/answer then settles memory without protocol diag
     createTransport: () => transport,
   });
   const diagnostics: string[] = [];
-  const agent = new A007AcpAgent({
+  const agent = new A008AcpAgent({
     createSession: (model) => runtime.openSession({ model }),
     createSessionId: () => SESSION_ID,
     onMemoryDiagnostic: (message) => diagnostics.push(message),

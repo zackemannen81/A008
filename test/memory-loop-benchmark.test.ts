@@ -40,7 +40,7 @@ test("compiled memory-loop benchmark proves read-answer-commit-reread", async ()
     newDraftAutoActivationProven: boolean;
     timingIsGuarantee: boolean;
   };
-  assert.equal(report.benchmark, "a007_committed_memory_loop_v2");
+  assert.equal(report.benchmark, "A008_committed_memory_loop_v2");
   assert.equal(report.mode, "fake_shared_transport_actual_sqlite");
   assert.equal(report.turns, 2);
   assert.equal(report.memoryReads, 2);

@@ -8,7 +8,7 @@ Decision owner: mrWhite81 and felixnissen
 
 ## Context
 
-A007 has separate provider-neutral services for reasoning-free proposal staging
+A008 has separate provider-neutral services for reasoning-free proposal staging
 and guarded one-proposal relation commit. An application still needs to join
 them without implying that a multi-proposal batch is one database transaction.
 Earlier proposals may already be canonical when a later classifier or
@@ -92,7 +92,7 @@ policy is decided.
 
 ## Consequences
 
-- A007 now has a complete provider-neutral flow from original message/final
+- A008 now has a complete provider-neutral flow from original message/final
   answer to ordered guarded memory commits when callers inject both semantic
   ports.
 - The already-streamed answer remains independent. A post-output failure is a

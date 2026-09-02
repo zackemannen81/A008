@@ -1,6 +1,6 @@
-# A007-0007 — Runtime identity
+# A008-0007 — Runtime identity
 
-Task ID: A007-0007
+Task ID: A008-0007
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -39,27 +39,27 @@ semantics.
 ### Primary Deliverable
 
 Exported typed runtime IDs, strict parser/factory, external-reference contract,
-and atomic in-memory ACP identity-binding repository, with the a007 ACP bridge
+and atomic in-memory ACP identity-binding repository, with the A008 ACP bridge
 using canonical ACP-session IDs by default.
 
 ### In Scope
 
 - Define distinct `project`, `conversation`, runtime `task`, `agent`, and
-  `acp_session` ID kinds with a versionable a007 prefix and canonical lowercase
+  `acp_session` ID kinds with a versionable A008 prefix and canonical lowercase
   UUID-v4 payload.
 - Provide branded TypeScript types plus runtime create, parse, kind-inspection,
   and validation behavior; reject cross-kind use and non-canonical values.
 - Explicitly distinguish product runtime task IDs from docs-first identities
-  such as `A007-0007`.
+  such as `A008-0007`.
 - Define bounded external identity references and an `AcpIdentityBinding` that
-  links all five a007 IDs without assigning semantic meaning to the handles.
+  links all five A008 IDs without assigning semantic meaning to the handles.
 - Define an identity-binding repository port and atomic, concurrency-serialized
   in-memory reference adapter with idempotent registration, uniqueness,
   conversation consistency, external-reference resolution, and defensive reads.
-- Make default `a007-acp` session creation use the canonical `acp_session` ID
+- Make default `A008-acp` session creation use the canonical `acp_session` ID
   contract and reject malformed or duplicate injected IDs without overwriting
   an existing session.
-- Add public exports, an a007-owned decision and identity contract document,
+- Add public exports, an A008-owned decision and identity contract document,
   update current-state docs, and repair the stale SYSTEMDOC source-boundary
   phrase that says no memory engine exists.
 
@@ -120,7 +120,7 @@ using canonical ACP-session IDs by default.
 - `docs/adr/0006-runtime-identity-v0.md`
 - `docs/SEMANTIC_MEMORY.md`
 - `docs/RUNTIME_IDENTITY.md`
-- `src/acp/a007-acp-agent.ts`
+- `src/acp/A008-acp-agent.ts`
 
 ## Checklist
 
@@ -131,11 +131,11 @@ using canonical ACP-session IDs by default.
 - [x] Add identity, binding, ACP, regression, and package tests.
 - [x] Update durable status, system, structure, backlog, and journal records.
 - [x] Run every minimum verification gate and record exact evidence.
-- [x] Archive A007-0007 and restore the clean current-task template.
+- [x] Archive A008-0007 and restore the clean current-task template.
 
 ## Decisions and Notes
 
-- `A007-NNNN` remains a repository-governance task address. Runtime task IDs use
+- `A008-NNNN` remains a repository-governance task address. Runtime task IDs use
   the new product identity format and do not imply docs-first authority/status.
 - External references are namespaced opaque control-plane values. They can be
   resolved by runtime but are not semantic context for a model.

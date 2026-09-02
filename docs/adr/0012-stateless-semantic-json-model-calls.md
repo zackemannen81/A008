@@ -8,7 +8,7 @@ Decision owner: mrWhite81 and felixnissen
 
 ## Context
 
-A007 has provider-neutral ports for post-output knowledge analysis and five-way
+A008 has provider-neutral ports for post-output knowledge analysis and five-way
 relation classification. Their runtime validators, candidate boundaries,
 canonical write authority, partial outcomes, and resume semantics already
 exist. The remaining gap was how a concrete model performs those two semantic
@@ -88,7 +88,7 @@ provider-neutral boundary without changing the NVIDIA adapter.
 
 ## Consequences
 
-- A007 now has concrete model-backed analyzer and classifier adapters that can
+- A008 now has concrete model-backed analyzer and classifier adapters that can
   share the existing provider transport without history or reasoning retention.
 - A later live composition task must inject the authorized transport, model,
   generation limits, and budgets and must decide when/where the coordinator

@@ -173,7 +173,7 @@ function resolveProjectId(
     if (persisted !== undefined && persisted !== configured) {
       throw new ChatError(
         "configuration",
-        "A007_PROJECT_ID does not match the SQLite project-id sidecar.",
+        "A008_PROJECT_ID does not match the SQLite project-id sidecar.",
       );
     }
     if (sidecar !== undefined && persisted === undefined) {

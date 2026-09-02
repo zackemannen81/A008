@@ -1,10 +1,10 @@
 # First shared chat slice
 
-Status: Completed by A007-0003 through A007-0005.
+Status: Completed by A008-0003 through A008-0005.
 
 ## Discovery context
 
-A007-0003 now provides the provider-neutral core, secure NVIDIA adapter, and thin
+A008-0003 now provides the provider-neutral core, secure NVIDIA adapter, and thin
 CLI. OpenHands Agent Canvas provides a GUI, Electron shell, and component
 library, but its frontend speaks Agent Server contracts and does not expose a
 simple standalone application component.
@@ -19,24 +19,24 @@ in-memory or no-op adapter.
 ADR 0004 chooses the first integration path:
 
 1. Agent Canvas remains the standalone shell;
-2. its existing Agent Server launches the `a007-acp` Custom stdio agent; and
-3. the bridge reaches the shared a007 core and existing NVIDIA adapter.
+2. its existing Agent Server launches the `A008-acp` Custom stdio agent; and
+3. the bridge reaches the shared A008 core and existing NVIDIA adapter.
 
-A007-0004 proves the compiled protocol process against the official ACP client
-and a local fake NVIDIA endpoint. A007-0005 completes the proposed outcome with
-a running Canvas/Agent Server stack, a browser message, the same a007 adapter,
+A008-0004 proves the compiled protocol process against the official ACP client
+and a local fake NVIDIA endpoint. A008-0005 completes the proposed outcome with
+a running Canvas/Agent Server stack, a browser message, the same A008 adapter,
 and a visible deterministic loopback response.
 
 ## Completion evidence
 
 The durable runtime facts and safe screenshot are recorded in
-[`../evidence/A007-0005_agent-canvas-runtime-proof.md`](../evidence/A007-0005_agent-canvas-runtime-proof.md).
+[`../evidence/A008-0005_agent-canvas-runtime-proof.md`](../evidence/A008-0005_agent-canvas-runtime-proof.md).
 The proof is not a live-provider, packaging, persistence, tools, memory, or
 fully hermetic external-egress claim.
 
 ## Dependencies
 
-- `legacy-credential-remediation.md` (completed by A007-0003).
+- `legacy-credential-remediation.md` (completed by A008-0003).
 - Pin OpenHands commit and preserve its MIT notice.
 - Install or otherwise provide the Agent Canvas/Agent Server runtime without
   mutating the pinned source boundary unexpectedly.

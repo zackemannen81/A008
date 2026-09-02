@@ -1,6 +1,6 @@
 # Finished Tasks
 
-Discoverability: naming convention `A007-NNNN_task-slug.md`.
+Discoverability: naming convention `A008-NNNN_task-slug.md`.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

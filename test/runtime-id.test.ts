@@ -17,7 +17,7 @@ test("every runtime identity kind creates and parses in canonical v1 format", ()
 
   for (const kind of RUNTIME_IDENTITY_KINDS) {
     const id = factory.create(kind);
-    assert.equal(id, `a007_v1_${kind}_${UUID}`);
+    assert.equal(id, `A008_v1_${kind}_${UUID}`);
     assert.equal(parseRuntimeId(id, kind), id);
     assert.equal(runtimeIdentityKind(id), kind);
     assert.equal(isRuntimeId(id, kind), true);
@@ -33,10 +33,10 @@ test("runtime IDs reject malformed, non-canonical, docs-task, and wrong-kind val
       error instanceof IdentityError && error.code === "wrong_kind",
   );
   for (const value of [
-    "A007-0007",
-    `a007_v2_project_${UUID}`,
-    `a007_v1_project_${UUID.toUpperCase()}`,
-    "a007_v1_project_01234567-89ab-1cde-8abc-0123456789ab",
+    "A008-0007",
+    `A008_v2_project_${UUID}`,
+    `A008_v1_project_${UUID.toUpperCase()}`,
+    "A008_v1_project_01234567-89ab-1cde-8abc-0123456789ab",
     "project-owner@example.com",
     "",
   ]) {
@@ -75,7 +75,7 @@ test("default runtime ID generation is unique and contains only routing metadata
   for (const id of ids) {
     assert.match(
       id,
-      /^a007_v1_conversation_[0-9a-f-]{36}$/,
+      /^A008_v1_conversation_[0-9a-f-]{36}$/,
     );
     assert.ok(!id.includes("owner"));
     assert.ok(!id.includes("task description"));

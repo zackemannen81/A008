@@ -5,12 +5,12 @@ Status: Open
 ## Discovery context
 
 The local optional add-on provides a PowerShell/MCP process supervisor with five
-tools. a007 already has repository-level multi-agent policy, but no project-
+tools. A008 already has repository-level multi-agent policy, but no project-
 configured process layer or hard concurrency enforcement.
 
 ## Proposed outcome
 
-Decide whether a007 needs the local add-on. If accepted, install/configure it
+Decide whether A008 needs the local add-on. If accepted, install/configure it
 outside product runtime, select a worker-clone root outside the canonical tree,
 and verify isolated process launch, observation, steering, halt, and recovery.
 
@@ -18,7 +18,7 @@ and verify isolated process launch, observation, steering, halt, and recovery.
 
 Bootstrap needs policy and authority, not a process installation. The current
 Codex runtime can coordinate read-only mapping agents without making the add-on
-an a007 dependency.
+an A008 dependency.
 
 ## Dependencies
 

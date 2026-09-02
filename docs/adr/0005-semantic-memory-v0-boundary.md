@@ -1,6 +1,6 @@
 # ADR 0005 — Semantic-memory v0 boundary
 
-Status: Accepted
+Status: Accepted (amended by ADR 0018)
 
 Date: 2026-09-01
 
@@ -10,7 +10,7 @@ Decision owner: mrWhite81 and felixnissen
 
 The owner supplied a Context-First Knowledge Architecture that separates
 persistent canonical state, activation, discovery, bounded model context, and
-audit. No a007 memory implementation or adopted baseline existed. The shared
+audit. No A008 memory implementation or adopted baseline existed. The shared
 CLI/Canvas chat path already has one provider-call owner, so a first memory
 slice must prove state and projection semantics without introducing another
 model invocation or binding memory directly to a UI or provider.
@@ -83,7 +83,7 @@ tokens to a future injected adapter.
 
 ## Consequences
 
-- a007 now has its own testable memory contract and reference engine without a
+- A008 now has its own testable memory contract and reference engine without a
   live model, credential, network, database, or UI dependency.
 - Dormant records remain available to a caller's reconciliation/discovery
   workflow while only activated relevant records can cross the context boundary.
@@ -93,3 +93,14 @@ tokens to a future injected adapter.
 - A later task must define durable identities, privacy/lifecycle controls,
   tokenizer/model coupling, semantic discovery/classification, persistence, and
   the explicit chat/ACP integration sequence.
+
+## Amendment
+
+Amended 2026-09-02 by
+[ADR 0018](0018-knowledge-and-memory-model.md). The atomic repository port,
+exact-budget projection, audit separation, and provider-neutral service
+boundary survive. Withdrawn: `canonicalStatus` `current|superseded` as the
+truth-versioning mechanism; the rule that only activated records may cross
+the context boundary for a direct state match; reconciliation as a five-way
+proposition relation. Current is `validTo = null` on a slot binding.
+Activation does not gate direct slot reads. See ADR 0018 D1, D4, D7.

@@ -14,23 +14,23 @@ import type { KnowledgeItem } from "../src/memory/types.js";
 import { parseRuntimeId } from "../src/identity/runtime-id.js";
 
 const PROJECT_A = parseRuntimeId(
-  "a007_v1_project_00000000-0000-4000-8000-000000000001",
+  "A008_v1_project_00000000-0000-4000-8000-000000000001",
   "project",
 );
 const PROJECT_B = parseRuntimeId(
-  "a007_v1_project_00000000-0000-4000-8000-000000000002",
+  "A008_v1_project_00000000-0000-4000-8000-000000000002",
   "project",
 );
 const CONVERSATION = parseRuntimeId(
-  "a007_v1_conversation_00000000-0000-4000-8000-000000000003",
+  "A008_v1_conversation_00000000-0000-4000-8000-000000000003",
   "conversation",
 );
 const TASK = parseRuntimeId(
-  "a007_v1_task_00000000-0000-4000-8000-000000000004",
+  "A008_v1_task_00000000-0000-4000-8000-000000000004",
   "task",
 );
 const AGENT = parseRuntimeId(
-  "a007_v1_agent_00000000-0000-4000-8000-000000000005",
+  "A008_v1_agent_00000000-0000-4000-8000-000000000005",
   "agent",
 );
 
@@ -88,7 +88,7 @@ const limits = {
 } as const;
 
 test("SQLite repository persists canon, audit, and retrieval index across reopen", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "a007-sqlite-memory-"));
+  const directory = await mkdtemp(join(tmpdir(), "A008-sqlite-memory-"));
   const filename = join(directory, "memory.sqlite");
   try {
     const repository = new SqliteMemoryRepository({
@@ -228,7 +228,7 @@ test("SQLite repository rolls back invalid state and serializes concurrent trans
 });
 
 test("one SQLite file isolates identical knowledge IDs by validated project namespace", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "a007-sqlite-namespace-"));
+  const directory = await mkdtemp(join(tmpdir(), "A008-sqlite-namespace-"));
   const filename = join(directory, "memory.sqlite");
   try {
     const first = new SqliteMemoryRepository({ filename, projectId: PROJECT_A });
@@ -342,7 +342,7 @@ test("retrieval metadata is invalidated when canonical proposition changes", asy
 });
 
 test("unsupported SQLite schema version fails closed", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "a007-sqlite-schema-"));
+  const directory = await mkdtemp(join(tmpdir(), "A008-sqlite-schema-"));
   const filename = join(directory, "memory.sqlite");
   try {
     const repository = new SqliteMemoryRepository({
@@ -351,7 +351,7 @@ test("unsupported SQLite schema version fails closed", async () => {
     });
     repository.close();
     const raw = new Database(filename);
-    raw.prepare("UPDATE a007_memory_schema SET version = 2 WHERE singleton = 1").run();
+    raw.prepare("UPDATE A008_memory_schema SET version = 2 WHERE singleton = 1").run();
     raw.close();
     assert.throws(
       () => new SqliteMemoryRepository({ filename, projectId: PROJECT_A }),

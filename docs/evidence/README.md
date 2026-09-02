@@ -9,6 +9,6 @@ credentials, and private source material do not belong in this collection.
 
 ## Records
 
-- [`A007-0005_agent-canvas-runtime-proof.md`](A007-0005_agent-canvas-runtime-proof.md)
-  with [`A007-0005_agent-canvas-chat.png`](A007-0005_agent-canvas-chat.png) —
-  completed local Canvas -> Agent Server -> a007 ACP -> loopback proof.
+- [`A008-0005_agent-canvas-runtime-proof.md`](A008-0005_agent-canvas-runtime-proof.md)
+  with [`A008-0005_agent-canvas-chat.png`](A008-0005_agent-canvas-chat.png) —
+  completed local Canvas -> Agent Server -> A008 ACP -> loopback proof.

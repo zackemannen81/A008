@@ -21,8 +21,8 @@ Read `AGENTS.md` and its ordered authority list before changing the repository.
 - Preserve required copyright and license notices.
 - Never import raw legacy dependencies, outputs, credentials, or unrelated
   artifacts.
-- A source document's MUST language becomes a007 authority only when explicitly
-  adopted by an a007 decision or frozen charter.
+- A source document's MUST language becomes A008 authority only when explicitly
+  adopted by an A008 decision or frozen charter.
 
 ## Verification baseline
 
@@ -33,5 +33,5 @@ slice. Live-provider tests require separate credential and cost authority.
 
 ## Licensing
 
-Contributions intentionally submitted to a007 are Apache-2.0 unless a file
+Contributions intentionally submitted to A008 are Apache-2.0 unless a file
 states otherwise. Third-party source retains its original license boundary.

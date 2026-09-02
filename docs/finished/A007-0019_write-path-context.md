@@ -1,6 +1,6 @@
 # Current Task
 
-Task ID: A007-0019
+Task ID: A008-0019
 Parent Task: None
 Status: Complete
 Owner: mrWhite81 and felixnissen
@@ -22,7 +22,7 @@ Charter frozen at: 2026-09-01
 
 ## Task Summary
 
-A007-0018 isolated live NVIDIA reasoning and bounded semantic calls. Remaining
+A008-0018 isolated live NVIDIA reasoning and bounded semantic calls. Remaining
 defects are ambient user-assertion state that can race across turns, HTTP
 traces without operation labels, coarse turn-complete status, and stale
 current-truth about live write-path, RAG, and tag/domain recall.
@@ -56,7 +56,7 @@ docs plus an ADR for reinforcement evidence.
   taxonomy; RAG and tag/domain read channels are optional/future live adapters.
 - Record the reinforcement evidence decision: validated `restatement`/`extend`
   currently boost regardless of user vs assistant origin.
-- Repair CURRENT_STATUS rows that still claim A007-0016-only and disconnected
+- Repair CURRENT_STATUS rows that still claim A008-0016-only and disconnected
   relation-gated live invocation.
 
 ### Out of Scope
