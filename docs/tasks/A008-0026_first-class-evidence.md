@@ -3,7 +3,7 @@
 Task ID: A008-0026
 Parent Task: A008-0021
 Status: Ready
-Owner: unassigned (wave 2)
+Owner: A008-worker03
 Created: 2026-09-02
 Last updated: 2026-09-02
 Charter frozen at: 2026-09-02
@@ -37,16 +37,24 @@ the §9.3 payload. S4, S5, S9 pass.
 
 ### In Scope
 
-- Evidence types and INGEST / ACCEPT in `src/memory/knowledge/`
-- Typed payload composer (sections only; retrieval funnel is M6)
-- Tests for S4, S5, S9 (prayer produces recitation, no claim)
-- Handoff `docs/handoffs/A008-0026.md`
+- New files only:
+  - `src/memory/knowledge/evidence-types.ts`
+  - `src/memory/knowledge/evidence.ts`
+  - `src/memory/knowledge/ingest.ts`
+  - `src/memory/knowledge/accept.ts`
+  - `src/memory/knowledge/payload.ts`
+  - `test/knowledge-model/evidence.test.ts`
+  - `docs/handoffs/A008-0026.md`
+- Branch copy of this charter into `docs/CURRENT_TASK.md`
+- Payload composer only; retrieval funnel is M6.
 
 ### Out of Scope
 
 - SQLite
 - Lifecycle decay (M6)
-- Binding UPDATE (M4)
+- Binding UPDATE / RECONCILE (M4)
+- `src/memory/knowledge/types.ts`, `interpret.ts`, `registry.ts`, `index.ts`,
+  `package.json`
 - Live provider
 - Merging to `main`
 
@@ -66,14 +74,15 @@ policy does not write keepAlive or strength.
 ## References
 
 - ADR 0018 D5, D8
-- Depends on: A008-0024 merged
-- Parallel-safe with A008-0025 if file ownership is split as above
+- Depends on: A008-0024 merged (done)
+- Parallel-safe with A008-0025: this task owns evidence files listed above
+- Worker clone: `C:\code\A008-workers\A008-worker03`
 - Branch: `grok/A008-0026-first-class-evidence`
 
 ## Checklist
 
-- [ ] Wait for A008-0024 merge.
-- [ ] Confirm file split with A008-0025 before writing.
+- [x] Wait for A008-0024 merge.
+- [x] File split locked by operator: evidence-* vs state/reconcile/update.
 - [ ] Implement INGEST, evidence records, ACCEPT, payload.
 - [ ] Scenario tests.
 - [ ] Verify, commit, push, PR, handoff.
@@ -97,9 +106,9 @@ policy does not write keepAlive or strength.
 
 ## Handoff and Follow-ups
 
-- Current state: Ready, blocked on A008-0024.
-- Next recommended step: operator assigns a clone after M3 merge.
-- Blockers: A008-0024.
+- Current state: Ready, unblocked.
+- Next recommended step: implement on worker03.
+- Blockers: none.
 - Open questions: none.
 
 ## Finalize When Complete

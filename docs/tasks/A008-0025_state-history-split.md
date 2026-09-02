@@ -3,7 +3,7 @@
 Task ID: A008-0025
 Parent Task: A008-0021
 Status: Ready
-Owner: unassigned (wave 2)
+Owner: A008-worker02
 Created: 2026-09-02
 Last updated: 2026-09-02
 Charter frozen at: 2026-09-02
@@ -36,16 +36,23 @@ passing in-memory.
 
 ### In Scope
 
-- `src/memory/knowledge/` state, history, transition, RECONCILE, UPDATE
-- Tests under `test/knowledge-model/` for S1, S2, S8, S10
-- Handoff `docs/handoffs/A008-0025.md`
+- New files only:
+  - `src/memory/knowledge/state-types.ts`
+  - `src/memory/knowledge/state.ts`
+  - `src/memory/knowledge/reconcile.ts`
+  - `src/memory/knowledge/update.ts`
+  - `test/knowledge-model/state-history.test.ts`
+  - `docs/handoffs/A008-0025.md`
+- Branch copy of this charter into `docs/CURRENT_TASK.md`
+- Stub claim/event ids as `causedBy` strings. Do not implement ACCEPT.
 
 ### Out of Scope
 
 - SQLite schema
 - `KnowledgeItem` field additions
-- ACCEPT policy and utterance records (M5), except as stub ids UPDATE can
-  point at
+- ACCEPT, INGEST, utterance/claim records, typed payload (M5)
+- `src/memory/knowledge/types.ts`, `interpret.ts`, `registry.ts`, `index.ts`,
+  `package.json`
 - Lifecycle (M6)
 - Merging to `main`
 - Live provider calls
@@ -66,12 +73,13 @@ claims and leaves no accepted binding.
 ## References
 
 - ADR 0018 D4, D6
-- Depends on: A008-0024 merged to `main`
+- Depends on: A008-0024 merged to `main` (done)
+- Worker clone: `C:\code\A008-workers\A008-worker02`
 - Branch: `grok/A008-0025-state-history-split`
 
 ## Checklist
 
-- [ ] Wait for A008-0024 merge.
+- [x] Wait for A008-0024 merge.
 - [ ] Implement RECONCILE and UPDATE.
 - [ ] Scenario tests.
 - [ ] Verify, commit, push, PR, handoff.
@@ -95,9 +103,9 @@ claims and leaves no accepted binding.
 
 ## Handoff and Follow-ups
 
-- Current state: Ready, blocked on A008-0024.
-- Next recommended step: operator assigns a clone after M3 merge.
-- Blockers: A008-0024.
+- Current state: Ready, unblocked.
+- Next recommended step: implement on worker02.
+- Blockers: none.
 - Open questions: none.
 
 ## Finalize When Complete
