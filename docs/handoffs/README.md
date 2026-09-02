@@ -20,4 +20,4 @@ Worker transcripts are not authority.
 
 ## Records
 
-None yet.
+- [A008-0023](A008-0023.md) — M1 direct-match eligibility repair; PR open.

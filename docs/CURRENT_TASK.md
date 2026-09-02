@@ -81,7 +81,7 @@ regression tests for reduced S6 and S7.
 - [x] No `KnowledgeItem` field added
 - [x] No live provider / `.env.local` / OpenHands mutation
 - [x] `git diff --check`
-- [ ] Handoff file complete; PR opened; do not merge
+- [x] Handoff file complete; PR opened; do not merge
 
 ## References
 
@@ -99,7 +99,7 @@ regression tests for reduced S6 and S7.
 - [x] Make `project()` non-mutating.
 - [x] Add S6/S7 reduced tests.
 - [x] Update named docs.
-- [ ] Verify, commit, push, open PR, write handoff.
+- [x] Verify, commit, push, open PR, write handoff.
 
 ## Decisions and Notes
 
@@ -146,15 +146,15 @@ was green. That is an environment warning, not a product defect.
 
 - [x] `docs/HYBRID_MEMORY_READ_PATH.md`
 - [x] `docs/SEMANTIC_MEMORY.md` (eligibility sentence only)
-- [ ] `docs/handoffs/A008-0023.md`
+- [x] `docs/handoffs/A008-0023.md`
 
 ## Handoff and Follow-ups
 
-- Current state: In Progress on worker01.
-- Next recommended step: implement on the named branch.
+- Current state: implementation committed; PR open; handoff on this branch.
+- Next recommended step: operator reviews and merges the PR.
 - Blockers: none.
 - Child tasks: none.
-- Resume condition: PR + handoff exist.
+- Resume condition: operator merge of https://github.com/zackemannen81/A008/pull/2
 - Open questions: none.
 
 ## Finalize When Complete
