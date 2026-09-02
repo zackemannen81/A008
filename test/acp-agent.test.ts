@@ -193,6 +193,123 @@ test("ACP cancellation rolls back the pending ChatSession turn", async () => {
   assert.deepEqual(session?.messages, []);
 });
 
+test("ACP session/close releases only the session it names", () => {
+  let next = 0;
+  const ids = [
+    SESSION_ID,
+    "A008_v1_acp_session_00000000-0000-4000-8000-000000000002",
+  ] as const;
+  const agent = new A008AcpAgent({
+    createSession: () =>
+      new ChatSession({
+        model: "model",
+        transport: {
+          async complete() {
+            throw new Error("not needed");
+          },
+        },
+      }),
+    createSessionId: () => {
+      const id = ids[next];
+      next += 1;
+      return id ?? SESSION_ID;
+    },
+  });
+  agent.newSession(NEW_SESSION);
+  agent.newSession(NEW_SESSION);
+  assert.deepEqual([...agent.openSessionIds()].sort(), [...ids].sort());
+
+  assert.deepEqual(agent.closeSession({ sessionId: ids[0] }), {});
+
+  assert.deepEqual(agent.openSessionIds(), [ids[1]]);
+});
+
+test("ACP session/close fails closed on an unknown or already-closed session", () => {
+  const agent = new A008AcpAgent({
+    createSession: () =>
+      new ChatSession({
+        model: "model",
+        transport: {
+          async complete() {
+            throw new Error("not needed");
+          },
+        },
+      }),
+    createSessionId: () => SESSION_ID,
+  });
+  agent.newSession(NEW_SESSION);
+
+  agent.closeSession({ sessionId: SESSION_ID });
+  assert.deepEqual(agent.openSessionIds(), []);
+
+  // A double close and a session this agent never held are the same condition:
+  // the agent does not hold it now.
+  assert.throws(() => agent.closeSession({ sessionId: SESSION_ID }));
+  assert.throws(() =>
+    agent.closeSession({
+      sessionId: "A008_v1_acp_session_00000000-0000-4000-8000-000000000009",
+    }),
+  );
+});
+
+test("ACP session/close aborts the turn in flight on that session", async () => {
+  let session: ChatSession | undefined;
+  const transport: ChatTransport = {
+    async complete(request) {
+      return await new Promise((_, reject) => {
+        request.signal?.addEventListener(
+          "abort",
+          () => reject(new ChatError("cancelled", "cancelled")),
+          { once: true },
+        );
+      });
+    },
+  };
+  const agent = new A008AcpAgent({
+    createSession: () => {
+      session = new ChatSession({ model: "model", transport });
+      return session;
+    },
+    createSessionId: () => SESSION_ID,
+  });
+  agent.newSession(NEW_SESSION);
+
+  const pending = agent.prompt(
+    { sessionId: SESSION_ID, prompt: [{ type: "text", text: "wait" }] },
+    async () => undefined,
+  );
+  await new Promise<void>((resolve) => setImmediate(resolve));
+
+  agent.closeSession({ sessionId: SESSION_ID });
+
+  assert.deepEqual(await pending, { stopReason: "cancelled" });
+  assert.deepEqual(session?.messages, [], "a released turn must not commit");
+  assert.deepEqual(agent.openSessionIds(), []);
+});
+
+test("ACP session/close support is advertised without changing the old contract", () => {
+  const agent = new A008AcpAgent({
+    createSession: () => {
+      throw new Error("not needed");
+    },
+    createSessionId: () => SESSION_ID,
+  });
+
+  const initialized = agent.initialize({ protocolVersion: PROTOCOL_VERSION });
+
+  // Present for a client that looks for it...
+  assert.ok(initialized.agentCapabilities?.sessionCapabilities?.close);
+  // ...and every field an existing client already reads is untouched.
+  assert.equal(initialized.protocolVersion, PROTOCOL_VERSION);
+  assert.equal(initialized.agentCapabilities?.loadSession, false);
+  assert.deepEqual(initialized.agentCapabilities?.promptCapabilities, {
+    image: false,
+    audio: false,
+    embeddedContext: false,
+  });
+  assert.equal(initialized.agentInfo?.name, "A008");
+});
+
 test("ACP default session identity is canonical", () => {
   const agent = new A008AcpAgent({
     createSession: () => {

@@ -19,6 +19,12 @@ export interface AcpBridge {
     signal: AbortSignal,
   ): Promise<void>;
   cancel(sessionId: string): void;
+  /**
+   * Release one ACP session. The renderer never asks for this; the host calls
+   * it when a socket closes so the agent stops holding state for a browser
+   * that is gone.
+   */
+  closeSession(sessionId: string): Promise<void>;
   close(): Promise<void>;
 }
 
@@ -146,6 +152,16 @@ export async function createSpawnedAcpBridge(
       connection.agent.notify("session/cancel", { sessionId }).catch(() => {
         return undefined;
       });
+    },
+    async closeSession(sessionId) {
+      // Drop the local handler first. Whatever the agent answers, this bridge
+      // must not keep a callback for a session the host has given up.
+      handlers.delete(sessionId);
+      try {
+        await connection.agent.request("session/close", { sessionId });
+      } catch (error) {
+        throw acpFailure(error, stderrTail.lastLine());
+      }
     },
     async close() {
       connection.close();
