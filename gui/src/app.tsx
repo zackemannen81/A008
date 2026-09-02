@@ -4,6 +4,7 @@ import { Composer } from "./composer/composer.js";
 import { useGuiSession } from "./session/use-gui-session.js";
 import { SettingsPane } from "./settings/settings-pane.js";
 import { TerminalPane } from "./terminal/terminal-pane.js";
+import { UploadPane } from "./upload/upload-pane.js";
 
 export function App() {
   const session = useGuiSession();
@@ -15,6 +16,7 @@ export function App() {
       <main className="a008-main">
         <ChatPane session={session} />
         <Composer session={session} />
+        <UploadPane />
         <TerminalPane />
       </main>
       <aside className="a008-aside">
