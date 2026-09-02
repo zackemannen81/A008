@@ -82,7 +82,7 @@ claims and leaves no accepted binding.
 - [x] Wait for A008-0024 merge.
 - [x] Implement RECONCILE and UPDATE.
 - [x] Scenario tests.
-- [ ] Verify, commit, push, PR, handoff.
+- [x] Verify, commit, push, PR, handoff.
 
 ## Decisions and Notes
 
@@ -100,16 +100,16 @@ claims and leaves no accepted binding.
 - [x] Named S1, S2, S8, S10 tests pass via `node --test dist/test/knowledge-model/state-history.test.js` (8/8).
 - [x] `npm test` 173/173 on the existing package.json list (new test is not in that list; charter forbids a package.json edit).
 - [x] No live provider / `.env.local` / OpenHands mutation.
-- [ ] Handoff + PR; do not merge.
+- [x] Handoff + PR; do not merge. https://github.com/zackemannen81/A008/pull/4
 
 ## Documentation Updates
 
-- [ ] `docs/handoffs/A008-0025.md`
+- [x] `docs/handoffs/A008-0025.md`
 
 ## Handoff and Follow-ups
 
-- Current state: In Progress on worker02.
-- Next recommended step: implement RECONCILE and UPDATE.
+- Current state: PR open; waiting for operator merge.
+- Next recommended step: operator reviews and merges https://github.com/zackemannen81/A008/pull/4
 - Blockers: none.
 - Open questions: none.
 
