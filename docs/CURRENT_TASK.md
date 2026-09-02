@@ -69,7 +69,7 @@ policy does not write keepAlive or strength.
 - [x] `npm test`
 - [x] Named S4, S5, S9 tests
 - [x] No live provider
-- [ ] Handoff + PR; do not merge
+- [x] Handoff + PR; do not merge
 
 ## References
 
@@ -85,7 +85,7 @@ policy does not write keepAlive or strength.
 - [x] File split locked by operator: evidence-* vs state/reconcile/update.
 - [x] Implement INGEST, evidence records, ACCEPT, payload.
 - [x] Scenario tests.
-- [ ] Verify, commit, push, PR, handoff.
+- [x] Verify, commit, push, PR, handoff.
 
 ## Decisions and Notes
 
@@ -111,15 +111,17 @@ policy does not write keepAlive or strength.
       `registry.ts`, `clocks.ts`, `ids.ts`, `errors.ts`, `index.ts`,
       `package.json`, state/reconcile/update, hybrid-memory-reader,
       memory-engine, KnowledgeItem, or SQLite.
+- [x] PR https://github.com/zackemannen81/A008/pull/3
+- [x] Handoff `docs/handoffs/A008-0026.md`
 
 ## Documentation Updates
 
-- [ ] `docs/handoffs/A008-0026.md`
+- [x] `docs/handoffs/A008-0026.md`
 
 ## Handoff and Follow-ups
 
-- Current state: Implementation complete; PR and handoff next.
-- Next recommended step: commit, push, open PR, write handoff. Operator merges.
+- Current state: PR open. Ready for operator merge.
+- Next recommended step: operator reviews https://github.com/zackemannen81/A008/pull/3 and merges.
 - Blockers: none.
 - Open questions: none.
 
