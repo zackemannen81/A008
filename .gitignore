@@ -1,0 +1,39 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.env.local
+
+# Local memory runtime state and opt-in diagnostics
+.a007/
+a007-project-id
+*.debug.jsonl
+
+# JavaScript and generated output
+node_modules/
+dist/
+build/
+coverage/
+*.log
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Bootstrap/reference packages intentionally kept outside product history
+/a007-docs-first-bootstrap/
+/docs-first-multiagent-orchestrator-addon/
+/baseline/
+/extraction/
+
+# Raw local provenance. Only its reviewed boundary document is tracked.
+/docs/_legacy/*
+!/docs/_legacy/README.md

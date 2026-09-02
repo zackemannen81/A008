@@ -1,0 +1,631 @@
+import { parseRuntimeId } from "../identity/runtime-id.js";
+import { MemoryError } from "../memory/errors.js";
+import type { RetrievalDocument } from "../memory/retrieval-types.js";
+import type {
+  KnowledgeItem,
+  ReconciliationDecision,
+  ReconciliationResult,
+} from "../memory/types.js";
+import {
+  serializeStagedKnowledgeProposals,
+  type StagePostOutputKnowledgeInput,
+  type StagedKnowledgeBatch,
+  type StagedKnowledgeProposal,
+} from "./post-output-knowledge-intake.js";
+import type {
+  PendingRelationIndexRepair,
+  RelationClassifierDecision,
+  RelationGatedCommitResult,
+  RelationCommitInput,
+  UpdatedRelationIndex,
+} from "./relation-gated-memory-commit.js";
+import type { SemanticOperationContext } from "./semantic-operation.js";
+
+export interface PostOutputKnowledgeStager {
+  stage(
+    input: StagePostOutputKnowledgeInput,
+    context?: SemanticOperationContext,
+  ): Promise<StagedKnowledgeBatch>;
+}
+
+export interface StagedProposalCommitter {
+  commit(
+    input: RelationCommitInput,
+    context?: SemanticOperationContext,
+  ): Promise<RelationGatedCommitResult>;
+  repairIndex(
+    pending: PendingRelationIndexRepair,
+  ): Promise<UpdatedRelationIndex>;
+}
+
+export interface PostOutputMemoryCoordinatorOptions {
+  readonly stager: PostOutputKnowledgeStager;
+  readonly committer: StagedProposalCommitter;
+}
+
+export interface PostOutputMemoryCommitRecord {
+  readonly proposalIndex: number;
+  readonly result: RelationGatedCommitResult;
+}
+
+export interface PostOutputMemoryCommitCheckpoint {
+  readonly batch: StagedKnowledgeBatch;
+  readonly nextProposalIndex: number;
+  readonly records: readonly PostOutputMemoryCommitRecord[];
+}
+
+export interface PostOutputMemoryIndexRepairCheckpoint
+  extends PostOutputMemoryCommitCheckpoint {
+  readonly pendingProposalIndex: number;
+  readonly pending: PendingRelationIndexRepair;
+}
+
+export interface CompletedPostOutputMemoryResult {
+  readonly status: "completed";
+  readonly batch: StagedKnowledgeBatch;
+  readonly records: readonly PostOutputMemoryCommitRecord[];
+}
+
+export interface StagingFailedPostOutputMemoryResult {
+  readonly status: "staging_failed";
+  readonly error: unknown;
+}
+
+export interface CommitFailedPostOutputMemoryResult {
+  readonly status: "commit_failed";
+  readonly failedProposalIndex: number;
+  readonly checkpoint: PostOutputMemoryCommitCheckpoint;
+  readonly error: unknown;
+}
+
+export interface IndexRepairRequiredPostOutputMemoryResult {
+  readonly status: "index_repair_required";
+  readonly checkpoint: PostOutputMemoryIndexRepairCheckpoint;
+  readonly error: unknown;
+}
+
+export type PostOutputMemoryResult =
+  | CompletedPostOutputMemoryResult
+  | StagingFailedPostOutputMemoryResult
+  | CommitFailedPostOutputMemoryResult
+  | IndexRepairRequiredPostOutputMemoryResult;
+
+function nonEmpty(value: unknown, field: string): string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new MemoryError(
+      "invalid_input",
+      `${field} must be a non-empty string`,
+    );
+  }
+  return value.trim();
+}
+
+function nonNegativeSafeInteger(value: unknown, field: string): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    throw new MemoryError(
+      "invalid_input",
+      `${field} must be a non-negative safe integer`,
+    );
+  }
+  return value;
+}
+
+function copyDocument(document: RetrievalDocument): RetrievalDocument {
+  return {
+    knowledgeId: document.knowledgeId,
+    ...(document.entities === undefined
+      ? {}
+      : { entities: [...document.entities] }),
+    ...(document.domains === undefined
+      ? {}
+      : { domains: [...document.domains] }),
+    ...(document.embedding === undefined
+      ? {}
+      : { embedding: [...document.embedding] }),
+    ...(document.embeddingModel === undefined
+      ? {}
+      : { embeddingModel: document.embeddingModel }),
+  };
+}
+
+function copyItem(item: KnowledgeItem | null): KnowledgeItem | null {
+  if (item === null) {
+    return null;
+  }
+  return {
+    ...item,
+    tags: [...item.tags],
+    scope: [...item.scope],
+    provenance: item.provenance.map((entry) => ({ ...entry })),
+  };
+}
+
+function copyClassifierDecision(
+  decision: RelationClassifierDecision,
+): RelationClassifierDecision {
+  if (decision.type === "new") {
+    return { type: "new" };
+  }
+  if (decision.type === "conflict") {
+    return { type: "conflict", targetHandles: [...decision.targetHandles] };
+  }
+  return { type: decision.type, targetHandle: decision.targetHandle };
+}
+
+function copyReconciliationDecision(
+  decision: ReconciliationDecision,
+): ReconciliationDecision {
+  if (decision.type === "new") {
+    return { type: "new" };
+  }
+  if (decision.type === "conflict") {
+    return { type: "conflict", targetIds: [...decision.targetIds] };
+  }
+  return { type: decision.type, targetId: decision.targetId };
+}
+
+function copyReconciliation(
+  reconciliation: ReconciliationResult,
+): ReconciliationResult {
+  return {
+    relation: reconciliation.relation,
+    item: copyItem(reconciliation.item),
+    previousItem: copyItem(reconciliation.previousItem),
+    conflictTargetIds: [...reconciliation.conflictTargetIds],
+  };
+}
+
+function copyCommitResult(
+  result: RelationGatedCommitResult,
+): RelationGatedCommitResult {
+  const index = result.index.status === "not_required"
+    ? { status: "not_required" as const }
+    : result.index.status === "updated"
+      ? {
+          status: "updated" as const,
+          document: copyDocument(result.index.document),
+        }
+      : {
+          status: "pending_repair" as const,
+          document: copyDocument(result.index.document),
+          error: result.index.error,
+        };
+  return {
+    classifierDecision: copyClassifierDecision(result.classifierDecision),
+    reconciliationDecision: copyReconciliationDecision(
+      result.reconciliationDecision,
+    ),
+    reconciliation: copyReconciliation(result.reconciliation),
+    evidence: {
+      materializedCandidateIds: [...result.evidence.materializedCandidateIds],
+      classifierCandidateIds: [...result.evidence.classifierCandidateIds],
+      classifierInputSerialized: result.evidence.classifierInputSerialized,
+      classifierInputMeasuredUnits:
+        result.evidence.classifierInputMeasuredUnits,
+      classifierInputMeasurementUnit:
+        result.evidence.classifierInputMeasurementUnit,
+    },
+    index,
+  };
+}
+
+function copyStagedProposal(
+  staged: StagedKnowledgeProposal,
+): StagedKnowledgeProposal {
+  return {
+    proposal: {
+      ...staged.proposal,
+      tags: [...(staged.proposal.tags ?? [])],
+      scope: [...staged.proposal.scope],
+      provenance: (staged.proposal.provenance ?? []).map((entry) => ({
+        ...entry,
+      })),
+    },
+    domains: [...staged.domains],
+    entities: [...staged.entities],
+  };
+}
+
+function validatedBatch(batch: StagedKnowledgeBatch): StagedKnowledgeBatch {
+  if (typeof batch !== "object" || batch === null || Array.isArray(batch)) {
+    throw new MemoryError("invalid_input", "staged batch must be an object");
+  }
+  const projectId = parseRuntimeId(batch.projectId, "project");
+  const conversationId = parseRuntimeId(batch.conversationId, "conversation");
+  const taskId = parseRuntimeId(batch.taskId, "task");
+  const agentId = parseRuntimeId(batch.agentId, "agent");
+  if (!Array.isArray(batch.proposals)) {
+    throw new MemoryError("invalid_input", "staged proposals must be an array");
+  }
+  let proposals: StagedKnowledgeProposal[];
+  let expectedSerialized: string;
+  try {
+    proposals = batch.proposals.map(copyStagedProposal);
+    expectedSerialized = serializeStagedKnowledgeProposals(proposals);
+  } catch (error) {
+    throw new MemoryError("invalid_input", "staged proposals are malformed", {
+      cause: error,
+    });
+  }
+  if (batch.serialized !== expectedSerialized) {
+    throw new MemoryError(
+      "invalid_input",
+      "staged batch serialization does not match its proposals",
+    );
+  }
+  const measuredUnits = nonNegativeSafeInteger(
+    batch.measuredUnits,
+    "staged measuredUnits",
+  );
+  const measurementUnit = nonEmpty(
+    batch.measurementUnit,
+    "staged measurementUnit",
+  );
+  const sourceMessage = nonEmpty(batch.sourceMessage, "staged sourceMessage");
+  return {
+    projectId,
+    conversationId,
+    taskId,
+    agentId,
+    sourceMessage,
+    proposals,
+    serialized: expectedSerialized,
+    measuredUnits,
+    measurementUnit,
+  };
+}
+
+function copyRecord(
+  record: PostOutputMemoryCommitRecord,
+): PostOutputMemoryCommitRecord {
+  return {
+    proposalIndex: record.proposalIndex,
+    result: copyCommitResult(record.result),
+  };
+}
+
+function validatedRecords(
+  records: readonly PostOutputMemoryCommitRecord[],
+  batch: StagedKnowledgeBatch,
+  nextProposalIndex: number,
+): PostOutputMemoryCommitRecord[] {
+  if (!Array.isArray(records)) {
+    throw new MemoryError("invalid_input", "checkpoint records must be an array");
+  }
+  if (records.length !== nextProposalIndex) {
+    throw new MemoryError(
+      "invalid_input",
+      "checkpoint records must be contiguous through nextProposalIndex",
+    );
+  }
+  return records.map((record, index) => {
+    if (
+      typeof record !== "object" ||
+      record === null ||
+      record.proposalIndex !== index ||
+      index >= batch.proposals.length
+    ) {
+      throw new MemoryError(
+        "invalid_input",
+        "checkpoint record indexes must be contiguous and in range",
+      );
+    }
+    return copyRecord(record);
+  });
+}
+
+function validatedCommitCheckpoint(
+  checkpoint: PostOutputMemoryCommitCheckpoint,
+): PostOutputMemoryCommitCheckpoint {
+  if (
+    typeof checkpoint !== "object" ||
+    checkpoint === null ||
+    Array.isArray(checkpoint)
+  ) {
+    throw new MemoryError("invalid_input", "checkpoint must be an object");
+  }
+  const batch = validatedBatch(checkpoint.batch);
+  const nextProposalIndex = nonNegativeSafeInteger(
+    checkpoint.nextProposalIndex,
+    "checkpoint nextProposalIndex",
+  );
+  if (nextProposalIndex >= batch.proposals.length) {
+    throw new MemoryError(
+      "invalid_input",
+      "commit checkpoint must identify an unprocessed proposal",
+    );
+  }
+  const records = validatedRecords(
+    checkpoint.records,
+    batch,
+    nextProposalIndex,
+  );
+  if (records.some((record) => record.result.index.status === "pending_repair")) {
+    throw new MemoryError(
+      "invalid_input",
+      "commit checkpoint cannot contain pending index repair",
+    );
+  }
+  return { batch, nextProposalIndex, records };
+}
+
+function sameDocument(
+  left: RetrievalDocument,
+  right: RetrievalDocument,
+): boolean {
+  return JSON.stringify(copyDocument(left)) === JSON.stringify(copyDocument(right));
+}
+
+function validatedIndexCheckpoint(
+  checkpoint: PostOutputMemoryIndexRepairCheckpoint,
+): PostOutputMemoryIndexRepairCheckpoint {
+  if (
+    typeof checkpoint !== "object" ||
+    checkpoint === null ||
+    Array.isArray(checkpoint)
+  ) {
+    throw new MemoryError("invalid_input", "checkpoint must be an object");
+  }
+  const batch = validatedBatch(checkpoint.batch);
+  const nextProposalIndex = nonNegativeSafeInteger(
+    checkpoint.nextProposalIndex,
+    "checkpoint nextProposalIndex",
+  );
+  if (nextProposalIndex < 1 || nextProposalIndex > batch.proposals.length) {
+    throw new MemoryError(
+      "invalid_input",
+      "index checkpoint nextProposalIndex is out of range",
+    );
+  }
+  const records = validatedRecords(
+    checkpoint.records,
+    batch,
+    nextProposalIndex,
+  );
+  const pendingProposalIndex = nonNegativeSafeInteger(
+    checkpoint.pendingProposalIndex,
+    "checkpoint pendingProposalIndex",
+  );
+  if (pendingProposalIndex !== nextProposalIndex - 1) {
+    throw new MemoryError(
+      "invalid_input",
+      "pending proposal must be the most recent completed record",
+    );
+  }
+  const last = records.at(-1);
+  if (
+    checkpoint.pending?.status !== "pending_repair" ||
+    last?.result.index.status !== "pending_repair" ||
+    !sameDocument(checkpoint.pending.document, last.result.index.document)
+  ) {
+    throw new MemoryError(
+      "invalid_input",
+      "index checkpoint pending document does not match its commit record",
+    );
+  }
+  if (
+    records.slice(0, -1).some(
+      (record) => record.result.index.status === "pending_repair",
+    )
+  ) {
+    throw new MemoryError(
+      "invalid_input",
+      "only the latest checkpoint record may require index repair",
+    );
+  }
+  return {
+    batch,
+    nextProposalIndex,
+    records,
+    pendingProposalIndex,
+    pending: {
+      status: "pending_repair",
+      document: copyDocument(checkpoint.pending.document),
+      error: checkpoint.pending.error,
+    },
+  };
+}
+
+function stagingInput(
+  input: StagePostOutputKnowledgeInput,
+): StagePostOutputKnowledgeInput {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw new MemoryError("invalid_input", "post-output input must be an object");
+  }
+  if (!Array.isArray(input.applicabilityScopes)) {
+    throw new MemoryError(
+      "invalid_input",
+      "applicabilityScopes must be an array",
+    );
+  }
+  return {
+    taskId: parseRuntimeId(input.taskId, "task"),
+    message: nonEmpty(input.message, "message"),
+    answer: nonEmpty(input.answer, "answer"),
+    applicabilityScopes: input.applicabilityScopes.map((scope, index) =>
+      nonEmpty(scope, `applicability scope ${index + 1}`),
+    ),
+  };
+}
+
+export class PostOutputMemoryCoordinator {
+  readonly #stager: PostOutputKnowledgeStager;
+  readonly #committer: StagedProposalCommitter;
+  #active = false;
+
+  constructor(options: PostOutputMemoryCoordinatorOptions) {
+    this.#stager = options.stager;
+    this.#committer = options.committer;
+  }
+
+  async process(
+    input: StagePostOutputKnowledgeInput,
+    context: SemanticOperationContext = {},
+  ): Promise<PostOutputMemoryResult> {
+    this.#begin();
+    try {
+      const sanitized = stagingInput(input);
+      let batch: StagedKnowledgeBatch;
+      try {
+        batch = validatedBatch(
+          await this.#stager.stage(
+            sanitized,
+            context.signal === undefined ? {} : { signal: context.signal },
+          ),
+        );
+      } catch (error) {
+        return { status: "staging_failed", error };
+      }
+      return await this.#continue(batch, 0, [], context);
+    } finally {
+      this.#active = false;
+    }
+  }
+
+  async resume(
+    checkpoint: PostOutputMemoryCommitCheckpoint,
+    context: SemanticOperationContext = {},
+  ): Promise<PostOutputMemoryResult> {
+    this.#begin();
+    try {
+      const validated = validatedCommitCheckpoint(checkpoint);
+      return await this.#continue(
+        validated.batch,
+        validated.nextProposalIndex,
+        validated.records,
+        context,
+      );
+    } finally {
+      this.#active = false;
+    }
+  }
+
+  async repairAndResume(
+    checkpoint: PostOutputMemoryIndexRepairCheckpoint,
+    context: SemanticOperationContext = {},
+  ): Promise<PostOutputMemoryResult> {
+    this.#begin();
+    try {
+      const validated = validatedIndexCheckpoint(checkpoint);
+      let updated: UpdatedRelationIndex;
+      try {
+        updated = await this.#committer.repairIndex(validated.pending);
+      } catch (error) {
+        return {
+          status: "index_repair_required",
+          checkpoint: validatedIndexCheckpoint(validated),
+          error,
+        };
+      }
+      if (updated.status !== "updated") {
+        throw new MemoryError(
+          "illegal_state",
+          "relation committer returned an invalid repair result",
+        );
+      }
+      const records = validated.records.map((record) => copyRecord(record));
+      const pendingRecord = records[validated.pendingProposalIndex]!;
+      records[validated.pendingProposalIndex] = {
+        proposalIndex: pendingRecord.proposalIndex,
+        result: {
+          ...pendingRecord.result,
+          index: {
+            status: "updated",
+            document: copyDocument(updated.document),
+          },
+        },
+      };
+      return await this.#continue(
+        validated.batch,
+        validated.nextProposalIndex,
+        records,
+        context,
+      );
+    } finally {
+      this.#active = false;
+    }
+  }
+
+  async #continue(
+    batch: StagedKnowledgeBatch,
+    startIndex: number,
+    priorRecords: readonly PostOutputMemoryCommitRecord[],
+    context: SemanticOperationContext,
+  ): Promise<PostOutputMemoryResult> {
+    const records = priorRecords.map(copyRecord);
+    for (
+      let proposalIndex = startIndex;
+      proposalIndex < batch.proposals.length;
+      proposalIndex += 1
+    ) {
+      let result: RelationGatedCommitResult;
+      try {
+        result = await this.#committer.commit(
+          {
+            batch: validatedBatch(batch),
+            proposalIndex,
+          },
+          context.signal === undefined ? {} : { signal: context.signal },
+        );
+      } catch (error) {
+        return {
+          status: "commit_failed",
+          failedProposalIndex: proposalIndex,
+          checkpoint: {
+            batch: validatedBatch(batch),
+            nextProposalIndex: proposalIndex,
+            records: records.map(copyRecord),
+          },
+          error,
+        };
+      }
+      const record = {
+        proposalIndex,
+        result: copyCommitResult(result),
+      } satisfies PostOutputMemoryCommitRecord;
+      records.push(record);
+      if (record.result.index.status === "pending_repair") {
+        const pending = record.result.index;
+        return {
+          status: "index_repair_required",
+          checkpoint: {
+            batch: validatedBatch(batch),
+            nextProposalIndex: proposalIndex + 1,
+            records: records.map(copyRecord),
+            pendingProposalIndex: proposalIndex,
+            pending: {
+              status: "pending_repair",
+              document: copyDocument(pending.document),
+              error: pending.error,
+            },
+          },
+          error: pending.error,
+        };
+      }
+      if (
+        record.result.index.status !== "updated" &&
+        record.result.index.status !== "not_required"
+      ) {
+        throw new MemoryError(
+          "illegal_state",
+          "relation committer returned an unknown index state",
+        );
+      }
+    }
+    return {
+      status: "completed",
+      batch: validatedBatch(batch),
+      records: records.map(copyRecord),
+    };
+  }
+
+  #begin(): void {
+    if (this.#active) {
+      throw new MemoryError(
+        "illegal_state",
+        "post-output memory coordinator already has an active operation",
+      );
+    }
+    this.#active = true;
+  }
+}

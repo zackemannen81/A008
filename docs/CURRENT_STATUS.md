@@ -1,0 +1,443 @@
+# Current Status
+
+Reality as of 2026-09-01. This document records observed state; intended design
+belongs in `docs/PROJECT_BRIEF.md`.
+
+## What exists
+
+| Surface | Observed state |
+| --- | --- |
+| Repository | Git repository with A007-0001 through A007-0020 implemented. |
+| Docs-first control state | A007-owned entry point, workflow, brief, status, system document, journal, file map, task register, decisions, backlog, and multi-agent policy are established by A007-0001. |
+| Legacy CLI provenance | Local untracked Node.js ES-module client under `docs/_legacy/agenten007/`; Axios, readline, NVIDIA chat-completions, four model profiles, streamed/non-streamed responses, tool-call aggregation, settings, history, and fallback behavior were observed. `node --check test.js` passed. |
+| OpenHands source | Clean external `C:\code\OpenHands` clone on `main` at `744e8652f254613045b779eb148bf4f741177975`; Agent Canvas 1.16.0 dependencies are installed and its application build passed without source changes. Agent Server 1.44.1 was supplied by `uvx`; MIT source boundary remains external. |
+| Memory architecture input | The owner supplied a Context-First Knowledge Architecture document. A007-0006 adopted bounded invariants into an a007-owned decision and implementation without adopting an external code baseline. `C:\code\acme` remains related prior work only and is not a source or dependency. |
+| Bootstrap bundle | Generated input/prompt/charter/summary manifest verified: all four SHA-256 entries match. The bundle remains ignored intake material. |
+| Multi-agent add-on | Local ignored Apache-2.0 reference package exists. Its process server was not installed or configured for a007. |
+| Worker-clone root | `C:\code\a007-workers` is the configured sibling root. A007-0004 through A007-0015 use isolated Git worktrees; A007-0005 runtime state/evidence helpers are external siblings. No cleanup of those task paths is authorized or claimed. |
+| Runtime package | Private single-package Node.js/TypeScript ESM application. Node.js `>=22.12`, npm lockfile, TypeScript build/typecheck, public core exports, and CLI binary metadata exist. |
+| Chat core | Provider-neutral messages, generation options, separate reasoning/content stream deltas, completions, usage, typed errors, model profiles, transport port, and transactional in-memory `ChatSession` are implemented. Failed turns do not mutate history; reasoning is returned/displayed but never committed or replayed. |
+| NVIDIA adapter | Native-fetch adapter for `POST /v1/chat/completions`, injected endpoint/fetch/timeout, streaming SSE and non-streaming JSON, reasoning/content deltas, live channel-leak normalization, cancellation, timeout, and typed HTTP/network errors. It reads no environment itself. |
+| Model registry | One current official profile: `nvidia/nemotron-3.5-lightning-30b-a3b`, with the documented sampling/reasoning defaults checked on 2026-09-01. |
+| CLI | `models`, `chat`, `--help`, `/reset`, and `/exit`; chat uses the shared local memory runtime while model/help paths require no credential. Optional `--debug-trace` / `--debug-trace-file` share the environment parser. |
+| Shared NVIDIA composition | `createNvidiaChatTransport` owns credential validation, model defaults, optional trusted endpoint override, and construction of the existing adapter. `createLocalMemoryRuntime` injects that one transport into CLI and ACP memory turns. Core remains environment-neutral. |
+| Agent Canvas ACP bridge | `a007-acp` implements stable ACP v1 over stdio with initialize, canonical `a007_v1_acp_session_<UUIDv4>` in-memory sessions, the verified model option, text/resource-link prompts, thought/answer streaming, cancellation, and the shared local memory runtime. Agent Server is expected to own the process. |
+| Agent Canvas runtime proof | Real Canvas 1.16.0 and Agent Server 1.44.1 processes on Windows configured the compiled a007 Custom ACP command, sent a browser prompt, reached the existing adapter at a loopback fake SSE endpoint, rendered `A007-CANVAS-LOOPBACK-OK`, and finished the conversation. Safe evidence and screenshot are tracked under `docs/evidence/`. |
+| Semantic-memory core | Exported provider-neutral contracts, `SemanticMemory`, explicit five-way reconciliation, active+dormant discovery, exact-budget projection, and separate audit/history exist. A project-namespaced SQLite adapter durably stores canon/audit and indexes exact entities, FTS5 lexical content, tags, domains, and optional vectors. A deterministic planner and hybrid reader deduplicate/score bounded candidates, keep three thresholds distinct, and project selected active canon without mutation. The reader is consumed by the exported orchestration surface below, not directly by CLI/ACP/Canvas. |
+| Memory-aware orchestration | Exported `MemoryAwareChatSession` validates project/conversation/task/agent context, reads hybrid memory once, strips routing/control fields into a deterministic user-level envelope, sends at most two prior dialogue messages through one existing `ChatSession` transport call, applies an exact serialized-message budget, and commits only original user/assistant history. CLI and a007 ACP construct it through `createLocalMemoryRuntime`. |
+| Post-output staging | Exported `PostOutputKnowledgeIntake` gives an analyzer only normalized original message and final answer, never reasoning or control state. It validates and exact-budgets semantic drafts, applies runtime-owned scopes and conservative defaults, and returns untrusted proposal batches without repository access, relation decisions, or memory writes. |
+| Relation-gated memory commit | Exported `IndexedRelationCandidateSource` and `RelationGatedMemoryCommit` process one staged proposal through one bounded current-candidate search, an exact-budget semantic envelope with invocation-local handles, validated five-way output, all-candidate revision guards, the existing canonical reconcile owner, and explicit `updated`/`not_required`/`pending_repair` index state. Classifier JSON may name a canonical relation as `type` or `relation`; unknown labels fail closed with the returned value. Live CLI/ACP construct a model-backed classifier and invoke the coordinator after each delivered answer. |
+| Post-output memory coordination | Exported `PostOutputMemoryCoordinator` stages once, processes proposals sequentially, distinguishes stage/commit/index-repair outcomes, and validates in-memory checkpoints for retry or repair-then-resume without replaying earlier completed work. Local CLI/ACP invoke it after each delivered answer and attempt one index repair. |
+| Stateless semantic model calls | Exported `ChatTransportSemanticJsonGenerator` makes exact-budget, non-streaming, history-free strict-JSON calls through one injected existing `ChatTransport`. Exported analyzer/classifier adapters share it; reasoning/usage/finish metadata are discarded, and cancellation propagates through the coordinator. Local composition injects the existing transport. |
+| Local memory surfaces | `createLocalMemoryRuntime` owns SQLite path/project identity, one NVIDIA transport, hybrid read, memory-aware chat, post-output, and a runtime-owned user-assertion activation gate bound to staged `sourceMessage`. Live restatement/extend add `0.2` relevance from any validated relation, then re-evaluate the activation threshold. Hybrid reads do not reinforce. Live recall is entity/exact plus lexical FTS: no embedding provider and an empty planner taxonomy. Vector RAG and tag/domain read channels exist as optional adapters. Opt-in off/safe/raw JSONL tracing is secret-redacted and off by default. |
+| Committed memory-loop proof | `npm run benchmark:memory-loop` composes actual in-memory SQLite read/write/index state with two memory-aware chat turns and one shared fake transport. Exact call order is chat/analyze/classify/chat; active canon extends from revision one to two and the second turn projects the new proposition. New-draft auto-activation remains explicitly unproven. |
+| Runtime identity core | Exported branded/parser-validated project, conversation, runtime-task, agent, and ACP-session IDs use versioned lowercase UUIDv4 values. A namespaced external-reference contract, atomic in-memory ACP binding repository, conflict/idempotency rules, and defensive lookup surfaces exist. No complete external conversation binding is created at runtime. |
+| Automated tests | 164 Node test-runner cases cover the previous 160 plus live classifier `relation` alias, case-fold, handle mapping, and fail-closed unknown/missing/conflicting type names. No test loads `.env.local` or makes a live call. |
+
+## Security observation
+
+The raw legacy client contains a hard-coded NVIDIA credential. The owner reports
+that credential was revoked and replaced on 2026-09-01. The retired value is not
+recorded in live documentation or Git, and the raw client remains ignored and
+unexecuted. The replacement exists only in ignored `.env.local` as
+`NVIDIA_API_KEY`; automated tests do not load it.
+
+## What does not exist
+
+- No maintained a007 launcher for the external Canvas/Agent Server source stack,
+  installed desktop package, deployment, published package, or release artifact.
+  The verified Windows fallback remains a development runbook.
+- No checked-in cross-repository browser automation suite, fully hermetic
+  external-egress harness, complete runtime identity context supplied to ACP, or
+  durable mapping between an Agent Server conversation and an a007 ACP session.
+  The identity/binding contract exists, but the current request lacks the
+  external and application handles needed to register a verified binding.
+- No provider-backed retrieval planning/embedding generation, model-tokenizer
+  adapter, graph retrieval, server-scale database adapter, or production memory
+  API exists in a007. Local CLI/ACP now supply a bounded identity context,
+  inject the existing transport/model/budgets, and invoke post-output in
+  process. Durable queues, Agent Server conversation binding, and paid live
+  provider runs remain separate.
+- No installed-package, desktop-packaging, live-provider, security-sandbox, or
+  conformance suite.
+- No enforced multi-agent worker limit or configured process supervisor. Ten
+  allocated task worktrees, A007-0004 through A007-0015, exist under the
+  registered worker root; allocation does not assert current activity.
+
+## Known gaps and risks
+
+- Live NVIDIA verification still requires explicit credential/cost authority;
+  rotation alone did not authorize or perform a provider call.
+- OpenHands `dev:minimal` has a 30-second Agent Server readiness timeout while
+  the pinned backend needed about 42 seconds on this Windows host. The exact
+  locked backend and Vite processes work when started separately.
+- Canvas's optional automation and `/projects` probes produce 404/400 console
+  resource errors in the minimal stack. Optional OpenAI subscription control-
+  plane paths also ran without credentials, so the proof does not establish
+  zero external egress even though the successful model turn was loopback-only.
+- Agent Canvas component exports require routing, query, i18n, backend, and
+  telemetry state; deep embedding needs a focused spike.
+- OpenHands host mode and extensions have broad trust surfaces. Extensions run
+  unsandboxed in the renderer realm.
+- The SQLite memory adapter is single-process and the projection is byte-
+  budgeted. Its optional vector channel compares the bounded local namespace in
+  process. Production use still needs complete verified runtime-context intake,
+  exact tokenizer coupling, provider-backed planning/embeddings and semantic
+  ports, server topology/storage, and privacy/user controls.
+- Runtime identity v0 has no durable repository, external Agent Server
+  conversation intake, account/ACL layer, lifecycle/migration behavior, or
+  binding from a live chat surface into memory-aware orchestration.
+- The prompt composer frames remembered propositions as user-level JSON data
+  and strips routing/control fields, but adversarial remembered text still
+  requires defense-in-depth and evaluation; prompt-injection safety is not
+  claimed.
+- CLI and a007 chat state treat reasoning as display-only. ACP correctly emits
+  it as thought events, but an external Agent Server/Canvas event log is outside
+  a007 ownership and must not later be rebound as semantic history.
+- Post-output intake stages only untrusted proposals. Provider-neutral candidate
+  comparison, relation validation, guarded reconciliation, explicit index
+  repair, sequential checkpoints, and stateless model-backed analyzer/
+  classifier adapters now exist. Local CLI/ACP invoke them after each answer
+  and attempt one in-process index repair. A durable checkpoint queue and
+  background repair owner do not.
+- The full local loop now proves next-turn reuse for an `extend` of existing
+  active canon and, separately, for a brand-new user assertion that the runtime
+  activation gate marks keep-alive. Live restatement/extend also boost
+  `relevanceScore` by `0.2` and may reactivate dormant canon when the boosted
+  score meets the threshold. Assistant-only or question-only extraction
+  remains dormant unless that write-path threshold is crossed. Analyzer
+  confidence still cannot grant activation. Cyclic weaken/decay is not
+  implemented.
+- a007 owns the provider call on the selected ACP path. Future memory analysis
+  now has one stateless shared call contract, but live composition must inject
+  the existing transport rather than construct another provider client.
+- Third-party and transitive licenses have not received a complete audit.
+
+## Verification performed during bootstrap
+
+- Read-only tree and Git inspection of a007 and OpenHands; related ACME code was
+  inspected but explicitly not adopted as the memory-engine baseline.
+- Legacy JavaScript syntax check only; no execution or network call.
+- Bootstrap manifest SHA-256 verification.
+- Documentation verification is recorded in the A007-0001 archive and journal.
+
+## Verification performed for the first code slice
+
+- Clean npm install from lockfile, TypeScript typecheck/build, and all 26 fake-
+  only automated tests.
+- CLI help/model-list and negative missing-credential smoke tests without
+  loading `.env.local`.
+- Secret-pattern, raw-legacy staging, Markdown, collection-index, and diff checks
+  recorded in the A007-0003 archive and journal.
+
+## Verification performed for the ACP bridge
+
+- Clean install, strict typecheck/build, and 36/36 fake-only tests.
+- Official ACP TypeScript client spawned the compiled bridge and completed
+  initialize, session creation, model selection, and one prompt against a
+  loopback fake NVIDIA SSE endpoint.
+- The process emitted standard thought and answer updates; CLI help, model-list,
+  and missing-key regressions remained green.
+- No OpenHands install/build, Agent Server, browser, real credential, live
+  provider, paid usage, publication, or release participated.
+
+## Verification performed for the Agent Canvas runtime
+
+- A007 clean install, typecheck, build, and 38/38 fake-only tests passed.
+- OpenHands clean install and application build passed; the pinned external
+  checkout remained clean after runtime use.
+- The initial Canvas home route rendered 27 interactive elements with no error
+  overlay, console error, or page error.
+- The browser configured Custom ACP, sent one prompt, displayed the user turn
+  and deterministic answer, showed no error banner, and later showed no Running
+  state. Agent Server recorded `execution_status: finished` with a007 agent/model
+  state.
+- The loopback fixture observed the exact prompt, verified model, authorized
+  test header, and two-message payload on `127.0.0.1:18999`; `.env.local` and the
+  real NVIDIA key were not read.
+- The safe proof, screenshot, Windows findings, OpenHands warnings, ancillary
+  no-credential control-plane behavior, and negative evidence are recorded in
+  `docs/evidence/A007-0005_agent-canvas-runtime-proof.md`.
+- All spawned proof processes were stopped and their four ports were free.
+
+## Verification performed for semantic memory v0
+
+- Clean npm install, strict typecheck/build, and all 54 fake-only tests passed;
+  existing CLI/ACP/provider tests remained green.
+- Reconciliation tests cover new, dormant restatement without duplication,
+  extend, supersede/history, and conflict with explicit caller decisions.
+- Projection tests cover dormant reactivation through reinforcement+threshold,
+  scope isolation without decay, keep-alive and required failure, deterministic
+  ranking, canonical-content protection from policy rewrites, exact serialized
+  UTF-8-byte enforcement, and audit/provenance exclusion.
+- The same task produced byte-identical serialized context with 100 and 100,000
+  total current items when added records were unrelated.
+- Repository tests cover duplicate IDs, invalid-state rollback, supersede-cycle
+  rejection, concurrent transaction serialization, and defensive reads.
+- No credential, `.env.local`, provider, network, database, OpenHands process,
+  live model, paid usage, publication, or release participated.
+
+## Verification performed for runtime identity v0
+
+- Clean npm install, strict typecheck/build, and all 66 fake-only tests passed;
+  existing chat/provider/ACP/memory behavior remained green.
+- All five identity kinds round-trip through strict version/kind/UUIDv4 parsing;
+  malformed, uppercase, docs-task, wrong-kind, invalid factory, and unknown-kind
+  values are rejected.
+- Binding tests cover idempotency, multiple task/session bindings with stable
+  project+agent context, session/external/project/agent conflicts, atomic
+  concurrent external claims, lookup resolution, and defensive reads.
+- Direct ACP tests prove canonical default IDs and malformed/duplicate injected
+  rejection. The compiled ACP process returned a canonical ID and completed its
+  existing loopback provider turn.
+- Identity source has no provider, environment, filesystem, network, chat, or
+  memory dependency. No credential, external Agent Server/Canvas process, live
+  model, paid usage, durable storage, publication, or release participated.
+
+## Verification performed for the SQLite hybrid memory read path
+
+- Clean lockfile install, production dependency audit, strict typecheck/build,
+  and all 79 fake/local-only tests passed with zero failures.
+- SQLite tests cover schema creation/rejection, close/reopen durability,
+  knowledge+audit rollback, serialized concurrent updates, project namespace
+  isolation, derived-index invalidation, and temporary-file cleanup.
+- Retrieval tests cover deterministic bounded planning, exact/entity, FTS5
+  lexical, tag, domain, and injected-vector channels, canonical-ID dedupe,
+  score evidence, threshold separation, missing-vector degradation, namespace
+  rejection, and dormant discovery without projection or mutation.
+- The same relevant canon among 100 and 100,000 records produced byte-identical
+  serialized projection, one bounded candidate, and a 221-byte projection. The
+  recorded local run took 24 ms and 5,443 ms respectively; timing is evidence,
+  not a performance guarantee.
+- CLI help/model-list/missing-key smokes, package dry-run, dependency license,
+  Markdown, database/secret/raw-legacy staging, template, and diff gates passed.
+- No live provider, `.env.local`, Supabase service, Docker mutation, external
+  database, deployment, publication, or release participated.
+
+## Verification performed for memory-aware chat orchestration
+
+- Clean lockfile install and production dependency audit passed with zero
+  vulnerabilities; strict typecheck/build passed; all 87 fake/local-only tests
+  passed with zero failures, skips, cancellations, or todo.
+- Prompt tests cover deterministic JSON, empty memory, multibyte exact UTF-8
+  budgets, message ordering/windowing, defensive copies, malformed projections,
+  and exclusion of orchestrator-owned runtime/knowledge IDs and control fields.
+- Orchestration tests prove one read before one provider call, two-message
+  retrieval/provider windows, original-only history commit, malformed identity
+  and result rejection, pre-transport budget failure, retrieval/provider/
+  cancellation/invalid-response rollback, active-turn rejection, and reset
+  protection.
+- An actual SQLite + `HybridMemoryReader` + `MemoryAwareChatSession` test
+  projected canonical memory into the fake request while leaving knowledge,
+  revision, activation, provenance, and audit state byte-for-byte unchanged.
+- Existing direct ChatSession, CLI, ACP agent, compiled ACP loopback, NVIDIA
+  adapter, identity, lifecycle, SQLite, and 100-versus-100,000 retrieval tests
+  remained green.
+- CLI help/models succeeded without a key; missing-key chat stopped before
+  transport. Package dry-run contained 123 entries including all compiled
+  orchestration artifacts and did not publish.
+- No live provider, `.env.local`, external OpenHands process, Supabase service,
+  Docker mutation, external database, deployment, publication, or release
+  participated.
+
+## Verification performed for reasoning isolation and post-output staging
+
+- Clean `npm ci` installed eight packages and audited nine. Production audit
+  reported zero vulnerabilities; strict typecheck/build and all 95
+  fake/local-only tests passed with zero failures, skips, cancellations, or
+  todo.
+- Intake tests capture exactly message+answer at the analyzer boundary and
+  cover one-call ownership, runtime identity association, caller-owned scope,
+  conservative runtime fields, ignored control/reasoning fields, normalization,
+  duplicates, malformed output, structural limits, exact multibyte UTF-8
+  budget, analyzer/measurer failure, and defensive copies.
+- Direct session, CLI, and memory-aware two-turn tests stream and return private
+  reasoning while proving it is absent from committed messages, the next memory
+  request, and the next provider-visible request.
+- `npm run benchmark:memory-loop` completed two fake-provider turns through an
+  actual in-memory SQLite hybrid reader. It recorded two reads/calls, selected
+  `benchmark_reasoning_boundary` twice, used zero then two prior dialogue
+  messages, emitted two reasoning and two content deltas, committed four
+  dialogue messages, and found no reasoning or control-ID leakage. Provider
+  requests measured 666 and 823 UTF-8 bytes; observed turn times were 10.469 ms
+  and 3.128 ms and are not guarantees.
+- CLI help/models exited zero and missing-key chat exited two before transport.
+  Package dry-run contained 131 entries including compiled intake and benchmark
+  artifacts, with no tests, databases, credentials, raw legacy, or dependency
+  tree, and did not publish.
+- No live provider, `.env.local`, external OpenHands process, Supabase service,
+  Docker mutation, external database, deployment, publication, or release
+  participated.
+
+## Verification performed for relation-gated memory commit
+
+- Clean `npm ci` installed eight packages and audited nine; production audit
+  reported zero vulnerabilities. Strict typecheck/build and all 109
+  fake/local-only tests passed with zero failures, cancellations, skips, or
+  todo.
+- Focused tests prove one bounded candidate-store call, deterministic
+  score/ID ordering and handles, dormant materialization, defensive copies,
+  exact multibyte classifier budgeting and tail trimming, ID/provenance/score/
+  reasoning exclusion, malformed decision rejection before writes, all-
+  candidate revision guards, overlap rejection, explicit post-commit index
+  failure, and repair without a second reconcile.
+- Actual in-memory SQLite tests execute `new`, `restatement`, `extend`,
+  `supersede`, and `conflict`; verify current/historical/dormant canon and audit;
+  retrieve the result again through exact/entity, lexical, tag, and domain
+  channels; and reject a revision changed during classification with
+  `stale_state`.
+- `npm run benchmark:memory-loop` retained two actual SQLite reads, two fake
+  provider calls, repeated `benchmark_reasoning_boundary` selection, `[0, 2]`
+  prior-dialogue counts, four committed messages, two reasoning plus two answer
+  deltas, zero reasoning/control leakage, and 666/823 request bytes. Observed
+  9.908/2.713 ms turn times are not guarantees.
+- CLI help/models exited zero without a key; missing-key chat exited two before
+  transport. Package dry-run contained 139 entries including compiled relation
+  source/service JavaScript and declarations and no tests, databases,
+  credentials, raw legacy, or dependency tree.
+- No live provider, `.env.local`, external OpenHands process, Supabase service,
+  Docker mutation, external database, deployment, publication, or release
+  participated.
+
+## Verification performed for sequential post-output coordination
+
+- Clean `npm ci` installed eight packages and audited nine; production audit
+  reported zero vulnerabilities. Strict typecheck/build and all 117
+  fake/local-only tests passed with zero failures, cancellations, skips, or
+  todo.
+- Focused tests prove one exact staging call, semantic-input field exclusion,
+  ordered per-proposal calls, zero-proposal completion, explicit staging and
+  commit failure, same-index resume without restaging/replay, pending-index
+  barriers, failed and successful repair, repair-resume without a second
+  reconcile, malformed-checkpoint zero-call rejection, defensive containers,
+  and overlap rejection.
+- Actual in-memory SQLite stages two proposals once: the first creates dormant
+  canon and entity/domain metadata; the second retrieves that same item and
+  extends it. Final state is one current revision-two item with ordered create/
+  extend audit and exact/entity, lexical, tag, and domain retrieval.
+- `npm run benchmark:memory-loop` retained two actual SQLite reads, two fake
+  provider calls, repeated knowledge selection, `[0, 2]` prior-dialogue counts,
+  four committed messages, two reasoning plus two answer deltas, zero reasoning/
+  control leakage, and 666/823 request bytes. Observed 9.933/2.741 ms turn times
+  are not guarantees.
+- CLI help/models exited zero without a key and missing-key chat exited two.
+  Package dry-run contained 143 entries including compiled coordinator
+  JavaScript/declarations and no tests, databases, credentials, raw legacy, or
+  dependency tree.
+- No live provider, `.env.local`, external OpenHands process, Supabase service,
+  Docker mutation, external database, deployment, publication, or release
+  participated.
+
+## Verification performed for stateless semantic JSON model calls
+
+- Clean `npm ci` installed eight packages and audited nine with zero
+  vulnerabilities. Strict typecheck/build and all 130 fake/local-only tests
+  passed with zero failures, cancellations, skips, or todo.
+- Focused tests prove exact two-message call shape, stable operation envelopes,
+  one non-streaming call, local-configuration rejection before transport,
+  strict whole-content JSON, exact multibyte UTF-8 budget, ignored completion
+  reasoning/usage/finish metadata, fresh request containers, and cancellation
+  propagation plus staging/commit checkpoint mapping.
+- An actual in-memory SQLite coordinator used one shared fake semantic
+  transport for one analyzer call and two classifier calls. The first proposal
+  created/indexed dormant canon; the second retrieved and extended it. Private
+  fake reasoning and durable/runtime IDs were absent from semantic requests and
+  coordinator results.
+- Existing direct chat, CLI, ACP, NVIDIA adapter, identity, lifecycle,
+  retrieval, five-way relation, index repair, and compiled memory-loop tests
+  remained green. The standalone benchmark, CLI no-key smokes, package dry-run,
+  and final documentation/security gates are recorded in the A007-0014 archive.
+- No live provider, `.env.local`, external OpenHands process, Supabase service,
+  Docker mutation, external database, deployment, publication, or release
+  participated.
+
+## Verification performed for the committed two-turn memory loop
+
+- Clean `npm ci` installed eight packages and audited nine; production audit
+  found zero vulnerabilities. Strict typecheck/build and all 130 fake/local-
+  only tests passed with zero failures, cancellations, skips, or todo.
+- The independent v2 benchmark made four calls through one fake transport in
+  exact order `chat`, `knowledge_analysis`, `relation_classification`, `chat`.
+  Two actual SQLite reads selected the same active canonical ID.
+- Question one projected the revision-one proposition. One proposal completed
+  as guarded `extend` with index `updated`; canon remained active and advanced
+  to revision two; question two projected the extended proposition.
+- Provider-visible prior dialogue counts were `[0, 2]`; chat request bytes were
+  641/908 and semantic request bytes 669/1115. Two chat reasoning and two answer
+  deltas streamed. Chat/semantic reasoning and runtime/control IDs were absent
+  from later context, history, semantic results, and canon.
+- The report explicitly records `newDraftAutoActivationProven: false`; the proof
+  does not weaken the dormant default for new untrusted proposals. Observed
+  10.254/2.379 ms chat-turn times are not guarantees.
+- CLI help/models exited zero without a key, missing-key chat exited two before
+  transport, and package dry-run contained 151 files with no excluded runtime
+  material.
+- No live provider, `.env.local`, external OpenHands process, Supabase, Docker
+  mutation, external database, deployment, publication, or release
+  participated.
+
+## Verification performed for local CLI/ACP memory surfaces
+
+- Clean `npm ci` installed eight packages and audited nine; production audit
+  found zero vulnerabilities. Strict typecheck/build and all 147 fake/local-
+  only tests passed with zero failures, cancellations, skips, or todo.
+- Two-turn CLI, in-process ACP, and compiled ACP process proofs used actual
+  temporary SQLite and deterministic fake chat/semantic responses. A user
+  assertion became active, indexed, and projected on the next turn.
+- Trace-off created no file. Safe traces omitted prompt bodies. Raw traces
+  showed exact request/response bodies and SSE frames without API keys or
+  authorization headers. ACP stdout remained protocol-parseable under raw
+  mode.
+- Failure tests covered missing credentials, memory read failure, chat
+  rollback, staging failure, stale reconcile, pending index repair, trace sink
+  failure, cancellation without post-output, and restart against existing
+  SQLite.
+- The standalone benchmark retained the committed extend loop with
+  `newDraftAutoActivationProven: false`.
+- No live provider, `.env.local` paid call, OpenHands source mutation,
+  deployment, publication, or release participated. The full external Canvas
+  browser loopback was not re-executed in this slice; the compiled ACP process
+  contract against a loopback fake NVIDIA endpoint was.
+
+## Verification performed for live write-path reinforcement
+
+- Strict typecheck/build and all 150 fake/local-only tests passed.
+- Live SQLite restatement of an active item added `0.2` relevance and left a
+  preceding hybrid read unmutated.
+- Dormant `0.35` became active at `0.55`; dormant `0.1` stayed dormant at
+  `0.3`.
+- The architecture benchmark still uses zero boosts and
+  `newDraftAutoActivationProven: false`.
+- No live provider, `.env.local`, OpenHands mutation, deployment, or
+  publication participated.
+
+## Verification performed for reasoning isolation
+
+- Strict typecheck/build and all 158 fake/local-only tests passed.
+- The live Nemotron fixture (`reasoning_content` 146 chars, `content` 3031
+  chars including CoT then `Hej!`) normalizes so only the Swedish answer is
+  committed content.
+- Semantic JSON requests omit `reasoning_budget` and send `enable_thinking:
+  false`.
+- Holy invariant: no emitted reasoning substring appears in analyzer input,
+  committed history, retrieval query text, or proposals.
+- Analyzer timeout after a successful chat is one `memory_failure` and
+  `turn_complete` `degraded`.
+- No live NVIDIA call was required for automated completion.
+
+## Verification performed for write-path source message
+
+- Strict typecheck/build and all 160 fake/local-only tests passed.
+- Overlapping session turns cannot change another turn's `sourceMessage`
+  activation. HTTP traces include `operation`. `turn_complete` carries
+  `chatStatus` and `memoryStatus`.
+- No live NVIDIA call was required for automated completion.
+
+## Verification performed for classifier type aliases
+
+- Strict typecheck/build and all 164 fake/local-only tests passed.
+- The live Nemotron payload `{ relation: "new", targetHandle: null }` commits
+  as `{ type: "new" }` with empty candidates.
+- Unknown `create`, missing type, and conflicting `type`/`relation` fail before
+  reconcile or index and name the returned value.
+- No live NVIDIA call was required for automated completion.
