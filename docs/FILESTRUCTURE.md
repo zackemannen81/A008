@@ -39,7 +39,15 @@ A008/
 |  |  |- deterministic-retrieval-planner.ts  bounded provider-free message classifier/planner
 |  |  |- hybrid-retrieval-policy.ts  explicit channel weights, limits, and thresholds
 |  |  |- hybrid-memory-reader.ts     deduplicated scoring and read-only projection funnel
-|  |  `- sqlite-memory-repository.ts durable local canon, audit, FTS5, and retrieval indexes
+|  |  |- sqlite-memory-repository.ts durable local canon, audit, FTS5, and retrieval indexes
+|  |  `- knowledge/
+|  |     |- types.ts                 new-model ontology, slots, clocks, and INTERPRET proposals
+|  |     |- errors.ts                knowledge-model input/proposal errors
+|  |     |- ids.ts                   branded artifact and entity identifiers
+|  |     |- clocks.ts                Instant/Interval unknown round-trip
+|  |     |- registry.ts              in-memory entity and slot registries
+|  |     |- interpret.ts             INTERPRET: proposes only, writes nothing
+|  |     `- index.ts                 knowledge-tree barrel
 |  |- orchestration/
 |  |  |- memory-prompt-composer.ts   ID-free materialized memory/user envelope
 |  |  |- memory-aware-chat-session.ts verified read-before-one-chat-call coordinator
@@ -67,6 +75,8 @@ A008/
 |  |  |- fake-nvidia-server.ts        loopback runtime-proof SSE fixture
 |  |  |- nvidia-live-reasoning-leak.json  live Nemotron channel-leak characterization
 |  |  `- nvidia-live-relation-alias.json  live classifier relation-vs-type payload
+|  |- knowledge-model/
+|  |  `- semantic-addressing.test.ts S3 source-code INTERPRET and slot addressing
 |  `- fake-nvidia-server.test.ts      fixture success and auth rejection
 `- docs/
    |- AGENT_CANVAS_INTEGRATION.md     Custom ACP operator boundary and runbook
