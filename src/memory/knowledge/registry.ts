@@ -69,6 +69,13 @@ export class EntityRegistry {
     }
     this.#byId.set(entity.id, cloneEntity(entity));
   }
+
+  hydrate(entities: readonly Entity[]): void {
+    this.#byId.clear();
+    for (const entity of entities) {
+      this.#byId.set(entity.id, cloneEntity(entity));
+    }
+  }
 }
 
 export class SlotRegistry {
@@ -92,6 +99,13 @@ export class SlotRegistry {
       );
     }
     this.#byKey.set(key, cloneSlot(definition));
+  }
+
+  hydrate(definitions: readonly SlotDefinition[]): void {
+    this.#byKey.clear();
+    for (const definition of definitions) {
+      this.#byKey.set(slotKey(definition.ref), cloneSlot(definition));
+    }
   }
 }
 

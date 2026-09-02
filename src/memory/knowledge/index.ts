@@ -44,6 +44,28 @@ export { project } from "./project.js";
 export type { ProjectResult } from "./project.js";
 export { createKnowledgeContext, readKnowledge } from "./read.js";
 export type { ReadResult } from "./read.js";
+export {
+  KNOWLEDGE_SQLITE_SCHEMA,
+  KNOWLEDGE_SQLITE_SCHEMA_VERSION,
+} from "./sqlite-schema.js";
+export { SqliteKnowledgeStore } from "./sqlite-store.js";
+export type {
+  KnowledgeNamespaceSnapshot,
+  SqliteKnowledgeStoreOptions,
+} from "./sqlite-store.js";
+export {
+  createSqliteKnowledgeContext,
+  sqliteKnowledgeTestProjectId,
+} from "./sqlite-context.js";
+export type {
+  SqliteKnowledgeContextHandle,
+  SqliteKnowledgeContextOptions,
+} from "./sqlite-context.js";
+export { KnowledgeMemoryReader } from "./live-reader.js";
+export type { KnowledgeMemoryReaderOptions } from "./live-reader.js";
+export { KnowledgeEngineCommit } from "./live-commit.js";
+export type { KnowledgeEngineCommitOptions } from "./live-commit.js";
+export type { RelationLink } from "./expand.js";
 export type {
   KnowledgeReadContext,
   RetrievedRecord,

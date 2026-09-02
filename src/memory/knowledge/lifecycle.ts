@@ -66,6 +66,25 @@ export class EvidenceLifecycleStore {
     };
   }
 
+  transitionSequence(): number {
+    return this.#nextTransition;
+  }
+
+  hydrate(snapshot: LifecycleSnapshot, nextTransition?: number): void {
+    this.#records.clear();
+    this.#transitions.length = 0;
+    for (const record of snapshot.records) {
+      this.#records.set(record.evidenceId, cloneRecord(record));
+    }
+    for (const transition of snapshot.transitions) {
+      this.#transitions.push(cloneTransition(transition));
+    }
+    this.#nextTransition =
+      nextTransition === undefined
+        ? inferredLifecycleSequence(snapshot.transitions)
+        : nextTransition;
+  }
+
   attach(input: AttachLifecycleInput): LifecycleRecord {
     const evidenceId = requireNonEmpty(input.evidenceId, "evidenceId");
     if (this.#records.has(evidenceId)) {
@@ -352,4 +371,21 @@ function cloneTransition(transition: LifecycleTransition): LifecycleTransition {
     caller: transition.caller,
     reason: transition.reason,
   };
+}
+
+function inferredLifecycleSequence(
+  transitions: readonly LifecycleTransition[],
+): number {
+  let max = 0;
+  for (const transition of transitions) {
+    const match = /^A008_knowledge_lifecycle_(\d+)$/.exec(transition.id);
+    if (match === null) {
+      continue;
+    }
+    const parsed = Number(match[1]);
+    if (Number.isSafeInteger(parsed) && parsed > max) {
+      max = parsed;
+    }
+  }
+  return max;
 }

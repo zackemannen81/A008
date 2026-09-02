@@ -124,6 +124,21 @@ export {
 export type {
   SqliteMemoryRepositoryOptions,
 } from "./memory/sqlite-memory-repository.js";
+export {
+  createSqliteKnowledgeContext,
+  KnowledgeEngineCommit,
+  KnowledgeMemoryReader,
+  SqliteKnowledgeStore,
+  sqliteKnowledgeTestProjectId,
+} from "./memory/knowledge/index.js";
+export type {
+  KnowledgeEngineCommitOptions,
+  KnowledgeMemoryReaderOptions,
+  KnowledgeNamespaceSnapshot,
+  SqliteKnowledgeContextHandle,
+  SqliteKnowledgeContextOptions,
+  SqliteKnowledgeStoreOptions,
+} from "./memory/knowledge/index.js";
 export { SemanticMemory } from "./memory/memory-engine.js";
 export type { SemanticMemoryOptions } from "./memory/memory-engine.js";
 export {

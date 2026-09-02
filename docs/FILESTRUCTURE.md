@@ -66,6 +66,11 @@ A008/
 |  |     |- compose.ts               COMPOSE grouping and order
 |  |     |- project.ts               PROJECT: typed payload, writes nothing
 |  |     |- read.ts                  DEFINE..PROJECT coordinator
+|  |     |- sqlite-schema.ts         knowledge SQLite DDL, separate families
+|  |     |- sqlite-store.ts          interval/evidence/lifecycle persist + v0 migrate
+|  |     |- sqlite-context.ts        persisting KnowledgeReadContext
+|  |     |- live-reader.ts           live DEFINE..PROJECT MemoryReadPort
+|  |     |- live-commit.ts           live INGEST/ACCEPT/RECONCILE/UPDATE
 |  |     `- index.ts                 knowledge-tree barrel
 |  |- orchestration/
 |  |  |- memory-prompt-composer.ts   ID-free materialized memory/user envelope
@@ -98,7 +103,8 @@ A008/
 |  |  |- semantic-addressing.test.ts S3 INTERPRET and slot addressing
 |  |  |- state-history.test.ts     S1/S2/S8/S10 state and history
 |  |  |- evidence.test.ts          S4/S5/S9 utterance, ACCEPT, payload
-|  |  `- scenarios.test.ts         full S1–S10 plus decay sweep
+|  |  |- scenarios.test.ts         full S1–S10 in-memory and SQLite
+|  |  `- sqlite-store.test.ts      unknown boundaries and v0 migration
 |  `- fake-nvidia-server.test.ts      fixture success and auth rejection
 `- docs/
    |- AGENT_CANVAS_INTEGRATION.md     Custom ACP operator boundary and runbook

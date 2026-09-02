@@ -12,6 +12,12 @@ import { scoreRetrieved } from "./retrieve.js";
 
 const ASSOCIATIVE_DORMANT = "associative_dormant";
 
+export interface RelationLink {
+  readonly from: string;
+  readonly to: string;
+  readonly relation: string;
+}
+
 export class RelationIndex implements RelationIndexPort {
   readonly #out = new Map<string, RelationHop[]>();
 
@@ -26,6 +32,23 @@ export class RelationIndex implements RelationIndexPort {
 
   neighbors(id: string): readonly RelationHop[] {
     return [...(this.#out.get(id) ?? [])];
+  }
+
+  exportLinks(): readonly RelationLink[] {
+    const links: RelationLink[] = [];
+    for (const [from, hops] of this.#out.entries()) {
+      for (const hop of hops) {
+        links.push({ from, to: hop.to, relation: hop.relation });
+      }
+    }
+    return links;
+  }
+
+  hydrate(links: readonly RelationLink[]): void {
+    this.#out.clear();
+    for (const link of links) {
+      this.link(link.from, link.to, link.relation);
+    }
   }
 }
 

@@ -9,11 +9,11 @@ read/chat/post-output loop.
 CLI / A008-acp
   -> createLocalMemoryRuntime
      |- NVIDIA credential + one ChatTransport
-     |- project-namespaced SQLite
-     |- HybridMemoryReader
+     |- project-namespaced SQLite knowledge store
+     |- KnowledgeMemoryReader
      |- MemoryAwareChatSession
      |- stateless analyzer/classifier over the same transport
-     |- RelationGatedMemoryCommit (sourceMessage → user-assertion gate)
+     |- KnowledgeEngineCommit (ACCEPT user-assertion-v1; classifier as comparator)
      `- PostOutputMemoryCoordinator
 ```
 
@@ -41,8 +41,10 @@ Agent Server conversation binding and load/resume remain unimplemented.
   repository, or `:memory:` for tests
 - The parent directory is created if needed
 - Reset: delete the SQLite file, WAL/SHM sidecars, and `A008-project-id`
-- Inspect: any SQLite client against that file; knowledge is JSON payloads
-  under the project namespace
+- Inspect: any SQLite client against that file; live knowledge is the
+  `A008_knowledge_*` record families under the project namespace. V0
+  `A008_memory_knowledge` rows, if present, migrate into intervals with
+  unknown boundaries.
 
 ## Turn contract
 
@@ -56,39 +58,30 @@ Agent Server conversation binding and load/resume remain unimplemented.
 `/reset` in CLI clears conversation turns and keeps the same conversation ID
 and SQLite namespace.
 
-## New-memory activation
+## New-memory acceptance
 
-Staged proposals stay dormant at the intake/commit validator. For a `new`
-reconcile, the runtime activates the item only when:
+Staged proposals are untrusted. `ACCEPT` policy `user-assertion-v1` accepts a
+claim only when:
 
 - the full normalized proposition is a contiguous substring of the original
   user message; and
 - the user message does not end with `?`.
 
-Analyzer confidence cannot grant activation. Assistant-only or question-only
-extraction remains dormant.
+Analyzer confidence cannot accept. Assistant-only or question-only extraction
+remains asserted, not accepted, and does not open current state. ACCEPT does
+not write `keepAlive`, strength, or activation onto bindings.
 
 ## Write-path reinforcement
 
-After Compare, `restatement` and `extend` add `LIVE_RECONCILIATION_REINFORCEMENT`
-(`0.2`) to `relevanceScore`, then re-evaluate
-`keepAlive || score >= activationThreshold`. Already-active items get stronger.
-Dormant items reactivate only when that boosted score meets the threshold;
-otherwise they stay dormant after the boost.
-
-Hybrid reads use `projectSelected` with `LIVE_PROJECTION_REINFORCEMENT` `0`.
-Retrieval does not reinforce, reactivate, weaken, or decay. Cyclic decay is
+`restatement` / re-assertion runs named `REINFORCE` on evidence only. State
+bindings have no `relevanceScore`. `PROJECT` writes nothing. Direct
+slot/entity/exact matches ignore evidence dormancy. Associative expansion
+still omits dormant evidence with reason `associative_dormant`. Cyclic decay is
 not implemented.
 
-Live hybrid read has no `embeddingProvider` and constructs
-`DeterministicRetrievalPlanner()` with empty `knownTags`/`knownDomains`.
-Candidate recall is therefore entity/exact plus lexical FTS. Vector RAG and
-planner tag/domain channels remain optional adapters. Relation-write candidate
-search can still use tags/domains from the staged proposal.
-
-Validated `restatement`/`extend` currently boost whether the supporting text
-came from the user message or the assistant answer. Restricting that boost to
-user-backed evidence is a later policy.
+Live read uses the knowledge engine, not the v0 hybrid `KnowledgeItem` funnel.
+The planner still exists as a compatibility helper for the identity envelope.
+Vector RAG remains an unused v0 adapter.
 
 ## Operator test from a clean install
 
