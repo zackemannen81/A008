@@ -11,6 +11,13 @@ the template before push.
 
 ## Records
 
+- [`A008-0041_source-upload-ingest.md`](A008-0041_source-upload-ingest.md) — In
+  Progress; source upload ingest program (ADR 0020).
+- [`A008-0042_source-extraction-port.md`](A008-0042_source-extraction-port.md) — Ready.
+- [`A008-0043_runtime-source-ingest.md`](A008-0043_runtime-source-ingest.md) — Ready.
+- [`A008-0044_gui-host-upload.md`](A008-0044_gui-host-upload.md) — Ready.
+- [`A008-0045_gui-upload-module.md`](A008-0045_gui-upload-module.md) — Ready.
+
 - [`A008-0030_a008-owned-gui.md`](A008-0030_a008-owned-gui.md) — Complete;
   product GUI program, all six children merged to `main` 2026-09-02; archived
   [`../finished/A008-0030_a008-owned-gui.md`](../finished/A008-0030_a008-owned-gui.md).

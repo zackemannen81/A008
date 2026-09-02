@@ -57,3 +57,8 @@ never whether work is active or complete. Task state belongs in
 | A008-0038 | release ACP sessions on renderer disconnect | operator-delegated | 2026-09-02 | ACP session_close and GUI host session lifecycle |
 | A008-0039 | one command for the GUI module tests | operator-delegated | 2026-09-02 | shared gui test runner and script wiring |
 | A008-0040 | caller-named INGEST provenance relation | operator | 2026-09-02 | ingest relation parameter; two orphaned test files into the gate |
+| A008-0041 | source upload ingest program | Operator | 2026-09-02 | parent; ADR 0020; sole main merger |
+| A008-0042 | source extraction port and text extractor | operator-delegated | 2026-09-02 | src/ingest |
+| A008-0043 | runtime source-ingest surface and ACP method | operator-delegated | 2026-09-02 | src/runtime and src/acp |
+| A008-0044 | GUI host upload route and blob store | operator-delegated | 2026-09-02 | src/gui-host |
+| A008-0045 | GUI upload module | operator-delegated | 2026-09-02 | gui/src/upload |

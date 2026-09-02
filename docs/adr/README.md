@@ -76,3 +76,8 @@ replacement.
 - [`0019-a008-owned-gui.md`](0019-a008-owned-gui.md) — Accepted; product GUI
   is A008-owned `gui/` plus `src/gui-host/` ACP WebSocket bridge. Amends 0004.
   Canvas+Agent Server remains operator compatibility only.
+- [`0020-source-upload-ingest.md`](0020-source-upload-ingest.md) — Accepted;
+  uploads are stored by the GUI host and extracted in the ACP process over a
+  locator. Amends 0019 D4 with POST /v1/upload. Extraction is a port; image
+  description is its own port, not a ChatMessage change. PDF, DOCX and live
+  vision stay unsupported pending owner decisions.
