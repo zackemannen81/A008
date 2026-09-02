@@ -1,25 +1,256 @@
-/* A008-0037 owns visual identity. Keep these layout class names. */
+/* A008 visual identity. Cyan HUD chrome; A008 tokens only. */
+
+:root {
+  color-scheme: dark;
+  --a008-bg: #050a12;
+  --a008-panel: #08121c;
+  --a008-header-bg: #07101a;
+  --a008-fg: #e8f4f8;
+  --a008-muted: #7a9aaa;
+  --a008-cyan: #5eead4;
+  --a008-cyan-dim: #1a6b68;
+  --a008-gold: #e8c547;
+  --a008-border: #163040;
+  --a008-grid: rgba(94, 234, 212, 0.045);
+  --a008-danger: #f07178;
+  --a008-idle: #7a9aaa;
+  --a008-connecting: #e8c547;
+  --a008-ready: #5eead4;
+  --a008-error: #f07178;
+  --a008-sans: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --a008-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
+}
+
 html,
 body,
 #root {
   margin: 0;
   height: 100%;
 }
+
+body {
+  background: var(--a008-bg);
+  color: var(--a008-fg);
+}
+
 .a008-app {
   display: grid;
   grid-template-rows: auto 1fr;
   grid-template-columns: 1fr 16rem;
   min-height: 100%;
-  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--a008-sans);
+  color: var(--a008-fg);
+  background-color: var(--a008-bg);
+  background-image:
+    linear-gradient(var(--a008-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--a008-grid) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
+
 .a008-header {
   grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  background: var(--a008-header-bg);
+  border-bottom: 1px solid var(--a008-border);
+  box-shadow: inset 0 -1px 0 rgba(94, 234, 212, 0.12);
 }
+
+.a008-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--a008-cyan);
+}
+
+.a008-brand-mark {
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: 0 0 auto;
+}
+
+.a008-brand-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.a008-brand-name {
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.a008-brand-tagline {
+  margin-top: 0.12rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--a008-muted);
+}
+
 .a008-main {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
+  background: color-mix(in srgb, var(--a008-bg) 88%, transparent);
 }
+
 .a008-aside {
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--a008-panel);
+  border-left: 1px solid var(--a008-border);
+}
+
+.a008-chat,
+.a008-composer,
+.a008-terminal {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--a008-border);
+  color: var(--a008-muted);
+}
+
+.a008-chat {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.a008-composer {
+  flex: 0 0 auto;
+}
+
+.a008-terminal {
+  flex: 0 1 7rem;
+  border-bottom: none;
+}
+
+.a008-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.85rem 0.8rem 1rem;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.a008-settings-title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--a008-cyan);
+}
+
+.a008-settings-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.a008-settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.a008-settings-row dt {
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--a008-muted);
+}
+
+.a008-settings-row dd {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  font-family: var(--a008-mono);
+  color: var(--a008-fg);
+}
+
+.a008-settings-row[data-field="product"] dd {
+  font-family: var(--a008-sans);
+  font-weight: 650;
+  letter-spacing: 0.16em;
+  color: var(--a008-cyan);
+}
+
+.a008-settings-row[data-field="memory"] dd {
+  color: var(--a008-gold);
+}
+
+.a008-settings-row[data-field="telemetry"] dd,
+.a008-settings-row[data-field="credentials"] dd {
+  color: var(--a008-muted);
+}
+
+.a008-connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.a008-connection-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0.45rem currentColor;
+}
+
+.a008-connection-idle {
+  color: var(--a008-idle);
+}
+
+.a008-connection-connecting {
+  color: var(--a008-connecting);
+}
+
+.a008-connection-ready {
+  color: var(--a008-ready);
+}
+
+.a008-connection-error {
+  color: var(--a008-error);
+}
+
+.a008-settings-error {
+  margin: 0;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--a008-danger) 45%, var(--a008-border));
+  border-radius: 0.25rem;
+  color: var(--a008-danger);
+  font-size: 0.75rem;
+  font-family: var(--a008-mono);
+  overflow-wrap: anywhere;
+}
+
+.a008-settings-connect {
+  align-self: stretch;
+  margin-top: auto;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--a008-cyan-dim);
+  border-radius: 0.25rem;
+  background: transparent;
+  color: var(--a008-cyan);
+  font: inherit;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.a008-settings-connect:hover,
+.a008-settings-connect:focus-visible {
+  background: color-mix(in srgb, var(--a008-cyan) 12%, transparent);
+  outline: none;
 }
