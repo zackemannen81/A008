@@ -202,6 +202,19 @@ details, and a host that cannot start `A008-acp` appends the subprocess stderr
 tail, so an unset credential or a malformed runtime ID is diagnosable from the
 GUI instead of surfacing as a generic internal error.
 
+Sessions are owned per socket and released on disconnect. Each `session/new`
+frame records its session against the socket that asked for it; when that
+socket closes, the host aborts any in-flight prompt and issues ACP
+`session/close` for every session that socket owned. `A008AcpAgent` implements
+that method — aborting the active turn, dropping the session state, and failing
+closed on a session it does not hold — and advertises
+`sessionCapabilities.close` from `initialize`. The host reads its existing
+bridge binding rather than starting one, so a socket that never opened a
+session cannot spawn an ACP subprocess on its way out, and it contains release
+failures because a close path has no client left to tell. Release is
+disconnect-driven only: there is no idle timeout or reaper, so a socket that
+never closes cleanly holds its sessions until the process exits.
+
 A008-0030 proved this chain end to end against a real host process, a real ACP
 subprocess, the real local memory runtime, and a loopback fake endpoint. See
 `docs/evidence/A008-0030_gui-runtime-proof.md`.

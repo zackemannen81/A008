@@ -37,7 +37,7 @@ belongs in `docs/PROJECT_BRIEF.md`.
 | Local memory surfaces | `createLocalMemoryRuntime` owns SQLite path/project identity, one NVIDIA transport, the SQLite knowledge engine, memory-aware chat, post-output through `KnowledgeEngineCommit`, and `user-assertion-v1` ACCEPT. Live restatement reinforces evidence only. `PROJECT` writes nothing. Direct matches ignore dormancy. `KnowledgeItem` remains a compatibility/migration surface. Opt-in off/safe/raw JSONL tracing is secret-redacted and off by default. |
 | Committed memory-loop proof | `npm run benchmark:memory-loop` composes actual in-memory SQLite read/write/index state with two memory-aware chat turns and one shared fake transport. Exact call order is chat/analyze/classify/chat; active canon extends from revision one to two and the second turn projects the new proposition. New-draft auto-activation remains explicitly unproven. |
 | Runtime identity core | Exported branded/parser-validated project, conversation, runtime-task, agent, and ACP-session IDs use versioned lowercase UUIDv4 values. A namespaced external-reference contract, atomic in-memory ACP binding repository, conflict/idempotency rules, and defensive lookup surfaces exist. No complete external conversation binding is created at runtime. |
-| Automated tests | 297 Node test-runner cases, verified 2026-09-02: 234 in the root suite (`npm test`), 34 across the GUI composer, session, terminal, and settings modules, and 29 in the GUI chat module. The root count includes in-memory and SQLite S1–S10 with identical payloads, v0 supersede-chain migration, live CLI/ACP cutover, and 16 GUI-host cases that cover `session/new`, thought-then-answer streaming, cancel, and the error path twice over — once against an injected in-process bridge and once against a real spawned ACP stdio subprocess. Root `npm test` is the full gate: it runs `test:core` against compiled output and then `test:gui`. `npm --prefix gui run test` discovers `gui/src/**/*.test.ts` under `node --experimental-strip-types` through one shared loader at `gui/test/`, so a new GUI test file runs with no script edit and a failing GUI test fails the root command. No test loads `.env.local` or makes a live call. |
+| Automated tests | 306 Node test-runner cases, verified 2026-09-02: 243 in the core suite and 63 across the GUI modules. The core count includes in-memory and SQLite S1–S10 with identical payloads, v0 supersede-chain migration, live CLI/ACP cutover, and 16 GUI-host cases that cover `session/new`, thought-then-answer streaming, cancel, and the error path twice over — once against an injected in-process bridge and once against a real spawned ACP stdio subprocess. Root `npm test` is the full gate: it runs `test:core` against compiled output and then `test:gui`. `npm --prefix gui run test` discovers `gui/src/**/*.test.ts` under `node --experimental-strip-types` through one shared loader at `gui/test/`, so a new GUI test file runs with no script edit and a failing GUI test fails the root command. No test loads `.env.local` or makes a live call. |
 
 ## Security observation
 
@@ -89,9 +89,11 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   telemetry state; deep embedding needs a focused spike.
 - OpenHands host mode and extensions have broad trust surfaces. Extensions run
   unsandboxed in the renderer realm.
-- The GUI host does not release an ACP session when a renderer disconnects, so a
-  long-lived host accumulates session state. Bounded for local single-user use;
-  it needs an owner before any shared deployment.
+- GUI host session release is disconnect-driven only (A008-0038). A renderer
+  that closes its socket releases every session it owned, but a host whose
+  renderer never disconnects cleanly — a hung tab, or a killed browser leaving
+  the socket half-open until TCP notices — still holds those sessions until the
+  process exits. There is no idle timeout, session cap, or reaper.
 - `POST /v1/shell` runs arbitrary commands in the host process working
   directory. The origin guard and JSON content-type requirement keep a
   cross-origin page from reaching it, but the endpoint is only as safe as the
@@ -104,9 +106,11 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   `session.prompt` on the shared session object, because the frozen `GuiSession`
   contract carries no message list. It restores on unmount and degrades safely
   against a frozen object. The durable fix is a `messages` array on the session.
-- `gui/src/chat/node-test-shims.d.ts` and `gui/src/composer/node-test.d.ts` both
-  declare `node:test` and `node:assert/strict`. They coexist only because
-  `gui/tsconfig.json` sets `skipLibCheck: true`.
+- `node:fs`, `node:path`, and `node:url` are declared for the whole GUI
+  TypeScript program, because one session test imports them and an ambient
+  module declaration cannot be scoped to test files without a separate project.
+  Renderer code can still reach those three. Every other Node built-in is
+  blocked since A008-0039 set `"types": []` on the GUI package.
 - The SQLite memory adapter is single-process and the projection is byte-
   budgeted. Its optional vector channel compares the bounded local namespace in
   process. Production use still needs complete verified runtime-context intake,

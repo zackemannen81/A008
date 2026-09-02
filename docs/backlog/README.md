@@ -15,4 +15,4 @@ when its status changes.
 | [`first-shared-chat-slice.md`](first-shared-chat-slice.md) | Completed | A008-0003 through A008-0005 prove CLI/core, ACP, and visible Canvas loopback behavior. |
 | [`semantic-memory-addon.md`](semantic-memory-addon.md) | Partially implemented | V0 contract and in-memory engine exist; integration, semantic analysis, durable storage, identity, and privacy remain. |
 | [`multiagent-process-layer.md`](multiagent-process-layer.md) | Open | Decide whether to install and verify the optional local process supervisor. |
-| [`gui-hardening.md`](gui-hardening.md) | Open | Five follow-ups routed out of A008-0030: ACP session release, one GUI test command, `messages` on `GuiSession`, ambient-declaration consolidation, and the redaction trade. |
+| [`gui-hardening.md`](gui-hardening.md) | Partially closed | Five follow-ups routed out of A008-0030. Items 1, 2, and 4 closed by A008-0038 and A008-0039. Items 3 (`messages` on `GuiSession`) and 5 (the redaction trade) remain open. |

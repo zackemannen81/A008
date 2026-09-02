@@ -87,6 +87,11 @@ npm test
 npm run benchmark:memory-loop
 ```
 
+`npm test` is the full gate: it runs the core suite against compiled output and
+then the GUI module tests. `npm run test:core` and `npm run test:gui` address
+the halves. The GUI tests need `gui/` dependencies installed
+(`npm --prefix gui ci`).
+
 ## CLI
 
 List models without loading a credential:

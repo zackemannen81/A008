@@ -34,3 +34,5 @@ authority. Workers do not append `docs/JOURNAL.md`.
 - [`A008-0035.md`](A008-0035.md) — GUI composer slash commands. Merged 2026-09-02 (PR #8).
 - [`A008-0036.md`](A008-0036.md) — GUI terminal pane. Merged 2026-09-02 (PR #7).
 - [`A008-0037.md`](A008-0037.md) — GUI settings and brand identity. Merged 2026-09-02 (PR #9).
+- [`A008-0038.md`](A008-0038.md) — ACP session release on renderer disconnect. Merged 2026-09-02 (PR #13).
+- [`A008-0039.md`](A008-0039.md) — one command for the GUI module tests. Merged 2026-09-02 (PR #14).

@@ -2,6 +2,54 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — Close the two highest-priority GUI hardening follow-ups
+
+- Date: 2026-09-02
+- Author: Claude (operator / boss)
+- Task: A008-0038 and A008-0039
+- Branch: `main`
+- Identity evidence: both IDs claimed on `main` as `aad3f21` with frozen
+  charters, before either branch was created.
+- Change: merged PR #13 (A008-0038, ACP session release) and PR #14
+  (A008-0039, one GUI test command), in that order.
+- A008-0038: `A008AcpAgent` now implements ACP `session/close`, advertises
+  `sessionCapabilities.close`, aborts the active turn, drops session state, and
+  fails closed on a session it does not hold. `AcpBridge` gained
+  `closeSession`, and the GUI host releases a closing socket's owned sessions.
+  The A008-0032 handoff had recorded this as "no session-close request in this
+  SDK usage"; that was true of A008's usage, not of the protocol. SDK 1.4.0
+  already carried the method.
+- A008-0039: one shared test runner in `gui/test/`, glob discovery in
+  `gui/package.json`, and root `npm test` split into `test:core && test:gui`,
+  so the command everyone already types is the full gate.
+- Finding: the three ambient `node:test` declaration files were never
+  load-bearing. Deleting all three left the GUI typecheck green, because
+  TypeScript walks up from `gui/` and resolved `node:test` from the root
+  package's `@types/node`. The GUI typecheck silently depended on a sibling
+  package's devDependency, and full Node typings were in scope for renderer
+  code, so `gui/src/app.tsx` could have imported `node:child_process` and
+  compiled. `"types": []` plus including `test/` makes the single remaining
+  declaration real; that import now fails with TS2307.
+- Verification: root `npm test` is now one command covering 243 core and 63 GUI
+  cases, 0 fail, exit 0. Root and GUI typecheck clean; GUI build clean. Both
+  A008-0038 halves were mutation-checked: removing the host release fails 4 of
+  5 new host cases, removing the agent delete fails 3, and both reverts return
+  the suite to green. A008-0039's gate was checked by deliberate breakage (root
+  exit 1, then 0 after revert) and by a throwaway test file in a module named in
+  no script, which ran without any script edit. The A008-0030 end-to-end proof
+  was re-run on the merged tree and still passes 15 of 15.
+- Recovery note: both delegated workers were cut off mid-task by a provider
+  session limit, as the previous wave was. Neither had committed. The operator
+  finished both in their own clones from the state they left rather than
+  restarting, exactly as in the A008-0030 recovery.
+- Not performed: no live provider call, no CI, no browser-level GUI run, no
+  deployment, publication, or release.
+- Handoff: `docs/backlog/gui-hardening.md` items 1, 2 and 4 are closed with
+  their residuals recorded; items 3 (`messages` on `GuiSession`) and 5 (the
+  redaction trade, which needs an ADR amendment) remain open. The largest
+  remaining gap is that no CI enforces the gate that now exists.
+- Signature: Claude
+
 ## 2026-09-02 — Complete the A008-owned GUI program
 
 - Date: 2026-09-02
