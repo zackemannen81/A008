@@ -10,7 +10,8 @@
     "skipLibCheck": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "types": []
   },
-  "include": ["src"]
+  "include": ["src", "test"]
 }
