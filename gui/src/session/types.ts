@@ -1,11 +1,46 @@
-export interface GuiSession {
-  readonly status: "idle" | "connecting" | "ready" | "error";
+export const DEFAULT_GUI_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b";
+
+export type GuiSessionStatus = "idle" | "connecting" | "ready" | "error";
+
+export interface GuiSessionState {
+  readonly status: GuiSessionStatus;
   readonly sessionId: string | undefined;
   readonly model: string;
   readonly thought: string;
   readonly answer: string;
   readonly error: string | undefined;
+}
+
+export interface GuiSession extends GuiSessionState {
   connect(): Promise<void>;
   prompt(text: string): Promise<void>;
   cancel(): Promise<void>;
+}
+
+export interface GuiWebSocketEvent {
+  readonly data?: unknown;
+}
+
+export interface GuiWebSocket {
+  readonly readyState: number;
+  readonly url: string;
+  send(data: string): void;
+  close(): void;
+  addEventListener(
+    type: "open" | "message" | "error" | "close",
+    listener: (event: GuiWebSocketEvent) => void,
+  ): void;
+  removeEventListener(
+    type: "open" | "message" | "error" | "close",
+    listener: (event: GuiWebSocketEvent) => void,
+  ): void;
+}
+
+export type GuiWebSocketConstructor = new (url: string) => GuiWebSocket;
+
+export interface GuiSessionClientOptions {
+  readonly url?: string;
+  readonly model?: string;
+  readonly webSocket?: GuiWebSocketConstructor;
+  readonly createRequestId?: () => string;
 }
