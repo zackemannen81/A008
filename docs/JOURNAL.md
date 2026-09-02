@@ -2,6 +2,21 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — Merge wave 1: M1 eligibility and M3 semantic addressing
+
+- Date: 2026-09-02
+- Author: Grok (operator / boss)
+- Task: A008-0021
+- Branch: `main`
+- Isolation: canonical working tree `C:\code\A008`
+- Change: merged `grok/A008-0024-semantic-addressing` (PR #1) and
+  `grok/A008-0023-repair-direct-match-eligibility` (PR #2). Restored parent
+  `docs/CURRENT_TASK.md` to A008-0021. ACP source renamed
+  `src/acp/a007-acp-agent.ts` → `src/acp/A008-acp-agent.ts` as part of M1.
+- Evidence: `docs/handoffs/A008-0024.md`; A008-0023 code is the handoff.
+- Next: A008-0025 (M4) and A008-0026 (M5) on worker clones.
+- Signature: Grok
+
 ## 2026-09-02 — Adopt knowledge and memory model; open gap-close program
 
 - Date: 2026-09-02

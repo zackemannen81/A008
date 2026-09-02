@@ -20,4 +20,7 @@ Worker transcripts are not authority.
 
 ## Records
 
-None yet.
+- [`A008-0024.md`](A008-0024.md) — Ready for operator merge; M3 semantic
+  addressing. Merged to `main` 2026-09-02.
+- A008-0023 — no worker handoff file; PR #2 code is the handoff. Merged to
+  `main` 2026-09-02.

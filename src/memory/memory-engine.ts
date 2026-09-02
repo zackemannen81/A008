@@ -423,8 +423,8 @@ export class SemanticMemory {
       );
     }
 
-    return this.repository.transact((transaction) => {
-      const current = transaction.listCurrent();
+    return this.repository.read((view) => {
+      const current = view.listCurrent();
       const currentById = new Map(current.map((item) => [item.id, item]));
       for (const requiredId of task.requiredKnowledgeIds) {
         if (!currentById.has(requiredId)) {
@@ -444,47 +444,17 @@ export class SemanticMemory {
         ) {
           continue;
         }
-        const boost = validatePolicyBoost(
-          this.policy.projectionReinforcement(item, task),
-          "projectionReinforcement",
-        );
-        const score = clampUnit(item.relevanceScore + boost);
-        const updated: KnowledgeItem = {
-          ...item,
-          relevanceScore: score,
-          activationStatus: activationFor(item, score),
-          revision:
-            score === item.relevanceScore &&
-            activationFor(item, score) === item.activationStatus
-              ? item.revision
-              : item.revision + 1,
-        };
-        if (updated.revision !== item.revision) {
-          transaction.replace(updated);
-        }
-        relevant.push(updated);
+        relevant.push(item);
       }
 
       const requiredIds = new Set([
         ...task.requiredKnowledgeIds,
         ...current.filter((item) => item.keepAlive).map((item) => item.id),
       ]);
-      const eligible = relevant.filter(
-        (item) => item.activationStatus === "active",
-      );
-      const eligibleIds = new Set(eligible.map((item) => item.id));
-      for (const requiredId of requiredIds) {
-        if (!eligibleIds.has(requiredId)) {
-          throw new MemoryError(
-            "required_not_eligible",
-            `required knowledge did not pass activation policy: ${requiredId}`,
-          );
-        }
-      }
 
       const ranked = this.validateRankedItems(
-        this.policy.rankForContext(eligible, task),
-        eligible,
+        this.policy.rankForContext(relevant, task),
+        relevant,
       );
       const ordered = [
         ...ranked.filter((item) => requiredIds.has(item.id)),
@@ -516,13 +486,6 @@ export class SemanticMemory {
         }
       }
 
-      transaction.appendAudit({
-        type: "projection_built",
-        knowledgeIds: relevant.map((item) => item.id),
-        taskId: task.id,
-        selectedKnowledgeIds: selected.map((item) => item.id),
-        excludedCount: current.length - selected.length,
-      });
       return materialized;
     });
   }
@@ -596,21 +559,9 @@ export class SemanticMemory {
         }
       }
 
-      for (const requiredId of requiredIds) {
-        const item = combined.get(requiredId);
-        if (item?.activationStatus !== "active") {
-          throw new MemoryError(
-            "required_not_eligible",
-            `required knowledge did not pass activation policy: ${requiredId}`,
-          );
-        }
-      }
-
       const ordered = [...combined.values()]
         .filter(
-          (item) =>
-            requiredIds.has(item.id) ||
-            (requestedOrder.has(item.id) && item.activationStatus === "active"),
+          (item) => requiredIds.has(item.id) || requestedOrder.has(item.id),
         )
         .sort((left, right) => {
           const leftRequired = requiredIds.has(left.id) ? 1 : 0;

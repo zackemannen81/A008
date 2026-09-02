@@ -184,10 +184,11 @@ does not become active, or cannot fit, the transaction fails. Optional ranked
 items that do not fit are omitted. Reinforcement and audit updates roll back on
 any projection failure.
 
-The hybrid path uses `projectSelected` instead. Dormant records can appear in
-candidate evidence but cannot cross the projection boundary and are not
-reinforced or reactivated. Required and keep-alive canon is attempted first;
-the same exact serialized hard budget remains authoritative.
+The hybrid path uses `projectSelected` instead. Dormant exact/direct hits may
+cross the projection boundary; dormant associative hits remain excluded.
+Hybrid reads are not reinforced or reactivated. Required and keep-alive canon
+is attempted first; the same exact serialized hard budget remains
+authoritative.
 
 ## Hybrid retrieval
 

@@ -1,114 +1,120 @@
 # Current Task
 
-Task ID: A008-0024
-Parent Task: A008-0021
+Task ID: A008-0021
+Parent Task: None
 Status: In Progress
-Owner: A008-worker02
+Owner: Grok (operator / boss)
 Created: 2026-09-02
-Last updated: 2026-09-02
-Charter frozen at: 2026-09-02
+Last updated: 2026-09-02 (wave 1 merged)
+Charter frozen at: 2026-09-02, after claim of A008-0021 through A008-0028 on `main`
 
 ## Read First
 
 - `AGENTS.md`
 - `docs/TASK_WORKFLOW.md`
-- `docs/adr/0018-knowledge-and-memory-model.md`
-- `docs/KNOWLEDGE_MEMORY_MODEL.md` §2, §3, §4, §10.1 INTERPRET, §11 S3, §13
-- `docs/KNOWLEDGE_MODEL_GAP_ANALYSIS.md` V1, V8, V10 first half, M3
+- `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/SYSTEMDOC.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
 - `docs/MULTIAGENT.md`
+- `docs/adr/0018-knowledge-and-memory-model.md`
+- `docs/KNOWLEDGE_MEMORY_MODEL.md`
+- `docs/KNOWLEDGE_MODEL_GAP_ANALYSIS.md`
 
 ## Task Summary
 
-Introduce the new knowledge ontology and slot addressing in a new tree.
-`proposition` is a label, never an identity. INTERPRET proposes only.
-Scenario S3 must pass against the in-memory reference.
+Close the knowledge-model gap to 100%. The v0 `KnowledgeItem` engine conflates
+meaning, truth, time, and salience. The accepted constitution is
+`docs/KNOWLEDGE_MEMORY_MODEL.md`. This parent owns sequencing, ADR direction,
+worker briefing, merge to `main`, and the final cutover. Children implement
+one frozen phase each.
 
 ## Task Charter
 
 ### Goal
 
-Close V1 (and the addressing half of V10) by making the addressable unit a
-slot, with entity resolution as an explicit INTERPRET step.
+Make A008's knowledge and memory implementation satisfy laws L1–L12 and
+acceptance scenarios S1–S10, closing gap-analysis findings V1–V15, including
+SQLite parity (M7) and live CLI/ACP composition without reintroducing V3, V4,
+or V7.
 
 ### Primary Deliverable
 
-`src/memory/knowledge/` in-memory types and INTERPRET such that S3 produces
-one artifact, one symbol entity, typed relations/attributes — not three
-unrelated strings.
+An in-memory knowledge engine under `src/memory/knowledge/` that is the
+canonical owner of ontology, slot addressing, state/history, evidence,
+lifecycle, retrieval intents, and the typed projection payload; a later SQLite
+adapter with identical scenario results; live local surfaces using that engine.
 
 ### In Scope
 
-- New files only under `src/memory/knowledge/`
-- New tests only under `test/knowledge-model/`
-- Add the new test file to `package.json` `test` script
-- Types from model §13: Artifact, Entity, SlotRef, SlotDefinition, Instant,
-  Interval, plus proposal types INTERPRET returns
-- Clocks as types (`unknown` representable); no persistence
-- Deterministic INTERPRET for structured source_code input (no live model)
-- Failed entity resolution yields an unresolved-reference record, not a guess
-- `docs/FILESTRUCTURE.md` listing of the new tree
-- `docs/handoffs/A008-0024.md`
-- Branch `CURRENT_TASK.md` copy of this charter
+- Adopt the model (A008-0022 / ADR 0018).
+- M1 eligibility repair on the v0 read path (A008-0023).
+- M3 semantic addressing in a new tree (A008-0024).
+- M4 state/history split (A008-0025).
+- M5 first-class evidence and ACCEPT (A008-0026).
+- M6 evidence-only lifecycle and retrieval intents (A008-0027).
+- M7 storage redesign after M6 is green (A008-0028).
+- Operator-owned merge to `main`, combined verification, and documentation
+  cutover.
+- Worker clones under `C:\code\A008-workers`, own branches, pull requests.
 
 ### Out of Scope
 
-- Any edit to `src/memory/types.ts` / `KnowledgeItem`
-- `src/memory/hybrid-memory-reader.ts`, `memory-engine.ts`, SQLite adapter
-- RECONCILE / ACCEPT / UPDATE / lifecycle processes (M4–M6)
-- Projection payload (M5)
-- SQLite tables
-- Live provider calls
-- Merging to `main`
-- Docs other than FILESTRUCTURE, this charter, and the handoff
+- Live NVIDIA / paid provider calls.
+- OpenHands source mutation, Canvas browser re-proof, desktop packaging.
+- Adding fields to `KnowledgeItem` to simulate the new model.
+- SQLite table/index/FTS/embedding design before M6 is green.
+- Renaming historical `docs/finished/` or `docs/evidence/` A007 filenames.
+- Making the multi-agent process add-on part of the application runtime.
 
 ### Definition of Done
 
-- Slot addressing exists: attribute slot `(entityId, attribute)` and relation
-  slot `(subjectId, relation, objectId?)`.
-- Entity identity is not a natural-language label.
-- INTERPRET writes nothing; it returns proposals with per-item confidence.
-- S3 fixture: `main.cpp` containing `int main() { ... }` yields artifact
-  `main.cpp` (`contentKind = source_code`), entity `main()`, relationship
-  `main.cpp --contains--> main()`, attribute `main.return_type = int`.
-- No who/why dimensions on those records (absent, not null).
-- `unknown` time round-trips.
-- Existing v0 tests remain green because this slice does not touch them.
-- PR opened against `zackemannen81/A008` `main`.
+ADR 0018 D9: V1–V15 closed; S1–S10 pass in-memory; S1–S10 pass on SQLite with
+identical results; live CLI/ACP uses the new engine without V3/V4/V7;
+`docs/SEMANTIC_MEMORY.md` describes the accepted model as implemented.
 
 ### Minimum Verification Gates
 
-- [x] `npm run typecheck`
-- [x] `npm test` (existing plus new knowledge-model tests)
-- [x] Named S3 test
-- [x] No `KnowledgeItem` mutation
-- [x] No live provider / `.env.local` / OpenHands mutation
-- [x] `git diff --check`
-- [x] Handoff file complete; PR opened; do not merge
+- [ ] ADR 0018 accepted, index updated, model status Accepted.
+- [ ] Each child merged only after its frozen gates and a `docs/handoffs/` record.
+- [ ] `npm run typecheck` and `npm test` green on `main` after every merge.
+- [ ] S1–S10 in-memory suite green before M7 starts.
+- [ ] S1–S10 SQLite suite matches in-memory results.
+- [ ] No live provider, `.env.local`, or OpenHands mutation in automation.
 
 ## References
 
-- ADR 0018 D2, D3, D4
-- Gap analysis M3
-- Worker clone: `C:\code\A008-workers\A008-worker02`
-- Branch: `grok/A008-0024-semantic-addressing`
+- `docs/adr/0018-knowledge-and-memory-model.md`
+- `docs/KNOWLEDGE_MEMORY_MODEL.md`
+- `docs/KNOWLEDGE_MODEL_GAP_ANALYSIS.md`
+- Frozen children under `docs/tasks/`
+- Worker root `C:\code\A008-workers`
 
 ## Checklist
 
-- [x] Copy this charter to `docs/CURRENT_TASK.md` on the worker branch.
-- [x] Add ontology types matching model §13 for referential + addressing + time.
-- [x] Implement in-memory entity/slot registries.
-- [x] Implement INTERPRET that proposes only.
-- [x] S3 test.
-- [x] Update FILESTRUCTURE.
-- [x] Verify, commit, push, open PR, write handoff.
+- [x] Claim A008-0021 through A008-0028 on `main`.
+- [x] Accept the model via ADR 0018 and lock D1–D11.
+- [x] Freeze parent and child charters.
+- [x] Merge A008-0023 (M1) from worker01 PR #2.
+- [x] Merge A008-0024 (M3) from worker02 PR #1.
+- [ ] Brief and merge A008-0025 (M4).
+- [ ] Brief and merge A008-0026 (M5).
+- [ ] Brief and merge A008-0027 (M6).
+- [ ] Brief and merge A008-0028 (M7).
+- [ ] Combined verification and documentation cutover.
+- [ ] Archive this task and restore the current-task template.
 
 ## Decisions and Notes
 
-- ADR 0018 is closed. Do not add clocks to `KnowledgeItem`.
-- INTERPRET for this slice is deterministic and fixture-driven. A model-backed
-  interpreter is later work and must not be invented here.
-- Cardinality (`single` | `set`) belongs on `SlotDefinition` now so M4 can
-  use it.
+- Operator is sole `main` merger. Workers PR only. Code plus handoff is
+  evidence; worker transcripts are not loaded for review.
+- Wave 1 uses existing clones `A008-worker01` (M1) and `A008-worker02` (M3).
+  Later waves may add clones up to eight.
+- M2 is not a task (ADR 0018 D3).
+- A008-0025 and A008-0026 stay Ready but blocked until A008-0024 is merged.
+- Concurrent-writer cap for this program is eight.
 
 ## Charter Amendment Log
 
@@ -116,37 +122,32 @@ unrelated strings.
 
 ## Verification
 
-- [x] Record exact checks and outputs.
-- [x] Record skipped checks and reasons.
-
-Commands and results (2026-09-02, worker clone `A008-worker02`):
-
-1. Isolated knowledge-tree typecheck (new files only): pass.
-   `npx tsc --ignoreConfig --noEmit --strict --noUncheckedIndexedAccess --exactOptionalPropertyTypes --verbatimModuleSyntax --module NodeNext --moduleResolution NodeNext --target ES2023 --lib ES2023,DOM --types node --skipLibCheck` on `src/memory/knowledge/*.ts` and `test/knowledge-model/semantic-addressing.test.ts`. Exit 0.
-2. `npm run typecheck` / `npm test`: pass after a **local uncommitted** copy of `src/acp/a007-acp-agent.ts` to `src/acp/A008-acp-agent.ts` so the project compiles. That copy was deleted and is not in this change. `npm test` (FORCE_COLOR unset): **170 pass / 0 fail**, including named S3. Duration ~9074 ms.
-3. `git diff --check`: pass (no whitespace errors).
-4. `git diff --name-only` on `src/memory/types.ts`, `hybrid-memory-reader.ts`, `memory-engine.ts`, `sqlite-memory-repository.ts`: empty.
-5. No `.env.local` read, no live provider, no OpenHands mutation.
-
-Skipped / pre-existing:
-
-- Full-project `tsc` on a clean `origin/main` tree fails because imports name `./A008-acp-agent.js` while the tracked file is still `src/acp/a007-acp-agent.ts`. That mismatch predates this branch and is outside write scope. Operator should rename the ACP file on `main` or in a bounded follow-up; this slice does not touch it.
-- With `FORCE_COLOR` set, `acp-process.test.ts` asserts empty stderr and fails on Node's `NO_COLOR` warning. Unrelated to this slice; suite is green with `FORCE_COLOR` unset.
+- [x] A008-0024 handoff `docs/handoffs/A008-0024.md`: isolated knowledge typecheck exit 0; 170/170 tests with local ACP filename workaround; S3 named tests listed; no KnowledgeItem mutation.
+- [x] A008-0023 PR #2 files match M1 write scope plus ACP source rename `a007-acp-agent.ts` → `A008-acp-agent.ts` (pre-existing identity mismatch on main). No handoff file on the branch; code is the handoff.
+- [ ] Combined `npm run typecheck` / `npm test` on `main` after wave-2 start is worker-owned; operator does not re-run child suites.
+- [x] No live provider / `.env.local` / OpenHands mutation in this operator merge.
 
 ## Documentation Updates
 
-- [x] `docs/FILESTRUCTURE.md`
-- [x] `docs/handoffs/A008-0024.md`
+- [x] `docs/adr/0018-knowledge-and-memory-model.md`
+- [ ] `docs/CURRENT_STATUS.md` after first child merge
+- [ ] `docs/SYSTEMDOC.md` when behavior exists
+- [ ] `docs/JOURNAL.md` after M0 landing and after each merge
+- [x] `docs/FILESTRUCTURE.md` for tasks/handoffs/ADR 0018
+- [x] ADR collection index
 
 ## Handoff and Follow-ups
 
-- Current state: PR open; handoff on branch. Waiting for operator merge.
-- Next recommended step: operator reviews and merges https://github.com/zackemannen81/A008/pull/1
-- Blockers: none for this slice. Pre-existing ACP filename mismatch on `main` will fail CI typecheck until renamed.
-- Child tasks: none. M4/M5 start after this merge.
-- Resume condition: satisfied (PR + handoff exist).
-- Open questions: none.
+- Current state: Wave 1 merged (M1 + M3). M4 and M5 unblocked.
+- Next recommended step: brief clones for A008-0025 and A008-0026.
+- Blockers: none for wave 2.
+- Child tasks: A008-0022 landed; A008-0023 and A008-0024 merged; A008-0025..A008-0028 remain.
+- Resume condition: A008-0025 and/or A008-0026 PR open.
+- Open questions: none that reopen ADR 0018. Cutover timing of live CLI/ACP
+  onto the new engine is an operator merge decision after M6.
 
 ## Finalize When Complete
 
-- Operator merges. Worker does not archive the parent.
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.

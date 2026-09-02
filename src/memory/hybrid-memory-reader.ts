@@ -1,4 +1,8 @@
 import { MemoryError } from "./errors.js";
+import {
+  isExactChannelCandidate,
+  strengthWeightForChannels,
+} from "./hybrid-retrieval-policy.js";
 import { SemanticMemory } from "./memory-engine.js";
 import type {
   CandidateScoreComponents,
@@ -52,7 +56,7 @@ function scoreComponents(
     semantic: channel("semantic") * policy.weights.semantic,
     strength:
       validateWeight(candidate.item.relevanceScore, "knowledge strength") *
-      policy.weights.strength,
+      strengthWeightForChannels(policy.weights, candidate.channelScores.keys()),
     authority:
       validateWeight(candidate.item.authority, "knowledge authority") *
       policy.weights.authority,
@@ -61,6 +65,13 @@ function scoreComponents(
 
 function totalScore(components: CandidateScoreComponents): number {
   return Object.values(components).reduce((sum, value) => sum + value, 0);
+}
+
+function isProjectionEligible(candidate: MutableCandidate): boolean {
+  return (
+    candidate.item.activationStatus === "active" ||
+    isExactChannelCandidate(candidate.channelScores.keys())
+  );
 }
 
 export class HybridMemoryReader {
@@ -162,7 +173,7 @@ export class HybridMemoryReader {
       .filter(
         (entry) =>
           entry.score >= this.policy.projectionThreshold &&
-          entry.candidate.item.activationStatus === "active",
+          isProjectionEligible(entry.candidate),
       )
       .slice(0, this.policy.maxProjectionItems);
     const rankedCandidateIds = projectionEligible.map(
@@ -196,12 +207,23 @@ export class HybridMemoryReader {
           exclusionReason = "candidate_limit";
         } else if (entry.score < this.policy.projectionThreshold) {
           exclusionReason = "below_projection_threshold";
-        } else if (entry.candidate.item.activationStatus === "dormant") {
-          exclusionReason = "persistent_activation_dormant";
+        } else if (
+          entry.candidate.item.activationStatus === "dormant" &&
+          !isExactChannelCandidate(entry.candidate.channelScores.keys())
+        ) {
+          exclusionReason = "associative_activation_dormant";
         } else if (!rankedCandidateIds.includes(id)) {
           exclusionReason = "projection_item_limit";
         } else if (!selectedIds.has(id)) {
           exclusionReason = "projection_budget";
+        }
+        const reasons = new Set(entry.candidate.reasons);
+        if (
+          selectedIds.has(id) &&
+          entry.candidate.item.activationStatus === "dormant" &&
+          isExactChannelCandidate(entry.candidate.channelScores.keys())
+        ) {
+          reasons.add("direct_match_ignores_activation");
         }
         return {
           knowledgeId: id,
@@ -210,9 +232,7 @@ export class HybridMemoryReader {
           channels: [...entry.candidate.channelScores.keys()].sort((a, b) =>
             a.localeCompare(b),
           ),
-          reasons: [...entry.candidate.reasons].sort((a, b) =>
-            a.localeCompare(b),
-          ),
+          reasons: [...reasons].sort((a, b) => a.localeCompare(b)),
           activationStatus: entry.candidate.item.activationStatus,
           activationThreshold: entry.candidate.item.activationThreshold,
           included: selectedIds.has(id),

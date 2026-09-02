@@ -82,7 +82,7 @@ function engine(
   });
 }
 
-test("dormant restatement reinforces the existing item and threshold owns recovery", async () => {
+test("dormant restatement reinforces on write; project includes it without mutation", async () => {
   const memory = engine();
   const created = await memory.reconcile(
     proposal("The memory core is provider neutral."),
@@ -106,6 +106,8 @@ test("dormant restatement reinforces the existing item and threshold owns recove
   assert.equal(restated.item?.proposition, "The memory core is provider neutral.");
   assert.ok(Math.abs((restated.item?.relevanceScore ?? 0) - 0.3) < 1e-12);
   assert.equal(restated.item?.activationStatus, "dormant");
+  const afterWrite = await memory.getKnowledge("knowledge_1");
+  const auditAfterWrite = await memory.getAudit();
 
   const projected = await memory.project(
     task({ terms: ["continuity"] }),
@@ -115,12 +117,9 @@ test("dormant restatement reinforces the existing item and threshold owns recove
     projected.projection.items.map((item) => item.id),
     ["knowledge_1"],
   );
-  assert.ok(
-    Math.abs(
-      ((await memory.getKnowledge("knowledge_1"))?.relevanceScore ?? 0) - 0.55,
-    ) < 1e-12,
-  );
-  assert.equal((await memory.getKnowledge("knowledge_1"))?.activationStatus, "active");
+  assert.deepEqual(await memory.getKnowledge("knowledge_1"), afterWrite);
+  assert.deepEqual(await memory.getAudit(), auditAfterWrite);
+  assert.equal((await memory.getKnowledge("knowledge_1"))?.activationStatus, "dormant");
 });
 
 test("guarded reconciliation rejects stale revisions inside the transaction", async () => {
@@ -219,18 +218,20 @@ test("scope isolation excludes active knowledge without decaying it", async () =
     new CodingAgentMemoryPolicy({ projectionReinforcement: 0.1 }),
   );
 
+  const before = await memory.getKnowledge("in-scope");
   const projection = await memory.project(task(), { maximum: 2_000 });
   assert.deepEqual(
     projection.projection.items.map((item) => item.id),
     ["in-scope"],
   );
-  assert.equal((await memory.getKnowledge("in-scope"))?.relevanceScore, 0.7);
+  assert.deepEqual(await memory.getKnowledge("in-scope"), before);
+  assert.equal((await memory.getKnowledge("in-scope"))?.relevanceScore, 0.6);
   assert.equal((await memory.getKnowledge("out-of-scope"))?.relevanceScore, 0.6);
   assert.equal((await memory.getKnowledge("out-of-scope"))?.activationStatus, "active");
   assert.equal((await memory.getKnowledge("out-of-scope"))?.revision, 1);
 });
 
-test("keep-alive is hard-required while an ineligible required item fails atomically", async () => {
+test("keep-alive and dormant required items project without activation or mutation", async () => {
   const repository = new InMemoryMemoryRepository([
     storedItem("pinned", {
       scope: ["unrelated"],
@@ -258,14 +259,13 @@ test("keep-alive is hard-required while an ineligible required item fails atomic
   const before = await memory.getKnowledge("required-dormant");
   const auditBefore = await memory.getAudit();
 
-  await assert.rejects(
-    () =>
-      memory.project(
-        task({ requiredKnowledgeIds: ["required-dormant"] }),
-        { maximum: 2_000 },
-      ),
-    (error: unknown) =>
-      error instanceof MemoryError && error.code === "required_not_eligible",
+  const required = await memory.project(
+    task({ requiredKnowledgeIds: ["required-dormant"] }),
+    { maximum: 2_000 },
+  );
+  assert.deepEqual(
+    required.projection.items.map((item) => item.id).sort(),
+    ["pinned", "required-dormant"],
   );
   assert.deepEqual(await memory.getKnowledge("required-dormant"), before);
   assert.deepEqual(await memory.getAudit(), auditBefore);
@@ -361,10 +361,9 @@ test("invalid duplicate generated ID and policy failure roll back state", async 
   );
   assert.deepEqual(await duplicateMemory.getAudit(), []);
 
-  let calls = 0;
-  const failingPolicy: MemoryPolicy = {
+  const boostingPolicy: MemoryPolicy = {
     isRelevant: () => true,
-    projectionReinforcement: () => (++calls === 1 ? 0.1 : Number.NaN),
+    projectionReinforcement: () => 0.25,
     reconciliationReinforcement: () => 0.1,
     rankForContext: (items) => items,
   };
@@ -372,12 +371,14 @@ test("invalid duplicate generated ID and policy failure roll back state", async 
     storedItem("first", { relevanceScore: 0.6 }),
     storedItem("second", { relevanceScore: 0.6 }),
   ]);
-  const memory = engine(repository, failingPolicy);
-  await assert.rejects(
-    () => memory.project(task(), { maximum: 2_000 }),
-    (error: unknown) =>
-      error instanceof MemoryError && error.code === "policy",
+  const memory = engine(repository, boostingPolicy);
+  const before = await memory.getKnowledge("first");
+  const projected = await memory.project(task(), { maximum: 2_000 });
+  assert.deepEqual(
+    projected.projection.items.map((item) => item.id).sort(),
+    ["first", "second"],
   );
+  assert.deepEqual(await memory.getKnowledge("first"), before);
   assert.equal((await memory.getKnowledge("first"))?.relevanceScore, 0.6);
   assert.equal((await memory.getKnowledge("first"))?.revision, 1);
   assert.deepEqual(await memory.getAudit(), []);
@@ -492,8 +493,29 @@ test("selected projection preserves explicit rank without lifecycle mutation", a
 
   assert.deepEqual(
     result.projection.items.map((item) => item.id),
-    ["second", "first"],
+    ["second", "dormant", "first"],
   );
   assert.deepEqual(await repository.read((view) => view.listAll()), before);
   assert.deepEqual(await repository.readAudit(), auditBefore);
+});
+
+test("S6 reduced: a dormant current record is returned for a direct question", async () => {
+  const repository = new InMemoryMemoryRepository([
+    storedItem("house-color", {
+      proposition: "Brittans house is green.",
+      activationStatus: "dormant",
+      relevanceScore: 0.1,
+      activationThreshold: 0.9,
+    }),
+  ]);
+  const memory = engine(
+    repository,
+    new CodingAgentMemoryPolicy({ projectionReinforcement: 0.25 }),
+  );
+  const before = await memory.getKnowledge("house-color");
+  const auditBefore = await memory.getAudit();
+  const result = await memory.project(task(), { maximum: 2_000 });
+  assert.deepEqual(result.projection.items.map((item) => item.id), ["house-color"]);
+  assert.deepEqual(await memory.getKnowledge("house-color"), before);
+  assert.deepEqual(await memory.getAudit(), auditBefore);
 });

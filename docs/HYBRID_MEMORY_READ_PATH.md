@@ -27,7 +27,8 @@ verified project/conversation/task/agent identity
  tag ------------+    -> weighted score
  domain ---------+    -> candidate threshold
  optional vector-´    -> projection threshold
-                         -> active-only item limit
+                         -> exact/direct hits ignore activation
+                         -> associative hits exclude dormant
                     |
                     v
      SemanticMemory.projectSelected
@@ -112,7 +113,7 @@ ID. The neutral policy's default weights are:
 | tag | 0.10 |
 | domain | 0.10 |
 | authority | 0.10 |
-| existing strength | 0.05 |
+| existing strength | 0.05 (0 for exact-channel candidates) |
 
 Defaults are experimental configuration, not tuned universal truth. They sum to
 one and can be replaced as one validated policy. Candidate and projection
@@ -128,16 +129,24 @@ changing the planner, reader, or projection contract.
 
 ## Projection boundary
 
-`HybridMemoryReader` admits bounded candidates, filters by projection threshold
-and active status, and passes only ranked IDs to
+`HybridMemoryReader` admits bounded candidates and filters by projection
+threshold. Activation filters associative (non-exact) hits only. Exact/direct
+channel hits are projection-eligible while dormant, and their score does not
+use memory strength (`weights.strength = 0`). Dormant associative hits are
+omitted with reason `associative_activation_dormant`. Ranked IDs are passed to
 `SemanticMemory.projectSelected`. The service then re-reads canonical content;
 retrieval metadata cannot rewrite propositions.
 
 `projectSelected` is deliberately read-only. It does not call the legacy
 projection-reinforcement policy, append an audit event, or update revision,
-strength, or activation. Dormant current records can be found and reported but
-cannot enter the projection. Required and keep-alive current records remain hard
-requirements and fail if missing, dormant, or too large.
+strength, or activation. Dormant exact/direct hits may enter the projection.
+Required and keep-alive current records remain hard requirements and fail if
+missing or too large; dormancy is not an eligibility failure for a
+direct/required match.
+
+`SemanticMemory.project()` is also non-mutating: it writes no reinforcement,
+activation, revision, or audit. Reinforcement remains a named write-path call
+(`reconciliationReinforcement`), not a read side effect.
 
 The stable serialized projection still contains only task ID and materialized
 semantic items. Candidate scores, activation data, raw query plans, provenance,
@@ -152,7 +161,9 @@ Each read returns bounded control-plane evidence containing:
 - hit count per channel and unique/admitted candidate counts;
 - bounded candidate score components, channels, and reasons;
 - candidate, projection, and per-item activation thresholds;
-- dormant candidates and explicit exclusion reasons;
+- dormant candidates and explicit exclusion reasons, including
+  `associative_activation_dormant` versus included dormant exact hits
+  (`direct_match_ignores_activation`);
 - selected and omitted IDs; and
 - final projection size and measurement unit.
 

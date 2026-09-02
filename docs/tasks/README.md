@@ -11,13 +11,13 @@ current-task record when merging to `main`.
 ## Records
 
 - [`A008-0023_repair-direct-match-eligibility.md`](A008-0023_repair-direct-match-eligibility.md)
-  — Ready; M1 eligibility repair.
+  — Merged to `main` 2026-09-02 (PR #2).
 - [`A008-0024_semantic-addressing.md`](A008-0024_semantic-addressing.md)
-  — Ready; M3 semantic addressing.
+  — Merged to `main` 2026-09-02 (PR #1).
 - [`A008-0025_state-history-split.md`](A008-0025_state-history-split.md)
-  — Ready; M4 state/history split. Blocked on A008-0024 merge.
+  — Ready; M4 state/history split. Unblocked.
 - [`A008-0026_first-class-evidence.md`](A008-0026_first-class-evidence.md)
-  — Ready; M5 evidence and acceptance. Blocked on A008-0024 merge.
+  — Ready; M5 evidence and acceptance. Unblocked.
 - [`A008-0027_evidence-lifecycle-intents.md`](A008-0027_evidence-lifecycle-intents.md)
   — Ready; M6 lifecycle and retrieval intents. Blocked on A008-0025 and
   A008-0026 merge.
