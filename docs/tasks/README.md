@@ -12,7 +12,8 @@ the template before push.
 ## Records
 
 - [`A008-0021_close-knowledge-model-gap.md`](A008-0021_close-knowledge-model-gap.md)
-  — In Progress; parent program. Operator-owned.
+  — Complete; archived
+  [`../finished/A008-0021_close-knowledge-model-gap.md`](../finished/A008-0021_close-knowledge-model-gap.md).
 
 - [`A008-0023_repair-direct-match-eligibility.md`](A008-0023_repair-direct-match-eligibility.md)
   — Merged to `main` 2026-09-02 (PR #2).
@@ -25,4 +26,4 @@ the template before push.
 - [`A008-0027_evidence-lifecycle-intents.md`](A008-0027_evidence-lifecycle-intents.md)
   — Merged to `main` 2026-09-02 (PR #5). Also archived under `docs/finished/`.
 - [`A008-0028_storage-redesign.md`](A008-0028_storage-redesign.md)
-  — Ready; M7 storage. Unblocked.
+  — Merged to `main` 2026-09-02 (PR #6). Also archived under `docs/finished/`.

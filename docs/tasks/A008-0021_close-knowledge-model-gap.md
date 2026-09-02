@@ -2,7 +2,7 @@
 
 Task ID: A008-0021
 Parent Task: None
-Status: In Progress
+Status: Complete (archived `docs/finished/A008-0021_close-knowledge-model-gap.md`)
 Owner: Grok (operator / boss)
 Created: 2026-09-02
 Last updated: 2026-09-02
@@ -97,9 +97,9 @@ identical results; live CLI/ACP uses the new engine without V3/V4/V7;
 - [x] Brief and merge A008-0025 (M4) from worker02 PR #4.
 - [x] Brief and merge A008-0026 (M5) from worker03 PR #3.
 - [x] Brief and merge A008-0027 (M6) from worker02 PR #5.
-- [ ] Brief and merge A008-0028 (M7).
-- [ ] Combined verification and documentation cutover.
-- [ ] Archive this task under `docs/finished/`.
+- [x] Brief and merge A008-0028 (M7) from worker03 PR #6.
+- [x] Combined verification and documentation cutover (child handoffs; D9).
+- [x] Archive this task under `docs/finished/`.
 
 ## Decisions and Notes
 
@@ -128,11 +128,10 @@ identical results; live CLI/ACP uses the new engine without V3/V4/V7;
 
 ## Handoff and Follow-ups
 
-- Current state: Wave 3 merged (M6). In-memory S1–S10 green per handoff.
-  CURRENT_TASK on `main` is the template. A008-0027 restored the template
-  before push.
-- Next recommended step: brief A008-0028 (M7 storage).
-- Blockers: none for wave 4.
-- Child tasks: A008-0022..A008-0027 landed; A008-0028 remains.
-- Resume condition: A008-0028 PR open.
+- Current state: Complete. All children merged. CURRENT_TASK on `main` is
+  the template.
+- Next recommended step: none for this program.
+- Blockers: none.
+- Child tasks: A008-0022 through A008-0028 landed.
+- Resume condition: not applicable.
 - Open questions: none that reopen ADR 0018.

@@ -2,6 +2,21 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-02 — Close knowledge-model gap (A008-0021 complete)
+
+- Date: 2026-09-02
+- Author: Grok (operator / boss)
+- Task: A008-0021
+- Branch: `main`
+- Change: merged `grok/A008-0028-storage-redesign` (PR #6). Worker restored
+  the CURRENT_TASK template and archived the charter before push. Parent
+  program archived to `docs/finished/A008-0021_close-knowledge-model-gap.md`.
+  `docs/CURRENT_TASK.md` remains the empty template.
+- Evidence: `docs/handoffs/A008-0028.md`. Typecheck exit 0; 210/210 tests;
+  in-memory and SQLite S1–S10 payloads match; live CLI/ACP cutover without
+  V3/V4/V7. ADR 0018 D9 complete.
+- Signature: Grok
+
 ## 2026-09-02 — Merge wave 3: M6 evidence lifecycle and retrieval intents
 
 - Date: 2026-09-02
