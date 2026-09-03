@@ -37,7 +37,15 @@ body {
   display: grid;
   grid-template-rows: auto 1fr;
   grid-template-columns: 1fr 16rem;
-  min-height: 100%;
+  /*
+   * `height`, not `min-height`. A minimum is a floor: the `1fr` row grew to fit
+   * its content, so a long transcript pushed the whole grid past the viewport,
+   * the window scrolled instead of the transcript, and the chat pane's
+   * scroll-to-bottom wrote to an element that never overflowed. Capping the
+   * grid is what makes `overflow: auto` on `.a008-chat-transcript` engage.
+   */
+  height: 100%;
+  overflow: hidden;
   font-family: var(--a008-sans);
   color: var(--a008-fg);
   background-color: var(--a008-bg);
