@@ -25,6 +25,9 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
   });
   const agent = new A008AcpAgent({
     createSession: (model) => runtime.openSession({ model }),
+    // Wired only here, so an agent constructed without a runtime refuses
+    // `_a008/source/ingest` instead of silently doing nothing.
+    ingestSource: async (params) => await runtime.ingestSource(params),
     onMemoryDiagnostic: (message) => {
       stderr.write(`memory> ${message}\n`);
     },
@@ -48,6 +51,13 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
       // `session/close` method needs its own handler even though the agent
       // advertises the capability from `initialize`.
       .onRequest("session/close", (context) => agent.closeSession(context.params))
+      // ADR 0020 D4. Registered through the custom-method overload, which takes
+      // an explicit params parser; the agent re-validates regardless.
+      .onRequest(
+        "_a008/source/ingest",
+        (params: unknown) => params,
+        async (context) => await agent.ingestSource(context.params),
+      )
       .onNotification("session/cancel", (context) => agent.cancel(context.params))
       .connect(stream);
 

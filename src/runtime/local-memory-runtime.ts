@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { ChatSession, type SendMessageOptions } from "../core/chat-session.js";
 import {
   Utf8ByteChatMessageMeasurer,
@@ -25,13 +31,21 @@ import type {
   RuntimeTaskId,
 } from "../identity/types.js";
 import { MemoryError, isMemoryError } from "../memory/errors.js";
+import type { ProvenanceRelation } from "../memory/knowledge/evidence-types.js";
+import { ingest } from "../memory/knowledge/ingest.js";
 import {
   createSqliteKnowledgeContext,
   KnowledgeEngineCommit,
   KnowledgeMemoryReader,
+  type ContentKind,
   type SqliteKnowledgeContextHandle,
 } from "../memory/knowledge/index.js";
 import type { HybridMemoryReadResult } from "../memory/retrieval-types.js";
+import {
+  sniffSourceMediaType,
+  SourceExtractorRegistry,
+  Utf8TextExtractor,
+} from "../ingest/index.js";
 import { MemoryAwareChatSession } from "../orchestration/memory-aware-chat-session.js";
 import type { MemoryReadPort } from "../orchestration/memory-aware-chat-session.js";
 import {
@@ -83,6 +97,39 @@ export const LIVE_RECONCILIATION_REINFORCEMENT = 0.2;
 const INVOCATION_BUDGET_MAXIMUM = 16_384;
 const SEMANTIC_BUDGET_MAXIMUM = 16_384;
 
+/**
+ * Speaker recorded when text is taken verbatim from an uploaded source. This
+ * process serves one local user, exactly as `KnowledgeEngineCommit` hardcodes
+ * `speaker: "user"` for the dialogue ingest path.
+ */
+const SOURCE_UPLOADER_SPEAKER = "user";
+
+/**
+ * Optional scheme prefix on a source locator, per ADR 0020 D2
+ * (`source:<sha256>/<sanitised-name>`). Stripped before filesystem
+ * resolution — `:` is not a legal path character on Windows — but the
+ * caller's original locator string, prefix included, is what is preserved on
+ * the stored artifact.
+ */
+const SOURCE_LOCATOR_SCHEME = "source:";
+
+export interface SourceIngestInput {
+  readonly locator: string;
+  /** Advisory only; the actual media type is always sniffed from the bytes. */
+  readonly mediaType?: string;
+  /** Advisory only; never decides extraction. */
+  readonly filename?: string;
+  readonly signal?: AbortSignal;
+}
+
+export interface SourceIngestOutcome {
+  readonly artifactId: string;
+  readonly utteranceIds: readonly string[];
+  readonly contentKind: ContentKind;
+  readonly relation: ProvenanceRelation;
+  readonly speaker: string;
+}
+
 export interface LocalMemoryRuntimeOptions {
   readonly env: NodeJS.ProcessEnv;
   readonly surface: DebugTraceSurface;
@@ -101,6 +148,19 @@ export interface LocalMemoryRuntimeOptions {
     writer: RelationIndexWriter,
   ) => RelationIndexWriter;
   readonly memoryDecorator?: (memory: RelationMemoryPort) => RelationMemoryPort;
+  /**
+   * Composed registry of `SourceExtractor`s for `ingestSource`. Defaults to
+   * text-only (`Utf8TextExtractor`); tests inject a fake extractor here to
+   * drive the `derived_from` provenance-passthrough gate without a live
+   * vision call.
+   */
+  readonly sourceExtractorRegistry?: SourceExtractorRegistry;
+  /**
+   * Reads the stored bytes for `ingestSource`, after locator containment has
+   * already been proven safe. Overridable so a test can prove a rejected
+   * locator's file was never opened.
+   */
+  readonly readSourceBytes?: (path: string) => Uint8Array;
 }
 
 export interface LocalMemorySessionOptions {
@@ -131,6 +191,81 @@ function semanticBudget(): {
     maximum: SEMANTIC_BUDGET_MAXIMUM,
     measurer: new Utf8ByteKnowledgeIntakeMeasurer(),
   };
+}
+
+function containedRelative(root: string, candidate: string): string | undefined {
+  const relativePath = relative(root, candidate);
+  if (
+    relativePath === "" ||
+    relativePath.startsWith("..") ||
+    isAbsolute(relativePath)
+  ) {
+    return undefined;
+  }
+  return relativePath;
+}
+
+/**
+ * Resolves a source locator against the configured store root and returns
+ * the real filesystem path of the stored bytes.
+ *
+ * The host names the path and this process reads it, so containment is a
+ * security boundary (ADR 0020 D2), not a convenience check: a `startsWith`
+ * comparison on the root is not sufficient, because it does not catch a
+ * symlink whose target escapes the root after the syntactic path already
+ * looks contained. Every rejection here happens before any byte of the
+ * target file is read.
+ *
+ * Two passes, both required:
+ *  1. Syntactic — reject `..` traversal and an absolute locator using
+ *     `path.relative`, exactly as `resolvedSqlitePath` validates
+ *     `A008_MEMORY_SQLITE_PATH`. This alone stops every attack that never
+ *     touches the filesystem.
+ *  2. Real — resolve both the candidate and the root with `realpathSync` and
+ *     re-check containment. This is what catches a symlink (or, on Windows
+ *     without the symlink privilege, a directory junction) planted inside the
+ *     store that resolves outside it.
+ */
+function resolveSourceLocatorPath(storeRoot: string, locator: string): string {
+  const trimmed = locator.trim();
+  if (trimmed.length === 0) {
+    throw new ChatError("configuration", "Source locator must not be empty.");
+  }
+  const relativePart = trimmed.startsWith(SOURCE_LOCATOR_SCHEME)
+    ? trimmed.slice(SOURCE_LOCATOR_SCHEME.length)
+    : trimmed;
+  if (relativePart.length === 0 || isAbsolute(relativePart)) {
+    throw new ChatError(
+      "configuration",
+      `Source locator must name a relative path under the store root: ${locator}`,
+    );
+  }
+  const candidate = resolve(storeRoot, relativePart);
+  if (containedRelative(storeRoot, candidate) === undefined) {
+    throw new ChatError(
+      "configuration",
+      `Source locator escapes the configured store root: ${locator}`,
+    );
+  }
+  let realCandidate: string;
+  let realRoot: string;
+  try {
+    realCandidate = realpathSync(candidate);
+    realRoot = realpathSync(storeRoot);
+  } catch (error) {
+    throw new ChatError(
+      "configuration",
+      `Source locator does not resolve to a stored file: ${locator}`,
+      { cause: error },
+    );
+  }
+  if (containedRelative(realRoot, realCandidate) === undefined) {
+    throw new ChatError(
+      "configuration",
+      `Source locator escapes the configured store root: ${locator}`,
+    );
+  }
+  return realCandidate;
 }
 
 export function formatRuntimeError(error: unknown): string {
@@ -429,6 +564,9 @@ export class LocalMemoryRuntime {
   readonly #transport: ChatTransport;
   readonly #registry: ModelRegistry;
   readonly #identityFactory: RuntimeIdentityFactory;
+  readonly sourceStoreRoot: string | undefined;
+  readonly #sourceExtractorRegistry: SourceExtractorRegistry;
+  readonly #readSourceBytes: (path: string) => Uint8Array;
   #closed = false;
 
   constructor(options: {
@@ -445,6 +583,9 @@ export class LocalMemoryRuntime {
     readonly transport: ChatTransport;
     readonly registry: ModelRegistry;
     readonly identityFactory: RuntimeIdentityFactory;
+    readonly sourceStoreRoot?: string;
+    readonly sourceExtractorRegistry: SourceExtractorRegistry;
+    readonly readSourceBytes: (path: string) => Uint8Array;
   }) {
     this.surface = options.surface;
     this.projectId = options.projectId;
@@ -457,6 +598,9 @@ export class LocalMemoryRuntime {
     this.#transport = options.transport;
     this.#registry = options.registry;
     this.#identityFactory = options.identityFactory;
+    this.sourceStoreRoot = options.sourceStoreRoot;
+    this.#sourceExtractorRegistry = options.sourceExtractorRegistry;
+    this.#readSourceBytes = options.readSourceBytes;
   }
 
   openSession(options: LocalMemorySessionOptions = {}): LocalMemorySession {
@@ -517,6 +661,70 @@ export class LocalMemoryRuntime {
     });
   }
 
+  /**
+   * Ingests a source already stored under the configured store root, by
+   * locator, per ADR 0020 D1/D4.
+   *
+   * The locator is resolved and proven to stay inside the store root before
+   * a single byte is read (see {@link resolveSourceLocatorPath}). The bytes
+   * are then sniffed for their real media type — the caller's `mediaType` is
+   * advisory only, exactly as a declared filename is — and handed to the
+   * extractor registry. Whatever `content`, `speaker`, `relation` and
+   * `contentKind` the chosen extractor returns pass straight through to
+   * `ingest()`; this runtime does not reinterpret them (ADR 0020 D5). The
+   * original locator string, not the resolved filesystem path, is what is
+   * preserved on the stored artifact, so it stays stable and re-readable
+   * without leaking a machine-local path into the evidence graph.
+   *
+   * Wave 1 stores evidence only (ADR 0020 D7): this never calls
+   * `PostOutputMemoryCoordinator`.
+   */
+  async ingestSource(input: SourceIngestInput): Promise<SourceIngestOutcome> {
+    if (this.#closed) {
+      throw new ChatError("configuration", "Local memory runtime is closed.");
+    }
+    if (this.sourceStoreRoot === undefined) {
+      throw new ChatError(
+        "configuration",
+        "A008_SOURCE_STORE_PATH is not configured.",
+      );
+    }
+    const resolvedPath = resolveSourceLocatorPath(
+      this.sourceStoreRoot,
+      input.locator,
+    );
+    const bytes = this.#readSourceBytes(resolvedPath);
+    const mediaType = sniffSourceMediaType(bytes);
+    const extracted = await this.#sourceExtractorRegistry.extract({
+      bytes,
+      mediaType,
+      locator: input.locator,
+      uploadedBy: SOURCE_UPLOADER_SPEAKER,
+      ...(input.filename === undefined ? {} : { filename: input.filename }),
+      ...(input.signal === undefined ? {} : { signal: input.signal }),
+    });
+    const result = ingest(
+      {
+        content: extracted.content,
+        speaker: extracted.speaker,
+        relation: extracted.relation,
+        ...(extracted.contentKind === undefined
+          ? {}
+          : { contentKind: extracted.contentKind }),
+        locator: input.locator,
+        scope: { verified: true },
+      },
+      { store: this.#knowledge.context.evidence },
+    );
+    return {
+      artifactId: result.artifact.id,
+      utteranceIds: result.utterances.map((utterance) => utterance.id),
+      contentKind: result.artifact.contentKind,
+      relation: extracted.relation,
+      speaker: extracted.speaker,
+    };
+  }
+
   close(): void {
     if (this.#closed) {
       return;
@@ -540,6 +748,9 @@ export function createLocalMemoryRuntime(
     options.identityFactory ?? new RuntimeIdentityFactory();
   if (!config.sqliteIsMemory) {
     mkdirSync(dirname(config.sqlitePath), { recursive: true });
+  }
+  if (config.sourceStorePath !== undefined) {
+    mkdirSync(config.sourceStorePath, { recursive: true });
   }
   const projectId = resolveProjectId(config, identityFactory);
   const agentId = resolveAgentId(config, identityFactory);
@@ -609,5 +820,12 @@ export function createLocalMemoryRuntime(
     transport,
     registry: options.registry ?? defaultModelRegistry,
     identityFactory,
+    ...(config.sourceStorePath === undefined
+      ? {}
+      : { sourceStoreRoot: config.sourceStorePath }),
+    sourceExtractorRegistry:
+      options.sourceExtractorRegistry ??
+      new SourceExtractorRegistry([new Utf8TextExtractor()]),
+    readSourceBytes: options.readSourceBytes ?? ((path) => readFileSync(path)),
   });
 }
