@@ -94,8 +94,20 @@ interface ResolvedLimits {
   readonly maximumEntitiesPerProposal: number;
 }
 
+/**
+ * Staging ceiling per answer.
+ *
+ * `maximumProposals` was 8. Owner testing across several models showed an
+ * ordinary factual text yielding 49 proposals, so 8 discarded more than half of
+ * a normal extraction as `budget_exceeded`. Raised to 128.
+ *
+ * This is also a cost dial, not only a correctness one: the post-output
+ * coordinator commits proposals strictly sequentially, one relation-classifier
+ * call each, so the ceiling bounds provider calls per delivered answer at
+ * 1 analyzer + N classifiers.
+ */
 const DEFAULT_LIMITS: ResolvedLimits = {
-  maximumProposals: 8,
+  maximumProposals: 128,
   maximumTagsPerProposal: 16,
   maximumDomainsPerProposal: 8,
   maximumEntitiesPerProposal: 16,
