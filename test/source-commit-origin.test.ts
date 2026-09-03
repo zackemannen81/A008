@@ -64,6 +64,7 @@ function batch(
     taskId: TASK,
     agentId: AGENT,
     origin,
+    skippedProposals: [],
     sourceMessage,
     proposals,
     serialized: JSON.stringify(proposals),

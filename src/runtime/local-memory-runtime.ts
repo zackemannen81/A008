@@ -302,7 +302,12 @@ export function describeMemoryOutcome(
   result: PostOutputMemoryResult,
 ): string | undefined {
   if (result.status === "completed") {
-    return undefined;
+    // A completed batch is silent unless items were dropped. Skipping is not a
+    // failure, but it is a loss, and a silent loss is the thing to avoid.
+    const skipped = "batch" in result ? result.batch.skippedProposals : [];
+    return skipped.length === 0
+      ? undefined
+      : `memory skipped ${skipped.length} malformed proposal${skipped.length === 1 ? "" : "s"}: ${skipped.join("; ")}`;
   }
   if (result.status === "staging_failed") {
     return `memory staging failed: ${formatRuntimeError(result.error)}`;

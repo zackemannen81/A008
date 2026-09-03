@@ -10,6 +10,7 @@ import {
   type PostOutputAnalyzerInput,
   type PostOutputKnowledgeAnalyzer,
 } from "../src/orchestration/post-output-knowledge-intake.js";
+import { describeMemoryOutcome } from "../src/runtime/local-memory-runtime.js";
 
 const PROJECT = parseRuntimeId(
   "A008_v1_project_30000000-0000-4000-8000-000000000001",
@@ -164,7 +165,9 @@ test("intake enforces the exact multibyte serialized budget", async () => {
   );
 });
 
-test("intake rejects excessive, duplicate, and malformed analyzer output", async () => {
+test("a batch-level defect still fails closed", async () => {
+  // More items than the ceiling says the response as a whole cannot be trusted,
+  // not that one item was malformed. That still rejects everything.
   const excessive = intake(
     {
       async analyze() {
@@ -182,32 +185,48 @@ test("intake rejects excessive, duplicate, and malformed analyzer output", async
     (error: unknown) =>
       error instanceof MemoryError && error.code === "budget_exceeded",
   );
+});
 
-  const duplicate = intake({
+test("one bad item is skipped and reported, not allowed to discard the batch", async () => {
+  // Observed live: a completeness-oriented extraction of tens of items came
+  // back with an empty proposition at index 5, and the whole batch was lost.
+  const staged = await intake({
     async analyze() {
       return [
-        { proposition: "Same fact", kind: "Fact" },
-        { proposition: "same fact", kind: "fact" },
-      ];
+        { proposition: "first durable claim", kind: "fact" },
+        { proposition: "", kind: "fact" },
+        { proposition: "second durable claim", kind: "fact" },
+        { proposition: "third durable claim", kind: "fact", confidence: 2 },
+        { proposition: "fourth durable claim", kind: "fact" },
+        // A near-duplicate: the instruction asks for recursive splitting, so
+        // the model will not always dedupe perfectly.
+        { proposition: "First durable claim", kind: "Fact" },
+        "not an object",
+      ] as never;
     },
-  });
-  await assert.rejects(
-    () => duplicate.stage(input),
-    (error: unknown) => error instanceof MemoryError && error.code === "policy",
+  }).stage(input);
+
+  assert.deepEqual(
+    staged.proposals.map((entry) => entry.proposal.proposition),
+    ["first durable claim", "second durable claim", "fourth durable claim"],
   );
 
-  const malformed = intake({
+  // The loss must be visible, never silent.
+  assert.equal(staged.skippedProposals.length, 4);
+  assert.match(staged.skippedProposals[0] ?? "", /proposition/u);
+  assert.match(staged.skippedProposals[1] ?? "", /confidence/u);
+  assert.match(staged.skippedProposals[2] ?? "", /duplicates/u);
+  assert.match(staged.skippedProposals[3] ?? "", /must be an object/u);
+});
+
+test("a clean extraction reports nothing skipped", async () => {
+  const staged = await intake({
     async analyze() {
-      return [
-        { proposition: "valid", kind: "fact", confidence: 2 },
-      ];
+      return [{ proposition: "a durable claim", kind: "fact" }];
     },
-  });
-  await assert.rejects(
-    () => malformed.stage(input),
-    (error: unknown) =>
-      error instanceof MemoryError && error.code === "invalid_input",
-  );
+  }).stage(input);
+
+  assert.deepEqual(staged.skippedProposals, []);
 });
 
 test("intake propagates analyzer failure and validates measurer behavior", async () => {
@@ -370,4 +389,36 @@ test("a dialogue batch still declares its origin", async () => {
 
   assert.deepEqual(staged.origin, { kind: "dialogue" });
   assert.equal(staged.sourceMessage, input.message.trim());
+});
+
+test("a completed batch reports skipped proposals through the diagnostic", async () => {
+  const staged = await intake({
+    async analyze() {
+      return [
+        { proposition: "a durable claim", kind: "fact" },
+        { proposition: "", kind: "fact" },
+      ] as never;
+    },
+  }).stage(input);
+
+  // Skipping is not a failure, so the batch completes — but the loss must reach
+  // the operator, which is the `memory>` line the CLI and ACP print.
+  const diagnostic = describeMemoryOutcome({
+    status: "completed",
+    batch: staged,
+    records: [],
+  });
+  assert.ok(diagnostic);
+  assert.match(diagnostic, /skipped 1 malformed proposal/u);
+  assert.match(diagnostic, /proposition/u);
+
+  assert.equal(
+    describeMemoryOutcome({
+      status: "completed",
+      batch: { ...staged, skippedProposals: [] },
+      records: [],
+    }),
+    undefined,
+    "a clean batch stays silent",
+  );
 });

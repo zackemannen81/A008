@@ -134,6 +134,9 @@ export interface StagedKnowledgeProposal {
  * the two would both duplicate the utterance and auto-accept every claim in the
  * document as though the user had stated it.
  */
+/** Reasons individual proposals were dropped, so the loss is never silent. */
+export type SkippedProposalReasons = readonly string[];
+
 export type StagedBatchOrigin =
   | { readonly kind: "dialogue" }
   | { readonly kind: "source"; readonly utteranceId: string };
@@ -144,6 +147,12 @@ export interface StagedKnowledgeBatch {
   readonly taskId: RuntimeTaskId;
   readonly agentId: AgentId;
   readonly origin: StagedBatchOrigin;
+  /**
+   * Analyzer items rejected individually rather than failing the batch. Empty
+   * on a clean extraction. Carries this repository's own validation text and
+   * never analyzer content.
+   */
+  readonly skippedProposals: SkippedProposalReasons;
   /**
    * Dialogue: the user's message, which the acceptance policy reads.
    * Source: the locator, never the content — a document contains every
@@ -374,7 +383,25 @@ export class PostOutputKnowledgeIntake {
     }
 
     const seen = new Set<string>();
-    const proposals = untrusted.map((value, index) => {
+    const skipped: string[] = [];
+    /**
+     * One bad item no longer discards the batch.
+     *
+     * The analyzer instruction asks for completeness and recursive splitting,
+     * and the ceiling is 128, so a normal extraction is tens of items. Failing
+     * the whole batch because item 5 came back with an empty proposition threw
+     * away every good proposition with it — observed live.
+     *
+     * Nothing unsafe is admitted by this: a rejected item is still rejected,
+     * it just no longer punishes its neighbours. Batch-level defects — output
+     * that is not an array, more items than the ceiling, an over-budget
+     * result — still fail closed, because those say the response as a whole
+     * cannot be trusted rather than that one item was malformed.
+     */
+    const validateProposal = (
+      value: unknown,
+      index: number,
+    ): StagedKnowledgeProposal => {
       if (typeof value !== "object" || value === null || Array.isArray(value)) {
         throw new MemoryError(
           "policy",
@@ -432,7 +459,24 @@ export class PostOutputKnowledgeIntake {
           this.#limits.maximumEntitiesPerProposal,
         ),
       } satisfies StagedKnowledgeProposal;
+    };
+
+    const proposals = untrusted.flatMap((value, index) => {
+      try {
+        return [validateProposal(value, index)];
+      } catch (error) {
+        // Every per-item rule lives inside `validateProposal`, and every
+        // batch-level rule outside it, so catching MemoryError here cannot
+        // swallow a batch-level failure. Both `policy` and `invalid_input`
+        // describe one bad item.
+        if (error instanceof MemoryError) {
+          skipped.push(error.message);
+          return [];
+        }
+        throw error;
+      }
     });
+
 
     const serialized = serializeStagedKnowledgeProposals(proposals);
     const measuredUnits = this.#budget.measurer.measure(serialized);
@@ -452,6 +496,7 @@ export class PostOutputKnowledgeIntake {
     return {
       ...this.#context,
       taskId,
+      skippedProposals: skipped,
       origin:
         analyzerInput.kind === "source"
           ? { kind: "source", utteranceId: nonEmpty(

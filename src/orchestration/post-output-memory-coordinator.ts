@@ -278,6 +278,11 @@ function validatedBatch(batch: StagedKnowledgeBatch): StagedKnowledgeBatch {
     taskId,
     agentId,
     origin,
+    skippedProposals: Array.isArray(batch.skippedProposals)
+      ? batch.skippedProposals.map((reason, index) =>
+          nonEmpty(reason, `skipped proposal reason ${index + 1}`),
+        )
+      : [],
     sourceMessage,
     proposals,
     serialized: expectedSerialized,
