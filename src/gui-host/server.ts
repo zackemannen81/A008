@@ -24,7 +24,12 @@ import {
   createSpawnedAcpBridge,
   type AcpBridge,
 } from "./acp-bridge.js";
-import { firstHeaderValue, isAllowedOrigin } from "./origin.js";
+import {
+  ALLOWED_ORIGINS_ENV,
+  firstHeaderValue,
+  isAllowedOrigin,
+  parseAllowedOrigins,
+} from "./origin.js";
 import {
   DEFAULT_GUI_HOST_BIND,
   DEFAULT_GUI_HOST_PORT,
@@ -75,6 +80,11 @@ export interface GuiHostOptions {
   readonly sourceStorePath?: string;
   /** Byte cap for `POST /v1/upload`, enforced while reading the body. */
   readonly maxUploadBytes?: number;
+  /**
+   * Origins admitted in addition to same-host and loopback (ADR 0022 D4).
+   * Defaults to `A008_GUI_HOST_ALLOWED_ORIGINS`, and to none when unset.
+   */
+  readonly allowedOrigins?: readonly string[];
 }
 
 export interface GuiHost {
@@ -96,6 +106,10 @@ export async function startGuiHost(
   const staticDir = resolveStaticDir(options.staticDir, cwd, env);
   const storeRoot = resolveSourceStorePath(options.sourceStorePath, cwd, env);
   const maxUploadBytes = options.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
+  const allowedOrigins =
+    options.allowedOrigins ?? parseAllowedOrigins(env[ALLOWED_ORIGINS_ENV]);
+  const requestOriginAllowed = (request: IncomingMessage): boolean =>
+    originAllowedBy(request, allowedOrigins);
   const sockets = new Set<GuiWebSocket>();
   let bridge: AcpBridge | undefined;
   let bridgePending: Promise<AcpBridge> | undefined;
@@ -180,6 +194,7 @@ export async function startGuiHost(
       staticDir,
       storeRoot,
       maxUploadBytes,
+      allowedOrigins,
       getBridge,
     });
   });
@@ -276,13 +291,14 @@ async function handleHttp(input: {
   readonly staticDir: string | undefined;
   readonly storeRoot: string | undefined;
   readonly maxUploadBytes: number;
+  readonly allowedOrigins: readonly string[];
   readonly getBridge: () => Promise<AcpBridge>;
 }): Promise<void> {
   const { request, response, sendJson } = input;
   const method = request.method ?? "GET";
   const pathname = requestPath(request);
 
-  if (!requestOriginAllowed(request)) {
+  if (!originAllowedBy(request, input.allowedOrigins)) {
     sendJson(response, 403, errorBody("Cross-origin requests are refused."));
     return;
   }
@@ -479,10 +495,14 @@ function errorBody(message: string): {
   return { error: message, message };
 }
 
-function requestOriginAllowed(request: IncomingMessage): boolean {
+function originAllowedBy(
+  request: IncomingMessage,
+  allowed: readonly string[],
+): boolean {
   return isAllowedOrigin(
     firstHeaderValue(request.headers.origin),
     firstHeaderValue(request.headers.host),
+    allowed,
   );
 }
 
