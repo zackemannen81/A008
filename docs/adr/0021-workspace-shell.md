@@ -112,13 +112,19 @@ each, and D7 continues to hold afterwards:
 
 | Module | Owning task |
 | --- | --- |
-| `gui/src/brand/`, `gui/src/app.tsx` | A008-0052 |
-| `gui/src/workbench/` (new) | A008-0053 |
-| `gui/src/chat/`, `gui/src/composer/` | A008-0054 |
+| `gui/src/brand/`, `gui/src/app.tsx`, `gui/src/workbench/` (new) | A008-0052 |
+| `gui/src/chat/` | A008-0053 |
+| `gui/src/composer/` | A008-0054 |
 | `gui/src/settings/` | A008-0055 |
 
-`gui/src/terminal/` and `gui/src/upload/` keep their existing owners; A008-0053
-moves where they are mounted, not what they are.
+The workbench belongs to A008-0052 rather than a later task: the tab mechanism
+has to exist before terminal and upload can leave the stacked column, and
+leaving them stacked is the defect this program exists to fix.
+
+`gui/src/terminal/` and `gui/src/upload/` keep their existing owners. A008-0052
+moves where they are mounted and supplies their form-row chrome from the shell
+stylesheet, because their old layout came from stacked-column rules it removed.
+It does not touch their markup.
 
 ### D6. No behaviour changes in this program
 

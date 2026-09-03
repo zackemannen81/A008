@@ -1,22 +1,54 @@
-/* A008 visual identity. Cyan HUD chrome; A008 tokens only. */
+/*
+ * A008 visual identity: warm near-black ground, parchment text, one brass
+ * accent (ADR 0021 D2). This file is the only place a colour literal is
+ * declared; everything else reads a token.
+ *
+ * Values are A008's own. The direction came from an inspected reference that
+ * declares no license, so nothing was copied — see ADR 0021 D4.
+ */
 
 :root {
   color-scheme: dark;
-  --a008-bg: #050a12;
-  --a008-panel: #08121c;
-  --a008-header-bg: #07101a;
-  --a008-fg: #e8f4f8;
-  --a008-muted: #7a9aaa;
-  --a008-cyan: #5eead4;
-  --a008-cyan-dim: #1a6b68;
-  --a008-gold: #e8c547;
-  --a008-border: #163040;
-  --a008-grid: rgba(94, 234, 212, 0.045);
-  --a008-danger: #f07178;
-  --a008-idle: #7a9aaa;
-  --a008-connecting: #e8c547;
-  --a008-ready: #5eead4;
-  --a008-error: #f07178;
+
+  /* Ground and surfaces */
+  --a008-bg: #0e0f0d;
+  --a008-bg-raised: #121310;
+  --a008-panel: #161714;
+  --a008-panel-quiet: #131410;
+
+  /* Type */
+  --a008-fg: #ece7db;
+  --a008-fg-soft: #cfc8b9;
+  --a008-muted: #8b867c;
+  --a008-dim: #625e57;
+
+  /* Lines. Translucent so they sit on any surface without a second value. */
+  --a008-border: rgba(236, 231, 219, 0.1);
+  --a008-border-strong: rgba(236, 231, 219, 0.19);
+
+  /* One accent. A second accent is a decision, not a convenience. */
+  --a008-accent: #c0a878;
+  --a008-accent-soft: rgba(192, 168, 120, 0.09);
+  --a008-good: #86a088;
+  --a008-danger: #c07f74;
+
+  /* Connection states read as status, not decoration. */
+  --a008-idle: var(--a008-dim);
+  --a008-connecting: var(--a008-accent);
+  --a008-ready: var(--a008-good);
+  --a008-error: var(--a008-danger);
+
+  /*
+   * Retired names, kept as aliases so modules owned by other tasks keep
+   * rendering without being edited across the ADR 0019 D7 boundary. The tasks
+   * that own gui/src/chat and gui/src/upload retire them when they restyle.
+   */
+  --a008-cyan: var(--a008-accent);
+  --a008-cyan-dim: rgba(192, 168, 120, 0.34);
+  --a008-gold: var(--a008-accent);
+  --a008-header-bg: var(--a008-panel);
+  --a008-grid: rgba(236, 231, 219, 0.026);
+
   --a008-sans: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --a008-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
 }
@@ -33,17 +65,22 @@ body {
   color: var(--a008-fg);
 }
 
+/*
+ * Three zones under a full-width header (ADR 0021 D1).
+ *
+ * `height`, never `min-height`: a minimum is a floor and lets the row grow to
+ * its content, which is what put a 2605px transcript inside a 720px viewport
+ * before A008-0048. Every track is minmax(0, ...) and every zone sets its own
+ * min-size and overflow, so a long pane scrolls inside itself instead of
+ * pushing the window.
+ */
 .a008-app {
   display: grid;
-  grid-template-rows: auto 1fr;
-  grid-template-columns: 1fr 16rem;
-  /*
-   * `height`, not `min-height`. A minimum is a floor: the `1fr` row grew to fit
-   * its content, so a long transcript pushed the whole grid past the viewport,
-   * the window scrolled instead of the transcript, and the chat pane's
-   * scroll-to-bottom wrote to an element that never overflowed. Capping the
-   * grid is what makes `overflow: auto` on `.a008-chat-transcript` engage.
-   */
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns:
+    minmax(0, 15rem)
+    minmax(0, 1fr)
+    minmax(0, 28rem);
   height: 100%;
   overflow: hidden;
   font-family: var(--a008-sans);
@@ -52,18 +89,108 @@ body {
   background-image:
     linear-gradient(var(--a008-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--a008-grid) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-size: 26px 26px;
 }
 
+/* Identity left, workspace tabs centre, runtime status right. */
 .a008-header {
   grid-column: 1 / -1;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.7rem 1rem;
-  background: var(--a008-header-bg);
+  gap: 1rem;
+  min-width: 0;
+  padding: 0.55rem 1rem;
+  background: var(--a008-panel);
   border-bottom: 1px solid var(--a008-border);
-  box-shadow: inset 0 -1px 0 rgba(94, 234, 212, 0.12);
+}
+
+.a008-header-status {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--a008-muted);
+}
+
+.a008-rail {
+  grid-column: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--a008-bg-raised);
+  border-right: 1px solid var(--a008-border);
+}
+
+/* The conversation. The tallest thing on screen, which is the entire point. */
+.a008-main {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--a008-bg) 88%, transparent);
+}
+
+.a008-workbench {
+  grid-column: 3;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--a008-panel-quiet);
+  border-left: 1px solid var(--a008-border);
+}
+
+.a008-workbench-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.15rem;
+  padding: 0.4rem 0.5rem 0;
+  border-bottom: 1px solid var(--a008-border);
+}
+
+.a008-workbench-tab {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 0.25rem 0.25rem 0 0;
+  background: transparent;
+  color: var(--a008-muted);
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.a008-workbench-tab:hover,
+.a008-workbench-tab:focus-visible {
+  color: var(--a008-fg-soft);
+  outline: none;
+}
+
+.a008-workbench-tab[aria-selected="true"] {
+  border-color: var(--a008-border);
+  background: var(--a008-panel);
+  color: var(--a008-accent);
+}
+
+/*
+ * One pane is visible at a time, so an unused surface costs no height. That is
+ * what gives the conversation its room back.
+ */
+.a008-workbench-pane {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
 }
 
 .a008-brand {
@@ -100,27 +227,13 @@ body {
   color: var(--a008-muted);
 }
 
-.a008-main {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  background: color-mix(in srgb, var(--a008-bg) 88%, transparent);
-}
-
-.a008-aside {
-  min-width: 0;
-  min-height: 0;
-  overflow: auto;
-  background: var(--a008-panel);
-  border-left: 1px solid var(--a008-border);
-}
-
+/*
+ * Pane chrome. The old stacking rules are gone: chat, composer, terminal and
+ * upload no longer share one column, so none of them competes for height.
+ */
 .a008-chat,
-.a008-composer,
-.a008-terminal {
+.a008-composer {
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--a008-border);
   color: var(--a008-muted);
 }
 
@@ -131,11 +244,111 @@ body {
 
 .a008-composer {
   flex: 0 0 auto;
+  border-top: 1px solid var(--a008-border);
 }
 
-.a008-terminal {
-  flex: 0 1 7rem;
-  border-bottom: none;
+/* Mounted inside a workbench pane, which already owns scrolling. */
+.a008-terminal,
+.a008-upload {
+  padding: 0.75rem 1rem;
+  color: var(--a008-muted);
+}
+
+/*
+ * Form rows for panes the shell hosts.
+ *
+ * These modules render their own markup and are owned by other tasks under
+ * ADR 0019 D7. Their layout used to come from the stacked-column rules this
+ * task removed, so the shell supplies it here rather than reaching into a
+ * module it does not own.
+ */
+.a008-composer-form,
+.a008-terminal-form,
+.a008-upload-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.a008-composer-label,
+.a008-terminal-form label {
+  flex: 0 0 auto;
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--a008-muted);
+}
+
+.a008-composer-input,
+.a008-terminal-form input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--a008-border);
+  border-radius: 0.25rem;
+  background: var(--a008-panel-quiet);
+  color: var(--a008-fg);
+  font: inherit;
+  font-size: 0.85rem;
+  resize: vertical;
+}
+
+.a008-composer-input {
+  min-height: 2.6rem;
+  font-family: var(--a008-sans);
+}
+
+.a008-composer-input:focus-visible,
+.a008-terminal-form input:focus-visible {
+  border-color: var(--a008-accent);
+  outline: none;
+}
+
+.a008-composer-send,
+.a008-terminal-form button,
+.a008-upload-form button {
+  flex: 0 0 auto;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--a008-border-strong);
+  border-radius: 0.25rem;
+  background: var(--a008-accent-soft);
+  color: var(--a008-accent);
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.a008-composer-send:hover,
+.a008-terminal-form button:hover,
+.a008-upload-form button:hover {
+  background: color-mix(in srgb, var(--a008-accent) 16%, transparent);
+}
+
+.a008-composer-send:disabled,
+.a008-terminal-form button:disabled {
+  color: var(--a008-dim);
+  cursor: default;
+  background: transparent;
+}
+
+.a008-composer-error,
+.a008-composer-notice {
+  margin: 0.5rem 0 0;
+  font-size: 0.78rem;
+  font-family: var(--a008-mono);
+  overflow-wrap: anywhere;
+}
+
+.a008-composer-error {
+  color: var(--a008-danger);
+}
+
+.a008-composer-notice {
+  white-space: pre-wrap;
+  color: var(--a008-muted);
 }
 
 .a008-settings {
