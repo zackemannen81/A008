@@ -1,0 +1,94 @@
+/*
+ * Layout for the A008 upload pane. Every colour reads an A008 brand token
+ * with a local fallback, so the pane follows `gui/src/brand/a008.css` when
+ * it is loaded and still renders legibly on its own.
+ */
+.a008-upload {
+  --a008-upload-fg: var(--a008-fg, #101418);
+  --a008-upload-muted: var(--a008-muted, #6b6b6b);
+  --a008-upload-border: var(--a008-border, #d0d0d0);
+  --a008-upload-cyan: var(--a008-cyan, #2f7d76);
+  --a008-upload-danger: var(--a008-danger, #8b1e1e);
+  --a008-upload-ready: var(--a008-ready, #2f7d76);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--a008-upload-border);
+  color: var(--a008-upload-fg);
+}
+
+.a008-upload h2 {
+  margin: 0;
+  font-size: 0.9rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.a008-upload > p {
+  margin: 0;
+  color: var(--a008-upload-muted);
+  font-size: 0.8rem;
+}
+
+.a008-upload-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.a008-upload-empty {
+  margin: 0;
+  color: var(--a008-upload-muted);
+  font-size: 0.8rem;
+}
+
+.a008-upload-uploading {
+  margin: 0;
+  color: var(--a008-upload-cyan);
+  font-size: 0.8rem;
+}
+
+.a008-upload-error {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  color: var(--a008-upload-danger);
+  background: color-mix(in srgb, var(--a008-upload-danger) 14%, transparent);
+  border-radius: 0.375rem;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.a008-upload-result {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.6rem;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.a008-upload-result div {
+  display: contents;
+}
+
+.a008-upload-result dt {
+  color: var(--a008-upload-muted);
+}
+
+.a008-upload-result dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.a008-upload-locator {
+  font-family: var(--a008-mono, ui-monospace, monospace);
+}
+
+.a008-upload-extracted-yes {
+  color: var(--a008-upload-ready);
+}
+
+.a008-upload-extracted-no {
+  color: var(--a008-upload-muted);
+}
