@@ -37,6 +37,11 @@ deferred.
   host in `src/gui-host/` that bridges a documented WebSocket to `A008-acp`.
   Chat, streaming thought as a separate channel, slash composer, host-side
   `/shell`, settings, and A008 branding. No credential reaches the renderer.
+- Document upload: `POST /v1/upload` stores the original outside the repository
+  under a content-addressed locator, and the ACP process extracts its text and
+  records it as evidence with honest provenance. UTF-8 text is supported today;
+  PDF, DOCX and images are stored and reported as not extracted, with the media
+  type named, so the same blob can be re-extracted later.
 - Stable-v1 `A008-acp` stdio bridge that Agent Server can launch as a Custom
   Agent Canvas agent.
 - Visible Agent Canvas round trip through that bridge and the same provider
@@ -143,8 +148,8 @@ npm --prefix gui run dev
 Vite serves the client on `http://127.0.0.1:5173` and proxies `/health` and
 `/v1`, including the `/v1/session` WebSocket upgrade, to the host.
 
-The host exposes `GET /health`, `GET /v1/models`, `POST /v1/shell`, and
-`WS /v1/session`. Session frames are `session/new`, `prompt`, and `cancel` in,
+The host exposes `GET /health`, `GET /v1/models`, `POST /v1/shell`,
+`POST /v1/upload`, and `WS /v1/session`. Session frames are `session/new`, `prompt`, and `cancel` in,
 and `session/new/ok`, `thought`, `answer`, `prompt/ok`, and `error` out.
 Reasoning arrives as `thought` and is never merged into `answer`. `POST
 /v1/shell` runs in the host process working directory through the same terminal
@@ -152,7 +157,17 @@ runner as the CLI `/shell` command, and refuses any cross-origin request that
 is not loopback. See `docs/adr/0019-a008-owned-gui.md` for the boundary and
 `docs/evidence/A008-0030_gui-runtime-proof.md` for the end-to-end proof.
 
-`A008_GUI_HOST_PORT` overrides the host port.
+`A008_GUI_HOST_PORT` overrides the host port. `A008_SOURCE_STORE_PATH` enables
+uploads and must point outside the repository; without it `POST /v1/upload` is
+refused rather than the host failing to start.
+
+`POST /v1/upload` takes raw bytes with `content-type: application/octet-stream`
+and an `x-a008-filename` header. The filename is advisory: the media type is
+decided by the file's magic bytes, so a PDF named `.txt` is treated as a PDF.
+The host writes the blob and sends only the locator to the ACP process, which
+resolves it, refuses anything escaping the store root, extracts the text, and
+ingests it. See `docs/adr/0020-source-upload-ingest.md` and
+`docs/evidence/A008-0041_upload-ingest-proof.md`.
 
 ## Agent Canvas bridge
 

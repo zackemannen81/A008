@@ -2,6 +2,62 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-03 — Build the document and image upload path
+
+- Date: 2026-09-03
+- Author: Claude (operator / boss) with three delegated writing workers
+- Task: A008-0041, closing children A008-0042 through A008-0045
+- Branch: `main`
+- Identity evidence: all five IDs claimed on `main` as `c08dfff`, with ADR 0020
+  and frozen charters, before any branch was created.
+- Decision: ADR 0020. Uploads are stored by the GUI host and extracted in the
+  ACP process over a locator. Three constraints the owner's flow sketch did not
+  show drove it: the memory runtime lives in the `A008-acp` subprocess and the
+  SQLite adapter is single-process, so the host must not gain one;
+  `ChatMessage.content` is a `string`, so image description got its own port
+  rather than rippling content blocks through the provider-neutral core; and the
+  analyze/classify coordinator takes a dialogue pair, so wave 1 stores evidence
+  only rather than running document text through a dialogue-shaped instruction.
+- Change: merged PR #16 (A008-0042 `src/ingest/`), PR #19 (A008-0043 runtime and
+  ACP method), PR #18 (A008-0044 host route and blob store), and PR #17
+  (A008-0045 GUI module), in that order.
+- Provenance: extraction is a port so each extractor sets its own. Text lifted
+  from a document is `appears_in` and spoken by the uploader; a model's
+  description of an image is `derived_from` and spoken by the model. A008-0040
+  opened that parameter and this is its first caller.
+- Verification: `npm test` 296 core and 72 GUI, 0 fail, 0 skipped; root and GUI
+  typecheck clean; GUI build clean; 45 of 45 core test files referenced. The
+  A008-0041 definition of done was then proved end to end against a real GUI
+  host process, a real `A008-acp` subprocess, the real runtime and the real
+  extraction registry: 13 of 13 checks, the first run where
+  `_a008/source/ingest` had both a real sender and a real handler. The
+  A008-0030 chat proof was re-run and still passes 15 of 15, so the ACP changes
+  caused no regression. Recorded in
+  `docs/evidence/A008-0041_upload-ingest-proof.md`.
+- Corrections made while finishing the workers' output: A008-0045's tests used a
+  hand-rolled harness that reported nine assertions as one test, defeating
+  A008-0039's runner — rewritten against `node:test`, and the same pattern was
+  found already on `main` in `gui/src/terminal/` and `gui/src/settings/`.
+  A008-0043's lexical containment gate was untested, because realpath caught
+  every case the tests tried; a case whose traversal target does not exist now
+  separates them. A008-0043's link-escape test skipped itself, since a file
+  symlink needs elevation on Windows, leaving the realpath gate unproven — it
+  now uses a directory junction and runs.
+- Recovery note: all three wave-2 workers were cut off mid-task by a provider
+  session limit, as both previous waves were, and none had committed. The
+  operator finished all three from the state they left rather than restarting.
+- Not performed: no live provider call, no paid usage, no vision model, no PDF
+  or DOCX parser dependency, no browser-level run, no CI, no deployment,
+  publication, or release.
+- Handoff: two owner decisions now gate the rest. PDF and DOCX extraction needs
+  a third-party parser under ADR 0002; live image description needs a
+  vision-capable model in the registry plus cost authority. Until either is
+  taken, those uploads are stored and reported as not extracted, with the media
+  type named, and can be re-extracted from the same locator afterwards.
+  Knowledge extraction from uploads is wave 2 and is gated on the granularity
+  question in `docs/backlog/document-ingest-granularity.md`.
+- Signature: Claude
+
 ## 2026-09-02 — Correct the named blocker for document upload
 
 - Date: 2026-09-02

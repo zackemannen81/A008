@@ -37,3 +37,7 @@ authority. Workers do not append `docs/JOURNAL.md`.
 - [`A008-0038.md`](A008-0038.md) — ACP session release on renderer disconnect. Merged 2026-09-02 (PR #13).
 - [`A008-0039.md`](A008-0039.md) — one command for the GUI module tests. Merged 2026-09-02 (PR #14).
 - [`A008-0040.md`](A008-0040.md) — caller-named INGEST provenance relation. Merged 2026-09-02 (PR #15).
+- [`A008-0042.md`](A008-0042.md) — source extraction port. Merged 2026-09-03 (PR #16).
+- [`A008-0043.md`](A008-0043.md) — runtime source-ingest and ACP method. Merged 2026-09-03 (PR #19).
+- [`A008-0044.md`](A008-0044.md) — GUI host upload route and blob store. Merged 2026-09-03 (PR #18).
+- [`A008-0045.md`](A008-0045.md) — GUI upload module. Merged 2026-09-03 (PR #17).

@@ -219,6 +219,52 @@ A008-0030 proved this chain end to end against a real host process, a real ACP
 subprocess, the real local memory runtime, and a loopback fake endpoint. See
 `docs/evidence/A008-0030_gui-runtime-proof.md`.
 
+## Source upload ingest
+
+`POST /v1/upload` is how a document or an image becomes evidence. The path is
+split across two processes for a reason recorded in ADR 0020 D1: the memory
+runtime lives in the `A008-acp` subprocess and the SQLite adapter is
+single-process, so the GUI host must not gain a runtime of its own.
+
+```text
+browser -> POST /v1/upload (raw bytes, x-a008-filename)
+        -> host: origin guard, byte cap while reading, sniff, write blob
+        -> _a008/source/ingest (locator only)
+        -> agent: containment, read, sniff, extract, ingest()
+        -> Artifact + Utterance + provenance
+```
+
+The host writes the original to `A008_SOURCE_STORE_PATH`, which is validated and
+refused when it lands inside the repository, exactly as the SQLite path is.
+Blobs are addressed by SHA-256, so the same upload twice yields one stored file
+and one locator, and a source can be re-extracted later with a better extractor
+without the user re-uploading anything. The declared filename is advisory: it is
+sanitised to a single path segment and never decides the media type.
+
+The host reads no file content and makes no provider call. It sends the
+locator; the ACP process resolves it, and rejects anything that escapes the
+store root twice over — lexically on the locator's shape before the filesystem
+is touched, then through `realpath`, which is the only check that catches a link
+inside the store pointing out of it.
+
+`src/ingest/` owns extraction as a port. A registry picks the first extractor
+that claims the sniffed media type, and a type nothing claims raises a named
+error carrying that type rather than falling through to a guess. Each extractor
+sets its own provenance, which is the point of the port: text lifted out of a
+document `appears_in` it and is spoken by the uploader, while a model's
+description of an image is `derived_from` it and is spoken by the model.
+Recording the second as the first would attribute a machine's account to a
+person and let it through `user-assertion-v1` as a user assertion.
+
+Image description is its own port rather than a `ChatMessage` shape, so the
+provider-neutral core stays text-only and exactly one ingest-side file knows
+about image payloads.
+
+Wave 1 stores evidence and does not run the analyze/classify/commit coordinator.
+That coordinator's staging input is a dialogue pair and its instruction is
+written for one; document text through it would be a dialogue-shaped judgement
+recorded as fact.
+
 ## A008 GUI client
 
 `gui/` is an A008-owned Vite + React + TypeScript application. It follows Agent

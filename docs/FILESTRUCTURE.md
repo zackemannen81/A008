@@ -29,7 +29,8 @@ A008/
 |  |  |- composer/                   A008-0035 slash composer
 |  |  |- terminal/                   A008-0036 terminal pane
 |  |  |- settings/                   A008-0037 settings
-|  |  `- brand/                      A008-0037 identity
+|  |  |- brand/                      A008-0037 identity
+|  |  `- upload/                     A008-0045 upload client and pane
 |  `- test/                          A008-0039 shared GUI test runner
 |     |- loader.mjs                  registers the resolver for node --test
 |     |- resolve.mjs                 .ts/.tsx resolution, esbuild, CSS stubbing
@@ -42,7 +43,16 @@ A008/
 |  |  |- protocol.ts                 host protocol v1 frames and defaults
 |  |  |- websocket.ts                minimal dependency-free WebSocket server
 |  |  |- origin.ts                   same-origin/loopback guard
+|  |  |- source-store.ts             A008-0044 content-addressed blob store
 |  |  `- redact.ts                   credential and authorization redaction
+|  |- ingest/                        A008-0042 source extraction (ADR 0020)
+|  |  |- types.ts                    SourceExtractor, ExtractedSource, ImageDescriber
+|  |  |- errors.ts                   named unsupported/invalid/description errors
+|  |  |- media-type.ts               magic-byte sniffing and strict UTF-8 decode
+|  |  |- text-extractor.ts           verbatim text; appears_in
+|  |  |- image-extractor.ts          model description; derived_from
+|  |  |- nvidia-image-describer.ts   vision payload, injectable endpoint/fetch
+|  |  `- registry.ts                 first extractor that claims the type
 |  |- cli.ts                         terminal composition root
 |  |- cli/
 |  |  `- slash.ts                    interactive /command parser
@@ -130,7 +140,9 @@ A008/
 |     |- user-assertion-gate.ts       runtime-owned new-memory activation
 |     `- local-memory-runtime.ts      CLI/ACP memory composition root
 |- test/                              fake/local chat, ACP, memory, retrieval, identity, and orchestration tests
-|  |- gui-host.test.ts                host routes, WS bridge, and credential gate
+|  |- gui-host.test.ts                host routes, upload, WS bridge, credential gate
+|  |- ingest-source.test.ts           sniffing, extraction, and provenance
+|  |- runtime-source-ingest.test.ts   locator containment and ingest passthrough
 |  |- gui-host/
 |  |  `- fake-acp.ts                  spawnable ACP stdio stand-in
 |  |- fixtures/
@@ -219,6 +231,10 @@ only through `createLocalMemoryRuntime`.
 proofs, not production runtime composition. `src/identity/` owns
 opaque runtime routing types and an in-memory binding reference; only canonical
 ACP-session generation is integrated today.
+
+`src/ingest/` is provider- and UI-neutral apart from one NVIDIA-backed image
+describer behind a port; it decides nothing about storage or transport, and its
+extractors own the provenance they claim (ADR 0020 D5).
 
 `src/gui-host/` and `gui/` are the two halves of the product GUI path in
 ADR 0019 D2. `src/gui-host/` is a third I/O composition surface beside CLI and

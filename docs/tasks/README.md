@@ -11,12 +11,14 @@ the template before push.
 
 ## Records
 
-- [`A008-0041_source-upload-ingest.md`](A008-0041_source-upload-ingest.md) — In
-  Progress; source upload ingest program (ADR 0020).
-- [`A008-0042_source-extraction-port.md`](A008-0042_source-extraction-port.md) — Ready.
-- [`A008-0043_runtime-source-ingest.md`](A008-0043_runtime-source-ingest.md) — Ready.
-- [`A008-0044_gui-host-upload.md`](A008-0044_gui-host-upload.md) — Ready.
-- [`A008-0045_gui-upload-module.md`](A008-0045_gui-upload-module.md) — Ready.
+- [`A008-0041_source-upload-ingest.md`](A008-0041_source-upload-ingest.md) —
+  Complete; source upload ingest program (ADR 0020), all four children merged
+  2026-09-03; archived
+  [`../finished/A008-0041_source-upload-ingest.md`](../finished/A008-0041_source-upload-ingest.md).
+- [`A008-0042_source-extraction-port.md`](A008-0042_source-extraction-port.md) — Merged PR #16.
+- [`A008-0043_runtime-source-ingest.md`](A008-0043_runtime-source-ingest.md) — Merged PR #19.
+- [`A008-0044_gui-host-upload.md`](A008-0044_gui-host-upload.md) — Merged PR #18.
+- [`A008-0045_gui-upload-module.md`](A008-0045_gui-upload-module.md) — Merged PR #17.
 
 - [`A008-0030_a008-owned-gui.md`](A008-0030_a008-owned-gui.md) — Complete;
   product GUI program, all six children merged to `main` 2026-09-02; archived
