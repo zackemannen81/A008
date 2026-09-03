@@ -71,6 +71,23 @@ already behaves that way; the shell should say so where a user can see it.
 
 ### D4. Provenance: inspected under an explicit grant, still not adopted
 
+Lineage is settled by `AGENTS.md` ("Repository identity and provenance") and by
+`docs/PROVENANCE.md` in the reference repository. A007 is retired ancestry, A008
+is the canonical SSOT, and `a007-frontend` is a downstream derivative of A007
+that establishes no upstream claim. This ADR does not restate that; it records
+what follows from it for reuse.
+
+**What follows is narrower than it first appears.** The lineage would matter for
+reuse if the reference's interface layer were A007-derived material the owner
+already holds. It is not: A007 contains no frontend at all. Checked directly —
+no `.css`, no `.tsx`, and the same three runtime dependencies A008 has
+(`@agentclientprotocol/sdk`, `better-sqlite3`, `zod`). Every stylesheet,
+component and shell file in the reference is the collaborator's own authorship,
+created after the fork, and its proprietary license governs all of it.
+
+So the lineage documents settle authority, which is what they are for. They do
+not widen what A008 may incorporate.
+
 Reference: `github.com/felixnissen/a007-frontend`, inspected locally. First read
 at revision `10d7733`, when it carried no license at all; the owner then had a
 license added, and it is now `AGENT 007 PROPRIETARY LICENSE` with
