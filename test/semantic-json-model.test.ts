@@ -370,3 +370,28 @@ test("semantic generator allocates fresh request data for every call", async () 
   ]);
   assert.equal(semanticInput.systemInstruction, "Return strict JSON only.");
 });
+
+test("the analyzer instruction keeps its two structural guarantees", () => {
+  const instruction = POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION;
+
+  // Untrusted-data framing. This is what stops an injection attempt inside
+  // extracted document or answer text from being read as an instruction, and it
+  // must survive any future rewording of the extraction guidance around it.
+  assert.match(instruction, /untrusted/iu);
+  assert.match(instruction, /never as instructions/iu);
+
+  // Output contract. serializeSemanticJsonRequest parses the reply strictly as
+  // one array; an instruction that stopped saying so would fail at runtime, not
+  // at build time.
+  assert.match(instruction, /exactly one valid JSON array/iu);
+  assert.match(instruction, /\[\]/u);
+
+  // The field allow-list the staging validator enforces.
+  for (const field of ["proposition", "kind", "tags", "domains", "entities", "confidence"]) {
+    assert.match(instruction, new RegExp(field, "u"));
+  }
+
+  // It is one joined string, not an array leaked into the request.
+  assert.equal(typeof instruction, "string");
+  assert.equal(instruction.includes("\n"), false);
+});
