@@ -21,6 +21,7 @@ import type { ChatCompletion } from "../core/types.js";
 import { isChatError } from "../core/errors.js";
 import { IdentityError, isIdentityError } from "../identity/errors.js";
 import { isMemoryError } from "../memory/errors.js";
+import { isSourceIngestError } from "../ingest/index.js";
 import {
   DEFAULT_MODEL_ID,
   defaultModelRegistry,
@@ -46,11 +47,83 @@ interface AcpSessionState {
   activeTurn?: AbortController;
 }
 
+/**
+ * Params for the `_a008/source/ingest` custom method (ADR 0020 D4).
+ *
+ * `mediaType` and `filename` are advisory only, exactly as they are on
+ * `LocalMemoryRuntime.ingestSource`: the runtime always sniffs the real media
+ * type from the stored bytes rather than trusting a caller-declared value.
+ */
+export interface SourceIngestParams {
+  readonly locator: string;
+  readonly mediaType?: string;
+  readonly filename?: string;
+}
+
+export interface SourceIngestResult {
+  readonly artifactId: string;
+  readonly utteranceIds: readonly string[];
+  readonly contentKind: string;
+  readonly relation: string;
+  readonly speaker: string;
+}
+
+export type IngestSource = (
+  params: SourceIngestParams,
+) => Promise<SourceIngestResult>;
+
+/**
+ * Validates raw JSON-RPC params for `_a008/source/ingest`.
+ *
+ * Used both as this agent's own defensive check and as the SDK's
+ * `ParamsParser` when the method is registered in `server.ts` — the same
+ * `onRequest(method, params, handler)` overload `session/close` would use if
+ * it were a custom method instead of a standard one.
+ */
+export function parseSourceIngestParams(params: unknown): SourceIngestParams {
+  if (typeof params !== "object" || params === null) {
+    throw RequestError.invalidParams(
+      params,
+      "_a008/source/ingest requires an object with a locator.",
+    );
+  }
+  const { locator, mediaType, filename } = params as Record<string, unknown>;
+  if (typeof locator !== "string" || locator.trim().length === 0) {
+    throw RequestError.invalidParams(
+      params,
+      "_a008/source/ingest requires a non-empty string locator.",
+    );
+  }
+  if (mediaType !== undefined && typeof mediaType !== "string") {
+    throw RequestError.invalidParams(
+      params,
+      "_a008/source/ingest mediaType must be a string when present.",
+    );
+  }
+  if (filename !== undefined && typeof filename !== "string") {
+    throw RequestError.invalidParams(
+      params,
+      "_a008/source/ingest filename must be a string when present.",
+    );
+  }
+  return {
+    locator,
+    ...(mediaType === undefined ? {} : { mediaType }),
+    ...(filename === undefined ? {} : { filename }),
+  };
+}
+
 export interface A008AcpAgentOptions {
   readonly createSession: (model: string) => AcpTurnSession;
   readonly registry?: ModelRegistry;
   readonly createSessionId?: () => string;
   readonly onMemoryDiagnostic?: (message: string) => void;
+  /**
+   * Backs `_a008/source/ingest`. Undefined when the host process has no
+   * configured source store; the method then fails closed instead of the
+   * client seeing an unrelated crash.
+   */
+  readonly ingestSource?: IngestSource;
 }
 
 type NotifySession = (notification: SessionNotification) => Promise<void>;
@@ -60,12 +133,14 @@ export class A008AcpAgent {
   readonly #registry: ModelRegistry;
   readonly #createSessionId: () => string;
   readonly #onMemoryDiagnostic: ((message: string) => void) | undefined;
+  readonly #ingestSource: IngestSource | undefined;
   readonly #sessions = new Map<string, AcpSessionState>();
 
   constructor(options: A008AcpAgentOptions) {
     this.#createSession = options.createSession;
     this.#registry = options.registry ?? defaultModelRegistry;
     this.#onMemoryDiagnostic = options.onMemoryDiagnostic;
+    this.#ingestSource = options.ingestSource;
     const identityFactory = new RuntimeIdentityFactory();
     this.#createSessionId =
       options.createSessionId ??
@@ -280,6 +355,26 @@ export class A008AcpAgent {
    */
   openSessionIds(): readonly string[] {
     return [...this.#sessions.keys()];
+  }
+
+  /**
+   * ACP `_a008/source/ingest` (ADR 0020 D4).
+   *
+   * Deliberately session-free: an upload is not part of a conversation, and
+   * requiring a session would tie a stored source to whichever chat happened
+   * to be open. The params are re-validated here rather than trusted from the
+   * transport parser, so a caller reaching this agent through any path gets
+   * the same check.
+   *
+   * A host that composed no runtime — every ACP client except the GUI host —
+   * gets a method-not-found style refusal rather than a silent success.
+   */
+  async ingestSource(params: unknown): Promise<SourceIngestResult> {
+    const ingest = this.#ingestSource;
+    if (ingest === undefined) {
+      throw RequestError.methodNotFound("_a008/source/ingest");
+    }
+    return await ingest(parseSourceIngestParams(params));
   }
 
   #requireSession(sessionId: string): AcpSessionState {

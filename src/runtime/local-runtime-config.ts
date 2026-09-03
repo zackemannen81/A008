@@ -16,6 +16,7 @@ export const AGENT_ID_ENV = "A008_AGENT_ID";
 export const SQLITE_PATH_ENV = "A008_MEMORY_SQLITE_PATH";
 export const DEBUG_TRACE_ENV = "A008_DEBUG_TRACE";
 export const DEBUG_TRACE_FILE_ENV = "A008_DEBUG_TRACE_FILE";
+export const SOURCE_STORE_PATH_ENV = "A008_SOURCE_STORE_PATH";
 export const PROJECT_ID_SIDECAR = "A008-project-id";
 
 export interface LocalRuntimeCliTraceOptions {
@@ -30,6 +31,8 @@ export interface LocalRuntimeConfig {
   readonly sqliteIsMemory: boolean;
   readonly debugTrace: DebugTraceMode;
   readonly debugTraceFile: string | undefined;
+  /** Undefined when `A008_SOURCE_STORE_PATH` is not set: source ingest is off. */
+  readonly sourceStorePath: string | undefined;
 }
 
 export function defaultSqlitePath(): string {
@@ -97,6 +100,33 @@ function resolvedSqlitePath(raw: string, repositoryRoot: string): string {
   return resolved;
 }
 
+/**
+ * Validates `A008_SOURCE_STORE_PATH` exactly as {@link resolvedSqlitePath}
+ * validates `A008_MEMORY_SQLITE_PATH`: resolved to an absolute path and
+ * rejected when it lands inside the A008 repository. Returned `undefined`
+ * when unset, which callers treat as "source ingest is not configured".
+ */
+function resolvedSourceStorePath(
+  raw: string | undefined,
+  repositoryRoot: string,
+): string | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  const resolved = isAbsolute(raw) ? resolve(raw) : resolve(process.cwd(), raw);
+  const relativeToRepo = relative(repositoryRoot, resolved);
+  if (
+    relativeToRepo === "" ||
+    (!relativeToRepo.startsWith("..") && !isAbsolute(relativeToRepo))
+  ) {
+    throw new ChatError(
+      "configuration",
+      "A008_SOURCE_STORE_PATH must be outside the A008 repository.",
+    );
+  }
+  return resolved;
+}
+
 function resolvedTraceFile(
   raw: string | undefined,
   mode: DebugTraceMode,
@@ -147,6 +177,7 @@ export function parseLocalRuntimeConfig(
   );
   const fileRaw =
     options.cli?.debugTraceFile ?? optionalText(env, DEBUG_TRACE_FILE_ENV);
+  const sourceStoreRaw = optionalText(env, SOURCE_STORE_PATH_ENV);
 
   return {
     projectId: optionalText(env, PROJECT_ID_ENV),
@@ -155,6 +186,7 @@ export function parseLocalRuntimeConfig(
     sqliteIsMemory: sqliteRaw === ":memory:",
     debugTrace: mode,
     debugTraceFile: resolvedTraceFile(fileRaw, mode, options.surface),
+    sourceStorePath: resolvedSourceStorePath(sourceStoreRaw, repositoryRoot),
   };
 }
 
