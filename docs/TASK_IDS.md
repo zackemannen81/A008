@@ -63,3 +63,5 @@ never whether work is active or complete. Task state belongs in
 | A008-0044 | GUI host upload route and blob store | operator-delegated | 2026-09-02 | src/gui-host |
 | A008-0045 | GUI upload module | operator-delegated | 2026-09-02 | gui/src/upload |
 | A008-0046 | Memory staging budget increase | mrWhite81 | 2026-09-02 | src/runtime |
+| A008-0047 | post-output analyzer instruction rewrite | operator | 2026-09-03 | src/orchestration analyzer prompt |
+| A008-0048 | GUI chat transcript auto-scroll | operator | 2026-09-03 | gui shell layout and chat pane |
