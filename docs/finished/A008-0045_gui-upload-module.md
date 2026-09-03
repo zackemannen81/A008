@@ -71,11 +71,11 @@ see whether its content was extracted or why it was not.
 - [x] `grep -ri "NVIDIA_API_KEY" gui/src/upload/` returns nothing.
 - [x] `npm --prefix gui run typecheck` — clean.
 - [x] `npm --prefix gui run build` — clean.
-- [x] `npm --prefix gui run test` — green, 64/64 (baseline 63 + this module's
+- [x] `npm --prefix gui run test` — green, 72/72 (baseline 63 + this module’s 9
       1 discovery-runner file), discovered by the A008-0039 runner with no
       script edit.
 - [x] Root `npm run typecheck` — clean.
-- [x] Root `npm test` — green, core 279/279, gui 64/64.
+- [x] Root `npm test` — green, core 279/279, gui 72/72.
 
 ## Out of scope (honored)
 
@@ -99,12 +99,12 @@ Summary:
 - `npx tsc -p tsconfig.json --noEmit` in `gui/` — exit 0.
 - `npm run build` in `gui/` — `tsc --noEmit && vite build` exit 0, 51 modules
   transformed.
-- `npm run test` in `gui/` — 64 tests, 64 pass, 0 fail, 0 skip. New file
+- `npm run test` in `gui/` — 72 tests, 72 pass, 0 fail, 0 skip. New file
   `src/upload/upload-source.test.ts` discovered by the existing
   `"src/**/*.test.ts"` glob with no `package.json` edit.
 - `npm run typecheck` at repo root — exit 0.
 - `npm test` at repo root (`test:core && test:gui`) — core 279/279, gui
-  64/64, exit 0.
+  72/72, exit 0.
 - `git diff --check` — no whitespace errors.
 - Live smoke check: started `vite dev` (no `src/gui-host` process) and drove
   a real `<input type="file">` selection with a `DataTransfer`-constructed
@@ -148,3 +148,24 @@ Summary:
   either decodes it or accepts that convention before relying on displayed
   filenames anywhere non-advisory.
 - Open questions: none blocking this task.
+
+## Operator correction, 2026-09-03
+
+The delegated run wrote `upload-source.test.ts` with a hand-rolled harness —
+custom `assert`/`assertEqual`/`runCase`, a `runUploadModuleTests()` entry point,
+and an `isDirectNodeRun()` filename gate — instead of `node:test`. Its nine
+assertions did execute and a broken assertion did exit non-zero, verified by
+mutation, so nothing was unsound. But the runner reported the whole file as
+**one** test, so the suite read 64 rather than 72 and a failure would not have
+named which case broke.
+
+The operator rewrote the file against `node:test`, preserving all nine cases
+unchanged. A probe confirmed `node:test` works and typechecks in
+`gui/src/upload/`, so there had been no obstacle. Counts above are the corrected
+ones.
+
+The pattern was copied, not invented: `gui/src/terminal/run-shell-command.test.ts`
+(A008-0036) and `gui/src/settings/settings-view.test.ts` (A008-0037) both do the
+same thing and are already on `main`, each contributing one reported test in
+place of their assertions. Fixing those is outside this module's ADR 0019 D7
+scope and is routed to the backlog.
