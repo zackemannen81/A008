@@ -12,6 +12,7 @@ import {
   KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION,
   ModelBackedKnowledgeRelationClassifier,
   ModelBackedPostOutputKnowledgeAnalyzer,
+  SEMANTIC_JSON_GENERATION,
   POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION,
   serializeSemanticJsonRequest,
   type SemanticJsonGenerateInput,
@@ -369,4 +370,15 @@ test("semantic generator allocates fresh request data for every call", async () 
     "Return strict JSON only.",
   ]);
   assert.equal(semanticInput.systemInstruction, "Return strict JSON only.");
+});
+
+test("semantic JSON output budget fits a full extraction", () => {
+  // A 128-proposal extraction does not fit in 1024 output tokens, and a
+  // truncated array is not partial knowledge: it fails the strict JSON parse
+  // and the whole batch is discarded. 16384 is the verified model profile's own
+  // output maximum, so this is the ceiling rather than an arbitrary number.
+  assert.equal(SEMANTIC_JSON_GENERATION.maxTokens, 16_384);
+  assert.equal(SEMANTIC_JSON_GENERATION.temperature, 0);
+  assert.equal(SEMANTIC_JSON_GENERATION.enableThinking, false);
+  assert.equal(SEMANTIC_JSON_GENERATION.stream, false);
 });

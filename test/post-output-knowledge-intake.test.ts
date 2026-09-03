@@ -254,3 +254,47 @@ test("intake propagates analyzer failure and validates measurer behavior", async
       error instanceof MemoryError && error.code === "invalid_input",
   );
 });
+
+test("the default staging ceiling holds a real extraction, not eight proposals", async () => {
+  // Owner testing across several models: an ordinary factual text yielded 49
+  // proposals. At the previous ceiling of 8, more than half of a normal
+  // extraction was discarded as budget_exceeded before anything was committed.
+  const REAL_WORLD_PROPOSALS = 49;
+  const staged = await intake(
+    {
+      async analyze() {
+        return Array.from({ length: REAL_WORLD_PROPOSALS }, (_value, index) => ({
+          proposition: `Distinct durable claim number ${String(index)}`,
+          kind: "fact",
+        }));
+      },
+    },
+    // A budget wide enough that only the proposal ceiling can reject here.
+    1_048_576,
+  ).stage(input);
+
+  assert.equal(staged.proposals.length, REAL_WORLD_PROPOSALS);
+});
+
+test("the default staging ceiling is still a ceiling", async () => {
+  // It bounds provider calls per answer: the coordinator commits proposals
+  // sequentially with one classifier call each, so this number is a cost dial
+  // as much as a correctness one.
+  const OVER_CEILING = 129;
+  await assert.rejects(
+    () =>
+      intake(
+        {
+          async analyze() {
+            return Array.from({ length: OVER_CEILING }, (_value, index) => ({
+              proposition: `Claim number ${String(index)}`,
+              kind: "fact",
+            }));
+          },
+        },
+        1_048_576,
+      ).stage(input),
+    (error: unknown) =>
+      error instanceof MemoryError && error.code === "budget_exceeded",
+  );
+});

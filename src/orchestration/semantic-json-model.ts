@@ -102,7 +102,13 @@ function optionalPositiveInteger(
 export const SEMANTIC_JSON_GENERATION: ChatGenerationOptions = Object.freeze({
   temperature: 0,
   topP: 1,
-  maxTokens: 1_024,
+  /**
+   * Raised from 1024 alongside the staging ceiling. A 128-proposal extraction
+   * does not fit in 1024 output tokens, and a truncated array is not partial
+   * knowledge — it is invalid JSON that fails the strict parse and discards the
+   * whole batch. 16384 is the verified model profile's own output maximum.
+   */
+  maxTokens: 16_384,
   enableThinking: false,
   stream: false,
 });
