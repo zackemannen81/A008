@@ -115,11 +115,29 @@ const SOURCE_LOCATOR_SCHEME = "source:";
 
 export interface SourceIngestInput {
   readonly locator: string;
+  /**
+   * Run the analyze/classify/commit coordinator over the extracted text.
+   *
+   * Off by default, deliberately. The coordinator commits proposals strictly
+   * sequentially with one classifier call each and the ceiling is 128, so
+   * turning this on can mean well over a hundred provider calls for one
+   * source. Evidence is stored either way; this only decides whether knowledge
+   * is extracted from it now.
+   */
+  readonly extractKnowledge?: boolean;
   /** Advisory only; the actual media type is always sniffed from the bytes. */
   readonly mediaType?: string;
   /** Advisory only; never decides extraction. */
   readonly filename?: string;
   readonly signal?: AbortSignal;
+}
+
+export interface SourceKnowledgeOutcome {
+  readonly status: PostOutputMemoryResult["status"];
+  /** Proposals the coordinator committed before finishing or stopping. */
+  readonly proposalsCommitted: number;
+  /** Present when extraction failed; the stored evidence is unaffected. */
+  readonly error?: string;
 }
 
 export interface SourceIngestOutcome {
@@ -128,6 +146,8 @@ export interface SourceIngestOutcome {
   readonly contentKind: ContentKind;
   readonly relation: ProvenanceRelation;
   readonly speaker: string;
+  /** Absent unless `extractKnowledge` was requested. */
+  readonly knowledge?: SourceKnowledgeOutcome;
 }
 
 export interface LocalMemoryRuntimeOptions {
@@ -716,13 +736,97 @@ export class LocalMemoryRuntime {
       },
       { store: this.#knowledge.context.evidence },
     );
-    return {
+    const outcome: SourceIngestOutcome = {
       artifactId: result.artifact.id,
       utteranceIds: result.utterances.map((utterance) => utterance.id),
       contentKind: result.artifact.contentKind,
       relation: extracted.relation,
       speaker: extracted.speaker,
     };
+    if (input.extractKnowledge !== true) {
+      return outcome;
+    }
+    const utteranceId = result.utterances[0]?.id;
+    if (utteranceId === undefined) {
+      return outcome;
+    }
+    return {
+      ...outcome,
+      knowledge: await this.#extractSourceKnowledge(
+        input.locator,
+        extracted.content,
+        utteranceId,
+        input.signal,
+      ),
+    };
+  }
+
+  /**
+   * Runs the post-output coordinator over an already-ingested source.
+   *
+   * A failure here degrades the ingest rather than losing it: the artifact,
+   * utterance and provenance are already durably stored, and the source can be
+   * re-extracted later from the same locator. That mirrors how a chat turn
+   * treats a failed post-output as a degraded memory outcome and not a failed
+   * turn.
+   */
+  async #extractSourceKnowledge(
+    locator: string,
+    content: string,
+    utteranceId: string,
+    signal: AbortSignal | undefined,
+  ): Promise<SourceKnowledgeOutcome> {
+    const profile = this.#registry.require(DEFAULT_MODEL_ID);
+    const generator = new ChatTransportSemanticJsonGenerator({
+      transport: this.#transport,
+      model: profile.id,
+      budget: budget(),
+      generation: SEMANTIC_JSON_GENERATION,
+    });
+    // A source is not a conversation. It gets its own conversation and task
+    // identity so nothing ties an uploaded file to whichever chat was open.
+    const conversationId = this.#identityFactory.create("conversation");
+    const taskId = this.#identityFactory.create("task");
+    const committer = new KnowledgeEngineCommit({
+      context: this.#knowledge.context,
+      classifier: new ModelBackedKnowledgeRelationClassifier(generator),
+    });
+    const coordinator = new PostOutputMemoryCoordinator({
+      stager: new PostOutputKnowledgeIntake({
+        analyzer: new ModelBackedPostOutputKnowledgeAnalyzer(generator),
+        context: {
+          projectId: this.projectId,
+          conversationId,
+          agentId: this.agentId,
+        },
+        budget: semanticBudget(),
+      }),
+      committer: this.#committerDecorator?.(committer) ?? committer,
+    });
+
+    try {
+      const result = await coordinator.process(
+        {
+          kind: "source",
+          taskId,
+          locator,
+          content,
+          utteranceId,
+          applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
+        },
+        signal === undefined ? {} : { signal },
+      );
+      // The coordinator records a proposal only once it has committed, and
+      // stops at the first failure, so the record count is the committed count.
+      const records = "records" in result ? result.records : [];
+      return { status: result.status, proposalsCommitted: records.length };
+    } catch (error) {
+      return {
+        status: "commit_failed",
+        proposalsCommitted: 0,
+        error: formatRuntimeError(error),
+      };
+    }
   }
 
   close(): void {

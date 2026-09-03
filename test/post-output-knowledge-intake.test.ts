@@ -87,8 +87,12 @@ test("intake exposes only message and final answer and applies runtime-owned fie
 
   const result = await intake(analyzer).stage(input);
   assert.equal(calls, 1);
-  assert.deepEqual(Object.keys(received ?? {}), ["message", "answer"]);
+  // The guard is that nothing beyond the variant's own fields reaches the
+  // analyzer — no reasoning, no control state, no identity.
+  assert.deepEqual(Object.keys(received ?? {}), ["kind", "message", "answer"]);
+  assert.equal(received?.kind, "dialogue");
   assert.deepEqual(received, {
+    kind: "dialogue",
     message: "What should the memory loop retain?",
     answer: "Reasoning is display-only.",
   });
@@ -297,4 +301,73 @@ test("the default staging ceiling is still a ceiling", async () => {
     (error: unknown) =>
       error instanceof MemoryError && error.code === "budget_exceeded",
   );
+});
+
+test("a source variant reaches the analyzer as a source, not as a turn", async () => {
+  let received: PostOutputAnalyzerInput | undefined;
+  const staged = await intake({
+    async analyze(value) {
+      received = value;
+      return [{ proposition: "The invoice total is 4500 SEK", kind: "fact" }];
+    },
+  }).stage({
+    kind: "source",
+    taskId: TASK,
+    locator: "source:deadbeef/invoice.txt",
+    content: "The invoice total is 4500 SEK. Approved by finance.",
+    utteranceId: "A008_knowledge_utterance_1",
+    applicabilityScopes: ["runtime"],
+  });
+
+  // A document is neither a message nor an answer. The serialized payload is
+  // what the model reads as untrusted data, so naming it wrongly frames it
+  // wrongly.
+  assert.deepEqual(Object.keys(received ?? {}), ["kind", "locator", "content"]);
+  assert.equal(received?.kind, "source");
+
+  assert.deepEqual(staged.origin, {
+    kind: "source",
+    utteranceId: "A008_knowledge_utterance_1",
+  });
+});
+
+test("a source batch carries its locator as sourceMessage, never its content", async () => {
+  // This is a safety property, not a naming preference. `isExplicitUserAssertion`
+  // activates a proposal when the source message *contains* the proposition, and
+  // a document contains every proposition extracted from it. Putting the content
+  // here would auto-accept an entire uploaded document as user assertions.
+  const content = "The invoice total is 4500 SEK. Approved by finance.";
+  const staged = await intake({
+    async analyze() {
+      return [{ proposition: "The invoice total is 4500 SEK", kind: "fact" }];
+    },
+  }).stage({
+    kind: "source",
+    taskId: TASK,
+    locator: "source:deadbeef/invoice.txt",
+    content,
+    utteranceId: "A008_knowledge_utterance_1",
+    applicabilityScopes: ["runtime"],
+  });
+
+  assert.equal(staged.sourceMessage, "source:deadbeef/invoice.txt");
+  assert.equal(staged.sourceMessage.includes(content), false);
+  for (const entry of staged.proposals) {
+    assert.equal(
+      staged.sourceMessage.includes(entry.proposal.proposition),
+      false,
+      "no staged proposition may be contained in a source batch's sourceMessage",
+    );
+  }
+});
+
+test("a dialogue batch still declares its origin", async () => {
+  const staged = await intake({
+    async analyze() {
+      return [{ proposition: "Reasoning is display-only", kind: "fact" }];
+    },
+  }).stage(input);
+
+  assert.deepEqual(staged.origin, { kind: "dialogue" });
+  assert.equal(staged.sourceMessage, input.message.trim());
 });

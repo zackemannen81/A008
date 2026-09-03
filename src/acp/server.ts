@@ -27,7 +27,19 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
     createSession: (model) => runtime.openSession({ model }),
     // Wired only here, so an agent constructed without a runtime refuses
     // `_a008/source/ingest` instead of silently doing nothing.
-    ingestSource: async (params) => await runtime.ingestSource(params),
+    ingestSource: async (params) => {
+      const outcome = await runtime.ingestSource(params);
+      return {
+        artifactId: outcome.artifactId,
+        utteranceIds: [...outcome.utteranceIds],
+        contentKind: outcome.contentKind,
+        relation: outcome.relation,
+        speaker: outcome.speaker,
+        ...(outcome.knowledge === undefined
+          ? {}
+          : { knowledge: { ...outcome.knowledge } }),
+      };
+    },
     onMemoryDiagnostic: (message) => {
       stderr.write(`memory> ${message}\n`);
     },

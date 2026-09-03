@@ -9,6 +9,7 @@ import type {
 import {
   serializeStagedKnowledgeProposals,
   type StagePostOutputKnowledgeInput,
+  type StagedBatchOrigin,
   type StagedKnowledgeBatch,
   type StagedKnowledgeProposal,
 } from "./post-output-knowledge-intake.js";
@@ -262,11 +263,21 @@ function validatedBatch(batch: StagedKnowledgeBatch): StagedKnowledgeBatch {
     "staged measurementUnit",
   );
   const sourceMessage = nonEmpty(batch.sourceMessage, "staged sourceMessage");
+  // Revalidated rather than trusted: the origin decides whether the commit path
+  // may treat this batch as something the user said.
+  const origin: StagedBatchOrigin =
+    batch.origin?.kind === "source"
+      ? {
+          kind: "source",
+          utteranceId: nonEmpty(batch.origin.utteranceId, "staged utteranceId"),
+        }
+      : { kind: "dialogue" };
   return {
     projectId,
     conversationId,
     taskId,
     agentId,
+    origin,
     sourceMessage,
     proposals,
     serialized: expectedSerialized,
@@ -438,13 +449,25 @@ function stagingInput(
       "applicabilityScopes must be an array",
     );
   }
+  const scopes = input.applicabilityScopes.map((scope, index) =>
+    nonEmpty(scope, `applicability scope ${index + 1}`),
+  );
+  const taskId = parseRuntimeId(input.taskId, "task");
+  if (input.kind === "source") {
+    return {
+      kind: "source",
+      taskId,
+      locator: nonEmpty(input.locator, "locator"),
+      content: nonEmpty(input.content, "content"),
+      utteranceId: nonEmpty(input.utteranceId, "utteranceId"),
+      applicabilityScopes: scopes,
+    };
+  }
   return {
-    taskId: parseRuntimeId(input.taskId, "task"),
+    taskId,
     message: nonEmpty(input.message, "message"),
     answer: nonEmpty(input.answer, "answer"),
-    applicabilityScopes: input.applicabilityScopes.map((scope, index) =>
-      nonEmpty(scope, `applicability scope ${index + 1}`),
-    ),
+    applicabilityScopes: scopes,
   };
 }
 

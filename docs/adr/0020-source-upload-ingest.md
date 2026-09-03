@@ -7,6 +7,7 @@ Date: 2026-09-02
 Decision owner: Operator
 
 Amends: [ADR 0019](0019-a008-owned-gui.md) D4 (host protocol v1 gains a route).
+Amended by its own D10 (A008-0049), which supersedes D7.
 
 ## Context
 
@@ -162,6 +163,48 @@ dialogue-tuned judgement applied to a document and stored as fact.
 Knowledge extraction from uploaded sources needs a source-shaped staging input
 and its own instruction. That is wave 2, and it depends on the granularity
 question being settled first.
+
+### D10. Amends D7 — sources may run the knowledge pipeline
+
+D7 deferred this on two grounds. A008-0047 removed one: the analyzer
+instruction no longer speaks of a message and an answer, it speaks of "the
+source", and it now asks for completeness and recursive splitting.
+
+Staging and the commit path are now origin-aware.
+
+```ts
+type StagedBatchOrigin =
+  | { kind: "dialogue" }
+  | { kind: "source"; utteranceId: string };
+```
+
+Two things follow from that origin, and both are safety properties rather than
+tidiness:
+
+**A source is never accepted as a user assertion.** `isExplicitUserAssertion`
+activates a proposal when the batch's `sourceMessage` *contains* the
+proposition, and a document contains every proposition extracted from it.
+Uploading a file is not asserting its contents. A source batch therefore carries
+its **locator** as `sourceMessage`, never its content, and the commit path
+additionally refuses acceptance on origin alone — two independent layers,
+because the first failing would silently accept an entire uploaded document as
+user-stated fact.
+
+**A source is not ingested twice.** `LocalMemoryRuntime.ingestSource` already
+created the utterance with the extractor's own speaker, relation and locator.
+The commit path reuses that utterance instead of re-ingesting the content under
+`speaker: "user"` and a fabricated `turn:` locator, which would have replaced
+the provenance A008-0040 and A008-0042 exist to get right.
+
+Extraction is **opt-in** via `extractKnowledge`, off by default. The coordinator
+commits sequentially with one classifier call each and the A008-0046 ceiling is
+128, so one source can mean well over a hundred provider calls. Evidence is
+stored either way; the flag only decides whether knowledge is extracted now. A
+failed extraction degrades the ingest and leaves the stored evidence intact.
+
+Chunking remains out. One source is still one utterance, and passage-level
+citation is still the open question in
+`docs/backlog/document-ingest-granularity.md`.
 
 ### D8. What is not authorised here
 
