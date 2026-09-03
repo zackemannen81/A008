@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash } from "node:crypto";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import {
   createServer,
@@ -10,6 +11,7 @@ import {
 import { extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { ChatError, isChatError } from "../core/errors.js";
+import { sniffSourceMediaType } from "../ingest/media-type.js";
 import {
   defaultModelRegistry,
   type ModelRegistry,
@@ -32,9 +34,16 @@ import {
   type GuiHostServerMessage,
 } from "./protocol.js";
 import { redactWireText, wireSecrets } from "./redact.js";
+import {
+  resolveSourceStorePath,
+  sanitiseUploadFilename,
+  writeBlob,
+} from "./source-store.js";
 import { acceptWebSocket, isWebSocketUpgrade, type GuiWebSocket } from "./websocket.js";
 
 const MAX_JSON_BODY_BYTES = 64 * 1024;
+/** Default cap for `POST /v1/upload`; overridable via `GuiHostOptions.maxUploadBytes`. */
+const DEFAULT_MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 const MIME_TYPES: Readonly<Record<string, string>> = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -57,6 +66,15 @@ export interface GuiHostOptions {
   readonly createAcpBridge?: () => AcpBridge | Promise<AcpBridge>;
   readonly registry?: ModelRegistry;
   readonly stderr?: NodeJS.WritableStream;
+  /**
+   * Root of the content-addressed source store for `POST /v1/upload`
+   * (ADR 0020 D2). Overrides `A008_SOURCE_STORE_PATH`; mainly for tests. When
+   * neither is set, `POST /v1/upload` is refused with a configuration error
+   * rather than the host failing to start — most hosts never see an upload.
+   */
+  readonly sourceStorePath?: string;
+  /** Byte cap for `POST /v1/upload`, enforced while reading the body. */
+  readonly maxUploadBytes?: number;
 }
 
 export interface GuiHost {
@@ -76,6 +94,8 @@ export async function startGuiHost(
   const registry = options.registry ?? defaultModelRegistry;
   const runTerminal = options.runTerminal ?? runTerminalCommand;
   const staticDir = resolveStaticDir(options.staticDir, cwd, env);
+  const storeRoot = resolveSourceStorePath(options.sourceStorePath, cwd, env);
+  const maxUploadBytes = options.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
   const sockets = new Set<GuiWebSocket>();
   let bridge: AcpBridge | undefined;
   let bridgePending: Promise<AcpBridge> | undefined;
@@ -158,6 +178,9 @@ export async function startGuiHost(
       secrets,
       sendJson,
       staticDir,
+      storeRoot,
+      maxUploadBytes,
+      getBridge,
     });
   });
 
@@ -251,6 +274,9 @@ async function handleHttp(input: {
   readonly secrets: readonly string[];
   readonly sendJson: (response: ServerResponse, status: number, body: unknown) => void;
   readonly staticDir: string | undefined;
+  readonly storeRoot: string | undefined;
+  readonly maxUploadBytes: number;
+  readonly getBridge: () => Promise<AcpBridge>;
 }): Promise<void> {
   const { request, response, sendJson } = input;
   const method = request.method ?? "GET";
@@ -303,6 +329,10 @@ async function handleHttp(input: {
       });
       return;
     }
+    if (method === "POST" && pathname === "/v1/upload") {
+      await handleUpload(input);
+      return;
+    }
     if ((method === "GET" || method === "HEAD") && input.staticDir !== undefined) {
       const served = tryServeStatic(
         input.staticDir,
@@ -317,11 +347,124 @@ async function handleHttp(input: {
     sendJson(response, 404, errorBody("Not found."));
   } catch (error) {
     if (isChatError(error) && error.code === "configuration") {
-      sendJson(response, 400, errorBody(publicErrorMessage(error)));
+      sendJson(response, error.status ?? 400, errorBody(publicErrorMessage(error)));
       return;
     }
     sendJson(response, 500, errorBody(publicErrorMessage(error)));
   }
+}
+
+/**
+ * `POST /v1/upload` (ADR 0020 D3). Reads the body under the byte cap while
+ * streaming (never buffering an oversized body whole), sniffs the media type
+ * from the bytes, sanitises the declared filename, writes the blob, and asks
+ * the ACP process to ingest it by locator. A failed or not-yet-available
+ * ingestion (the agent-side handler is A008-0043's, and may not exist on
+ * this branch) never fails the upload: the blob is already durably stored
+ * under a stable locator and can be re-extracted later (ADR 0020 D2).
+ */
+async function handleUpload(input: {
+  readonly request: IncomingMessage;
+  readonly response: ServerResponse;
+  readonly sendJson: (response: ServerResponse, status: number, body: unknown) => void;
+  readonly storeRoot: string | undefined;
+  readonly maxUploadBytes: number;
+  readonly getBridge: () => Promise<AcpBridge>;
+}): Promise<void> {
+  const { request, response, sendJson } = input;
+  if (!isOctetStreamContentType(request)) {
+    sendJson(
+      response,
+      415,
+      errorBody("Content-Type must be application/octet-stream."),
+    );
+    return;
+  }
+  if (input.storeRoot === undefined) {
+    sendJson(
+      response,
+      400,
+      errorBody("A008_SOURCE_STORE_PATH is not configured."),
+    );
+    return;
+  }
+  const declaredFilename = firstHeaderValue(request.headers["x-a008-filename"]);
+  const { buffer, sha256 } = await readUploadBody(request, input.maxUploadBytes);
+  const mediaType = sniffSourceMediaType(buffer);
+  const filename = sanitiseUploadFilename(declaredFilename);
+  const stored = writeBlob(input.storeRoot, sha256, filename, buffer);
+
+  let extracted = false;
+  let artifactId: string | undefined;
+  try {
+    const bridge = await input.getBridge();
+    const result = await bridge.ingestSource({
+      locator: stored.locator,
+      mediaType,
+      filename,
+    });
+    extracted = true;
+    artifactId = result.artifactId;
+  } catch {
+    // See the function comment: a stored blob outlives a failed ingestion.
+  }
+
+  sendJson(response, 200, {
+    locator: stored.locator,
+    sha256,
+    bytes: buffer.length,
+    mediaType,
+    extracted,
+    ...(artifactId === undefined ? {} : { artifactId }),
+  });
+}
+
+function isOctetStreamContentType(request: IncomingMessage): boolean {
+  const header = firstHeaderValue(request.headers["content-type"]);
+  if (header === undefined) {
+    return false;
+  }
+  const mime = header.split(";")[0]?.trim().toLowerCase() ?? "";
+  return mime === "application/octet-stream";
+}
+
+/**
+ * Reads the upload body under `maxBytes`, hashing as it goes. The cap is
+ * checked against the declared `Content-Length` before a single byte is
+ * read, and again against the running total on every chunk, so an oversized
+ * body is refused — and the connection torn down — without ever buffering
+ * the whole thing.
+ */
+async function readUploadBody(
+  request: IncomingMessage,
+  maxBytes: number,
+): Promise<{ readonly buffer: Buffer; readonly sha256: string }> {
+  const declared = request.headers["content-length"];
+  if (typeof declared === "string") {
+    const length = Number.parseInt(declared, 10);
+    if (Number.isFinite(length) && length > maxBytes) {
+      request.destroy();
+      throw new ChatError("configuration", "Upload exceeds the maximum allowed size.", {
+        status: 413,
+      });
+    }
+  }
+  const hash = createHash("sha256");
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array);
+    total += buffer.length;
+    if (total > maxBytes) {
+      request.destroy();
+      throw new ChatError("configuration", "Upload exceeds the maximum allowed size.", {
+        status: 413,
+      });
+    }
+    hash.update(buffer);
+    chunks.push(buffer);
+  }
+  return { buffer: Buffer.concat(chunks), sha256: hash.digest("hex") };
 }
 
 /**
