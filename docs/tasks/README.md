@@ -11,6 +11,13 @@ the template before push.
 
 ## Records
 
+- [`../finished/A008-0046_staging-budget.md`](../finished/A008-0046_staging-budget.md) —
+  Complete; staging ceiling 8 to 128 and semantic output budget 1024 to 16384.
+- [`../finished/A008-0047_analyzer-instruction.md`](../finished/A008-0047_analyzer-instruction.md) —
+  Complete; owner-authored analyzer instruction adopted.
+- [`../finished/A008-0048_gui-chat-autoscroll.md`](../finished/A008-0048_gui-chat-autoscroll.md) —
+  Complete; shell grid capped so the chat transcript scrolls.
+
 - [`A008-0041_source-upload-ingest.md`](A008-0041_source-upload-ingest.md) —
   Complete; source upload ingest program (ADR 0020), all four children merged
   2026-09-03; archived

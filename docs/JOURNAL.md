@@ -2,6 +2,55 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-03 — Owner adjustments before wave 2
+
+- Date: 2026-09-03
+- Author: Claude (operator / boss)
+- Task: A008-0046, A008-0047, A008-0048
+- Branch: `main`
+- Identity evidence: A008-0046 was claimed by the owner on `main`; A008-0047 and
+  A008-0048 were claimed as `40afdfd` before either branch was created.
+- Origin: owner request, from testing across several models and settings.
+- A008-0046: staging ceiling 8 to 128, semantic output budget 1024 to 16384
+  tokens. An ordinary factual text produced 49 proposals, so the old ceiling
+  discarded more than half of a normal extraction as `budget_exceeded`. The two
+  move together because a truncated JSON array is not partial knowledge — it
+  fails the strict parse and the whole batch is lost. Flagged to the owner
+  before implementing: the ceiling is also a cost dial, since the coordinator
+  commits proposals sequentially with one classifier call each, so provider
+  calls per answer go from 1 + up to 8 to 1 + up to 128.
+- A008-0047: the owner's analyzer instruction, iterated against several models
+  from several providers. Two syntactic corrections were needed and were the
+  only changes: two array elements were missing trailing commas, making them
+  adjacent string literals, and a stray `;` sat inside one string. The wording
+  was not touched. The supplied text states the field allow-list twice; that was
+  kept deliberately and flagged, because it was presumably present in the
+  version the owner measured.
+- A008-0048: reported as "chat output does not auto-scroll". The chat pane was
+  not at fault — its effect was already correct and fired on every render. It
+  wrote `scrollTop` to an element that never overflowed. `.a008-app` declared
+  `min-height: 100%`, a floor rather than a cap, so the `1fr` grid row grew to
+  fit its content: measured in a browser at 3034px against a 720px viewport,
+  with the window scrolling and the transcript's `clientHeight` equal to its
+  `scrollHeight`. Fixed with `height: 100%` and `overflow: hidden`. No
+  TypeScript changed.
+- Verification: `npm test` 300 core and 75 GUI, 0 fail, 0 skipped; root and GUI
+  typecheck clean; GUI build clean. Each limit change was mutation-checked:
+  restoring either old value fails exactly one case. The scroll fix was measured
+  before and after in a real browser against a live host, a real `A008-acp`
+  subprocess and a streaming fake provider — transcript `clientHeight` 242
+  against `scrollHeight` 2550, pinned at the bottom, document no longer
+  overflowing — and the reader-scrolled-up case was checked too: a second answer
+  grew the transcript while the view stayed put. Both end-to-end proofs were
+  re-run and still pass 15 of 15 and 13 of 13.
+- Not performed: no live provider call, no measurement of the new instruction's
+  extraction quality, which is the owner's and is not claimed here.
+- Known consequence recorded in `docs/CURRENT_STATUS.md`: post-output cost and
+  latency rise roughly sixfold at the observed proposal count, and GUI layout
+  still has no automated regression guard, because only a browser can prove a
+  layout and this repository has no browser test runner.
+- Signature: Claude
+
 ## 2026-09-03 — Build the document and image upload path
 
 - Date: 2026-09-03
