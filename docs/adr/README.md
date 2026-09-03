@@ -81,3 +81,10 @@ replacement.
   locator. Amends 0019 D4 with POST /v1/upload. Extraction is a port; image
   description is its own port, not a ChatMessage change. PDF, DOCX and live
   vision stay unsupported pending owner decisions.
+- [`0021-workspace-shell.md`](0021-workspace-shell.md) — Accepted; three-zone
+  A008 shell and warm-neutral tokens. Its D5 programme is superseded by 0022.
+  Reference inspected under a proprietary license; nothing adopted.
+- [`0022-gui-is-a-test-surface.md`](0022-gui-is-a-test-surface.md) — Accepted;
+  `gui/` is a live-test surface and the product client is external. Amends 0019
+  D2, supersedes the 0021 D5 programme, and makes the host protocol an
+  integration contract with a named-origin allowlist.

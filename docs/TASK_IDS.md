@@ -69,3 +69,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0050 | per-item analyzer resilience | operator | 2026-09-03 | staging validation and diagnostic |
 | A008-0051 | provider timeout and chat generation overrides | operator | 2026-09-03 | runtime configuration |
 | A008-0052 | workspace shell and design tokens | operator | 2026-09-03 | gui brand and app shell (ADR 0021) |
+| A008-0053 | host protocol as an integration contract | operator | 2026-09-04 | HOST_PROTOCOL doc and named-origin allowlist |
