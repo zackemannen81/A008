@@ -10,6 +10,26 @@ export interface AcpPromptHandlers {
   readonly onAnswer: (text: string) => void;
 }
 
+/**
+ * Params for the ADR 0020 D4 extension method `_a008/source/ingest`. The
+ * bridge sends only the locator the host already wrote to disk, the sniffed
+ * media type, and the advisory filename — never bytes, per ADR 0020 D1.
+ */
+export interface AcpSourceIngestInput {
+  readonly locator: string;
+  readonly mediaType: string;
+  readonly filename?: string;
+}
+
+/** Result of `_a008/source/ingest`, per ADR 0020 D4. */
+export interface AcpSourceIngestResult {
+  readonly artifactId: string;
+  readonly utteranceIds: readonly string[];
+  readonly contentKind?: string;
+  readonly relation: string;
+  readonly speaker: string;
+}
+
 export interface AcpBridge {
   newSession(model?: string): Promise<{ sessionId: string }>;
   prompt(
@@ -25,6 +45,14 @@ export interface AcpBridge {
    * that is gone.
    */
   closeSession(sessionId: string): Promise<void>;
+  /**
+   * Asks the ACP process to extract and ingest one already-stored source, by
+   * locator only (ADR 0020 D1, D4). The agent-side handler is owned by
+   * A008-0043 and may not exist on every ACP process this bridge talks to; a
+   * caller that gets a rejection should treat the upload as stored but not
+   * yet extracted, not as a failed upload.
+   */
+  ingestSource(input: AcpSourceIngestInput): Promise<AcpSourceIngestResult>;
   close(): Promise<void>;
 }
 
@@ -159,6 +187,16 @@ export async function createSpawnedAcpBridge(
       handlers.delete(sessionId);
       try {
         await connection.agent.request("session/close", { sessionId });
+      } catch (error) {
+        throw acpFailure(error, stderrTail.lastLine());
+      }
+    },
+    async ingestSource(input) {
+      try {
+        return await connection.agent.request<AcpSourceIngestResult, AcpSourceIngestInput>(
+          "_a008/source/ingest",
+          input,
+        );
       } catch (error) {
         throw acpFailure(error, stderrTail.lastLine());
       }

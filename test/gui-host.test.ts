@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+} from "node:fs";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { createSpawnedAcpBridge, type AcpBridge } from "../src/gui-host/acp-bridge.js";
@@ -19,12 +25,21 @@ const SESSION_ID = "sess-1";
  * @param released - when given, every session the host releases is appended to
  * it, so a test can assert the release itself rather than infer it.
  */
-function injectedBridge(released?: string[]): AcpBridge {
+function injectedBridge(released?: string[], ingested?: string[]): AcpBridge {
   let created = 0;
   return {
     async newSession() {
       created += 1;
       return { sessionId: created === 1 ? SESSION_ID : `sess-${String(created)}` };
+    },
+    async ingestSource(request) {
+      ingested?.push(request.locator);
+      return {
+        artifactId: "A008_knowledge_artifact_upload-1",
+        utteranceIds: ["A008_knowledge_utterance_upload-1"],
+        relation: "appears_in",
+        speaker: "user",
+      };
     },
     async closeSession(sessionId) {
       released?.push(sessionId);
@@ -801,4 +816,191 @@ test("spawned fake ACP bridge reports a failed turn as an error frame", async ()
       client.close();
     }
   });
+});
+
+function uploadStore(): string {
+  return mkdtempSync(join(tmpdir(), "A008-source-store-"));
+}
+
+async function upload(
+  host: GuiHost,
+  body: string,
+  filename: string,
+  extraHeaders: Readonly<Record<string, string>> = {},
+): Promise<{ readonly status: number; readonly body: unknown; readonly raw: string }> {
+  return await httpJson(host, "/v1/upload", {
+    method: "POST",
+    headers: {
+      "content-type": "application/octet-stream",
+      "x-a008-filename": filename,
+      ...extraHeaders,
+    },
+    body,
+  });
+}
+
+test("POST /v1/upload stores the original and reports a content-addressed locator", async () => {
+  const storeRoot = uploadStore();
+  const ingested: string[] = [];
+  await withHost(
+    {
+      sourceStorePath: storeRoot,
+      createAcpBridge: () => injectedBridge(undefined, ingested),
+    },
+    async (host) => {
+      const result = await upload(host, "A008 upload body.", "report.txt");
+      assert.equal(result.status, 200);
+      const body = result.body as Record<string, unknown>;
+
+      assert.equal(body.mediaType, "text/plain");
+      assert.equal(body.bytes, 17);
+      assert.equal(body.extracted, true);
+      assert.equal(typeof body.sha256, "string");
+      assert.equal(body.locator, `source:${String(body.sha256)}/report.txt`);
+      // The bridge was asked to ingest by locator only; bytes never cross ACP.
+      assert.deepEqual(ingested, [body.locator]);
+      assert.equal(
+        readFileSync(join(storeRoot, String(body.sha256), "report.txt"), "utf8"),
+        "A008 upload body.",
+      );
+      assertWireClean([result.raw]);
+    },
+  );
+});
+
+test("the same bytes twice yield one locator and one stored blob", async () => {
+  const storeRoot = uploadStore();
+  await withHost({ sourceStorePath: storeRoot }, async (host) => {
+    const first = (await upload(host, "identical", "a.txt")).body as Record<string, unknown>;
+    const second = (await upload(host, "identical", "a.txt")).body as Record<string, unknown>;
+
+    assert.equal(first.locator, second.locator);
+    assert.equal(first.sha256, second.sha256);
+    assert.deepEqual(readdirSync(join(storeRoot, String(first.sha256))), ["a.txt"]);
+  });
+});
+
+test("a hostile filename cannot place a file outside the store", async () => {
+  const storeRoot = uploadStore();
+  await withHost({ sourceStorePath: storeRoot }, async (host) => {
+    for (const declared of [
+      "../../escape.txt",
+      "..%2F..%2Fescape.txt",
+      "sub/dir/escape.txt",
+      "..",
+      "   ",
+    ]) {
+      const body = (await upload(host, `x-${declared}`, declared)).body as Record<
+        string,
+        unknown
+      >;
+      const locator = String(body.locator);
+      const name = locator.slice(locator.lastIndexOf("/") + 1);
+      assert.equal(name.includes(".."), false, `no traversal in ${locator}`);
+      assert.equal(/[\/]/u.test(name), false, `no separator in ${locator}`);
+      // Every written file is exactly one level under its hash directory.
+      const written = join(storeRoot, String(body.sha256), name);
+      assert.equal(existsSync(written), true, `stored at ${written}`);
+      assert.equal(relative(storeRoot, written).startsWith(".."), false);
+    }
+    // Nothing was created beside the store root.
+    assert.equal(existsSync(join(dirname(storeRoot), "escape.txt")), false);
+  });
+});
+
+test("an oversized upload is refused and nothing is written", async () => {
+  const storeRoot = uploadStore();
+  await withHost({ sourceStorePath: storeRoot, maxUploadBytes: 16 }, async (host) => {
+    // Refusing an oversized stream tears the connection down rather than
+    // politely finishing it, so either a non-200 status or a transport-level
+    // failure counts as a refusal. What must hold is that nothing is stored.
+    let accepted = false;
+    try {
+      const result = await upload(host, "x".repeat(64), "big.txt");
+      accepted = result.status === 200;
+      if (!accepted) {
+        assert.match(
+          String((result.body as { message?: string }).message ?? ""),
+          /large/iu,
+        );
+      }
+    } catch {
+      accepted = false;
+    }
+    assert.equal(accepted, false, "an oversized upload must never succeed");
+    assert.deepEqual(readdirSync(storeRoot), [], "nothing written");
+
+    // The host is still serving afterwards.
+    const health = await httpJson(host, "/health");
+    assert.deepEqual(health.body, { ok: true, name: "A008-gui-host" });
+  });
+});
+
+test("POST /v1/upload requires the octet-stream content type", async () => {
+  const storeRoot = uploadStore();
+  await withHost({ sourceStorePath: storeRoot }, async (host) => {
+    const result = await httpJson(host, "/v1/upload", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-a008-filename": "a.txt" },
+      body: "{}",
+    });
+    assert.equal(result.status, 415);
+    assert.deepEqual(readdirSync(storeRoot), []);
+  });
+});
+
+test("POST /v1/upload refuses a cross-origin caller", async () => {
+  const storeRoot = uploadStore();
+  await withHost({ sourceStorePath: storeRoot }, async (host) => {
+    const result = await upload(host, "x", "a.txt", {
+      origin: "https://evil.example",
+    });
+    assert.equal(result.status, 403);
+    assert.deepEqual(readdirSync(storeRoot), []);
+  });
+});
+
+test("a stored upload survives a failing ingestion", async () => {
+  const storeRoot = uploadStore();
+  await withHost(
+    {
+      sourceStorePath: storeRoot,
+      createAcpBridge: () => {
+        const bridge = injectedBridge();
+        return {
+          ...bridge,
+          async ingestSource() {
+            throw new Error("synthetic ingest failure");
+          },
+        };
+      },
+    },
+    async (host) => {
+      const result = await upload(host, "kept anyway", "keep.txt");
+      assert.equal(result.status, 200);
+      const body = result.body as Record<string, unknown>;
+      // The blob is durable; only extraction failed.
+      assert.equal(body.extracted, false);
+      assert.equal(body.artifactId, undefined);
+      assert.equal(
+        readFileSync(join(storeRoot, String(body.sha256), "keep.txt"), "utf8"),
+        "kept anyway",
+      );
+    },
+  );
+});
+
+test("the bridge sends _a008/source/ingest over a real ACP subprocess", async () => {
+  const storeRoot = uploadStore();
+  await withHost(
+    { ...spawnedFakeAcp(), sourceStorePath: storeRoot },
+    async (host) => {
+      const result = await upload(host, "over stdio", "stdio.txt");
+      assert.equal(result.status, 200);
+      const body = result.body as Record<string, unknown>;
+      assert.equal(body.extracted, true);
+      assert.equal(typeof body.artifactId, "string");
+      assertWireClean([result.raw]);
+    },
+  );
 });

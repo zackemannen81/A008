@@ -35,6 +35,18 @@ const transport: ChatTransport = {
   },
 };
 
+/**
+ * Params for the ADR 0020 D4 extension method this fake registers, so
+ * `acp-bridge.ts`'s `ingestSource` can be exercised over a real stdio ACP
+ * connection even though the real sibling agent handler (A008-0043) does not
+ * exist on this branch.
+ */
+interface FakeSourceIngestParams {
+  readonly locator: string;
+  readonly mediaType: string;
+  readonly filename?: string;
+}
+
 async function main(): Promise<void> {
   const agent = new A008AcpAgent({
     createSession: (model) => new ChatSession({ model, transport }),
@@ -54,6 +66,24 @@ async function main(): Promise<void> {
       agent.prompt(context.params, sessionNotifier(context.client)),
     )
     .onNotification("session/cancel", (context) => agent.cancel(context.params))
+    .onRequest(
+      "_a008/source/ingest",
+      (params) => params as FakeSourceIngestParams,
+      (context) => {
+        if (context.params.mediaType === "application/x-fake-unsupported") {
+          throw new Error(
+            `unsupported media type: ${context.params.mediaType}`,
+          );
+        }
+        return {
+          artifactId: `artifact-${context.params.filename ?? "unnamed"}`,
+          utteranceIds: ["utt-1"],
+          contentKind: "document",
+          relation: "appears_in",
+          speaker: "fake-uploader",
+        };
+      },
+    )
     .connect(stream);
   await connection.closed;
 }
