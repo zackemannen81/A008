@@ -146,7 +146,12 @@ export const SEMANTIC_JSON_GENERATION: ChatGenerationOptions = Object.freeze({
    * Raised from 1024 alongside the staging ceiling. A 128-proposal extraction
    * does not fit in 1024 output tokens, and a truncated array is not partial
    * knowledge — it is invalid JSON that fails the strict parse and discards the
-   * whole batch. 16384 is the verified model profile's own output maximum.
+   * whole batch.
+   *
+   * 16384 is what the verified model profile declares, not a measured ceiling
+   * for the model itself: the provider playground accepts 32768 for this same
+   * model. Raising the profile is a separate decision, because "verified" in
+   * `src/core/model-registry.ts` means checked against the model card.
    */
   maxTokens: 16_384,
   enableThinking: false,

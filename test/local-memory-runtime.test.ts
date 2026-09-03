@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
+import type { ChatRequest } from "../src/core/types.js";
+import { DEFAULT_PROVIDER_TIMEOUT_MS } from "../src/runtime/local-runtime-config.js";
 import { ChatError } from "../src/core/errors.js";
 import { parseRuntimeId } from "../src/identity/runtime-id.js";
 import { MemoryError } from "../src/memory/errors.js";
@@ -668,4 +670,54 @@ test("overlapping turns are rejected and cannot rewrite sourceMessage", async ()
     runtime.close();
     rmSync(isolated.directory, { recursive: true, force: true });
   }
+});
+
+test("chat generation overrides reach the provider request", async () => {
+  // The verified profile ships reasoningBudget 16384 against maxTokens 16384,
+  // so reasoning can consume the whole output budget and truncate the answer.
+  // An operator must be able to cap it without editing a profile that means
+  // "checked against the model card".
+  const seen: (ChatRequest["options"] | undefined)[] = [];
+  let transportTimeoutMs: number | undefined;
+  const isolated = isolatedMemoryEnv({
+    A008_CHAT_REASONING_BUDGET: "2048",
+    A008_CHAT_MAX_TOKENS: "32768",
+    A008_CHAT_TEMPERATURE: "0.5",
+  });
+  const runtime = createLocalMemoryRuntime({
+    env: isolated.env,
+    surface: "test",
+    createTransport: (transportOptions) => ({
+      async complete(request) {
+        transportTimeoutMs = transportOptions.timeoutMs;
+        seen.push(request.options);
+        return {
+          message: { role: "assistant", content: "Noted." },
+          model: request.model,
+          finishReason: "stop",
+        } as never;
+      },
+    }),
+  });
+  try {
+    await runtime.openSession().turn("Remember that the sky is blue.");
+  } catch {
+    // The post-output path may fail against this minimal fake; the chat request
+    // has already been observed, which is what this test is about.
+  } finally {
+    runtime.close();
+  }
+
+  const chat = seen[0];
+  assert.ok(chat, "a chat request was made");
+  assert.equal(chat.reasoningBudget, 2_048, "the cap is applied");
+  assert.equal(chat.maxTokens, 32_768);
+  assert.equal(chat.temperature, 0.5);
+  // Untouched profile defaults survive.
+  assert.equal(chat.topP, 0.95);
+  assert.equal(chat.enableThinking, true);
+
+  // The adapter's own fallback is 60s, which a completeness extraction exceeds.
+  // The runtime must hand it the configured ceiling rather than leave it unset.
+  assert.equal(transportTimeoutMs, DEFAULT_PROVIDER_TIMEOUT_MS);
 });

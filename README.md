@@ -157,6 +157,20 @@ runner as the CLI `/shell` command, and refuses any cross-origin request that
 is not loopback. See `docs/adr/0019-a008-owned-gui.md` for the boundary and
 `docs/evidence/A008-0030_gui-runtime-proof.md` for the end-to-end proof.
 
+`A008_PROVIDER_TIMEOUT_MS` caps a single provider request; the default is
+180000. The provider adapter's own fallback is 60 seconds, which a
+completeness-oriented knowledge extraction now routinely exceeds.
+
+The verified model profile's generation defaults can be overridden per
+deployment without editing the profile, which means "checked against the model
+card": `A008_CHAT_TEMPERATURE`, `A008_CHAT_TOP_P`, `A008_CHAT_MAX_TOKENS`,
+`A008_CHAT_REASONING_BUDGET`, and `A008_CHAT_THINKING` (`on`/`off`). The profile
+ships `reasoningBudget` equal to `maxTokens`, so reasoning can consume the whole
+output budget and truncate the answer; capping the budget is the usual reason to
+set these. They apply to chat turns. Semantic JSON calls keep their own
+deterministic profile — temperature 0, thinking off, non-streaming — because
+they must return strict parseable JSON.
+
 `A008_GUI_HOST_PORT` overrides the host port. `A008_SOURCE_STORE_PATH` enables
 uploads and must point outside the repository; without it `POST /v1/upload` is
 refused rather than the host failing to start.

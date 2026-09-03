@@ -39,7 +39,7 @@ belongs in `docs/PROJECT_BRIEF.md`.
 | Local memory surfaces | `createLocalMemoryRuntime` owns SQLite path/project identity, one NVIDIA transport, the SQLite knowledge engine, memory-aware chat, post-output through `KnowledgeEngineCommit`, and `user-assertion-v1` ACCEPT. Live restatement reinforces evidence only. `PROJECT` writes nothing. Direct matches ignore dormancy. `KnowledgeItem` remains a compatibility/migration surface. Opt-in off/safe/raw JSONL tracing is secret-redacted and off by default. |
 | Committed memory-loop proof | `npm run benchmark:memory-loop` composes actual in-memory SQLite read/write/index state with two memory-aware chat turns and one shared fake transport. Exact call order is chat/analyze/classify/chat; active canon extends from revision one to two and the second turn projects the new proposition. New-draft auto-activation remains explicitly unproven. |
 | Runtime identity core | Exported branded/parser-validated project, conversation, runtime-task, agent, and ACP-session IDs use versioned lowercase UUIDv4 values. A namespaced external-reference contract, atomic in-memory ACP binding repository, conflict/idempotency rules, and defensive lookup surfaces exist. No complete external conversation binding is created at runtime. |
-| Automated tests | 383 Node test-runner cases, verified 2026-09-03: 308 in the core suite and 75 across the GUI modules. All 46 core test files are referenced by `test:core`; A008-0040 restored two (`evidence.test.ts`, `state-history.test.ts`, 20 cases) that the hand-maintained list had dropped and that had therefore never run. The core count includes in-memory and SQLite S1–S10 with identical payloads, v0 supersede-chain migration, live CLI/ACP cutover, and 16 GUI-host cases that cover `session/new`, thought-then-answer streaming, cancel, and the error path twice over — once against an injected in-process bridge and once against a real spawned ACP stdio subprocess. Root `npm test` is the full gate: it runs `test:core` against compiled output and then `test:gui`. `npm --prefix gui run test` discovers `gui/src/**/*.test.ts` under `node --experimental-strip-types` through one shared loader at `gui/test/`, so a new GUI test file runs with no script edit and a failing GUI test fails the root command. No test loads `.env.local` or makes a live call. |
+| Automated tests | 389 Node test-runner cases, verified 2026-09-03: 314 in the core suite and 75 across the GUI modules. All 46 core test files are referenced by `test:core`; A008-0040 restored two (`evidence.test.ts`, `state-history.test.ts`, 20 cases) that the hand-maintained list had dropped and that had therefore never run. The core count includes in-memory and SQLite S1–S10 with identical payloads, v0 supersede-chain migration, live CLI/ACP cutover, and 16 GUI-host cases that cover `session/new`, thought-then-answer streaming, cancel, and the error path twice over — once against an injected in-process bridge and once against a real spawned ACP stdio subprocess. Root `npm test` is the full gate: it runs `test:core` against compiled output and then `test:gui`. `npm --prefix gui run test` discovers `gui/src/**/*.test.ts` under `node --experimental-strip-types` through one shared loader at `gui/test/`, so a new GUI test file runs with no script edit and a failing GUI test fails the root command. No test loads `.env.local` or makes a live call. |
 
 ## Security observation
 
@@ -80,6 +80,16 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   scroll-to-bottom depends on the shell grid being height-capped, which only a
   browser can prove; `gui/src/brand/shell-layout.test.ts` asserts the CSS
   declaration, not the rendered layout.
+- A single knowledge extraction is now a long generation. An owner run of this
+  workload took 87 seconds in the provider playground, against a provider
+  adapter whose own default ceiling is 60 seconds. `A008_PROVIDER_TIMEOUT_MS`
+  now defaults to 180000, but nothing bounds the post-output path as a whole:
+  the coordinator commits sequentially, so one answer can be one long analyzer
+  call plus tens of classifier calls back to back.
+- The verified model profile declares `maxTokens: 16384` while the provider
+  playground accepts 32768 for the same model. The profile is not wrong, it is
+  conservative; raising it means re-checking the model card, so
+  `A008_CHAT_MAX_TOKENS` exists as the per-deployment override instead.
 - No CI runs any of this. Root `npm test` is now the full gate and covers the
   GUI, but nothing enforces that a human or a pipeline runs it before a merge.
 - `test:core` still names its 43 test files by hand. A008-0040 refilled the two

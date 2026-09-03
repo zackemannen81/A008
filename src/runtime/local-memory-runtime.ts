@@ -82,6 +82,7 @@ import {
   parseLocalRuntimeConfig,
   projectIdSidecarPath,
   type LocalRuntimeCliTraceOptions,
+  type ChatGenerationOverrides,
   type LocalRuntimeConfig,
 } from "./local-runtime-config.js";
 import {
@@ -590,6 +591,7 @@ export class LocalMemoryRuntime {
   readonly #registry: ModelRegistry;
   readonly #identityFactory: RuntimeIdentityFactory;
   readonly sourceStoreRoot: string | undefined;
+  readonly #chatGeneration: ChatGenerationOverrides;
   readonly #sourceExtractorRegistry: SourceExtractorRegistry;
   readonly #readSourceBytes: (path: string) => Uint8Array;
   #closed = false;
@@ -609,6 +611,7 @@ export class LocalMemoryRuntime {
     readonly registry: ModelRegistry;
     readonly identityFactory: RuntimeIdentityFactory;
     readonly sourceStoreRoot?: string;
+    readonly chatGeneration: ChatGenerationOverrides;
     readonly sourceExtractorRegistry: SourceExtractorRegistry;
     readonly readSourceBytes: (path: string) => Uint8Array;
   }) {
@@ -625,6 +628,7 @@ export class LocalMemoryRuntime {
     this.#identityFactory = options.identityFactory;
     this.sourceStoreRoot = options.sourceStoreRoot;
     this.#sourceExtractorRegistry = options.sourceExtractorRegistry;
+    this.#chatGeneration = options.chatGeneration;
     this.#readSourceBytes = options.readSourceBytes;
   }
 
@@ -641,7 +645,9 @@ export class LocalMemoryRuntime {
       model: profile.id,
       transport: this.#transport,
       systemMessage: options.systemMessage ?? DEFAULT_SYSTEM_MESSAGE,
-      generation: profile.defaults,
+      // Profile defaults first, operator overrides on top. The profile means
+      // "checked against the model card" and is not edited to tune a run.
+      generation: { ...profile.defaults, ...this.#chatGeneration },
     });
     const memoryAware = new MemoryAwareChatSession({
       chat: chatSession,
@@ -877,6 +883,9 @@ export function createLocalMemoryRuntime(
   });
   const innerTransport = createNvidiaChatTransport({
     env: options.env,
+    // Without this the adapter falls back to its own 60-second default, which
+    // a completeness-oriented extraction now routinely exceeds.
+    timeoutMs: config.providerTimeoutMs,
     ...(options.registry === undefined ? {} : { registry: options.registry }),
     ...(options.createTransport === undefined
       ? {
@@ -932,6 +941,7 @@ export function createLocalMemoryRuntime(
     ...(config.sourceStorePath === undefined
       ? {}
       : { sourceStoreRoot: config.sourceStorePath }),
+    chatGeneration: config.chatGeneration,
     sourceExtractorRegistry:
       options.sourceExtractorRegistry ??
       new SourceExtractorRegistry([new Utf8TextExtractor()]),
