@@ -11,6 +11,10 @@ the template before push.
 
 ## Records
 
+- [`A008-0049_source-knowledge-extraction.md`](A008-0049_source-knowledge-extraction.md) —
+  Complete; upload wave 2, amends ADR 0020 D7 with D10; archived
+  [`../finished/A008-0049_source-knowledge-extraction.md`](../finished/A008-0049_source-knowledge-extraction.md).
+
 - [`../finished/A008-0046_staging-budget.md`](../finished/A008-0046_staging-budget.md) —
   Complete; staging ceiling 8 to 128 and semantic output budget 1024 to 16384.
 - [`../finished/A008-0047_analyzer-instruction.md`](../finished/A008-0047_analyzer-instruction.md) —

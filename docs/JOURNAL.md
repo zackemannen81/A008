@@ -2,6 +2,45 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-03 — Upload wave 2, and the acceptance trap it uncovered
+
+- Date: 2026-09-03
+- Author: Claude (operator / boss)
+- Task: A008-0049
+- Branch: `main`
+- Identity evidence: claimed on `main` as `84f37e3` with a frozen charter.
+- Why now: ADR 0020 D7 deferred this on two grounds and A008-0047 removed one —
+  the analyzer instruction no longer speaks of a message and an answer, it
+  speaks of "the source".
+- The charter was wrong, and finding out why was the work. It scoped this as a
+  staging-shape change. `KnowledgeEngineCommit` in fact assumes a user turn in
+  two hardcoded places: `#ingestOnce` ingests `batch.sourceMessage` as
+  `speaker: "user"` with a `turn:` locator, and `accept()` runs
+  `user-assertion-v1` over it. `isExplicitUserAssertion` activates a proposal
+  when the source message *contains* the proposition, and a document contains
+  every proposition extracted from it. Routing a source through that path would
+  have accepted an entire uploaded file as though the user had personally stated
+  every fact in it, and duplicated the utterance while replacing the provenance
+  A008-0040 and A008-0042 exist to get right.
+- Change: merged the ADR 0020 D10 amendment and the implementation.
+  `StagedKnowledgeBatch` carries an origin; a source puts its locator in
+  `sourceMessage`, never its content; the commit path reuses the existing
+  utterance; and acceptance is refused on origin alone, independently of
+  `sourceMessage`. Two layers, so a mistake in one is not a silent
+  data-integrity failure. Extraction is opt-in and off by default.
+- Verification: `npm test` 308 core and 75 GUI, 0 fail, 0 skipped; both
+  end-to-end proofs unchanged at 13 of 13 and 15 of 15. Mutation-checked:
+  content as `sourceMessage`, acceptance applied to sources, and re-ingest each
+  fail exactly one case. The acceptance mutation initially passed; it only bites
+  because a test deliberately arms the trap, which is the only way to prove that
+  layer holds on its own.
+- Not performed: no live provider call, no chunking, no host or renderer
+  surfacing of the new option.
+- Handoff: `POST /v1/upload` cannot yet request extraction — that is the next
+  small task. Chunking remains the open question in
+  `docs/backlog/document-ingest-granularity.md`.
+- Signature: Claude
+
 ## 2026-09-03 — Owner adjustments before wave 2
 
 - Date: 2026-09-03
