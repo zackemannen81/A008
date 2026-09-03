@@ -105,15 +105,23 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         at: UNKNOWN_INSTANT,
         caller: "knowledge-commit",
       });
-      accept(
-        {
-          claimId: evidenceClaim.id,
-          policy: ACCEPT_POLICY,
-          authority: { verified: true, speakerRole: "user" },
-          sourceMessage: input.batch.sourceMessage,
-        },
-        this.#context.evidence,
-      );
+      // `user-assertion-v1` applies only to something the user actually said.
+      // An uploaded document is not a user assertion, and its text contains
+      // every proposition extracted from it, so running the policy over a
+      // source batch would accept the whole document as though the user had
+      // stated each claim. Source claims stay `asserted`, attributed to the
+      // source.
+      if (input.batch.origin.kind !== "source") {
+        accept(
+          {
+            claimId: evidenceClaim.id,
+            policy: ACCEPT_POLICY,
+            authority: { verified: true, speakerRole: "user" },
+            sourceMessage: input.batch.sourceMessage,
+          },
+          this.#context.evidence,
+        );
+      }
     }
 
     const accepted =
@@ -188,6 +196,13 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
   }
 
   #ingestOnce(input: RelationCommitInput): string {
+    // A source was already ingested by `LocalMemoryRuntime.ingestSource`, with
+    // the extractor's own speaker, relation and locator. Re-ingesting it here
+    // would duplicate the utterance and replace that provenance with
+    // `speaker: "user"` and a fabricated `turn:` locator.
+    if (input.batch.origin.kind === "source") {
+      return input.batch.origin.utteranceId;
+    }
     const key = `${input.batch.taskId}:${input.batch.sourceMessage}`;
     const existing = this.#ingested.get(key);
     if (existing !== undefined) {

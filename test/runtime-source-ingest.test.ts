@@ -223,3 +223,42 @@ test("ingestSource refuses when no source store is configured", async () => {
 test("the text extractor is the default registry", async () => {
   assert.ok(new SourceExtractorRegistry([new Utf8TextExtractor()]).supports("text/plain"));
 });
+
+test("ingestSource makes no analyzer call unless extraction is requested", async () => {
+  const { runtime } = fixture();
+  try {
+    const outcome = await runtime.ingestSource({
+      locator: `source:${HASH}/report.txt`,
+    });
+    // Off by default: the coordinator can mean well over a hundred sequential
+    // provider calls for one source, so an ingest must not pay that unasked.
+    assert.equal(outcome.knowledge, undefined);
+  } finally {
+    runtime.close();
+  }
+});
+
+test("a failed extraction degrades the ingest rather than losing the evidence", async () => {
+  // No credential is configured in this fixture, so the semantic call cannot be
+  // made. The artifact, utterance and provenance must still be stored.
+  const { runtime } = fixture();
+  try {
+    const outcome = await runtime.ingestSource({
+      locator: `source:${HASH}/report.txt`,
+      extractKnowledge: true,
+    });
+
+    assert.ok(outcome.artifactId.startsWith("A008_knowledge_artifact_"));
+    assert.equal(outcome.relation, "appears_in");
+    assert.equal(outcome.utteranceIds.length, 1);
+    assert.ok(outcome.knowledge, "an extraction outcome is reported");
+    assert.equal(outcome.knowledge?.proposalsCommitted, 0);
+    assert.notEqual(
+      outcome.knowledge?.status,
+      "completed",
+      "a failed extraction is reported, not silently swallowed",
+    );
+  } finally {
+    runtime.close();
+  }
+});

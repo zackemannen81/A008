@@ -315,10 +315,13 @@ export class ModelBackedPostOutputKnowledgeAnalyzer
     const untrusted = await this.#generator.generate({
       operation: "knowledge_analysis",
       systemInstruction: POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION,
-      serializedInput: JSON.stringify({
-        message: input.message,
-        answer: input.answer,
-      }),
+      // Each variant is serialized under its own field names. A document is
+      // neither a message nor an answer, and the payload is what the model
+      // reads as untrusted data, so naming it wrongly would frame it wrongly.
+      serializedInput:
+        input.kind === "source"
+          ? JSON.stringify({ locator: input.locator, content: input.content })
+          : JSON.stringify({ message: input.message, answer: input.answer }),
       ...(context.signal === undefined ? {} : { signal: context.signal }),
     });
     return untrusted as readonly AnalyzedKnowledgeDraft[];

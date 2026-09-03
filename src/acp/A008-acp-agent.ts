@@ -58,6 +58,8 @@ export interface SourceIngestParams {
   readonly locator: string;
   readonly mediaType?: string;
   readonly filename?: string;
+  /** Opt in to running the knowledge coordinator; off by default. */
+  readonly extractKnowledge?: boolean;
 }
 
 export interface SourceIngestResult {
@@ -66,6 +68,12 @@ export interface SourceIngestResult {
   readonly contentKind: string;
   readonly relation: string;
   readonly speaker: string;
+  /** Absent unless `extractKnowledge` was requested. */
+  readonly knowledge?: {
+    readonly status: string;
+    readonly proposalsCommitted: number;
+    readonly error?: string;
+  };
 }
 
 export type IngestSource = (
@@ -87,7 +95,8 @@ export function parseSourceIngestParams(params: unknown): SourceIngestParams {
       "_a008/source/ingest requires an object with a locator.",
     );
   }
-  const { locator, mediaType, filename } = params as Record<string, unknown>;
+  const { locator, mediaType, filename, extractKnowledge } =
+    params as Record<string, unknown>;
   if (typeof locator !== "string" || locator.trim().length === 0) {
     throw RequestError.invalidParams(
       params,
@@ -106,10 +115,17 @@ export function parseSourceIngestParams(params: unknown): SourceIngestParams {
       "_a008/source/ingest filename must be a string when present.",
     );
   }
+  if (extractKnowledge !== undefined && typeof extractKnowledge !== "boolean") {
+    throw RequestError.invalidParams(
+      params,
+      "_a008/source/ingest extractKnowledge must be a boolean when present.",
+    );
+  }
   return {
     locator,
     ...(mediaType === undefined ? {} : { mediaType }),
     ...(filename === undefined ? {} : { filename }),
+    ...(extractKnowledge === undefined ? {} : { extractKnowledge }),
   };
 }
 

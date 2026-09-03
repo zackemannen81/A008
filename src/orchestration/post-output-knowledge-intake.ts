@@ -9,10 +9,35 @@ import { MemoryError } from "../memory/errors.js";
 import type { KnowledgeProposal } from "../memory/types.js";
 import type { SemanticOperationContext } from "./semantic-operation.js";
 
-export interface PostOutputAnalyzerInput {
+/**
+ * A delivered conversation turn.
+ *
+ * The analyzer sees only the normalized original message and the final answer.
+ * Reasoning and control state never reach it (ADR 0009).
+ */
+export interface DialogueAnalyzerInput {
+  readonly kind: "dialogue";
   readonly message: string;
   readonly answer: string;
 }
+
+/**
+ * An ingested source, such as an uploaded document.
+ *
+ * Deliberately not carried as a `message` or an `answer`. The serialized input
+ * is what the model reads as untrusted data, so calling a document by a name it
+ * does not have would put a false frame in that payload. The analyzer
+ * instruction already speaks of "the source".
+ */
+export interface SourceAnalyzerInput {
+  readonly kind: "source";
+  readonly locator: string;
+  readonly content: string;
+}
+
+export type PostOutputAnalyzerInput =
+  | DialogueAnalyzerInput
+  | SourceAnalyzerInput;
 
 export interface AnalyzedKnowledgeDraft {
   readonly proposition: string;
@@ -62,12 +87,36 @@ export interface PostOutputKnowledgeIntakeOptions {
   readonly defaultActivationThreshold?: number;
 }
 
-export interface StagePostOutputKnowledgeInput {
+export interface StageDialogueKnowledgeInput {
+  readonly kind?: "dialogue";
   readonly taskId: RuntimeTaskId;
   readonly message: string;
   readonly answer: string;
   readonly applicabilityScopes: readonly string[];
 }
+
+export interface StageSourceKnowledgeInput {
+  readonly kind: "source";
+  readonly taskId: RuntimeTaskId;
+  readonly locator: string;
+  readonly content: string;
+  /**
+   * The utterance `ingest()` already created for this source.
+   *
+   * Carried so the commit path attaches claims to it instead of ingesting the
+   * content a second time under a fabricated speaker and locator.
+   */
+  readonly utteranceId: string;
+  readonly applicabilityScopes: readonly string[];
+}
+
+/**
+ * `kind` is optional on the dialogue variant so every existing caller keeps
+ * working unchanged; a source must name itself.
+ */
+export type StagePostOutputKnowledgeInput =
+  | StageDialogueKnowledgeInput
+  | StageSourceKnowledgeInput;
 
 export interface StagedKnowledgeProposal {
   readonly proposal: KnowledgeProposal;
@@ -75,11 +124,32 @@ export interface StagedKnowledgeProposal {
   readonly entities: readonly string[];
 }
 
+/**
+ * Where a staged batch came from, and what the commit path may assume about it.
+ *
+ * A dialogue turn was spoken by the user, so its text is ingested as a user
+ * utterance and the `user-assertion-v1` acceptance policy applies to it. An
+ * ingested source was not: uploading a document is not asserting its contents,
+ * and the source already has an utterance with honest provenance. Conflating
+ * the two would both duplicate the utterance and auto-accept every claim in the
+ * document as though the user had stated it.
+ */
+export type StagedBatchOrigin =
+  | { readonly kind: "dialogue" }
+  | { readonly kind: "source"; readonly utteranceId: string };
+
 export interface StagedKnowledgeBatch {
   readonly projectId: ProjectId;
   readonly conversationId: ConversationId;
   readonly taskId: RuntimeTaskId;
   readonly agentId: AgentId;
+  readonly origin: StagedBatchOrigin;
+  /**
+   * Dialogue: the user's message, which the acceptance policy reads.
+   * Source: the locator, never the content — a document contains every
+   * proposition extracted from it, so passing the content here would make
+   * `isExplicitUserAssertion` true for all of them.
+   */
   readonly sourceMessage: string;
   readonly proposals: readonly StagedKnowledgeProposal[];
   readonly serialized: string;
@@ -275,12 +345,22 @@ export class PostOutputKnowledgeIntake {
     context: SemanticOperationContext = {},
   ): Promise<StagedKnowledgeBatch> {
     const taskId = parseRuntimeId(input.taskId, "task");
-    const message = nonEmpty(input.message, "message");
-    const answer = nonEmpty(input.answer, "answer");
     const scopes = normalizedScopes(input.applicabilityScopes);
+    const analyzerInput: PostOutputAnalyzerInput =
+      input.kind === "source"
+        ? {
+            kind: "source",
+            locator: nonEmpty(input.locator, "locator"),
+            content: nonEmpty(input.content, "content"),
+          }
+        : {
+            kind: "dialogue",
+            message: nonEmpty(input.message, "message"),
+            answer: nonEmpty(input.answer, "answer"),
+          };
 
     const untrusted: unknown = await this.#analyzer.analyze(
-      { message, answer },
+      analyzerInput,
       context.signal === undefined ? {} : { signal: context.signal },
     );
     if (!Array.isArray(untrusted)) {
@@ -372,7 +452,17 @@ export class PostOutputKnowledgeIntake {
     return {
       ...this.#context,
       taskId,
-      sourceMessage: message,
+      origin:
+        analyzerInput.kind === "source"
+          ? { kind: "source", utteranceId: nonEmpty(
+              (input as StageSourceKnowledgeInput).utteranceId,
+              "utteranceId",
+            ) }
+          : { kind: "dialogue" },
+      sourceMessage:
+        analyzerInput.kind === "source"
+          ? analyzerInput.locator
+          : analyzerInput.message,
       proposals,
       serialized,
       measuredUnits,
