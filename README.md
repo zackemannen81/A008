@@ -157,6 +157,16 @@ runner as the CLI `/shell` command, and refuses any cross-origin request that
 is not loopback. See `docs/adr/0019-a008-owned-gui.md` for the boundary and
 `docs/evidence/A008-0030_gui-runtime-proof.md` for the end-to-end proof.
 
+An external client speaks to this host: see
+[`docs/HOST_PROTOCOL.md`](docs/HOST_PROTOCOL.md) for the complete surface. The
+bundled `gui/` is a live-test surface rather than the product interface
+(ADR 0022); the product client is maintained separately.
+
+If your client presents an `Origin` header the host does not recognise — a
+desktop renderer loading from `file://` sends `null` — name it with
+`A008_GUI_HOST_ALLOWED_ORIGINS`. A client that sends no `Origin` at all needs no
+configuration.
+
 `A008_PROVIDER_TIMEOUT_MS` caps a single provider request; the default is
 180000. The provider adapter's own fallback is 60 seconds, which a
 completeness-oriented knowledge extraction now routinely exceeds.

@@ -13,7 +13,7 @@ import { dirname, join, relative } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { createSpawnedAcpBridge, type AcpBridge } from "../src/gui-host/acp-bridge.js";
-import { isAllowedOrigin } from "../src/gui-host/origin.js";
+import { isAllowedOrigin, parseAllowedOrigins } from "../src/gui-host/origin.js";
 import { parseClientMessage } from "../src/gui-host/protocol.js";
 import { redactWireText } from "../src/gui-host/redact.js";
 import { startGuiHost, type GuiHost, type GuiHostOptions } from "../src/gui-host/server.js";
@@ -1003,4 +1003,58 @@ test("the bridge sends _a008/source/ingest over a real ACP subprocess", async ()
       assertWireClean([result.raw]);
     },
   );
+});
+
+test("an operator can name an origin the rules would otherwise refuse", () => {
+  // A desktop renderer loading from file:// sends Origin: null, and one on a
+  // custom scheme sends something that is not http or https. Both are refused
+  // by the ordinary rules, which is correct — admitting them as a class would
+  // admit every local HTML file, and POST /v1/shell runs a real command.
+  assert.equal(isAllowedOrigin("null", "127.0.0.1:8787"), false);
+  assert.equal(isAllowedOrigin("app://a008", "127.0.0.1:8787"), false);
+  assert.equal(isAllowedOrigin("https://evil.example", "127.0.0.1:8787"), false);
+
+  const named = parseAllowedOrigins("null, app://a008");
+  assert.deepEqual(named, ["null", "app://a008"]);
+  assert.equal(isAllowedOrigin("null", "127.0.0.1:8787", named), true);
+  assert.equal(isAllowedOrigin("app://a008", "127.0.0.1:8787", named), true);
+  assert.equal(isAllowedOrigin("APP://A008", "127.0.0.1:8787", named), true);
+
+  // Naming one origin admits only that one.
+  assert.equal(isAllowedOrigin("https://evil.example", "127.0.0.1:8787", named), false);
+  assert.equal(isAllowedOrigin("app://other", "127.0.0.1:8787", named), false);
+});
+
+test("the allowlist is empty unless an operator sets it", () => {
+  assert.deepEqual(parseAllowedOrigins(undefined), []);
+  assert.deepEqual(parseAllowedOrigins(""), []);
+  assert.deepEqual(parseAllowedOrigins("  ,  ,"), []);
+  // Default-deny: with no list, nothing beyond the ordinary rules is admitted.
+  assert.equal(isAllowedOrigin("null", "127.0.0.1:8787", parseAllowedOrigins(undefined)), false);
+});
+
+test("a named origin reaches the shell route and the WebSocket upgrade", async () => {
+  await withHost({ allowedOrigins: ["app://a008"] }, async (host) => {
+    const refused = await httpJson(host, "/v1/shell", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "app://other" },
+      body: JSON.stringify({ command: "node -e \"console.log(1)\"" }),
+    });
+    assert.equal(refused.status, 403, "an unnamed origin is still refused");
+
+    const allowed = await httpJson(host, "/v1/shell", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "app://a008" },
+      body: JSON.stringify({ command: "node -e \"console.log('named-origin-ok')\"" }),
+    });
+    assert.equal(allowed.status, 200);
+    assert.match(String((allowed.body as { stdout?: string }).stdout ?? ""), /named-origin-ok/u);
+
+    // The upgrade path reads the same list, not a second copy of the rules.
+    const upgrade = await attemptUpgrade(host.port, { origin: "app://a008" });
+    assert.equal(upgrade.upgraded, true);
+    const stillRefused = await attemptUpgrade(host.port, { origin: "app://other" });
+    assert.equal(stillRefused.upgraded, false);
+    assert.equal(stillRefused.status, 403);
+  });
 });
