@@ -68,3 +68,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0049 | source knowledge extraction (upload wave 2) | operator | 2026-09-03 | orchestration staging shape, runtime, ACP |
 | A008-0050 | per-item analyzer resilience | operator | 2026-09-03 | staging validation and diagnostic |
 | A008-0051 | provider timeout and chat generation overrides | operator | 2026-09-03 | runtime configuration |
+| A008-0052 | workspace shell and design tokens | operator | 2026-09-03 | gui brand and app shell (ADR 0021) |
