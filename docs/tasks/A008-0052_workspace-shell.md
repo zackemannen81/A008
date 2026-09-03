@@ -1,6 +1,7 @@
 # Task A008-0052 — Workspace shell and design tokens
 
-Status: Ready
+Status: Complete
+Completed: 2026-09-03
 Owner: Operator
 Parent: ADR 0021
 Created: 2026-09-03
