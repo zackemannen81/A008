@@ -115,11 +115,16 @@ body: raw bytes
 Things a client must not assume:
 
 - **The filename is advisory.** The media type comes from the file's magic
-  bytes. A PDF named `.txt` is reported as `application/pdf`.
+  bytes. A PDF named `.txt` is reported as `application/pdf`, and a `.docx` is
+  told apart from a `.xlsx` by what is inside the archive, not by its name.
 - **`extracted: false` is a success, not a failure.** The original is stored and
-  content-addressed either way. `false` means no extractor read it — today PDF,
-  DOCX and images — and the same locator can be re-extracted later. Show the
-  media type, not an error.
+  content-addressed either way. `false` means no extractor read it, and the same
+  locator can be re-extracted later. Show the media type, not an error.
+- **Which types are read.** UTF-8 text and Markdown, PDF, and Word (`.docx`).
+  Everything else — images, spreadsheets, presentations, plain archives, unknown
+  binaries — is stored with its sniffed media type and `extracted: false`. A PDF
+  that is a scan has no text layer to read and also comes back `false`; so does
+  a file that turns out to be corrupt. None of those are errors at this route.
 - **The same bytes twice return the same locator** and store one blob.
 - Uploads need `A008_SOURCE_STORE_PATH`; without it the route answers `400`.
 

@@ -50,6 +50,10 @@ A008/
 |  |  |- errors.ts                   named unsupported/invalid/description errors
 |  |  |- media-type.ts               magic-byte sniffing and strict UTF-8 decode
 |  |  |- text-extractor.ts           verbatim text; appears_in
+|  |  |- pdf-extractor.ts            A008-0056 pdf.js text layer, lazily imported
+|  |  |- docx-extractor.ts           A008-0056 Word part; appears_in
+|  |  |- zip.ts                      A008-0056 ZIP central directory over node:zlib
+|  |  |- ooxml.ts                    A008-0056 WordprocessingML text scanner
 |  |  |- image-extractor.ts          model description; derived_from
 |  |  |- nvidia-image-describer.ts   vision payload, injectable endpoint/fetch
 |  |  `- registry.ts                 first extractor that claims the type
@@ -142,10 +146,12 @@ A008/
 |- test/                              fake/local chat, ACP, memory, retrieval, identity, and orchestration tests
 |  |- gui-host.test.ts                host routes, upload, WS bridge, credential gate
 |  |- ingest-source.test.ts           sniffing, extraction, and provenance
+|  |- document-extraction.test.ts    PDF, Word, ZIP and OOXML readers
 |  |- runtime-source-ingest.test.ts   locator containment and ingest passthrough
 |  |- gui-host/
 |  |  `- fake-acp.ts                  spawnable ACP stdio stand-in
 |  |- fixtures/
+|  |  |- documents.ts                built PDF and ZIP/DOCX fixtures, no binaries
 |  |  |- fake-nvidia-server.ts        loopback runtime-proof SSE fixture
 |  |  |- nvidia-live-reasoning-leak.json  live Nemotron channel-leak characterization
 |  |  `- nvidia-live-relation-alias.json  live classifier relation-vs-type payload
@@ -234,7 +240,12 @@ ACP-session generation is integrated today.
 
 `src/ingest/` is provider- and UI-neutral apart from one NVIDIA-backed image
 describer behind a port; it decides nothing about storage or transport, and its
-extractors own the provenance they claim (ADR 0020 D5).
+extractors own the provenance they claim (ADR 0020 D5). `zip.ts` and `ooxml.ts`
+are readers, not libraries: they exist so Word support costs no dependency
+(ADR 0020 D11), and `media-type.ts` uses the first of them to tell the OOXML
+families apart rather than reporting every ZIP as a document. `pdf-extractor.ts`
+is the only file that reaches `pdfjs-dist`, and it imports it inside `extract()`
+so no other code path loads it.
 
 `src/gui-host/` and `gui/` are the two halves of the product GUI path in
 ADR 0019 D2. `src/gui-host/` is a third I/O composition surface beside CLI and

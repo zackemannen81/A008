@@ -39,8 +39,9 @@ deferred.
   `/shell`, settings, and A008 branding. No credential reaches the renderer.
 - Document upload: `POST /v1/upload` stores the original outside the repository
   under a content-addressed locator, and the ACP process extracts its text and
-  records it as evidence with honest provenance. UTF-8 text is supported today;
-  PDF, DOCX and images are stored and reported as not extracted, with the media
+  records it as evidence with honest provenance. UTF-8 text, PDF and Word
+  documents are read; anything else — images, spreadsheets, presentations, a
+  PDF that is a scan — is stored and reported as not extracted, with the media
   type named, so the same blob can be re-extracted later.
 - Stable-v1 `A008-acp` stdio bridge that Agent Server can launch as a Custom
   Agent Canvas agent.
@@ -187,7 +188,8 @@ refused rather than the host failing to start.
 
 `POST /v1/upload` takes raw bytes with `content-type: application/octet-stream`
 and an `x-a008-filename` header. The filename is advisory: the media type is
-decided by the file's magic bytes, so a PDF named `.txt` is treated as a PDF.
+decided by the file's magic bytes, so a PDF named `.txt` is treated as a PDF and
+a Word document is told apart from a spreadsheet by the parts inside it.
 The host writes the blob and sends only the locator to the ACP process, which
 resolves it, refuses anything escaping the store root, extracts the text, and
 ingests it. See `docs/adr/0020-source-upload-ingest.md` and

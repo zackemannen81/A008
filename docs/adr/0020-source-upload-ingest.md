@@ -7,7 +7,8 @@ Date: 2026-09-02
 Decision owner: Operator
 
 Amends: [ADR 0019](0019-a008-owned-gui.md) D4 (host protocol v1 gains a route).
-Amended by its own D10 (A008-0049), which supersedes D7.
+Amended by its own D10 (A008-0049), which supersedes D7, and its own D11
+(A008-0056), which supersedes the first bullet of D8.
 
 ## Context
 
@@ -212,11 +213,53 @@ citation is still the open question in
   has three runtime dependencies and ADR 0002 governs imported material, so the
   dependency is an owner decision, not a task decision. Until it is taken, both
   media types fail with the named unsupported error.
+
+  *Superseded by D11. The owner took the decision on 2026-09-04.*
 - **Live image description.** The registry holds one model,
   `nvidia/nemotron-3.5-lightning-30b-a3b`, with no modality metadata, and a live
   vision call is a paid call. The port and its NVIDIA implementation are built
   and fake-verified; enabling them live needs a registry entry and explicit cost
   authority under AGENTS.md.
+
+### D11. Amends D8 — documents are read, and pdf.js is the one dependency
+
+The owner authorised the parser dependency directly: choose a good PDF parser.
+That closes the question D8 reserved, and this records what was chosen and what
+was deliberately not.
+
+**PDF: `pdfjs-dist`, pinned exactly, imported lazily.** It is Mozilla's own
+reference implementation rather than one of the wrappers around it, for three
+reasons that outlive the choice. It is Apache-2.0, the same licence as A008, so
+it adds no obligation the repository does not already carry. The lockfile pins
+the exact version of the PDF code present, which a wrapper that vendors its own
+build does not — and a repository whose subject is provenance should be able to
+say which parser read a document. And it is the implementation everything else
+in this space is a repackaging of.
+
+The costs are real and are accepted with open eyes. The package is 35 MB, it
+carries an optional native dependency on `@napi-rs/canvas` that A008 never
+loads because rasterising is not extraction, and its engine floor moved this
+package's declared `node` from `>=22.12.0` to `>=22.13.0`. The size is bounded
+by a lazy `await import()` inside `extract()`: a CLI turn that uploads nothing
+never loads any of it.
+
+**DOCX: no dependency at all.** A `.docx` is a ZIP of XML parts, Node's `zlib`
+already inflates it, and reading the central directory plus the `w:t` elements
+is roughly two hundred lines. The nearest library brings ten transitive
+packages to do the same job. For a repository that has kept its runtime
+inventory at three, writing the reader is the cheaper side of the trade, and
+every byte of it is auditable here rather than three levels down a tree.
+
+**What comes with it.** The ZIP reader also makes the media-type sniffer honest.
+Every OOXML format is a ZIP, and until now any ZIP was reported as a Word
+document; now the part-name prefix decides, so a spreadsheet is refused as a
+spreadsheet and a plain archive as an archive.
+
+**Still not authorised.** Live image description is unchanged: it remains a paid
+call needing explicit authority. Neither extractor makes a provider call, which
+is why both are in the default registry and the image describer is not. OCR is
+not in scope — a PDF with no text layer is reported as probably a scan rather
+than guessed at.
 
 ### D9. Module ownership
 
@@ -226,6 +269,7 @@ citation is still the open question in
 | `src/runtime/` ingest surface and `src/acp/` method | A008-0043 |
 | `src/gui-host/` upload route and store | A008-0044 |
 | `gui/src/upload/` | A008-0045 |
+| `src/ingest/` PDF, DOCX, ZIP and OOXML readers | A008-0056 |
 
 ADR 0019 D7 continues to govern `gui/`; `gui/src/upload/` is added to it.
 

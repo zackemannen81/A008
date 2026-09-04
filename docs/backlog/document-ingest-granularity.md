@@ -1,8 +1,9 @@
 # Document ingest granularity
 
-Status: Open
+Status: Open — and now due
 Source: A008-0040 follow-up; owner design review of the upload flow
 Recorded: 2026-09-02
+Raised: 2026-09-04, by A008-0056
 
 ## Context
 
@@ -94,12 +95,29 @@ now would be speculative.
 4. **Does `classifySpeech()` run per chunk, or should a non-dialogue caller be
    required to state the kind?** Guessing per chunk multiplies the guessing.
 
+## Why this is now due
+
+The paragraph below said this should be taken "no later than" the point an
+upload path is actually built. That point has arrived. A008-0056 made PDF and
+Word documents readable, and the owner's own test documents run from 1 829 to
+16 291 characters — each of which currently becomes exactly one `Utterance`,
+classified by heuristics written for chat messages.
+
+The cost of waiting is now concrete rather than theoretical: every document
+ingested from here on is stored at file granularity, and re-chunking them later
+means re-ingesting them, because the utterance is the record.
+
+One thing A008-0056 settles that this item did not know: the extractors already
+produce paragraph-per-line text, and both formats agree on where the lines are.
+Open question 2 — what the unit is — therefore has a cheap first answer that
+needs no new parsing: the blank-line-separated block. That is not obviously the
+right unit for tables, but it is available today at no cost.
+
 ## Dependencies
 
 None blocking. A008-0040 already opened the `relation` parameter this path
-needs. This can be taken whenever an upload path is actually built — and should
-be taken no later than that, because chunk granularity is baked into every
-stored record and is expensive to change afterwards.
+needs. Chunk granularity is baked into every stored record and is expensive to
+change afterwards.
 
 ## Suggested verification
 

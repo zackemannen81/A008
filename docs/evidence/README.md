@@ -18,3 +18,7 @@ credentials, and private source material do not belong in this collection.
 - [`A008-0041_upload-ingest-proof.md`](A008-0041_upload-ingest-proof.md) —
   completed GUI host -> A008-acp -> extraction -> evidence upload proof, with
   the credential boundary and the honest-failure path for an unsupported type.
+- [`A008-0056_document-extraction-proof.md`](A008-0056_document-extraction-proof.md) —
+  completed PDF and Word extraction through the same upload chain, with the
+  OOXML family check, sixteen of the owner's own documents read, and the two
+  mutations that survived and turned out to be findings.

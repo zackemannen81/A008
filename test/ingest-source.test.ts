@@ -4,6 +4,7 @@ import {
   APPLICATION_DOCX,
   APPLICATION_OCTET_STREAM,
   APPLICATION_PDF,
+  APPLICATION_ZIP,
   DescribedImageExtractor,
   IMAGE_JPEG,
   IMAGE_PNG,
@@ -62,7 +63,9 @@ test("media type comes from the bytes, never from the name", () => {
   );
   assert.equal(sniffSourceMediaType(bytes(0xff, 0xd8, 0xff, 0xe0)), IMAGE_JPEG);
   assert.equal(sniffSourceMediaType(text("%PDF-1.7\n%stuff")), APPLICATION_PDF);
-  assert.equal(sniffSourceMediaType(bytes(0x50, 0x4b, 0x03, 0x04, 0x14)), APPLICATION_DOCX);
+  // A ZIP signature alone no longer decides: A008-0056 reads the archive to see
+  // which OOXML family it is, and a stub too short to have a directory is a ZIP.
+  assert.equal(sniffSourceMediaType(bytes(0x50, 0x4b, 0x03, 0x04, 0x14)), APPLICATION_ZIP);
   assert.equal(sniffSourceMediaType(text("plain prose")), TEXT_PLAIN);
 
   const webp = new Uint8Array(16);
@@ -137,13 +140,16 @@ test("an unattributable or empty description is refused", async () => {
   );
 });
 
-test("PDF and DOCX raise a named unsupported error and never fall through", async () => {
+test("a type nothing claims raises a named unsupported error and never falls through", async () => {
+  // Until A008-0056 this test named PDF and DOCX. Both are read now, so the
+  // gate has to be armed with types that are still genuinely unsupported —
+  // otherwise it would go on passing while proving nothing.
   const registry = new SourceExtractorRegistry([
     new Utf8TextExtractor(),
     new DescribedImageExtractor(fakeDescriber("unused")),
   ]);
 
-  for (const mediaType of [APPLICATION_PDF, APPLICATION_DOCX]) {
+  for (const mediaType of [APPLICATION_PDF, APPLICATION_DOCX, APPLICATION_ZIP]) {
     assert.equal(registry.supports(mediaType), false);
     await assert.rejects(
       () => registry.extract(extraction({ mediaType })),

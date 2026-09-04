@@ -9,6 +9,8 @@ export type {
 export { decodeUtf8Strict, sniffSourceMediaType } from "./media-type.js";
 export { SourceExtractorRegistry } from "./registry.js";
 export { Utf8TextExtractor } from "./text-extractor.js";
+export { DocxExtractor } from "./docx-extractor.js";
+export { PdfExtractor } from "./pdf-extractor.js";
 export { DescribedImageExtractor } from "./image-extractor.js";
 export {
   IMAGE_DESCRIPTION_INSTRUCTION,
@@ -16,9 +18,26 @@ export {
 } from "./nvidia-image-describer.js";
 export type { NvidiaImageDescriberOptions } from "./nvidia-image-describer.js";
 export {
+  decodeXmlText,
+  extractWordText,
+  findOfficeDocumentPart,
+  scanXml,
+} from "./ooxml.js";
+export type { XmlTag, XmlVisitor } from "./ooxml.js";
+export {
+  MAX_ZIP_ENTRY_BYTES,
+  findZipEntry,
+  readZipDirectory,
+  readZipEntry,
+} from "./zip.js";
+export type { ZipEntry } from "./zip.js";
+export {
   APPLICATION_DOCX,
   APPLICATION_OCTET_STREAM,
   APPLICATION_PDF,
+  APPLICATION_PPTX,
+  APPLICATION_XLSX,
+  APPLICATION_ZIP,
   IMAGE_GIF,
   IMAGE_JPEG,
   IMAGE_PNG,
