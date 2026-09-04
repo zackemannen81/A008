@@ -255,6 +255,7 @@ export type {
   MemoryReadPort,
 } from "./orchestration/memory-aware-chat-session.js";
 export {
+  parseProposalConfidence,
   PostOutputKnowledgeIntake,
   serializeStagedKnowledgeProposals,
   Utf8ByteKnowledgeIntakeMeasurer,

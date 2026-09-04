@@ -45,7 +45,7 @@ export interface AnalyzedKnowledgeDraft {
   readonly tags?: readonly string[];
   readonly domains?: readonly string[];
   readonly entities?: readonly string[];
-  readonly confidence?: number;
+  readonly confidence?: number | string;
 }
 
 export interface PostOutputKnowledgeAnalyzer {
@@ -207,6 +207,60 @@ function positiveSafeInteger(value: number, field: string): number {
     );
   }
   return value;
+}
+
+/**
+ * Ordinal confidence words, placed on the unit scale.
+ *
+ * The analyzer instruction names `confidence` without saying it must be a
+ * number, and a model asked for confidence writes "high" far more often than it
+ * writes 0.85. The parser demanded a finite number and threw on anything else,
+ * so an entire extraction — every proposal in it — was skipped for a field that
+ * is metadata about a proposition A008 had already read correctly.
+ *
+ * Converting a word to a number is lossy and the exact values are a judgement,
+ * not a measurement. That is a much smaller loss than discarding the knowledge,
+ * and the alternative on offer was silence. A word outside this set is still
+ * refused by name rather than guessed at.
+ */
+const CONFIDENCE_WORDS: ReadonlyMap<string, number> = new Map([
+  ["certain", 1],
+  ["very high", 0.95],
+  ["high", 0.85],
+  ["likely", 0.75],
+  ["medium", 0.6],
+  ["moderate", 0.6],
+  ["med", 0.6],
+  ["low", 0.3],
+  ["very low", 0.15],
+  ["uncertain", 0.15],
+]);
+
+/**
+ * Reads whatever the model put in `confidence`.
+ *
+ * A number stays a number. A word is looked up. A numeric string — "0.9" — is
+ * read as the number it plainly is, because quoting a number is a formatting
+ * slip and not a different claim.
+ */
+export function parseProposalConfidence(value: unknown, field: string): number {
+  if (typeof value === "number") {
+    return unit(value, field);
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLocaleLowerCase("und").replace(/[_-]+/g, " ");
+    const word = CONFIDENCE_WORDS.get(normalized);
+    if (word !== undefined) {
+      return word;
+    }
+    if (normalized.length > 0 && /^[0-9]*\.?[0-9]+$/u.test(normalized)) {
+      return unit(Number.parseFloat(normalized), field);
+    }
+  }
+  throw new MemoryError(
+    "invalid_input",
+    `${field} must be a number between 0 and 1, or one of ${[...CONFIDENCE_WORDS.keys()].join(", ")}`,
+  );
 }
 
 function unit(value: number, field: string): number {
@@ -425,8 +479,8 @@ export class PostOutputKnowledgeIntake {
       const confidence =
         raw.confidence === undefined
           ? 0.5
-          : unit(
-              typeof raw.confidence === "number" ? raw.confidence : Number.NaN,
+          : parseProposalConfidence(
+              raw.confidence,
               `proposal ${index + 1} confidence`,
             );
       const proposal: KnowledgeProposal = {

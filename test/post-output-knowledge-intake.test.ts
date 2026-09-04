@@ -10,6 +10,7 @@ import {
   type PostOutputAnalyzerInput,
   type PostOutputKnowledgeAnalyzer,
 } from "../src/orchestration/post-output-knowledge-intake.js";
+import { parseProposalConfidence } from "../src/orchestration/post-output-knowledge-intake.js";
 import { describeMemoryOutcome } from "../src/runtime/local-memory-runtime.js";
 
 const PROJECT = parseRuntimeId(
@@ -421,4 +422,61 @@ test("a completed batch reports skipped proposals through the diagnostic", async
     undefined,
     "a clean batch stays silent",
   );
+});
+
+test("the confidence a model actually writes is read, not discarded", () => {
+  // The analyzer instruction names `confidence` without saying it must be a
+  // number, and a model asked for confidence writes "high". The parser demanded
+  // a finite number and threw, and A008-0050's per-item resilience then skipped
+  // the proposal — so a whole extraction could be dropped over metadata about a
+  // proposition A008 had already read correctly.
+  assert.equal(parseProposalConfidence(0.9, "c"), 0.9);
+  assert.equal(parseProposalConfidence("high", "c"), 0.85);
+  assert.equal(parseProposalConfidence("HIGH", "c"), 0.85);
+  assert.equal(parseProposalConfidence("  Very High  ", "c"), 0.95);
+  assert.equal(parseProposalConfidence("very_high", "c"), 0.95);
+  assert.equal(parseProposalConfidence("certain", "c"), 1);
+  assert.equal(parseProposalConfidence("low", "c"), 0.3);
+  // Quoting a number is a formatting slip, not a different claim.
+  assert.equal(parseProposalConfidence("0.75", "c"), 0.75);
+  assert.equal(parseProposalConfidence(".5", "c"), 0.5);
+});
+
+test("confidence outside the scale or vocabulary is still refused by name", () => {
+  // Leniency has to stop somewhere, or an unreadable value becomes a guess.
+  for (const bad of [1.5, -0.1, Number.NaN, "quite sure", "", "yes", null, {}]) {
+    assert.throws(
+      () => parseProposalConfidence(bad, "proposal 3 confidence"),
+      (error: unknown) =>
+        error instanceof MemoryError &&
+        error.message.startsWith("proposal 3 confidence must be"),
+      `accepted ${JSON.stringify(bad)}`,
+    );
+  }
+});
+
+test("a word-confidence proposal is staged instead of skipped", async () => {
+  const staged = await intake({
+    async analyze() {
+      return [
+        {
+          proposition: "Sömn är avgörande för minneskonsolidering",
+          kind: "condition",
+          tags: ["sömn"],
+          domains: ["neurologi"],
+          entities: ["sömn"],
+          confidence: "high",
+        },
+      ];
+    },
+  }).stage({
+    taskId: TASK,
+    message: "hur fungerar människans minne?",
+    answer: "Sömn är avgörande för minneskonsolidering.",
+    applicabilityScopes: ["runtime"],
+  });
+
+  assert.equal(staged.proposals.length, 1);
+  assert.deepEqual(staged.skippedProposals, []);
+  assert.equal(staged.proposals[0]?.proposal.confidence, 0.85);
 });
