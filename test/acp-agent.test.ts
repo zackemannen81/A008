@@ -36,20 +36,25 @@ test("ACP agent advertises stable v1 and the verified model", () => {
   assert.equal(initialized.agentInfo?.name, "A008");
   assert.equal(initialized.agentCapabilities?.loadSession, false);
   assert.equal(created.sessionId, SESSION_ID);
-  assert.deepEqual(created.configOptions?.[0], {
-    type: "select",
-    id: "model",
-    name: "Model",
-    description: "Provider model used by the shared A008 chat core.",
-    category: "model",
-    currentValue: "nvidia/nemotron-3.5-lightning-30b-a3b",
-    options: [
-      {
-        value: "nvidia/nemotron-3.5-lightning-30b-a3b",
-        name: "NVIDIA Nemotron 3.5 Lightning 30B A3B",
-      },
-    ],
-  });
+  // The option is a select over every registered model, so this asserts its
+  // shape and the default rather than a fixed list that grows with the registry.
+  const option = created.configOptions?.[0];
+  assert.equal(option?.type, "select");
+  assert.equal(option?.id, "model");
+  assert.equal(option?.name, "Model");
+  assert.equal(
+    option?.currentValue,
+    "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "the default stays the text-only verified profile",
+  );
+  assert.ok(
+    option?.options?.some(
+      (entry) =>
+        "value" in entry &&
+        entry.value === "nvidia/nemotron-3.5-lightning-30b-a3b",
+    ),
+    "the default model is selectable",
+  );
 });
 
 test("ACP prompt streams thought and answer through one ChatSession", async () => {
