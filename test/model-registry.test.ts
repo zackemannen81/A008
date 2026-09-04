@@ -64,7 +64,7 @@ test("every shipped profile declares its modalities and when it was verified", (
 
 test("the omni profile is selectable and declares image input", () => {
   const omni = defaultModelRegistry.require(
-    "nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
   );
 
   assert.equal(acceptsModality(omni, "image"), true);
@@ -77,15 +77,53 @@ test("the omni profile is selectable and declares image input", () => {
   );
 });
 
-test("the model id is matched exactly, case included", () => {
-  // The vendor publishes NVFP4, BF16 and FP8 as separate ids, and the omni id
-  // is capitalised where the lightning id is not. A lookup that quietly
-  // lower-cased would resolve one model to another.
-  assert.throws(
-    () =>
-      defaultModelRegistry.require(
-        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning-nvfp4",
-      ),
-    (error: unknown) => error instanceof ChatError && error.code === "unknown_model",
+test("the model id is matched exactly", () => {
+  // The vendor's model card names a different id than its API sample —
+  // `...-NVFP4` versus the lower-case path form. A008 ships the one the
+  // endpoint accepts, and a near miss must fail loudly rather than resolve.
+  for (const near of [
+    "nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning-nvfp4",
+    "moonshotai/kimi-k2",
+  ]) {
+    assert.throws(
+      () => defaultModelRegistry.require(near),
+      (error: unknown) => error instanceof ChatError && error.code === "unknown_model",
+      near,
+    );
+  }
+});
+
+test("every image-capable model is reachable and every text model is honest", () => {
+  const withImage = defaultModelRegistry
+    .list()
+    .filter((profile) => acceptsModality(profile, "image"))
+    .map((profile) => profile.id);
+
+  assert.deepEqual(withImage.sort(), [
+    "moonshotai/kimi-k3",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+  ]);
+
+  // Only the omni model claims video and audio.
+  assert.deepEqual(
+    defaultModelRegistry
+      .list()
+      .filter((profile) => acceptsModality(profile, "audio"))
+      .map((profile) => profile.id),
+    ["nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"],
   );
+});
+
+test("a reasoning budget is declared only where the vendor documents one", () => {
+  for (const profile of defaultModelRegistry.list()) {
+    if (profile.defaults.reasoningBudget === undefined) {
+      continue;
+    }
+    assert.equal(
+      profile.defaults.enableThinking,
+      true,
+      `${profile.id} declares a reasoning budget without thinking enabled`,
+    );
+  }
 });
