@@ -79,8 +79,10 @@ replacement.
 - [`0020-source-upload-ingest.md`](0020-source-upload-ingest.md) — Accepted;
   uploads are stored by the GUI host and extracted in the ACP process over a
   locator. Amends 0019 D4 with POST /v1/upload. Extraction is a port; image
-  description is its own port, not a ChatMessage change. PDF, DOCX and live
-  vision stay unsupported pending owner decisions.
+  description is its own port, not a ChatMessage change. Its D11 (A008-0056)
+  supersedes the D8 bullet that held PDF and DOCX back: both are read now, PDF
+  through pdfjs-dist and Word through a dependency-free ZIP/OOXML reader. Live
+  vision stays unsupported pending an owner cost decision.
 - [`0021-workspace-shell.md`](0021-workspace-shell.md) — Accepted; three-zone
   A008 shell and warm-neutral tokens. Its D5 programme is superseded by 0022.
   Reference inspected under a proprietary license; nothing adopted.
@@ -88,3 +90,10 @@ replacement.
   `gui/` is a live-test surface and the product client is external. Amends 0019
   D2, supersedes the 0021 D5 programme, and makes the host protocol an
   integration contract with a named-origin allowlist.
+- [`0023-retrieval-is-additive.md`](0023-retrieval-is-additive.md) — Accepted; a
+  surface may not suppress another surface. State, history, events, utterances,
+  claims, artifacts and provenance coexist in one projection; ranking orders and
+  never filters; deduplication is the single narrow exception; the byte budget
+  is explicit and everything it cuts is reported. Records the finding that tags
+  and domains are extracted but never stored, so tag matching downstream is
+  inert.

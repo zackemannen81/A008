@@ -2,6 +2,81 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-04 — One surface was hiding the other six
+
+- Date: 2026-09-04
+- Author: Claude (operator / boss)
+- Task: A008-0058
+- Branch: `main`
+- Identity evidence: claimed on `main` as `4f7b94e` before the branch existed.
+- Origin: the owner reported a question about the agent's own name answered with
+  an unrelated fact about a horse, and restated a requirement they had given
+  before: everything that matches should be sent along.
+- The requirement was not met. `payloadItems()` pushed state and returned if it
+  had any, pushed claims and returned if it had any, then pushed utterances. The
+  retrieval path had found and admitted both records in the reported failure;
+  the projection kept the state binding and discarded the utterance, not for
+  relevance but because state came first in the function.
+- Worse, and not in the report: `ProjectionPayload` carries seven surfaces and
+  that function read three. `history`, `events`, `artifacts` and `provenance`
+  could not reach a model under any circumstances, in any conversation, ever.
+- Nothing was ever decided here. No ADR, charter or comment says state outranks
+  claims. It arrived in `030def6` as an early-return written for the first case
+  that had data in it, and became policy by sitting there for ten tasks.
+- The reason it survived is the part worth keeping. `live-reader.ts` appeared in
+  no test file. It is the single function that decides what the model sees every
+  turn. `project()` builds all seven surfaces correctly and is tested; the loss
+  happened one step later, in the step nobody tested. Same shape as A008-0040's
+  twenty unrun cases and A008-0057's list: the failure was not a broken thing,
+  it was an unwatched thing.
+- Change: `projection-items.ts` owns the rule now — collect every surface,
+  deduplicate, rank, budget, and report all three reasons a record can be
+  missing. ADR 0023 states it as the sentence an implementer has to break to get
+  this wrong again: the presence of a record on one surface must not remove a
+  record on another.
+- Two deliberate limits on the additivity. Deduplication is the single exception,
+  because a binding, its claim and the utterance behind it really do say the same
+  words and three copies read to a model as emphasis. And a byte budget was
+  required rather than optional: going additive multiplies what reaches one turn,
+  and shipping without a bound would have traded a silent omission for a silent
+  overflow. Everything it cuts is named, and one item larger than the whole
+  budget is still sent, because an empty projection is not a smaller answer.
+- The first regression fixture passed for the wrong reason and that was the most
+  useful thing that happened. Built with honest entity labels — `["Zorros
+  häst", "Fresca"]` — the state binding was never retrieved at all, so there was
+  nothing to suppress. The live store does not have honest labels:
+  `live-commit.ts` writes `...tokenize(proposition)` into `Entity.labels` and
+  `tokenize` keeps every word of four characters or more, so `heter` is an alias
+  of the horse. The fixture now uses exactly those labels and reproduces the
+  reported failure end to end, `scope: ["heter"]` and all. That defect belongs
+  to the next task and is preserved here on purpose: a gate armed with a case
+  that cannot fire proves nothing.
+- Two existing tests asserted `selectedKnowledgeIds.length === 1` and were
+  rewritten rather than left green. They had codified the exclusive rule without
+  naming it. Both now assert two items — the extracted proposition first as
+  `state`, then the sentence the user said it in as `utterance` — which the old
+  assertion could not distinguish from "one surface won".
+- Verification: `npm test` 370 core, 4 membership, 75 GUI, 0 fail, 0 skipped.
+  Fourteen new cases, the first `live-reader.ts` has ever had. Thirteen
+  mutations, all caught; restoring the original bug fails seven of them.
+- Not performed: no live provider call. Domain and scope matching is not
+  delivered, and ADR 0023 D5 records why it is not a matter of effort — A008
+  does not store tags or domains on knowledge records at all. The analyzer
+  extracts them, staging carries them, the classifier reads them, and
+  `live-commit` drops them; `sqlite-schema.ts` has no column for either.
+  Everything downstream that looks like tag matching is inert as a result:
+  `retrieve()` copies the query's tags onto each record, so `filter()` compares
+  the query against itself and admits everything.
+- Handoff: A008-0059 is stored tags and domains, plus removing
+  `tokenize(proposition)` from `Entity.labels`. Those two belong together —
+  entities are the only retrieval signal that varies with the message today, so
+  cleaning the labels before the tag axis works would make retrieval worse, not
+  better. One thing that may shorten it: `SqliteMemoryRepository`, the other
+  repository, already has FTS5 over tags and scopes and indexed entities and
+  domains. A008-0028 cut the runtime over to the knowledge path and left that
+  machinery behind.
+- Signature: Claude
+
 ## 2026-09-04 — The list that could forget
 
 - Date: 2026-09-04

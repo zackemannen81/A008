@@ -82,11 +82,16 @@ test("two-turn runtime commits an explicit user assertion and rereads it", async
 
     const second = await session.turn(QUESTION);
     assert.match(second.completion.message.content, /alpha-seven/u);
-    assert.equal(second.memory.evidence.selectedKnowledgeIds.length, 1);
-    assert.equal(
-      second.memory.projection.projection.items[0]?.proposition,
-      PROPOSITION,
-    );
+    // Until A008-0058 this asserted exactly one selected item, which quietly
+    // codified the rule that a state hit suppressed every other surface. The
+    // read finds two things and both are worth sending: the extracted fact, and
+    // the sentence the user actually said it in. The fact still ranks first.
+    const projected = second.memory.projection.projection.items;
+    assert.equal(second.memory.evidence.selectedKnowledgeIds.length, 2);
+    assert.equal(projected[0]?.proposition, PROPOSITION);
+    assert.equal(projected[0]?.kind, "state");
+    assert.equal(projected[1]?.kind, "utterance");
+    assert.match(projected[1]?.proposition ?? "", /alpha-seven/u);
     const chatRequests = transport.requests.filter(
       (request) => semanticOperation(request) === undefined,
     );
@@ -135,10 +140,16 @@ test("restart with existing SQLite still projects the active assertion", async (
   });
   try {
     const reread = await secondRuntime.openSession().turn(QUESTION);
-    assert.equal(reread.memory.evidence.selectedKnowledgeIds.length, 1);
+    // Two surfaces survive a restart, same as they do in one process. See the
+    // note in the two-turn test above.
+    assert.equal(reread.memory.evidence.selectedKnowledgeIds.length, 2);
     assert.equal(
       reread.memory.projection.projection.items[0]?.proposition,
       PROPOSITION,
+    );
+    assert.deepEqual(
+      reread.memory.projection.projection.items.map((item) => item.kind),
+      ["state", "utterance"],
     );
     const store = new SqliteKnowledgeStore({
       filename: isolated.sqlitePath,

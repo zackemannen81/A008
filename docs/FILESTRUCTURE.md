@@ -119,6 +119,7 @@ A008/
 |  |     |- sqlite-store.ts          interval/evidence/lifecycle persist + v0 migrate
 |  |     |- sqlite-context.ts        persisting KnowledgeReadContext
 |  |     |- live-reader.ts           live DEFINE..PROJECT MemoryReadPort
+|  |     |- projection-items.ts      every surface reaches the model; rank, dedupe, budget (ADR 0023)
 |  |     |- live-commit.ts           live INGEST/ACCEPT/RECONCILE/UPDATE
 |  |     `- index.ts                 knowledge-tree barrel
 |  |- orchestration/
@@ -148,6 +149,8 @@ A008/
 |  |- ingest-source.test.ts           sniffing, extraction, and provenance
 |  |- document-extraction.test.ts    PDF, Word, ZIP and OOXML readers
 |  |- core-suite-membership.test.ts  test:core names every test file, and only real ones
+|  |- knowledge-projection.test.ts   every matching surface reaches the model, ranked and budgeted
+|  |- knowledge-projection.test.ts   every matching surface reaches the model, ranked and budgeted
 |  |- runtime-source-ingest.test.ts   locator containment and ingest passthrough
 |  |- gui-host/
 |  |  `- fake-acp.ts                  spawnable ACP stdio stand-in
