@@ -14,6 +14,7 @@ import {
   type AnalyzedKnowledgeDraft,
   type StagedKnowledgeBatch,
 } from "../src/orchestration/post-output-knowledge-intake.js";
+import { parseProposalConfidence } from "../src/orchestration/post-output-knowledge-intake.js";
 import { IndexedRelationCandidateSource } from "../src/orchestration/relation-candidate-source.js";
 import {
   RelationGatedMemoryCommit,
@@ -95,7 +96,7 @@ function retrievalPlan(draft: AnalyzedKnowledgeDraft): RetrievalPlan {
       mentionsFuture: false,
     },
     applicabilityScopes: ["runtime"],
-    confidence: draft.confidence ?? 0.5,
+    confidence: parseProposalConfidence(draft.confidence ?? 0.5, "confidence"),
   };
 }
 

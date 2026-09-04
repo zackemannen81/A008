@@ -2,6 +2,63 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-05 — Twenty-seven facts thrown away over one word
+
+- Date: 2026-09-05
+- Author: Claude (operator / boss)
+- Task: A008-0059
+- Branch: `main`
+- Identity evidence: claimed on `main` as `85d7782` before the branch existed.
+- Origin: the owner walked the intended retrieve/extract loop by hand and pasted
+  a real analyzer output — twenty-seven proposals, every one carrying
+  `"confidence": "high"`. A008 would have stored none of them.
+- The analyzer instruction names `confidence` and never says it must be a
+  number. The parser coerced anything non-numeric to `NaN` and threw, and
+  A008-0050's per-item resilience then skipped the proposal. That resilience is
+  correct for a bad item and exactly wrong here: the item was fine. The
+  proposition, kind, tags, domains and entities had all been read correctly and
+  were discarded over a metadata field.
+- Reproduced before touching anything, two proposals differing only in that
+  field: accepted 1, skipped 1, `"proposal 1 confidence must be a finite number
+  between 0 and 1"`. An extraction where every item says "high" — which is what
+  a model asked for confidence usually writes — stored nothing, and reported it
+  as a skip rather than as a failure.
+- Change: `parseProposalConfidence` reads a number as a number, an ordinal word
+  from a fixed vocabulary, or a quoted number as the number it plainly is.
+  Case, spacing and `_`/`-` are normalised. Anything else is still refused by
+  name, listing the vocabulary, because leniency has to stop somewhere or an
+  unreadable value becomes a guess.
+- The judgement is worth stating rather than hiding in a table: turning "high"
+  into 0.85 is lossy and the values are chosen, not measured. It is a far
+  smaller loss than the alternative, which was not a more precise number but
+  silence.
+- Verification: `npm test` 373 core, 4 membership, 75 GUI, 0 fail. Seven
+  mutations, six caught by the case that names them; the seventh could not be
+  compiled, because disabling the string branch narrows the type until the body
+  is unreachable and `tsc` refuses it.
+- Not performed: the instruction still does not say what `confidence` is. The
+  parser is now robust to the drift, which is the right place for robustness — a
+  model writes words whatever the prompt says — but a one-line addition would
+  stop inviting the ambiguity. `POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION` is
+  owner-authored under A008-0047 and was not edited.
+- Second finding, recorded and not fixed here because it is not a parser
+  problem. In the owner's trace the retrieval step returned domains and tags in
+  English and the extraction step returned them in Swedish. Literal matching
+  between `"Cognitive Science"` and `"kognitivvetenskap"` finds nothing, and no
+  amount of string normalisation closes that. The design that avoids it is to
+  hand the retrieval-scope call the vocabulary the store actually holds, so the
+  model selects from existing labels and may extend them rather than inventing a
+  parallel taxonomy in whichever language the question happened to use.
+- Handoff: the owner's design for retrieval is now explicit and is two tasks.
+  Store tags and domains on knowledge records — the analyzer already produces
+  them and `live-commit` drops them, and `sqlite-schema.ts` has no column for
+  either. Then a retrieval-scope provider call in front of the read, which
+  expands a message into domains and related tags, seeded with the store's own
+  vocabulary. Removing `tokenize(proposition)` from `Entity.labels` belongs with
+  the first, not before it: entities are the only retrieval signal that varies
+  with the message today.
+- Signature: Claude
+
 ## 2026-09-04 — One surface was hiding the other six
 
 - Date: 2026-09-04
