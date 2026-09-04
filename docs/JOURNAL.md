@@ -2,6 +2,80 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-05 — The labels existed all along; nothing kept them
+
+- Date: 2026-09-05
+- Author: Claude (operator / boss)
+- Task: A008-0060
+- Branch: `main`
+- Identity evidence: claimed on `main` as `12e1e01` before the branch existed.
+- Origin: the owner's retrieval design, written down first in
+  `docs/backlog/current-scope-retrieval.md` so it could not be arrived at
+  differently a third time. This task builds the half that needs no provider
+  call.
+- Five failures in series, each of which made the next invisible. Nothing was
+  stored — no column, no field, no attach. `retrieve()` wrote
+  `tags: [...scope.tags]` on every record, so a record's tags were whatever had
+  been asked for. `filter()` then compared the query with itself and admitted
+  everything while appearing to filter. The planner matched a taxonomy no live
+  composition supplies, so its tags and domains were always empty. And
+  `live-reader` passed the constant `["local"]` and no domains at all.
+- That is why entity labels mattered so much: they were the only retrieval
+  signal that varied with the message. It is also why removing
+  `tokenize(proposition)` had to wait for this task rather than being an obvious
+  quick fix — cleaning them before there was a replacement would have made
+  retrieval worse.
+- The labels are stored beside the record rather than inside it, the way
+  `EvidenceLifecycleStore` already keeps strength and state. A label set is not
+  part of what a claim asserts; it is how the claim is found.
+- The capability, not the refactor: a label retrieval channel, so a record is
+  reachable because it is *about* the subject even when the message names none
+  of its entities and shares none of its words. Deliberately not gated on
+  retrieval intent, because a subject-area match is orthogonal to whether the
+  question is about current state or history, and gating it would disable the
+  broader signal for exactly the open-ended questions it exists to serve.
+- Two things were found by failing tests rather than by inspection. Removing
+  `tokenize` made the state binding unreachable — bindings are reached through a
+  slot, which is reached through an entity — and the two-turn runtime test
+  started returning a `claim` where it expected `state`. So bindings are now
+  reachable through the label channel by the claim that established them.
+  And `taskApplies` was a second gate that would have undone the whole thing: it
+  requires an associative record to mention one of the message's entities, which
+  is right for a relation hop and exactly wrong for a subject-area hit, which is
+  by definition a record the message does not name.
+- The migration is the part that would have hurt if skipped. Schema 2 adds two
+  tables and changes nothing else, but `INSERT OR IGNORE` leaves an existing
+  file stamped 1, so a bare version bump would have made the version check
+  refuse to open a store that is perfectly readable — turning an additive change
+  into a lost memory file. A test builds a version 1 database with the new
+  tables dropped, opens it, and asserts it is migrated and usable.
+- Verification: `npm test` 391 core, 4 membership, 75 GUI, 0 fail, up from 373.
+  End to end against three labelled facts, "Vad säger neurologi om det här?"
+  returns the hippocampus record, which shares no word with the question except
+  the domain name, and "Vad är huvudstaden i Frankrike?" returns nothing.
+- Sixteen mutations, fifteen caught by the case that names them and one rejected
+  by the compiler. Four survived the first round and all four were real gaps:
+  the `taskApplies` escape only fires when the message has entities and no case
+  had both; the unlabelled escape only fires for an associative record and the
+  case used a direct one, which short-circuits the gate; the minimum label
+  length had no case at all; and removing the utterance attach changed nothing
+  because every case found the claim instead. Each got a case.
+- Not performed: no provider call was added. The semantic half — classify a
+  message into domains and *related* domains, which the message does not
+  contain, and accumulate them into a `current_scope` — is the owner's design
+  and is still ahead. What exists now is the lexical half plus `vocabulary()`,
+  which is what that classifier should be seeded with so the two calls stop
+  inventing taxonomies in different languages.
+- Also not changed, and recorded rather than quietly fixed: `taskApplies` drops
+  an expanded record whose text names none of the message's entities, including
+  one reached over a relation hop that has already justified itself. Arguably a
+  third gate too many. The test that touches it asserts on the omission reason
+  rather than on admission, so it isolates the gate it is about.
+- Handoff: `channelCounts.tag` and `channelCounts.domain` were hardcoded to zero
+  because nothing could set them; they count now, which makes the next task's
+  behaviour observable from the first run.
+- Signature: Claude
+
 ## 2026-09-05 — Twenty-seven facts thrown away over one word
 
 - Date: 2026-09-05

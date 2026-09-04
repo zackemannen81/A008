@@ -6,7 +6,7 @@ import type {
   SemanticScope,
 } from "./read-types.js";
 
-const TAG_MISS = "tag_miss";
+const TAG_MISS = "label_miss";
 const NOT_APPLICABLE = "not_applicable";
 
 export interface FilterInput {
@@ -25,7 +25,7 @@ export function filter(input: FilterInput): FilterResult {
       admitted.push(record);
       continue;
     }
-    if (!tagsApply(record, taskTags)) {
+    if (!labelsApply(record, taskTags, input.scope.domains)) {
       omitted.push({ record, reason: TAG_MISS });
       continue;
     }
@@ -39,19 +39,56 @@ export function filter(input: FilterInput): FilterResult {
   return { admitted, omitted };
 }
 
-function tagsApply(record: RetrievedRecord, taskTags: readonly string[]): boolean {
+/**
+ * Admits an associative record whose labels overlap the query on either axis.
+ *
+ * Three things this must not do, each of which it used to do or would start
+ * doing if written carelessly.
+ *
+ * It must not compare the query with itself. Before A008-0060 `record.tags` was
+ * a copy of `scope.tags`, so the intersection was always non-empty and this gate
+ * admitted everything while appearing to filter.
+ *
+ * It must not require both axes. Tag and domain are alternative routes to the
+ * same record — a domain match is precisely the case where the message does not
+ * name the record's tags — so requiring both would disable the broader signal
+ * exactly when it is needed.
+ *
+ * It must not treat unlabelled as unmatched. Every record written before labels
+ * existed has neither, and dropping those would make an upgrade look like
+ * amnesia.
+ */
+function labelsApply(
+  record: RetrievedRecord,
+  taskTags: readonly string[],
+  domains: readonly string[],
+): boolean {
   if (record.matchKind === "direct" || record.required) {
     return true;
   }
-  if (taskTags.length === 0 || record.tags.length === 0) {
+  const hasQuery = taskTags.length > 0 || domains.length > 0;
+  const hasRecord = record.tags.length > 0 || record.domains.length > 0;
+  if (!hasQuery || !hasRecord) {
     return true;
   }
   const recordTags = uniqueLower(record.tags);
-  return taskTags.some((tag) => recordTags.includes(tag));
+  const recordDomains = uniqueLower(record.domains);
+  return (
+    taskTags.some((tag) => recordTags.includes(tag)) ||
+    uniqueLower(domains).some((domain) => recordDomains.includes(domain))
+  );
 }
 
 function taskApplies(record: RetrievedRecord, scope: SemanticScope): boolean {
   if (record.matchKind === "direct" || record.required) {
+    return true;
+  }
+  // A record found by its subject area has already justified itself. Requiring
+  // it to also mention one of the message's entities would undo the label
+  // channel entirely: a domain match is by definition the case where the
+  // message does not name the record. Two gates in series, each reasonable
+  // alone, is how the projection came to discard everything but state.
+  if (record.reasons.some((reason) => reason.startsWith("label_"))) {
     return true;
   }
   if (scope.entities.length === 0) {

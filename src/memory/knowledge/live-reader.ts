@@ -9,6 +9,7 @@ import type {
   RetrievalPlanner,
 } from "../retrieval-types.js";
 import type { SerializedContextMeasurer } from "../types.js";
+import { normalizeLabel } from "./labels.js";
 import { projectionItems } from "./projection-items.js";
 import { readKnowledge } from "./read.js";
 import type { KnowledgeReadContext } from "./read-types.js";
@@ -40,12 +41,35 @@ export class KnowledgeMemoryReader {
 
   async read(request: MemoryReadRequest): Promise<HybridMemoryReadResult> {
     const plan = this.#planner.plan(request);
+    // The planner can only match a taxonomy it was given, and it is constructed
+    // without one, so `plan.tags` and `plan.domains` are empty in every live
+    // composition. The store's own labels are the taxonomy that actually exists,
+    // so the message is matched against those.
+    //
+    // This is lexical: it finds a label the message literally names. The
+    // semantic step the owner specified — classify the message into domains and
+    // *related* domains, which the message does not contain — is a provider call
+    // and is not built here. What this does give is a real tag and domain axis
+    // with no new call, and a vocabulary for that classifier to be seeded with
+    // when it arrives.
+    const mentioned = mentionedLabels(
+      request.message,
+      this.#context.labels.vocabulary(),
+    );
     const result = readKnowledge(
       {
         message: request.message,
         verifiedScope: {
           verified: true,
-          tags: request.applicabilityScopes,
+          tags: [
+            ...request.applicabilityScopes,
+            ...plan.tags.map((tag) => tag.value),
+            ...mentioned.tags,
+          ],
+          domains: [
+            ...plan.domains.map((domain) => domain.value),
+            ...mentioned.domains,
+          ],
           entities: plan.entities,
         },
         temporalHints: plan.temporalHints,
@@ -86,8 +110,12 @@ export class KnowledgeMemoryReader {
           lexical: result.retrieved.filter((record) =>
             record.reasons.some((reason) => reason.includes("lexical")),
           ).length,
-          tag: 0,
-          domain: 0,
+          tag: result.retrieved.filter((record) =>
+            record.reasons.includes("label_tag_match"),
+          ).length,
+          domain: result.retrieved.filter((record) =>
+            record.reasons.includes("label_domain_match"),
+          ).length,
           semantic: 0,
         },
         uniqueCandidateCount: result.retrieved.length,
@@ -114,4 +142,40 @@ export class KnowledgeMemoryReader {
       },
     };
   }
+}
+
+/**
+ * Labels the message literally names.
+ *
+ * Whole-word-ish containment on the normalised forms, so `neuroscience` in
+ * "what does neuroscience say" matches and `science` alone does not pick up
+ * every label containing it. A label of one or two characters is ignored: it
+ * would match half the store and is the `heter` failure in another costume.
+ */
+function mentionedLabels(
+  message: string,
+  vocabulary: { readonly tags: readonly string[]; readonly domains: readonly string[] },
+): { readonly tags: readonly string[]; readonly domains: readonly string[] } {
+  const haystack = normalizeLabel(message);
+  const mentions = (label: string): boolean => {
+    const needle = normalizeLabel(label);
+    if (needle.length < 3) {
+      return false;
+    }
+    const at = haystack.indexOf(needle);
+    if (at < 0) {
+      return false;
+    }
+    const before = at === 0 ? " " : haystack[at - 1] ?? " ";
+    const after = haystack[at + needle.length] ?? " ";
+    return !isWordCharacter(before) && !isWordCharacter(after);
+  };
+  return {
+    tags: vocabulary.tags.filter(mentions),
+    domains: vocabulary.domains.filter(mentions),
+  };
+}
+
+function isWordCharacter(value: string): boolean {
+  return /[\p{L}\p{N}]/u.test(value);
 }

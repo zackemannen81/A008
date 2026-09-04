@@ -2,6 +2,7 @@ import type { Database as BetterSqliteDatabase } from "better-sqlite3";
 import type { ProjectId } from "../../identity/types.js";
 import { EvidenceStore } from "./evidence.js";
 import { RelationIndex } from "./expand.js";
+import { KnowledgeLabelStore } from "./labels.js";
 import { EvidenceLifecycleStore } from "./lifecycle.js";
 import { EntityRegistry, SlotRegistry } from "./registry.js";
 import type { KnowledgeReadContext } from "./read-types.js";
@@ -49,13 +50,14 @@ export function createSqliteKnowledgeContext(
   const slots = new SlotRegistry();
   const state = new KnowledgeState();
   const evidence = new EvidenceStore();
+  const labels = new KnowledgeLabelStore();
   const lifecycle = new EvidenceLifecycleStore();
   const relations = new RelationIndex();
 
   const hydrate = (): void => {
     const snapshot = store.load();
     loadSnapshot(
-      { entities, slots, state, evidence, lifecycle, relations },
+      { entities, slots, state, evidence, labels, lifecycle, relations },
       snapshot,
     );
   };
@@ -88,6 +90,7 @@ export function createSqliteKnowledgeContext(
       "applyAcceptance",
       "hydrate",
     ]),
+    labels: persisting(labels, persist, ["attach", "hydrate"]),
     lifecycle: persisting(lifecycle, persist, [
       "attach",
       "reinforce",
@@ -122,6 +125,7 @@ function loadSnapshot(
     readonly slots: SlotRegistry;
     readonly state: KnowledgeState;
     readonly evidence: EvidenceStore;
+    readonly labels: KnowledgeLabelStore;
     readonly lifecycle: EvidenceLifecycleStore;
     readonly relations: RelationIndex;
   },
@@ -136,6 +140,7 @@ function loadSnapshot(
     claims: snapshot.claims,
     provenance: snapshot.provenance,
   });
+  target.labels.hydrate(snapshot.labels);
   target.lifecycle.hydrate(
     snapshot.lifecycle,
     snapshot.lifecycleNextTransition,
@@ -158,6 +163,7 @@ function captureSnapshot(
     artifacts: context.evidence.listArtifacts(),
     utterances: context.evidence.listUtterances(),
     claims: context.evidence.listClaims(),
+    labels: context.labels.list(),
     provenance: context.evidence.listProvenance(),
     lifecycle: context.lifecycle.snapshot(),
     lifecycleNextTransition: context.lifecycle.transitionSequence(),

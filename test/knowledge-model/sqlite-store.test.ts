@@ -73,6 +73,7 @@ test("knowledge SQLite stores unknown interval boundaries as unknown, never now"
       utterances: [],
       claims: [],
       provenance: [],
+      labels: [],
       lifecycle: { records: [], transitions: [] },
       lifecycleNextTransition: 0,
       relations: [],

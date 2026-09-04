@@ -134,7 +134,7 @@ function lookupRelated(
       matchKind: "associative",
       retrievalScore: score,
       reasons: ["associative_expansion", "relation_depth_1"],
-      tags: [...scope.tags],
+      ...expandedLabels(context, utterance.id),
       required: false,
       label: utterance.content,
       speaker: utterance.speaker,
@@ -166,7 +166,7 @@ function lookupRelated(
       matchKind: "associative",
       retrievalScore: score,
       reasons: ["associative_expansion", "relation_depth_1"],
-      tags: [...scope.tags],
+      ...expandedLabels(context, claim.id),
       required: false,
       label: claim.label,
       attributedTo: claim.attributedTo,
@@ -197,7 +197,7 @@ function lookupRelated(
       matchKind: "associative",
       retrievalScore: score,
       reasons: ["associative_expansion", "relation_depth_1"],
-      tags: [...scope.tags],
+      ...expandedLabels(context, event.id),
       required: false,
       label: event.label,
       eventType: event.type,
@@ -215,4 +215,18 @@ function lookupRelated(
 
   void message;
   return undefined;
+}
+
+/**
+ * Stored labels for a record reached by relation expansion.
+ *
+ * Same rule as the direct path: the record's own labels, never the query's. An
+ * expanded record with no labels is unlabelled, not unmatched.
+ */
+function expandedLabels(
+  context: KnowledgeReadContext,
+  recordId: string,
+): { readonly tags: readonly string[]; readonly domains: readonly string[] } {
+  const labels = context.labels.labelsFor(recordId);
+  return { tags: [...labels.tags], domains: [...labels.domains] };
 }

@@ -6,6 +6,7 @@ import type {
   ProvenanceRelation,
   SpeechAct,
 } from "./evidence-types.js";
+import type { KnowledgeLabelStore } from "./labels.js";
 import type { EvidenceLifecycleStore } from "./lifecycle.js";
 import type {
   EvidenceLifecycleKind,
@@ -75,6 +76,8 @@ export interface KnowledgeReadContext {
   readonly slots: SlotRegistry;
   readonly state: KnowledgeState;
   readonly evidence: EvidenceStore;
+  /** Tags and domains, stored beside the record rather than inside it. */
+  readonly labels: KnowledgeLabelStore;
   readonly lifecycle: EvidenceLifecycleStore;
   readonly relations: RelationIndexPort;
 }
@@ -85,7 +88,10 @@ export interface RetrievedRecord {
   readonly matchKind: MatchKind;
   readonly retrievalScore: number;
   readonly reasons: readonly string[];
+  /** The record's own stored tags, not a copy of the query's. */
   readonly tags: readonly string[];
+  /** The record's own stored domains. Empty for a record stored before A008-0060. */
+  readonly domains: readonly string[];
   readonly required: boolean;
   readonly label: string;
   readonly slotLabel?: string;

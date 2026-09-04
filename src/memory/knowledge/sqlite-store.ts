@@ -16,6 +16,7 @@ import type {
   LifecycleSnapshot,
   LifecycleTransition,
 } from "./lifecycle-types.js";
+import type { LabelRecord } from "./labels.js";
 import { slotKey } from "./registry.js";
 import type { RelationLink } from "./expand.js";
 import type {
@@ -53,6 +54,7 @@ export interface KnowledgeNamespaceSnapshot {
   readonly utterances: readonly Utterance[];
   readonly claims: readonly Claim[];
   readonly provenance: readonly ProvenanceRecord[];
+  readonly labels: readonly LabelRecord[];
   readonly lifecycle: LifecycleSnapshot;
   readonly lifecycleNextTransition: number;
   readonly relations: readonly RelationLink[];
@@ -142,6 +144,7 @@ export class SqliteKnowledgeStore {
         this.database.pragma("journal_mode = WAL");
       }
       this.database.exec(KNOWLEDGE_SQLITE_SCHEMA);
+      this.migrateSchemaVersion();
       this.assertSchemaVersion();
     } catch (error) {
       if (this.ownsDatabase) {
@@ -273,6 +276,11 @@ export class SqliteKnowledgeStore {
         "SELECT payload_json FROM A008_knowledge_provenance WHERE namespace = ? ORDER BY id",
       )
       .all(this.namespace) as PayloadRow[];
+    const labelRows = this.database
+      .prepare(
+        "SELECT payload_json FROM A008_knowledge_labels WHERE namespace = ? ORDER BY record_id",
+      )
+      .all(this.namespace) as readonly { readonly payload_json: string }[];
     const lifecycleRecords = this.database
       .prepare(
         "SELECT payload_json FROM A008_knowledge_lifecycle WHERE namespace = ? ORDER BY evidence_id",
@@ -325,6 +333,7 @@ export class SqliteKnowledgeStore {
       provenance: provenance.map((row) =>
         parseJson<ProvenanceRecord>(row.payload_json, "provenance"),
       ),
+      labels: labelRows.map((row) => parseJson<LabelRecord>(row.payload_json, "labels")),
       lifecycle: {
         records: lifecycleRecords.map((row) =>
           parseJson<LifecycleRecord>(row.payload_json, "lifecycle"),
@@ -538,6 +547,32 @@ export class SqliteKnowledgeStore {
       for (const record of snapshot.provenance) {
         insertProvenance.run(this.namespace, record.id, JSON.stringify(record));
       }
+      const insertLabels = this.database.prepare(
+        `INSERT INTO A008_knowledge_labels(
+           namespace, record_id, record_kind, payload_json
+         ) VALUES (?, ?, ?, ?)`,
+      );
+      const insertLabelIndex = this.database.prepare(
+        `INSERT OR IGNORE INTO A008_knowledge_label_index(
+           namespace, record_id, axis, value
+         ) VALUES (?, ?, ?, ?)`,
+      );
+      for (const record of snapshot.labels) {
+        insertLabels.run(
+          this.namespace,
+          record.recordId,
+          record.recordKind,
+          JSON.stringify(record),
+        );
+        // The payload is the record; the index is what a lookup reads. Both are
+        // written from the same normalised values so they cannot disagree.
+        for (const tag of record.tags) {
+          insertLabelIndex.run(this.namespace, record.recordId, "tag", tag);
+        }
+        for (const domain of record.domains) {
+          insertLabelIndex.run(this.namespace, record.recordId, "domain", domain);
+        }
+      }
       const insertLifecycle = this.database.prepare(
         `INSERT INTO A008_knowledge_lifecycle(
            namespace, evidence_id, evidence_kind, payload_json
@@ -627,6 +662,8 @@ export class SqliteKnowledgeStore {
       "A008_knowledge_fts",
       "A008_knowledge_slot_index",
       "A008_knowledge_entity_labels",
+      "A008_knowledge_label_index",
+      "A008_knowledge_labels",
       "A008_knowledge_relations",
       "A008_knowledge_lifecycle_transitions",
       "A008_knowledge_lifecycle",
@@ -669,6 +706,37 @@ export class SqliteKnowledgeStore {
       )
       .all(this.namespace) as KnowledgeItemRow[];
     return rows.map((row) => parseJson<KnowledgeItem>(row.payload_json, "v0 knowledge"));
+  }
+
+  /**
+   * Brings an older namespace up to the current schema version.
+   *
+   * Version 2 adds the label tables and nothing else: no column changed, no row
+   * moved, no meaning altered. `CREATE TABLE IF NOT EXISTS` in the schema script
+   * has already created them by the time this runs, so the migration is the
+   * version stamp itself.
+   *
+   * It matters that this exists rather than the version simply being bumped.
+   * `INSERT OR IGNORE` leaves an existing database stamped 1, and
+   * `assertSchemaVersion` would then refuse to open a store that is in fact
+   * perfectly readable — turning an additive change into a lost memory file.
+   *
+   * Anything other than a known upgrade path is left alone for
+   * `assertSchemaVersion` to refuse by name, including a version from the
+   * future, which this code cannot know how to read.
+   */
+  private migrateSchemaVersion(): void {
+    const row = this.database
+      .prepare("SELECT version FROM A008_knowledge_schema WHERE singleton = 1")
+      .get() as { readonly version: number } | undefined;
+    if (row === undefined || row.version !== 1) {
+      return;
+    }
+    this.database
+      .prepare(
+        "UPDATE A008_knowledge_schema SET version = ? WHERE singleton = 1 AND version = 1",
+      )
+      .run(KNOWLEDGE_SQLITE_SCHEMA_VERSION);
   }
 
   private assertSchemaVersion(): void {
