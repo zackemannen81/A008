@@ -4,6 +4,7 @@ import { RelationIndex } from "./expand.js";
 import { expand } from "./expand.js";
 import { compose } from "./compose.js";
 import { filter } from "./filter.js";
+import { KnowledgeLabelStore } from "./labels.js";
 import { EvidenceLifecycleStore } from "./lifecycle.js";
 import { EntityRegistry, SlotRegistry } from "./registry.js";
 import { project, type ProjectBudget, type ProjectResult } from "./project.js";
@@ -36,6 +37,7 @@ export function createKnowledgeContext(): KnowledgeReadContext {
     slots: new SlotRegistry(),
     state: new KnowledgeState(),
     evidence: new EvidenceStore(),
+    labels: new KnowledgeLabelStore(),
     lifecycle: new EvidenceLifecycleStore(),
     relations: new RelationIndex(),
   };

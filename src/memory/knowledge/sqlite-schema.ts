@@ -1,4 +1,4 @@
-export const KNOWLEDGE_SQLITE_SCHEMA_VERSION = 1;
+export const KNOWLEDGE_SQLITE_SCHEMA_VERSION = 2;
 
 export const KNOWLEDGE_SQLITE_SCHEMA = `
 CREATE TABLE IF NOT EXISTS A008_knowledge_schema (
@@ -173,6 +173,25 @@ CREATE TABLE IF NOT EXISTS A008_knowledge_lifecycle_transitions (
   payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
   PRIMARY KEY(namespace, id)
 );
+
+CREATE TABLE IF NOT EXISTS A008_knowledge_labels (
+  namespace TEXT NOT NULL,
+  record_id TEXT NOT NULL,
+  record_kind TEXT NOT NULL,
+  payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
+  PRIMARY KEY(namespace, record_id)
+);
+
+CREATE TABLE IF NOT EXISTS A008_knowledge_label_index (
+  namespace TEXT NOT NULL,
+  record_id TEXT NOT NULL,
+  axis TEXT NOT NULL CHECK (axis IN ('tag', 'domain')),
+  value TEXT NOT NULL,
+  PRIMARY KEY(namespace, record_id, axis, value)
+);
+
+CREATE INDEX IF NOT EXISTS A008_knowledge_label_index_lookup
+  ON A008_knowledge_label_index(namespace, axis, value);
 
 CREATE TABLE IF NOT EXISTS A008_knowledge_relations (
   namespace TEXT NOT NULL,

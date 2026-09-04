@@ -1,5 +1,6 @@
 import { mentionsLabel, normalize } from "./define.js";
 import type { Claim, Utterance } from "./evidence-types.js";
+import { normalizeLabel } from "./labels.js";
 import { viewLifecycle } from "./lifecycle.js";
 import { slotKey } from "./registry.js";
 import type {
@@ -63,6 +64,7 @@ export function retrieve(
             "state",
             query.message,
             scope,
+            context,
             "direct",
             true,
             ["direct_slot_match", "current_state"],
@@ -83,6 +85,7 @@ export function retrieve(
             "history",
             query.message,
             scope,
+            context,
             "direct",
             true,
             ["history_intent", "direct_slot_match"],
@@ -140,10 +143,145 @@ export function retrieve(
     }
   }
 
+  // The label channel. This is what makes a domain or a tag a retrieval signal
+  // rather than decoration: a record is reachable because it is *about* the
+  // subject, even when the message names none of its entities and shares none
+  // of its words. It is what lets a record about the hippocampus come back for
+  // "what happens when we sleep after learning something".
+  //
+  // Deliberately not gated on intent. A subject-area match is not a question
+  // about current state, or history, or attribution; it is orthogonal to all of
+  // them, and gating it would silently disable the broader signal for exactly
+  // the open-ended questions it exists to serve.
+  for (const recordId of context.labels.matching({
+    tags: scope.tags,
+    domains: scope.domains,
+  })) {
+    const reasons = labelMatchReasons(context, scope, recordId);
+    if (reasons.length === 0) {
+      continue;
+    }
+    const utterance = context.evidence
+      .listUtterances()
+      .find((item) => item.id === recordId);
+    if (utterance !== undefined) {
+      push(
+        records,
+        seen,
+        utteranceRecord(
+          utterance,
+          query.message,
+          scope,
+          context,
+          "associative",
+          false,
+          reasons,
+        ),
+      );
+      continue;
+    }
+    const labelled = context.evidence
+      .listClaims()
+      .find((item) => item.id === recordId);
+    if (labelled !== undefined) {
+      push(
+        records,
+        seen,
+        evidenceClaimRecord(
+          labelled,
+          query.message,
+          scope,
+          context,
+          "associative",
+          false,
+          reasons,
+        ),
+      );
+    }
+    // And the current-state binding the same claim established, if there is
+    // one. Bindings carry no labels of their own — they are reached through a
+    // slot, which is reached through an entity — so without this the only way
+    // to a binding is by naming its entity, and a subject-area match would
+    // return the claim while the current truth it established stayed hidden.
+    for (const binding of context.state.snapshot().bindings) {
+      if (binding.claimId !== recordId || !isOpenInterval(binding.interval)) {
+        continue;
+      }
+      push(
+        records,
+        seen,
+        bindingRecord(
+          binding,
+          "state",
+          query.message,
+          scope,
+          context,
+          "associative",
+          false,
+          [...reasons, "current_state"],
+        ),
+      );
+    }
+  }
+
   if (!intents.has("history")) {
     return records.filter((record) => record.surface !== "history" || isOpen(record.interval));
   }
   return records;
+}
+
+/**
+ * Names which axis matched, so a retrieval can be explained after the fact.
+ *
+ * `channelCounts` in the read result has always had `tag` and `domain` fields
+ * hardcoded to zero because nothing could ever set them. These reasons are what
+ * finally makes them countable.
+ */
+function labelMatchReasons(
+  context: KnowledgeReadContext,
+  scope: SemanticScope,
+  recordId: string,
+): readonly string[] {
+  const stored = context.labels.labelsFor(recordId);
+  const reasons: string[] = [];
+  if (intersects(stored.tags, scope.tags)) {
+    reasons.push("label_tag_match");
+  }
+  if (intersects(stored.domains, scope.domains)) {
+    reasons.push("label_domain_match");
+  }
+  return reasons;
+}
+
+function intersects(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
+  if (left.length === 0 || right.length === 0) {
+    return false;
+  }
+  const normalized = new Set(right.map(normalizeLabel));
+  return left.some((value) => normalized.has(normalizeLabel(value)));
+}
+
+/**
+ * A record's own stored labels, by the evidence id it belongs to.
+ *
+ * Until A008-0060 every builder here wrote `tags: [...scope.tags]` — a copy of
+ * the query — so a record's tags were whatever had been asked for. `filter()`
+ * then compared the query's tags against the query's own tags and admitted
+ * everything, which is why tag filtering looked implemented and did nothing.
+ *
+ * A record stored before labels existed returns two empty arrays, and every
+ * consumer has to treat that as "unlabelled", never as "matches nothing" —
+ * otherwise an upgrade would make an existing memory file unreadable.
+ */
+function labelsOf(
+  context: KnowledgeReadContext,
+  recordId: string,
+): { readonly tags: readonly string[]; readonly domains: readonly string[] } {
+  const labels = context.labels.labelsFor(recordId);
+  return { tags: [...labels.tags], domains: [...labels.domains] };
 }
 
 export function scoreRetrieved(input: {
@@ -244,6 +382,7 @@ function bindingRecord(
   surface: "state" | "history",
   message: string,
   scope: SemanticScope,
+  context: KnowledgeReadContext,
   matchKind: "direct" | "associative",
   required: boolean,
   reasons: readonly string[],
@@ -262,7 +401,7 @@ function bindingRecord(
     matchKind,
     retrievalScore: score,
     reasons,
-    tags: [...scope.tags],
+    ...labelsOf(context, binding.claimId),
     required,
     label: binding.label,
     slotLabel: slotLabelOf(binding.slot),
@@ -295,7 +434,7 @@ function slotClaimRecord(
     matchKind,
     retrievalScore: score,
     reasons,
-    tags: [...scope.tags],
+    ...labelsOf(context, claim.id),
     required,
     label: claim.label,
     slotLabel: slotLabelOf(claim.slot),
@@ -334,7 +473,7 @@ function eventRecord(
     matchKind,
     retrievalScore: score,
     reasons,
-    tags: [...scope.tags],
+    ...labelsOf(context, event.id),
     required,
     label: event.label,
     eventType: event.type,
@@ -373,7 +512,7 @@ function utteranceRecord(
     matchKind,
     retrievalScore: score,
     reasons,
-    tags: [...scope.tags],
+    ...labelsOf(context, utterance.id),
     required,
     label: utterance.content,
     speaker: utterance.speaker,
@@ -412,7 +551,7 @@ function evidenceClaimRecord(
     matchKind,
     retrievalScore: score,
     reasons,
-    tags: [...scope.tags],
+    ...labelsOf(context, claim.id),
     required,
     label: claim.label,
     attributedTo: claim.attributedTo,

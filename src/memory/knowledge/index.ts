@@ -61,6 +61,18 @@ export type {
   SqliteKnowledgeContextHandle,
   SqliteKnowledgeContextOptions,
 } from "./sqlite-context.js";
+export {
+  EMPTY_LABELS,
+  KnowledgeLabelStore,
+  normalizeLabel,
+} from "./labels.js";
+export type {
+  AttachLabelsInput,
+  KnowledgeLabels,
+  LabelQuery,
+  LabelRecord,
+  LabelRecordKind,
+} from "./labels.js";
 export { KnowledgeMemoryReader } from "./live-reader.js";
 export {
   DEFAULT_PROJECTION_BUDGET_BYTES,

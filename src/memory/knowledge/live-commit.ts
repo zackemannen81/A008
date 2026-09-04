@@ -98,7 +98,28 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       { idFactory: this.#idFactory },
     );
     const evidenceClaim = recorded[0];
+    // Tags and domains have always been extracted by the analyzer, carried
+    // through staging and read by the relation classifier. Until A008-0060 this
+    // is where they stopped: a claim, an entity and a binding were written and
+    // both label sets were dropped, so nothing downstream could ever match on
+    // them. They are attached to the utterance as well as the claim because the
+    // utterance is what a source ingest already created and what the projection
+    // sends when no claim was accepted.
+    const labelInput = {
+      tags: [...(staged.proposal.tags ?? [])],
+      domains: [...staged.domains],
+    };
+    this.#context.labels.attach({
+      recordId: utteranceId,
+      recordKind: "utterance",
+      ...labelInput,
+    });
     if (evidenceClaim !== undefined) {
+      this.#context.labels.attach({
+        recordId: evidenceClaim.id,
+        recordKind: "claim",
+        ...labelInput,
+      });
       this.#context.lifecycle.attach({
         evidenceId: evidenceClaim.id,
         evidenceKind: "claim",
@@ -263,12 +284,18 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       ({
         id: asEntityId(slugEntityId(label)),
         type: "fact",
-        labels: uniqueLabels([
-          label,
-          proposition,
-          ...entities,
-          ...tokenize(proposition),
-        ]),
+        // No `tokenize(proposition)`. It split the whole proposition and kept
+        // every word of four characters or more, so "Zorros häst heter Fresca"
+        // made `heter` an alias of that fact and "Vad heter du?" matched it.
+        //
+        // Lexical search terms are not semantic identity. Entity labels answer
+        // "what is this thing called"; finding a record by the words in it is
+        // what tags and domains are for, and until A008-0060 they were extracted
+        // and then dropped, which left entity labels as the only retrieval
+        // signal that varied with the message. That is why the pollution was
+        // load-bearing rather than merely untidy, and why removing it had to
+        // wait until there was something to replace it.
+        labels: uniqueLabels([label, proposition, ...entities]),
       } as Entity);
     if (existing === undefined) {
       this.#context.entities.register(entity);
@@ -423,12 +450,4 @@ function uniqueLabels(values: readonly string[]): string[] {
     result.push(trimmed);
   }
   return result;
-}
-
-function tokenize(value: string): readonly string[] {
-  return value
-    .trim()
-    .toLocaleLowerCase("und")
-    .split(/[^a-z0-9åäö]+/u)
-    .filter((token) => token.length >= 4);
 }
