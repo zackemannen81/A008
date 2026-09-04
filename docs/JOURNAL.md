@@ -2,6 +2,60 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-04 — A wrong model id, and where a model's truth lives
+
+- Date: 2026-09-04
+- Author: Claude (operator / boss)
+- Task: A008-0054, A008-0055
+- Branch: `main`
+- Identity evidence: A008-0054 claimed as `9d8bf34`, A008-0055 as `bffd481`,
+  both on `main` before either branch existed.
+- Origin: the owner asked for six models to be selectable via `/model`, and
+  supplied a diagram in which an image goes straight into the provider call when
+  the model can take one.
+- A008-0054 gave `ModelProfile` the field that difference needs —
+  `inputModalities` over `text | image | video | audio`, plus `verifiedOn` — and
+  added the omni model. It shipped the omni model wrong. Both the id and the
+  output budget came from the model card, which names
+  `nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4` at 20480 tokens. The
+  Build tab, which is the sample an actual request is copied from, says
+  `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` at 65536. Neither error could
+  fail a test. Both would have failed a live call.
+- The `verifiedOn` field is what makes this worth writing down. It records when
+  a value was checked and not what was checked, so a date stamp sat on top of a
+  wrong source and made it look verified. The rule the correction establishes:
+  for this vendor the Build tab outranks the model card, because the Build tab
+  is the request.
+- A008-0055 corrects the profile and adds four models, every value read from a
+  Build tab: `moonshotai/kimi-k3` (text and image), and text-only
+  `deepseek-ai/deepseek-v4-pro-0813`, `meta/muse-glimmer-30b`,
+  `poolside/laguna-xs-2.1`. A008-0054 had deliberately left these out rather
+  than guess their vendor prefixes, and that caution was right twice over —
+  muse-glimmer is `meta`, laguna is `poolside`.
+- Modality is read from the sample's payload shape, not from the model's name or
+  description. A `content` array carrying `image_url` means the endpoint takes
+  an image there. That is how `kimi-k3` turned out to be image-capable, which
+  nothing about its name suggests.
+- `gemma-4-31b-it` does not exist in the vendor catalogue. The nearest entry is
+  `google/diffusiongemma-26b-a4b-it`, a different model. Reported, not
+  substituted.
+- The owner's blue line remains unbuilt, and now has a named reason.
+  `ChatMessage.content` is a `string` by ADR 0020 D6, while the vendor sample
+  needs an array of parts. That is a core contract change, not a registry entry;
+  it is recorded in `docs/backlog/multimodal-chat-content.md` with the five
+  questions it has to answer first. Until then a declared modality records a
+  capability A008 cannot use, and the status document says so.
+- Verification: `npm run typecheck` clean; `npm test` 322 core and 75 GUI, 0
+  fail, 0 skipped. New cases assert the exact-id rule against three near misses
+  including the card's NVFP4 name, the image-capable set, and that no profile
+  declares a reasoning budget without thinking enabled.
+- Not performed: no live provider call. The ids are verified against the
+  vendor's own request sample, not against a response, and that is the remaining
+  gap — a live call is the only thing that would have caught A008-0054.
+- Handoff: A008-0051 and A008-0054 were merged without an archive in
+  `docs/finished/`. A008-0054's is written now; A008-0051's is still missing.
+- Signature: Claude
+
 ## 2026-09-03 — Upload wave 2, and the acceptance trap it uncovered
 
 - Date: 2026-09-03
