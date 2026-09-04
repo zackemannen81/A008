@@ -2,6 +2,54 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-04 — The list that could forget
+
+- Date: 2026-09-04
+- Author: Claude (operator / boss)
+- Task: A008-0057
+- Branch: `main`
+- Identity evidence: claimed on `main` as `ac4caa8` before the branch existed.
+- Origin: owner instruction to work the backlog; `discovery-based-core-suite.md`
+  had been open since A008-0040. A008-0056 made it immediate rather than
+  historical — adding a test file meant hand-editing the `test:core` line again,
+  and the only thing between a forgotten edit and thirty unrun cases was
+  remembering.
+- The defect class is worth naming precisely, because it is not "a test broke".
+  A008-0040 found two files missing from the list. Twenty cases had never run.
+  Both passed the moment they were executed, so nothing was broken and nothing
+  ever would have looked wrong: the suite just reported a smaller number.
+- Took the backlog's option 3 and left options 1 and 2 unbuilt, for the reason
+  the item itself had already worked out. `npm run build` does not clean
+  `dist/`, so globbing compiled output would keep running JavaScript whose
+  TypeScript source had been deleted. A green result that corresponds to no
+  source is worse than the silence being fixed. Naming the files keeps a stale
+  artifact unreachable and keeps `test:core` something a person can read; what
+  was missing was not discovery, it was noticing.
+- `test/core-suite-membership.test.ts` reads the script out of `package.json`,
+  walks `test/**/*.test.ts`, and fails naming any file the list does not run. It
+  fails the other direction too — an entry whose source is gone — so a rename
+  reports the reason instead of a module-resolution error.
+- It runs twice on purpose, and that is the part worth remembering. A membership
+  check that runs only as a member of the list it checks can be disabled by the
+  exact edit it exists to catch. So it is in `test:core` like any other file and
+  `npm test` also invokes it by name through `test:membership`. One of its four
+  cases asserts that arrangement, so quietly dropping the named step fails too.
+- Verification: `npm test` 356 core, 4 membership, 75 GUI, 0 fail, 0 skipped.
+  Six mutations to `package.json`, each alone and reverted, all caught. The one
+  that matters reproduces A008-0040's actual defect — `evidence.test.js` removed
+  from the list — and where the suite once reported a smaller count and passed,
+  it now fails naming the file.
+- Not performed: the list is still hand-maintained. This makes forgetting loud;
+  it does not remove the editing. If that ever becomes the real problem, option
+  2 is still on the table and the backlog item records what it would have to
+  solve first.
+- Handoff: `docs/backlog/document-ingest-granularity.md` is the open item that
+  matters most now, raised to due by A008-0056. `multiagent-process-layer.md`
+  needs an owner decision about installing external software.
+  `gui-hardening.md` items 3 and 5 remain, both on a surface ADR 0022 demoted to
+  a test harness.
+- Signature: Claude
+
 ## 2026-09-04 — Documents become readable, and two mutations that survived
 
 - Date: 2026-09-04

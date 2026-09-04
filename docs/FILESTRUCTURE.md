@@ -147,6 +147,7 @@ A008/
 |  |- gui-host.test.ts                host routes, upload, WS bridge, credential gate
 |  |- ingest-source.test.ts           sniffing, extraction, and provenance
 |  |- document-extraction.test.ts    PDF, Word, ZIP and OOXML readers
+|  |- core-suite-membership.test.ts  test:core names every test file, and only real ones
 |  |- runtime-source-ingest.test.ts   locator containment and ingest passthrough
 |  |- gui-host/
 |  |  `- fake-acp.ts                  spawnable ACP stdio stand-in
