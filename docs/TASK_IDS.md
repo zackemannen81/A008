@@ -76,3 +76,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0057 | core suite membership check | operator | 2026-09-04 | test:core list guard |
 | A008-0058 | additive knowledge projection | operator | 2026-09-04 | live-reader payload items |
 | A008-0059 | accept the confidence models emit | operator | 2026-09-05 | staging proposal validation |
+| A008-0060 | stored tags and domains on knowledge records | operator | 2026-09-05 | knowledge storage, write path, retrieve/filter |
