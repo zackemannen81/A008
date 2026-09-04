@@ -1,8 +1,9 @@
 # Discovery-based core test suite
 
-Status: Open
+Status: Closed by A008-0057 (option 3)
 Source: A008-0040
 Recorded: 2026-09-02
+Closed: 2026-09-04
 
 ## Context
 
@@ -54,3 +55,25 @@ None. Any of the three can be done independently.
 
 Delete a test file's entry (option 3) or its source (options 1 and 2) and
 confirm the command fails rather than silently reporting a smaller count.
+
+## Outcome
+
+A008-0057 took option 3. `test/core-suite-membership.test.ts` reads the
+`test:core` script out of `package.json`, walks `test/**/*.test.ts`, and fails
+naming any file the list does not run. It also fails on the reverse — an entry
+whose TypeScript source no longer exists — and on a duplicate.
+
+Options 1 and 2 stay unbuilt for the reason recorded above: `npm run build` does
+not clean `dist/`, so globbing compiled output can run JavaScript whose source
+was deleted. Naming the files keeps a stale artifact unreachable and keeps
+`test:core` a command a person can read. The list is still hand-maintained; what
+changed is that forgetting it is now loud.
+
+The check runs twice on purpose — as a member of `test:core`, and by name
+through a `test:membership` step in `npm test` — because deleting its own entry
+would otherwise disable the check that catches the deletion. One of its four
+cases asserts exactly that arrangement.
+
+Verified by mutation, including a faithful reproduction of the original defect:
+removing `evidence.test.js` from the list fails the suite by name, where before
+it silently reduced the count.
