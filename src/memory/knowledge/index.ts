@@ -62,6 +62,15 @@ export type {
   SqliteKnowledgeContextOptions,
 } from "./sqlite-context.js";
 export { KnowledgeMemoryReader } from "./live-reader.js";
+export {
+  DEFAULT_PROJECTION_BUDGET_BYTES,
+  SURFACE_AUTHORITY,
+  projectionItems,
+} from "./projection-items.js";
+export type {
+  ProjectionItemsInput,
+  ProjectionItemsResult,
+} from "./projection-items.js";
 export type { KnowledgeMemoryReaderOptions } from "./live-reader.js";
 export { KnowledgeEngineCommit } from "./live-commit.js";
 export type { KnowledgeEngineCommitOptions } from "./live-commit.js";
