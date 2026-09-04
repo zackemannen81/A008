@@ -256,14 +256,20 @@ test("GET /health and /v1/models do not require a credential", async () => {
     assert.deepEqual(health.body, { ok: true, name: "A008-gui-host" });
     const models = await httpJson(host, "/v1/models");
     assert.equal(models.status, 200);
-    assert.deepEqual(models.body, {
-      models: [
-        {
-          id: "nvidia/nemotron-3.5-lightning-30b-a3b",
-          name: "NVIDIA Nemotron 3.5 Lightning 30B A3B",
-        },
-      ],
-    });
+    // The route lists whatever the registry holds, so this asserts the shape
+    // and the default's presence rather than a fixed list that grows with it.
+    const listed = (models.body as { models: { id: string; name: string }[] }).models;
+    assert.ok(listed.length >= 1);
+    assert.ok(
+      listed.some((entry) => entry.id === "nvidia/nemotron-3.5-lightning-30b-a3b"),
+    );
+    for (const entry of listed) {
+      assert.equal(typeof entry.id, "string");
+      assert.equal(typeof entry.name, "string");
+      // The route publishes id and name only; nothing else about a profile
+      // reaches a client from here.
+      assert.deepEqual(Object.keys(entry).sort(), ["id", "name"]);
+    }
     assertWireClean([health.raw, models.raw]);
   });
 });

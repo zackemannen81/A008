@@ -79,6 +79,11 @@ fields carry the same string; `message` is the one to display.
 
 Needs no credential. Use it to check the host is reachable and configured.
 
+The route publishes `id` and `name` only. A model's input modalities and
+sampling defaults are host-side profile data and are deliberately not exposed
+here; a client that needs them should ask for the route to carry them rather
+than infer them from the id.
+
 ### `POST /v1/shell`
 
 `content-type: application/json` is required; anything else is `415`.
