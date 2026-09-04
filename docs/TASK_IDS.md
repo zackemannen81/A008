@@ -73,3 +73,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0054 | model profile modalities and registry additions | operator | 2026-09-04 | core model registry |
 | A008-0055 | correct the omni profile and add four verified models | operator | 2026-09-04 | core model registry |
 | A008-0056 | document extraction for PDF and DOCX | operator | 2026-09-04 | src/ingest document extractors and the ZIP sniffer |
+| A008-0057 | core suite membership check | operator | 2026-09-04 | test:core list guard |
