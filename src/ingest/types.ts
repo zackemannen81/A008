@@ -10,6 +10,11 @@ export const IMAGE_GIF = "image/gif";
 export const APPLICATION_PDF = "application/pdf";
 export const APPLICATION_DOCX =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+export const APPLICATION_XLSX =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+export const APPLICATION_PPTX =
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+export const APPLICATION_ZIP = "application/zip";
 export const APPLICATION_OCTET_STREAM = "application/octet-stream";
 
 export interface SourceExtractionInput {

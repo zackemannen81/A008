@@ -43,6 +43,8 @@ import {
 import type { HybridMemoryReadResult } from "../memory/retrieval-types.js";
 import {
   sniffSourceMediaType,
+  DocxExtractor,
+  PdfExtractor,
   SourceExtractorRegistry,
   Utf8TextExtractor,
 } from "../ingest/index.js";
@@ -170,10 +172,12 @@ export interface LocalMemoryRuntimeOptions {
   ) => RelationIndexWriter;
   readonly memoryDecorator?: (memory: RelationMemoryPort) => RelationMemoryPort;
   /**
-   * Composed registry of `SourceExtractor`s for `ingestSource`. Defaults to
-   * text-only (`Utf8TextExtractor`); tests inject a fake extractor here to
-   * drive the `derived_from` provenance-passthrough gate without a live
-   * vision call.
+   * Composed registry of `SourceExtractor`s for `ingestSource`. Defaults to the
+   * three that need no provider call — text, PDF and Word — because those read
+   * the file and nothing else. Image description is not in the default set: it
+   * is a paid vision call, so a caller that wants it composes it in explicitly.
+   * Tests inject a fake extractor here to drive the `derived_from`
+   * provenance-passthrough gate without a live vision call.
    */
   readonly sourceExtractorRegistry?: SourceExtractorRegistry;
   /**
@@ -944,7 +948,11 @@ export function createLocalMemoryRuntime(
     chatGeneration: config.chatGeneration,
     sourceExtractorRegistry:
       options.sourceExtractorRegistry ??
-      new SourceExtractorRegistry([new Utf8TextExtractor()]),
+      new SourceExtractorRegistry([
+        new Utf8TextExtractor(),
+        new PdfExtractor(),
+        new DocxExtractor(),
+      ]),
     readSourceBytes: options.readSourceBytes ?? ((path) => readFileSync(path)),
   });
 }

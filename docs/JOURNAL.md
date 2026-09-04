@@ -2,6 +2,94 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-04 — Documents become readable, and two mutations that survived
+
+- Date: 2026-09-04
+- Author: Claude (operator / boss)
+- Task: A008-0056
+- Branch: `main`
+- Identity evidence: claimed on `main` as `757a22e` before the branch existed.
+- Origin: owner instruction — finish the upload function, choose a good PDF
+  parser. That closed the one question ADR 0020 D8 had reserved: the parser is a
+  third-party dependency, and under ADR 0002 imported material is the owner's
+  call, not a task's.
+- Two candidates were run against the same real document before choosing, not
+  compared from memory. `unpdf` is 2.5 MB to `pdfjs-dist`'s 35 MB and returns
+  line breaks for free; on a three-page Swedish PDF it produced 7 473 characters
+  to pdf.js's 7 475, the same text. The choice was not about capability. It went
+  to `pdfjs-dist` because it is Mozilla's own implementation, it is Apache-2.0
+  like A008, and the lockfile pins exactly which version of the PDF code is
+  present — which a wrapper that vendors its own bundled build cannot say. A
+  repository whose subject is provenance should be able to name the parser that
+  read a document.
+- The costs are real and are in the ADR rather than glossed: 35 MB, an optional
+  `@napi-rs/canvas` native binary A008 never loads, and an engine floor that
+  moved this package's declared `node` from `>=22.12.0` to `>=22.13.0`. pdf.js
+  is imported inside `extract()`, so a CLI turn that uploads nothing loads none
+  of it.
+- DOCX took no dependency at all. `mammoth` is the obvious choice and brings ten
+  transitive packages. A `.docx` is a ZIP of XML parts, `node:zlib` already
+  inflates it, and the reader is about two hundred lines. For a repository that
+  has kept its runtime inventory at three, that is the cheaper side of the
+  trade, and every byte of it is auditable here instead of three levels down a
+  tree.
+- The ZIP reader paid for itself twice. `media-type.ts` had a comment admitting
+  it was lying — every OOXML format is a ZIP, and telling them apart "needs a
+  ZIP reader, which this module deliberately does not have", so any ZIP was
+  reported as a Word document. A spreadsheet was therefore handed to an
+  extractor guaranteed to fail. The part-name prefix decides now.
+- Sixteen mutations, each rebuilt and re-run alone. Fourteen were caught by
+  exactly the test that names the behaviour. Both survivors were findings.
+  A suppression counter in the OOXML scanner turned out to be dead code:
+  `w:instrText` and `w:delText` are siblings of `w:t`, never children, and text
+  is only captured inside a `w:t`, so the rule that was already there was doing
+  the work. It was removed and the comment now says what is true. The stored-
+  entry size ceiling had no test at all — the compression-bomb case only
+  exercised the deflated path, where zlib enforces the limit; a stored entry
+  never passes through zlib. A case was added.
+- One of my own comments was wrong and is corrected in the same commit. It
+  claimed pdf.js warnings would corrupt the ACP JSON-RPC channel. Checked in a
+  child process: pdf.js 6 writes them to stderr, not stdout. Silencing them is
+  still right, because that stream is the host's log, but as noise reduction and
+  not as protocol correctness. Confident-sounding is not the same as true, and
+  the test now asserts both streams are empty either way.
+- Two existing tests were rewritten rather than left green. `ingest-source.test.ts`
+  had a case named "PDF and DOCX raise a named unsupported error and never fall
+  through" — the exact premise this task removes. Left alone it would have kept
+  passing against a registry that no longer holds those types, proving nothing.
+  It is rearmed with types that are still genuinely unsupported and says so.
+- Fixtures are built, not committed. A checked-in `.docx` is a blob a reviewer
+  cannot diff. `test/fixtures/documents.ts` writes a real PDF with a computed
+  cross-reference table — pdf.js silently rebuilds a broken one, so a faked
+  table would prove only that the recovery path works — and a real ZIP with both
+  stored and deflated entries.
+- Verification: `npm test` 352 core and 75 GUI, 0 fail, 0 skipped, up from 322
+  and 75. The end-to-end proof ran through a real GUI host process, a real
+  `A008-acp` subprocess and the real memory runtime: 17 of 17, with a real PDF
+  and a real Word document each reaching a distinct artifact id and a
+  spreadsheet stored under its own media type without extraction. Recorded in
+  `docs/evidence/A008-0056_document-extraction-proof.md`.
+- The synthetic fixtures prove the contract, not the parser, so the registry was
+  also run read-only over the owner's own `acme-promo` folder: seventeen files,
+  Swedish and English, sixteen extracted. The one refusal was checked rather
+  than assumed — fifteen pages, thirty image XObjects, zero font objects, so
+  "probably a scan" is literally true. Five documents exist as both PDF and
+  `.docx`, and the two independent extractors agreed within 0.8% on every pair,
+  which is the only cross-check available that does not rest on one of the two
+  implementations. No document content was copied into this repository.
+- Not performed: no live provider call, no OCR, no chunking, no image
+  description. Neither new extractor makes a provider call, which is why both
+  are in the default registry and the vision describer still is not.
+- Handoff: `docs/backlog/document-ingest-granularity.md` is raised from Open to
+  now due, and the reason is no longer theoretical. A document is still exactly
+  one `Utterance` classified by heuristics written for chat messages, the
+  owner's own files run from 1 829 to 16 291 characters, and every file ingested
+  from here on is stored at file granularity — re-chunking later means
+  re-ingesting. One thing this task settles for it: both extractors already emit
+  paragraph-per-line text and agree on where the lines are, so the
+  blank-line-separated block is a cheap first answer to its open question 2.
+- Signature: Claude
+
 ## 2026-09-04 — A wrong model id, and where a model's truth lives
 
 - Date: 2026-09-04

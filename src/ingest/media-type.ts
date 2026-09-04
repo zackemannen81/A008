@@ -1,8 +1,12 @@
 import { SourceIngestError } from "./errors.js";
+import { readZipDirectory } from "./zip.js";
 import {
   APPLICATION_DOCX,
   APPLICATION_OCTET_STREAM,
   APPLICATION_PDF,
+  APPLICATION_PPTX,
+  APPLICATION_XLSX,
+  APPLICATION_ZIP,
   IMAGE_GIF,
   IMAGE_JPEG,
   IMAGE_PNG,
@@ -85,6 +89,37 @@ function isProbablyUtf8Text(bytes: Uint8Array): boolean {
 }
 
 /**
+ * Distinguishes the OOXML formats, which are all ZIP archives.
+ *
+ * The part-name prefix decides: a Word package puts its parts under `word/`, a
+ * workbook under `xl/`, a presentation under `ppt/`. Anything else is reported
+ * as a plain ZIP, so an unsupported upload is refused by its real type rather
+ * than misreported as a document A008 tried and failed to read.
+ *
+ * A malformed archive falls back to `application/zip` rather than raising: this
+ * function answers "what is this", and refusing to read it is the extractor's
+ * decision to make afterwards.
+ */
+function sniffZipContainer(bytes: Uint8Array): string {
+  let names: readonly string[];
+  try {
+    names = readZipDirectory(bytes).map((entry) => entry.name);
+  } catch {
+    return APPLICATION_ZIP;
+  }
+  if (names.some((name) => name.startsWith("word/"))) {
+    return APPLICATION_DOCX;
+  }
+  if (names.some((name) => name.startsWith("xl/"))) {
+    return APPLICATION_XLSX;
+  }
+  if (names.some((name) => name.startsWith("ppt/"))) {
+    return APPLICATION_PPTX;
+  }
+  return APPLICATION_ZIP;
+}
+
+/**
  * Resolves a media type from the bytes themselves.
  *
  * A declared filename or extension never participates. An upload named
@@ -108,10 +143,7 @@ export function sniffSourceMediaType(bytes: Uint8Array): string {
     return APPLICATION_PDF;
   }
   if (startsWith(bytes, ZIP)) {
-    // DOCX, XLSX and PPTX are all ZIP containers. Distinguishing them needs a
-    // ZIP reader, which this module deliberately does not have; reporting the
-    // family is enough for the unsupported error to name something true.
-    return APPLICATION_DOCX;
+    return sniffZipContainer(bytes);
   }
   if (isProbablyUtf8Text(bytes)) {
     return TEXT_PLAIN;
