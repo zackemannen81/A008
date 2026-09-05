@@ -121,6 +121,8 @@ A008/
 |  |     |- labels.ts                stored tags/domains + the index that finds them
 |  |     |- live-reader.ts           live DEFINE..PROJECT MemoryReadPort
 |  |     |- projection-items.ts      every surface reaches the model; rank, dedupe, budget (ADR 0023)
+|  |     |- labels.ts               stored tags and domains, and the index that finds them
+|  |     |- current-scope.ts         accumulating discussion scope (ADR 0024)
 |  |     |- live-commit.ts           live INGEST/ACCEPT/RECONCILE/UPDATE
 |  |     `- index.ts                 knowledge-tree barrel
 |  |- orchestration/
@@ -152,8 +154,12 @@ A008/
 |  |- core-suite-membership.test.ts  test:core names every test file, and only real ones
 |  |- knowledge-labels.test.ts       stored tags/domains, the label channel, schema 2 migration
 |  |- knowledge-projection.test.ts   every matching surface reaches the model, ranked and budgeted
+|  |- knowledge-labels.test.ts       stored labels, the label channel, statement slots as sets
+|  |- current-scope.test.ts          scope accumulation, reset, ceiling, and the owner's sequence
 |  |- knowledge-labels.test.ts       stored tags/domains, the label channel, schema 2 migration
 |  |- knowledge-projection.test.ts   every matching surface reaches the model, ranked and budgeted
+|  |- knowledge-labels.test.ts       stored labels, the label channel, statement slots as sets
+|  |- current-scope.test.ts          scope accumulation, reset, ceiling, and the owner's sequence
 |  |- runtime-source-ingest.test.ts   locator containment and ingest passthrough
 |  |- gui-host/
 |  |  `- fake-acp.ts                  spawnable ACP stdio stand-in

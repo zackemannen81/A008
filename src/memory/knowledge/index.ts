@@ -73,6 +73,17 @@ export type {
   LabelRecord,
   LabelRecordKind,
 } from "./labels.js";
+export {
+  ConversationScopes,
+  DEFAULT_MAXIMUM_SCOPE_DOMAINS,
+  advanceScope,
+} from "./current-scope.js";
+export type {
+  AdvanceScopeOptions,
+  ScopeClassification,
+  ScopeOutcome,
+  ScopeUpdate,
+} from "./current-scope.js";
 export { KnowledgeMemoryReader } from "./live-reader.js";
 export {
   DEFAULT_PROJECTION_BUDGET_BYTES,

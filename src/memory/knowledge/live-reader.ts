@@ -9,6 +9,8 @@ import type {
   RetrievalPlanner,
 } from "../retrieval-types.js";
 import type { SerializedContextMeasurer } from "../types.js";
+import type { RetrievalScopeClassifier } from "../../orchestration/semantic-json-model.js";
+import { ConversationScopes } from "./current-scope.js";
 import { normalizeLabel } from "./labels.js";
 import { projectionItems } from "./projection-items.js";
 import { readKnowledge } from "./read.js";
@@ -18,6 +20,22 @@ export interface KnowledgeMemoryReaderOptions {
   readonly context: KnowledgeReadContext;
   readonly planner?: RetrievalPlanner;
   readonly measurer?: SerializedContextMeasurer;
+  /**
+   * Places the message in subject areas before the read, and is the only part
+   * of retrieval that costs a provider call.
+   *
+   * Optional, and absent it the reader falls back to matching the message
+   * against the store's vocabulary literally. That fallback is genuinely
+   * weaker — it cannot reach a domain the message does not name, which is the
+   * whole point of the call — but it keeps every offline path, test and
+   * credential-free surface working unchanged.
+   */
+  readonly scopeClassifier?: RetrievalScopeClassifier;
+  /**
+   * Accumulating discussion scope, shared across reads. Supplied so a caller
+   * can own its lifetime; the reader makes its own when none is given.
+   */
+  readonly scopes?: ConversationScopes;
   /**
    * Ceiling on the serialized projection. Defaults to
    * `DEFAULT_PROJECTION_BUDGET_BYTES`. Whatever it cuts is reported in
@@ -31,31 +49,77 @@ export class KnowledgeMemoryReader {
   readonly #planner: RetrievalPlanner;
   readonly #measurer: SerializedContextMeasurer;
   readonly #maximumProjectionBytes: number | undefined;
+  readonly #scopeClassifier: RetrievalScopeClassifier | undefined;
+  readonly #scopes: ConversationScopes;
 
   constructor(options: KnowledgeMemoryReaderOptions) {
     this.#context = options.context;
     this.#planner = options.planner ?? new DeterministicRetrievalPlanner();
     this.#measurer = options.measurer ?? new Utf8ByteContextMeasurer();
     this.#maximumProjectionBytes = options.maximumProjectionBytes;
+    this.#scopeClassifier = options.scopeClassifier;
+    this.#scopes = options.scopes ?? new ConversationScopes();
+  }
+
+  /**
+   * Asks the classifier where this message belongs, and survives it failing.
+   *
+   * A retrieval-scope failure must not fail the turn. The call is an
+   * improvement to what can be found, not a precondition for answering, and
+   * turning a provider hiccup into a dead conversation would be a worse bug
+   * than the narrower retrieval it is meant to avoid. On failure the reader
+   * falls back to the lexical half, which is exactly the no-classifier path.
+   */
+  async #classifyScope(
+    request: MemoryReadRequest,
+    vocabulary: { readonly tags: readonly string[]; readonly domains: readonly string[] },
+  ): Promise<{
+    readonly domains: readonly string[];
+    readonly relatedDomains: readonly string[];
+    readonly tags: readonly string[];
+    readonly relatedTags: readonly string[];
+  }> {
+    if (this.#scopeClassifier === undefined) {
+      return EMPTY_CLASSIFICATION;
+    }
+    try {
+      const draft = await this.#scopeClassifier.classify({
+        message: request.message,
+        knownDomains: vocabulary.domains,
+        knownTags: vocabulary.tags,
+      });
+      return {
+        domains: labelArray(draft.domains),
+        relatedDomains: labelArray(draft.relatedDomains),
+        tags: labelArray(draft.tags),
+        relatedTags: labelArray(draft.relatedTags),
+      };
+    } catch {
+      return EMPTY_CLASSIFICATION;
+    }
   }
 
   async read(request: MemoryReadRequest): Promise<HybridMemoryReadResult> {
     const plan = this.#planner.plan(request);
-    // The planner can only match a taxonomy it was given, and it is constructed
-    // without one, so `plan.tags` and `plan.domains` are empty in every live
-    // composition. The store's own labels are the taxonomy that actually exists,
-    // so the message is matched against those.
+    const vocabulary = this.#context.labels.vocabulary();
+
+    // Two sources for the same two axes, and they do different jobs.
     //
-    // This is lexical: it finds a label the message literally names. The
-    // semantic step the owner specified — classify the message into domains and
-    // *related* domains, which the message does not contain — is a provider call
-    // and is not built here. What this does give is a real tag and domain axis
-    // with no new call, and a vocabulary for that classifier to be seeded with
-    // when it arrives.
-    const mentioned = mentionedLabels(
-      request.message,
-      this.#context.labels.vocabulary(),
-    );
+    // `mentionedLabels` finds a label the message literally names. It is free,
+    // deterministic, and cannot reach a domain the message does not contain.
+    //
+    // The classifier places the message in subject areas it never mentions —
+    // "hur fungerar människans minne?" becomes neuroscience — which is the whole
+    // reason the call exists. Its result also drives the discussion scope. When
+    // no classifier is composed the reader keeps working on the lexical half
+    // alone, weaker but never broken.
+    const mentioned = mentionedLabels(request.message, vocabulary);
+    const classified = await this.#classifyScope(request, vocabulary);
+    const scope = this.#scopes.advance(request.conversationId, {
+      domains: classified.domains,
+      relatedDomains: classified.relatedDomains,
+    });
+
     const result = readKnowledge(
       {
         message: request.message,
@@ -65,10 +129,19 @@ export class KnowledgeMemoryReader {
             ...request.applicabilityScopes,
             ...plan.tags.map((tag) => tag.value),
             ...mentioned.tags,
+            ...classified.tags,
+            ...classified.relatedTags,
           ],
+          // This turn's domains, plus the accumulated discussion scope. The
+          // second is what carries continuity: a record stays reachable while
+          // the conversation stays in its subject area, ten turns after the
+          // turn that stored it.
           domains: [
             ...plan.domains.map((domain) => domain.value),
             ...mentioned.domains,
+            ...classified.domains,
+            ...classified.relatedDomains,
+            ...scope.scope,
           ],
           entities: plan.entities,
         },
@@ -138,7 +211,11 @@ export class KnowledgeMemoryReader {
         projectionMaximum: items.length + projected.omitted.length,
         projectionMeasuredUnits: measuredUnits,
         projectionMeasurementUnit: this.#measurer.unit,
-        semanticRetrieval: "not_configured",
+        // "used" means a semantic step ran for this read. Scope classification
+        // is that step: it is the only part of retrieval that asks a model
+        // where the message belongs.
+        semanticRetrieval:
+          this.#scopeClassifier === undefined ? "not_configured" : "used",
       },
     };
   }
@@ -178,4 +255,26 @@ function mentionedLabels(
 
 function isWordCharacter(value: string): boolean {
   return /[\p{L}\p{N}]/u.test(value);
+}
+
+const EMPTY_CLASSIFICATION = Object.freeze({
+  domains: Object.freeze([]) as readonly string[],
+  relatedDomains: Object.freeze([]) as readonly string[],
+  tags: Object.freeze([]) as readonly string[],
+  relatedTags: Object.freeze([]) as readonly string[],
+});
+
+/**
+ * Whatever the model returned, reduced to strings this repository will use.
+ *
+ * The draft is untrusted output. A non-array, a nested object, a number in the
+ * middle of a list — all of it is silently dropped rather than allowed to reach
+ * a store query, because a retrieval hint is not worth failing a turn over and
+ * is certainly not worth trusting unchecked.
+ */
+function labelArray(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((entry): entry is string => typeof entry === "string");
 }

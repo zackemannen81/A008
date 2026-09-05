@@ -67,6 +67,7 @@ import {
   ChatTransportSemanticJsonGenerator,
   ModelBackedKnowledgeRelationClassifier,
   ModelBackedPostOutputKnowledgeAnalyzer,
+  ModelBackedRetrievalScopeClassifier,
   SEMANTIC_JSON_GENERATION,
 } from "../orchestration/semantic-json-model.js";
 import { verifiedFinalAnswer } from "../providers/nvidia/reasoning-normalizer.js";
@@ -929,8 +930,26 @@ export function createLocalMemoryRuntime(
     projectId,
     migrateV0: true,
   });
+  const registry = options.registry ?? defaultModelRegistry;
   const reader = new KnowledgeMemoryReader({
     context: knowledge.context,
+    // The one provider call retrieval makes. It places a message in subject
+    // areas it never names — "hur fungerar människans minne?" becomes
+    // neuroscience — which is what lets a record be found by what it is about
+    // rather than by which of its words the question happened to repeat.
+    //
+    // It uses the default model rather than whichever `/model` selected, for
+    // the same reason the semantic profile pins temperature to zero: this is
+    // A008's own classification step and its behaviour should not change when
+    // the operator switches the model they are talking to.
+    scopeClassifier: new ModelBackedRetrievalScopeClassifier(
+      new ChatTransportSemanticJsonGenerator({
+        transport,
+        model: registry.require(DEFAULT_MODEL_ID).id,
+        budget: budget(),
+        generation: SEMANTIC_JSON_GENERATION,
+      }),
+    ),
   });
   const baseReader = options.readerDecorator?.(reader) ?? reader;
   const tracedReader: MemoryReadPort = {
