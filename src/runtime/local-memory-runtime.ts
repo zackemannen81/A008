@@ -309,10 +309,28 @@ export function describeMemoryOutcome(
   if (result.status === "completed") {
     // A completed batch is silent unless items were dropped. Skipping is not a
     // failure, but it is a loss, and a silent loss is the thing to avoid.
-    const skipped = "batch" in result ? result.batch.skippedProposals : [];
-    return skipped.length === 0
-      ? undefined
-      : `memory skipped ${skipped.length} malformed proposal${skipped.length === 1 ? "" : "s"}: ${skipped.join("; ")}`;
+    //
+    // Two places can drop one. Staging refuses a malformed analyzer item before
+    // it is ever a proposal; the commit loop refuses one the store will not
+    // accept, such as a write to a contested slot. Both are reported, and named
+    // apart, because they point at different things to go and look at.
+    const staged = "batch" in result ? result.batch.skippedProposals : [];
+    const committed = result.skippedProposals;
+    const parts: string[] = [];
+    if (staged.length > 0) {
+      parts.push(
+        `skipped ${staged.length} malformed proposal${plural(staged.length)}: ${staged.join("; ")}`,
+      );
+    }
+    if (committed.length > 0) {
+      parts.push(
+        `refused ${committed.length} proposal${plural(committed.length)} at commit: ` +
+          committed
+            .map((entry) => `proposal ${entry.proposalIndex}: ${entry.reason}`)
+            .join("; "),
+      );
+    }
+    return parts.length === 0 ? undefined : `memory ${parts.join(", ")}`;
   }
   if (result.status === "staging_failed") {
     return `memory staging failed: ${formatRuntimeError(result.error)}`;
@@ -321,6 +339,10 @@ export function describeMemoryOutcome(
     return `memory commit failed at proposal ${result.failedProposalIndex}: ${formatRuntimeError(result.error)}`;
   }
   return `memory index repair required: ${formatRuntimeError(result.error)}`;
+}
+
+function plural(count: number): string {
+  return count === 1 ? "" : "s";
 }
 
 function resolveProjectId(

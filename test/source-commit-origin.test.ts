@@ -200,3 +200,93 @@ test("the commit path refuses source acceptance even if staging got it wrong", a
     }
   });
 });
+
+test("a classifier conflict is applied even when cardinality allows both", async () => {
+  // A008-0062 made `<entity>.statement` a set, so `reconcile` no longer calls a
+  // second distinct value a conflict — it opens another member. The classifier
+  // still can, and when it does its judgement is the one that counts.
+  //
+  // Before this was handled, `applyConflict` was handed the `change` decision
+  // `reconcile` had returned and threw "applyConflict requires a conflict
+  // decision", turning a genuine contradiction into a crash.
+  await withContext(async (handle) => {
+    const message = "Zorros häst heter Fresca. Zorros häst heter Tornado.";
+    const proposals = [
+      { proposition: "Zorros häst heter Fresca" },
+      { proposition: "Zorros häst heter Tornado" },
+    ].map((entry, index) => ({
+      proposal: {
+        id: `prop-${index + 1}`,
+        proposition: entry.proposition,
+        kind: "fact",
+        scope: ["runtime"],
+        tags: [],
+        provenance: [],
+      },
+      domains: ["fiktion"],
+      entities: ["Zorro"],
+    })) as unknown as StagedKnowledgeBatch["proposals"];
+
+    const contradicting: KnowledgeRelationClassifier = {
+      async classify(input) {
+        return input.proposal.proposition.includes("Tornado")
+          ? { type: "conflict", targetHandles: input.candidates.map((c) => c.handle) }
+          : { type: "new" };
+      },
+    };
+
+    const committer = new KnowledgeEngineCommit({
+      context: handle.context,
+      classifier: contradicting,
+    });
+    const staged: StagedKnowledgeBatch = {
+      ...batch({ kind: "dialogue" }, message),
+      proposals,
+      serialized: JSON.stringify(proposals),
+    };
+
+    await committer.commit({ batch: staged, proposalIndex: 0 });
+    await committer.commit({ batch: staged, proposalIndex: 1 });
+
+    const snapshot = handle.context.state.snapshot();
+    assert.deepEqual(
+      snapshot.contestedSlotKeys,
+      ["attribute:zorro:statement"],
+      "a classifier conflict did not contest the slot",
+    );
+    const contested = snapshot.claims.filter(
+      (claim) => claim.status === "contested",
+    );
+    assert.ok(
+      contested.length >= 2,
+      `both accounts must be retained as contested, got ${contested.length}`,
+    );
+  });
+});
+
+test("a statement slot is registered as a set on the very first commit", async () => {
+  // Asserted after exactly one proposal, before any second one could have
+  // widened it. `#ensureSlot` repairs a legacy single-valued slot as well, and
+  // that repair covers for a wrong registration so completely that the
+  // registration itself would otherwise go unchecked — which is how redundant
+  // code turns into code nobody notices is wrong.
+  await withContext(async (handle) => {
+    await new KnowledgeEngineCommit({
+      context: handle.context,
+      classifier: alwaysNew,
+    }).commit({
+      batch: batch({ kind: "dialogue" }, DOCUMENT),
+      proposalIndex: 0,
+    });
+
+    const statement = handle.context.slots
+      .list()
+      .filter((slot) => slot.ref.kind === "attribute" && slot.ref.name === "statement");
+    assert.equal(statement.length, 1);
+    assert.equal(
+      statement[0]?.cardinality,
+      "set",
+      "an entity has many statements; single cardinality made two of them a conflict",
+    );
+  });
+});

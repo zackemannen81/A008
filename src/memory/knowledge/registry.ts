@@ -101,6 +101,34 @@ export class SlotRegistry {
     this.#byKey.set(key, cloneSlot(definition));
   }
 
+  /**
+   * Widens a single-valued slot to a set. The only redefinition allowed.
+   *
+   * A slot definition is durable and `register` refuses to overwrite one, which
+   * is right: silently changing what a slot means would reinterpret every
+   * binding already stored under it. Widening is the one direction that
+   * reinterprets nothing — a set admits everything a single slot held, and
+   * every current binding stays current.
+   *
+   * Narrowing is refused, because it would orphan bindings that are legal today.
+   */
+  widenToSet(ref: SlotRef): SlotDefinition {
+    const key = slotKey(ref);
+    const existing = this.#byKey.get(key);
+    if (existing === undefined) {
+      throw new KnowledgeModelError(
+        "invalid_input",
+        `slot ${key} is not registered`,
+      );
+    }
+    if (existing.cardinality === "set") {
+      return cloneSlot(existing);
+    }
+    const widened: SlotDefinition = { ...cloneSlot(existing), cardinality: "set" };
+    this.#byKey.set(key, widened);
+    return cloneSlot(widened);
+  }
+
   hydrate(definitions: readonly SlotDefinition[]): void {
     this.#byKey.clear();
     for (const definition of definitions) {

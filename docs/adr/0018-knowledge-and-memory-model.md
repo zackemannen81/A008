@@ -90,6 +90,9 @@ affected interval. That interval has no accepted binding. The system answers
 with both attributions. Recency and memory strength must not resolve it.
 Discarding the conflicting proposal is a defect.
 
+*Amended by D13 (A008-0062): the relation classifier, not slot cardinality,
+decides whether two statements about one entity disagree.*
+
 ### D7. Read path
 
 - Direct slot/entity/exact match: memory state plays no eligibility role.
@@ -180,6 +183,88 @@ Rejected. Model §12. Storage follows passing in-memory scenarios.
 
 Rejected. The missing knowledge-semantics layer is the cause. Eligibility
 repair (M1) is necessary and insufficient.
+
+### D13. A statement slot is a set, and the classifier judges disagreement (A008-0062)
+
+The owner reported `memory commit failed at proposal 2: UPDATE fails when the
+slot is contested` from a live run. Reproduced end to end, three facts stated in
+one message about one subject produced:
+
+```text
+committed         : 0 of 3
+contested slots   : [ 'attribute:zorro:statement' ]
+second turn       : memory commit failed at proposal 1: ...contested
+```
+
+**Why it happened.** `#ensureSlot` registers `<entity>.statement` with `single`
+cardinality. That encodes "an entity has exactly one statement", which is false
+by construction: the analyzer instruction asks for *every* distinct durable
+claim, so an entity routinely has many. `reconcile` then saw a second distinct
+value on an overlapping interval, correctly applied the single-cardinality rule,
+and returned `conflict`. Two different true facts were recorded as the system
+holding two conflicting accounts.
+
+The relation classifier had returned `new` for all three. Its judgement was
+right and a mechanical cardinality rule overruled it, because the commit read
+`classifierDecision.type === "conflict" || decision.outcome === "conflict"`.
+
+**The decision.** `<entity>.statement` is a `set`. Many statements about one
+entity coexist as open members, which is what the slot always meant.
+
+Disagreement is the relation classifier's judgement. That is what ADR 0018
+already makes it — the semantic judge, with `reconcile` as the mechanical
+bookkeeper — and D6 is unchanged in substance: a conflict is still retained,
+still answerable, still never resolved by recency or strength. What changes is
+who decides that there is one.
+
+The cost is stated plainly: a contradiction the classifier misses is no longer
+caught by cardinality. Cardinality was catching real disagreement only by
+accident on this slot, and false disagreement on every rich extraction.
+
+**Two consequences that had to be handled with it.**
+
+A slot definition is durable, so every existing store carries the old
+cardinality. `SlotRegistry.widenToSet` is the one redefinition allowed:
+widening reinterprets no binding already stored, every current binding stays
+current, and narrowing is refused because it would orphan bindings that are
+legal today.
+
+The two judgements can now disagree, and before this they almost never did. When
+only the classifier calls it a conflict, `reconcile` has returned `change` — and
+`applyConflict` requires a conflict decision and threw on what it was handed.
+The decision is restated as the conflict the classifier found, naming every open
+member of the slot as a competing claim.
+
+**Not decided here.** A contested slot is still permanent. That is deliberate —
+`docs/KNOWLEDGE_MEMORY_MODEL.md` says a contested slot must never silently
+resolve itself, and its open question 2 still stands: *who resolves a contested
+slot, and through which surface? Never automatically — but "never" needs a
+path.* This task removes the defect that was firing it constantly; it does not
+build that path, and slots already contested in a live store stay contested.
+
+### D14. A deterministic refusal does not take the batch with it (A008-0062)
+
+The commit loop returned on the first failure, so a refusal at proposal 2 meant
+proposals 3 onward were never attempted and the ones already committed were
+rolled back with them. The checkpoint it left could never make progress, because
+a deterministic refusal refuses identically on every retry.
+
+Failures are now split by error code, not by class:
+
+- `invalid_input`, `invalid_proposal`, `policy` and `illegal_state` are
+  properties of the proposal or of the stored state. The proposal is stepped
+  over, recorded in `skippedProposals` with this repository's own message, and
+  the batch continues.
+- Everything else keeps the resumable checkpoint. `stale_state` is the reason
+  this is by code: it is a `MemoryError` like the refusals above and the most
+  retryable failure there is.
+
+The default leans towards stopping. Skipping loses a proposal; stopping keeps it
+recoverable, so an unrecognised failure is assumed recoverable.
+
+A batch that skipped everything still reports `completed`, because the batch did
+complete. What failed is named, apart from a staging skip, because the two point
+at different things to go and look at.
 
 ## Consequences
 

@@ -1,5 +1,6 @@
 import { parseRuntimeId } from "../identity/runtime-id.js";
 import { MemoryError } from "../memory/errors.js";
+import { KnowledgeModelError } from "../memory/knowledge/errors.js";
 import type { RetrievalDocument } from "../memory/retrieval-types.js";
 import type {
   KnowledgeItem,
@@ -61,10 +62,29 @@ export interface PostOutputMemoryIndexRepairCheckpoint
   readonly pending: PendingRelationIndexRepair;
 }
 
+/**
+ * A proposal this repository refused, with the reason and nothing else.
+ *
+ * Carries A008's own validation text, never analyzer content, for the same
+ * reason `skippedProposals` does at staging: the text is displayed and must not
+ * become a channel for untrusted output.
+ */
+export interface SkippedPostOutputProposal {
+  readonly proposalIndex: number;
+  readonly reason: string;
+}
+
 export interface CompletedPostOutputMemoryResult {
   readonly status: "completed";
   readonly batch: StagedKnowledgeBatch;
   readonly records: readonly PostOutputMemoryCommitRecord[];
+  /**
+   * Proposals refused deterministically and stepped over. Empty on a clean
+   * commit. A batch that skipped everything still reports `completed`, because
+   * the batch did complete — what failed is named here rather than hidden in a
+   * status that also means "the provider died".
+   */
+  readonly skippedProposals: readonly SkippedPostOutputProposal[];
 }
 
 export interface StagingFailedPostOutputMemoryResult {
@@ -90,6 +110,51 @@ export type PostOutputMemoryResult =
   | StagingFailedPostOutputMemoryResult
   | CommitFailedPostOutputMemoryResult
   | IndexRepairRequiredPostOutputMemoryResult;
+
+/**
+ * Refusals that will refuse again, listed by code rather than by class.
+ *
+ * The class is too coarse and a test caught it: `stale_state` is a `MemoryError`
+ * and is the most retryable failure there is — the index revision moved under
+ * the commit, and the whole point of the checkpoint is to pick it back up.
+ * Skipping it would discard a proposal that was about to succeed.
+ *
+ * These four are properties of the proposal or of the stored state, and a
+ * second attempt meets exactly the same answer:
+ *
+ * - `invalid_input` and `invalid_proposal` — the value is not writable.
+ * - `policy` — a rule refused it.
+ * - `illegal_state` — the write is not legal against what is stored, which is
+ *   the contested-slot case.
+ */
+const DETERMINISTIC_COMMIT_CODES: ReadonlySet<string> = new Set([
+  "invalid_input",
+  "invalid_proposal",
+  "policy",
+  "illegal_state",
+]);
+
+/**
+ * Whether retrying this proposal could ever produce a different outcome.
+ *
+ * The default leans towards stopping, on purpose. Skipping a proposal loses it;
+ * stopping keeps it recoverable behind a checkpoint. An unrecognised failure is
+ * more safely assumed recoverable than assumed dead.
+ */
+function isDeterministicCommitFailure(error: unknown): boolean {
+  if (error instanceof KnowledgeModelError || error instanceof MemoryError) {
+    return DETERMINISTIC_COMMIT_CODES.has(error.code);
+  }
+  return false;
+}
+
+/** This repository's own message, never analyzer or provider content. */
+function describeCommitRefusal(error: unknown): string {
+  if (error instanceof KnowledgeModelError || error instanceof MemoryError) {
+    return error.message;
+  }
+  return "commit refused";
+}
 
 function nonEmpty(value: unknown, field: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -581,6 +646,7 @@ export class PostOutputMemoryCoordinator {
     context: SemanticOperationContext,
   ): Promise<PostOutputMemoryResult> {
     const records = priorRecords.map(copyRecord);
+    const skipped: SkippedPostOutputProposal[] = [];
     for (
       let proposalIndex = startIndex;
       proposalIndex < batch.proposals.length;
@@ -596,16 +662,36 @@ export class PostOutputMemoryCoordinator {
           context.signal === undefined ? {} : { signal: context.signal },
         );
       } catch (error) {
-        return {
-          status: "commit_failed",
-          failedProposalIndex: proposalIndex,
-          checkpoint: {
-            batch: validatedBatch(batch),
-            nextProposalIndex: proposalIndex,
-            records: records.map(copyRecord),
-          },
-          error,
-        };
+        // Two kinds of failure needing opposite responses, and until A008-0062
+        // both got the second one.
+        //
+        // A deterministic refusal — a contested slot, a policy violation, an
+        // invalid value — will fail identically on every retry. Stopping on it
+        // discarded every proposal after it *and* rolled back the ones already
+        // committed, and the checkpoint it left could never make progress. One
+        // bad proposal in a batch of twenty-seven lost all twenty-seven, and
+        // did it again on the next turn.
+        //
+        // A transient failure — the provider, a cancelled turn — may well
+        // succeed on a retry, and stopping with a resumable checkpoint is
+        // exactly right for it. That path is unchanged.
+        if (!isDeterministicCommitFailure(error)) {
+          return {
+            status: "commit_failed",
+            failedProposalIndex: proposalIndex,
+            checkpoint: {
+              batch: validatedBatch(batch),
+              nextProposalIndex: proposalIndex,
+              records: records.map(copyRecord),
+            },
+            error,
+          };
+        }
+        skipped.push({
+          proposalIndex,
+          reason: describeCommitRefusal(error),
+        });
+        continue;
       }
       const record = {
         proposalIndex,
@@ -644,6 +730,7 @@ export class PostOutputMemoryCoordinator {
       status: "completed",
       batch: validatedBatch(batch),
       records: records.map(copyRecord),
+      skippedProposals: [...skipped],
     };
   }
 

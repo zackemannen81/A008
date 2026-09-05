@@ -21,6 +21,8 @@ import {
   type ClaimDraft,
 } from "./evidence-types.js";
 import { asEntityId } from "./ids.js";
+import type { KnowledgeState } from "./state.js";
+import type { ReconcileDecision } from "./state-types.js";
 import { ingest } from "./ingest.js";
 import { reinforce } from "./lifecycle.js";
 import type { KnowledgeReadContext } from "./read-types.js";
@@ -164,7 +166,23 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     if (accepted) {
       const decision = reconcile(this.#context.state, slotClaim, slot);
       if (classifierDecision.type === "conflict" || decision.outcome === "conflict") {
-        this.#context.state.applyConflict(decision);
+        // The two can now disagree, and before A008-0062 they almost never did.
+        // With `<entity>.statement` single-valued, a second distinct value was
+        // mechanically a conflict, so `reconcile` agreed with any classifier
+        // that said so. As a set it does not: two statements about one entity
+        // coexist, and `reconcile` returns `change`.
+        //
+        // When only the classifier calls it a conflict, its judgement is the one
+        // that counts — it is the semantic judge and reconcile is the mechanical
+        // bookkeeper — but `applyConflict` requires a conflict decision and
+        // would throw on the `change` it was handed. So the decision is
+        // restated as the conflict the classifier found, naming the open
+        // members it competes with.
+        this.#context.state.applyConflict(
+          decision.outcome === "conflict"
+            ? decision
+            : asClassifierConflict(decision, this.#context.state, slot),
+        );
         relation = "conflict";
         conflictTargetIds.push(...decision.competingClaimIds);
       } else if (decision.outcome === "change") {
@@ -307,11 +325,34 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     };
     const found = this.#context.slots.get(ref);
     if (found !== undefined) {
-      return found;
+      if (found.cardinality !== "single") {
+        return found;
+      }
+      // A statement slot registered before this task carries the old
+      // cardinality, and a slot definition is durable, so leaving it would keep
+      // producing false conflicts in every store that already exists. Upgrading
+      // widens what the slot admits and invalidates no binding it already
+      // holds: every current binding stays open and stays current.
+      return this.#context.slots.widenToSet(ref);
     }
     const definition: SlotDefinition = {
       ref,
-      cardinality: "single",
+      // A set, not a single value. `<entity>.statement` is a bag of things said
+      // about an entity, and the analyzer instruction asks for *every* distinct
+      // durable claim — so an entity routinely has many. Single cardinality
+      // encoded "an entity has exactly one statement", which is false by
+      // construction, and `reconcile` then read two different true facts as a
+      // disagreement: conflict, `applyConflict`, and a slot marked contested
+      // permanently. The next proposal on that entity threw "UPDATE fails when
+      // the slot is contested", the batch died, and every later turn about the
+      // same subject died with it.
+      //
+      // The relation classifier had said `new` for all of them. Its judgement
+      // was correct and a mechanical cardinality rule overruled it. Genuine
+      // contradiction detection belongs to the classifier, which is what
+      // ADR 0018 makes it; single cardinality was catching real disagreement
+      // only by accident and false disagreement constantly.
+      cardinality: "set",
       valueType: "string",
     };
     this.#context.slots.register(definition);
@@ -419,6 +460,33 @@ function mappedReconciliation(
     return { type: "new" };
   }
   return { type: classifier.type, targetId: "" };
+}
+
+/**
+ * Restates a non-conflict decision as the conflict the classifier judged.
+ *
+ * Every open member of the slot becomes a competing claim, because the
+ * classifier judged the proposal against the slot's current contents and not
+ * against one particular binding.
+ */
+function asClassifierConflict(
+  decision: ReconcileDecision,
+  state: KnowledgeState,
+  slot: SlotDefinition,
+): ReconcileDecision {
+  const competing = state
+    .current(slot.ref)
+    .map((binding) => binding.claimId)
+    .filter((id) => id !== decision.proposal.id);
+  return {
+    ...decision,
+    outcome: "conflict",
+    competingClaimIds: [
+      ...new Set([...decision.competingClaimIds, ...competing]),
+    ],
+    targetInterval: decision.proposal.aboutInterval,
+    reason: "relation classifier judged the proposal to conflict",
+  };
 }
 
 function entityLabelOf(entities: readonly string[], proposition: string): string {

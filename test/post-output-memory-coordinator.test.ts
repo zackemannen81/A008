@@ -3,6 +3,7 @@ import test from "node:test";
 import { ChatError } from "../src/core/errors.js";
 import { parseRuntimeId } from "../src/identity/runtime-id.js";
 import { MemoryError } from "../src/memory/errors.js";
+import { KnowledgeModelError } from "../src/memory/knowledge/errors.js";
 import type { KnowledgeItem } from "../src/memory/types.js";
 import {
   PostOutputKnowledgeIntake,
@@ -548,4 +549,99 @@ test("coordinator forwards one abort signal and preserves staging versus commit 
   assert.equal(committed.failedProposalIndex, 0);
   assert.equal(committed.checkpoint.nextProposalIndex, 0);
   assert.deepEqual(committed.checkpoint.records, []);
+});
+
+test("a deterministic refusal skips its proposal and the batch still completes", async () => {
+  // Until A008-0062 the loop returned on the first refusal. Proposal 1 failing
+  // meant proposals 2 and 3 were never attempted and proposal 0 was rolled back
+  // with them — and the checkpoint it left could never make progress, because a
+  // deterministic refusal refuses again on every retry. One bad proposal in a
+  // batch of twenty-seven lost all twenty-seven, on that turn and every turn
+  // after it.
+  const sourceBatch = await batchWith(4);
+  const attempted: number[] = [];
+  const coordinator = new PostOutputMemoryCoordinator({
+    stager: {
+      async stage() {
+        return sourceBatch;
+      },
+    },
+    committer: {
+      async commit(input) {
+        attempted.push(input.proposalIndex);
+        if (input.proposalIndex === 1) {
+          throw new KnowledgeModelError(
+            "invalid_input",
+            "UPDATE fails when the slot is contested",
+          );
+        }
+        return commitResult(input.proposalIndex, { status: "not_required" });
+      },
+      async repairIndex() {
+        throw new Error("repair is not expected");
+      },
+    } satisfies StagedProposalCommitter,
+  });
+
+  const result = await coordinator.process({
+    taskId: TASK,
+    message: "Original message",
+    answer: "Final answer",
+    applicabilityScopes: ["runtime"],
+  } as never);
+  assert.equal(result.status, "completed");
+  assert.ok(result.status === "completed");
+
+  // Every proposal was tried, and the three that could commit did.
+  assert.deepEqual(attempted, [0, 1, 2, 3]);
+  assert.deepEqual(
+    result.records.map((record) => record.proposalIndex),
+    [0, 2, 3],
+  );
+
+  // The loss is named, not silent, and carries this repository's own text.
+  assert.deepEqual(result.skippedProposals, [
+    { proposalIndex: 1, reason: "UPDATE fails when the slot is contested" },
+  ]);
+});
+
+test("a retryable failure still stops with a resumable checkpoint", async () => {
+  // The opposite half. `stale_state` is a MemoryError like the refusals above,
+  // and classifying by class rather than by code would have skipped it — losing
+  // a proposal that was about to succeed. The checkpoint exists for exactly
+  // this case.
+  const sourceBatch = await batchWith(3);
+  const attempted: number[] = [];
+  const coordinator = new PostOutputMemoryCoordinator({
+    stager: {
+      async stage() {
+        return sourceBatch;
+      },
+    },
+    committer: {
+      async commit(input) {
+        attempted.push(input.proposalIndex);
+        if (input.proposalIndex === 1) {
+          throw new MemoryError("stale_state", "revision changed");
+        }
+        return commitResult(input.proposalIndex, { status: "not_required" });
+      },
+      async repairIndex() {
+        throw new Error("repair is not expected");
+      },
+    } satisfies StagedProposalCommitter,
+  });
+
+  const result = await coordinator.process({
+    taskId: TASK,
+    message: "Original message",
+    answer: "Final answer",
+    applicabilityScopes: ["runtime"],
+  } as never);
+  assert.equal(result.status, "commit_failed");
+  assert.ok(result.status === "commit_failed");
+  assert.equal(result.failedProposalIndex, 1);
+  assert.equal(result.checkpoint.nextProposalIndex, 1);
+  // It stopped rather than stepping over, so proposal 2 was never tried.
+  assert.deepEqual(attempted, [0, 1]);
 });

@@ -75,7 +75,10 @@ replacement.
 - [`0018-knowledge-and-memory-model.md`](0018-knowledge-and-memory-model.md)
   — Accepted; `KNOWLEDGE_MEMORY_MODEL.md` is constitution. Amends 0005, 0007,
   0010, and 0014. Dual-path new engine; do not grow `KnowledgeItem`; clocks
-  on new types; INTERPRET proposes; RECONCILE is a slot state machine.
+  on new types; INTERPRET proposes; RECONCILE is a slot state machine. Its D13 and D14
+  (A008-0062) make `<entity>.statement` a set with the relation classifier as
+  the judge of disagreement, and stop a deterministic commit refusal from
+  discarding the rest of its batch.
 - [`0019-a008-owned-gui.md`](0019-a008-owned-gui.md) — Accepted; product GUI
   is A008-owned `gui/` plus `src/gui-host/` ACP WebSocket bridge. Amends 0004.
   Canvas+Agent Server remains operator compatibility only.
