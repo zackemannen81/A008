@@ -202,6 +202,57 @@ export interface LocalMemoryTurnResult {
   readonly memoryDiagnostic: string | undefined;
 }
 
+export interface SharedMemoryCapabilities {
+  readonly protocol: "A007_MEMORY_V1";
+  readonly version: 1;
+  readonly capabilities: readonly string[];
+  readonly projectId: ProjectId;
+  readonly durable: boolean;
+  readonly writeSemantics: "evidence";
+}
+
+export interface SharedMemoryRecallInput {
+  readonly query: string;
+  readonly limit?: number;
+  readonly scopes?: readonly string[];
+}
+
+export interface SharedMemoryRecallItem {
+  readonly id: string;
+  readonly content: string;
+  readonly kind: string;
+  readonly score: number;
+  readonly tags: readonly string[];
+  readonly scope: readonly string[];
+  readonly provenance: readonly string[];
+  readonly metadata: {
+    readonly authority: number;
+    readonly identityKind: "projection";
+    readonly projectId: ProjectId;
+  };
+}
+
+export interface SharedMemoryRecallResult {
+  readonly items: readonly SharedMemoryRecallItem[];
+  readonly omitted: number;
+  readonly measuredUnits: number;
+  readonly measurementUnit: string;
+}
+
+export interface SharedMemoryWriteInput {
+  readonly content: string;
+  readonly scopes?: readonly string[];
+}
+
+export interface SharedMemoryWriteResult {
+  readonly id: string;
+  readonly artifactId: string;
+  readonly status: "STORED";
+  readonly durable: boolean;
+  readonly semantics: "evidence";
+}
+
+
 function budget(): ChatInvocationBudget {
   return {
     maximum: INVOCATION_BUDGET_MAXIMUM,
@@ -657,6 +708,108 @@ export class LocalMemoryRuntime {
     this.#sourceExtractorRegistry = options.sourceExtractorRegistry;
     this.#chatGeneration = options.chatGeneration;
     this.#readSourceBytes = options.readSourceBytes;
+  }
+
+  sharedMemoryCapabilities(): SharedMemoryCapabilities {
+    if (this.#closed) {
+      throw new ChatError("configuration", "Local memory runtime is closed.");
+    }
+    const durable = this.sqlitePath !== ":memory:";
+    return {
+      protocol: "A007_MEMORY_V1",
+      version: 1,
+      capabilities: [
+        "recall",
+        "write",
+        "provenance",
+        "lexical",
+        "deterministic",
+        "project-scoped",
+        ...(durable ? ["durable"] : []),
+      ],
+      projectId: this.projectId,
+      durable,
+      // External writes are persisted as attributed evidence. They deliberately
+      // do not run A008's model-backed analyzer/classifier or promote themselves
+      // into accepted semantic state behind the caller's back.
+      writeSemantics: "evidence",
+    };
+  }
+
+  async recallSharedMemory(input: SharedMemoryRecallInput): Promise<SharedMemoryRecallResult> {
+    if (this.#closed) {
+      throw new ChatError("configuration", "Local memory runtime is closed.");
+    }
+    const query = typeof input.query === "string" ? input.query.trim() : "";
+    if (query.length === 0) {
+      throw new MemoryError("invalid_input", "shared memory recall requires a non-empty query");
+    }
+    const limit = Math.max(1, Math.min(20, Number(input.limit) || 6));
+    const scopes = Array.isArray(input.scopes)
+      ? input.scopes.filter((scope): scope is string => typeof scope === "string" && scope.trim().length > 0).map((scope) => scope.trim())
+      : [...LOCAL_MEMORY_SCOPES];
+    // No scope classifier is composed here. This is intentionally the free,
+    // deterministic retrieval path documented by KnowledgeMemoryReader: an
+    // external memory lookup must never hide a provider call or funding event.
+    const reader = new KnowledgeMemoryReader({ context: this.#knowledge.context });
+    const result = await reader.read({
+      projectId: this.projectId,
+      conversationId: this.#identityFactory.create("conversation"),
+      taskId: this.#identityFactory.create("task"),
+      agentId: this.agentId,
+      message: query,
+      applicabilityScopes: scopes,
+    });
+    const projected = result.projection.projection.items;
+    return {
+      items: projected.slice(0, limit).map((item) => ({
+        id: item.id,
+        content: item.proposition,
+        kind: item.kind,
+        score: item.authority,
+        tags: [...item.tags],
+        scope: [...item.scope],
+        provenance: ["a008:memory", `a008:project:${this.projectId}`],
+        metadata: {
+          authority: item.authority,
+          identityKind: "projection",
+          projectId: this.projectId,
+        },
+      })),
+      omitted: Math.max(0, projected.length - limit),
+      measuredUnits: result.projection.measuredUnits,
+      measurementUnit: result.projection.measurementUnit,
+    };
+  }
+
+  writeSharedMemory(input: SharedMemoryWriteInput): SharedMemoryWriteResult {
+    if (this.#closed) {
+      throw new ChatError("configuration", "Local memory runtime is closed.");
+    }
+    const content = typeof input.content === "string" ? input.content.trim() : "";
+    if (content.length === 0) {
+      throw new MemoryError("invalid_input", "shared memory write requires non-empty content");
+    }
+    const scopes = Array.isArray(input.scopes)
+      ? input.scopes.filter((scope): scope is string => typeof scope === "string" && scope.trim().length > 0).map((scope) => scope.trim())
+      : [...LOCAL_MEMORY_SCOPES];
+    const stored = ingest({
+      content,
+      speaker: "agent007",
+      locator: `agent007:memory:${randomUUID()}`,
+      scope: { verified: true, tags: scopes },
+    }, { store: this.#knowledge.context.evidence });
+    const utterance = stored.utterances[0];
+    if (utterance === undefined) {
+      throw new MemoryError("illegal_state", "shared memory write produced no utterance");
+    }
+    return {
+      id: utterance.id,
+      artifactId: stored.artifact.id,
+      status: "STORED",
+      durable: this.sqlitePath !== ":memory:",
+      semantics: "evidence",
+    };
   }
 
   openSession(options: LocalMemorySessionOptions = {}): LocalMemorySession {

@@ -27,6 +27,9 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
     createSession: (model) => runtime.openSession({ model }),
     // Wired only here, so an agent constructed without a runtime refuses
     // `_a008/source/ingest` instead of silently doing nothing.
+    sharedMemoryCapabilities: () => runtime.sharedMemoryCapabilities(),
+    recallSharedMemory: async (params) => await runtime.recallSharedMemory(params),
+    writeSharedMemory: (params) => runtime.writeSharedMemory(params),
     ingestSource: async (params) => {
       const outcome = await runtime.ingestSource(params);
       return {
@@ -65,6 +68,21 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
       .onRequest("session/close", (context) => agent.closeSession(context.params))
       // ADR 0020 D4. Registered through the custom-method overload, which takes
       // an explicit params parser; the agent re-validates regardless.
+      .onRequest(
+        "memory/capabilities",
+        (params: unknown) => params,
+        async (context) => await agent.sharedMemoryCapabilities(context.params),
+      )
+      .onRequest(
+        "memory/recall",
+        (params: unknown) => params,
+        async (context) => await agent.recallMemory(context.params),
+      )
+      .onRequest(
+        "memory/write",
+        (params: unknown) => params,
+        async (context) => await agent.writeMemory(context.params),
+      )
       .onRequest(
         "_a008/source/ingest",
         (params: unknown) => params,

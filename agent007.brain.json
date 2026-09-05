@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "id": "a008",
+  "name": "008",
+  "description": "Provider-neutral local brain and durable memory runtime",
+  "transports": [
+    {
+      "kind": "ACP",
+      "priority": 100,
+      "launch": {
+        "entry": "dist/src/acp/server.js",
+        "args": []
+      }
+    }
+  ],
+  "connectionMethods": [
+    {
+      "kind": "AUTO",
+      "label": "Connect"
+    }
+  ],
+  "declaredCapabilities": [],
+  "memory": {
+    "id": "a008:memory",
+    "name": "008 Memory",
+    "access": "SHARED",
+    "declaredCapabilities": [
+      "recall",
+      "write",
+      "durable",
+      "provenance",
+      "lexical",
+      "deterministic",
+      "project-scoped"
+    ]
+  }
+}
