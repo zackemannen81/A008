@@ -43,8 +43,14 @@ usage, and finish metadata that have no semantic authority.
 - Assistant content must be non-empty strict JSON. Markdown fences,
   prose-wrapped JSON, non-assistant messages, and malformed completions fail as
   `ChatError` `invalid_response`.
+
+  *Amended by D6 (A008-0061): a fence wrapping the whole content is unwrapped.
+  Prose-wrapped JSON stays rejected.*
 - The generator returns only the parsed JSON value. Completion reasoning,
-  usage, and finish reason are ignored. The existing intake and relation-gate
+  usage, and finish reason are ignored.
+
+  *Amended by D6 (A008-0061): still ignored for the result; the finish reason is
+  now read when reporting a parse failure.* The existing intake and relation-gate
   services remain the authorities that validate semantic draft shape and
   relation handles before any memory effect.
 - An optional `SemanticOperationContext` propagates one `AbortSignal` through
@@ -76,15 +82,50 @@ boundary.
 
 ### Accept Markdown fences or extract the first JSON fragment
 
-Rejected. Recovery heuristics can silently reinterpret prose or injected text.
-Strict whole-content parsing gives deterministic failure to the existing
-checkpoint owner.
+Rejected as a pair. Recovery heuristics can silently reinterpret prose or
+injected text. Strict whole-content parsing gives deterministic failure to the
+existing checkpoint owner.
+
+*D6 splits the pair. Fragment extraction stays rejected, for exactly this
+reason. Fence unwrapping is accepted, because it selects nothing.*
 
 ### Require a provider-specific JSON schema option
 
 Rejected for this slice. The shared transport contract has no verified portable
 structured-output field. Stable prompts plus strict local parsing establish the
 provider-neutral boundary without changing the NVIDIA adapter.
+
+### D6. A fence is packaging; a fragment is a choice (A008-0061)
+
+The owner reported `memory staging failed: invalid_response: Semantic model
+assistant content must be strict JSON.` from a live run. The message named the
+rule and nothing else — not the length, not the finish reason, not one character
+of what arrived — so the failure was unactionable from a log. Three causes need
+three different responses and it distinguished none of them: a truncated answer
+needs a larger budget, a fenced answer needs unwrapping, and a refusal needs the
+prompt looked at.
+
+**The diagnostic.** A parse failure now reports the content length, the finish
+reason, and a bounded single-line excerpt of the model's own output. When the
+finish reason is `length` it says the answer was cut off and names the setting
+to raise. This does not change what is parsed or returned; the earlier decision
+that the finish reason is ignored is narrowed to mean ignored *for the result*.
+
+**The recovery, and its limit.** The alternative above rejected fences and
+fragment extraction together, under one reason: recovery heuristics can silently
+reinterpret prose or injected text. That reason is correct and is why fragment
+extraction stays rejected. A source document can contain a JSON array, and a
+model quoting it back while refusing to extract must never have that read as its
+answer.
+
+A fence is not that. It wraps the entire content, so unwrapping selects nothing
+from among alternatives — it either yields the exact payload the model produced
+or fails as before. The recovery is bounded to a fence that opens at the start
+and closes at the end of the content; anything else, including a fence with
+prose around it, still fails.
+
+Nothing here repairs malformed JSON. A missing bracket is not packaging, and
+guessing at it would put invented structure into the knowledge store.
 
 ## Consequences
 

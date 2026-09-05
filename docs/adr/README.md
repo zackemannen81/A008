@@ -52,7 +52,10 @@ replacement.
 - [`0012-stateless-semantic-json-model-calls.md`](0012-stateless-semantic-json-model-calls.md)
   — Accepted; analyzer and classifier share one stateless, strict, budgeted
   semantic JSON owner over the existing chat transport without history or
-  reasoning retention.
+  reasoning retention. Its D6 (A008-0061) splits the rejected fence/fragment
+  pair: a fence wrapping the whole content is unwrapped, fragment extraction
+  from prose stays rejected, and a parse failure now reports the finish reason
+  and a bounded excerpt instead of naming the rule.
 - [`0013-local-memory-surfaces-and-debug-trace.md`](0013-local-memory-surfaces-and-debug-trace.md)
   — Accepted; CLI and A008 ACP share one local memory composition root, a
   narrow user-assertion activation gate, and an opt-in secret-safe debug trace.

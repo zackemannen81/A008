@@ -2,6 +2,58 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-05 — An error that named the rule and nothing else
+
+- Date: 2026-09-05
+- Author: Claude (operator / boss)
+- Task: A008-0061
+- Branch: `main`
+- Identity evidence: claimed on `main` as `05c56e8` before the branch existed.
+- Origin: a live GUI host run — `memory staging failed: invalid_response:
+  Semantic model assistant content must be strict JSON.` The message named the
+  rule and not the length, not the finish reason, not one character of what
+  arrived. Three causes need three different responses — a larger budget, an
+  unwrapping, or a look at the prompt — and it distinguished none of them.
+  `finishReason` already told the first apart and was sitting on the completion,
+  unread, because ADR 0012 said the generator ignores it.
+- The first version of this fix also pulled the first balanced JSON span out of
+  prose, and ADR 0012 had rejected exactly that before I wrote it: recovery
+  heuristics can silently reinterpret prose or injected text. The reasoning
+  holds and matters more now than when it was written — since A008-0056 the
+  analyzer's input can be an uploaded document, a document can contain a JSON
+  array, and a model quoting that array back while refusing to extract would
+  have had the quote parsed as its answer. Fragment extraction was removed
+  before shipping.
+- What shipped instead is a split, not an overturn. A fragment is chosen from
+  among alternatives inside a larger text; a fence wraps the entire content, so
+  unwrapping selects nothing and either yields the exact payload or fails as
+  before. ADR 0012 D6 records the distinction and keeps the half that was right.
+- The anchoring is the security boundary and not a tidiness detail. An
+  unanchored fence pattern would find a fenced block anywhere in the content,
+  which is fragment extraction under another name. Mutation testing is what
+  established that: removing the anchors changed no test, because the suite had
+  a case for prose without a fence and none for prose *around* a fence. The
+  property that keeps this recovery honest was untested until it was mutated.
+- The diagnostic reports content length, finish reason, and a bounded one-line
+  excerpt of the model's own output; when the finish reason is `length` it says
+  the answer was cut off and names the setting to raise. Nothing about what is
+  parsed or returned changed, so ADR 0012's "finish reason is ignored" is
+  narrowed to mean ignored for the result.
+- Verification: `npm test` 396 core, 4 membership, 75 GUI, 0 fail. Seven
+  mutations, all caught; three survived a first round and all three were real
+  gaps in the tests.
+- Not performed: no live provider call, so which of the three causes the owner
+  actually hit is still unknown. That was the point — the failure is
+  self-describing now and the next occurrence will name itself.
+- Handoff: worth watching. The semantic call uses whichever model `/model`
+  selected, and A008-0055 added models with much larger output budgets and
+  reasoning. `enableThinking: false` is sent, but a model that ignores it would
+  put reasoning where JSON is expected — which will now appear in the excerpt
+  instead of as a bare rule name. If it turns out to be truncation,
+  `SEMANTIC_JSON_GENERATION.maxTokens` is 16384 against a provider playground
+  that accepts 32768 for the same model.
+- Signature: Claude
+
 ## 2026-09-05 — The labels existed all along; nothing kept them
 
 - Date: 2026-09-05

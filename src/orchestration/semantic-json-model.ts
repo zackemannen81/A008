@@ -232,17 +232,100 @@ function validCompletionContent(value: unknown): string {
   return raw.content.trim();
 }
 
-function parseSemanticResponse(value: unknown): unknown {
-  const content = validCompletionContent(value);
-  try {
-    return JSON.parse(content) as unknown;
-  } catch (error) {
-    throw new ChatError(
-      "invalid_response",
-      "Semantic model assistant content must be strict JSON.",
-      { cause: error },
+/**
+ * Everything that can reasonably be read as the JSON the model was asked for.
+ *
+ * Two candidates, tried in order: the content verbatim, then the inside of a
+ * markdown fence that wraps the whole of it.
+ *
+ * ADR 0012 rejected "accept Markdown fences or extract the first JSON
+ * fragment", and the second half of that stays rejected for the reason it gave:
+ * pulling a fragment out of prose lets injected text be reinterpreted as the
+ * model's answer. A source document containing a JSON array, quoted back by a
+ * model that is refusing, would be parsed as the extraction.
+ *
+ * A fence is a different thing and ADR 0023-era experience says so. The whole
+ * content is one fenced block; nothing is selected from among alternatives, and
+ * removing it either yields the exact payload or fails as before. See ADR 0012
+ * D6.
+ *
+ * This is recovery, not repair. Nothing here fixes malformed JSON, guesses at a
+ * missing bracket, or joins fragments.
+ */
+function jsonCandidates(content: string): readonly string[] {
+  const candidates = [content];
+
+  const fenced = /^```[A-Za-z0-9_-]*[ \t]*\r?\n([\s\S]*?)\r?\n?```$/u.exec(content);
+  if (fenced?.[1] !== undefined) {
+    candidates.push(fenced[1].trim());
+  }
+
+  return candidates.filter(
+    (candidate, index) =>
+      candidate.length > 0 && candidates.indexOf(candidate) === index,
+  );
+}
+
+const DIAGNOSTIC_EXCERPT_CHARACTERS = 200;
+
+/**
+ * Says what arrived, because "must be strict JSON" said nothing at all.
+ *
+ * The three causes need three different responses and the old message
+ * distinguished none of them: a truncated answer needs a larger budget, a
+ * fenced answer needs the recovery above, and a refusal or an explanation needs
+ * the prompt looked at. `finishReason` already told them apart and was sitting
+ * unread on the completion.
+ *
+ * The excerpt is the model's own output, bounded and flattened to one line. It
+ * carries no credential — the semantic call sends none — and without it the
+ * failure is unactionable from a log.
+ */
+function describeNonJsonResponse(
+  completion: unknown,
+  content: string,
+): string {
+  const finishReason = (completion as { readonly finishReason?: unknown })
+    .finishReason;
+  const excerpt = content
+    .slice(0, DIAGNOSTIC_EXCERPT_CHARACTERS)
+    .replace(/\s+/gu, " ")
+    .trim();
+  const truncated = content.length > DIAGNOSTIC_EXCERPT_CHARACTERS ? "…" : "";
+
+  if (finishReason === "length") {
+    return (
+      "Semantic model answer was cut off by the output budget before the JSON " +
+      `closed (${content.length} characters, finishReason=length). Raise ` +
+      "A008_CHAT_MAX_TOKENS or lower the staging ceiling. " +
+      `Received: ${excerpt}${truncated}`
     );
   }
+
+  const reason =
+    typeof finishReason === "string" ? `, finishReason=${finishReason}` : "";
+  return (
+    "Semantic model assistant content must be strict JSON " +
+    `(${content.length} characters${reason}). ` +
+    `Received: ${excerpt}${truncated}`
+  );
+}
+
+function parseSemanticResponse(value: unknown): unknown {
+  const content = validCompletionContent(value);
+  let lastError: unknown;
+  for (const candidate of jsonCandidates(content)) {
+    try {
+      return JSON.parse(candidate) as unknown;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw new ChatError(
+    "invalid_response",
+    describeNonJsonResponse(value, content),
+    { cause: lastError },
+  );
 }
 
 export class ChatTransportSemanticJsonGenerator
