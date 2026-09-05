@@ -408,6 +408,7 @@ test("a completed batch reports skipped proposals through the diagnostic", async
     status: "completed",
     batch: staged,
     records: [],
+    skippedProposals: [],
   });
   assert.ok(diagnostic);
   assert.match(diagnostic, /skipped 1 malformed proposal/u);
@@ -418,6 +419,7 @@ test("a completed batch reports skipped proposals through the diagnostic", async
       status: "completed",
       batch: { ...staged, skippedProposals: [] },
       records: [],
+      skippedProposals: [],
     }),
     undefined,
     "a clean batch stays silent",

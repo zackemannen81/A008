@@ -2,6 +2,77 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-05 — An entity has more than one thing said about it
+
+- Date: 2026-09-05
+- Author: Claude (operator / boss)
+- Task: A008-0062
+- Branch: `main`
+- Identity evidence: claimed on `main` as `7be97c6` before the branch existed.
+- Origin: a live GUI host run — `memory commit failed at proposal 2: UPDATE
+  fails when the slot is contested`.
+- Reproduced before touching anything, which is the only reason the diagnosis
+  held. Three facts stated in one message about one subject: `committed 0 of 3`
+  — not two of three, the batch rolled back — `contested slots
+  ['attribute:zorro:statement']`, and the next turn failing at its first
+  proposal. Three facts stated, all three lost, subject permanently unwritable
+  across restarts.
+- The cause was a slot registered with `single` cardinality. That encodes "an
+  entity has exactly one statement", which is false by construction: the
+  analyzer instruction asks for every distinct durable claim, so an entity
+  routinely has many. `reconcile` applied the rule correctly and called the
+  second true fact a disagreement with the first.
+- The relation classifier had returned `new` for all three. Its judgement was
+  right and a mechanical cardinality rule overruled it, because the commit read
+  `classifierDecision.type === "conflict" || decision.outcome === "conflict"`.
+  That is the part worth remembering: the semantic judge was already there and
+  was being outvoted by bookkeeping.
+- I was also wrong twice on the way to this, and both times the machine
+  corrected me. First I assumed the slot came from the first listed entity;
+  staging sorts them, so it comes from the alphabetically first, and my initial
+  reproduction produced three separate slots and no conflict at all. Then I
+  assumed the extraction of an assistant answer would hit it; acceptance
+  requires the user to have said it, so nothing reached the state machine.
+  Neither would have been caught by reading the code more carefully — only by
+  running it.
+- Change: `<entity>.statement` is a set. Disagreement is the classifier's
+  judgement, which is what ADR 0018 already makes it. D6 is unchanged in
+  substance — a conflict is still retained, answerable, and never resolved by
+  recency or strength — what changes is who decides there is one. The cost is
+  stated rather than buried: a contradiction the classifier misses is no longer
+  caught by cardinality, and cardinality was catching real disagreement only by
+  accident on this slot.
+- Two things the change dragged in. Existing stores carry the old cardinality,
+  so `widenToSet` is the one redefinition a slot registry allows: it
+  reinterprets no stored binding, and narrowing is refused because it would
+  orphan bindings that are legal today. And the two judgements can now disagree,
+  where before they almost never did — when only the classifier calls it a
+  conflict, `applyConflict` was handed the `change` reconcile had returned and
+  threw, turning a genuine contradiction into a crash. My own test caught that
+  one.
+- Second half: a deterministic refusal no longer takes its batch with it. Split
+  by error code rather than by class, because an existing test caught the first
+  version treating every `MemoryError` as deterministic — `stale_state` is the
+  most retryable failure there is and the checkpoint exists for it.
+- Verification: `npm test` 404 core, 4 membership, 75 GUI, 0 fail. The original
+  reproduction now reads `committed 3 of 3`, no contested slots, second turn
+  clean. Nine mutations, all caught; two survived a first round and both were
+  real gaps, including one where the legacy-repair path covered so completely
+  for the registration that reverting it changed no test.
+- Not performed: a contested slot is still permanent, and marks already in a
+  live store stay. That is deliberate — the model says a contested slot must
+  never silently resolve itself — and after the fact there is no way to tell a
+  false conflict from one the classifier genuinely found. Open question 2 in
+  `docs/KNOWLEDGE_MEMORY_MODEL.md` still stands: never automatically, but
+  "never" needs a path.
+- Handoff: the write path holds now, so the loop can be closed. What remains is
+  the owner's retrieval design in `docs/backlog/current-scope-retrieval.md` —
+  classify each message into domains and related domains, accumulate them into a
+  `current_scope` that resets only on an empty intersection, and seed that
+  classifier with the store's own vocabulary so the two provider calls share one
+  taxonomy. A008-0060 built the storage and the matching; this is the last piece.
+- Signature: Claude
+
 ## 2026-09-05 — An error that named the rule and nothing else
 
 - Date: 2026-09-05

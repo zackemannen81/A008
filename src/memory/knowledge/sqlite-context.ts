@@ -73,7 +73,7 @@ export function createSqliteKnowledgeContext(
 
   const inner: KnowledgeReadContext = {
     entities: persisting(entities, persist, ["register"]),
-    slots: persisting(slots, persist, ["register"]),
+    slots: persisting(slots, persist, ["register", "widenToSet"]),
     state: persisting(state, persist, [
       "recordClaim",
       "recordEvent",

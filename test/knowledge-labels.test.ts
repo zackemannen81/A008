@@ -586,3 +586,120 @@ test("a version 1 database opens and is migrated, not refused", () => {
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+// --- statement slots are a set (A008-0062) ---------------------------------
+
+test("many statements about one entity coexist instead of conflicting", async () => {
+  // Three facts the user states in one message, all naming the same entity
+  // first. Before A008-0062 `<entity>.statement` was single-valued, so the
+  // second was read as disagreeing with the first, the slot was marked
+  // contested permanently, the third threw, and the whole batch — including the
+  // two that had succeeded — was rolled back. Every later turn about the same
+  // subject failed at its first proposal, across restarts.
+  const facts = [
+    "Zorros häst heter Fresca",
+    "Zorro bor i Kalifornien",
+    "Zorro bär alltid svart mask",
+  ];
+  const isolated = isolatedMemoryEnv();
+  const runtime = createLocalMemoryRuntime({
+    env: isolated.env,
+    surface: "test",
+    createTransport: () =>
+      memoryAwareFakeTransport({
+        chat: () => ({ content: "Noterat." }),
+        analyze: (input) => {
+          const raw = input as { readonly message?: unknown };
+          if (typeof raw.message !== "string" || !raw.message.includes("Fresca")) {
+            return [];
+          }
+          return facts.map((proposition) => ({
+            proposition,
+            kind: "fact",
+            tags: ["zorro"],
+            domains: ["fiktion"],
+            // One entity on every proposal, which is what puts them on one slot.
+            entities: ["Zorro"],
+            confidence: 0.9,
+          }));
+        },
+        classify: () => ({ type: "new" }),
+      }),
+  });
+  try {
+    const session = runtime.openSession();
+    const turn = await session.turn(`${facts.join(". ")}.`);
+
+    assert.equal(turn.postOutput.status, "completed");
+    assert.equal(turn.memoryDiagnostic, undefined);
+    assert.equal(turn.postOutput.records?.length, facts.length);
+
+    const store = new SqliteKnowledgeStore({
+      filename: isolated.sqlitePath,
+      projectId: parseRuntimeId(TEST_PROJECT_ID, "project"),
+    });
+    try {
+      const snapshot = store.load();
+      assert.deepEqual(snapshot.state.contestedSlotKeys, []);
+      const open = snapshot.state.bindings.filter(
+        (binding) => binding.interval.to === null,
+      );
+      assert.equal(open.length, facts.length, "a statement was lost");
+      const slots = new Set(
+        open.map((binding) =>
+          binding.slot.kind === "attribute"
+            ? `${binding.slot.entity}.${binding.slot.name}`
+            : "relation",
+        ),
+      );
+      assert.deepEqual([...slots], ["zorro.statement"], "one slot, many members");
+      const statement = snapshot.slots.find(
+        (slot) => slot.ref.kind === "attribute" && slot.ref.name === "statement",
+      );
+      assert.equal(statement?.cardinality, "set");
+      // Registered as a set, not merely widened into one by the second
+      // proposal. Both paths reach the same place, so without this the
+      // registration is only proved by the repair that would have covered for
+      // it — and a fresh store would keep taking the long way round.
+      assert.equal(
+        snapshot.slots.filter((slot) => slot.cardinality === "single").length,
+        0,
+        "a slot was left single-valued",
+      );
+    } finally {
+      store.close();
+    }
+  } finally {
+    runtime.close();
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
+});
+
+test("a statement slot registered as single is widened, not left to conflict", () => {
+  // A slot definition is durable, so every store that already exists carries
+  // the old cardinality. Leaving it would keep producing false conflicts
+  // forever in exactly the stores that have the problem.
+  const context = createKnowledgeContext();
+  const ref = {
+    kind: "attribute" as const,
+    entity: asEntityId("zorro"),
+    name: "statement",
+  };
+  context.slots.register({ ref, cardinality: "single", valueType: "string" });
+
+  const widened = context.slots.widenToSet(ref);
+  assert.equal(widened.cardinality, "set");
+  assert.equal(context.slots.get(ref)?.cardinality, "set");
+
+  // Idempotent, and it refuses a slot it does not know rather than inventing one.
+  assert.equal(context.slots.widenToSet(ref).cardinality, "set");
+  assert.throws(
+    () =>
+      context.slots.widenToSet({
+        kind: "attribute",
+        entity: asEntityId("nobody"),
+        name: "statement",
+      }),
+    KnowledgeModelError,
+  );
+});

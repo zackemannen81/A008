@@ -12,6 +12,7 @@ import { SqliteMemoryRepository } from "../src/memory/sqlite-memory-repository.j
 import type { KnowledgeItem } from "../src/memory/types.js";
 import {
   createLocalMemoryRuntime,
+  describeMemoryOutcome,
 } from "../src/runtime/local-memory-runtime.js";
 import {
   isolatedMemoryEnv,
@@ -731,4 +732,56 @@ test("chat generation overrides reach the provider request", async () => {
   // The adapter's own fallback is 60s, which a completeness extraction exceeds.
   // The runtime must hand it the configured ceiling rather than leave it unset.
   assert.equal(transportTimeoutMs, DEFAULT_PROVIDER_TIMEOUT_MS);
+});
+
+test("a commit refusal is named in the diagnostic, apart from a staging skip", () => {
+  // Two places drop a proposal and they point at different things to go and
+  // look at: staging refuses a malformed analyzer item, the commit loop refuses
+  // one the store will not accept. Reporting them under one word would send a
+  // reader to the wrong half.
+  const batch = {
+    skippedProposals: ["proposal 3 proposition must be a non-empty string"],
+  } as never;
+
+  assert.equal(
+    describeMemoryOutcome({
+      status: "completed",
+      batch,
+      records: [],
+      skippedProposals: [],
+    } as never),
+    "memory skipped 1 malformed proposal: proposal 3 proposition must be a non-empty string",
+  );
+
+  assert.equal(
+    describeMemoryOutcome({
+      status: "completed",
+      batch: { skippedProposals: [] } as never,
+      records: [],
+      skippedProposals: [
+        { proposalIndex: 2, reason: "UPDATE fails when the slot is contested" },
+      ],
+    } as never),
+    "memory refused 1 proposal at commit: proposal 2: UPDATE fails when the slot is contested",
+  );
+
+  // Both at once, and a clean batch stays silent.
+  assert.match(
+    describeMemoryOutcome({
+      status: "completed",
+      batch,
+      records: [],
+      skippedProposals: [{ proposalIndex: 2, reason: "contested" }],
+    } as never) ?? "",
+    /skipped 1 malformed proposal.*refused 1 proposal at commit/u,
+  );
+  assert.equal(
+    describeMemoryOutcome({
+      status: "completed",
+      batch: { skippedProposals: [] } as never,
+      records: [],
+      skippedProposals: [],
+    } as never),
+    undefined,
+  );
 });
