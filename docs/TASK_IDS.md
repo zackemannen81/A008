@@ -78,3 +78,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0059 | accept the confidence models emit | operator | 2026-09-05 | staging proposal validation |
 | A008-0060 | stored tags and domains on knowledge records | operator | 2026-09-05 | knowledge storage, write path, retrieve/filter |
 | A008-0061 | diagnose and recover a non-JSON semantic response | operator | 2026-09-05 | semantic JSON parsing |
+| A008-0062 | statements are a set; a failed proposal does not take the batch | operator | 2026-09-05 | slot cardinality and commit-loop resilience |
