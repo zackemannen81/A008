@@ -2,6 +2,66 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-05 — The loop closes
+
+- Date: 2026-09-05
+- Author: Claude (operator / boss)
+- Task: A008-0063
+- Branch: `main`
+- Identity evidence: claimed on `main` as `3202e19` before the branch existed.
+- Origin: the owner's specification, given twice and the second time in full,
+  recorded in `docs/backlog/current-scope-retrieval.md` before any of it was
+  built — deliberately, because the same requirement had been stated before and
+  the implementation had not matched it.
+- A008-0060 had made tags and domains real but matching was lexical: a label had
+  to appear literally in the question, so "hur fungerar människans minne?" found
+  nothing filed under neuroscience because the question does not contain the
+  word. That gap is what this closes.
+- Verified by running the owner's own worked sequence rather than by describing
+  it. Three memory questions widen one scope and find both neuroscience records;
+  then "och vad händer när vi sover efter att vi lärt oss något?" — classified
+  as sleep science and cognitive science, *neither of which is on the stored
+  records* — brings the hippocampus record back anyway, because neuroscience is
+  still in the accumulated scope from three turns earlier. Then the Porsche
+  question shares no domain, the intersection is empty, and the scope is
+  replaced.
+- My first run of that sequence was in the wrong order and the last question
+  returned nothing. The code was right and the probe was wrong — I had put the
+  topic change before the continuity question, so of course the scope had gone.
+  Worth recording because the instinct on seeing an empty result is to change
+  the code.
+- Three things that were not obvious. The *related* halves are the mechanism: a
+  classifier returning only the domains a message contains adds nothing a
+  substring search could not do. The two semantic calls must share one taxonomy,
+  because in the owner's trace retrieval answered in English and extraction in
+  Swedish and those sets never intersect however they are normalised — so the
+  prompt now carries the store's own vocabulary and asks the model to prefer it.
+  And a *related* domain overlapping is enough to hold the discussion, which is
+  easy to implement in the stricter, wrong form by accident.
+- The ceiling is mine and is marked as mine. The reset fires only on an empty
+  intersection, so a discussion that drifts one step at a time overlaps at every
+  consecutive pair and never resets; after forty turns the scope matches
+  essentially the whole store. Excellent for five turns, quietly useless at
+  fifty, and it looks like retrieval got worse rather than like a rule doing what
+  it was told. 32 domains, least-recently-reinforced eviction, reported. ADR 0024
+  D5 says whose idea it was so it can be removed.
+- Verification: `npm test` 426 core, 4 membership, 75 GUI, 0 fail. Fourteen
+  mutations, all caught. Three survived a first round and all three were real
+  gaps — conversation isolation that only shows when one scope changes another's
+  outcome, this turn's own domains reaching the query when the ceiling evicts
+  them, and the vocabulary reaching the model at all, which the reader tests
+  could never cover because they use a fake classifier.
+- Not performed: no live provider call. `current_scope` is in-session and per
+  conversation, so a restart starts fresh — awkward for a memory system, called
+  out rather than left to be discovered. Every turn now costs one more provider
+  call.
+- Handoff: the loop the owner drew is now closed end to end — classify, scope,
+  retrieve additively across every surface, answer, extract, store. What is worth
+  doing next is measuring it against a real conversation rather than a scripted
+  one, which needs a live provider call and therefore explicit cost authority.
+  Persisting `current_scope` per conversation is the small obvious follow-up.
+- Signature: Claude
+
 ## 2026-09-05 — An entity has more than one thing said about it
 
 - Date: 2026-09-05

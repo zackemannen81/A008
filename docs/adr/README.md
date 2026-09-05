@@ -103,3 +103,10 @@ replacement.
   is explicit and everything it cuts is reported. Records the finding that tags
   and domains are extracted but never stored, so tag matching downstream is
   inert.
+- [`0024-retrieval-scope.md`](0024-retrieval-scope.md) — Accepted; one provider
+  call places each message in domains and *related* domains before the read,
+  seeded with the store's own vocabulary so both semantic calls share one
+  taxonomy. `current_scope` accumulates domains — never tags — and resets only
+  on an empty intersection, giving topic continuity without carrying old
+  messages. Closes ADR 0023 D5. Its D5 records a ceiling that is not in the
+  owner's specification, and why.

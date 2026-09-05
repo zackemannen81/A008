@@ -1,6 +1,6 @@
 # Retrieval scope: classified domains and an accumulating current_scope
 
-Status: Specified by the owner, not built
+Status: Built by A008-0063 (ADR 0024)
 Source: owner design, 2026-09-05
 Recorded: 2026-09-05
 
@@ -106,10 +106,10 @@ and Neuroscience is still in `current_scope`.
 This is the point of the whole mechanism: topic continuity without carrying
 fifty old chat messages in the prompt.
 
-## What A008 has today
+## What A008 had when this was written
 
-Nothing of it, and the reason is not effort. Recorded in ADR 0023 D5 and worth
-repeating here:
+Nothing of it, and the reason was not effort. Recorded in ADR 0023 D5 and kept
+here because it is what the Outcome below was built against:
 
 - The analyzer already extracts `tags` and `domains` per proposal. Staging
   carries them. The relation classifier reads them. `live-commit.ts` then writes
@@ -184,3 +184,22 @@ widen one scope and the fourth — a question about a Porsche engine — has an
 empty intersection and replaces it. Then a fifth message whose tags mention
 nothing about the hippocampus, retrieving a hippocampus record because
 `Neuroscience` is still in scope.
+
+## Outcome
+
+A008-0063 built it, and ADR 0024 is the decision record. The five open questions
+above were answered as follows.
+
+1. **Gradual drift** — a ceiling of 32 domains with least-recently-reinforced
+   eviction, recorded in ADR 0024 D5 as an addition to the owner's rule rather
+   than part of it. Below the ceiling the specified behaviour is unchanged.
+2. **Normalisation** — trim, collapse whitespace, casefold, applied on both
+   sides of every comparison, sharing `normalizeLabel` with the label store so
+   the two can never drift apart.
+3. **Shared vocabulary** — the classifier is handed the store's own domains and
+   tags and asked to prefer them and to answer in their language. This is what
+   closes the English/Swedish mismatch in the owner's trace.
+4. **Where it lives** — in-session, per conversation. Called out in ADR 0024's
+   consequences rather than left to be discovered; persisting it is its own
+   decision.
+5. **Cost** — one provider call per user message, stated in ADR 0024 D1.
