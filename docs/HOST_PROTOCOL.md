@@ -203,3 +203,36 @@ so a later addition does not break it.
 An external client depends on this. It changes only through a claimed task and
 an ADR, never as a side effect. Additive fields are the expected kind of change;
 a client should ignore fields it does not recognise.
+
+
+## Agent 007 shared memory (`A007_MEMORY_V1`)
+
+The ACP process also exposes a provider-neutral memory surface for hosts such as Agent 007. These are custom JSON-RPC methods on the same verified ACP process; they do not create a second server or expose the SQLite file directly.
+
+### `memory/capabilities`
+
+Request:
+
+```json
+{ "protocol": "A007_MEMORY_V1", "version": 1 }
+```
+
+A successful response proves the live runtime supports the named operations. Current capabilities include `recall`, `write`, `provenance`, `lexical`, `deterministic`, `project-scoped`, and `durable` when the configured store is not in-memory.
+
+### `memory/recall`
+
+```json
+{ "query": "project decision", "limit": 6, "scopes": ["local"] }
+```
+
+External recall deliberately composes `KnowledgeMemoryReader` without its optional model-backed retrieval-scope classifier. It therefore performs no hidden provider/model call. The tradeoff is narrower deterministic/lexical retrieval compared with A008's enriched internal chat retrieval.
+
+### `memory/write`
+
+```json
+{ "content": "Decision: use the normalized runtime boundary.", "scopes": ["project"] }
+```
+
+External writes are stored durably as attributed evidence (`speaker: agent007`) with provenance in the same A008 knowledge store. They do **not** run the model-backed analyzer/classifier and do not silently promote caller text into accepted semantic bindings. The capabilities response reports `writeSemantics: "evidence"`.
+
+The shipped `agent007.brain.json` advertises this memory as `SHARED`, but the manifest is only discovery metadata. Agent 007 must still live-probe `memory/capabilities` after the ACP identity handshake before enabling the memory.

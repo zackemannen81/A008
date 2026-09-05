@@ -80,6 +80,63 @@ export type IngestSource = (
   params: SourceIngestParams,
 ) => Promise<SourceIngestResult>;
 
+export interface SharedMemoryCapabilitiesParams {
+  readonly protocol: "A007_MEMORY_V1";
+  readonly version: 1;
+}
+
+export interface SharedMemoryCapabilitiesResult {
+  readonly protocol: "A007_MEMORY_V1";
+  readonly version: 1;
+  readonly capabilities: readonly string[];
+  readonly projectId: string;
+  readonly durable: boolean;
+  readonly writeSemantics: "evidence";
+}
+
+export interface SharedMemoryRecallParams {
+  readonly query: string;
+  readonly limit?: number;
+  readonly scopes?: readonly string[];
+}
+
+export interface SharedMemoryRecallResult {
+  readonly items: readonly {
+    readonly id: string;
+    readonly content: string;
+    readonly kind: string;
+    readonly score: number;
+    readonly tags: readonly string[];
+    readonly scope: readonly string[];
+    readonly provenance: readonly string[];
+    readonly metadata: {
+      readonly authority: number;
+      readonly identityKind: "projection";
+      readonly projectId: string;
+    };
+  }[];
+  readonly omitted: number;
+  readonly measuredUnits: number;
+  readonly measurementUnit: string;
+}
+
+export interface SharedMemoryWriteParams {
+  readonly content: string;
+  readonly scopes?: readonly string[];
+}
+
+export interface SharedMemoryWriteResult {
+  readonly id: string;
+  readonly artifactId: string;
+  readonly status: "STORED";
+  readonly durable: boolean;
+  readonly semantics: "evidence";
+}
+
+export type GetSharedMemoryCapabilities = () => SharedMemoryCapabilitiesResult | Promise<SharedMemoryCapabilitiesResult>;
+export type RecallSharedMemory = (params: SharedMemoryRecallParams) => Promise<SharedMemoryRecallResult>;
+export type WriteSharedMemory = (params: SharedMemoryWriteParams) => SharedMemoryWriteResult | Promise<SharedMemoryWriteResult>;
+
 /**
  * Validates raw JSON-RPC params for `_a008/source/ingest`.
  *
@@ -129,6 +186,59 @@ export function parseSourceIngestParams(params: unknown): SourceIngestParams {
   };
 }
 
+function parseScopes(value: unknown, params: unknown, method: string): readonly string[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)) {
+    throw RequestError.invalidParams(params, `${method} scopes must be an array of non-empty strings when present.`);
+  }
+  return value.map((entry) => entry.trim());
+}
+
+export function parseSharedMemoryCapabilitiesParams(params: unknown): SharedMemoryCapabilitiesParams {
+  if (typeof params !== "object" || params === null) {
+    throw RequestError.invalidParams(params, "memory/capabilities requires an A007_MEMORY_V1 handshake object.");
+  }
+  const { protocol, version } = params as Record<string, unknown>;
+  if (protocol !== "A007_MEMORY_V1" || version !== 1) {
+    throw RequestError.invalidParams(params, "memory/capabilities supports only A007_MEMORY_V1 version 1.");
+  }
+  return { protocol, version };
+}
+
+export function parseSharedMemoryRecallParams(params: unknown): SharedMemoryRecallParams {
+  if (typeof params !== "object" || params === null) {
+    throw RequestError.invalidParams(params, "memory/recall requires an object with a query.");
+  }
+  const { query, limit, scopes } = params as Record<string, unknown>;
+  if (typeof query !== "string" || query.trim().length === 0) {
+    throw RequestError.invalidParams(params, "memory/recall requires a non-empty query string.");
+  }
+  if (limit !== undefined && (!Number.isInteger(limit) || Number(limit) < 1 || Number(limit) > 20)) {
+    throw RequestError.invalidParams(params, "memory/recall limit must be an integer from 1 to 20.");
+  }
+  const parsedScopes = parseScopes(scopes, params, "memory/recall");
+  return {
+    query: query.trim(),
+    ...(limit === undefined ? {} : { limit: Number(limit) }),
+    ...(parsedScopes === undefined ? {} : { scopes: parsedScopes }),
+  };
+}
+
+export function parseSharedMemoryWriteParams(params: unknown): SharedMemoryWriteParams {
+  if (typeof params !== "object" || params === null) {
+    throw RequestError.invalidParams(params, "memory/write requires an object with content.");
+  }
+  const { content, scopes } = params as Record<string, unknown>;
+  if (typeof content !== "string" || content.trim().length === 0) {
+    throw RequestError.invalidParams(params, "memory/write requires non-empty content.");
+  }
+  const parsedScopes = parseScopes(scopes, params, "memory/write");
+  return {
+    content: content.trim(),
+    ...(parsedScopes === undefined ? {} : { scopes: parsedScopes }),
+  };
+}
+
 export interface A008AcpAgentOptions {
   readonly createSession: (model: string) => AcpTurnSession;
   readonly registry?: ModelRegistry;
@@ -140,6 +250,9 @@ export interface A008AcpAgentOptions {
    * client seeing an unrelated crash.
    */
   readonly ingestSource?: IngestSource;
+  readonly sharedMemoryCapabilities?: GetSharedMemoryCapabilities;
+  readonly recallSharedMemory?: RecallSharedMemory;
+  readonly writeSharedMemory?: WriteSharedMemory;
 }
 
 type NotifySession = (notification: SessionNotification) => Promise<void>;
@@ -150,6 +263,9 @@ export class A008AcpAgent {
   readonly #createSessionId: () => string;
   readonly #onMemoryDiagnostic: ((message: string) => void) | undefined;
   readonly #ingestSource: IngestSource | undefined;
+  readonly #sharedMemoryCapabilities: GetSharedMemoryCapabilities | undefined;
+  readonly #recallSharedMemory: RecallSharedMemory | undefined;
+  readonly #writeSharedMemory: WriteSharedMemory | undefined;
   readonly #sessions = new Map<string, AcpSessionState>();
 
   constructor(options: A008AcpAgentOptions) {
@@ -157,6 +273,9 @@ export class A008AcpAgent {
     this.#registry = options.registry ?? defaultModelRegistry;
     this.#onMemoryDiagnostic = options.onMemoryDiagnostic;
     this.#ingestSource = options.ingestSource;
+    this.#sharedMemoryCapabilities = options.sharedMemoryCapabilities;
+    this.#recallSharedMemory = options.recallSharedMemory;
+    this.#writeSharedMemory = options.writeSharedMemory;
     const identityFactory = new RuntimeIdentityFactory();
     this.#createSessionId =
       options.createSessionId ??
@@ -391,6 +510,26 @@ export class A008AcpAgent {
       throw RequestError.methodNotFound("_a008/source/ingest");
     }
     return await ingest(parseSourceIngestParams(params));
+  }
+
+  async sharedMemoryCapabilities(params: unknown): Promise<SharedMemoryCapabilitiesResult> {
+    parseSharedMemoryCapabilitiesParams(params);
+    if (this.#sharedMemoryCapabilities === undefined) {
+      throw RequestError.methodNotFound("memory/capabilities");
+    }
+    return await this.#sharedMemoryCapabilities();
+  }
+
+  async recallMemory(params: unknown): Promise<SharedMemoryRecallResult> {
+    const recall = this.#recallSharedMemory;
+    if (recall === undefined) throw RequestError.methodNotFound("memory/recall");
+    return await recall(parseSharedMemoryRecallParams(params));
+  }
+
+  async writeMemory(params: unknown): Promise<SharedMemoryWriteResult> {
+    const write = this.#writeSharedMemory;
+    if (write === undefined) throw RequestError.methodNotFound("memory/write");
+    return await write(parseSharedMemoryWriteParams(params));
   }
 
   #requireSession(sessionId: string): AcpSessionState {

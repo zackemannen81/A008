@@ -785,3 +785,52 @@ test("a commit refusal is named in the diagnostic, apart from a staging skip", (
     undefined,
   );
 });
+
+
+test("A007 shared-memory protocol writes, recalls and survives SQLite restart without a provider call", async () => {
+  const isolated = isolatedMemoryEnv();
+  const marker = "A007 shared memory marker cobalt-pineapple-007";
+  const transport = assertionTransport();
+  const firstRuntime = createLocalMemoryRuntime({
+    env: isolated.env,
+    surface: "test",
+    createTransport: () => transport,
+  });
+  try {
+    const capabilities = firstRuntime.sharedMemoryCapabilities();
+    assert.equal(capabilities.protocol, "A007_MEMORY_V1");
+    assert.equal(capabilities.version, 1);
+    assert.ok(capabilities.capabilities.includes("recall"));
+    assert.ok(capabilities.capabilities.includes("write"));
+    assert.equal(capabilities.writeSemantics, "evidence");
+
+    const before = transport.requests.length;
+    const stored = firstRuntime.writeSharedMemory({ content: marker });
+    assert.equal(stored.status, "STORED");
+    assert.equal(stored.semantics, "evidence");
+    const recalled = await firstRuntime.recallSharedMemory({ query: "cobalt-pineapple-007" });
+    assert.ok(recalled.items.some((item) => item.content.includes(marker)));
+    assert.equal(
+      transport.requests.length,
+      before,
+      "external recall/write must not hide a model/provider call",
+    );
+  } finally {
+    firstRuntime.close();
+  }
+
+  const restartTransport = assertionTransport();
+  const restarted = createLocalMemoryRuntime({
+    env: isolated.env,
+    surface: "test",
+    createTransport: () => restartTransport,
+  });
+  try {
+    const recalledAfterRestart = await restarted.recallSharedMemory({ query: "cobalt-pineapple-007" });
+    assert.ok(recalledAfterRestart.items.some((item) => item.content.includes(marker)));
+    assert.equal(restartTransport.requests.length, 0, "restart recall must remain provider-free");
+  } finally {
+    restarted.close();
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
+});

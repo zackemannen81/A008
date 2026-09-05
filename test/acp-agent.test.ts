@@ -350,3 +350,73 @@ test("ACP rejects malformed and duplicate injected session identities", () => {
     (error: unknown) => error instanceof RequestError && error.code === -32602,
   );
 });
+
+
+test("ACP exposes A007_MEMORY_V1 only when a real memory surface is composed", async () => {
+  const agent = new A008AcpAgent({
+    createSession: () => { throw new Error("not needed"); },
+    sharedMemoryCapabilities: () => ({
+      protocol: "A007_MEMORY_V1",
+      version: 1,
+      capabilities: ["recall", "write", "durable", "provenance"],
+      projectId: "A008_v1_project_40000000-0000-4000-8000-000000000028",
+      durable: true,
+      writeSemantics: "evidence",
+    }),
+    recallSharedMemory: async (params) => ({
+      items: [{
+        id: "utterance:0",
+        content: params.query,
+        kind: "utterance",
+        score: 0.2,
+        tags: [...(params.scopes ?? [])],
+        scope: [],
+        provenance: ["a008:memory"],
+        metadata: {
+          authority: 0.2,
+          identityKind: "projection",
+          projectId: "A008_v1_project_40000000-0000-4000-8000-000000000028",
+        },
+      }],
+      omitted: 0,
+      measuredUnits: 10,
+      measurementUnit: "utf8_bytes",
+    }),
+    writeSharedMemory: async () => ({
+      id: "A008_knowledge_utterance_test",
+      artifactId: "A008_knowledge_artifact_test",
+      status: "STORED",
+      durable: true,
+      semantics: "evidence",
+    }),
+  });
+
+  const capabilities = await agent.sharedMemoryCapabilities({ protocol: "A007_MEMORY_V1", version: 1 });
+  assert.ok(capabilities.capabilities.includes("recall"));
+  assert.equal(capabilities.writeSemantics, "evidence");
+
+  const recalled = await agent.recallMemory({ query: "  external memory query  ", limit: 3, scopes: ["project"] });
+  assert.equal(recalled.items[0]?.content, "external memory query");
+  assert.deepEqual(recalled.items[0]?.tags, ["project"]);
+
+  const written = await agent.writeMemory({ content: "  external memory fact  " });
+  assert.equal(written.status, "STORED");
+  assert.equal(written.semantics, "evidence");
+
+  await assert.rejects(
+    () => agent.sharedMemoryCapabilities({ protocol: "wrong", version: 1 }),
+    /A007_MEMORY_V1/u,
+  );
+});
+
+test("ACP memory methods fail closed when no memory runtime was composed", async () => {
+  const agent = new A008AcpAgent({
+    createSession: () => { throw new Error("not needed"); },
+  });
+  await assert.rejects(
+    () => agent.sharedMemoryCapabilities({ protocol: "A007_MEMORY_V1", version: 1 }),
+    /method/i,
+  );
+  await assert.rejects(() => agent.recallMemory({ query: "anything" }), /method/i);
+  await assert.rejects(() => agent.writeMemory({ content: "anything" }), /method/i);
+});
