@@ -207,7 +207,11 @@ test("semantic JSON generator rejects invalid local configuration before transpo
 
 test("semantic JSON generator rejects non-strict or invalid assistant content", async (t) => {
   const cases: readonly [string, unknown][] = [
-    ["fenced JSON", completion("```json\n{}\n```")],
+    // "fenced JSON" was here until A008-0061. ADR 0012 D6 narrowed the
+    // rejection to fragment extraction; a fence wrapping the whole content is
+    // packaging, not a choice among alternatives. Prose stays rejected for the
+    // reason ADR 0012 gave: a quoted array from an injected document must never
+    // be read as the model's answer.
     ["prose-wrapped JSON", completion("result: {}")],
     ["empty assistant content", completion("   ")],
     [
@@ -406,4 +410,143 @@ test("the analyzer instruction keeps its two structural guarantees", () => {
   // It is one joined string, not an array leaked into the request.
   assert.equal(typeof instruction, "string");
   assert.equal(instruction.includes("\n"), false);
+});
+
+test("a fenced JSON answer is read instead of discarded", async () => {
+  // The instruction asks for exactly one JSON array and nothing else, and a
+  // model asked for JSON wraps it in a markdown fence often enough that losing
+  // the whole extraction to it is the wrong trade. This is recovery, not
+  // repair: the payload inside the fence is already valid.
+  const fenced = generator({
+    async complete() {
+      return completion(
+        '```json\n[{"proposition":"Sömn stärker minnet","kind":"fact"}]\n```',
+      );
+    },
+  });
+  assert.deepEqual(await fenced.generate(semanticInput), [
+    { proposition: "Sömn stärker minnet", kind: "fact" },
+  ]);
+
+  const bare = generator({
+    async complete() {
+      return completion("```\n[1, 2, 3]\n```");
+    },
+  });
+  assert.deepEqual(await bare.generate(semanticInput), [1, 2, 3]);
+});
+
+test("a fence buried in prose is refused, not unwrapped", async () => {
+  // The anchoring is the security boundary, not a tidiness detail. An
+  // unanchored fence pattern would find a fenced block anywhere in the content
+  // and that is fragment extraction under another name: a source document can
+  // contain a fenced JSON array, and a model quoting it back while refusing
+  // must never have that read as its answer. Only a fence that opens at the
+  // start and closes at the end is packaging.
+  const buried = generator({
+    async complete() {
+      return completion(
+        'The document said:\n```json\n[{\"proposition\":\"A\"}]\n```\nI cannot extract from that.',
+      );
+    },
+  });
+  await assert.rejects(
+    () => buried.generate(semanticInput),
+    (error: unknown) =>
+      error instanceof ChatError && error.code === "invalid_response",
+  );
+});
+
+test("a truncated answer names the budget, not the syntax", async () => {
+  // Three causes needing three different responses, and the old message
+  // distinguished none of them. `finishReason` already told them apart and was
+  // sitting unread on the completion.
+  const cut = generator({
+    async complete() {
+      return {
+        message: {
+          role: "assistant" as const,
+          content: '[{"proposition":"Sömn stärker minnet","kind":"fac',
+        },
+        finishReason: "length",
+      };
+    },
+  });
+  await assert.rejects(
+    () => cut.generate(semanticInput),
+    (error: unknown) =>
+      error instanceof ChatError &&
+      error.code === "invalid_response" &&
+      /cut off by the output budget/u.test(error.message) &&
+      /A008_CHAT_MAX_TOKENS/u.test(error.message),
+  );
+});
+
+test("a non-JSON answer reports what actually arrived", async () => {
+  // "must be strict JSON" said nothing at all. Without an excerpt the failure
+  // is unactionable from a log, which is exactly how it was first reported.
+  const refusal = generator({
+    async complete() {
+      return completion("I cannot extract knowledge from that input.");
+    },
+  });
+  await assert.rejects(
+    () => refusal.generate(semanticInput),
+    (error: unknown) =>
+      error instanceof ChatError &&
+      /Received: I cannot extract knowledge/u.test(error.message) &&
+      /finishReason=stop/u.test(error.message),
+  );
+});
+
+test("the excerpt is bounded and flattened to one line", async () => {
+  const long = "x".repeat(5_000);
+  const noisy = generator({
+    async complete() {
+      return completion(`not json\n\n${long}`);
+    },
+  });
+  await assert.rejects(
+    () => noisy.generate(semanticInput),
+    (error: unknown) => {
+      assert.ok(error instanceof ChatError);
+      const received = /Received: (.*)$/u.exec(error.message)?.[1] ?? "";
+      assert.ok(received.length <= 210, `excerpt was ${received.length} chars`);
+      assert.ok(received.endsWith("…"), "a clipped excerpt must say so");
+      assert.ok(!received.includes("\n"), "the excerpt must stay on one line");
+      return true;
+    },
+  );
+});
+
+test("prose around a JSON payload is still refused", async () => {
+  // ADR 0012's reasoning, kept: a source document can contain a JSON array, and
+  // a model quoting it back while refusing must not have that read as its
+  // answer. Fence recovery does not open this door because it requires the
+  // fence to wrap the entire content.
+  const chatty = generator({
+    async complete() {
+      return completion('Here is the extraction:\n[{\"proposition\":\"A\"}]\nHope that helps.');
+    },
+  });
+  await assert.rejects(
+    () => chatty.generate(semanticInput),
+    (error: unknown) =>
+      error instanceof ChatError && error.code === "invalid_response",
+  );
+});
+
+test("recovery never repairs malformed JSON", async () => {
+  // Leniency stops at packaging. A missing bracket is not a formatting slip and
+  // guessing at it would put invented structure into the knowledge store.
+  const broken = generator({
+    async complete() {
+      return completion('[{"proposition":"A"},');
+    },
+  });
+  await assert.rejects(
+    () => broken.generate(semanticInput),
+    (error: unknown) =>
+      error instanceof ChatError && error.code === "invalid_response",
+  );
 });
