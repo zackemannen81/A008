@@ -236,3 +236,62 @@ External recall deliberately composes `KnowledgeMemoryReader` without its option
 External writes are stored durably as attributed evidence (`speaker: agent007`) with provenance in the same A008 knowledge store. They do **not** run the model-backed analyzer/classifier and do not silently promote caller text into accepted semantic bindings. The capabilities response reports `writeSemantics: "evidence"`.
 
 The shipped `agent007.brain.json` advertises this memory as `SHARED`, but the manifest is only discovery metadata. Agent 007 must still live-probe `memory/capabilities` after the ACP identity handshake before enabling the memory.
+
+## Memory diagnostics (`A008_MEMORY_INSPECT_V1`)
+
+ADR [0025](adr/0025-memory-inspection-gui.md), A008-0064. `GET /v1/memory`
+delegates to custom ACP `memory/inspect` in the same process that owns chat
+memory. It neither starts a chat session nor calls a model. Normal ACP startup
+configuration (including the server-side credential) must still be valid.
+Origin checks, response redaction and `Cache-Control: no-store` apply.
+
+| Query field | Meaning and limit |
+| --- | --- |
+| `query` | Case-insensitive substring search of complete record details and IDs; at most 300 characters. |
+| `kind` | `entity`, `state`, `history`, `claim`, `event`, `utterance`, `artifact`, `provenance`; omitted means all. |
+| `domain` | Exact stored domain after case/whitespace normalisation; at most 300 characters. |
+| `status` | Exact record status or evidence activation; at most 300 characters. |
+| `offset` | Integer 0–1,000,000; default 0. |
+| `limit` | Integer 1–100; default 40. |
+
+Example: `GET /v1/memory?kind=claim&status=dormant&limit=40&offset=0`.
+ACP takes the same fields as an object, with numeric offset/limit. Both validate
+before inspecting; unknown fields, duplicates in HTTP, and invalid bounds fail.
+HTTP uses 400 for invalid queries, 405 for non-GET methods, 403 for refused
+origins, and 503 for a bridge without inspection support. ACP rejects invalid
+params and reports method-not-found when the agent has no inspector.
+ACP startup/transport failures use the existing host error response.
+
+The response contains:
+
+- `protocol: "A008_MEMORY_INSPECT_V1"`, `projectId`, `durable`.
+- `summary`: unfiltered `total`, `counts` by kind, lifecycle `active`/`dormant`
+  counts, `contestedSlots`, `domains: [{name,count}]`, and available `statuses`.
+  Domain counts count stored claim/utterance label attachments once. Binding
+  rows display the labels of their establishing claim, without inflating counts.
+- `records`: one filtered page, ordered by kind, label, ID; `matched`, `offset`,
+  `limit` describe the page. A record has `id`, `sourceId`, `kind`, `label`,
+  `status`, `activation`, `tags`, `domains`, `detail` and `truncated`.
+- `detail` is a JSON text preview of `{record, labels?, lifecycle?}`, capped at
+  16,000 characters; `label` is capped at 500. `truncated` is true if either
+  is clipped. A truncated detail is text, not necessarily parseable JSON.
+  Search still examines complete stored text. Returned containers are defensive.
+- `graph`: `nodes`, `edges: [{from,to,relation}]`, `totalNodes`, `totalEdges`.
+  The graph uses all filtered matches, independent of table offset/limit.
+  It traverses stored links to choose at most 80 records, then returns at most
+  240 links whose endpoints are displayed. Totals precede graph caps. Edges are
+  stored references, provenance, binding ownership/object/claim references and
+  relation-index links. Targets outside this inventory (such as transition-only
+  provenance targets) do not become invented nodes or visible edges.
+
+`activation: "untracked"` means no lifecycle is attached to this record;
+state/history never inherit evidence activation. `status` retains the stored
+claim decision, speech act, entity/event type or provenance relation. Bindings
+are `current`, `closed`, or `contested`. Diagnostic IDs are typed and stable;
+binding IDs include the slot, interval and establishing claim because the model
+has no standalone binding ID. They are inspection addresses, not new canon IDs.
+
+Inspection scans the local project namespace in memory. It has no write method,
+does not reinforce evidence, does not resolve conflicts, and does not alter
+`A007_MEMORY_V1` or the context projected to a model. No server-scale performance
+or remote authentication boundary is claimed.

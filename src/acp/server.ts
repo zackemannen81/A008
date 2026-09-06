@@ -24,6 +24,7 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
     stderr,
   });
   const agent = new A008AcpAgent({
+    inspectMemory: (query) => runtime.inspectMemory(query),
     createSession: (model) => runtime.openSession({ model }),
     // Wired only here, so an agent constructed without a runtime refuses
     // `_a008/source/ingest` instead of silently doing nothing.
@@ -88,6 +89,8 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
         (params: unknown) => params,
         async (context) => await agent.ingestSource(context.params),
       )
+      .onRequest("memory/inspect", (params: unknown) => params,
+        async (context) => await agent.inspectMemory(context.params))
       .onNotification("session/cancel", (context) => agent.cancel(context.params))
       .connect(stream);
 

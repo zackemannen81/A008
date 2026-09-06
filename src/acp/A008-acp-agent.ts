@@ -21,6 +21,7 @@ import type { ChatCompletion } from "../core/types.js";
 import { isChatError } from "../core/errors.js";
 import { IdentityError, isIdentityError } from "../identity/errors.js";
 import { isMemoryError } from "../memory/errors.js";
+import { parseMemoryInspectionQuery, type MemoryInspection, type MemoryInspectionQuery } from "../memory/knowledge/inspection.js";
 import { isSourceIngestError } from "../ingest/index.js";
 import {
   DEFAULT_MODEL_ID,
@@ -251,6 +252,7 @@ export interface A008AcpAgentOptions {
    */
   readonly ingestSource?: IngestSource;
   readonly sharedMemoryCapabilities?: GetSharedMemoryCapabilities;
+  readonly inspectMemory?: (query: MemoryInspectionQuery) => MemoryInspection | Promise<MemoryInspection>;
   readonly recallSharedMemory?: RecallSharedMemory;
   readonly writeSharedMemory?: WriteSharedMemory;
 }
@@ -264,6 +266,7 @@ export class A008AcpAgent {
   readonly #onMemoryDiagnostic: ((message: string) => void) | undefined;
   readonly #ingestSource: IngestSource | undefined;
   readonly #sharedMemoryCapabilities: GetSharedMemoryCapabilities | undefined;
+  readonly #inspectMemory: A008AcpAgentOptions["inspectMemory"];
   readonly #recallSharedMemory: RecallSharedMemory | undefined;
   readonly #writeSharedMemory: WriteSharedMemory | undefined;
   readonly #sessions = new Map<string, AcpSessionState>();
@@ -274,6 +277,7 @@ export class A008AcpAgent {
     this.#onMemoryDiagnostic = options.onMemoryDiagnostic;
     this.#ingestSource = options.ingestSource;
     this.#sharedMemoryCapabilities = options.sharedMemoryCapabilities;
+    this.#inspectMemory = options.inspectMemory;
     this.#recallSharedMemory = options.recallSharedMemory;
     this.#writeSharedMemory = options.writeSharedMemory;
     const identityFactory = new RuntimeIdentityFactory();
@@ -518,6 +522,14 @@ export class A008AcpAgent {
       throw RequestError.methodNotFound("memory/capabilities");
     }
     return await this.#sharedMemoryCapabilities();
+  }
+
+  async inspectMemory(params: unknown): Promise<MemoryInspection> {
+    let query: MemoryInspectionQuery;
+    try { query = parseMemoryInspectionQuery(params); }
+    catch (error) { throw RequestError.invalidParams(params, error instanceof Error ? error.message : "Invalid memory query."); }
+    if (this.#inspectMemory === undefined) throw RequestError.methodNotFound("memory/inspect");
+    return await this.#inspectMemory(query);
   }
 
   async recallMemory(params: unknown): Promise<SharedMemoryRecallResult> {

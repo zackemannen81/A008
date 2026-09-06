@@ -2,7 +2,7 @@
 
 Task ID: A008-0064
 Parent Task: None
-Status: Ready
+Status: In Progress
 Owner: Codex (operator)
 Created: 2026-09-06
 Last updated: 2026-09-06
@@ -58,10 +58,10 @@ concept HTML imports, deployment, push and publication.
 ## Checklist
 
 - [x] Read authority, inspect source, confirm target with owner and claim ID.
-- [ ] Define and implement inspection contract and runtime/host bridge.
-- [ ] Implement and exercise the three views.
+- [x] Define and implement inspection contract and runtime/host bridge.
+- [x] Implement and exercise the three views.
 - [ ] Verify, update owning documents, archive and hand off.
 
 ## Handoff
 
-Implementation has not started. No push or live provider run is authorized.
+Implementation and verification are complete; documentation handoff is in progress. No push or live provider run is authorized.

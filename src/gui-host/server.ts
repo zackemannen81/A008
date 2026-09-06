@@ -11,6 +11,7 @@ import {
 import { extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { ChatError, isChatError } from "../core/errors.js";
+import { parseMemoryInspectionQuery } from "../memory/knowledge/inspection.js";
 import { sniffSourceMediaType } from "../ingest/media-type.js";
 import {
   defaultModelRegistry,
@@ -303,7 +304,30 @@ async function handleHttp(input: {
     return;
   }
 
+  if (pathname === "/v1/memory" && method !== "GET") {
+    sendJson(response, 405, errorBody("Memory inspection supports GET only."));
+    return;
+  }
+
   try {
+    if (method === "GET" && pathname === "/v1/memory") {
+      const params = new URL(request.url ?? "/v1/memory", "http://localhost").searchParams;
+      const raw: Record<string, unknown> = {};
+      for (const [name, value] of params) {
+        if (name in raw) { sendJson(response, 400, errorBody("Duplicate memory query parameter.")); return; }
+        raw[name] = name === "limit" || name === "offset" ? (/^\d+$/u.test(value) ? Number(value) : NaN) : value;
+      }
+      let query;
+      try { query = parseMemoryInspectionQuery(raw); }
+      catch (error) { sendJson(response, 400, errorBody(publicErrorMessage(error))); return; }
+      const bridge = await input.getBridge();
+      if (bridge.inspectMemory === undefined) {
+        sendJson(response, 503, errorBody("This runtime does not support memory inspection. Restart with the current A008 build."));
+        return;
+      }
+      sendJson(response, 200, await bridge.inspectMemory(query));
+      return;
+    }
     if (method === "GET" && pathname === "/health") {
       sendJson(response, 200, { ok: true, name: GUI_HOST_NAME });
       return;

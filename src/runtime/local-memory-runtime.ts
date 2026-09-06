@@ -33,6 +33,7 @@ import type {
 import { MemoryError, isMemoryError } from "../memory/errors.js";
 import type { ProvenanceRelation } from "../memory/knowledge/evidence-types.js";
 import { ingest } from "../memory/knowledge/ingest.js";
+import { inspectKnowledge, type MemoryInspection, type MemoryInspectionQuery } from "../memory/knowledge/inspection.js";
 import {
   createSqliteKnowledgeContext,
   KnowledgeEngineCommit,
@@ -734,6 +735,11 @@ export class LocalMemoryRuntime {
       // into accepted semantic state behind the caller's back.
       writeSemantics: "evidence",
     };
+  }
+
+  inspectMemory(query: MemoryInspectionQuery = {}): MemoryInspection {
+    if (this.#closed) throw new ChatError("configuration", "Local memory runtime is closed.");
+    return inspectKnowledge(this.#knowledge.context, { projectId: this.projectId, durable: this.sqlitePath !== ":memory:" }, query);
   }
 
   async recallSharedMemory(input: SharedMemoryRecallInput): Promise<SharedMemoryRecallResult> {

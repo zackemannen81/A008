@@ -126,6 +126,21 @@ body {
   border-right: 1px solid var(--a008-border);
 }
 
+.a008-header-tabs { display: flex; gap: .3rem; }
+.a008-header-tabs button { padding: .5rem .9rem; border: 1px solid transparent; border-radius: 4px; color: var(--a008-muted); background: transparent; font: inherit; font-size: .78rem; cursor: pointer; }
+.a008-header-tabs button[aria-current] { color: var(--a008-accent); background: var(--a008-accent-soft); border-color: var(--a008-border); }
+.a008-header-tabs button:focus-visible { outline: 2px solid var(--a008-accent); outline-offset: 2px; }
+.a008-main[hidden], .a008-memory-main[hidden], .a008-memory-workspace .a008-workbench { display: none; }
+.a008-memory-main { grid-column: 2 / -1; min-width: 0; min-height: 0; overflow: hidden; }
+@media (max-width: 850px) {
+  .a008-memory-workspace { grid-template-columns: minmax(0, 1fr); }
+  .a008-memory-workspace .a008-rail { display: none; }
+  .a008-memory-workspace .a008-memory-main { grid-column: 1; }
+  .a008-memory-workspace .a008-header { gap: .4rem; padding-inline: .65rem; }
+  .a008-memory-workspace .a008-brand-tagline { display: none; }
+  .a008-memory-workspace .a008-header-status { font-size: .52rem; letter-spacing: .02em; }
+}
+
 /* The conversation. The tallest thing on screen, which is the entire point. */
 .a008-main {
   grid-column: 2;

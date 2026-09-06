@@ -17,6 +17,14 @@ A008/
 |  |- src/
 |  |  |- main.tsx                    renderer bootstrap
 |  |  |- app.tsx                     shell layout (operator-owned)
+|  |  |- memory/                     A008-0064 read-only memory diagnostics
+|  |  |  |- memory-page.tsx          three views, filters, refresh and pagination
+|  |  |  |- memory-client.ts        validated host inspection client
+|  |  |  |- memory-overview.tsx      actual inventory and domain counts
+|  |  |  |- memory-graph.tsx         bounded stored-link graph and keyboard selection
+|  |  |  |- memory-inspector.tsx     escaped record details
+|  |  |  |- memory.css              responsive layout using existing tokens
+|  |  |  `- memory.test.ts           client, DOM and graph checks
 |  |  |- session/                    A008-0033 WebSocket session client
 |  |  |  |- protocol.ts              host protocol v1 frames and URL resolution
 |  |  |  |- gui-session-client.ts    socket lifecycle and buffers
@@ -120,6 +128,7 @@ A008/
 |  |     |- sqlite-context.ts        persisting KnowledgeReadContext
 |  |     |- labels.ts                stored tags/domains + the index that finds them
 |  |     |- live-reader.ts           live DEFINE..PROJECT MemoryReadPort
+|  |     |- inspection.ts            A008-0064 provider-free inventory and graph
 |  |     |- projection-items.ts      every surface reaches the model; rank, dedupe, budget (ADR 0023)
 |  |     |- labels.ts               stored tags and domains, and the index that finds them
 |  |     |- current-scope.ts         accumulating discussion scope (ADR 0024)
@@ -149,6 +158,7 @@ A008/
 |     `- local-memory-runtime.ts      CLI/ACP memory composition root
 |- test/                              fake/local chat, ACP, memory, retrieval, identity, and orchestration tests
 |  |- gui-host.test.ts                host routes, upload, WS bridge, credential gate
+|  |- memory-inspection.test.ts       inventory, nonmutation, bounds, HTTP/ACP proof
 |  |- ingest-source.test.ts           sniffing, extraction, and provenance
 |  |- document-extraction.test.ts    PDF, Word, ZIP and OOXML readers
 |  |- core-suite-membership.test.ts  test:core names every test file, and only real ones

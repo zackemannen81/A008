@@ -296,6 +296,29 @@ identity. No provider call, credential, or telemetry ships in the renderer.
 
 ## Semantic-memory core
 
+### GUI memory diagnostics (A008-0064)
+
+The header's Memory navigation opens three read-only views: Memory Overview,
+Memory Relationship Map Graph and Memory Knowledge Manager. The existing chat
+and composer stay mounted while hidden, preserving transcript, session and draft.
+The page refreshes on entry and on explicit Refresh, records the read time, and
+aborts obsolete client requests. It does not poll or cache memory in localStorage.
+
+`GET /v1/memory` reaches custom ACP `memory/inspect`, then
+`LocalMemoryRuntime.inspectMemory` and `inspectKnowledge` on the same knowledge
+context chat owns. No provider invocation or additional SQLite owner is created.
+The contract and limits are specified in [HOST_PROTOCOL.md](HOST_PROTOCOL.md).
+
+Overview shows actual inventory, lifecycle and contested-slot counts plus domain
+attachments. Knowledge Manager provides substring search, surface/domain/status
+filters, pagination and escaped stored details. It offers no mutation actions.
+The graph shows only stored connections among its bounded nodes, supports keyboard
+selection and zoom, and opens the same inspector. Empty, unavailable, loading and
+truncated states are explicit. The detailed inventory includes unaccepted and
+dormant evidence a chat projection may omit; layout distances are not similarity.
+
+### Memory runtime
+
 The memory capability is an independent provider-neutral application surface
 now constructed by local CLI/ACP composition:
 

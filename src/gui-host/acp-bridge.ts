@@ -4,6 +4,7 @@ import { Readable, Writable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import * as acp from "@agentclientprotocol/sdk";
 import { ChatError } from "../core/errors.js";
+import type { MemoryInspection, MemoryInspectionQuery } from "../memory/knowledge/inspection.js";
 
 export interface AcpPromptHandlers {
   readonly onThought: (text: string) => void;
@@ -31,6 +32,8 @@ export interface AcpSourceIngestResult {
 }
 
 export interface AcpBridge {
+  /** Optional for hosts connected to an older ACP implementation. */
+  inspectMemory?(query: MemoryInspectionQuery): Promise<MemoryInspection>;
   newSession(model?: string): Promise<{ sessionId: string }>;
   prompt(
     sessionId: string,
@@ -134,6 +137,11 @@ export async function createSpawnedAcpBridge(
   }
 
   return {
+    async inspectMemory(query) {
+      try {
+        return await connection.agent.request<MemoryInspection, MemoryInspectionQuery>("memory/inspect", query);
+      } catch (error) { throw acpFailure(error, stderrTail.lastLine()); }
+    },
     async newSession(model) {
       try {
         const created = await connection.agent.request("session/new", {
