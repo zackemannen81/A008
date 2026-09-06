@@ -8,6 +8,9 @@ replacement.
 
 ## Records
 
+- [0025-memory-inspection-gui.md](0025-memory-inspection-gui.md) — Accepted;
+  read-only GUI memory overview, relationship graph and knowledge inspection.
+
 - [`0001-product-composition.md`](0001-product-composition.md) — Accepted;
   A008 combines a shared core, CLI, Agent Canvas-derived GUI, and optional
   add-ons including semantic memory.
