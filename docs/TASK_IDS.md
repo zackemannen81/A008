@@ -80,3 +80,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0061 | diagnose and recover a non-JSON semantic response | operator | 2026-09-05 | semantic JSON parsing |
 | A008-0062 | statements are a set; a failed proposal does not take the batch | operator | 2026-09-05 | slot cardinality and commit-loop resilience |
 | A008-0063 | retrieval scope classification and current_scope | operator | 2026-09-05 | scope model call, accumulating scope, read wiring |
+| A008-0064 | GUI memory diagnostics: overview, relationship graph, knowledge manager | Codex (operator) | 2026-09-06 | read-only runtime inspection, host contract and gui memory views |
