@@ -2,6 +2,18 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-06 — Memory diagnostic views integrated locally
+
+- Task: A008-0064; operator: Codex; branch: `main`.
+- Integrated the completed memory GUI branch at `1e1872c` by local fast-forward.
+- Actual runtime inspection backs overview, relationship graph and knowledge
+  manager. Chat and draft survive navigation; no inspection model calls.
+- Verification: 521 test executions passed, both typechecks and GUI build passed;
+  desktop/mobile browser proof is in `docs/evidence/A008-0064_memory-gui-proof.md`.
+- Immutable archive and handoff exist. CURRENT_TASK is the empty template.
+- Owner requested the next GUI extension on this result. No remote push or
+  live provider call. Signature: Codex.
+
 ## 2026-09-05 — The loop closes
 
 - Date: 2026-09-05
