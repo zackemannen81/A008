@@ -22,6 +22,9 @@ authority. Workers do not append `docs/JOURNAL.md`.
 
 ## Records
 
+- [A008-0064.md](A008-0064.md) — Complete locally; three read-only memory GUI
+  views with real runtime data and browser verification. Not pushed.
+
 - [`A008-0024.md`](A008-0024.md) — M3 semantic addressing. Merged 2026-09-02.
 - A008-0023 — no worker handoff file; PR #2 code is the handoff. Merged 2026-09-02.
 - [`A008-0025.md`](A008-0025.md) — M4 state/history split. Merged 2026-09-02 (PR #4).

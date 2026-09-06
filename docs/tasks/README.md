@@ -11,6 +11,10 @@ the template before push.
 
 ## Records
 
+- [A008-0064_gui-memory-diagnostics.md](A008-0064_gui-memory-diagnostics.md) —
+  Complete locally; archived in
+  [../finished/A008-0064_gui-memory-diagnostics.md](../finished/A008-0064_gui-memory-diagnostics.md).
+
 - [`A008-0049_source-knowledge-extraction.md`](A008-0049_source-knowledge-extraction.md) —
   Complete; upload wave 2, amends ADR 0020 D7 with D10; archived
   [`../finished/A008-0049_source-knowledge-extraction.md`](../finished/A008-0049_source-knowledge-extraction.md).
