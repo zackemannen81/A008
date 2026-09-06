@@ -18,6 +18,9 @@ import {
 } from "@agentclientprotocol/sdk";
 import type { SendMessageOptions } from "../core/chat-session.js";
 import type { ChatCompletion } from "../core/types.js";
+import type { ChatMessage } from "../core/types.js";
+import { defaultSessionParameters, parseSessionParameters, type SessionParameters } from "../core/generation-controls.js";
+import { parseSessionControl, type SessionSnapshot } from "../core/session-control.js";
 import { isChatError } from "../core/errors.js";
 import { IdentityError, isIdentityError } from "../identity/errors.js";
 import { isMemoryError } from "../memory/errors.js";
@@ -35,6 +38,12 @@ import {
 import { promptToText } from "./prompt-content.js";
 
 export interface AcpTurnSession {
+  readonly messages?: readonly ChatMessage[];
+  readonly parameters?: SessionParameters;
+  reset?(): void;
+  undoLastTurn?(): boolean;
+  configureParameters?(value: unknown): void;
+  enableSessionControls?(): void;
   send(
     content: string,
     options?: SendMessageOptions,
@@ -241,6 +250,9 @@ export function parseSharedMemoryWriteParams(params: unknown): SharedMemoryWrite
 }
 
 export interface A008AcpAgentOptions {
+  /** Set only when the composition registers _a008/session/control. */
+  readonly sessionControls?: boolean;
+  readonly runtimeInfo?: () => SessionSnapshot["runtime"];
   readonly createSession: (model: string) => AcpTurnSession;
   readonly registry?: ModelRegistry;
   readonly createSessionId?: () => string;
@@ -260,6 +272,8 @@ export interface A008AcpAgentOptions {
 type NotifySession = (notification: SessionNotification) => Promise<void>;
 
 export class A008AcpAgent {
+  readonly #sessionControls: boolean;
+  readonly #runtimeInfo: () => SessionSnapshot["runtime"];
   readonly #createSession: (model: string) => AcpTurnSession;
   readonly #registry: ModelRegistry;
   readonly #createSessionId: () => string;
@@ -272,6 +286,8 @@ export class A008AcpAgent {
   readonly #sessions = new Map<string, AcpSessionState>();
 
   constructor(options: A008AcpAgentOptions) {
+    this.#sessionControls = options.sessionControls === true;
+    this.#runtimeInfo = options.runtimeInfo ?? (() => ({ cwd: process.cwd(), projectId: null, memoryPath: null }));
     this.#createSession = options.createSession;
     this.#registry = options.registry ?? defaultModelRegistry;
     this.#onMemoryDiagnostic = options.onMemoryDiagnostic;
@@ -290,6 +306,7 @@ export class A008AcpAgent {
     return {
       protocolVersion: PROTOCOL_VERSION,
       agentCapabilities: {
+        ...(this.#sessionControls ? { _meta: { "a008.sessionControl": 1 } } : {}),
         loadSession: false,
         promptCapabilities: {
           image: false,
@@ -464,6 +481,56 @@ export class A008AcpAgent {
         delete state.activeTurn;
       }
     }
+  }
+
+  controlSession(params: unknown): SessionSnapshot {
+    if (typeof params !== "object" || params === null || !("sessionId" in params) || typeof params.sessionId !== "string") {
+      throw RequestError.invalidParams(params, "Session control requires sessionId.");
+    }
+    const control = parseSessionControl(params);
+    const state = this.#requireSession(params.sessionId);
+    if (control.action === "close") {
+      const snapshot = this.#sessionSnapshot(state);
+      this.closeSession({ sessionId: params.sessionId });
+      return { ...snapshot, closed: true };
+    }
+    if (state.activeTurn !== undefined) throw new RequestError(-32000, "Session already has an active turn.");
+    if (control.action === "model") {
+      const profile = this.#registry.require(control.model);
+      // Construct first: configuration failure must preserve the old conversation.
+      const chat = this.#createSession(profile.id);
+      chat.enableSessionControls?.();
+      state.model = profile.id;
+      state.chat = chat;
+    }
+    if (state.chat === undefined) {
+      state.chat = this.#createSession(state.model);
+      state.chat.enableSessionControls?.();
+    }
+    if (control.action === "configure") {
+      const parsed = parseSessionParameters(control.parameters, state.model);
+      if (state.chat.configureParameters === undefined) throw RequestError.methodNotFound("session parameters");
+      state.chat.configureParameters(parsed);
+    }
+    if (control.action === "reset") {
+      if (state.chat.reset === undefined) throw RequestError.methodNotFound("session reset");
+      state.chat.reset();
+    }
+    let undone: boolean | undefined;
+    if (control.action === "undo") {
+      if (state.chat.undoLastTurn === undefined) throw RequestError.methodNotFound("session undo");
+      undone = state.chat.undoLastTurn();
+    }
+    return { ...this.#sessionSnapshot(state), ...(undone === undefined ? {} : { undone }) };
+  }
+
+  #sessionSnapshot(state: AcpSessionState): SessionSnapshot {
+    return {
+      model: state.model,
+      parameters: state.chat?.parameters ?? defaultSessionParameters(this.#registry.require(state.model)),
+      messages: (state.chat?.messages ?? []).flatMap(message => message.role === "system" ? [] : [{ role: message.role, content: message.content }]),
+      runtime: this.#runtimeInfo(),
+    };
   }
 
   cancel(params: CancelNotification): void {

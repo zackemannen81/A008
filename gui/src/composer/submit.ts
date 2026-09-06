@@ -1,5 +1,10 @@
 import type { GuiSession } from "../session/types.js";
 import {
+  loadModels,
+  type SessionControl,
+  type SessionSnapshot,
+} from "../session/session-controls.js";
+import {
   ComposerSlashError,
   parseSlash,
   SLASH_HELP,
@@ -9,186 +14,127 @@ import {
 export interface ComposerSubmitDeps {
   readonly session: GuiSession;
   readonly runShellCommand: (command: string) => Promise<string>;
+  readonly models?: typeof loadModels;
 }
-
 export type ComposerSubmitResult =
   | { readonly kind: "empty" }
   | { readonly kind: "prompt"; readonly text: string }
-  | { readonly kind: "notice"; readonly command: SlashName; readonly message: string }
+  | {
+      readonly kind: "notice";
+      readonly command: SlashName;
+      readonly message: string;
+    }
   | { readonly kind: "error"; readonly message: string };
 
+export const GUI_TOOLS =
+  "terminal  /shell <command>  native A008 runner\n          /! <command>      alias\nUpload stores sources; Memory inspects the shared store.\nTerminal commands are always user-initiated.";
+
+export async function controlSession(
+  session: GuiSession,
+  control: SessionControl,
+): Promise<SessionSnapshot> {
+  if (session.controlSession === undefined)
+    throw new Error(
+      "Session controls require the current A008 client and host.",
+    );
+  return session.controlSession(control);
+}
+export function formatHistory(state: SessionSnapshot): string {
+  return state.messages.length === 0
+    ? "No conversation turns."
+    : state.messages.map((m) => `${m.role}: ${m.content}`).join("\n\n");
+}
+export function formatStatus(
+  session: GuiSession,
+  state: SessionSnapshot,
+): string {
+  return `model: ${state.model}\nstatus: ${session.status}\nsession: ${session.sessionId ?? "(none)"}\ncwd: ${state.runtime.cwd}\nproject: ${state.runtime.projectId ?? "(unavailable)"}\nmemory: ${state.runtime.memoryPath ?? "(unavailable)"}\ntools: terminal via /shell, source upload, memory inspection`;
+}
 export async function submitComposer(
   input: string,
   deps: ComposerSubmitDeps,
 ): Promise<ComposerSubmitResult> {
-  const trimmed = input.trim();
-  if (trimmed.length === 0) {
-    return { kind: "empty" };
-  }
-
+  const text = input.trim();
+  if (text.length === 0) return { kind: "empty" };
   let parsed;
   try {
-    parsed = parseSlash(trimmed);
+    parsed = parseSlash(text);
   } catch (error) {
     return {
       kind: "error",
       message:
         error instanceof ComposerSlashError
           ? error.message
-          : `Unknown command: ${trimmed}. Type /help.`,
+          : "Invalid command. Type /help.",
     };
   }
-
   if (parsed === undefined) {
-    await deps.session.prompt(trimmed);
-    return { kind: "prompt", text: trimmed };
+    await deps.session.prompt(text);
+    return { kind: "prompt", text };
   }
-
+  const notice = (message: string): ComposerSubmitResult => ({
+    kind: "notice",
+    command: parsed.name,
+    message,
+  });
   switch (parsed.name) {
     case "help":
-      return { kind: "notice", command: "help", message: SLASH_HELP };
+      return notice(SLASH_HELP);
     case "exit":
-      await deps.session.cancel();
-      return {
-        kind: "notice",
-        command: "exit",
-        message: "In-flight work cancelled. The GUI stays open.",
-      };
-    case "reset": {
-      if (await callOptional(deps.session, "reset")) {
-        return { kind: "notice", command: "reset", message: "Session reset." };
-      }
-      return {
-        kind: "notice",
-        command: "reset",
-        message: "Session reset is not on this session client.",
-      };
-    }
+      if (deps.session.endSession === undefined)
+        throw new Error("End session requires the current A008 client.");
+      await deps.session.endSession();
+      return notice("Session ended. Connect to start a new conversation.");
+    case "reset":
+      await controlSession(deps.session, { action: "reset" });
+      return notice(
+        "Conversation cleared. System message, model and parameters retained. Saved memory remains.",
+      );
     case "undo": {
-      const undo = Reflect.get(deps.session, "undoLastTurn");
-      if (typeof undo === "function") {
-        const undone = await undo.call(deps.session);
-        return {
-          kind: "notice",
-          command: "undo",
-          message: undone ? "Last turn undone." : "Nothing to undo.",
-        };
-      }
-      return {
-        kind: "notice",
-        command: "undo",
-        message: "Undo is not on this session client.",
-      };
+      const state = await controlSession(deps.session, { action: "undo" });
+      return notice(
+        state.undone
+          ? "Last committed turn undone. Saved memory remains."
+          : "Nothing to undo.",
+      );
     }
     case "history":
-      return {
-        kind: "notice",
-        command: "history",
-        message: formatHistory(deps.session),
-      };
-    case "model":
-      return {
-        kind: "notice",
-        command: "model",
-        message: formatModel(deps.session, parsed.argument),
-      };
-    case "status":
-      return {
-        kind: "notice",
-        command: "status",
-        message: formatStatus(deps.session),
-      };
-    case "cwd":
-      return {
-        kind: "notice",
-        command: "cwd",
-        message: "/shell uses the GUI host process working directory.",
-      };
-    case "tools":
-      return {
-        kind: "notice",
-        command: "tools",
-        message:
-          "terminal  /shell <command>  native A008 runner in GUI host cwd\n" +
-          "          /! <command>      alias\n" +
-          "Model-invoked tool_calls are not on ChatTransport (ADR 0003).\n" +
-          "@langchain/community is not a dependency.\n",
-      };
-    case "shell":
-      return runShell(parsed.argument, deps);
-    default: {
-      const _exhaustive: never = parsed.name;
-      return {
-        kind: "error",
-        message: `Unknown command: /${_exhaustive}. Type /help.`,
-      };
+      return notice(
+        formatHistory(
+          await controlSession(deps.session, { action: "inspect" }),
+        ),
+      );
+    case "model": {
+      if (parsed.argument !== "") {
+        const state = await controlSession(deps.session, {
+          action: "model",
+          model: parsed.argument,
+        });
+        return notice(
+          `Model: ${state.model}\nNew conversation started with this model's runtime defaults.`,
+        );
+      }
+      const models = await (deps.models ?? loadModels)();
+      return notice(
+        `Current: ${deps.session.model}\n\n${models.map((m) => `${m.id}  ${m.name}`).join("\n")}\n\n/model <id> starts a new conversation.`,
+      );
     }
+    case "status":
+      return notice(
+        formatStatus(
+          deps.session,
+          await controlSession(deps.session, { action: "inspect" }),
+        ),
+      );
+    case "cwd":
+      return notice(
+        (await controlSession(deps.session, { action: "inspect" })).runtime.cwd,
+      );
+    case "tools":
+      return notice(GUI_TOOLS);
+    case "shell":
+      if (parsed.argument === "")
+        return { kind: "error", message: "Usage: /shell <command>" };
+      return notice(await deps.runShellCommand(parsed.argument));
   }
-}
-
-async function runShell(
-  argument: string,
-  deps: ComposerSubmitDeps,
-): Promise<ComposerSubmitResult> {
-  if (argument.length === 0) {
-    return { kind: "error", message: "Usage: /shell <command>" };
-  }
-
-  const shell = Reflect.get(deps.session, "shell");
-  const output =
-    typeof shell === "function"
-      ? await shell.call(deps.session, argument)
-      : await deps.runShellCommand(argument);
-  const text = typeof output === "string" ? output : "";
-  return {
-    kind: "notice",
-    command: "shell",
-    message: text.length > 0 ? text : `shell> ${argument}`,
-  };
-}
-
-async function callOptional(
-  session: GuiSession,
-  name: string,
-): Promise<boolean> {
-  const method = Reflect.get(session, name);
-  if (typeof method !== "function") {
-    return false;
-  }
-  await method.call(session);
-  return true;
-}
-
-function formatHistory(session: GuiSession): string {
-  const thought = session.thought.trim();
-  const answer = session.answer.trim();
-  if (thought.length === 0 && answer.length === 0) {
-    return "No conversation turns.";
-  }
-  const lines: string[] = [];
-  if (thought.length > 0) {
-    lines.push(`thought: ${thought}`);
-  }
-  if (answer.length > 0) {
-    lines.push(`answer: ${answer}`);
-  }
-  return `${lines.join("\n")}\n`;
-}
-
-function formatModel(session: GuiSession, argument: string): string {
-  const current = `Current: ${session.model}`;
-  if (argument.length === 0) {
-    return `${current}\n`;
-  }
-  return `${current}\nModel switching is not on this session client.\n`;
-}
-
-function formatStatus(session: GuiSession): string {
-  return (
-    `model: ${session.model}\n` +
-    `status: ${session.status}\n` +
-    `session: ${session.sessionId ?? "(none)"}\n` +
-    `error: ${session.error ?? "(none)"}\n` +
-    "tools: terminal via /shell (user-initiated; not LangChain)\n"
-  );
 }

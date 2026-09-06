@@ -16,9 +16,16 @@ import {
 import type { GuiWebSocket, GuiWebSocketEvent } from "./types.js";
 import { DEFAULT_GUI_MODEL } from "./types.js";
 import { settleQuietly } from "./use-gui-session.js";
+import type { SessionSnapshot } from "./session-controls.js";
+import { buildChatTranscript } from "../chat/chat-transcript.js";
 
 const ALLOWED_CLIENT_KEYS = new Set<string>(CLIENT_MESSAGE_KEYS);
 const SESSION_DIR = dirname(fileURLToPath(import.meta.url));
+const controlledState: SessionSnapshot = {
+  model: DEFAULT_GUI_MODEL,
+  parameters: { stream: true, temperature: 1, topP: .95, maxTokens: 16384, enableThinking: true, reasoningBudget: 4096, reasoningEffort: null, seed: null, stop: null },
+  messages: [], runtime: { cwd: "C:/fixture", projectId: "fixture-project", memoryPath: "C:/fixture/memory.sqlite" },
+};
 
 class FakeWebSocket implements GuiWebSocket {
   readonly url: string;
@@ -308,7 +315,7 @@ test("prompt before connect is rejected", async () => {
   assert.equal(fakeSockets.length, 0);
 });
 
-test("cancel sends cancel and rejects the in-flight prompt", async () => {
+test("cancel waits for the host before releasing the in-flight prompt", async () => {
   const client = createClient();
   const socket = await becomeReady(client);
   const pending = client.prompt("stop me");
@@ -319,7 +326,11 @@ test("cancel sends cancel and rejects the in-flight prompt", async () => {
     sessionId: "sess-1",
   });
   assertNoSecretFields(socket);
+  assert.equal(client.busy, true);
+  await assert.rejects(client.prompt("too early"), /in progress/);
+  socket.deliver({ type: "prompt/ok", requestId: "req-2", sessionId: "sess-1" });
   await assert.rejects(pending, /cancelled/);
+  assert.equal(client.busy, false);
   assert.equal(client.status, "ready");
 });
 
@@ -496,3 +507,66 @@ function readSessionSource(basename: string): string {
   }
   throw new Error(`missing ${basename} in ${SESSION_DIR}`);
 }
+
+test("controls only replace settings on a matching acknowledgment and preserve them on failure", async () => {
+  const client = createClient(); const socket = await becomeReady(client);
+  const initial = client.controlSession!({ action: "inspect" });
+  socket.deliver({ type: "session/control/ok", sessionId: "sess-1", requestId: "req-2", state: controlledState });
+  await initial;
+  const parameters = { ...controlledState.parameters, temperature: null };
+  const pending = client.controlSession!({ action: "configure", parameters });
+  assert.equal(client.busy, true); assert.equal(client.details?.parameters.temperature, 1);
+  socket.deliver({ type: "session/control/ok", sessionId: "foreign", requestId: "req-3", state: { ...controlledState, parameters } });
+  assert.equal(client.details?.parameters.temperature, 1);
+  socket.deliver({ type: "error", sessionId: "sess-1", requestId: "req-3", message: "Invalid parameters" });
+  await assert.rejects(pending, /Invalid parameters/);
+  assert.equal(client.busy, false); assert.equal(client.details?.parameters.temperature, 1);
+  const retry = client.controlSession!({ action: "configure", parameters });
+  socket.deliver({ type: "session/control/ok", sessionId: "sess-1", requestId: "req-4", state: { ...controlledState, parameters } });
+  await retry; assert.equal(client.details?.parameters.temperature, null);
+});
+
+test("committed history and transient thought render once, stop being live, and disappear on reset", async () => {
+  const client = createClient(); const socket = await becomeReady(client);
+  const initial = client.controlSession!({ action: "inspect" });
+  socket.deliver({ type: "session/control/ok", sessionId: "sess-1", requestId: "req-2", state: controlledState }); await initial;
+  const pending = client.prompt("Question");
+  socket.deliver({ type: "thought", sessionId: "sess-1", text: "Display only" });
+  socket.deliver({ type: "answer", sessionId: "sess-1", text: "Answer" });
+  let transcript = buildChatTranscript({ session: client });
+  assert.equal(transcript.turns.length, 2);
+  const live = transcript.turns.at(-1);
+  assert.ok(live?.kind === "assistant"); assert.equal(live.live, true);
+  const state: SessionSnapshot = { ...controlledState, messages: [{ role: "user", content: "Question" }, { role: "assistant", content: "Answer" }] };
+  socket.deliver({ type: "prompt/ok", sessionId: "sess-1", requestId: "req-3", state }); await pending;
+  transcript = buildChatTranscript({ session: client });
+  assert.equal(transcript.turns.length, 2);
+  const last = transcript.turns.at(-1);
+  assert.ok(last?.kind === "assistant"); assert.equal(last.live, false); assert.equal(last.thought, "Display only");
+  assert.equal(JSON.stringify(client.details?.messages).includes("Display only"), false);
+  const reset = client.controlSession!({ action: "reset" });
+  socket.deliver({ type: "session/control/ok", sessionId: "sess-1", requestId: "req-4", state: controlledState }); await reset;
+  assert.equal(buildChatTranscript({ session: client }).empty, true); assert.equal(client.thought, "");
+});
+
+test("model changes synchronize the client and exit closes the socket and active prompt", async () => {
+  const client = createClient(); const socket = await becomeReady(client);
+  const change = client.controlSession!({ action: "model", model: "moonshotai/kimi-k3" });
+  const state = { ...controlledState, model: "moonshotai/kimi-k3" };
+  socket.deliver({ type: "session/control/ok", sessionId: "sess-1", requestId: "req-2", state }); await change;
+  assert.equal(client.model, state.model);
+  const pending = client.prompt("Pending question");
+  const rejection = assert.rejects(pending, /ended/);
+  const ended = client.endSession!();
+  socket.deliver({ type: "session/control/ok", sessionId: "sess-1", requestId: "req-4", state: { ...state, closed: true } });
+  await ended; await rejection;
+  assert.equal(client.status, "idle"); assert.equal(client.sessionId, undefined); assert.equal(socket.readyState, 3);
+  socket.deliver({ type: "answer", sessionId: "sess-1", text: "Late answer" }); assert.equal(client.answer, "");
+  const connected = client.connect(); const next = fakeSockets.at(-1)!; next.open();
+  assert.equal(parsedFrames(next)[0]?.model, state.model);
+  next.deliver({ type: "session/new/ok", sessionId: "sess-2", requestId: "req-5", state }); await connected;
+});
+
+test("malformed snapshots cannot introduce a system message into GUI history", () => {
+  assert.throws(() => parseServerMessage({ type: "session/control/ok", requestId: "r", sessionId: "s", state: { ...controlledState, messages: [{ role: "system", content: "private" }] } }), /invalid session snapshot/);
+});

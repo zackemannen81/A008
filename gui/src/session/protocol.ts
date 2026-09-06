@@ -1,3 +1,4 @@
+import { parseSessionSnapshot, type SessionControl, type SessionSnapshot } from "./session-controls.js";
 export const GUI_SESSION_PATH = "/v1/session";
 export const DEFAULT_GUI_HOST = "127.0.0.1:8787";
 
@@ -7,18 +8,21 @@ export const CLIENT_MESSAGE_KEYS = [
   "sessionId",
   "text",
   "model",
+  "control",
 ] as const;
 
 export type ClientMessage =
+  | { type: "session/control"; requestId: string; sessionId: string; control: SessionControl }
   | { type: "session/new"; requestId: string; model?: string }
   | { type: "prompt"; requestId: string; sessionId: string; text: string }
   | { type: "cancel"; requestId: string; sessionId: string };
 
 export type ServerMessage =
-  | { type: "session/new/ok"; requestId: string; sessionId: string }
+  | { type: "session/control/ok"; requestId: string; sessionId: string; state: SessionSnapshot }
+  | { type: "session/new/ok"; requestId: string; sessionId: string; state?: SessionSnapshot }
   | { type: "thought"; sessionId: string; text: string }
   | { type: "answer"; sessionId: string; text: string }
-  | { type: "prompt/ok"; requestId: string; sessionId: string }
+  | { type: "prompt/ok"; requestId: string; sessionId: string; state?: SessionSnapshot }
   | { type: "error"; requestId?: string; sessionId?: string; message: string };
 
 export class GuiHostProtocolError extends Error {
@@ -38,6 +42,8 @@ export function resolveGuiSessionUrl(
 
 export function encodeClientMessage(message: ClientMessage): string {
   switch (message.type) {
+    case "session/control":
+      return JSON.stringify({ type: message.type, requestId: message.requestId, sessionId: message.sessionId, control: message.control });
     case "session/new": {
       const body: Record<string, string> = {
         type: "session/new",
@@ -70,6 +76,12 @@ export function parseServerMessage(value: unknown): ServerMessage | undefined {
   }
 
   switch (value.type) {
+    case "session/control/ok": {
+      const requestId = requiredString(value, "requestId");
+      const sessionId = requiredString(value, "sessionId");
+      if (requestId === undefined || sessionId === undefined) throw new GuiHostProtocolError("session/control/ok is missing identifiers.");
+      return { type: value.type, requestId, sessionId, state: parseSessionSnapshot(value.state) };
+    }
     case "session/new/ok": {
       const requestId = requiredString(value, "requestId");
       const sessionId = requiredString(value, "sessionId");
@@ -78,7 +90,7 @@ export function parseServerMessage(value: unknown): ServerMessage | undefined {
           "session/new/ok is missing requestId or sessionId.",
         );
       }
-      return { type: "session/new/ok", requestId, sessionId };
+      return { type: "session/new/ok", requestId, sessionId, ...(value.state === undefined ? {} : { state: parseSessionSnapshot(value.state) }) };
     }
     case "thought":
     case "answer": {
@@ -98,7 +110,7 @@ export function parseServerMessage(value: unknown): ServerMessage | undefined {
           "prompt/ok is missing requestId or sessionId.",
         );
       }
-      return { type: "prompt/ok", requestId, sessionId };
+      return { type: "prompt/ok", requestId, sessionId, ...(value.state === undefined ? {} : { state: parseSessionSnapshot(value.state) }) };
     }
     case "error": {
       if (typeof value.message !== "string") {

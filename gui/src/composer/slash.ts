@@ -1,12 +1,12 @@
 export const SLASH_HELP = `Composer commands:
   /help              Show this list.
-  /exit, /quit, /q   Cancel in-flight work. The GUI stays open.
-  /reset, /clear     Keep the session and clear conversation turns if supported.
-  /undo              Drop the last user and assistant turn if supported.
-  /history           Show current thought and answer buffers.
-  /model             Show the current model.
-  /model <id>        Model switching is owned by the session client.
-  /status            Model, session, connection, tools.
+  /exit, /quit, /q   End the session. The GUI stays open.
+  /reset, /clear     Keep the system message and clear conversation turns.
+  /undo              Drop the last committed user and assistant turn.
+  /history           Show committed turns (no system message or thought).
+  /model             Show the current model and the registry.
+  /model <id>        Switch model (starts a new conversation).
+  /status            Model, session, cwd, project, memory path, tools.
   /cwd               Show the working directory used by /shell.
   /tools             List GUI tools. Terminal is user-initiated /shell.
   /shell <command>   Run a local shell command in the GUI host cwd.

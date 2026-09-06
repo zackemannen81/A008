@@ -8,6 +8,9 @@ replacement.
 
 ## Records
 
+- [0026-gui-session-controls.md](0026-gui-session-controls.md) — Accepted;
+  CLI session parity and model-specific generation controls through host/ACP.
+
 - [0025-memory-inspection-gui.md](0025-memory-inspection-gui.md) — Accepted;
   read-only GUI memory overview, relationship graph and knowledge inspection.
 

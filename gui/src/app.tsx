@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
 import { ChatPane } from "./chat/chat-pane.js";
 import { Composer } from "./composer/composer.js";
@@ -30,10 +31,12 @@ const STATUS_LABEL: Record<string, string> = {
  */
 export function App() {
   const session = useGuiSession();
-  const [page, setPage] = useState<"chat" | "memory">("chat");
+  const [parametersOpen, setParametersOpen] = useState(false);
+  const parametersButton = useRef<HTMLButtonElement>(null);
+  const [page, setPage] = useState<"chat" | "memory" | "tools">("chat");
   return (
     <div
-      className={`a008-app${page === "memory" ? " a008-memory-workspace" : ""}`}
+      className={`a008-app${page === "memory" ? " a008-memory-workspace" : page === "tools" ? " a008-tools-workspace" : ""}`}
     >
       <header className="a008-header">
         <BrandMark />
@@ -50,14 +53,30 @@ export function App() {
           >
             Memory
           </button>
+          <button
+            aria-current={page === "tools" ? "page" : undefined}
+            onClick={() => setPage("tools")}
+          >
+            Tools
+          </button>
         </nav>
-        <p className="a008-header-status">
-          <span
-            className={`a008-connection-dot a008-connection-${session.status}`}
-            aria-hidden="true"
-          />
-          {STATUS_LABEL[session.status] ?? session.status}
-        </p>
+        <div className="a008-header-actions">
+          <button
+            className="a008-parameters-open"
+            ref={parametersButton}
+            onClick={() => setParametersOpen(true)}
+            aria-haspopup="dialog"
+          >
+            Parameters
+          </button>
+          <p className="a008-header-status">
+            <span
+              className={`a008-connection-dot a008-connection-${session.status}`}
+              aria-hidden="true"
+            />
+            {STATUS_LABEL[session.status] ?? session.status}
+          </p>
+        </div>
       </header>
 
       <aside className="a008-rail" aria-label="Runtime">
@@ -80,6 +99,15 @@ export function App() {
           { id: "upload", label: "Upload", render: () => <UploadPane /> },
         ]}
       />
+      {parametersOpen ? (
+        <ParametersPanel
+          session={session}
+          onClose={() => {
+            setParametersOpen(false);
+            parametersButton.current?.focus();
+          }}
+        />
+      ) : null}
     </div>
   );
 }

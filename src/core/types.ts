@@ -6,12 +6,15 @@ export interface ChatMessage {
 }
 
 export interface ChatGenerationOptions {
-  readonly temperature?: number;
-  readonly topP?: number;
+  readonly temperature?: number | null;
+  readonly topP?: number | null;
   readonly maxTokens?: number;
-  readonly reasoningBudget?: number;
-  readonly enableThinking?: boolean;
+  readonly reasoningBudget?: number | null;
+  readonly enableThinking?: boolean | null;
   readonly stream?: boolean;
+  readonly reasoningEffort?: string | null;
+  readonly seed?: number | null;
+  readonly stop?: readonly string[] | null;
 }
 
 export interface ChatRequest {

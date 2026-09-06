@@ -153,6 +153,18 @@ function overlayLive(
  * never concatenated into answer text.
  */
 export function buildChatTranscript(input: ChatTranscriptInput): ChatTranscript {
+  if (input.session.details !== undefined) {
+    const session = input.session;
+    const turns = turnsFromMessages(input.session.details.messages);
+    if (session.pendingText !== undefined) {
+      turns.push({ kind: "user", id: "pending-user", text: session.pendingText });
+      turns.push({ kind: "assistant", id: "pending-assistant", thought: session.thought, answer: session.answer, live: true });
+    } else {
+      const last = turns.at(-1);
+      if (last?.kind === "assistant" && last.answer === session.answer) turns[turns.length - 1] = { ...last, thought: session.thought };
+    }
+    return { status: session.status, error: session.error, empty: turns.length === 0, turns };
+  }
   const messages = readOptionalMessages(input.session);
   const history =
     messages !== undefined ? turnsFromMessages(messages) : (input.history ?? []);

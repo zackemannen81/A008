@@ -9,6 +9,12 @@ credentials, and private source material do not belong in this collection.
 
 ## Records
 
+- [A008-0065_session-controls-proof.md](A008-0065_session-controls-proof.md),
+  with [desktop parameters](A008-0065_parameters-desktop.png),
+  [mobile parameters](A008-0065_parameters-mobile.png) and
+  [mobile chat](A008-0065_chat-mobile.png) — real host/ACP commands and payloads,
+  isolated SQLite and a loopback fake provider only.
+
 - [A008-0064_memory-gui-proof.md](A008-0064_memory-gui-proof.md), with
   [overview](A008-0064_memory-overview.png) and
   [graph](A008-0064_memory-graph.png) screenshots — real host/ACP memory inspection

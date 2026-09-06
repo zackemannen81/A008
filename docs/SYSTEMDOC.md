@@ -178,11 +178,12 @@ one implementation and one working directory. The renderer never executes a
 command itself.
 
 `WS /v1/session` is bridged to an `A008-acp` stdio subprocess that the host
-owns. Frames follow ADR 0019 D4 exactly: the client sends `session/new`,
+owns. Frames follow ADR 0019 D4 with the additive ADR 0026 controls: the client sends `session/new`,
 `prompt`, and `cancel`; the host answers `session/new/ok`, `thought`, `answer`,
 `prompt/ok`, and `error`. Reasoning arrives as `thought` frames and is never
 concatenated into an `answer` frame. No Agent Server schema and no OpenHands
-TypeScript client participate.
+TypeScript client participate. `session/control` and `session/control/ok`
+carry the session operations and snapshots specified in HOST_PROTOCOL.md.
 
 Credentials stay in the host process. `NVIDIA_API_KEY`, the optional endpoint
 override, and memory settings are read from process environment only. Outbound
@@ -276,7 +277,8 @@ directory per ADR 0019 D7.
 v1. It owns one socket per mount, resolves its URL from `location` so the
 production single-origin path and the dev proxy both work, and publishes
 status, `sessionId`, model, separate `thought` and `answer` buffers, `error`,
-`connect`, `prompt`, and `cancel`. It does not connect on mount; the settings
+`connect`, `prompt`, `cancel`, `controlSession`, and `endSession`. ADR 0026 adds
+`details` (runtime snapshot), `busy` and transient `pendingText`. It does not connect on mount; the settings
 pane offers an explicit Connect action. The hook-facing `connect` settles rather
 than rejecting, because the settings pane fires it and forgets it, while the
 underlying client still rejects for programmatic callers. Failure is carried by
@@ -286,13 +288,49 @@ underlying client still rejects for programmatic callers. Failure is carried by
 as three distinct DOM channels, with the thought channel display-only. A
 rendered-DOM test asserts that the answer node's text equals the answer exactly
 and that thought text appears exactly once in the document, inside the thought
-node. Turn commits go through a pure reducer, so a buffer clear after a new
-prompt cannot land a duplicate assistant turn.
+node. Current sessions render committed messages from the runtime snapshot and
+overlay the pending user/thought/answer only while a turn runs. A prompt
+acknowledgment ends the live marker; reset/undo/model changes synchronize the
+display with the core. The older reducer/capture shim is used only when an older
+host supplies no snapshot.
 
 `gui/src/composer/` carries the A008-0029 slash set, `gui/src/terminal/` calls
 `POST /v1/shell` rather than executing anything in the browser, and
 `gui/src/settings/` plus `gui/src/brand/` own the shell chrome and A008
 identity. No provider call, credential, or telemetry ships in the renderer.
+
+### GUI session operations and parameters (A008-0065)
+
+The composer and its Session commands menu implement every interactive CLI
+command and alias. History shows committed user/assistant text; status/cwd
+report facts from the same ACP runtime. Reset keeps system/model/settings,
+undo removes a committed pair, and model switch opens a fresh local-memory
+conversation within the owned ACP session. End session releases it and leaves
+the page running. These operations do not delete saved memory.
+
+The header Parameters dialog uses endpoint capability metadata from GET
+/v1/models. Stream, temperature omission or 0–1, top P, total generated-token
+budget, supported reasoning toggles/budgets/efforts, seed and stop sequences
+are applied as a complete per-session configuration. Null survives default
+merges and omits the provider field; temperature 0 remains an explicit value.
+The reasoning budget is omitted while reasoning is disabled. Input tokens and
+semantic-memory processing are outside the chat output budget. Values and
+model-specific exclusions are validated before the provider call.
+
+`LocalMemorySession` owns this configuration. Chat uses the existing transport;
+retrieval/analyzer/classifier options remain independent. ACP advertises its
+custom control capability only when the composition registers the method.
+The host serializes controls with prompts, checks socket ownership, cleans up
+failed/new sessions and refuses unsupported controls on older ACP bridges.
+Cancellation holds the busy state through the terminal acknowledgment.
+
+At 850px and below Chat, Memory and Tools each use the full workspace width.
+Tools retains the mounted Terminal/Upload workbench; navigation preserves chat,
+draft and workbench state. The modal traps focus natively, restores it on Escape
+or close, and scrolls independently on a phone-sized viewport.
+
+See [ADR 0026](adr/0026-gui-session-controls.md) for endpoint sources and
+[the proof](evidence/A008-0065_session-controls-proof.md) for browser/payload gates.
 
 ## Semantic-memory core
 

@@ -4,6 +4,7 @@ import { Readable, Writable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import * as acp from "@agentclientprotocol/sdk";
 import { ChatError } from "../core/errors.js";
+import type { SessionControl, SessionSnapshot } from "../core/session-control.js";
 import type { MemoryInspection, MemoryInspectionQuery } from "../memory/knowledge/inspection.js";
 
 export interface AcpPromptHandlers {
@@ -32,6 +33,7 @@ export interface AcpSourceIngestResult {
 }
 
 export interface AcpBridge {
+  controlSession?(sessionId: string, control: SessionControl): Promise<SessionSnapshot>;
   /** Optional for hosts connected to an older ACP implementation. */
   inspectMemory?(query: MemoryInspectionQuery): Promise<MemoryInspection>;
   newSession(model?: string): Promise<{ sessionId: string }>;
@@ -122,11 +124,13 @@ export async function createSpawnedAcpBridge(
     });
   });
 
+  let sessionControlSupported = false;
   try {
-    await connection.agent.request("initialize", {
+    const initialized = await connection.agent.request("initialize", {
       protocolVersion: acp.PROTOCOL_VERSION,
       clientCapabilities: { session: { configOptions: {} } },
     });
+    sessionControlSupported = initialized.agentCapabilities?._meta?.["a008.sessionControl"] === 1;
   } catch (error) {
     connection.close();
     child.kill();
@@ -137,17 +141,24 @@ export async function createSpawnedAcpBridge(
   }
 
   return {
+    ...(sessionControlSupported ? { async controlSession(sessionId: string, control: SessionControl) {
+      try {
+        return await connection.agent.request<SessionSnapshot, SessionControl & {sessionId: string}>("_a008/session/control", { sessionId, ...control });
+      } catch (error) { throw acpFailure(error, stderrTail.lastLine()); }
+    } } : {}),
     async inspectMemory(query) {
       try {
         return await connection.agent.request<MemoryInspection, MemoryInspectionQuery>("memory/inspect", query);
       } catch (error) { throw acpFailure(error, stderrTail.lastLine()); }
     },
     async newSession(model) {
+      let createdId: string | undefined;
       try {
         const created = await connection.agent.request("session/new", {
           cwd: options.cwd,
           mcpServers: [],
         });
+        createdId = created.sessionId;
         if (model !== undefined) {
           await connection.agent.request("session/set_config_option", {
             sessionId: created.sessionId,
@@ -157,6 +168,7 @@ export async function createSpawnedAcpBridge(
         }
         return { sessionId: created.sessionId };
       } catch (error) {
+        if (createdId !== undefined) await connection.agent.request("session/close", { sessionId: createdId }).catch(() => undefined);
         throw acpFailure(error, stderrTail.lastLine());
       }
     },

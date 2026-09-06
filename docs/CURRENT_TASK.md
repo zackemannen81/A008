@@ -57,18 +57,18 @@ panel backed by an additive host/ACP contract and actual provider request option
 
 ### Minimum Verification Gates
 
-- [ ] Root and GUI typecheck/build; complete root npm test.
-- [ ] Contract/ownership/busy/error tests and actual spawned ACP loopback proof.
-- [ ] Actual provider payload assertions, history/reset/undo/model lifecycle proof.
-- [ ] Desktop/mobile browser controls, parameter application, command and memory navigation proof.
+- [x] Root and GUI typecheck/build; complete root npm test.
+- [x] Contract/ownership/busy/error tests and actual spawned ACP loopback proof.
+- [x] Actual provider payload assertions, history/reset/undo/model lifecycle proof.
+- [x] Desktop/mobile browser controls, parameter application, command and memory navigation proof.
 - [ ] Changed docs links/fences, diff hygiene and staged credential-boundary review.
 
 ## Checklist
 
 - [x] Read repository authority and inspect existing command/session paths.
 - [x] Claim identity on main; freeze this charter before source changes.
-- [ ] Add protocol and runtime controls with validated parameter metadata.
-- [ ] Implement GUI controls, parameter panel and authoritative history.
+- [x] Add protocol and runtime controls with validated parameter metadata.
+- [x] Implement GUI controls, parameter panel and authoritative history.
 - [ ] Verify, update owning documentation, archive and hand off.
 
 ## Decisions and Notes
@@ -84,7 +84,7 @@ panel backed by an additive host/ACP contract and actual provider request option
 
 ## Verification
 
-Pending.
+530 test executions passed; both typechecks and GUI build passed. Full chain and browser evidence: [session-controls-proof](evidence/A008-0065_session-controls-proof.md). Staged audit and archival pending.
 
 ## Handoff and Follow-ups
 

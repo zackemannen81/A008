@@ -31,6 +31,7 @@
   --a008-accent-soft: rgba(192, 168, 120, 0.09);
   --a008-good: #86a088;
   --a008-danger: #c07f74;
+  --a008-overlay: rgba(0, 0, 0, 0.6);
 
   /* Connection states read as status, not decoration. */
   --a008-idle: var(--a008-dim);
@@ -489,4 +490,24 @@ body {
 .a008-settings-connect:focus-visible {
   background: color-mix(in srgb, var(--a008-cyan) 12%, transparent);
   outline: none;
+}
+
+/* One usable surface per mobile screen; Tools retains terminal/upload access. */
+@media (max-width: 850px) {
+  .a008-app { grid-template-columns: minmax(0, 1fr); }
+  .a008-app .a008-rail { display: none; }
+  .a008-main, .a008-app .a008-memory-main, .a008-tools-workspace .a008-workbench { grid-column: 1; }
+  .a008-app:not(.a008-tools-workspace) .a008-workbench { display: none; }
+  .a008-header-actions { gap: .3rem; }
+  .a008-header-actions .a008-header-status { display: none; }
+  .a008-header { gap: .4rem; padding-inline: .6rem; }
+  .a008-brand-tagline { display: none; }
+  .a008-header-tabs button { padding-inline: .55rem; }
+}
+@media (max-width: 440px) {
+  .a008-header { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .a008-header-tabs { justify-content: center; gap: 0; }
+  .a008-header-tabs button { padding-inline: .35rem; font-size: .7rem; }
+  .a008-parameters-open { padding-inline: .45rem; font-size: .7rem; }
+  .a008-brand { gap: .4rem; }
 }

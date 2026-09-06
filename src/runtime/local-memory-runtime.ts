@@ -13,6 +13,7 @@ import {
   type ChatInvocationBudget,
 } from "../core/chat-invocation.js";
 import { ChatError, isChatError } from "../core/errors.js";
+import { chatGeneration, defaultSessionParameters, parseSessionParameters } from "../core/generation-controls.js";
 import {
   DEFAULT_MODEL_ID,
   defaultModelRegistry,
@@ -493,6 +494,7 @@ function emitCommitTrace(
 }
 
 export class LocalMemorySession {
+  #parameters: import("../core/generation-controls.js").SessionParameters | undefined;
   readonly conversationId: ConversationId;
   readonly #runtime: LocalMemoryRuntime;
   readonly #chat: MemoryAwareChatSession;
@@ -523,6 +525,20 @@ export class LocalMemorySession {
     return this.#chat.messages;
   }
 
+  get parameters() {
+    const parameters = this.#parameters ?? this.#runtime.sessionParameters(this.model);
+    return { ...parameters, stop: parameters.stop === null ? null : [...parameters.stop] };
+  }
+
+  enableSessionControls(): void {
+    this.#parameters ??= this.#runtime.sessionParameters(this.model);
+  }
+
+  configureParameters(value: unknown): void {
+    if (this.#turnActive) throw new ChatError("configuration", "Cannot configure during an active turn.");
+    this.#parameters = parseSessionParameters(value, this.model);
+  }
+
   reset(): void {
     this.#chat.reset();
   }
@@ -541,7 +557,10 @@ export class LocalMemorySession {
     content: string,
     options: SendMessageOptions = {},
   ): Promise<ChatCompletion> {
-    const result = await this.turn(content, options);
+    const result = await this.turn(content, {
+      ...options,
+      ...(this.#parameters === undefined ? {} : { generation: chatGeneration(parseSessionParameters(this.#parameters, this.model)) }),
+    });
     this.#lastDiagnostic = result.memoryDiagnostic;
     return result.completion;
   }
@@ -816,6 +835,10 @@ export class LocalMemoryRuntime {
       durable: this.sqlitePath !== ":memory:",
       semantics: "evidence",
     };
+  }
+
+  sessionParameters(model: string) {
+    return defaultSessionParameters(this.#registry.require(model), this.#chatGeneration);
   }
 
   openSession(options: LocalMemorySessionOptions = {}): LocalMemorySession {
