@@ -11,6 +11,8 @@ authority. Workers do not append `docs/JOURNAL.md`.
 
 ## Required fields
 
+Latest local handoff: [A008-0065](A008-0065.md) — GUI session commands and parameters.
+
 - Task ID and branch
 - Head commit SHA
 - Pull request URL

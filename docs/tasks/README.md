@@ -12,8 +12,8 @@ the template before push.
 ## Records
 
 - [A008-0065_gui-session-controls.md](A008-0065_gui-session-controls.md) —
-  In Progress; session commands, runtime snapshots and model parameters verified;
-  archive and handoff pending.
+  Complete locally; session commands, runtime snapshots and model parameters;
+  [archived](../finished/A008-0065_gui-session-controls.md).
 
 - [A008-0064_gui-memory-diagnostics.md](A008-0064_gui-memory-diagnostics.md) —
   Complete locally; archived in
