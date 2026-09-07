@@ -702,7 +702,7 @@ test("chat generation overrides reach the provider request", async () => {
     createTransport: (transportOptions) => ({
       async complete(request) {
         transportTimeoutMs = transportOptions.timeoutMs;
-        seen.push(request.options);
+        if (semanticOperation(request) === undefined) seen.push(request.options);
         return {
           message: { role: "assistant", content: "Noted." },
           model: request.model,

@@ -118,7 +118,7 @@ function boundText(
 
 function semanticOperation(
   request: ChatRequest,
-): "knowledge_analysis" | "relation_classification" | undefined {
+): "knowledge_analysis" | "relation_classification" | "retrieval_scope" | undefined {
   const content = request.messages.at(-1)?.content;
   if (content === undefined) {
     return undefined;
@@ -131,7 +131,7 @@ function semanticOperation(
     const operation = (parsed as { readonly operation?: unknown }).operation;
     if (
       operation === "knowledge_analysis" ||
-      operation === "relation_classification"
+      operation === "relation_classification" || operation === "retrieval_scope"
     ) {
       return operation;
     }
@@ -397,13 +397,13 @@ export function tracedChatTransport(
       const requestPhase =
         operation === "knowledge_analysis"
           ? "analyze_request"
-          : operation === "relation_classification"
+          : operation === "relation_classification" || operation === "retrieval_scope"
             ? "classify_request"
             : "chat_request";
       const responsePhase =
         operation === "knowledge_analysis"
           ? "analyze_response"
-          : operation === "relation_classification"
+          : operation === "relation_classification" || operation === "retrieval_scope"
             ? "classify_response"
             : "chat_response";
       tracer.emit({
@@ -550,7 +550,7 @@ function providerOperationFromBody(rawBody: string): string {
     const envelope = JSON.parse(content) as { readonly operation?: unknown };
     if (
       envelope.operation === "knowledge_analysis" ||
-      envelope.operation === "relation_classification"
+      envelope.operation === "relation_classification" || envelope.operation === "retrieval_scope"
     ) {
       return envelope.operation;
     }

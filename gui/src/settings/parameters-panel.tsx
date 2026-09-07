@@ -7,6 +7,7 @@ import {
 } from "../session/session-controls.js";
 import { controlSession } from "../composer/submit.js";
 import "./parameters.css";
+import { GlobalSettingsForm } from "./global-settings-form.js";
 
 const numberValue = (value: number | null): number | "" =>
   value !== null && Number.isFinite(value) ? value : "";
@@ -345,6 +346,9 @@ export function ParametersPanel(props: {
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [models, setModels] = useState<readonly GuiModel[]>([]);
+  const [page, setPage] = useState<"model" | "budgets" | "instructions">(
+    props.session.error?.includes("hard budget") ? "budgets" : "model",
+  );
   const [error, setError] = useState("");
   const { session } = props;
   const model = models.find((m) => m.id === session.model);
@@ -399,6 +403,14 @@ export function ParametersPanel(props: {
         </button>
       </header>
       <div className="a008-parameters-body">
+        <nav className="a008-parameter-tabs" aria-label="Parameter sections">
+          {(["model", "budgets", "instructions"] as const).map(tab => (
+            <button key={tab} type="button" aria-pressed={page === tab} onClick={() => setPage(tab)}>
+              {tab === "model" ? "Model" : tab === "budgets" ? "Budgets" : "Instructions"}
+            </button>
+          ))}
+        </nav>
+        <div hidden={page !== "model"}>
         <label className="a008-model-select">
           Model
           <select
@@ -425,6 +437,7 @@ export function ParametersPanel(props: {
         <p className="a008-parameter-footnote">
           Changing model starts a new conversation.
         </p>
+        </div>
         {session.status !== "ready" ? (
           <div className="a008-parameter-connect">
             <p>Connect to inspect and change the active session.</p>
@@ -444,6 +457,7 @@ export function ParametersPanel(props: {
             {error || session.error}
           </p>
         ) : null}
+        <div hidden={page !== "model"}>
         {model ? (
           <ParameterForm
             key={`${session.sessionId ?? "idle"}/${model.id}`}
@@ -453,6 +467,12 @@ export function ParametersPanel(props: {
           />
         ) : !error ? (
           <p role="status">Loading model parameters…</p>
+        ) : null}
+        </div>
+        {session.details?.runtimePreferences ? (
+          <GlobalSettingsForm key={session.sessionId} session={session} initial={session.details.runtimePreferences} page={page} />
+        ) : page !== "model" && session.status === "ready" ? (
+          <p role="status">Global settings are unavailable. Restart the current A008 host.</p>
         ) : null}
       </div>
     </dialog>

@@ -8,6 +8,7 @@ export interface ChatMessageMeasurer {
 
 export interface ChatInvocationBudget {
   readonly maximum: number;
+  readonly label?: string;
   readonly measurer: ChatMessageMeasurer;
 }
 
@@ -70,7 +71,7 @@ function validateBudget(
   if (measuredUnits > budget.maximum) {
     throw new ChatError(
       "configuration",
-      `Chat invocation exceeds the hard budget: ${measuredUnits}/${budget.maximum} ${unit}.`,
+      `${budget.label ?? "Chat invocation"} exceeds the hard budget: ${measuredUnits}/${budget.maximum} ${unit}.`,
     );
   }
   return { measuredUnits, measurementUnit: unit };

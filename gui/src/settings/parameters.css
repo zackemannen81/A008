@@ -4,6 +4,59 @@
   justify-self: end;
   gap: 1rem;
 }
+.a008-parameters [hidden] { display: none !important; }
+.a008-parameter-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1.6rem;
+}
+.a008-parameter-tabs button,
+.a008-global-actions button,
+.a008-parameter-secondary {
+  font: inherit;
+  font-size: 0.8rem;
+  border: 1px solid var(--a008-border-strong);
+  border-radius: 5px;
+  padding: 0.6rem 0.75rem;
+  background: var(--a008-panel);
+  color: var(--a008-fg-soft);
+  cursor: pointer;
+}
+.a008-parameter-tabs button[aria-pressed="true"] {
+  color: var(--a008-accent);
+  border-color: var(--a008-accent);
+}
+.a008-global-scope {
+  color: var(--a008-accent);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+}
+.a008-budget-unit {
+  display: block;
+  margin-top: 0.3rem;
+  font-weight: 400;
+  font-size: 0.7rem;
+  color: var(--a008-muted);
+}
+.a008-global-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin: 0 0 1.2rem;
+  padding: 0.6rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--a008-panel);
+}
+.a008-global-actions button[type="submit"] {
+  background: var(--a008-accent);
+  color: var(--a008-bg);
+}
+.a008-global-actions :disabled { opacity: 0.45; cursor: default; }
+.a008-settings-path { overflow-wrap: anywhere; }
+.a008-parameter-notice { color: var(--a008-accent); font-size: 0.8rem; }
+.a008-parameter-group label { display: block; }
 .a008-tools-workspace .a008-workbench {
   grid-column: 2 / -1;
 }

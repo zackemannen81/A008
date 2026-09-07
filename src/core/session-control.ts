@@ -1,12 +1,15 @@
 import { ChatError } from "./errors.js";
 import type { SessionParameters } from "./generation-controls.js";
+import type { RuntimePreferencesSnapshot } from "./runtime-preferences.js";
 
 export type SessionControl =
   | { readonly action: "inspect" | "reset" | "undo" | "close" }
   | { readonly action: "model"; readonly model: string }
-  | { readonly action: "configure"; readonly parameters: unknown };
+  | { readonly action: "configure"; readonly parameters: unknown }
+  | { readonly action: "configureRuntime"; readonly settings: unknown; readonly revision: string };
 
 export interface SessionSnapshot {
+  readonly runtimePreferences?: RuntimePreferencesSnapshot;
   readonly model: string;
   readonly parameters: SessionParameters;
   readonly messages: readonly {
@@ -39,6 +42,10 @@ export function parseSessionControl(value: unknown): SessionControl {
     case "configure":
       if ("parameters" in input)
         return { action: "configure", parameters: input.parameters };
+      break;
+    case "configureRuntime":
+      if ("settings" in input && typeof input.revision === "string")
+        return { action: "configureRuntime", settings: input.settings, revision: input.revision };
       break;
   }
   throw new ChatError(

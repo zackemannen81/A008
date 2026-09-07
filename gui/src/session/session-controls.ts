@@ -1,4 +1,5 @@
 /** Renderer-owned wire contract, ADR 0026. No runtime/provider imports. */
+import { isRuntimePreferencesSnapshot, type RuntimePreferences, type RuntimePreferencesSnapshot } from "../settings/runtime-preferences.js";
 export interface SessionParameters {
   stream: boolean;
   temperature: number | null;
@@ -29,8 +30,10 @@ export interface GuiModel {
 export type SessionControl =
   | { action: "inspect" | "reset" | "undo" | "close" }
   | { action: "model"; model: string }
-  | { action: "configure"; parameters: SessionParameters };
+  | { action: "configure"; parameters: SessionParameters }
+  | { action: "configureRuntime"; settings: RuntimePreferences; revision: string };
 export interface SessionSnapshot {
+  runtimePreferences?: RuntimePreferencesSnapshot;
   model: string;
   parameters: SessionParameters;
   messages: readonly { role: "user" | "assistant"; content: string }[];
@@ -74,6 +77,7 @@ export function parseSessionSnapshot(v: unknown): SessionSnapshot {
     ) ||
     (v.undone !== undefined && typeof v.undone !== "boolean") ||
     (v.closed !== undefined && typeof v.closed !== "boolean")
+    || (v.runtimePreferences !== undefined && !isRuntimePreferencesSnapshot(v.runtimePreferences))
   ) {
     throw new Error("Host sent an invalid session snapshot.");
   }

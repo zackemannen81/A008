@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {"darkMode":"class","theme":{"extend":{"colors":{"surface-container-highest":"#343537","primary-fixed-dim":"#ffb95f","amber-bright":"#fbbf24","surface-container":"#1f2022","on-primary-fixed":"#2a1700","surface":"#121315","surface-variant":"#343537","surface-canvas":"#0c0d0e","amber-dim":"#b45309","tertiary":"#ffc08e","tertiary-fixed":"#ffdcc3","secondary":"#4edea3","surface-container-low":"#1b1c1e","border-strong":"#3f3f46","surface-dim":"#121315","on-secondary-fixed":"#002113","surface-highlight":"#212428","on-tertiary-container":"#6a3700","surface-bright":"#38393b","terminal-scrim":"#090a0b","on-secondary":"#003824","on-secondary-fixed-variant":"#005236","on-secondary-container":"#00311f","on-error":"#690005","on-surface":"#e3e2e4","surface-panel":"#131416","on-surface-variant":"#d8c3ad","error":"#ffb4ab","surface-container-high":"#292a2c","primary-container":"#f59e0b","on-primary-container":"#613b00","border-subtle":"#27272a","emerald-active":"#10b981","thought-stream-bg":"#121316","on-tertiary":"#4d2600","secondary-fixed-dim":"#4edea3","text-muted":"#71717a","tertiary-fixed-dim":"#ffb77d","primary":"#ffc174","outline":"#a08e7a","primary-fixed":"#ffddb8","on-error-container":"#ffdad6","on-background":"#e3e2e4","on-primary":"#472a00","inverse-on-surface":"#303032","secondary-container":"#00a572","outline-variant":"#534434","surface-tint":"#ffb95f","on-tertiary-fixed":"#2f1500","text-primary":"#f4f4f5","inverse-primary":"#855300","secondary-fixed":"#6ffbbe","surface-container-lowest":"#0d0e10","on-primary-fixed-variant":"#653e00","emerald-glow":"#059669","background":"#121315","inverse-surface":"#e3e2e4","text-secondary":"#a1a1aa","tertiary-container":"#ff9837","error-container":"#93000a","surface-elevated":"#181a1d","on-tertiary-fixed-variant":"#6e3900"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-xl":"20px","space-3xl":"32px","composer-height":"120px","space-xxs":"2px","space-lg":"16px","space-sm":"8px","telemetry-panel-width":"340px","space-2xl":"24px","space-xs":"4px","sidebar-width":"260px","header-height":"40px","space-md":"12px"},"fontFamily":{"thought-stream":["Inter"],"headline-md":["Inter"],"body-md":["Inter"],"body-sm":["Inter"],"body-lg":["Inter"],"mono-lg":["JetBrains Mono"],"mono-md":["JetBrains Mono"],"headline-xl":["Inter"],"mono-sm":["JetBrains Mono"],"headline-lg":["Inter"],"label-caps":["JetBrains Mono"]},"fontSize":{"thought-stream":["12.5px",{"lineHeight":"20px","fontWeight":"400"}],"headline-md":["14px",{"lineHeight":"20px","fontWeight":"600"}],"body-md":["13px",{"lineHeight":"20px","fontWeight":"400"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}],"body-lg":["14px",{"lineHeight":"22px","fontWeight":"400"}],"mono-lg":["13px",{"lineHeight":"20px","fontWeight":"500"}],"mono-md":["12px",{"lineHeight":"18px","fontWeight":"400"}],"headline-xl":["20px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"mono-sm":["11px",{"lineHeight":"16px","fontWeight":"400"}],"headline-lg":["16px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"600"}],"label-caps":["10px",{"lineHeight":"14px","letterSpacing":"0.08em","fontWeight":"600"}]}}}};</script></head><body class="bg-surface-canvas text-text-primary antialiased selection:bg-primary selection:text-on-primary"><header class="fixed top-0 left-0 right-0 z-50 h-10 bg-surface-panel shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="w-full h-full px-space-md flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md min-w-0 flex-shrink-0"><img alt="A008 Monogram Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1X_QbXm8jXkUd-roJ9B3vpZIZFm2FjiX6hztqw5-muIeqCjj9NLzMFSXdh4MdWzSYQaiO7uoSC5uaXX4e5URi5Oo7mkpR5DWZHF21OWEMr07cf1uvXv0N85sVD6bzFXRmN6hF8o_P3oaLi60D4SYL515CRu4GG8YDHovGOj5J2iFd0E7u_IiBytSslHntL43Qszen93kXk77dWFph6OVXHN_QY-pSB17eDdEREfKdVKBtJyd8gb3DF-Gz0"/><div class="flex items-center gap-space-xs"><span class="font-headline-md text-headline-md tracking-tight text-text-primary uppercase">A008</span><span class="font-mono-sm text-mono-sm text-amber-bright uppercase px-space-xs py-space-xxs bg-surface-container-high rounded">AI CLIENT</span></div><div class="h-4 w-[1px] bg-border-subtle"></div><div class="flex items-center gap-space-xs px-space-xs py-space-xxs rounded bg-surface-elevated"><span class="w-2 h-2 rounded-full bg-emerald-active shadow-[0_0_8px_rgba(16,185,129,0.45)]"></span><span class="font-mono-sm text-mono-sm text-emerald-active uppercase tracking-wide">CONNECTED</span><span class="font-mono-sm text-mono-sm text-text-muted">:</span><span class="font-mono-sm text-mono-sm text-text-secondary truncate max-w-[220px]">nvidia/nemotron-3.5-lightning-30b-a3b</span></div><div class="hidden xl:flex items-center gap-space-xs px-space-xs py-space-xxs rounded bg-surface-elevated"><span class="font-mono-sm text-mono-sm text-amber-bright">24ms</span><span class="font-mono-sm text-mono-sm text-text-muted">LATENCY</span></div></div><div class="flex items-center gap-space-md flex-shrink-0"><div class="hidden md:flex items-center gap-space-xs px-space-sm py-space-xxs rounded bg-surface-container-lowest"><span class="font-label-caps text-label-caps text-text-muted uppercase">SESSION</span><span class="font-mono-sm text-mono-sm text-text-secondary">A008_v1_acp_session_8f4a1c</span></div><button class="flex items-center justify-center w-7 h-7 rounded text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors" title="Toggle Telemetry" type="button"><span class="material-symbols-outlined text-[16px]">terminal</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><aside class="fixed left-0 top-10 bottom-0 w-sidebar-width bg-surface-panel z-40 flex flex-col justify-between p-space-sm"><div class="flex flex-col gap-space-md"><div class="px-space-xs py-space-xs"><span class="font-label-caps text-label-caps text-text-muted uppercase tracking-wider">ORCHESTRATION</span></div><nav class="flex flex-col gap-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded"><a class="flex items-center justify-between px-space-sm py-space-xs text-text-secondary hover:bg-surface-container-high hover:text-on-surface rounded transition-colors" data-path="chat-view" href="#"><span class="font-headline-md text-headline-md">Chat View</span><span class="font-mono-sm text-mono-sm text-text-muted">/chat</span></a><a class="flex items-center justify-between px-space-sm py-space-xs text-text-secondary hover:bg-surface-container-high hover:text-on-surface rounded transition-colors" data-path="memory-view" href="#"><span class="font-headline-md text-headline-md">Memory View</span><span class="font-mono-sm text-mono-sm text-text-muted">/memory</span></a><a aria-current="page" class="flex items-center justify-between px-space-sm py-space-xs transition-colors bg-primary-container text-on-primary-container font-semibold rounded" data-path="memory-map" href="#"><span class="font-headline-md text-headline-md">Memory Map</span><span class="font-mono-sm text-mono-sm text-text-muted">/map</span></a><a class="flex items-center justify-between px-space-sm py-space-xs text-text-secondary hover:bg-surface-container-high hover:text-on-surface rounded transition-colors" data-path="new-project-setup" href="#"><span class="font-headline-md text-headline-md">New Project</span><span class="font-mono-sm text-mono-sm text-text-muted">/project</span></a><a class="flex items-center justify-between px-space-sm py-space-xs text-text-secondary hover:bg-surface-container-high hover:text-on-surface rounded transition-colors" data-path="settings" href="#"><span class="font-headline-md text-headline-md">Settings</span><span class="font-mono-sm text-mono-sm text-text-muted">/config</span></a></nav></div><div class="p-space-sm rounded bg-surface-container-lowest flex flex-col gap-space-xs"><div class="flex items-center justify-between"><span class="font-label-caps text-label-caps text-text-muted uppercase">RUNTIME STATE</span><span class="font-mono-sm text-mono-sm text-emerald-active">READY</span></div><div class="flex items-center justify-between font-mono-sm text-mono-sm"><span class="text-text-muted">CONTEXT</span><span class="text-text-secondary">14,204 / 32k</span></div><div class="w-full bg-surface-container-high h-1 rounded"><div class="bg-amber-bright h-1 rounded w-[44%]"></div></div></div></aside><div class="pl-sidebar-width"><main class="relative pt-10 bg-surface-canvas min-h-screen"><div class="flex flex-col w-full">
+<!-- Interactive State Script and Graph Management -->
+<script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('text-amber-bright', 'border-b-2', 'border-primary');
+        btn.classList.add('text-text-muted');
+      });
+      const activeBtn = document.getElementById('tab-btn-' + tabId);
+      if(activeBtn) {
+        activeBtn.classList.add('text-amber-bright', 'border-b-2', 'border-primary');
+        activeBtn.classList.remove('text-text-muted');
+      }
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+      const activePane = document.getElementById('tab-content-' + tabId);
+      if(activePane) activePane.classList.remove('hidden');
+    }
+
+    function toggleDormant(btn) {
+      const isOff = btn.getAttribute('data-active') === 'false';
+      btn.setAttribute('data-active', isOff ? 'true' : 'false');
+      const nodes = document.querySelectorAll('.dormant-element');
+      if(isOff) {
+        btn.classList.add('bg-primary-container', 'text-on-primary-container');
+        btn.classList.remove('bg-surface-elevated', 'text-text-secondary');
+        nodes.forEach(n => n.classList.remove('opacity-30', 'opacity-20'));
+      } else {
+        btn.classList.remove('bg-primary-container', 'text-on-primary-container');
+        btn.classList.add('bg-surface-elevated', 'text-text-secondary');
+        nodes.forEach(n => n.classList.add('opacity-25'));
+      }
+    }
+
+    function selectNode(id, type, label, domain, status, tokens) {
+      const titleEl = document.getElementById('inspector-title');
+      const typeEl = document.getElementById('inspector-type');
+      const domainEl = document.getElementById('inspector-domain');
+      const statusEl = document.getElementById('inspector-status');
+      const jsonEl = document.getElementById('inspector-json');
+
+      if(titleEl) titleEl.innerText = label;
+      if(typeEl) typeEl.innerText = type;
+      if(domainEl) domainEl.innerText = domain;
+      if(statusEl) statusEl.innerText = status;
+      
+      const sampleJson = {
+        "@schema": "A008_KMM_v2.4",
+        "entity_id": id,
+        "primary_label": label,
+        "domain_membership": [domain, "runtime_assertions"],
+        "activation_layer": "L8_EXPAND",
+        "vector_slot_ref": "vslot_" + id + "_99b2",
+        "temporal_validity": "[T2, Inf)",
+        "salience_weight": 0.892,
+        "token_footprint": tokens || 48
+      };
+      if(jsonEl) jsonEl.innerText = JSON.stringify(sampleJson, null, 2);
+    }
+  </script>
+<!-- Top Workbench Control & Filter Toolbar -->
+<div class="w-full bg-surface-panel p-space-sm flex flex-col gap-space-sm shadow-md">
+<!-- Row 1: Search, Filter Pills & Hop Distance -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-xs flex-1 min-w-[280px]">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-space-sm top-1/2 -translate-y-1/2 text-text-muted text-[18px]">search</span>
+<input class="w-full h-8 pl-9 pr-space-sm bg-surface-canvas rounded text-text-primary placeholder:text-text-muted font-mono-sm text-mono-sm focus:outline-none focus:ring-1 focus:ring-amber-bright" placeholder="Filter entities, relations, slots, or domain tags... (/query, #slot)" type="text"/>
+</div>
+<div class="flex items-center gap-space-xxs bg-surface-container-lowest px-space-xs py-1 rounded">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">HOP:</span>
+<button class="px-space-xs py-0.5 rounded font-mono-sm text-mono-sm bg-surface-container-high text-amber-bright hover:bg-surface-elevated">L1</button>
+<button class="px-space-xs py-0.5 rounded font-mono-sm text-mono-sm text-text-secondary hover:bg-surface-container-high">L2</button>
+<button class="px-space-xs py-0.5 rounded font-mono-sm text-mono-sm text-text-secondary hover:bg-surface-container-high">L8</button>
+</div>
+</div>
+<!-- Domain Category Filters -->
+<div class="flex items-center gap-space-xs overflow-x-auto py-0.5">
+<button class="px-space-sm py-1 rounded bg-primary-container text-on-primary-container font-mono-sm text-mono-sm font-semibold whitespace-nowrap shadow-sm">
+          All Domains
+        </button>
+<button class="px-space-sm py-1 rounded bg-surface-elevated text-text-secondary hover:text-text-primary hover:bg-surface-container-high font-mono-sm text-mono-sm whitespace-nowrap flex items-center gap-1">
+<span>architecture</span>
+<span class="text-text-muted text-[10px]">(42)</span>
+</button>
+<button class="px-space-sm py-1 rounded bg-surface-elevated text-text-secondary hover:text-text-primary hover:bg-surface-container-high font-mono-sm text-mono-sm whitespace-nowrap flex items-center gap-1">
+<span>runtime</span>
+<span class="text-emerald-active text-[10px]">(28)</span>
+</button>
+<button class="px-space-sm py-1 rounded bg-surface-elevated text-text-secondary hover:text-text-primary hover:bg-surface-container-high font-mono-sm text-mono-sm whitespace-nowrap flex items-center gap-1">
+<span>evidence</span>
+<span class="text-text-muted text-[10px]">(36)</span>
+</button>
+<button class="px-space-sm py-1 rounded bg-surface-elevated text-text-secondary hover:text-text-primary hover:bg-surface-container-high font-mono-sm text-mono-sm whitespace-nowrap flex items-center gap-1">
+<span>source_code</span>
+<span class="text-text-muted text-[10px]">(15)</span>
+</button>
+<button class="px-space-sm py-1 rounded bg-surface-elevated text-text-secondary hover:text-text-primary hover:bg-surface-container-high font-mono-sm text-mono-sm whitespace-nowrap flex items-center gap-1">
+<span>user_assertions</span>
+<span class="text-amber-bright text-[10px]">(19)</span>
+</button>
+</div>
+</div>
+<!-- Row 2: Metrics Strip, Layout Selectors & Toggle Actions -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm pt-space-xs">
+<!-- High-tech Metric telemetry strip -->
+<div class="flex items-center gap-space-md font-mono-sm text-mono-sm">
+<div class="flex items-center gap-1.5 px-space-xs py-0.5 rounded bg-surface-canvas">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="text-text-primary font-semibold">124</span>
+<span class="text-text-muted uppercase text-[10px]">ENTITIES</span>
+</div>
+<div class="flex items-center gap-1.5 px-space-xs py-0.5 rounded bg-surface-canvas">
+<span class="w-1.5 h-1.5 rounded-full bg-amber-bright"></span>
+<span class="text-text-primary font-semibold">186</span>
+<span class="text-text-muted uppercase text-[10px]">RELATIONS</span>
+</div>
+<div class="flex items-center gap-1.5 px-space-xs py-0.5 rounded bg-surface-canvas">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<span class="text-text-primary font-semibold">5</span>
+<span class="text-text-muted uppercase text-[10px]">CLUSTERS</span>
+</div>
+<div class="hidden sm:flex items-center gap-1.5 px-space-xs py-0.5 rounded bg-surface-canvas">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-active shadow-[0_0_6px_rgba(16,185,129,0.5)]"></span>
+<span class="text-emerald-active font-semibold">0</span>
+<span class="text-text-muted uppercase text-[10px]">CONFLICTS</span>
+</div>
+</div>
+<!-- Controls & Layout -->
+<div class="flex items-center gap-space-xs">
+<div class="flex items-center bg-surface-canvas rounded p-0.5">
+<button class="px-space-xs py-1 rounded bg-surface-container-high text-amber-bright font-mono-sm text-mono-sm flex items-center gap-1" title="Force Directed Layout">
+<span class="material-symbols-outlined text-[14px]">hub</span>
+<span class="hidden md:inline">Force Directed</span>
+</button>
+<button class="px-space-xs py-1 rounded hover:bg-surface-elevated text-text-secondary font-mono-sm text-mono-sm flex items-center gap-1" title="Domain Clusters">
+<span class="material-symbols-outlined text-[14px]">bubble_chart</span>
+<span class="hidden md:inline">Clusters</span>
+</button>
+<button class="px-space-xs py-1 rounded hover:bg-surface-elevated text-text-secondary font-mono-sm text-mono-sm flex items-center gap-1" title="Hierarchical Ontology">
+<span class="material-symbols-outlined text-[14px]">account_tree</span>
+<span class="hidden md:inline">Hierarchy</span>
+</button>
+</div>
+<button class="px-space-sm py-1 rounded bg-surface-elevated text-text-secondary hover:text-text-primary font-mono-sm text-mono-sm flex items-center gap-1 transition-all" data-active="false" id="dormant-toggle" onclick="toggleDormant(this)">
+<span class="material-symbols-outlined text-[14px]">visibility_off</span>
+<span>Dormant L8</span>
+</button>
+<div class="flex items-center bg-surface-canvas rounded">
+<button class="w-7 h-7 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-container-high rounded-l" title="Zoom Out">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<span class="font-mono-sm text-mono-sm px-1.5 text-text-muted">100%</span>
+<button class="w-7 h-7 flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-surface-container-high rounded-r" title="Zoom In">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Canvas & Inspector Work Area -->
+<div class="flex flex-col lg:flex-row w-full flex-1 relative overflow-hidden bg-surface-canvas">
+<!-- Central Cybernetic Visual Graph Canvas -->
+<div class="relative flex-1 min-h-[640px] h-[calc(100vh-140px)] overflow-hidden select-none bg-[#090a0c]">
+<!-- Graph Legend Overlay (Top Left) -->
+<div class="absolute top-space-md left-space-md z-20 bg-surface-panel/90 backdrop-blur-sm p-space-sm rounded shadow-lg flex flex-col gap-1.5 pointer-events-auto">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full ring-2 ring-secondary bg-surface-panel"></span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">Entity Node (Ontological Core)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-primary ring-2 ring-amber-dim"></span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">Slot Binding (Attribute)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rotate-45 bg-[#c084fc] inline-block"></span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">Event Node (Temporal Transition)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-[1px] bg-[#38bdf8]"></span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">Utterance / Propositional Claim</span>
+</div>
+<div class="flex items-center gap-2 pt-1 border-t border-border-subtle">
+<span class="w-4 h-0.5 border-t border-dashed border-text-muted inline-block"></span>
+<span class="font-mono-sm text-mono-sm text-text-muted">L8 Dormant (Direct Match Only)</span>
+</div>
+</div>
+<!-- Canvas Interactive Minimap Overlay (Bottom Left) -->
+<div class="absolute bottom-space-md left-space-md z-20 bg-surface-panel/85 p-space-xs rounded shadow-md pointer-events-auto flex flex-col gap-1">
+<div class="flex items-center justify-between px-1">
+<span class="font-label-caps text-label-caps text-text-muted">GRAPH TOPOLOGY VIEWPORT</span>
+<span class="font-mono-sm text-[10px] text-emerald-active">LIVE</span>
+</div>
+<div class="w-36 h-20 bg-surface-canvas relative rounded overflow-hidden">
+<div class="absolute top-4 left-6 w-2 h-2 rounded-full bg-secondary"></div>
+<div class="absolute top-8 left-14 w-2 h-2 rounded-full bg-primary"></div>
+<div class="absolute top-10 left-24 w-2 h-2 rounded-full bg-[#c084fc]"></div>
+<div class="absolute top-12 left-8 w-1.5 h-1.5 rounded-full bg-text-muted opacity-40"></div>
+<div class="absolute inset-2 border border-amber-bright/40 rounded pointer-events-none"></div>
+</div>
+</div>
+<!-- Vector SVG Rendering: Nodes, Directed Beams, Labels -->
+<svg class="w-full h-full absolute inset-0 cursor-grab active:cursor-grabbing" viewbox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<!-- Grid Pattern -->
+<pattern height="40" id="grid-isometric" patternunits="userSpaceOnUse" width="40">
+<path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1b1c1e" stroke-opacity="0.8" stroke-width="0.75"></path>
+<circle cx="0" cy="0" fill="#27272a" r="1"></circle>
+</pattern>
+<!-- Arrow Markers -->
+<marker id="arrow-emerald" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="22" refy="5" viewbox="0 0 10 10">
+<path d="M 0 1 L 10 5 L 0 9 z" fill="#4edea3"></path>
+</marker>
+<marker id="arrow-amber" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="20" refy="5" viewbox="0 0 10 10">
+<path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b"></path>
+</marker>
+<marker id="arrow-purple" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="20" refy="5" viewbox="0 0 10 10">
+<path d="M 0 1 L 10 5 L 0 9 z" fill="#c084fc"></path>
+</marker>
+<marker id="arrow-sky" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="18" refy="5" viewbox="0 0 10 10">
+<path d="M 0 1 L 10 5 L 0 9 z" fill="#38bdf8"></path>
+</marker>
+<marker id="arrow-muted" markerheight="6" markerwidth="6" orient="auto-start-reverse" refx="18" refy="5" viewbox="0 0 10 10">
+<path d="M 0 1 L 10 5 L 0 9 z" fill="#71717a"></path>
+</marker>
+<!-- Glow Filter -->
+<filter height="140%" id="glow-primary" width="140%" x="-20%" y="-20%">
+<fegaussianblur result="blur" stddeviation="6"></fegaussianblur>
+<fecomposite in="SourceGraphic" in2="blur" operator="over"></fecomposite>
+</filter>
+</defs>
+<!-- Subtle Canvas Coordinate Background -->
+<rect fill="url(#grid-isometric)" height="100%" width="100%"></rect>
+<!-- Domain Cluster Ambient Underlays -->
+<circle cx="340" cy="310" fill="#00a572" fill-opacity="0.04" r="190"></circle>
+<circle cx="700" cy="220" fill="#f59e0b" fill-opacity="0.03" r="160"></circle>
+<circle cx="680" cy="510" fill="#c084fc" fill-opacity="0.03" r="150"></circle>
+<!-- Cluster Boundary Labels -->
+<text fill="#4edea3" fill-opacity="0.3" font-family="JetBrains Mono" font-size="11" font-weight="600" letter-spacing="0.1em" x="210" y="150">CLUSTER // REAL_ESTATE & CITIZEN_OBJECTS</text>
+<text fill="#fbbf24" fill-opacity="0.3" font-family="JetBrains Mono" font-size="11" font-weight="600" letter-spacing="0.1em" x="610" y="90">CLUSTER // ARCHITECTURE & C++ CORE</text>
+<text fill="#c084fc" fill-opacity="0.3" font-family="JetBrains Mono" font-size="11" font-weight="600" letter-spacing="0.1em" x="600" y="640">CLUSTER // TEMPORAL EVIDENCE & LOGS</text>
+<!-- Directed Relationship Paths -->
+<g stroke-linecap="round">
+<!-- rickard -> rickards_bil -->
+<path d="M 180 340 L 150 490" marker-end="url(#arrow-emerald)" stroke="#4edea3" stroke-width="1.5"></path>
+<!-- rickard -> brittans_hus (occupant/relation) -->
+<path d="M 210 320 L 330 290" marker-end="url(#arrow-emerald)" stroke="#4edea3" stroke-dasharray="4,2" stroke-width="1.5"></path>
+<!-- brittans_hus -> color = green (Slot Binding) -->
+<path d="M 390 280 L 490 200" marker-end="url(#arrow-amber)" stroke="#f59e0b" stroke-width="2"></path>
+<!-- brittans_hus -> location = Mantorp (Slot Binding) -->
+<path d="M 380 320 L 480 370" marker-end="url(#arrow-amber)" stroke="#f59e0b" stroke-width="1.5"></path>
+<!-- brittans_hus -> house_painted @ T1 (Event) -->
+<path d="M 370 300 L 490 480" marker-end="url(#arrow-purple)" stroke="#c084fc" stroke-width="1.5"></path>
+<!-- house_painted @ T1 -> color = green (Binding caused_by transition) -->
+<path d="M 520 460 Q 560 320 520 220" fill="none" marker-end="url(#arrow-purple)" stroke="#c084fc" stroke-dasharray="3,3" stroke-width="1.2"></path>
+<!-- main.cpp -> main() -->
+<path d="M 720 180 L 850 150" marker-end="url(#arrow-emerald)" stroke="#4edea3" stroke-width="1.5"></path>
+<!-- main.cpp -> NvidiaChatTransport -->
+<path d="M 700 210 L 710 320" marker-end="url(#arrow-emerald)" stroke="#4edea3" stroke-width="1.5"></path>
+<!-- NvidiaChatTransport -> A008_Host -->
+<path d="M 740 350 L 860 360" marker-end="url(#arrow-emerald)" stroke="#4edea3" stroke-width="1.5"></path>
+<!-- NvidiaChatTransport -> provider = nvidia (Slot) -->
+<path d="M 680 360 L 610 420" marker-end="url(#arrow-amber)" stroke="#f59e0b" stroke-width="1.5"></path>
+<!-- claim: rain(tomorrow) -> utterance: Kanal 4 (derived_from) -->
+<path d="M 270 540 L 410 610" marker-end="url(#arrow-sky)" stroke="#38bdf8" stroke-width="1.5"></path>
+<!-- upload:SYSTEMDOC.md -> main.cpp -->
+<path d="M 780 470 L 730 220" fill="none" marker-end="url(#arrow-purple)" stroke="#c084fc" stroke-dasharray="4,2" stroke-width="1.2"></path>
+<!-- Dormant Relations (L8 Dormancy match paths) -->
+<path class="dormant-element opacity-25 transition-opacity duration-300" d="M 180 290 L 190 170" marker-end="url(#arrow-muted)" stroke="#71717a" stroke-dasharray="4,4" stroke-width="1"></path>
+<path class="dormant-element opacity-25 transition-opacity duration-300" d="M 370 260 L 320 160" marker-end="url(#arrow-muted)" stroke="#71717a" stroke-dasharray="4,4" stroke-width="1"></path>
+</g>
+<!-- Semantic Relationship Edge Badges (Inline Labels) -->
+<g font-family="JetBrains Mono" font-size="10" font-weight="500">
+<rect fill="#0d0e10" height="16" rx="3" stroke="#27272a" stroke-width="1" width="58" x="130" y="405"></rect>
+<text fill="#4edea3" x="135" y="416">--owns--></text>
+<rect fill="#0d0e10" height="16" rx="3" stroke="#27272a" stroke-width="1" width="70" x="235" y="295"></rect>
+<text fill="#a1a1aa" x="240" y="306">associates</text>
+<rect fill="#0d0e10" height="16" rx="3" stroke="#27272a" stroke-width="1" width="74" x="410" y="228"></rect>
+<text fill="#f59e0b" x="415" y="239">has_binding</text>
+<rect fill="#0d0e10" height="16" rx="3" stroke="#27272a" stroke-width="1" width="55" x="415" y="335"></rect>
+<text fill="#f59e0b" x="420" y="346">location</text>
+<rect fill="#0d0e10" height="16" rx="3" stroke="#27272a" stroke-width="1" width="84" x="400" y="405"></rect>
+<text fill="#c084fc" x="405" y="416">state_transition</text>
+<rect fill="#0d0e10" height="16" rx="3" stroke="#27272a" stroke-width="1" width="80" x="535" y="310"></rect>
+<text fill="#c084fc" x="540" y="321">caused_by</text>
+<rect fill="#0d0e10" height="16" rx="3" stroke="#27272a" stroke-width="1" width="76" x="745" y="150"></rect>
+<text fill="#4edea3" x="750" y="161">--contains--></text>
+<rect fill="#0d0e10" height="16" rx="3" stroke="#27272a" stroke-width="1" width="98" x="290" y="565"></rect>
+<text fill="#38bdf8" x="295" y="576">--derived_from--></text>
+</g>
+<!-- Nodes Render Group -->
+<g class="cursor-pointer">
+<!-- ENTITY 1: brittans_hus (ACTIVE / SELECTED) -->
+<g onclick="selectNode('ent_brittans_hus_01', 'Entity Node', 'brittans_hus', 'real_estate', 'ACTIVE [L8_INSPECT]', 64)">
+<!-- Outer Halo Glow -->
+<circle cx="360" cy="290" fill="#10b981" fill-opacity="0.15" r="28"></circle>
+<circle cx="360" cy="290" fill="#181a1d" r="22" stroke="#10b981" stroke-width="2.5"></circle>
+<circle cx="360" cy="290" fill="#4edea3" r="7"></circle>
+<rect fill="#131416" height="20" rx="3" stroke="#10b981" stroke-width="1" width="110" x="305" y="320"></rect>
+<text fill="#f4f4f5" font-family="Inter" font-size="12" font-weight="600" text-anchor="middle" x="360" y="334">brittans_hus</text>
+<text fill="#4edea3" font-family="JetBrains Mono" font-size="9" text-anchor="middle" x="360" y="348">ENT: 0x8F4A</text>
+</g>
+<!-- ENTITY 2: rickard -->
+<g onclick="selectNode('ent_rickard_90a', 'Entity Node', 'rickard', 'citizens', 'ACTIVE', 32)">
+<circle cx="190" cy="330" fill="#181a1d" r="18" stroke="#4edea3" stroke-width="1.5"></circle>
+<circle cx="190" cy="330" fill="#4edea3" r="5"></circle>
+<rect fill="#131416" height="18" rx="2" stroke="#27272a" stroke-width="1" width="70" x="155" y="354"></rect>
+<text fill="#f4f4f5" font-family="Inter" font-size="11" font-weight="600" text-anchor="middle" x="190" y="367">rickard</text>
+</g>
+<!-- ENTITY 3: rickards_bil -->
+<g onclick="selectNode('ent_rickards_bil_12', 'Entity Node', 'rickards_bil', 'real_estate', 'ACTIVE', 28)">
+<circle cx="140" cy="510" fill="#181a1d" r="17" stroke="#4edea3" stroke-width="1.5"></circle>
+<circle cx="140" cy="510" fill="#4edea3" r="4"></circle>
+<rect fill="#131416" height="18" rx="2" stroke="#27272a" stroke-width="1" width="90" x="95" y="534"></rect>
+<text fill="#f4f4f5" font-family="Inter" font-size="11" font-weight="600" text-anchor="middle" x="140" y="547">rickards_bil</text>
+</g>
+<!-- ENTITY 4: main.cpp -->
+<g onclick="selectNode('ent_main_cpp_00', 'Entity Node', 'main.cpp', 'source_code', 'ACTIVE', 80)">
+<circle cx="700" cy="190" fill="#181a1d" r="20" stroke="#4edea3" stroke-width="1.5"></circle>
+<circle cx="700" cy="190" fill="#4edea3" r="5"></circle>
+<rect fill="#131416" height="18" rx="2" stroke="#27272a" stroke-width="1" width="90" x="655" y="216"></rect>
+<text fill="#f4f4f5" font-family="JetBrains Mono" font-size="11" font-weight="600" text-anchor="middle" x="700" y="229">main.cpp</text>
+</g>
+<!-- ENTITY 5: NvidiaChatTransport -->
+<g onclick="selectNode('ent_nv_transport_77', 'Entity Node', 'NvidiaChatTransport', 'architecture', 'ACTIVE', 96)">
+<circle cx="720" cy="340" fill="#181a1d" r="20" stroke="#4edea3" stroke-width="1.5"></circle>
+<circle cx="720" cy="340" fill="#4edea3" r="6"></circle>
+<rect fill="#131416" height="18" rx="2" stroke="#27272a" stroke-width="1" width="160" x="640" y="366"></rect>
+<text fill="#f4f4f5" font-family="JetBrains Mono" font-size="11" font-weight="600" text-anchor="middle" x="720" y="379">NvidiaChatTransport</text>
+</g>
+<!-- ENTITY 6: A008_Host -->
+<g onclick="selectNode('ent_a008_host_01', 'Entity Node', 'A008_Host', 'architecture', 'CORE_SYS', 112)">
+<circle cx="880" cy="370" fill="#181a1d" r="22" stroke="#4edea3" stroke-width="2"></circle>
+<circle cx="880" cy="370" fill="#10b981" r="6"></circle>
+<rect fill="#131416" height="18" rx="2" stroke="#27272a" stroke-width="1" width="100" x="830" y="398"></rect>
+<text fill="#f4f4f5" font-family="JetBrains Mono" font-size="11" font-weight="600" text-anchor="middle" x="880" y="411">A008_Host</text>
+</g>
+<!-- ENTITY 7: main() function -->
+<g onclick="selectNode('ent_fn_main_core', 'Entity Node', 'main()', 'source_code', 'ACTIVE', 24)">
+<circle cx="870" cy="140" fill="#181a1d" r="16" stroke="#4edea3" stroke-width="1.5"></circle>
+<circle cx="870" cy="140" fill="#4edea3" r="4"></circle>
+<rect fill="#131416" height="18" rx="2" stroke="#27272a" stroke-width="1" width="70" x="835" y="162"></rect>
+<text fill="#f4f4f5" font-family="JetBrains Mono" font-size="11" font-weight="500" text-anchor="middle" x="870" y="175">main()</text>
+</g>
+<!-- SLOT BINDING 1: color = green -->
+<g onclick="selectNode('slot_color_green_t2', 'Slot Binding Node', 'color = green', 'real_estate', 'VALID_TIMELINE', 16)">
+<circle cx="510" cy="190" fill="#1f2022" r="15" stroke="#f59e0b" stroke-width="2"></circle>
+<circle cx="510" cy="190" fill="#fbbf24" r="4"></circle>
+<rect fill="#181a1d" height="20" rx="2" stroke="#f59e0b" stroke-width="1" width="130" x="445" y="145"></rect>
+<text fill="#fbbf24" font-family="JetBrains Mono" font-size="11" font-weight="600" text-anchor="middle" x="510" y="159">color = green [T2, -)</text>
+</g>
+<!-- SLOT BINDING 2: location = Mantorp -->
+<g onclick="selectNode('slot_loc_mantorp', 'Slot Binding Node', 'location = Mantorp', 'real_estate', 'STATIC_SLOT', 14)">
+<circle cx="500" cy="380" fill="#1f2022" r="14" stroke="#f59e0b" stroke-width="1.5"></circle>
+<circle cx="500" cy="380" fill="#fbbf24" r="3"></circle>
+<rect fill="#181a1d" height="18" rx="2" stroke="#27272a" stroke-width="1" width="130" x="435" y="400"></rect>
+<text fill="#f4f4f5" font-family="JetBrains Mono" font-size="11" text-anchor="middle" x="500" y="413">location = Mantorp</text>
+</g>
+<!-- SLOT BINDING 3: provider = nvidia -->
+<g onclick="selectNode('slot_prov_nvidia', 'Slot Binding Node', 'provider = nvidia', 'runtime', 'STATIC_SLOT', 18)">
+<circle cx="590" cy="430" fill="#1f2022" r="14" stroke="#f59e0b" stroke-width="1.5"></circle>
+<circle cx="590" cy="430" fill="#fbbf24" r="3"></circle>
+<rect fill="#181a1d" height="18" rx="2" stroke="#27272a" stroke-width="1" width="120" x="530" y="450"></rect>
+<text fill="#fbbf24" font-family="JetBrains Mono" font-size="11" text-anchor="middle" x="590" y="463">provider = nvidia</text>
+</g>
+<!-- EVENT NODE 1: house_painted @ T1 -->
+<g onclick="selectNode('ev_house_painted_t1', 'Event Node', 'house_painted @ T1', 'local_evidence', 'PROCESSED_EVENT', 42)">
+<g transform="translate(510, 490) rotate(45)">
+<rect fill="#181a1d" height="22" stroke="#c084fc" stroke-width="2" width="22" x="-11" y="-11"></rect>
+<rect fill="#c084fc" height="8" width="8" x="-4" y="-4"></rect>
+</g>
+<rect fill="#131416" height="20" rx="2" stroke="#c084fc" stroke-width="1" width="140" x="440" y="515"></rect>
+<text fill="#e3e2e4" font-family="JetBrains Mono" font-size="11" text-anchor="middle" x="510" y="529">house_painted @ T1</text>
+</g>
+<!-- EVENT NODE 2: upload:SYSTEMDOC.md -->
+<g onclick="selectNode('ev_upload_sysdoc_09', 'Event Node', 'upload:SYSTEMDOC.md', 'evidence', 'INGESTED', 56)">
+<g transform="translate(800, 480) rotate(45)">
+<rect fill="#181a1d" height="20" stroke="#c084fc" stroke-width="1.5" width="20" x="-10" y="-10"></rect>
+<rect fill="#c084fc" height="6" width="6" x="-3" y="-3"></rect>
+</g>
+<rect fill="#131416" height="18" rx="2" stroke="#27272a" stroke-width="1" width="160" x="720" y="505"></rect>
+<text fill="#e3e2e4" font-family="JetBrains Mono" font-size="10" text-anchor="middle" x="800" y="518">upload:SYSTEMDOC.md</text>
+</g>
+<!-- UTTERANCE / CLAIM NODE 1: claim: rain(tomorrow) -->
+<g onclick="selectNode('claim_rain_tom_01', 'Claim Node', 'claim: rain(tomorrow) [asserted]', 'user_assertions', 'ASSERTED', 22)">
+<rect fill="#181a1d" height="18" rx="2" stroke="#38bdf8" stroke-width="1.8" width="18" x="200" y="530"></rect>
+<rect fill="#38bdf8" height="10" width="10" x="204" y="534"></rect>
+<rect fill="#131416" height="20" rx="2" stroke="#38bdf8" stroke-width="1" width="180" x="120" y="555"></rect>
+<text fill="#f4f4f5" font-family="JetBrains Mono" font-size="10.5" text-anchor="middle" x="210" y="569">claim: rain(tomorrow) [asserted]</text>
+</g>
+<!-- UTTERANCE / CLAIM NODE 2: utterance: Kanal 4 -->
+<g onclick="selectNode('utt_kanal4_audio', 'Utterance Node', 'utterance: Kanal 4', 'evidence', 'RAW_SIGNAL', 30)">
+<rect fill="#181a1d" height="16" rx="2" stroke="#38bdf8" stroke-width="1.5" width="16" x="430" y="615"></rect>
+<rect fill="#38bdf8" height="8" width="8" x="434" y="619"></rect>
+<rect fill="#131416" height="18" rx="2" stroke="#27272a" stroke-width="1" width="130" x="375" y="638"></rect>
+<text fill="#a1a1aa" font-family="JetBrains Mono" font-size="10.5" text-anchor="middle" x="440" y="651">utterance: Kanal 4</text>
+</g>
+<!-- DORMANT NODES (L8 Demonstration: Dash border & Muted opacity) -->
+<g class="dormant-element opacity-25 transition-opacity duration-300" onclick="selectNode('dormant_solna_hist', 'Entity Node (Dormant)', 'solna_fastighet_arkiv', 'real_estate', 'DORMANT (L8_INACTIVE)', 40)">
+<circle cx="200" cy="140" fill="#131416" r="16" stroke="#71717a" stroke-dasharray="3,3" stroke-width="1.5"></circle>
+<rect fill="#0d0e10" height="18" rx="2" stroke="#3f3f46" stroke-dasharray="2,2" stroke-width="1" width="130" x="135" y="164"></rect>
+<text fill="#71717a" font-family="JetBrains Mono" font-size="10" text-anchor="middle" x="200" y="177">solna_fastighet_arkiv</text>
+</g>
+<g class="dormant-element opacity-25 transition-opacity duration-300" onclick="selectNode('dormant_legacy_proto', 'Entity Node (Dormant)', 'TCPTransport_v1', 'architecture', 'DORMANT (L8_INACTIVE)', 52)">
+<circle cx="310" cy="130" fill="#131416" r="16" stroke="#71717a" stroke-dasharray="3,3" stroke-width="1.5"></circle>
+<rect fill="#0d0e10" height="18" rx="2" stroke="#3f3f46" stroke-dasharray="2,2" stroke-width="1" width="110" x="255" y="154"></rect>
+<text fill="#71717a" font-family="JetBrains Mono" font-size="10" text-anchor="middle" x="310" y="167">TCPTransport_v1</text>
+</g>
+</g>
+</svg>
+<!-- Floating Controls: Graph HUD Metadata (Bottom Right) -->
+<div class="absolute bottom-space-md right-space-md z-20 flex items-center gap-space-xs bg-surface-panel/90 backdrop-blur-sm px-space-sm py-1.5 rounded shadow-lg pointer-events-auto">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">ENGINE:</span>
+<span class="font-mono-sm text-mono-sm text-text-primary">L8_KMM_FORCE_SIM</span>
+<span class="h-3 w-[1px] bg-border-subtle mx-1"></span>
+<span class="font-label-caps text-label-caps text-text-muted uppercase">RENDER:</span>
+<span class="font-mono-sm text-mono-sm text-emerald-active">60 FPS</span>
+</div>
+</div>
+<!-- Side Inspector Drawer (Graph Node Properties) -->
+<div class="w-full lg:w-telemetry-panel-width flex-shrink-0 bg-surface-panel flex flex-col justify-between shadow-xl">
+<div class="flex flex-col">
+<!-- Inspector Header -->
+<div class="p-space-md bg-surface-elevated flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-amber-bright text-[18px]">account_tree</span>
+<span class="font-headline-md text-headline-md uppercase tracking-wide text-text-primary">Node Inspector</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-emerald-active px-space-xs py-0.5 rounded bg-surface-container-lowest" id="inspector-status">
+            ACTIVE [L8_INSPECT]
+          </span>
+</div>
+<!-- Node Core Entity Details -->
+<div class="p-space-md flex flex-col gap-space-sm">
+<div class="flex flex-col gap-0.5">
+<span class="font-label-caps text-label-caps text-text-muted uppercase" id="inspector-type">Entity Node</span>
+<div class="flex items-baseline justify-between">
+<span class="font-headline-xl text-headline-xl text-text-primary font-mono truncate" id="inspector-title">brittans_hus</span>
+<span class="font-mono-sm text-mono-sm text-amber-bright">0x8F4A</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-space-xs bg-surface-container-lowest p-space-xs rounded">
+<div>
+<span class="font-label-caps text-label-caps text-text-muted uppercase block">DOMAIN</span>
+<span class="font-mono-sm text-mono-sm text-text-primary" id="inspector-domain">real_estate, local_evidence</span>
+</div>
+<div>
+<span class="font-label-caps text-label-caps text-text-muted uppercase block">L8 EXPAND</span>
+<span class="font-mono-sm text-mono-sm text-emerald-active">ENABLED</span>
+</div>
+</div>
+</div>
+<!-- Tabbed Inspector Segments -->
+<div class="flex items-center bg-surface-container-lowest px-space-sm">
+<button class="tab-btn font-label-caps text-label-caps uppercase px-space-sm py-2 text-amber-bright border-b-2 border-primary" id="tab-btn-relations" onclick="switchTab('relations')">
+            RELATIONS & SLOTS
+          </button>
+<button class="tab-btn font-label-caps text-label-caps uppercase px-space-sm py-2 text-text-muted hover:text-text-secondary" id="tab-btn-payload" onclick="switchTab('payload')">
+            JSON SCHEMA (§9.3)
+          </button>
+</div>
+<!-- Tab 1: Relations and Direct Slots -->
+<div class="tab-pane p-space-md flex flex-col gap-space-md overflow-y-auto max-h-[440px]" id="tab-content-relations">
+<!-- Direct Slot Bindings Card -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-text-muted uppercase tracking-wide">DIRECT SLOT BINDINGS</span>
+<span class="font-mono-sm text-[10px] text-amber-bright">2 ACTIVE SLOTS</span>
+</div>
+<div class="flex flex-col gap-1.5">
+<!-- Slot 1 -->
+<div class="p-space-xs bg-surface-container-lowest rounded flex flex-col gap-1">
+<div class="flex items-center justify-between font-mono-sm text-mono-sm">
+<span class="text-text-secondary font-semibold">color:</span>
+<span class="text-emerald-active font-mono bg-surface-canvas px-1 rounded">green</span>
+</div>
+<div class="flex items-center justify-between text-[10px] font-mono-sm text-text-muted">
+<span>VALIDITY: [T2, -)</span>
+<span>CONF: 0.98</span>
+</div>
+</div>
+<!-- Slot 2 -->
+<div class="p-space-xs bg-surface-container-lowest rounded flex flex-col gap-1">
+<div class="flex items-center justify-between font-mono-sm text-mono-sm">
+<span class="text-text-secondary font-semibold">location:</span>
+<span class="text-text-primary font-mono bg-surface-canvas px-1 rounded">Mantorp</span>
+</div>
+<div class="flex items-center justify-between text-[10px] font-mono-sm text-text-muted">
+<span>VALIDITY: STATIC</span>
+<span>CONF: 1.00</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Connected 1-Hop Relations (L8 Associative Expansion) -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-text-muted uppercase tracking-wide">1-HOP RELATIONS (L8 EXPAND)</span>
+<span class="font-mono-sm text-[10px] text-emerald-active">3 LINKS</span>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between p-space-xs bg-surface-container-lowest rounded hover:bg-surface-elevated transition-colors">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="font-body-sm text-body-sm text-text-primary">rickard</span>
+</div>
+<span class="font-mono-sm text-[11px] text-text-muted">occupant</span>
+</div>
+<div class="flex items-center justify-between p-space-xs bg-surface-container-lowest rounded hover:bg-surface-elevated transition-colors">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-[1px] bg-[#c084fc]"></span>
+<span class="font-body-sm text-body-sm text-text-primary">event:house_painted</span>
+</div>
+<span class="font-mono-sm text-[11px] text-amber-bright">transition_target</span>
+</div>
+<div class="flex items-center justify-between p-space-xs bg-surface-container-lowest rounded hover:bg-surface-elevated transition-colors dormant-element opacity-30">
+<div class="flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-text-muted"></span>
+<span class="font-body-sm text-body-sm text-text-muted italic">solna_fastighet_arkiv</span>
+</div>
+<span class="font-mono-sm text-[11px] text-text-muted">dormant_ref</span>
+</div>
+</div>
+</div>
+<!-- Memory Tier Association Graph Weights -->
+<div class="p-space-xs rounded bg-surface-canvas flex flex-col gap-1.5">
+<div class="flex items-center justify-between text-[11px] font-mono-sm">
+<span class="text-text-muted">ASSOCIATION WEIGHT (L8)</span>
+<span class="text-amber-bright">0.892</span>
+</div>
+<div class="w-full bg-surface-container-high h-1 rounded overflow-hidden">
+<div class="bg-amber-bright h-full w-[89%]"></div>
+</div>
+</div>
+</div>
+<!-- Tab 2: Projected JSON Payload Preview (Matches §9.3) -->
+<div class="tab-pane hidden p-space-md flex flex-col gap-space-xs" id="tab-content-payload">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">SERIALIZED MEMORY PAYLOAD (§9.3)</span>
+<button class="font-mono-sm text-mono-sm text-amber-bright hover:underline" onclick="navigator.clipboard.writeText(document.getElementById('inspector-json').innerText)">COPY</button>
+</div>
+<pre class="p-space-sm rounded bg-terminal-scrim text-emerald-active font-mono-sm text-mono-sm overflow-x-auto max-h-[360px] leading-relaxed select-all" id="inspector-json">{
+  "@schema": "A008_KMM_v2.4",
+  "entity_id": "ent_brittans_hus_01",
+  "primary_label": "brittans_hus",
+  "domain_membership": [
+    "real_estate",
+    "local_evidence"
+  ],
+  "slots": {
+    "color": {
+      "value": "green",
+      "valid_from": "T2",
+      "valid_to": null,
+      "assertion_ref": "ev_house_painted_t1"
+    },
+    "location": {
+      "value": "Mantorp",
+      "valid_from": "T0",
+      "valid_to": null
+    }
+  },
+  "activation_layer": "L8_EXPAND",
+  "salience_weight": 0.892,
+  "token_footprint": 64
+}</pre>
+</div>
+</div>
+<!-- Inspector Footer Action Bar -->
+<div class="p-space-md bg-surface-panel flex items-center justify-between gap-space-xs">
+<button class="flex-1 py-1.5 px-space-xs bg-surface-elevated hover:bg-surface-container-high rounded text-text-primary font-mono-sm text-mono-sm flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[14px]">edit_note</span>
+<span>Edit Slot</span>
+</button>
+<button class="flex-1 py-1.5 px-space-xs bg-primary hover:bg-amber-bright text-on-primary font-mono-sm text-mono-sm font-semibold rounded flex items-center justify-center gap-1 shadow-sm transition-colors">
+<span class="material-symbols-outlined text-[14px]">fork_right</span>
+<span>Expand L8</span>
+</button>
+</div>
+</div>
+</div>
+</div></main></div></body></html>

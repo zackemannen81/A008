@@ -159,6 +159,10 @@ export async function startFakeNvidiaServer(
       const streaming = payload.stream !== false;
       const envelope = semanticEnvelope(payload);
       if (!streaming || envelope !== undefined) {
+        if (envelope?.operation === "retrieval_scope") {
+          writeJson(response, { domains: [], relatedDomains: [] });
+          return;
+        }
         if (envelope?.operation === "knowledge_analysis") {
           writeJson(response, options.analyze?.(envelope.input) ?? []);
           return;

@@ -69,6 +69,9 @@ backed by atomic local persistence and verified actual invocation behavior.
 - [x] Read authority, inspect live limits and instruction composition, claim on main.
 - [ ] Implement settings contract, persistence and runtime snapshot wiring.
 - [ ] Implement global GUI settings and actionable budget feedback.
+- [ ] Repair the discovered generator allowlist refusal of retrieval_scope so
+  its configured input/output/vocabulary budgets reach an actual invocation;
+  require non-empty actual scope-call evidence in regression tests.
 - [ ] Verify, document, archive and hand off.
 
 ## Decisions and Notes

@@ -38,6 +38,8 @@ import {
 import { promptToText } from "./prompt-content.js";
 
 export interface AcpTurnSession {
+  readonly runtimePreferences?: import("../core/runtime-preferences.js").RuntimePreferencesSnapshot;
+  configureRuntimePreferences?(value: unknown, revision: string): void;
   readonly messages?: readonly ChatMessage[];
   readonly parameters?: SessionParameters;
   reset?(): void;
@@ -512,6 +514,10 @@ export class A008AcpAgent {
       if (state.chat.configureParameters === undefined) throw RequestError.methodNotFound("session parameters");
       state.chat.configureParameters(parsed);
     }
+    if (control.action === "configureRuntime") {
+      if (state.chat.configureRuntimePreferences === undefined) throw RequestError.methodNotFound("runtime settings");
+      state.chat.configureRuntimePreferences(control.settings, control.revision);
+    }
     if (control.action === "reset") {
       if (state.chat.reset === undefined) throw RequestError.methodNotFound("session reset");
       state.chat.reset();
@@ -525,7 +531,9 @@ export class A008AcpAgent {
   }
 
   #sessionSnapshot(state: AcpSessionState): SessionSnapshot {
+    const runtimePreferences = state.chat?.runtimePreferences;
     return {
+      ...(runtimePreferences === undefined ? {} : { runtimePreferences }),
       model: state.model,
       parameters: state.chat?.parameters ?? defaultSessionParameters(this.#registry.require(state.model)),
       messages: (state.chat?.messages ?? []).flatMap(message => message.role === "system" ? [] : [{ role: message.role, content: message.content }]),

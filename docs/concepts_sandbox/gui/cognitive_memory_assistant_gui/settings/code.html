@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@100..900&display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {"darkMode":"class","theme":{"extend":{"colors":{"surface-container-highest":"#343537","primary-fixed-dim":"#ffb95f","amber-bright":"#fbbf24","surface-container":"#1f2022","on-primary-fixed":"#2a1700","surface":"#121315","surface-variant":"#343537","surface-canvas":"#0c0d0e","amber-dim":"#b45309","tertiary":"#ffc08e","tertiary-fixed":"#ffdcc3","secondary":"#4edea3","surface-container-low":"#1b1c1e","border-strong":"#3f3f46","surface-dim":"#121315","on-secondary-fixed":"#002113","surface-highlight":"#212428","on-tertiary-container":"#6a3700","surface-bright":"#38393b","terminal-scrim":"#090a0b","on-secondary":"#003824","on-secondary-fixed-variant":"#005236","on-secondary-container":"#00311f","on-error":"#690005","on-surface":"#e3e2e4","surface-panel":"#131416","on-surface-variant":"#d8c3ad","error":"#ffb4ab","surface-container-high":"#292a2c","primary-container":"#f59e0b","on-primary-container":"#613b00","border-subtle":"#27272a","emerald-active":"#10b981","thought-stream-bg":"#121316","on-tertiary":"#4d2600","secondary-fixed-dim":"#4edea3","text-muted":"#71717a","tertiary-fixed-dim":"#ffb77d","primary":"#ffc174","outline":"#a08e7a","primary-fixed":"#ffddb8","on-error-container":"#ffdad6","on-background":"#e3e2e4","on-primary":"#472a00","inverse-on-surface":"#303032","secondary-container":"#00a572","outline-variant":"#534434","surface-tint":"#ffb95f","on-tertiary-fixed":"#2f1500","text-primary":"#f4f4f5","inverse-primary":"#855300","secondary-fixed":"#6ffbbe","surface-container-lowest":"#0d0e10","on-primary-fixed-variant":"#653e00","emerald-glow":"#059669","background":"#121315","inverse-surface":"#e3e2e4","text-secondary":"#a1a1aa","tertiary-container":"#ff9837","error-container":"#93000a","surface-elevated":"#181a1d","on-tertiary-fixed-variant":"#6e3900"},"borderRadius":{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},"spacing":{"space-xl":"20px","space-3xl":"32px","composer-height":"120px","space-xxs":"2px","space-lg":"16px","space-sm":"8px","telemetry-panel-width":"340px","space-2xl":"24px","space-xs":"4px","sidebar-width":"260px","header-height":"40px","space-md":"12px"},"fontFamily":{"thought-stream":["Inter"],"headline-md":["Inter"],"body-md":["Inter"],"body-sm":["Inter"],"body-lg":["Inter"],"mono-lg":["JetBrains Mono"],"mono-md":["JetBrains Mono"],"headline-xl":["Inter"],"mono-sm":["JetBrains Mono"],"headline-lg":["Inter"],"label-caps":["JetBrains Mono"]},"fontSize":{"thought-stream":["12.5px",{"lineHeight":"20px","fontWeight":"400"}],"headline-md":["14px",{"lineHeight":"20px","fontWeight":"600"}],"body-md":["13px",{"lineHeight":"20px","fontWeight":"400"}],"body-sm":["12px",{"lineHeight":"18px","fontWeight":"400"}],"body-lg":["14px",{"lineHeight":"22px","fontWeight":"400"}],"mono-lg":["13px",{"lineHeight":"20px","fontWeight":"500"}],"mono-md":["12px",{"lineHeight":"18px","fontWeight":"400"}],"headline-xl":["20px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"mono-sm":["11px",{"lineHeight":"16px","fontWeight":"400"}],"headline-lg":["16px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"600"}],"label-caps":["10px",{"lineHeight":"14px","letterSpacing":"0.08em","fontWeight":"600"}]}}}};</script></head><body class="bg-surface-canvas text-text-primary antialiased selection:bg-primary selection:text-on-primary"><header class="fixed top-0 left-0 right-0 z-50 h-10 bg-surface-panel shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="w-full h-full px-space-md flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md min-w-0 flex-shrink-0"><img alt="A008 Monogram Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1X_QbXm8jXkUd-roJ9B3vpZIZFm2FjiX6hztqw5-muIeqCjj9NLzMFSXdh4MdWzSYQaiO7uoSC5uaXX4e5URi5Oo7mkpR5DWZHF21OWEMr07cf1uvXv0N85sVD6bzFXRmN6hF8o_P3oaLi60D4SYL515CRu4GG8YDHovGOj5J2iFd0E7u_IiBytSslHntL43Qszen93kXk77dWFph6OVXHN_QY-pSB17eDdEREfKdVKBtJyd8gb3DF-Gz0"/><div class="flex items-center gap-space-xs"><span class="font-headline-md text-headline-md tracking-tight text-text-primary uppercase">A008</span><span class="font-mono-sm text-mono-sm text-amber-bright uppercase px-space-xs py-space-xxs bg-surface-container-high rounded">AI CLIENT</span></div><div class="h-4 w-[1px] bg-border-subtle"></div><div class="flex items-center gap-space-xs px-space-xs py-space-xxs rounded bg-surface-elevated"><span class="w-2 h-2 rounded-full bg-emerald-active shadow-[0_0_8px_rgba(16,185,129,0.45)]"></span><span class="font-mono-sm text-mono-sm text-emerald-active uppercase tracking-wide">CONNECTED</span><span class="font-mono-sm text-mono-sm text-text-muted">:</span><span class="font-mono-sm text-mono-sm text-text-secondary truncate max-w-[220px]">nvidia/nemotron-3.5-lightning-30b-a3b</span></div><div class="hidden xl:flex items-center gap-space-xs px-space-xs py-space-xxs rounded bg-surface-elevated"><span class="font-mono-sm text-mono-sm text-amber-bright">24ms</span><span class="font-mono-sm text-mono-sm text-text-muted">LATENCY</span></div></div><div class="flex items-center gap-space-md flex-shrink-0"><div class="hidden md:flex items-center gap-space-xs px-space-sm py-space-xxs rounded bg-surface-container-lowest"><span class="font-label-caps text-label-caps text-text-muted uppercase">SESSION</span><span class="font-mono-sm text-mono-sm text-text-secondary">A008_v1_acp_session_8f4a1c</span></div><button class="flex items-center justify-center w-7 h-7 rounded text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-colors" title="Toggle Telemetry" type="button"><span class="material-symbols-outlined text-[16px]">terminal</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><aside class="fixed left-0 top-10 bottom-0 w-sidebar-width bg-surface-panel z-40 flex flex-col justify-between p-space-sm"><div class="flex flex-col gap-space-md"><div class="px-space-xs py-space-xs"><span class="font-label-caps text-label-caps text-text-muted uppercase tracking-wider">ORCHESTRATION</span></div><nav class="flex flex-col gap-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-semibold rounded"><a class="flex items-center justify-between px-space-sm py-space-xs text-text-secondary hover:bg-surface-container-high hover:text-on-surface rounded transition-colors" data-path="chat-view" href="#"><span class="font-headline-md text-headline-md">Chat View</span><span class="font-mono-sm text-mono-sm text-text-muted">/chat</span></a><a class="flex items-center justify-between px-space-sm py-space-xs text-text-secondary hover:bg-surface-container-high hover:text-on-surface rounded transition-colors" data-path="memory-view" href="#"><span class="font-headline-md text-headline-md">Memory View</span><span class="font-mono-sm text-mono-sm text-text-muted">/memory</span></a><a class="flex items-center justify-between px-space-sm py-space-xs text-text-secondary hover:bg-surface-container-high hover:text-on-surface rounded transition-colors" data-path="memory-map" href="#"><span class="font-headline-md text-headline-md">Memory Map</span><span class="font-mono-sm text-mono-sm text-text-muted">/map</span></a><a class="flex items-center justify-between px-space-sm py-space-xs text-text-secondary hover:bg-surface-container-high hover:text-on-surface rounded transition-colors" data-path="new-project-setup" href="#"><span class="font-headline-md text-headline-md">New Project</span><span class="font-mono-sm text-mono-sm text-text-muted">/project</span></a><a aria-current="page" class="flex items-center justify-between px-space-sm py-space-xs transition-colors bg-primary-container text-on-primary-container font-semibold rounded" data-path="settings" href="#"><span class="font-headline-md text-headline-md">Settings</span><span class="font-mono-sm text-mono-sm text-text-muted">/config</span></a></nav></div><div class="p-space-sm rounded bg-surface-container-lowest flex flex-col gap-space-xs"><div class="flex items-center justify-between"><span class="font-label-caps text-label-caps text-text-muted uppercase">RUNTIME STATE</span><span class="font-mono-sm text-mono-sm text-emerald-active">READY</span></div><div class="flex items-center justify-between font-mono-sm text-mono-sm"><span class="text-text-muted">CONTEXT</span><span class="text-text-secondary">14,204 / 32k</span></div><div class="w-full bg-surface-container-high h-1 rounded"><div class="bg-amber-bright h-1 rounded w-[44%]"></div></div></div></aside><div class="pl-sidebar-width"><main class="relative pt-10 bg-surface-canvas min-h-screen"><div class="flex flex-col w-full">
+<!-- Sub-Header Workspace Identity Strip -->
+<section class="w-full bg-surface-panel px-space-xl py-space-md shadow-sm">
+<div class="flex flex-wrap items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md min-w-0">
+<div class="w-9 h-9 rounded bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">tune</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-caps text-label-caps text-amber-bright uppercase tracking-widest">SYSTEM SPEC // v1.4.2-STABLE</span>
+<span class="font-mono-sm text-mono-sm text-text-muted">•</span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">SYSTEMDOC.md ENFORCED</span>
+</div>
+<span class="font-headline-lg text-headline-lg text-text-primary">System Orchestration & Runtime Controls</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm flex-wrap">
+<div class="flex items-center gap-space-xs px-space-sm py-space-xxs rounded bg-surface-container-lowest">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-active shadow-[0_0_6px_rgba(16,185,129,0.7)]"></span>
+<span class="font-label-caps text-label-caps text-text-secondary uppercase">DAEMON LOCK</span>
+<span class="font-mono-sm text-mono-sm text-emerald-active">PID: 49202</span>
+</div>
+<button class="flex items-center gap-space-xs px-space-md py-space-xs rounded bg-surface-container-high text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">restart_alt</span>
+<span class="font-mono-sm text-mono-sm uppercase">Hot Reload Daemon</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Settings Split Architecture Workstation -->
+<div class="w-full grid grid-cols-1 xl:grid-cols-12 gap-space-xl p-space-xl">
+<!-- Navigation Pane / Category Anchor Strip (3 cols) -->
+<aside class="xl:col-span-3 flex flex-col gap-space-md">
+<div class="p-space-md rounded bg-surface-panel flex flex-col gap-space-sm shadow-md">
+<div class="flex items-center justify-between pb-space-xs">
+<span class="font-label-caps text-label-caps text-text-muted uppercase tracking-wider">SUBSYSTEM SLOTS</span>
+<span class="font-mono-sm text-mono-sm text-amber-bright">06 ACTIVE</span>
+</div>
+<nav class="flex flex-col gap-space-xxs" id="settings-nav-group">
+<button class="settings-nav-item w-full flex items-center justify-between px-space-md py-space-sm rounded bg-surface-highlight text-text-primary transition-colors text-left group" data-target="section-credentials" type="button">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[16px] text-amber-bright">key</span>
+<span class="font-headline-md text-headline-md">Runtime & Credentials</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-emerald-active">PASS</span>
+</button>
+<button class="settings-nav-item w-full flex items-center justify-between px-space-md py-space-sm rounded bg-transparent text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors text-left group" data-target="section-models" type="button">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[16px] text-text-muted group-hover:text-text-primary">neurology</span>
+<span class="font-headline-md text-headline-md">Model Profiles</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-text-muted">4 NODES</span>
+</button>
+<button class="settings-nav-item w-full flex items-center justify-between px-space-md py-space-sm rounded bg-transparent text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors text-left group" data-target="section-memory" type="button">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[16px] text-text-muted group-hover:text-text-primary">memory</span>
+<span class="font-headline-md text-headline-md">Memory Engine & Limits</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-amber-bright">STAGE-128</span>
+</button>
+<button class="settings-nav-item w-full flex items-center justify-between px-space-md py-space-sm rounded bg-transparent text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors text-left group" data-target="section-acp" type="button">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[16px] text-text-muted group-hover:text-text-primary">hub</span>
+<span class="font-headline-md text-headline-md">ACP Bridge & Stdio</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-emerald-active">STDIO:OK</span>
+</button>
+<button class="settings-nav-item w-full flex items-center justify-between px-space-md py-space-sm rounded bg-transparent text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors text-left group" data-target="section-tracing" type="button">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[16px] text-text-muted group-hover:text-text-primary">pest_control</span>
+<span class="font-headline-md text-headline-md">Debug & Tracing</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-text-muted">SAFE-JSONL</span>
+</button>
+<button class="settings-nav-item w-full flex items-center justify-between px-space-md py-space-sm rounded bg-transparent text-text-secondary hover:bg-surface-container hover:text-text-primary transition-colors text-left group" data-target="section-security" type="button">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-[16px] text-text-muted group-hover:text-text-primary">shield_locked</span>
+<span class="font-headline-md text-headline-md">Terminal / Security</span>
+</div>
+<span class="font-mono-sm text-mono-sm text-emerald-active">ORIGIN-LOCK</span>
+</button>
+</nav>
+</div>
+<!-- Quick Telemetry Card -->
+<div class="p-space-md rounded bg-surface-container-lowest flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">HOST ENVIRONMENT</span>
+<span class="font-mono-sm text-mono-sm text-secondary">DARWIN-ARM64</span>
+</div>
+<div class="flex flex-col gap-space-xxs">
+<div class="flex justify-between font-mono-sm text-mono-sm">
+<span class="text-text-muted">NODE RUNTIME</span>
+<span class="text-text-primary">v22.11.0 (LTS)</span>
+</div>
+<div class="flex justify-between font-mono-sm text-mono-sm">
+<span class="text-text-muted">ENV ISOLATION</span>
+<span class="text-emerald-active">STRICT (NO FS LEAK)</span>
+</div>
+<div class="flex justify-between font-mono-sm text-mono-sm">
+<span class="text-text-muted">REDACTION REGEX</span>
+<span class="text-text-secondary">ENABLED (31 KEYS)</span>
+</div>
+</div>
+<div class="mt-space-xs p-space-sm rounded bg-surface-elevated flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-amber-bright uppercase">ZERO-RENDERER DISCLOSURE</span>
+<span class="font-body-sm text-body-sm text-text-secondary">Browser context does not retain decryption primitives or write access to disk secrets.</span>
+</div>
+</div>
+</aside>
+<!-- Content Region: Multi-Section Directives (9 cols) -->
+<main class="xl:col-span-9 flex flex-col gap-space-xl min-w-0">
+<!-- SECTION 1: RUNTIME CREDENTIALS & HOST PROCESS -->
+<div class="rounded bg-surface-panel p-space-xl flex flex-col gap-space-lg shadow-md" id="section-credentials">
+<div class="flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-caps text-label-caps text-primary uppercase tracking-wide">SUBSYSTEM 01</span>
+<span class="font-mono-sm text-mono-sm text-text-muted">/</span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">RUNTIME ENCLAVE</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-text-primary">Runtime Credentials & Host Process</h2>
+</div>
+<div class="flex items-center gap-space-xs px-space-sm py-space-xxs rounded bg-surface-container-lowest">
+<span class="material-symbols-outlined text-emerald-active text-[16px]">verified_user</span>
+<span class="font-mono-sm text-mono-sm text-emerald-active">HARDENED ENCLAVE</span>
+</div>
+</div>
+<!-- Credential Box -->
+<div class="p-space-lg rounded bg-surface-elevated flex flex-col gap-space-md">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-xs">
+<span class="font-mono-lg text-mono-lg text-amber-bright">NVIDIA_API_KEY</span>
+<span class="font-mono-sm text-mono-sm px-space-xs py-space-xxs rounded bg-surface-container text-text-muted">HOST-ONLY</span>
+</div>
+<div class="flex items-center gap-space-xs px-space-sm py-space-xxs rounded bg-surface-container-lowest">
+<span class="material-symbols-outlined text-[14px] text-emerald-active">lock</span>
+<span class="font-label-caps text-label-caps text-text-secondary">REDACTION VERIFICATION BADGE: ACTIVE</span>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-space-sm items-center">
+<div class="md:col-span-9 flex items-center justify-between px-space-md py-space-sm rounded bg-surface-canvas text-text-muted font-mono-md text-mono-md select-none">
+<span class="tracking-widest">nvapi-••••••••••••••••••••••••••••••••••••••••••••••••</span>
+<span class="material-symbols-outlined text-[18px] text-text-muted">visibility_off</span>
+</div>
+<div class="md:col-span-3 flex items-center gap-space-xs">
+<button class="w-full h-10 px-space-sm rounded bg-surface-container-high hover:bg-surface-container-highest text-text-primary font-mono-sm text-mono-sm uppercase transition-all flex items-center justify-center gap-space-xs" type="button">
+<span class="material-symbols-outlined text-[16px]">refresh</span>
+<span>Rotate</span>
+</button>
+</div>
+</div>
+<div class="flex items-start gap-space-xs text-text-secondary">
+<span class="material-symbols-outlined text-amber-bright text-[16px] shrink-0 mt-0.5">info</span>
+<p class="font-thought-stream text-thought-stream">
+              Stored in host process environment only. Never exposed to browser or renderer. Subprocess dispatch sanitizes all terminal pipes and stdout payloads.
+            </p>
+</div>
+</div>
+<!-- Networking & Guard Spec -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="p-space-md rounded bg-surface-elevated flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">HOST INTERFACE URL</span>
+<div class="flex items-center justify-between font-mono-md text-mono-md text-text-primary px-space-sm py-space-xs rounded bg-surface-canvas">
+<span>http://127.0.0.1:3000</span>
+<span class="material-symbols-outlined text-[16px] text-emerald-active">lan</span>
+</div>
+<span class="font-body-sm text-body-sm text-text-muted">Deterministic local interface binding. External bindings strictly disallowed.</span>
+</div>
+<div class="p-space-md rounded bg-surface-elevated flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">REALTIME WEBSOCKET BRIDGE</span>
+<div class="flex items-center justify-between font-mono-md text-mono-md text-amber-bright px-space-sm py-space-xs rounded bg-surface-canvas">
+<span class="truncate">ws://127.0.0.1:3000/v1/session</span>
+<span class="material-symbols-outlined text-[16px] text-amber-bright">bolt</span>
+</div>
+<span class="font-body-sm text-body-sm text-text-muted">Full duplex bidirectional streaming frame with message ordering guarantees.</span>
+</div>
+</div>
+<!-- Cross-origin Protection Status -->
+<div class="p-space-md rounded bg-surface-container-lowest flex items-center justify-between flex-wrap gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-active shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md text-text-primary">Cross-Origin Protection Barrier</span>
+<span class="font-thought-stream text-thought-stream text-text-secondary">Origin guard active (same-origin and loopback only, 403 on foreign origins).</span>
+</div>
+</div>
+<span class="font-mono-sm text-mono-sm text-emerald-active px-space-sm py-space-xxs rounded bg-surface-elevated">REJECT_FOREIGN: ON</span>
+</div>
+</div>
+<!-- SECTION 2: MODEL PROFILES & GENERATION PARAMETERS -->
+<div class="rounded bg-surface-panel p-space-xl flex flex-col gap-space-lg shadow-md" id="section-models">
+<div class="flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-caps text-label-caps text-amber-bright uppercase tracking-wide">SUBSYSTEM 02</span>
+<span class="font-mono-sm text-mono-sm text-text-muted">/</span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">INFERENCE ROUTER</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-text-primary">Model Profiles & Generation Parameters</h2>
+</div>
+<span class="font-mono-sm text-mono-sm text-text-secondary">CURRENT CATALOG // 4 VERIFIED</span>
+</div>
+<!-- Verified Profiles Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<!-- Card 1: Default Nemotron Lightning -->
+<div class="p-space-lg rounded bg-surface-elevated flex flex-col justify-between gap-space-md relative overflow-hidden group shadow-sm">
+<div class="absolute top-0 right-0 px-space-sm py-space-xxs rounded-bl bg-primary-container text-on-primary-container font-mono-sm text-mono-sm font-semibold uppercase">
+              DEFAULT ACTIVE
+            </div>
+<div class="flex flex-col gap-space-xs pr-space-3xl">
+<span class="font-label-caps text-label-caps text-emerald-active uppercase tracking-wide">VERIFIED 2026-09-04</span>
+<h3 class="font-mono-lg text-mono-lg text-text-primary break-all">nvidia/nemotron-3.5-lightning-30b-a3b</h3>
+<p class="font-thought-stream text-thought-stream text-text-secondary">
+                Optimal balanced pipeline. High-frequency reasoning with fast latency profile.
+              </p>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<span class="font-mono-sm text-mono-sm text-text-muted">SLOT ID: A3B-01</span>
+<span class="font-label-caps text-label-caps px-space-xs py-space-xxs rounded bg-surface-container text-secondary">LATENCY: 24ms</span>
+</div>
+</div>
+<!-- Card 2: Omni Reasoning -->
+<div class="p-space-lg rounded bg-surface-container flex flex-col justify-between gap-space-md relative group hover:bg-surface-elevated transition-colors">
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-amber-bright uppercase tracking-wide">MULTIMODAL OMNI</span>
+<h3 class="font-mono-lg text-mono-lg text-text-primary break-all">nvidia/nemotron-3-nano-omni-30b-a3b-reasoning</h3>
+<p class="font-thought-stream text-thought-stream text-text-secondary">
+                Text / Vision / Audio unified latent representation with multi-turn cognitive trace.
+              </p>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<span class="font-mono-sm text-mono-sm text-text-muted">SLOT ID: A3B-OMNI</span>
+<button class="font-mono-sm text-mono-sm text-text-secondary hover:text-amber-bright uppercase px-space-xs py-space-xxs rounded bg-surface-canvas" type="button">Select Node</button>
+</div>
+</div>
+<!-- Card 3: Moonshot K3 -->
+<div class="p-space-lg rounded bg-surface-container flex flex-col justify-between gap-space-md relative group hover:bg-surface-elevated transition-colors">
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-text-muted uppercase tracking-wide">LONG-CONTEXT EXPERT</span>
+<h3 class="font-mono-lg text-mono-lg text-text-primary break-all">moonshotai/kimi-k3</h3>
+<p class="font-thought-stream text-thought-stream text-text-secondary">
+                Specialized for ultra-deep retrieval passes and large code synthesis sequences.
+              </p>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<span class="font-mono-sm text-mono-sm text-text-muted">SLOT ID: KIMI-K3</span>
+<button class="font-mono-sm text-mono-sm text-text-secondary hover:text-amber-bright uppercase px-space-xs py-space-xxs rounded bg-surface-canvas" type="button">Select Node</button>
+</div>
+</div>
+<!-- Card 4: DeepSeek v4 Pro -->
+<div class="p-space-lg rounded bg-surface-container flex flex-col justify-between gap-space-md relative group hover:bg-surface-elevated transition-colors">
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-text-muted uppercase tracking-wide">CODE SPECIFICATION</span>
+<h3 class="font-mono-lg text-mono-lg text-text-primary break-all">deepseek-ai/deepseek-v4-pro-0813</h3>
+<p class="font-thought-stream text-thought-stream text-text-secondary">
+                Deterministic mathematical proofs, formal software architecture, and structural logic.
+              </p>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<span class="font-mono-sm text-mono-sm text-text-muted">SLOT ID: DSK-V4</span>
+<button class="font-mono-sm text-mono-sm text-text-secondary hover:text-amber-bright uppercase px-space-xs py-space-xxs rounded bg-surface-canvas" type="button">Select Node</button>
+</div>
+</div>
+</div>
+<!-- Fine-Tuning Execution Sliders / Limits -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md pt-space-xs">
+<div class="p-space-md rounded bg-surface-elevated flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-text-primary">Chat Max Tokens</span>
+<span class="font-mono-sm text-mono-sm text-text-muted">(`A008_CHAT_MAX_TOKENS`)</span>
+</div>
+<span class="font-mono-lg text-mono-lg text-amber-bright font-semibold">16,384</span>
+</div>
+<div class="w-full bg-surface-canvas h-1.5 rounded overflow-hidden">
+<div class="bg-amber-bright h-full rounded w-[50%]"></div>
+</div>
+<div class="flex justify-between font-mono-sm text-mono-sm text-text-muted">
+<span>1,024 MIN</span>
+<span>TOKEN CEILING: 32,768</span>
+</div>
+</div>
+<div class="p-space-md rounded bg-surface-elevated flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-text-primary">Timeout Budget</span>
+<span class="font-mono-sm text-mono-sm text-text-muted">(`A008_PROVIDER_TIMEOUT_MS`)</span>
+</div>
+<span class="font-mono-lg text-mono-lg text-emerald-active font-semibold">180,000 ms</span>
+</div>
+<div class="w-full bg-surface-canvas h-1.5 rounded overflow-hidden">
+<div class="bg-emerald-active h-full rounded w-[75%]"></div>
+</div>
+<div class="flex justify-between font-mono-sm text-mono-sm text-text-muted">
+<span>15,000ms</span>
+<span>MAX 240,000ms (3m)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- SECTION 3: SEMANTIC MEMORY ENGINE & POST-OUTPUT LIMITS -->
+<div class="rounded bg-surface-panel p-space-xl flex flex-col gap-space-lg shadow-md" id="section-memory">
+<div class="flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-caps text-label-caps text-amber-bright uppercase tracking-wide">SUBSYSTEM 03</span>
+<span class="font-mono-sm text-mono-sm text-text-muted">/</span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">PROJECTION MATRIX</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-text-primary">Semantic Memory Engine & Post-Output Limits</h2>
+</div>
+<span class="font-mono-sm text-mono-sm text-secondary">ACTIVE PROTOCOL: V1-ASSERTION</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<!-- Metric 1: Staging Proposal Ceiling -->
+<div class="p-space-md rounded bg-surface-elevated flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">POST-OUTPUT PROPOSAL CEILING</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-amber-bright">128</span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">proposals</span>
+</div>
+<div class="mt-space-xs flex items-center gap-space-xs">
+<span class="font-mono-sm text-mono-sm px-space-xs py-space-xxs rounded bg-surface-canvas text-emerald-active">▲ RAISED FROM 8</span>
+</div>
+<span class="font-thought-stream text-thought-stream text-text-muted mt-space-xs">
+              Hard staging token allowance: 16,384 tokens allocated for multi-turn hypothesis formulation.
+            </span>
+</div>
+<!-- Metric 2: Live Projection Budget -->
+<div class="p-space-md rounded bg-surface-elevated flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">LIVE KNOWLEDGE PROJECTION</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-text-primary">32,768</span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">bytes</span>
+</div>
+<div class="mt-space-xs flex items-center gap-space-xs">
+<span class="font-mono-sm text-mono-sm px-space-xs py-space-xxs rounded bg-surface-canvas text-amber-bright">MULTIBYTE UTF-8 HARD CAP</span>
+</div>
+<span class="font-thought-stream text-thought-stream text-text-muted mt-space-xs">
+              Live context memory truncation barrier. Guaranteed zero buffer overrun in runtime slots.
+            </span>
+</div>
+<!-- Metric 3: Dormant Activation Boost -->
+<div class="p-space-md rounded bg-surface-elevated flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">DORMANT ACTIVATION BOOST</span>
+<div class="flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-secondary">+0.20</span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">relevance</span>
+</div>
+<div class="mt-space-xs flex items-center gap-space-xs">
+<span class="font-mono-sm text-mono-sm px-space-xs py-space-xxs rounded bg-surface-canvas text-secondary">RESTATEMENT BOOST</span>
+</div>
+<span class="font-thought-stream text-thought-stream text-text-muted mt-space-xs">
+              Applies immediate contextual weight amplification upon user conversational restatement.
+            </span>
+</div>
+</div>
+<!-- Acceptance Gate Directives -->
+<div class="p-space-md rounded bg-surface-elevated flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-10 h-10 rounded bg-surface-container-highest flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[22px]">policy</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-md text-headline-md text-text-primary">Acceptance Gate Validation Protocol</span>
+<span class="font-mono-sm text-mono-sm text-emerald-active bg-surface-canvas px-space-xs py-space-xxs rounded">ENABLED</span>
+</div>
+<span class="font-thought-stream text-thought-stream text-text-secondary">
+                Rule engine: <span class="font-mono-sm text-mono-sm text-amber-bright">user-assertion-v1</span> requires explicit human feedback loop or confirmed synthesis before persistent state write.
+              </span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">STATE:</span>
+<span class="font-mono-sm text-mono-sm text-text-primary px-space-sm py-space-xs rounded bg-surface-canvas">STRICT_CONCURRENCY</span>
+</div>
+</div>
+</div>
+<!-- SECTION 4: DEBUG TRACING & TELEMETRY -->
+<div class="rounded bg-surface-panel p-space-xl flex flex-col gap-space-lg shadow-md" id="section-tracing">
+<div class="flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-caps text-label-caps text-amber-bright uppercase tracking-wide">SUBSYSTEM 04</span>
+<span class="font-mono-sm text-mono-sm text-text-muted">/</span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">OBSERVABILITY</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-text-primary">Debug Tracing & Telemetry Architecture</h2>
+</div>
+<div class="flex items-center gap-space-xs px-space-sm py-space-xxs rounded bg-surface-container-lowest">
+<span class="material-symbols-outlined text-[14px] text-amber-bright">fingerprint</span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">ZERO TELEMETRY GUARANTEE</span>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-md">
+<!-- Telemetry Policy Status -->
+<div class="lg:col-span-4 p-space-md rounded bg-surface-elevated flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">EXTERNAL TELEMETRY</span>
+<span class="font-headline-lg text-headline-lg text-text-primary">Disabled</span>
+<p class="font-thought-stream text-thought-stream text-text-secondary">
+                Strict zero-telemetry enforcement in renderer process. No external tracking packets, analytics beacons, or remote profiling.
+              </p>
+</div>
+<div class="flex items-center gap-space-xs font-mono-sm text-mono-sm text-emerald-active">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>RENDERER PURGE VERIFIED</span>
+</div>
+</div>
+<!-- Trace Mode Selector & Log Sink -->
+<div class="lg:col-span-8 p-space-md rounded bg-surface-elevated flex flex-col gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">DEBUG TRACE SINK MODE</span>
+<!-- Toggle Group: Off | Safe JSONL | Raw JSONL -->
+<div class="grid grid-cols-3 gap-space-xs p-space-xxs rounded bg-surface-canvas" id="trace-mode-toggle">
+<button class="trace-btn py-space-xs px-space-sm rounded font-mono-sm text-mono-sm text-text-muted hover:text-text-primary transition-all text-center" data-mode="off" type="button">
+                  OFF
+                </button>
+<button class="trace-btn py-space-xs px-space-sm rounded font-mono-sm text-mono-sm bg-primary-container text-on-primary-container font-semibold transition-all text-center" data-mode="safe" type="button">
+                  SAFE JSONL (DEFAULT)
+                </button>
+<button class="trace-btn py-space-xs px-space-sm rounded font-mono-sm text-mono-sm text-text-muted hover:text-text-primary transition-all text-center" data-mode="raw" type="button">
+                  RAW JSONL
+                </button>
+</div>
+</div>
+<!-- Active Trace File Target -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">ACTIVE TRACE SINK PATH</span>
+<span class="font-mono-sm text-mono-sm text-emerald-active">SECRET-REDACTED</span>
+</div>
+<div class="flex items-center justify-between px-space-md py-space-xs rounded bg-surface-canvas font-mono-sm text-mono-sm text-text-primary">
+<span class="truncate">logs/a008-trace-20260904.jsonl</span>
+<span class="material-symbols-outlined text-[16px] text-text-secondary">description</span>
+</div>
+</div>
+<div class="p-space-sm rounded bg-surface-container-lowest flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-amber-bright text-[16px] shrink-0">shield</span>
+<span class="font-thought-stream text-thought-stream text-text-secondary">
+                Tokens matching API key headers or proprietary model matrices are stripped prior to disk flush.
+              </span>
+</div>
+</div>
+</div>
+</div>
+<!-- SECTION 5: ACP BRIDGE & TERMINAL / SHELL SECURITY -->
+<div class="rounded bg-surface-panel p-space-xl flex flex-col gap-space-lg shadow-md" id="section-security">
+<div class="flex flex-wrap items-center justify-between gap-space-sm">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-xs">
+<span class="font-label-caps text-label-caps text-primary uppercase tracking-wide">SUBSYSTEM 05 & 06</span>
+<span class="font-mono-sm text-mono-sm text-text-muted">/</span>
+<span class="font-mono-sm text-mono-sm text-text-secondary">TRANSPORT SECURITY</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-text-primary">ACP Bridge Stdio & Shell Confinement</h2>
+</div>
+<span class="font-mono-sm text-mono-sm text-emerald-active px-space-sm py-space-xxs rounded bg-surface-container-lowest">JAIL ACTIVE</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="p-space-md rounded bg-surface-elevated flex flex-col gap-space-sm">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">AGENT CONTROL PROTOCOL (ACP) BRIDGE</span>
+<div class="flex flex-col gap-space-xxs font-mono-sm text-mono-sm">
+<div class="flex justify-between py-space-xxs">
+<span class="text-text-muted">STDIO TRANSPORT</span>
+<span class="text-emerald-active">ACTIVE / NON-BLOCKING</span>
+</div>
+<div class="flex justify-between py-space-xxs">
+<span class="text-text-muted">ENCODING</span>
+<span class="text-text-primary">UTF-8 NEWLINE-DELIMITED JSON</span>
+</div>
+<div class="flex justify-between py-space-xxs">
+<span class="text-text-muted">HEARTBEAT FREQ</span>
+<span class="text-amber-bright">1000ms</span>
+</div>
+</div>
+</div>
+<div class="p-space-md rounded bg-surface-elevated flex flex-col gap-space-sm">
+<span class="font-label-caps text-label-caps text-text-muted uppercase">TERMINAL COMMAND RESTRICTIONS</span>
+<div class="flex flex-col gap-space-xxs font-mono-sm text-mono-sm">
+<div class="flex justify-between py-space-xxs">
+<span class="text-text-muted">INTERACTIVE TTY</span>
+<span class="text-text-primary">RESTRICTED PTY MUX</span>
+</div>
+<div class="flex justify-between py-space-xxs">
+<span class="text-text-muted">BLOCKED SYSCALLS</span>
+<span class="text-error font-semibold">ptrace, fork, setuid</span>
+</div>
+<div class="flex justify-between py-space-xxs">
+<span class="text-text-muted">WORKING DIR CHROOT</span>
+<span class="text-emerald-active">ENFORCED TO WORKSPACE</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Footer Strip: Deterministic Save & Export Controls -->
+<div class="sticky bottom-4 z-30 p-space-md rounded bg-surface-panel shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-amber-bright text-[18px]">verified</span>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md text-text-primary">Configuration In Sync</span>
+<span class="font-mono-sm text-mono-sm text-text-muted">Snapshot checksum: 0x9f8b03e2c</span>
+</div>
+</div>
+<div class="flex items-center gap-space-md w-full sm:w-auto justify-end">
+<button class="px-space-md py-space-sm rounded bg-surface-container-high hover:bg-surface-elevated text-text-primary font-mono-sm text-mono-sm uppercase transition-colors flex items-center gap-space-xs" id="btn-export-config" type="button">
+<span class="material-symbols-outlined text-[16px]">file_download</span>
+<span>Export Configuration</span>
+</button>
+<button class="px-space-lg py-space-sm rounded bg-primary-container text-on-primary-container font-headline-md text-headline-md hover:bg-primary transition-all flex items-center gap-space-xs shadow-md" id="btn-save-changes" type="button">
+<span class="material-symbols-outlined text-[18px]">save</span>
+<span>Save Changes</span>
+</button>
+</div>
+</div>
+</main>
+</div>
+</div>
+<script>
+  // Simple deterministic client navigation and toggle handlers
+  document.addEventListener('DOMContentLoaded', () => {
+    // Navigation active state switching & smooth scroll
+    const navItems = document.querySelectorAll('.settings-nav-item');
+    navItems.forEach(button => {
+      button.addEventListener('click', () => {
+        navItems.forEach(b => {
+          b.classList.remove('bg-surface-highlight', 'text-text-primary');
+          b.classList.add('bg-transparent', 'text-text-secondary');
+        });
+        button.classList.add('bg-surface-highlight', 'text-text-primary');
+        button.classList.remove('bg-transparent', 'text-text-secondary');
+
+        const targetId = button.getAttribute('data-target');
+        const targetElement = document.getElementById(targetId);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // Debug Tracing Toggle Group Switcher
+    const traceButtons = document.querySelectorAll('#trace-mode-toggle .trace-btn');
+    traceButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        traceButtons.forEach(b => {
+          b.classList.remove('bg-primary-container', 'text-on-primary-container', 'font-semibold');
+          b.classList.add('text-text-muted');
+        });
+        btn.classList.add('bg-primary-container', 'text-on-primary-container', 'font-semibold');
+        btn.classList.remove('text-text-muted');
+      });
+    });
+
+    // Save Changes Feedback micro-interaction
+    const saveBtn = document.getElementById('btn-save-changes');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => {
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">done</span><span>Saved to Host Daemon</span>';
+        saveBtn.classList.replace('bg-primary-container', 'bg-emerald-active');
+        saveBtn.classList.replace('text-on-primary-container', 'text-surface-canvas');
+        setTimeout(() => {
+          saveBtn.innerHTML = originalText;
+          saveBtn.classList.replace('bg-emerald-active', 'bg-primary-container');
+          saveBtn.classList.replace('text-surface-canvas', 'text-on-primary-container');
+        }, 2200);
+      });
+    }
+
+    // Export Config notification trigger
+    const exportBtn = document.getElementById('btn-export-config');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        const originalText = exportBtn.innerHTML;
+        exportBtn.innerHTML = '<span class="material-symbols-outlined text-[16px]">file_download_done</span><span>Config JSON Dumped</span>';
+        setTimeout(() => {
+          exportBtn.innerHTML = originalText;
+        }, 1800);
+      });
+    }
+  });
+</script></main></div></body></html>

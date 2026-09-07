@@ -27,6 +27,7 @@ export function isolatedMemoryEnv(
       A008_PROJECT_ID: TEST_PROJECT_ID,
       A008_AGENT_ID: TEST_AGENT_ID,
       A008_MEMORY_SQLITE_PATH: sqlitePath,
+      A008_SETTINGS_PATH: join(directory, "settings.json"),
       A008_DEBUG_TRACE: "off",
       ...overrides,
     },
@@ -35,7 +36,7 @@ export function isolatedMemoryEnv(
 
 export function semanticOperation(
   request: ChatRequest,
-): "knowledge_analysis" | "relation_classification" | undefined {
+): "knowledge_analysis" | "relation_classification" | "retrieval_scope" | undefined {
   const content = request.messages.at(-1)?.content;
   if (content === undefined) {
     return undefined;
@@ -48,7 +49,7 @@ export function semanticOperation(
     const operation = (parsed as { readonly operation?: unknown }).operation;
     if (
       operation === "knowledge_analysis" ||
-      operation === "relation_classification"
+      operation === "relation_classification" || operation === "retrieval_scope"
     ) {
       return operation;
     }
@@ -82,6 +83,7 @@ export function memoryAwareFakeTransport(options: {
     async complete(request, callbacks) {
       requests.push(request);
       const operation = semanticOperation(request);
+      if (operation === "retrieval_scope") return { message: { role: "assistant", content: '{"domains":[],"relatedDomains":[]}' } };
       if (operation === "knowledge_analysis") {
         const content = JSON.stringify(
           options.analyze?.(semanticInput(request)) ?? [],

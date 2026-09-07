@@ -179,11 +179,12 @@ export class ConversationScopes {
   advance(
     conversationId: string,
     classification: ScopeClassification,
+    options: AdvanceScopeOptions = {},
   ): ScopeUpdate {
     const update = advanceScope(
       this.#byConversation.get(conversationId) ?? [],
       classification,
-      { maximumDomains: this.#maximumDomains },
+      { maximumDomains: options.maximumDomains ?? this.#maximumDomains },
     );
     this.#byConversation.set(conversationId, update.scope);
     return update;
