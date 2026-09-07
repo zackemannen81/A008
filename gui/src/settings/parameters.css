@@ -1,3 +1,8 @@
+.a008-catalog label { display: grid; gap: .35rem; margin: .7rem 0; }
+.a008-catalog input { padding: .5rem .6rem; border: 1px solid var(--a008-border); border-radius: .4rem; background: var(--a008-bg); color: inherit; font: inherit; }
+.a008-catalog ul { list-style: none; margin: .8rem 0; padding: 0; max-height: 16rem; overflow: auto; }
+.a008-catalog li { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: .5rem; align-items: center; padding: .4rem 0; border-top: 1px solid var(--a008-border); font-size: .78rem; }
+.a008-catalog-note, .a008-catalog p { color: var(--a008-muted); line-height: 1.5; }
 .a008-header-actions {
   display: flex;
   align-items: center;

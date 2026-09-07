@@ -14,7 +14,14 @@ import {
   type ChatUserTurn,
 } from "./chat-transcript.js";
 import { EmptyShortcuts, type EmptyShortcutId } from "./empty-shortcuts.js";
+import { StartActions } from "./start-actions.js";
 import "./chat-pane.css";
+
+export interface ChatGeneratedImage {
+  readonly id: string;
+  readonly prompt: string;
+  readonly src: string;
+}
 
 function ThoughtBlock({ turn }: { readonly turn: ChatAssistantTurn }) {
   const [open, setOpen] = useState(false);
@@ -84,6 +91,8 @@ function AssistantTurnView({ turn }: { readonly turn: ChatAssistantTurn }) {
 export function ChatPane(props: {
   readonly session: GuiSession;
   readonly onShortcut?: (id: EmptyShortcutId) => void;
+  readonly onStartPrompt?: (prompt: string) => void;
+  readonly images?: readonly ChatGeneratedImage[];
 }) {
   const { session } = props;
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -155,11 +164,12 @@ export function ChatPane(props: {
             root.scrollHeight - root.scrollTop - root.clientHeight < 48;
         }}
       >
-        {transcript.empty ? (
+        {transcript.empty && (props.images?.length ?? 0) === 0 ? (
           <div className="a008-chat-empty">
             <span className="a008-empty-eyebrow">A008</span>
             <h1>What would you like to work on?</h1>
             <p>{emptyStateCopy(session.status)}</p>
+            {props.onStartPrompt ? <StartActions onPrompt={props.onStartPrompt} /> : null}
             {props.onShortcut ? (
               <EmptyShortcuts onShortcut={props.onShortcut} />
             ) : (
@@ -169,13 +179,22 @@ export function ChatPane(props: {
             )}
           </div>
         ) : (
-          transcript.turns.map((turn) =>
-            turn.kind === "user" ? (
-              <UserTurnView key={turn.id} turn={turn} />
-            ) : (
-              <AssistantTurnView key={turn.id} turn={turn} />
-            ),
-          )
+          <>
+            {transcript.turns.map((turn) =>
+              turn.kind === "user" ? (
+                <UserTurnView key={turn.id} turn={turn} />
+              ) : (
+                <AssistantTurnView key={turn.id} turn={turn} />
+              ),
+            )}
+            {(props.images ?? []).map((image) => (
+              <article key={image.id} className="a008-chat-turn a008-chat-turn-assistant">
+                <span className="a008-chat-label">Image</span>
+                <p className="a008-chat-bubble a008-chat-bubble-user">{image.prompt}</p>
+                <img className="a008-chat-image" src={image.src} alt={image.prompt} />
+              </article>
+            ))}
+          </>
         )}
       </div>
     </section>

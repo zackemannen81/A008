@@ -49,6 +49,11 @@
   padding: 0.75rem;
 }
 
+.a008-chat-image {
+  max-width: min(100%, 28rem);
+  border-radius: 0.8rem;
+}
+
 .a008-chat-empty {
   margin: auto;
   max-width: 28rem;

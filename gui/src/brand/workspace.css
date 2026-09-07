@@ -49,13 +49,32 @@
 .a008-app .a008-main, .a008-app .a008-memory-main, .a008-app .a008-help-main { grid-column: 2; grid-row: 2; background: var(--a008-bg); min-width: 0; min-height: 0; }
 .a008-app .a008-main { padding: 0 1.5rem 1rem; }
 .a008-help-main { overflow: auto; }
-.a008-environment-float {
+.a008-environment-float, .a008-files-float {
   position: absolute; top: 4.35rem; right: 1.1rem; width: 22.5rem;
   max-height: calc(100% - 5.2rem); overflow: auto; z-index: 6;
   border: 1px solid var(--a008-border); border-radius: 1.15rem;
   background: var(--a008-panel); box-shadow: 0 16px 40px rgba(0,0,0,.38);
 }
-.a008-environment-float[hidden] { display: none !important; }
+.a008-files-float { width: 24rem; }
+.a008-environment-float[hidden], .a008-files-float[hidden] { display: none !important; }
+.a008-start-actions {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem;
+  margin: 1.2rem auto 0; max-width: 36rem; text-align: left;
+}
+.a008-start-actions button {
+  min-height: 4.6rem; padding: .8rem .9rem; border: 1px solid var(--a008-border);
+  border-radius: .85rem; background: var(--a008-panel); color: var(--a008-fg);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.a008-start-actions button:hover { border-color: var(--a008-border-strong); }
+.a008-chat-image { max-width: min(100%, 28rem); border-radius: .8rem; display: block; margin-top: .5rem; }
+.a008-composer-attach { position: relative; }
+.a008-composer-attach summary { cursor: pointer; list-style: none; padding: .3rem .55rem; }
+.a008-composer-attach[open] > button {
+  position: absolute; bottom: 2.2rem; left: 0; z-index: 3;
+  background: var(--a008-panel); border: 1px solid var(--a008-border);
+  border-radius: .6rem; padding: .55rem .8rem; color: inherit; font: inherit;
+}
 .a008-tools-panel { grid-column: 2; grid-row: 2; display: flex; overflow: hidden; min-width: 0; min-height: 0; padding: .5rem 1rem 1rem; }
 .a008-app .a008-workbench { display: flex; flex: 1; border: 1px solid var(--a008-border); border-radius: 1rem; background: var(--a008-panel); }
 .a008-workbench-tabs { padding: .6rem .7rem 0; }

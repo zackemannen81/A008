@@ -8,6 +8,7 @@ import {
 import { controlSession } from "../composer/submit.js";
 import "./parameters.css";
 import { GlobalSettingsForm } from "./global-settings-form.js";
+import { NvidiaCatalogPanel } from "./nvidia-catalog-panel.js";
 
 const numberValue = (value: number | null): number | "" =>
   value !== null && Number.isFinite(value) ? value : "";
@@ -346,7 +347,7 @@ export function ParametersPanel(props: {
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [models, setModels] = useState<readonly GuiModel[]>([]);
-  const [page, setPage] = useState<"model" | "budgets" | "instructions">(
+  const [page, setPage] = useState<"model" | "budgets" | "instructions" | "provider">(
     props.session.error?.includes("hard budget") ? "budgets" : "model",
   );
   const [error, setError] = useState("");
@@ -404,9 +405,9 @@ export function ParametersPanel(props: {
       </header>
       <div className="a008-parameters-body">
         <nav className="a008-parameter-tabs" aria-label="Parameter sections">
-          {(["model", "budgets", "instructions"] as const).map(tab => (
+          {(["model", "provider", "budgets", "instructions"] as const).map(tab => (
             <button key={tab} type="button" aria-pressed={page === tab} onClick={() => setPage(tab)}>
-              {tab === "model" ? "Model" : tab === "budgets" ? "Budgets" : "Instructions"}
+              {tab === "model" ? "Model" : tab === "provider" ? "Provider" : tab === "budgets" ? "Budgets" : "Instructions"}
             </button>
           ))}
         </nav>
@@ -457,6 +458,9 @@ export function ParametersPanel(props: {
             {error || session.error}
           </p>
         ) : null}
+        <div hidden={page !== "provider"}>
+          <NvidiaCatalogPanel />
+        </div>
         <div hidden={page !== "model"}>
         {model ? (
           <ParameterForm
@@ -469,9 +473,9 @@ export function ParametersPanel(props: {
           <p role="status">Loading model parameters…</p>
         ) : null}
         </div>
-        {session.details?.runtimePreferences ? (
+        {session.details?.runtimePreferences && (page === "budgets" || page === "instructions") ? (
           <GlobalSettingsForm key={session.sessionId} session={session} initial={session.details.runtimePreferences} page={page} />
-        ) : page !== "model" && session.status === "ready" ? (
+        ) : page !== "model" && page !== "provider" && session.status === "ready" ? (
           <p role="status">Global settings are unavailable. Restart the current A008 host.</p>
         ) : null}
       </div>

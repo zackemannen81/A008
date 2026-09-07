@@ -3,9 +3,10 @@ import { ToolPermissionDialog } from "./session/tool-permission-dialog.js";
 import { ToolActivity } from "./tools/repository-pane.js";
 import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
-import { ChatPane } from "./chat/chat-pane.js";
+import { ChatPane, type ChatGeneratedImage } from "./chat/chat-pane.js";
 import type { EmptyShortcutId } from "./chat/empty-shortcuts.js";
 import { Composer } from "./composer/composer.js";
+import { generateImage, generatedImageSrc } from "./images/generate-image.js";
 import { useGuiSession } from "./session/use-gui-session.js";
 import { SettingsPane } from "./settings/settings-pane.js";
 import { TerminalPane } from "./terminal/terminal-pane.js";
@@ -50,9 +51,12 @@ export function App() {
   const parametersTrigger = useRef<HTMLElement | null>(null);
   const [page, setPage] = useState<Page>("chat");
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [filesOpen, setFilesOpen] = useState(false);
   const [toolSurface, setToolSurface] = useState<ToolSurface>("terminal");
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [sources, setSources] = useState<readonly SessionSource[]>([]);
+  const [images, setImages] = useState<readonly ChatGeneratedImage[]>([]);
+  const [imageError, setImageError] = useState("");
   const cwd = session.details?.runtime.cwd;
   const workspace = cwd?.split(/[\\/]/u).filter(Boolean).at(-1);
 
@@ -90,7 +94,10 @@ export function App() {
     if (id === "review") void ask(REVIEW_PROMPT);
     if (id === "terminal") openTools("terminal");
     if (id === "browser") openTools("browser");
-    if (id === "files") openTools("files");
+    if (id === "files") {
+      setPage("chat");
+      setFilesOpen((open) => !open);
+    }
     if (id === "sidechat") {
       setPage("chat");
       setToolsOpen((open) => !open);
@@ -222,6 +229,15 @@ export function App() {
             Parameters
           </button>
           {page === "chat" ? (
+            <>
+            <button
+              className="a008-panel-toggle"
+              aria-expanded={filesOpen}
+              aria-controls="a008-files-panel"
+              onClick={() => setFilesOpen(!filesOpen)}
+            >
+              Files
+            </button>
             <button
               className="a008-panel-toggle"
               aria-expanded={toolsOpen}
@@ -230,13 +246,42 @@ export function App() {
             >
               Workbench
             </button>
+            </>
           ) : null}
         </div>
       </header>
       <main className="a008-main" hidden={page !== "chat"}>
-        <ChatPane session={session} onShortcut={onShortcut} />
+        <ChatPane
+          session={session}
+          onShortcut={onShortcut}
+          onStartPrompt={(prompt) => void ask(prompt)}
+          images={images}
+        />
+        {imageError ? <p className="a008-chat-error" role="alert">{imageError}</p> : null}
         <ToolActivity session={session} />
-        <Composer session={session} onParameters={openParameters} />
+        <Composer
+          session={session}
+          onParameters={openParameters}
+          onImage={(prompt) => {
+            setImageError("");
+            void generateImage(prompt)
+              .then((image) => {
+                setImages((current) => [
+                  ...current,
+                  {
+                    id: image.locator,
+                    prompt,
+                    src: generatedImageSrc(image),
+                  },
+                ]);
+              })
+              .catch((reason) => {
+                setImageError(
+                  reason instanceof Error ? reason.message : "Image generation failed.",
+                );
+              });
+          }}
+        />
       </main>
       <main className="a008-memory-main" hidden={page !== "memory"}>
         <MemoryPage active={page === "memory"} />
@@ -244,6 +289,18 @@ export function App() {
       <main className="a008-help-main" hidden={page !== "help"}>
         <HelpPage session={session} onChat={() => navigate("chat")} />
       </main>
+      <aside
+        className="a008-files-float"
+        id="a008-files-panel"
+        hidden={page !== "chat" || !filesOpen}
+      >
+        <FilesPane
+          session={session}
+          onOpen={(path) =>
+            void ask(`Läs filen ${path} med read_file och sammanfatta vad den innehåller.`)
+          }
+        />
+      </aside>
       <aside
         className="a008-environment-float"
         id="a008-tools-panel"

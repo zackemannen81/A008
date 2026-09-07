@@ -2,6 +2,14 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — NVIDIA catalog, image generation, start cards and file panel
+
+- Task: A008-0071; operator: Grok; branch: `A008-0071-nvidia-catalog-images`.
+- Browse/add NVIDIA Build models; generate images in chat; Provider settings
+  for image model/endpoint and a write-only API key; start-view cards; Files panel.
+- Verification: full `npm test` pass. No live NVIDIA call.
+- Signature: Grok.
+
 ## 2026-09-07 — Workbench context, Help catalog and readable memory map
 
 - Task: A008-0070; operator: Grok; branch: `A008-0070-workbench-help-memory-map`.

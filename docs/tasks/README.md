@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0071_nvidia-catalog-images.md](A008-0071_nvidia-catalog-images.md) —
+  Complete locally; [archive](../finished/A008-0071_nvidia-catalog-images.md).
 - [A008-0070_workbench-help-memory-map.md](A008-0070_workbench-help-memory-map.md) —
   Complete locally; [archive](../finished/A008-0070_workbench-help-memory-map.md),
   workbench context, Help catalog and clustered memory map.

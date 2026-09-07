@@ -4,7 +4,11 @@ import { runShellCommand } from "../terminal/terminal-pane.js";
 import { submitComposer } from "./submit.js";
 
 /** A008 composer. Keep the Composer export. */
-export function Composer(props: { readonly session: GuiSession; readonly onParameters?: () => void }) {
+export function Composer(props: {
+  readonly session: GuiSession;
+  readonly onParameters?: () => void;
+  readonly onImage?: (prompt: string) => void;
+}) {
   const inputId = useId();
   const [draft, setDraft] = useState("");
   const [notice, setNotice] = useState("");
@@ -85,6 +89,24 @@ export function Composer(props: { readonly session: GuiSession; readonly onParam
   return (
     <section className="a008-composer">
       <form className="a008-composer-form" onSubmit={onSubmit}>
+        {props.onImage ? (
+          <details className="a008-composer-attach">
+            <summary aria-label="Add">+</summary>
+            <button
+              type="button"
+              onClick={() => {
+                if (draft.trim().length === 0) {
+                  setError("Describe the image in the composer first.");
+                  return;
+                }
+                props.onImage?.(draft.trim());
+                setDraft("");
+              }}
+            >
+              Image
+            </button>
+          </details>
+        ) : null}
         <label className="a008-composer-label" htmlFor={inputId}>
           Message
         </label>

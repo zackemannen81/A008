@@ -198,12 +198,19 @@ ADR 0019 D2. `npm run gui-host` starts it against an already-built GUI;
 `npm run gui` builds `gui/` first and then starts it on one origin.
 
 The host serves `gui/dist` as static content when that directory exists, and
-answers three HTTP routes:
+answers health, models, shell, upload, memory, and A008-0071 provider routes:
 
 ```text
-GET  /health    -> { ok: true, name: "A008-gui-host" }
-GET  /v1/models -> { models: [{ id, name }] }
-POST /v1/shell  -> { stdout, stderr, exitCode, timedOut, truncated }
+GET    /health
+GET    /v1/models              built-in + user-catalog chat models
+GET    /v1/catalog/nvidia      live NVIDIA Build list (needs API key)
+POST   /v1/catalog/nvidia      add a chat model to ~/.a008/catalog.json
+DELETE /v1/catalog/nvidia?id=
+GET    /v1/provider-settings   image model/endpoint; key configured? (never the key)
+POST   /v1/provider-settings   write-only API key and image settings
+POST   /v1/images              generate; store PNG/JPEG in the source store
+GET    /v1/blobs/:sha256/:name serve a stored generated image
+POST   /v1/shell
 ```
 
 `POST /v1/shell` delegates to the existing `runTerminalCommand` in

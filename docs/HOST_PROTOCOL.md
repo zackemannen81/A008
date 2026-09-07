@@ -41,7 +41,7 @@ Session controls additionally support `configureRuntime` with `settings` and the
 last observed `revision`; snapshots include `runtimePreferences`. The complete
 contract and persistence boundary are in [RUNTIME_SETTINGS.md](RUNTIME_SETTINGS.md).
 
-`src/gui-host/` is a Node process. It serves static files, exposes five HTTP
+`src/gui-host/` is a Node process. It serves static files, exposes HTTP
 routes and one WebSocket, and bridges that WebSocket to an `A008-acp` stdio
 subprocess it owns.
 
@@ -50,10 +50,10 @@ client ──HTTP/WS──> A008 GUI host ──stdio ACP──> A008-acp ──
                                                             └─> provider
 ```
 
-The host holds no credential logic of its own and makes no provider call. It
-reads `NVIDIA_API_KEY` and memory settings from its own environment and passes
-only public runtime facts and effective chat parameters to the client. A client
-never sees a credential.
+Chat completions still run in the ACP subprocess. ADR 0032 lets the host call
+NVIDIA's catalog (`GET /v1/models` upstream) and image-generation endpoints with
+the process or secrets-file key. The renderer never sees a credential. `GET`
+provider-settings reports only whether a key is configured.
 
 Start it with `npm run gui-host`, or `npm run gui` to build the bundled test
 surface first. Default bind is `127.0.0.1:8787`.
