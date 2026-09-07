@@ -4,7 +4,7 @@ import { runShellCommand } from "../terminal/terminal-pane.js";
 import { submitComposer } from "./submit.js";
 
 /** A008 composer. Keep the Composer export. */
-export function Composer(props: { readonly session: GuiSession }) {
+export function Composer(props: { readonly session: GuiSession; readonly onParameters?: () => void }) {
   const inputId = useId();
   const [draft, setDraft] = useState("");
   const [notice, setNotice] = useState("");
@@ -84,6 +84,31 @@ export function Composer(props: { readonly session: GuiSession }) {
 
   return (
     <section className="a008-composer">
+      <form className="a008-composer-form" onSubmit={onSubmit}>
+        <label className="a008-composer-label" htmlFor={inputId}>
+          Message
+        </label>
+        <textarea
+          id={inputId}
+          className="a008-composer-input"
+          name="message"
+          rows={2}
+          value={draft}
+          placeholder="Ask anything, or describe a task…"
+          disabled={pending || props.session.busy}
+          onChange={(event) => {
+            setDraft(event.target.value);
+          }}
+          onKeyDown={onKeyDown}
+        />
+        <button
+          className="a008-composer-send"
+          type="submit"
+          disabled={pending || props.session.busy}
+        >
+          Send
+        </button>
+      </form>
       <div className="a008-session-toolbar" aria-label="Session controls">
         <select
           aria-label="Session commands"
@@ -93,7 +118,7 @@ export function Composer(props: { readonly session: GuiSession }) {
           }}
         >
           <option value="" disabled>
-            Session commands…
+            Commands
           </option>
           <option value="/help">Help /help</option>
           <option value="/history">History /history</option>
@@ -152,31 +177,10 @@ export function Composer(props: { readonly session: GuiSession }) {
           </button>
         ) : null}
       </div>
-      <form className="a008-composer-form" onSubmit={onSubmit}>
-        <label className="a008-composer-label" htmlFor={inputId}>
-          Message
-        </label>
-        <textarea
-          id={inputId}
-          className="a008-composer-input"
-          name="message"
-          rows={3}
-          value={draft}
-          placeholder="Message or /help"
-          disabled={pending || props.session.busy}
-          onChange={(event) => {
-            setDraft(event.target.value);
-          }}
-          onKeyDown={onKeyDown}
-        />
-        <button
-          className="a008-composer-send"
-          type="submit"
-          disabled={pending || props.session.busy}
-        >
-          Send
-        </button>
-      </form>
+      <div className="a008-composer-footer">
+        <span>Enter to send · Shift + Enter for a new line</span>
+        <button type="button" onClick={props.onParameters} disabled={!props.onParameters} aria-label="Model parameters">{props.session.model ?? "Select model"}</button>
+      </div>
       {error.length > 0 ? (
         <p className="a008-composer-error" role="alert">
           {error}

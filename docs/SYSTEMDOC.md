@@ -178,6 +178,20 @@ credentials; therefore it does not prove globally blocked external egress.
 
 ## A008 GUI host
 
+A008-0068 supports repository work directly from this standalone GUI (ADR 0029).
+`A008_GUI_WORKSPACE` optionally selects an existing absolute working directory
+at startup; cwd defaults to the host's launch directory. It applies to native
+file tools, Git and shell commands. It does not automatically select a different
+standalone memory store. Session snapshots expose optional `runtime.tools`
+native catalog metadata. Tools → Repository shows the catalog, cwd and explicit
+model-request shortcuts. See [GUI repository tools](GUI_REPOSITORY_TOOLS.md).
+
+The shared executor offers `list_files`, `read_file`, `create_file`, `edit_file`
+and `git` alongside `exec_command`. File edits require a matching SHA-256 and
+one exact text occurrence; new-file creation refuses overwrite. Git receives
+literal argv without shell expansion. All retain per-call approval and existing
+runtime budgets; these tools do not create another memory/provider owner.
+
 `src/gui-host/` is the A008-owned Node process that makes the shared core
 reachable from a browser without Agent Server. It is the product path in
 ADR 0019 D2. `npm run gui-host` starts it against an already-built GUI;
@@ -288,9 +302,9 @@ recorded as fact.
 
 ## A008 GUI client
 
-`gui/` is an A008-owned Vite + React + TypeScript application. It follows Agent
-Canvas UX but imports no `@openhands/*` package, no Canvas route, and no
-telemetry. `gui/src/app.tsx` is the shell; each feature module owns only its own
+`gui/` is an A008-owned Vite + React + TypeScript application. ADR 0030
+introduces a neutral workspace inspired by the owner's Codex screenshot. It
+imports no third-party client UI code, Canvas route or telemetry. `gui/src/app.tsx` is the shell; each feature module owns only its own
 directory per ADR 0019 D7.
 
 `useGuiSession` in `gui/src/session/` is the browser client for host protocol
@@ -318,6 +332,21 @@ host supplies no snapshot.
 `POST /v1/shell` rather than executing anything in the browser, and
 `gui/src/settings/` plus `gui/src/brand/` own the shell chrome and A008
 identity. No provider call, credential, or telemetry ships in the renderer.
+
+### Focused workspace (A008-0069)
+
+Left navigation selects Chat, Memory or Tools. Runtime details are collapsed.
+Chat has a centred transcript, collapsed thought blocks, and a rounded composer
+with the existing commands plus a shortcut to model parameters. Closing the
+parameter dialog restores focus to its opener. Navigation keeps chat mounted,
+so drafts and in-session history survive. It does not create saved conversations.
+
+Workbench toggles the Repository/Terminal/Upload panel beside Chat. On narrow
+screens it occupies the main area; the same button closes it. Tools opens the
+full workbench. Navigation to Chat, including a repository prompt shortcut,
+closes the panel. The narrow-screen navigation toggle exposes all three pages.
+The token file `brand/a008.css` provides neutral colours; `brand/workspace.css`
+is loaded last for shell and responsive feature composition.
 
 ### GUI session operations and parameters (A008-0065)
 

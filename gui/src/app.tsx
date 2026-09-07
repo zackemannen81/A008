@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { ToolPermissionDialog } from "./session/tool-permission-dialog.js";
+import { RepositoryPane, ToolActivity } from "./tools/repository-pane.js";
 import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
 import { ChatPane } from "./chat/chat-pane.js";
@@ -11,108 +12,80 @@ import { UploadPane } from "./upload/upload-pane.js";
 import { Workbench } from "./workbench/workbench.js";
 import { MemoryPage } from "./memory/memory-page.js";
 
-const STATUS_LABEL: Record<string, string> = {
-  idle: "not connected",
-  connecting: "connecting",
-  ready: "connected",
-  error: "runtime error",
-};
+const STATUS_LABEL = { idle: "Not connected", connecting: "Connecting", ready: "Connected", error: "Runtime error" };
 
-/**
- * The A008 workspace shell (ADR 0021 D1).
- *
- * Three zones under a full-width header: the rail carries identity and runtime
- * facts, the centre carries the conversation and nothing else, and the
- * workbench carries every other surface as a tab.
- *
- * The chat centre is deliberately single-purpose. A008's primary act is a
- * conversation, and the previous shell stacked four panes in one column and
- * left the transcript a quarter of the height. Memory diagnostics (ADR 0025)
- * use the centre and workbench space while keeping the chat mounted and hidden.
- */
+/** Persistent navigation, focused conversation and an optional workbench. */
 export function App() {
   const session = useGuiSession();
   const [parametersOpen, setParametersOpen] = useState(false);
   const parametersButton = useRef<HTMLButtonElement>(null);
+  const parametersTrigger = useRef<HTMLElement | null>(null);
   const [page, setPage] = useState<"chat" | "memory" | "tools">("chat");
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const cwd = session.details?.runtime.cwd;
+  const workspace = cwd?.split(/[\\/]/u).filter(Boolean).at(-1);
+  function navigate(next: typeof page) {
+    setPage(next);
+    setNavigationOpen(false);
+    if (next === "chat") setToolsOpen(false);
+  }
+  function openParameters() {
+    parametersTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setParametersOpen(true);
+  }
   return (
-    <div
-      className={`a008-app${page === "memory" ? " a008-memory-workspace" : page === "tools" ? " a008-tools-workspace" : ""}`}
-    >
-      <header className="a008-header">
-        <ToolPermissionDialog session={session} />
-        <BrandMark />
-        <nav className="a008-header-tabs" aria-label="Workspace">
-          <button
-            aria-current={page === "chat" ? "page" : undefined}
-            onClick={() => setPage("chat")}
-          >
-            Chat
-          </button>
-          <button
-            aria-current={page === "memory" ? "page" : undefined}
-            onClick={() => setPage("memory")}
-          >
-            Memory
-          </button>
-          <button
-            aria-current={page === "tools" ? "page" : undefined}
-            onClick={() => setPage("tools")}
-          >
-            Tools
-          </button>
+    <div className={`a008-app a008-${page}-workspace${toolsOpen ? " a008-panel-open" : ""}${navigationOpen ? " a008-navigation-open" : ""}`}>
+      <ToolPermissionDialog session={session} />
+      <aside className="a008-rail" id="a008-navigation" aria-label="Workspace navigation">
+        <div className="a008-sidebar-brand"><BrandMark /></div>
+        <nav className="a008-sidebar-nav" aria-label="Workspace">
+          <button aria-current={page === "chat" ? "page" : undefined} onClick={() => navigate("chat")}><span aria-hidden="true">◷</span> Chat</button>
+          <button aria-current={page === "memory" ? "page" : undefined} onClick={() => navigate("memory")}><span aria-hidden="true">◇</span> Memory</button>
+          <button aria-current={page === "tools" ? "page" : undefined} onClick={() => navigate("tools")}><span aria-hidden="true">⌘</span> Tools</button>
         </nav>
+        <div className="a008-sidebar-workspace">
+          <p className="a008-sidebar-caption">Workspace</p>
+          <p className="a008-workspace-name" title={cwd}>{workspace ?? "Local workspace"}</p>
+          <p className="a008-sidebar-hint">{cwd ?? "Connect to see your working directory."}</p>
+        </div>
+        <details className="a008-runtime-details">
+          <summary>Runtime details</summary>
+          <SettingsPane session={session} />
+        </details>
+        <p className="a008-sidebar-footer">A008 · Local engine</p>
+      </aside>
+      <header className="a008-header">
+        <div className="a008-header-title">
+          <button className="a008-navigation-toggle" aria-label="Toggle navigation" aria-expanded={navigationOpen} aria-controls="a008-navigation" onClick={() => setNavigationOpen(!navigationOpen)}>☰</button>
+          <span>{page === "chat" ? "Conversation" : page === "memory" ? "Memory" : "Tools"}</span>
+          <span className="a008-header-workspace">{workspace}</span>
+        </div>
         <div className="a008-header-actions">
-          <button
-            className="a008-parameters-open"
-            ref={parametersButton}
-            onClick={() => setParametersOpen(true)}
-            aria-haspopup="dialog"
-          >
-            Parameters
-          </button>
-          <p className="a008-header-status">
-            <span
-              className={`a008-connection-dot a008-connection-${session.status}`}
-              aria-hidden="true"
-            />
-            {STATUS_LABEL[session.status] ?? session.status}
-          </p>
+          <p className="a008-header-status"><span className={`a008-connection-dot a008-connection-${session.status}`} aria-hidden="true" />{STATUS_LABEL[session.status]}</p>
+          <button className="a008-parameters-open" ref={parametersButton} onClick={openParameters} aria-haspopup="dialog">Parameters</button>
+          {page === "chat" ? <button className="a008-panel-toggle" aria-expanded={toolsOpen} aria-controls="a008-tools-panel" onClick={() => setToolsOpen(!toolsOpen)}>Workbench</button> : null}
         </div>
       </header>
-
-      <aside className="a008-rail" aria-label="Runtime">
-        <SettingsPane session={session} />
-      </aside>
-
       <main className="a008-main" hidden={page !== "chat"}>
         <ChatPane session={session} />
-        {!!session.tools?.length && <section className="a008-tool-activity" aria-label="Tool activity">
-          {session.tools.map(tool => <details key={tool.id}><summary>{tool.title} · {tool.status}{tool.status === "pending" ? " — approve in client" : ""}</summary><pre>{tool.text}</pre></details>)}
-        </section>}
-        <Composer session={session} />
+        <ToolActivity session={session} />
+        <Composer session={session} onParameters={openParameters} />
       </main>
-
       <main className="a008-memory-main" hidden={page !== "memory"}>
         <MemoryPage active={page === "memory"} />
       </main>
-
-      <Workbench
-        label="Workbench"
-        surfaces={[
+      <div className="a008-tools-panel" id="a008-tools-panel" hidden={page !== "tools" && !(page === "chat" && toolsOpen)}>
+        <Workbench label="Workbench" surfaces={[
+          { id: "repository", label: "Repository", render: () => <RepositoryPane session={session} onChat={() => navigate("chat")} /> },
           { id: "terminal", label: "Terminal", render: () => <TerminalPane /> },
           { id: "upload", label: "Upload", render: () => <UploadPane /> },
-        ]}
-      />
-      {parametersOpen ? (
-        <ParametersPanel
-          session={session}
-          onClose={() => {
-            setParametersOpen(false);
-            parametersButton.current?.focus();
-          }}
-        />
-      ) : null}
+        ]} />
+      </div>
+      {parametersOpen ? <ParametersPanel session={session} onClose={() => {
+        setParametersOpen(false);
+        (parametersTrigger.current ?? parametersButton.current)?.focus();
+      }} /> : null}
     </div>
   );
 }

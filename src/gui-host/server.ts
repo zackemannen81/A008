@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 import { createHash, timingSafeEqual } from "node:crypto";
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, realpathSync, statSync } from "node:fs";
 import {
   createServer,
   type IncomingMessage,
   type Server,
   type ServerResponse,
 } from "node:http";
-import { extname, join, relative, resolve, sep } from "node:path";
+import { extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { ChatError, isChatError } from "../core/errors.js";
 import { defaultSessionParameters, generationCapabilities } from "../core/generation-controls.js";
@@ -101,7 +101,10 @@ export async function startGuiHost(
   options: GuiHostOptions = {},
 ): Promise<GuiHost> {
   const env = options.env ?? process.env;
-  const cwd = options.cwd ?? process.cwd();
+  const configuredWorkspace = options.cwd ?? (env.A008_GUI_WORKSPACE?.trim() || process.cwd());
+  if (!isAbsolute(configuredWorkspace)) throw new ChatError("configuration", "GUI workspace must be an absolute directory.");
+  const cwd = realpathSync(configuredWorkspace);
+  if (!statSync(cwd).isDirectory()) throw new ChatError("configuration", "GUI workspace must be a directory.");
   const host = options.host ?? DEFAULT_GUI_HOST_BIND;
   const port = options.port ?? DEFAULT_GUI_HOST_PORT;
   const secrets = wireSecrets(env);

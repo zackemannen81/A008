@@ -47,3 +47,4 @@ Latest local handoffs: [A008-0067](A008-0067.md) — complete engine and panels;
 - [`A008-0043.md`](A008-0043.md) — runtime source-ingest and ACP method. Merged 2026-09-03 (PR #19).
 - [`A008-0044.md`](A008-0044.md) — GUI host upload route and blob store. Merged 2026-09-03 (PR #18).
 - [`A008-0045.md`](A008-0045.md) — GUI upload module. Merged 2026-09-03 (PR #17).
+- [A008-0068.md](A008-0068.md) — Standalone GUI repository tools.

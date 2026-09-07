@@ -1,34 +1,29 @@
-/*
- * A008 visual identity: warm near-black ground, parchment text, one brass
- * accent (ADR 0021 D2). This file is the only place a colour literal is
- * declared; everything else reads a token.
- *
- * Values are A008's own. The direction came from an inspected reference that
- * declares no license, so nothing was copied — see ADR 0021 D4.
- */
+/* A008 neutral charcoal tokens (ADR 0030). Values and implementation are A008's
+ * own, inspired by the owner's desktop screenshot. Shared feature primitives
+ * live here; workspace.css owns the standalone shell composition. */
 
 :root {
   color-scheme: dark;
 
   /* Ground and surfaces */
-  --a008-bg: #0e0f0d;
-  --a008-bg-raised: #121310;
-  --a008-panel: #161714;
-  --a008-panel-quiet: #131410;
+  --a008-bg: #181818;
+  --a008-bg-raised: #202020;
+  --a008-panel: #242424;
+  --a008-panel-quiet: #202020;
 
   /* Type */
-  --a008-fg: #ece7db;
-  --a008-fg-soft: #cfc8b9;
-  --a008-muted: #8b867c;
-  --a008-dim: #625e57;
+  --a008-fg: #eeeeee;
+  --a008-fg-soft: #d0d0d0;
+  --a008-muted: #a0a0a0;
+  --a008-dim: #777777;
 
   /* Lines. Translucent so they sit on any surface without a second value. */
-  --a008-border: rgba(236, 231, 219, 0.1);
-  --a008-border-strong: rgba(236, 231, 219, 0.19);
+  --a008-border: rgba(238, 238, 238, 0.1);
+  --a008-border-strong: rgba(238, 238, 238, 0.19);
 
   /* One accent. A second accent is a decision, not a convenience. */
-  --a008-accent: #c0a878;
-  --a008-accent-soft: rgba(192, 168, 120, 0.09);
+  --a008-accent: #e4e4e4;
+  --a008-accent-soft: rgba(228, 228, 228, 0.09);
   --a008-good: #86a088;
   --a008-danger: #c07f74;
   --a008-overlay: rgba(0, 0, 0, 0.6);
@@ -45,10 +40,10 @@
    * that own gui/src/chat and gui/src/upload retire them when they restyle.
    */
   --a008-cyan: var(--a008-accent);
-  --a008-cyan-dim: rgba(192, 168, 120, 0.34);
+  --a008-cyan-dim: rgba(228, 228, 228, 0.34);
   --a008-gold: var(--a008-accent);
   --a008-header-bg: var(--a008-panel);
-  --a008-grid: rgba(236, 231, 219, 0.026);
+  --a008-grid: rgba(238, 238, 238, 0.026);
 
   --a008-sans: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --a008-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
@@ -67,7 +62,7 @@ body {
 }
 
 /*
- * Three zones under a full-width header (ADR 0021 D1).
+ * Base shell constraints; workspace.css supplies the ADR 0030 composition.
  *
  * `height`, never `min-height`: a minimum is a floor and lets the row grow to
  * its content, which is what put a 2605px transcript inside a 720px viewport
@@ -492,25 +487,6 @@ body {
   outline: none;
 }
 
-/* One usable surface per mobile screen; Tools retains terminal/upload access. */
-@media (max-width: 850px) {
-  .a008-app { grid-template-columns: minmax(0, 1fr); }
-  .a008-app .a008-rail { display: none; }
-  .a008-main, .a008-app .a008-memory-main, .a008-tools-workspace .a008-workbench { grid-column: 1; }
-  .a008-app:not(.a008-tools-workspace) .a008-workbench { display: none; }
-  .a008-header-actions { gap: .3rem; }
-  .a008-header-actions .a008-header-status { display: none; }
-  .a008-header { gap: .4rem; padding-inline: .6rem; }
-  .a008-brand-tagline { display: none; }
-  .a008-header-tabs button { padding-inline: .55rem; }
-}
-@media (max-width: 440px) {
-  .a008-header { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .a008-header-tabs { justify-content: center; gap: 0; }
-  .a008-header-tabs button { padding-inline: .35rem; font-size: .7rem; }
-  .a008-parameters-open { padding-inline: .45rem; font-size: .7rem; }
-  .a008-brand { gap: .4rem; }
-}
 .a008-tool-activity { flex: 0 1 auto; max-height: 30vh; overflow: auto; padding: .5rem 1rem; border-top: 1px solid var(--a008-border); }
 .a008-tool-activity pre, .a008-tool-permission pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .a008-tool-permission { width: min(44rem, 90vw); max-height: 85vh; overflow: auto; background: var(--a008-surface, #171813); color: var(--a008-text, #eee); border: 1px solid var(--a008-border, #555); padding: 1.5rem; }
