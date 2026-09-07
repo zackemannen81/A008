@@ -5,6 +5,12 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0068 adds standalone GUI repository work: the connected tool catalog,
+cwd, read/root/Git shortcuts, native UTF-8 file tools and literal-argument Git.
+The real standalone GUI-host → ACP → synthetic-provider loop verifies approved
+file creation/editing and Git observations, plus denied writes. See
+[repository runbook](GUI_REPOSITORY_TOOLS.md). User instructions remain editable.
+
 A008-0067 adds the portable engine and generic companion-client panel/permission
 integration. A real extracted package runs through the client's actual process
 host, shares its session with the panel, executes approved isolated commands,

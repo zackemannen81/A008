@@ -1,0 +1,16 @@
+.a008-repository { padding: 1.25rem; max-width: 64rem; margin: 0 auto; }
+.a008-repository h2 { margin: 0; }
+.a008-repository p { color: var(--a008-fg-soft); line-height: 1.6; }
+.a008-repository-root { border: 1px solid var(--a008-border); padding: 1rem; border-radius: .4rem; display: grid; gap: .5rem; margin-block: 1.25rem; }
+.a008-repository-root code { overflow-wrap: anywhere; color: var(--a008-accent); }
+.a008-repository-actions { display: flex; flex-wrap: wrap; gap: .6rem; margin-block: 1rem 1.5rem; }
+.a008-repository button { color: inherit; background: var(--a008-panel); border: 1px solid var(--a008-border); border-radius: .35rem; padding: .65rem .8rem; cursor: pointer; font: inherit; }
+.a008-repository button:hover:not(:disabled), .a008-repository button:focus-visible { border-color: var(--a008-accent); }
+.a008-repository button:disabled { opacity: .45; cursor: default; }
+.a008-repository-catalog { margin: 0; }
+.a008-repository-catalog > div { border-top: 1px solid var(--a008-border); padding-block: .8rem; }
+.a008-repository-catalog dt { display: flex; align-items: center; gap: .75rem; }
+.a008-repository-catalog dd { margin: .45rem 0 0; color: var(--a008-fg-soft); line-height: 1.5; }
+.a008-repository-badge { border: 1px solid var(--a008-border); padding: .15rem .4rem; font-size: .7rem; }
+.a008-tools-workspace .a008-workbench { grid-column: 2 / -1; }
+@media (max-width: 850px) { .a008-tools-workspace .a008-workbench { grid-column: 1; } }

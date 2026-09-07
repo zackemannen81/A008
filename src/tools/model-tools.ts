@@ -7,6 +7,7 @@ import type { JsonSchemaType, JsonSchemaValidator } from "@modelcontextprotocol/
 import type { ChatToolCall, ChatToolDefinition, ChatTools } from "../core/types.js";
 import type { RuntimeBudgets } from "../core/runtime-preferences.js";
 import { runTerminalCommand, formatTerminalResult, killProcessTree } from "./terminal.js";
+import { repositoryTools, RepositoryToolError } from "./repository-tools.js";
 
 export interface ToolActivity {
   readonly id: string;
@@ -62,6 +63,7 @@ export class ModelToolSession {
         env: toolEnvironment(this.#env), shell: "powershell", signal, timeoutMs: budgets.toolTimeoutMs, maxBytes: budgets.toolOutputBytes });
       return { failed: result.exitCode !== 0 || result.timedOut, text: formatTerminalResult(result) };
     });
+    for (const tool of repositoryTools(this.#cwd, toolEnvironment(this.#env))) this.#register(tool.definition, tool.run);
   }
 
   #register(definition: ChatToolDefinition, run: RegisteredTool["run"]) {
@@ -103,7 +105,7 @@ export class ModelToolSession {
           } while (cursor);
         }
         this.#ready = true;
-      } catch (error) { await this.#disconnect(); for (const name of this.#tools.keys()) if (name !== "exec_command") this.#tools.delete(name); throw error; }
+      } catch (error) { await this.#disconnect(); for (const name of this.#tools.keys()) if (name.startsWith("mcp_")) this.#tools.delete(name); throw error; }
     }
     if (this.#tools.size > budgets.maximumToolDefinitions) throw new Error("Tool catalog exceeds Available tools budget.");
     return { definitions: [...this.#tools.values()].map(tool => tool.definition), maximumCalls: budgets.maximumToolCalls,
@@ -142,7 +144,7 @@ export class ModelToolSession {
       return text;
     } catch (error) {
       // SDK/provider errors may contain credentials or raw payloads. Publish no raw error.
-      const text = signal.aborted ? "Tool cancelled." : "Tool failed or timed out. No success confirmed.";
+      const text = signal.aborted ? "Tool cancelled." : error instanceof RepositoryToolError ? error.message : "Tool failed or timed out. No success confirmed.";
       await approval.update({ ...activity, status: "failed", output: text });
       signal.throwIfAborted();
       return JSON.stringify({ status: "failed", text });

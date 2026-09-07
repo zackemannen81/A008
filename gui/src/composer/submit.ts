@@ -27,7 +27,7 @@ export type ComposerSubmitResult =
   | { readonly kind: "error"; readonly message: string };
 
 export const GUI_TOOLS =
-  "terminal  /shell <command>  native A008 runner\n          /! <command>      alias\nexec_command  model-invoked shell; approve each action in the client.\nApproved MCP tools are supplied by the client.\nUpload stores sources; Memory inspects the shared store.";
+  "terminal  /shell <command>  native A008 runner\n          /! <command>      alias\nModel tools are listed under Tools → Repository after connecting. Approve model actions in this GUI.\nUpload stores sources; Memory inspects the shared store.";
 
 export async function controlSession(
   session: GuiSession,
@@ -131,7 +131,7 @@ export async function submitComposer(
         (await controlSession(deps.session, { action: "inspect" })).runtime.cwd,
       );
     case "tools":
-      return notice(GUI_TOOLS);
+      return notice(`${GUI_TOOLS}${deps.session.details?.runtime.tools ? `\n\n${deps.session.details.runtime.tools.map(tool => `${tool.name}  ${tool.description}`).join("\n")}` : ""}`);
     case "shell":
       if (parsed.argument === "")
         return { kind: "error", message: "Usage: /shell <command>" };

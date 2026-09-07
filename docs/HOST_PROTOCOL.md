@@ -1,5 +1,12 @@
 # A008 GUI host protocol v1
 
+A008-0068 (ADR 0029) adds optional `state.runtime.tools` to session snapshots:
+an array of `{ name: string, description: string }` for the runtime's native
+model tools. It is informational; calls and permissions use the existing tool
+frames. Absence means catalog metadata is unavailable, not that tools are enabled.
+`A008_GUI_WORKSPACE` selects the standalone host cwd at startup; this environment
+option adds no HTTP mutation route and does not change memory-store ownership.
+
 Discoverability: index. This is the complete surface an external client speaks
 to. It is written so a client can be implemented without reading this
 repository's decision history.

@@ -5,6 +5,8 @@ export const DEFAULT_TERMINAL_TIMEOUT_MS = 60_000;
 export const DEFAULT_TERMINAL_MAX_BYTES = 64 * 1024;
 
 export interface TerminalRunInput {
+  /** Host-selected executable and literal arguments; bypasses the shell. */
+  readonly executable?: { readonly file: string; readonly args: readonly string[] };
   readonly command: string;
   readonly cwd: string;
   readonly timeoutMs?: number;
@@ -82,11 +84,11 @@ export async function runTerminalCommand(
 
   return await new Promise((resolve, reject) => {
     const powershell = input.shell === "powershell" && process.platform === "win32";
-    const child = spawn(powershell ? "powershell.exe" : command, powershell
+    const child = spawn(input.executable?.file ?? (powershell ? "powershell.exe" : command), input.executable ? [...input.executable.args] : powershell
       ? ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(command, "utf16le").toString("base64")] : [], {
       cwd,
       env: input.env ?? process.env,
-      shell: !powershell,
+      shell: !input.executable && !powershell,
       detached: process.platform !== "win32",
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],

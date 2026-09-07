@@ -7,6 +7,7 @@ import { createLocalMemoryRuntime } from "../runtime/local-memory-runtime.js";
 import { A008AcpAgent, sessionNotifier } from "./A008-acp-agent.js";
 import { ModelToolSession } from "../tools/model-tools.js";
 import { prepareAcpTools } from "../tools/acp-tools.js";
+import { nativeToolCatalog } from "../tools/repository-tools.js";
 
 export interface AcpServerOptions {
   readonly env?: NodeJS.ProcessEnv;
@@ -24,7 +25,7 @@ export function createAcpRuntime(options: { env: NodeJS.ProcessEnv; cwd?: string
   });
   const agent = new A008AcpAgent({
     sessionControls: true,
-    runtimeInfo: () => ({ cwd: options.cwd ?? process.cwd(), projectId: runtime.projectId, memoryPath: runtime.sqlitePath }),
+    runtimeInfo: () => ({ cwd: options.cwd ?? process.cwd(), projectId: runtime.projectId, memoryPath: runtime.sqlitePath, tools: nativeToolCatalog() }),
     inspectMemory: (query) => runtime.inspectMemory(query),
     createSession: (model) => runtime.openSession({ model }),
     // Wired only here, so an agent constructed without a runtime refuses
