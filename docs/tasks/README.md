@@ -79,3 +79,4 @@ the template before push.
   — Merged to `main` 2026-09-02 (PR #5). Also archived under `docs/finished/`.
 - [`A008-0028_storage-redesign.md`](A008-0028_storage-redesign.md)
   — Merged to `main` 2026-09-02 (PR #6). Also archived under `docs/finished/`.
+`A008-0066`: [runtime preferences](A008-0066_runtime-preferences.md).

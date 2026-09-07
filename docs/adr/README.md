@@ -116,3 +116,4 @@ replacement.
   on an empty intersection, giving topic continuity without carrying old
   messages. Closes ADR 0023 D5. Its D5 records a ceiling that is not in the
   owner's specification, and why.
+- [0027 — Runtime preferences and instructions](0027-runtime-preferences-and-instructions.md)
