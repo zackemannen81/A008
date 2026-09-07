@@ -49,6 +49,10 @@
 .a008-app .a008-main, .a008-app .a008-memory-main, .a008-app .a008-help-main { grid-column: 2; grid-row: 2; background: var(--a008-bg); min-width: 0; min-height: 0; }
 .a008-app .a008-main { padding: 0 1.5rem 1rem; }
 .a008-help-main { overflow: auto; }
+.a008-shortcut-dock {
+  position: absolute; top: 4.35rem; right: 1.1rem; width: 20.5rem; z-index: 5;
+}
+.a008-shortcut-dock .a008-empty-shortcuts { margin: 0; max-width: none; width: 100%; }
 .a008-environment-float, .a008-files-float {
   position: absolute; top: 4.35rem; right: 1.1rem; width: 22.5rem;
   max-height: calc(100% - 5.2rem); overflow: auto; z-index: 6;
@@ -56,7 +60,7 @@
   background: var(--a008-panel); box-shadow: 0 16px 40px rgba(0,0,0,.38);
 }
 .a008-files-float { width: 24rem; }
-.a008-environment-float[hidden], .a008-files-float[hidden] { display: none !important; }
+.a008-environment-float[hidden], .a008-files-float[hidden], .a008-shortcut-dock[hidden] { display: none !important; }
 .a008-start-actions {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem;
   margin: 1.2rem auto 0; max-width: 36rem; text-align: left;
@@ -126,7 +130,8 @@
   .a008-app, .a008-app.a008-chat-workspace.a008-panel-open { grid-template-columns: minmax(0, 1fr); }
   .a008-app .a008-rail { display: none; }
   .a008-app.a008-navigation-open .a008-rail { display: flex; grid-column: 1; grid-row: 2; z-index: 5; overflow: auto; }
-  .a008-app.a008-navigation-open > main, .a008-app.a008-navigation-open > .a008-tools-panel, .a008-app.a008-navigation-open > .a008-environment-float { visibility: hidden; }
+  .a008-shortcut-dock { display: none !important; }
+  .a008-app.a008-navigation-open > main, .a008-app.a008-navigation-open > .a008-tools-panel, .a008-app.a008-navigation-open > .a008-environment-float, .a008-app.a008-navigation-open > .a008-files-float { visibility: hidden; }
   .a008-header { grid-column: 1; padding: .5rem .7rem; }
   .a008-navigation-toggle { display: block; }
   .a008-app .a008-main, .a008-app .a008-memory-main, .a008-app .a008-help-main, .a008-app .a008-tools-panel { grid-column: 1; }
