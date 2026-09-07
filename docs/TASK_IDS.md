@@ -84,3 +84,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0065 | GUI session commands and model parameters | Codex (operator) | 2026-09-06 | CLI parity, session controls, generation settings and host contract |
 | A008-0066 | editable runtime budgets and global instructions | Codex (operator) | 2026-09-07 | persistent runtime preferences, GUI controls and prompt composition |
 | A008-0067 | complete engine distribution and client panel integration | Codex (operator) | 2026-09-07 | engine lifecycle, shared sessions, bundled surfaces, model tools and external adapter |
+| A008-0068 | standalone GUI repository tools | Codex (operator) | 2026-09-07 | native file tools, Git, visible tool catalog and standalone GUI verification |
