@@ -70,7 +70,7 @@ function boundedTurns(
   maximumTurns: number,
   maximumCharacters: number,
 ): DialogueTurn[] {
-  return turns.slice(-maximumTurns).map((turn) => {
+  return (maximumTurns === 0 ? [] : turns.slice(-maximumTurns)).map((turn) => {
     if (turn.role !== "user" && turn.role !== "assistant") {
       throw new MemoryError(
         "invalid_input",
@@ -152,7 +152,7 @@ export class DeterministicRetrievalPlanner implements RetrievalPlanner {
       options.maxEntities ?? 8,
       "maxEntities",
     );
-    this.maxRecentTurns = requirePositiveInteger(
+    this.maxRecentTurns = options.maxRecentTurns === 0 ? 0 : requirePositiveInteger(
       options.maxRecentTurns ?? 2,
       "maxRecentTurns",
     );

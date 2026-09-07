@@ -8,6 +8,12 @@ replacement.
 
 ## Records
 
+- [0026-gui-session-controls.md](0026-gui-session-controls.md) — Accepted;
+  CLI session parity and model-specific generation controls through host/ACP.
+
+- [0025-memory-inspection-gui.md](0025-memory-inspection-gui.md) — Accepted;
+  read-only GUI memory overview, relationship graph and knowledge inspection.
+
 - [`0001-product-composition.md`](0001-product-composition.md) — Accepted;
   A008 combines a shared core, CLI, Agent Canvas-derived GUI, and optional
   add-ons including semantic memory.
@@ -110,3 +116,4 @@ replacement.
   on an empty intersection, giving topic continuity without carrying old
   messages. Closes ADR 0023 D5. Its D5 records a ceiling that is not in the
   owner's specification, and why.
+- [0027 — Runtime preferences and instructions](0027-runtime-preferences-and-instructions.md)

@@ -24,6 +24,9 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
     stderr,
   });
   const agent = new A008AcpAgent({
+    sessionControls: true,
+    runtimeInfo: () => ({ cwd: process.cwd(), projectId: runtime.projectId, memoryPath: runtime.sqlitePath }),
+    inspectMemory: (query) => runtime.inspectMemory(query),
     createSession: (model) => runtime.openSession({ model }),
     // Wired only here, so an agent constructed without a runtime refuses
     // `_a008/source/ingest` instead of silently doing nothing.
@@ -66,6 +69,8 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
       // `session/close` method needs its own handler even though the agent
       // advertises the capability from `initialize`.
       .onRequest("session/close", (context) => agent.closeSession(context.params))
+      .onRequest("_a008/session/control", (params: unknown) => params,
+        (context) => agent.controlSession(context.params))
       // ADR 0020 D4. Registered through the custom-method overload, which takes
       // an explicit params parser; the agent re-validates regardless.
       .onRequest(
@@ -88,6 +93,8 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
         (params: unknown) => params,
         async (context) => await agent.ingestSource(context.params),
       )
+      .onRequest("memory/inspect", (params: unknown) => params,
+        async (context) => await agent.inspectMemory(context.params))
       .onNotification("session/cancel", (context) => agent.cancel(context.params))
       .connect(stream);
 

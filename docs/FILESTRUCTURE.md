@@ -17,9 +17,18 @@ A008/
 |  |- src/
 |  |  |- main.tsx                    renderer bootstrap
 |  |  |- app.tsx                     shell layout (operator-owned)
+|  |  |- memory/                     A008-0064 read-only memory diagnostics
+|  |  |  |- memory-page.tsx          three views, filters, refresh and pagination
+|  |  |  |- memory-client.ts        validated host inspection client
+|  |  |  |- memory-overview.tsx      actual inventory and domain counts
+|  |  |  |- memory-graph.tsx         bounded stored-link graph and keyboard selection
+|  |  |  |- memory-inspector.tsx     escaped record details
+|  |  |  |- memory.css              responsive layout using existing tokens
+|  |  |  `- memory.test.ts           client, DOM and graph checks
 |  |  |- session/                    A008-0033 WebSocket session client
 |  |  |  |- protocol.ts              host protocol v1 frames and URL resolution
-|  |  |  |- gui-session-client.ts    socket lifecycle and buffers
+|  |  |  |- gui-session-client.ts    socket lifecycle, controls and committed snapshots
+|  |  |  |- session-controls.ts     renderer control types and metadata/snapshot validation
 |  |  |  `- use-gui-session.ts       React hook exposing GuiSession
 |  |  |- chat/                       A008-0034 transcript
 |  |  |  |- chat-pane.tsx            user, answer, and thought DOM channels
@@ -29,6 +38,8 @@ A008/
 |  |  |- composer/                   A008-0035 slash composer
 |  |  |- terminal/                   A008-0036 terminal pane
 |  |  |- settings/                   A008-0037 settings
+|  |  |  |- parameters-panel.tsx     A008-0065 model-aware generation dialog
+|  |  |  `- parameters.css          parameter and session-control styling
 |  |  |- brand/                      A008-0037 identity
 |  |  `- upload/                     A008-0045 upload client and pane
 |  `- test/                          A008-0039 shared GUI test runner
@@ -71,6 +82,8 @@ A008/
 |  |  |- types.ts                    provider-neutral chat contracts
 |  |  |- errors.ts                   typed error taxonomy
 |  |  |- model-registry.ts           verified model profiles and lookup
+|  |  |- generation-controls.ts     capabilities, complete parameter sets and validation
+|  |  |- session-control.ts         shared control/snapshot contract
 |  |  `- chat-session.ts             transactional in-memory conversation
 |  |- identity/
 |  |  |- types.ts                    branded IDs and ACP binding repository port
@@ -120,6 +133,7 @@ A008/
 |  |     |- sqlite-context.ts        persisting KnowledgeReadContext
 |  |     |- labels.ts                stored tags/domains + the index that finds them
 |  |     |- live-reader.ts           live DEFINE..PROJECT MemoryReadPort
+|  |     |- inspection.ts            A008-0064 provider-free inventory and graph
 |  |     |- projection-items.ts      every surface reaches the model; rank, dedupe, budget (ADR 0023)
 |  |     |- labels.ts               stored tags and domains, and the index that finds them
 |  |     |- current-scope.ts         accumulating discussion scope (ADR 0024)
@@ -149,6 +163,8 @@ A008/
 |     `- local-memory-runtime.ts      CLI/ACP memory composition root
 |- test/                              fake/local chat, ACP, memory, retrieval, identity, and orchestration tests
 |  |- gui-host.test.ts                host routes, upload, WS bridge, credential gate
+|  |- session-controls.test.ts        model parameters, lifecycle and real host/ACP payload proof
+|  |- memory-inspection.test.ts       inventory, nonmutation, bounds, HTTP/ACP proof
 |  |- ingest-source.test.ts           sniffing, extraction, and provenance
 |  |- document-extraction.test.ts    PDF, Word, ZIP and OOXML readers
 |  |- core-suite-membership.test.ts  test:core names every test file, and only real ones
@@ -164,6 +180,7 @@ A008/
 |  |- gui-host/
 |  |  `- fake-acp.ts                  spawnable ACP stdio stand-in
 |  |- fixtures/
+|  |  |- session-control-provider.ts  loopback-only synthetic session proof server
 |  |  |- documents.ts                built PDF and ZIP/DOCX fixtures, no binaries
 |  |  |- fake-nvidia-server.ts        loopback runtime-proof SSE fixture
 |  |  |- nvidia-live-reasoning-leak.json  live Nemotron channel-leak characterization

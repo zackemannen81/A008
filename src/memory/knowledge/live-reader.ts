@@ -42,6 +42,7 @@ export interface KnowledgeMemoryReaderOptions {
    * `omittedKnowledgeIds`, so a short answer is always explainable.
    */
   readonly maximumProjectionBytes?: number;
+  readonly maximumScopeDomains?: number;
 }
 
 export class KnowledgeMemoryReader {
@@ -49,6 +50,7 @@ export class KnowledgeMemoryReader {
   readonly #planner: RetrievalPlanner;
   readonly #measurer: SerializedContextMeasurer;
   readonly #maximumProjectionBytes: number | undefined;
+  readonly #maximumScopeDomains: number | undefined;
   readonly #scopeClassifier: RetrievalScopeClassifier | undefined;
   readonly #scopes: ConversationScopes;
 
@@ -57,6 +59,7 @@ export class KnowledgeMemoryReader {
     this.#planner = options.planner ?? new DeterministicRetrievalPlanner();
     this.#measurer = options.measurer ?? new Utf8ByteContextMeasurer();
     this.#maximumProjectionBytes = options.maximumProjectionBytes;
+    this.#maximumScopeDomains = options.maximumScopeDomains;
     this.#scopeClassifier = options.scopeClassifier;
     this.#scopes = options.scopes ?? new ConversationScopes();
   }
@@ -73,6 +76,7 @@ export class KnowledgeMemoryReader {
   async #classifyScope(
     request: MemoryReadRequest,
     vocabulary: { readonly tags: readonly string[]; readonly domains: readonly string[] },
+    options: { readonly signal?: AbortSignal },
   ): Promise<{
     readonly domains: readonly string[];
     readonly relatedDomains: readonly string[];
@@ -87,7 +91,7 @@ export class KnowledgeMemoryReader {
         message: request.message,
         knownDomains: vocabulary.domains,
         knownTags: vocabulary.tags,
-      });
+      }, options);
       return {
         domains: labelArray(draft.domains),
         relatedDomains: labelArray(draft.relatedDomains),
@@ -99,7 +103,7 @@ export class KnowledgeMemoryReader {
     }
   }
 
-  async read(request: MemoryReadRequest): Promise<HybridMemoryReadResult> {
+  async read(request: MemoryReadRequest, options: { readonly signal?: AbortSignal } = {}): Promise<HybridMemoryReadResult> {
     const plan = this.#planner.plan(request);
     const vocabulary = this.#context.labels.vocabulary();
 
@@ -114,11 +118,11 @@ export class KnowledgeMemoryReader {
     // no classifier is composed the reader keeps working on the lexical half
     // alone, weaker but never broken.
     const mentioned = mentionedLabels(request.message, vocabulary);
-    const classified = await this.#classifyScope(request, vocabulary);
+    const classified = await this.#classifyScope(request, vocabulary, options);
     const scope = this.#scopes.advance(request.conversationId, {
       domains: classified.domains,
       relatedDomains: classified.relatedDomains,
-    });
+    }, this.#maximumScopeDomains === undefined ? {} : { maximumDomains: this.#maximumScopeDomains });
 
     const result = readKnowledge(
       {

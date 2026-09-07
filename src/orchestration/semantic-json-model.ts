@@ -341,6 +341,7 @@ export class ChatTransportSemanticJsonGenerator
     this.#transport = options.transport;
     this.#model = nonEmpty(options.model, "Semantic model");
     this.#budget = {
+      ...options.budget,
       maximum: options.budget.maximum,
       measurer: options.budget.measurer,
     };
@@ -354,7 +355,8 @@ export class ChatTransportSemanticJsonGenerator
     const operation = input.operation;
     if (
       operation !== "knowledge_analysis" &&
-      operation !== "relation_classification"
+      operation !== "relation_classification" &&
+      operation !== "retrieval_scope"
     ) {
       throw new ChatError(
         "configuration",

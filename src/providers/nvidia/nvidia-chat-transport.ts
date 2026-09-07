@@ -61,9 +61,16 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
   assignOption(payload, "top_p", options.topP);
   assignOption(payload, "max_tokens", options.maxTokens);
   assignOption(payload, "reasoning_budget", options.reasoningBudget);
+  assignOption(payload, "seed", options.seed);
+  if (options.stop != null) payload.stop = [...options.stop];
+  if (options.reasoningEffort != null) payload.reasoning_effort = options.reasoningEffort;
 
-  if (options.enableThinking !== undefined) {
-    payload.chat_template_kwargs = { enable_thinking: options.enableThinking };
+  if (options.enableThinking != null) {
+    if (request.model === "deepseek-ai/deepseek-v4-pro-0813") {
+      payload.chat_template_kwargs = { thinking: options.enableThinking };
+    } else if (request.model !== "moonshotai/kimi-k3" && request.model !== "meta/muse-glimmer-30b" && request.model !== "poolside/laguna-xs-2.1") {
+      payload.chat_template_kwargs = { enable_thinking: options.enableThinking };
+    }
   }
 
   return payload;
@@ -72,9 +79,9 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
 function assignOption(
   payload: Record<string, unknown>,
   key: string,
-  value: number | undefined,
+  value: number | null | undefined,
 ): void {
-  if (value !== undefined) {
+  if (value != null) {
     payload[key] = value;
   }
 }

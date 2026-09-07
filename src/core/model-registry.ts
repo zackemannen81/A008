@@ -51,9 +51,9 @@ export const NVIDIA_NEMOTRON_3_NANO_OMNI: ModelProfile = Object.freeze({
 /**
  * Text and image.
  *
- * Its sample carries `reasoning_effort: "max"` and `seed`, neither of which
- * `ChatGenerationOptions` has. `enableThinking` is the closest A008 field and
- * is not the same control, so the effort level is left to the provider default.
+ * Its sample carries `reasoning_effort: "max"` and `seed`. ADR 0026 adds those
+ * controls separately from this original profile: GUI sessions use the actual
+ * effort enum and omit the older, unsupported enableThinking template toggle.
  */
 export const MOONSHOT_KIMI_K3: ModelProfile = Object.freeze({
   id: "moonshotai/kimi-k3",

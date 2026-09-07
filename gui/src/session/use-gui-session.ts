@@ -44,6 +44,11 @@ export function useGuiSession(options?: GuiSessionClientOptions): GuiSession {
   );
 
   return {
+    details: snapshot.details,
+    busy: snapshot.busy,
+    pendingText: snapshot.pendingText,
+    controlSession: client.controlSession,
+    endSession: client.endSession,
     status: snapshot.status,
     sessionId: snapshot.sessionId,
     model: snapshot.model,

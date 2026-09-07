@@ -11,6 +11,14 @@ the template before push.
 
 ## Records
 
+- [A008-0065_gui-session-controls.md](A008-0065_gui-session-controls.md) —
+  Complete locally; session commands, runtime snapshots and model parameters;
+  [archived](../finished/A008-0065_gui-session-controls.md).
+
+- [A008-0064_gui-memory-diagnostics.md](A008-0064_gui-memory-diagnostics.md) —
+  Complete locally; archived in
+  [../finished/A008-0064_gui-memory-diagnostics.md](../finished/A008-0064_gui-memory-diagnostics.md).
+
 - [`A008-0049_source-knowledge-extraction.md`](A008-0049_source-knowledge-extraction.md) —
   Complete; upload wave 2, amends ADR 0020 D7 with D10; archived
   [`../finished/A008-0049_source-knowledge-extraction.md`](../finished/A008-0049_source-knowledge-extraction.md).
@@ -71,3 +79,4 @@ the template before push.
   — Merged to `main` 2026-09-02 (PR #5). Also archived under `docs/finished/`.
 - [`A008-0028_storage-redesign.md`](A008-0028_storage-redesign.md)
   — Merged to `main` 2026-09-02 (PR #6). Also archived under `docs/finished/`.
+`A008-0066`: [runtime preferences](A008-0066_runtime-preferences.md).

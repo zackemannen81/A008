@@ -96,6 +96,7 @@ export function ChatPane(props: { readonly session: GuiSession }) {
   const [history, dispatch] = useReducer(reduceChatHistory, initialChatHistory);
 
   useEffect(() => {
+    if (session.details !== undefined) return;
     return captureSessionPrompt(session, (text) => {
       const current = sessionRef.current;
       dispatch({
@@ -108,12 +109,13 @@ export function ChatPane(props: { readonly session: GuiSession }) {
   }, [session]);
 
   useEffect(() => {
+    if (session.details !== undefined) return;
     dispatch({
       kind: "live",
       thought: session.thought,
       answer: session.answer,
     });
-  }, [session.thought, session.answer]);
+  }, [session.details, session.thought, session.answer]);
 
   const transcript = useMemo(
     () =>

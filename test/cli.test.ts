@@ -92,9 +92,8 @@ test("interactive chat uses the injected shared transport", async () => {
     });
 
     assert.equal(code, 0);
-    assert.equal(semanticOperation(transport.requests[0]!), undefined);
-    assert.match(transport.requests[0]?.messages.at(-1)?.content ?? "", /hello/u);
-    assert.equal(semanticOperation(transport.requests[1]!), "knowledge_analysis");
+    assert.deepEqual(transport.requests.map(semanticOperation), ["retrieval_scope", undefined, "knowledge_analysis"]);
+    assert.match(transport.requests[1]?.messages.at(-1)?.content ?? "", /hello/u);
     assert.match(fixture.stdout.text(), /assistant> fake answer/u);
   } finally {
     rmSync(isolated.directory, { recursive: true, force: true });

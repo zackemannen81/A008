@@ -11,6 +11,8 @@ authority. Workers do not append `docs/JOURNAL.md`.
 
 ## Required fields
 
+Latest local handoff: [A008-0065](A008-0065.md) — GUI session commands and parameters.
+
 - Task ID and branch
 - Head commit SHA
 - Pull request URL
@@ -21,6 +23,9 @@ authority. Workers do not append `docs/JOURNAL.md`.
 - Next recommended operator action
 
 ## Records
+
+- [A008-0064.md](A008-0064.md) — Complete locally; three read-only memory GUI
+  views with real runtime data and browser verification. Not pushed.
 
 - [`A008-0024.md`](A008-0024.md) — M3 semantic addressing. Merged 2026-09-02.
 - A008-0023 — no worker handoff file; PR #2 code is the handoff. Merged 2026-09-02.

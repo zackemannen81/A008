@@ -26,7 +26,7 @@ import {
 } from "./memory-prompt-composer.js";
 
 export interface MemoryReadPort {
-  read(request: MemoryReadRequest): Promise<HybridMemoryReadResult>;
+  read(request: MemoryReadRequest, options?: { readonly signal?: AbortSignal }): Promise<HybridMemoryReadResult>;
 }
 
 export interface MemoryAwareSessionContext {
@@ -42,6 +42,7 @@ export interface MemoryAwareChatSessionOptions {
   readonly invocationBudget: ChatInvocationBudget;
   readonly promptComposer?: MemoryPromptComposer;
   readonly recentMessageLimit?: number;
+  readonly systemInstructions?: string;
 }
 
 export interface MemoryAwareTurnInput {
@@ -63,10 +64,10 @@ export interface MemoryAwareTurnResult {
 }
 
 function boundedRecentMessageLimit(value: number): number {
-  if (!Number.isSafeInteger(value) || value < 0 || value > 2) {
+  if (!Number.isSafeInteger(value) || value < 0) {
     throw new ChatError(
       "configuration",
-      "Memory-aware recentMessageLimit must be an integer between 0 and 2.",
+      "Memory-aware recentMessageLimit must be a non-negative safe integer.",
     );
   }
   return value;
@@ -87,7 +88,7 @@ function validatedInvocationBudget(
       "Memory-aware invocation measurement unit must not be empty.",
     );
   }
-  return { maximum: budget.maximum, measurer: budget.measurer };
+  return { ...budget };
 }
 
 function nonEmpty(value: string, field: string): string {
@@ -114,6 +115,7 @@ export class MemoryAwareChatSession {
   readonly #invocationBudget: ChatInvocationBudget;
   readonly #promptComposer: MemoryPromptComposer;
   readonly #recentMessageLimit: number;
+  readonly #systemInstructions: string;
   #active = false;
 
   constructor(options: MemoryAwareChatSessionOptions) {
@@ -135,6 +137,7 @@ export class MemoryAwareChatSession {
     this.#recentMessageLimit = boundedRecentMessageLimit(
       options.recentMessageLimit ?? 2,
     );
+    this.#systemInstructions = options.systemInstructions?.trim() ?? "";
   }
 
   get model(): string {
@@ -187,12 +190,12 @@ export class MemoryAwareChatSession {
         input.requiredKnowledgeIds ?? [],
         "Required knowledge ID",
       );
-      const recentTurns = this.#chat.messages
+      const recentTurns = (this.#recentMessageLimit === 0 ? [] : this.#chat.messages
         .filter(
           (entry): entry is { readonly role: "user" | "assistant"; readonly content: string } =>
             entry.role === "user" || entry.role === "assistant",
         )
-        .slice(-this.#recentMessageLimit)
+        .slice(-this.#recentMessageLimit))
         .map((entry) => ({ ...entry }));
       const request: MemoryReadRequest = {
         ...this.#context,
@@ -202,12 +205,16 @@ export class MemoryAwareChatSession {
         applicabilityScopes,
         requiredKnowledgeIds,
       };
-      const memory = await this.#memoryReader.read(request);
+      const memory = await this.#memoryReader.read(request, options.signal === undefined ? {} : { signal: options.signal });
+      if (options.signal?.aborted) throw new ChatError("cancelled", "Memory-aware turn was cancelled.");
       this.#validateMemoryResult(memory, request);
       const prompt = this.#promptComposer.compose(memory.projection, message);
       const sendOptions: SendMessageOptions = {
         invocation: {
-          systemMessages: [prompt.systemInstruction],
+          systemMessages: [
+            ...(this.#systemInstructions ? [this.#systemInstructions] : []),
+            prompt.systemInstruction,
+          ],
           providerUserContent: prompt.userEnvelope,
           historyMessageLimit: this.#recentMessageLimit,
           budget: this.#invocationBudget,

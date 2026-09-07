@@ -18,9 +18,13 @@ import {
 } from "@agentclientprotocol/sdk";
 import type { SendMessageOptions } from "../core/chat-session.js";
 import type { ChatCompletion } from "../core/types.js";
+import type { ChatMessage } from "../core/types.js";
+import { defaultSessionParameters, parseSessionParameters, type SessionParameters } from "../core/generation-controls.js";
+import { parseSessionControl, type SessionSnapshot } from "../core/session-control.js";
 import { isChatError } from "../core/errors.js";
 import { IdentityError, isIdentityError } from "../identity/errors.js";
 import { isMemoryError } from "../memory/errors.js";
+import { parseMemoryInspectionQuery, type MemoryInspection, type MemoryInspectionQuery } from "../memory/knowledge/inspection.js";
 import { isSourceIngestError } from "../ingest/index.js";
 import {
   DEFAULT_MODEL_ID,
@@ -34,6 +38,14 @@ import {
 import { promptToText } from "./prompt-content.js";
 
 export interface AcpTurnSession {
+  readonly runtimePreferences?: import("../core/runtime-preferences.js").RuntimePreferencesSnapshot;
+  configureRuntimePreferences?(value: unknown, revision: string): void;
+  readonly messages?: readonly ChatMessage[];
+  readonly parameters?: SessionParameters;
+  reset?(): void;
+  undoLastTurn?(): boolean;
+  configureParameters?(value: unknown): void;
+  enableSessionControls?(): void;
   send(
     content: string,
     options?: SendMessageOptions,
@@ -240,6 +252,9 @@ export function parseSharedMemoryWriteParams(params: unknown): SharedMemoryWrite
 }
 
 export interface A008AcpAgentOptions {
+  /** Set only when the composition registers _a008/session/control. */
+  readonly sessionControls?: boolean;
+  readonly runtimeInfo?: () => SessionSnapshot["runtime"];
   readonly createSession: (model: string) => AcpTurnSession;
   readonly registry?: ModelRegistry;
   readonly createSessionId?: () => string;
@@ -251,6 +266,7 @@ export interface A008AcpAgentOptions {
    */
   readonly ingestSource?: IngestSource;
   readonly sharedMemoryCapabilities?: GetSharedMemoryCapabilities;
+  readonly inspectMemory?: (query: MemoryInspectionQuery) => MemoryInspection | Promise<MemoryInspection>;
   readonly recallSharedMemory?: RecallSharedMemory;
   readonly writeSharedMemory?: WriteSharedMemory;
 }
@@ -258,22 +274,28 @@ export interface A008AcpAgentOptions {
 type NotifySession = (notification: SessionNotification) => Promise<void>;
 
 export class A008AcpAgent {
+  readonly #sessionControls: boolean;
+  readonly #runtimeInfo: () => SessionSnapshot["runtime"];
   readonly #createSession: (model: string) => AcpTurnSession;
   readonly #registry: ModelRegistry;
   readonly #createSessionId: () => string;
   readonly #onMemoryDiagnostic: ((message: string) => void) | undefined;
   readonly #ingestSource: IngestSource | undefined;
   readonly #sharedMemoryCapabilities: GetSharedMemoryCapabilities | undefined;
+  readonly #inspectMemory: A008AcpAgentOptions["inspectMemory"];
   readonly #recallSharedMemory: RecallSharedMemory | undefined;
   readonly #writeSharedMemory: WriteSharedMemory | undefined;
   readonly #sessions = new Map<string, AcpSessionState>();
 
   constructor(options: A008AcpAgentOptions) {
+    this.#sessionControls = options.sessionControls === true;
+    this.#runtimeInfo = options.runtimeInfo ?? (() => ({ cwd: process.cwd(), projectId: null, memoryPath: null }));
     this.#createSession = options.createSession;
     this.#registry = options.registry ?? defaultModelRegistry;
     this.#onMemoryDiagnostic = options.onMemoryDiagnostic;
     this.#ingestSource = options.ingestSource;
     this.#sharedMemoryCapabilities = options.sharedMemoryCapabilities;
+    this.#inspectMemory = options.inspectMemory;
     this.#recallSharedMemory = options.recallSharedMemory;
     this.#writeSharedMemory = options.writeSharedMemory;
     const identityFactory = new RuntimeIdentityFactory();
@@ -286,6 +308,7 @@ export class A008AcpAgent {
     return {
       protocolVersion: PROTOCOL_VERSION,
       agentCapabilities: {
+        ...(this.#sessionControls ? { _meta: { "a008.sessionControl": 1 } } : {}),
         loadSession: false,
         promptCapabilities: {
           image: false,
@@ -462,6 +485,62 @@ export class A008AcpAgent {
     }
   }
 
+  controlSession(params: unknown): SessionSnapshot {
+    if (typeof params !== "object" || params === null || !("sessionId" in params) || typeof params.sessionId !== "string") {
+      throw RequestError.invalidParams(params, "Session control requires sessionId.");
+    }
+    const control = parseSessionControl(params);
+    const state = this.#requireSession(params.sessionId);
+    if (control.action === "close") {
+      const snapshot = this.#sessionSnapshot(state);
+      this.closeSession({ sessionId: params.sessionId });
+      return { ...snapshot, closed: true };
+    }
+    if (state.activeTurn !== undefined) throw new RequestError(-32000, "Session already has an active turn.");
+    if (control.action === "model") {
+      const profile = this.#registry.require(control.model);
+      // Construct first: configuration failure must preserve the old conversation.
+      const chat = this.#createSession(profile.id);
+      chat.enableSessionControls?.();
+      state.model = profile.id;
+      state.chat = chat;
+    }
+    if (state.chat === undefined) {
+      state.chat = this.#createSession(state.model);
+      state.chat.enableSessionControls?.();
+    }
+    if (control.action === "configure") {
+      const parsed = parseSessionParameters(control.parameters, state.model);
+      if (state.chat.configureParameters === undefined) throw RequestError.methodNotFound("session parameters");
+      state.chat.configureParameters(parsed);
+    }
+    if (control.action === "configureRuntime") {
+      if (state.chat.configureRuntimePreferences === undefined) throw RequestError.methodNotFound("runtime settings");
+      state.chat.configureRuntimePreferences(control.settings, control.revision);
+    }
+    if (control.action === "reset") {
+      if (state.chat.reset === undefined) throw RequestError.methodNotFound("session reset");
+      state.chat.reset();
+    }
+    let undone: boolean | undefined;
+    if (control.action === "undo") {
+      if (state.chat.undoLastTurn === undefined) throw RequestError.methodNotFound("session undo");
+      undone = state.chat.undoLastTurn();
+    }
+    return { ...this.#sessionSnapshot(state), ...(undone === undefined ? {} : { undone }) };
+  }
+
+  #sessionSnapshot(state: AcpSessionState): SessionSnapshot {
+    const runtimePreferences = state.chat?.runtimePreferences;
+    return {
+      ...(runtimePreferences === undefined ? {} : { runtimePreferences }),
+      model: state.model,
+      parameters: state.chat?.parameters ?? defaultSessionParameters(this.#registry.require(state.model)),
+      messages: (state.chat?.messages ?? []).flatMap(message => message.role === "system" ? [] : [{ role: message.role, content: message.content }]),
+      runtime: this.#runtimeInfo(),
+    };
+  }
+
   cancel(params: CancelNotification): void {
     this.#sessions.get(params.sessionId)?.activeTurn?.abort();
   }
@@ -518,6 +597,14 @@ export class A008AcpAgent {
       throw RequestError.methodNotFound("memory/capabilities");
     }
     return await this.#sharedMemoryCapabilities();
+  }
+
+  async inspectMemory(params: unknown): Promise<MemoryInspection> {
+    let query: MemoryInspectionQuery;
+    try { query = parseMemoryInspectionQuery(params); }
+    catch (error) { throw RequestError.invalidParams(params, error instanceof Error ? error.message : "Invalid memory query."); }
+    if (this.#inspectMemory === undefined) throw RequestError.methodNotFound("memory/inspect");
+    return await this.#inspectMemory(query);
   }
 
   async recallMemory(params: unknown): Promise<SharedMemoryRecallResult> {

@@ -11,6 +11,8 @@ import {
 import { extname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { ChatError, isChatError } from "../core/errors.js";
+import { defaultSessionParameters, generationCapabilities } from "../core/generation-controls.js";
+import { parseMemoryInspectionQuery } from "../memory/knowledge/inspection.js";
 import { sniffSourceMediaType } from "../ingest/media-type.js";
 import {
   defaultModelRegistry,
@@ -211,6 +213,7 @@ export async function startGuiHost(
     }
     const ownedSessions = new Set<string>();
     const activePrompts = new Map<string, AbortController>();
+    const lifetime = { closed: false };
     const session: { ws: GuiWebSocket | undefined } = { ws: undefined };
     const ws = acceptWebSocket(request, socket, head, (raw) => {
       const current = session.ws;
@@ -223,6 +226,7 @@ export async function startGuiHost(
         getBridge,
         ownedSessions,
         activePrompts,
+        lifetime,
         secrets,
       });
     });
@@ -232,6 +236,7 @@ export async function startGuiHost(
     session.ws = ws;
     sockets.add(ws);
     void ws.closed.then(async () => {
+      lifetime.closed = true;
       sockets.delete(ws);
       for (const controller of activePrompts.values()) {
         controller.abort();
@@ -303,7 +308,30 @@ async function handleHttp(input: {
     return;
   }
 
+  if (pathname === "/v1/memory" && method !== "GET") {
+    sendJson(response, 405, errorBody("Memory inspection supports GET only."));
+    return;
+  }
+
   try {
+    if (method === "GET" && pathname === "/v1/memory") {
+      const params = new URL(request.url ?? "/v1/memory", "http://localhost").searchParams;
+      const raw: Record<string, unknown> = {};
+      for (const [name, value] of params) {
+        if (name in raw) { sendJson(response, 400, errorBody("Duplicate memory query parameter.")); return; }
+        raw[name] = name === "limit" || name === "offset" ? (/^\d+$/u.test(value) ? Number(value) : NaN) : value;
+      }
+      let query;
+      try { query = parseMemoryInspectionQuery(raw); }
+      catch (error) { sendJson(response, 400, errorBody(publicErrorMessage(error))); return; }
+      const bridge = await input.getBridge();
+      if (bridge.inspectMemory === undefined) {
+        sendJson(response, 503, errorBody("This runtime does not support memory inspection. Restart with the current A008 build."));
+        return;
+      }
+      sendJson(response, 200, await bridge.inspectMemory(query));
+      return;
+    }
     if (method === "GET" && pathname === "/health") {
       sendJson(response, 200, { ok: true, name: GUI_HOST_NAME });
       return;
@@ -313,6 +341,8 @@ async function handleHttp(input: {
         models: input.registry.list().map((profile) => ({
           id: profile.id,
           name: profile.name,
+          defaults: defaultSessionParameters(profile),
+          capabilities: generationCapabilities(profile.id),
         })),
       });
       return;
@@ -521,6 +551,7 @@ async function handleSocketMessage(input: {
   readonly getBridge: () => Promise<AcpBridge>;
   readonly ownedSessions: Set<string>;
   readonly activePrompts: Map<string, AbortController>;
+  readonly lifetime: { closed: boolean };
   readonly secrets: readonly string[];
 }): Promise<void> {
   const parsed = parseClientMessage(input.raw);
@@ -535,6 +566,10 @@ async function handleSocketMessage(input: {
         parsed.model === undefined
           ? await bridge.newSession()
           : await bridge.newSession(parsed.model);
+      let state;
+      try { state = await bridge.controlSession?.(created.sessionId, { action: "inspect" }); }
+      catch (error) { await bridge.closeSession(created.sessionId).catch(() => undefined); throw error; }
+      if (input.lifetime.closed) { await bridge.closeSession(created.sessionId).catch(() => undefined); return; }
       input.ownedSessions.add(created.sessionId);
       sendSocket(
         input.ws,
@@ -542,6 +577,7 @@ async function handleSocketMessage(input: {
           type: "session/new/ok",
           requestId: parsed.requestId,
           sessionId: created.sessionId,
+          ...(state === undefined ? {} : { state }),
         },
         input.secrets,
       );
@@ -577,6 +613,15 @@ async function handleSocketMessage(input: {
       );
       return;
     }
+    if (parsed.type === "session/control" && parsed.control.action === "close") {
+      input.activePrompts.get(parsed.sessionId)?.abort();
+      const bridge = await input.getBridge();
+      if (bridge.controlSession === undefined) throw new Error("Session controls require the current A008 runtime.");
+      const state = await bridge.controlSession(parsed.sessionId, parsed.control);
+      input.ownedSessions.delete(parsed.sessionId);
+      sendSocket(input.ws, { type: "session/control/ok", requestId: parsed.requestId, sessionId: parsed.sessionId, state }, input.secrets);
+      return;
+    }
     if (input.activePrompts.has(parsed.sessionId)) {
       sendSocket(
         input.ws,
@@ -589,15 +634,22 @@ async function handleSocketMessage(input: {
       );
       return;
     }
-    const bridge = await input.getBridge();
     const controller = new AbortController();
     input.activePrompts.set(parsed.sessionId, controller);
     try {
+      const bridge = await input.getBridge();
+      if (parsed.type === "session/control") {
+        if (bridge.controlSession === undefined) throw new Error("Session controls require the current A008 runtime.");
+        const state = await bridge.controlSession(parsed.sessionId, parsed.control);
+        sendSocket(input.ws, { type: "session/control/ok", requestId: parsed.requestId, sessionId: parsed.sessionId, state }, input.secrets);
+        return;
+      }
       await bridge.prompt(
         parsed.sessionId,
         parsed.text,
         {
           onThought(text) {
+            if (controller.signal.aborted || !input.ownedSessions.has(parsed.sessionId)) return;
             sendSocket(
               input.ws,
               { type: "thought", sessionId: parsed.sessionId, text },
@@ -605,6 +657,7 @@ async function handleSocketMessage(input: {
             );
           },
           onAnswer(text) {
+            if (controller.signal.aborted || !input.ownedSessions.has(parsed.sessionId)) return;
             sendSocket(
               input.ws,
               { type: "answer", sessionId: parsed.sessionId, text },
@@ -614,12 +667,15 @@ async function handleSocketMessage(input: {
         },
         controller.signal,
       );
+      if (!input.ownedSessions.has(parsed.sessionId)) return;
+      const state = await bridge.controlSession?.(parsed.sessionId, { action: "inspect" });
       sendSocket(
         input.ws,
         {
           type: "prompt/ok",
           requestId: parsed.requestId,
           sessionId: parsed.sessionId,
+          ...(state === undefined ? {} : { state }),
         },
         input.secrets,
       );

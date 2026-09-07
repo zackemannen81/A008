@@ -7,6 +7,14 @@ import {
   SLASH_HELP,
 } from "./slash.js";
 import { submitComposer } from "./submit.js";
+import type { SessionSnapshot } from "../session/session-controls.js";
+
+const snapshot: SessionSnapshot = {
+  model: "nvidia/nemotron-3.5-lightning-30b-a3b",
+  parameters: { stream: true, temperature: 1, topP: .95, maxTokens: 16384, enableThinking: true, reasoningBudget: 4096, reasoningEffort: null, seed: null, stop: null },
+  messages: [{ role: "user", content: "Committed question" }, { role: "assistant", content: "visible answer" }],
+  runtime: { cwd: "C:/fixture", projectId: "fixture-project", memoryPath: "C:/fixture/memory.sqlite" },
+};
 
 test("parseSlash recognizes the A008-0029 command set and /! alias", () => {
   assert.deepEqual(parseSlash("  /help  "), { name: "help", argument: "" });
@@ -103,6 +111,7 @@ test("known slash commands are not sent as model prompts", async () => {
     const result = await submitComposer(command, {
       session: harness.session,
       runShellCommand: unusedShell,
+      models: async () => [],
     });
     assert.equal(result.kind, "notice", command);
   }
@@ -163,7 +172,7 @@ test("/shell without a command is an error", async () => {
   assert.deepEqual(harness.prompts, []);
 });
 
-test("/shell uses session.shell when the session exposes it", async () => {
+test("/shell consistently uses the native host runner", async () => {
   const harness = createSessionHarness();
   const sessionShells: string[] = [];
   const session = Object.assign(harness.session, {
@@ -179,14 +188,14 @@ test("/shell uses session.shell when the session exposes it", async () => {
   assert.deepEqual(result, {
     kind: "notice",
     command: "shell",
-    message: "session:pwd",
+    message: "ran:pwd",
   });
-  assert.deepEqual(sessionShells, ["pwd"]);
-  assert.deepEqual(harness.shells, []);
+  assert.deepEqual(sessionShells, []);
+  assert.deepEqual(harness.shells, ["pwd"]);
   assert.deepEqual(harness.prompts, []);
 });
 
-test("/exit cancels in-flight work and does not prompt", async () => {
+test("/exit ends the session and does not prompt", async () => {
   const harness = createSessionHarness();
   const result = await submitComposer("/quit", {
     session: harness.session,
@@ -195,13 +204,13 @@ test("/exit cancels in-flight work and does not prompt", async () => {
   assert.deepEqual(result, {
     kind: "notice",
     command: "exit",
-    message: "In-flight work cancelled. The GUI stays open.",
+    message: "Session ended. Connect to start a new conversation.",
   });
   assert.equal(harness.cancels, 1);
   assert.deepEqual(harness.prompts, []);
 });
 
-test("/history and /status read the public session fields", async () => {
+test("/history and /status inspect committed runtime state without reasoning", async () => {
   const harness = createSessionHarness({
     thought: "private reasoning",
     answer: "visible answer",
@@ -218,8 +227,9 @@ test("/history and /status read the public session fields", async () => {
   });
   assert.equal(history.kind, "notice");
   if (history.kind === "notice") {
-    assert.match(history.message, /thought: private reasoning/u);
-    assert.match(history.message, /answer: visible answer/u);
+    assert.equal(/thought|private reasoning/u.test(history.message), false);
+    assert.match(history.message, /user: Committed question/u);
+    assert.match(history.message, /assistant: visible answer/u);
   }
   assert.equal(status.kind, "notice");
   if (status.kind === "notice") {
@@ -227,6 +237,9 @@ test("/history and /status read the public session fields", async () => {
     assert.match(status.message, /status: ready/u);
     assert.match(status.message, /session: sess-1/u);
     assert.match(status.message, /tools: terminal via \/shell/u);
+    assert.match(status.message, /cwd: C:\/fixture/u);
+    assert.match(status.message, /project: fixture-project/u);
+    assert.match(status.message, /memory: C:\/fixture\/memory.sqlite/u);
   }
   assert.deepEqual(harness.prompts, []);
 });
@@ -251,6 +264,8 @@ function createSessionHarness(
     answer: "",
     error: undefined,
     async connect() {},
+    async controlSession(control) { return { ...snapshot, ...(control.action === "undo" ? { undone: true } : {}) }; },
+    async endSession() { cancelCount.value += 1; },
     async prompt(text: string) {
       prompts.push(text);
     },

@@ -7,12 +7,15 @@ repository's decision history.
 Decisions behind it: [`adr/0019-a008-owned-gui.md`](adr/0019-a008-owned-gui.md)
 D3–D4, [`adr/0020-source-upload-ingest.md`](adr/0020-source-upload-ingest.md)
 D3–D4, [`adr/0022-gui-is-a-test-surface.md`](adr/0022-gui-is-a-test-surface.md).
+Memory inspection and session controls are additive amendments in
+[`ADR 0025`](adr/0025-memory-inspection-gui.md) and
+[`ADR 0026`](adr/0026-gui-session-controls.md).
 Where this document and an ADR disagree, the ADR is the decision and this
 document has a bug.
 
 ## What the host is
 
-`src/gui-host/` is a Node process. It serves static files, exposes four HTTP
+`src/gui-host/` is a Node process. It serves static files, exposes five HTTP
 routes and one WebSocket, and bridges that WebSocket to an `A008-acp` stdio
 subprocess it owns.
 
@@ -23,7 +26,8 @@ client ──HTTP/WS──> A008 GUI host ──stdio ACP──> A008-acp ──
 
 The host holds no credential logic of its own and makes no provider call. It
 reads `NVIDIA_API_KEY` and memory settings from its own environment and passes
-nothing to the client. A client never sees a credential.
+only public runtime facts and effective chat parameters to the client. A client
+never sees a credential.
 
 Start it with `npm run gui-host`, or `npm run gui` to build the bundled test
 surface first. Default bind is `127.0.0.1:8787`.
@@ -79,10 +83,14 @@ fields carry the same string; `message` is the one to display.
 
 Needs no credential. Use it to check the host is reachable and configured.
 
-The route publishes `id` and `name` only. A model's input modalities and
-sampling defaults are host-side profile data and are deliberately not exposed
-here; a client that needs them should ask for the route to carry them rather
-than infer them from the id.
+Each model also carries `defaults` (the complete parameter object below) and
+`capabilities`: `maxTokens` (integer ceiling), `topP`, `thinking`, `seed`, `stop`
+(booleans), `reasoningBudget` (integer ceiling or null), `reasoningEfforts`
+(string array), and `verifiedOn` (ISO date). These describe the supported A008
+controls for the hosted endpoint. The current model list has six entries.
+Defaults here come from model profiles; environment overrides appear in the
+session snapshot after connection. No environment values or input modalities
+are published by this route.
 
 ### `POST /v1/shell`
 
@@ -138,6 +146,7 @@ One socket carries one or more sessions. JSON text frames, one message each.
 { "type": "session/new", "requestId": "r1", "model": "…" }   // model optional
 { "type": "prompt",  "requestId": "r2", "sessionId": "…", "text": "…" }
 { "type": "cancel",  "requestId": "r3", "sessionId": "…" }
+{ "type": "session/control", "requestId": "r4", "sessionId": "…", "control": { "action": "inspect" } }
 ```
 
 ### Host → client
@@ -148,6 +157,7 @@ One socket carries one or more sessions. JSON text frames, one message each.
 { "type": "answer",    "sessionId": "…", "text": "…" }   // repeats while streaming
 { "type": "prompt/ok", "requestId": "r2", "sessionId": "…" }
 { "type": "error", "message": "…", "requestId": "…", "sessionId": "…" }
+{ "type": "session/control/ok", "requestId": "r4", "sessionId": "…", "state": { /* snapshot below */ } }
 ```
 
 `requestId` and `sessionId` on an `error` are present only when the host knew
@@ -169,9 +179,75 @@ Both arrive as many small frames. Append per channel; a turn ends at
 Closing the socket releases every session it opened. A client that reconnects
 starts a new session; there is no resume.
 
+### Session controls (ADR 0026)
+
+The host accepts only sessions owned by the requesting socket. A current ACP
+composition advertises `_meta["a008.sessionControl"] = 1` in its initialize
+agent capabilities and registers `_a008/session/control`. The host uses this
+capability to attach `state` to `session/new/ok` and `prompt/ok`. Old frames
+remain valid; an older ACP bridge omits snapshots and rejects controls with a
+clear upgrade error. A consumer must not manufacture history from thought text.
+
+| Control | Effect |
+| --- | --- |
+| `{ "action": "inspect" }` | Current snapshot, without a provider call |
+| `{ "action": "reset" }` | Clears committed conversation messages; keeps system/model/settings |
+| `{ "action": "undo" }` | Removes the latest committed user/assistant pair; snapshot adds `undone` boolean |
+| `{ "action": "model", "model": "<registry id>" }` | Starts a fresh conversation with this model's runtime defaults; ACP session ID stays owned |
+| `{ "action": "configure", "parameters": {…} }` | Atomically replaces the chat parameters for subsequent prompts |
+| `{ "action": "close" }` | Aborts active work and releases the session; snapshot adds `closed: true` |
+
+All controls except close are refused while a prompt or another control is
+running. Cancellation remains busy until the prompt finishes; late streamed
+chunks are ignored by the bundled client. Reset, undo, model and close never
+delete durable memory. Unknown models/invalid parameters preserve prior state.
+
+Example snapshot (synthetic values):
+
+```json
+{
+  "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+  "parameters": {
+    "stream": true, "temperature": null, "topP": 0.95,
+    "maxTokens": 8192, "enableThinking": true, "reasoningBudget": 4096,
+    "reasoningEffort": null, "seed": null, "stop": null
+  },
+  "messages": [{ "role": "user", "content": "Hello" }, { "role": "assistant", "content": "Hello." }],
+  "runtime": { "cwd": "C:/fixture", "projectId": "<canonical project id>", "memoryPath": "C:/fixture/memory.sqlite" }
+}
+```
+
+Messages contain committed user/assistant text only, never system text or
+reasoning. A failed/cancelled generation does not add a partial turn; a turn
+already committed before post-output cancellation remains committed.
+
+Configure requires exactly the nine parameter fields above. `null` explicitly
+omits an optional field even over profile/environment defaults. Turning
+temperature off means provider-default sampling, whereas `0` is an explicit
+request value. Turning reasoning off suppresses its budget on the wire. The
+parameter object reports the retained budget so it can be re-enabled later.
+
+| Parameter | Validation / meaning |
+| --- | --- |
+| `stream` | Boolean; false uses the existing non-streamed JSON adapter path |
+| `temperature`, `topP` | null or a finite number 0–1; topP must be null if unsupported |
+| `maxTokens` | Integer 1 to the selected endpoint ceiling; generated reasoning and answer share it |
+| `enableThinking` | Boolean or null on supported Nemotron models; null elsewhere |
+| `reasoningBudget` | null, −1 (no reasoning cap), or integer 0 to endpoint ceiling; cannot exceed maxTokens while reasoning is enabled |
+| `reasoningEffort` | null or one of the model's advertised effort strings |
+| `seed` | null or nonnegative JavaScript-safe integer; null if unsupported |
+| `stop` | null or 1–4 nonempty strings, each at most 256 characters; null if unsupported |
+
+This is a chat generation budget, not an input-context, whole-session, memory
+processing or monetary budget. The retrieval/analyzer/classifier requests keep
+their own fixed parameters. Settings/history are process-local and not saved
+across a reconnect. The bundled GUI exposes controls in Parameters and Session
+commands; slash aliases match CLI. `/exit`, `/quit`, `/q` leave the page open.
+
 ## Configuration
 
-Read by the host process. None of it reaches a client.
+Read by the host process. Credentials never reach a client. Session snapshots
+expose cwd, project identity, memory path and effective generation settings.
 
 | Variable | Meaning |
 | --- | --- |
@@ -236,3 +312,62 @@ External recall deliberately composes `KnowledgeMemoryReader` without its option
 External writes are stored durably as attributed evidence (`speaker: agent007`) with provenance in the same A008 knowledge store. They do **not** run the model-backed analyzer/classifier and do not silently promote caller text into accepted semantic bindings. The capabilities response reports `writeSemantics: "evidence"`.
 
 The shipped `agent007.brain.json` advertises this memory as `SHARED`, but the manifest is only discovery metadata. Agent 007 must still live-probe `memory/capabilities` after the ACP identity handshake before enabling the memory.
+
+## Memory diagnostics (`A008_MEMORY_INSPECT_V1`)
+
+ADR [0025](adr/0025-memory-inspection-gui.md), A008-0064. `GET /v1/memory`
+delegates to custom ACP `memory/inspect` in the same process that owns chat
+memory. It neither starts a chat session nor calls a model. Normal ACP startup
+configuration (including the server-side credential) must still be valid.
+Origin checks, response redaction and `Cache-Control: no-store` apply.
+
+| Query field | Meaning and limit |
+| --- | --- |
+| `query` | Case-insensitive substring search of complete record details and IDs; at most 300 characters. |
+| `kind` | `entity`, `state`, `history`, `claim`, `event`, `utterance`, `artifact`, `provenance`; omitted means all. |
+| `domain` | Exact stored domain after case/whitespace normalisation; at most 300 characters. |
+| `status` | Exact record status or evidence activation; at most 300 characters. |
+| `offset` | Integer 0–1,000,000; default 0. |
+| `limit` | Integer 1–100; default 40. |
+
+Example: `GET /v1/memory?kind=claim&status=dormant&limit=40&offset=0`.
+ACP takes the same fields as an object, with numeric offset/limit. Both validate
+before inspecting; unknown fields, duplicates in HTTP, and invalid bounds fail.
+HTTP uses 400 for invalid queries, 405 for non-GET methods, 403 for refused
+origins, and 503 for a bridge without inspection support. ACP rejects invalid
+params and reports method-not-found when the agent has no inspector.
+ACP startup/transport failures use the existing host error response.
+
+The response contains:
+
+- `protocol: "A008_MEMORY_INSPECT_V1"`, `projectId`, `durable`.
+- `summary`: unfiltered `total`, `counts` by kind, lifecycle `active`/`dormant`
+  counts, `contestedSlots`, `domains: [{name,count}]`, and available `statuses`.
+  Domain counts count stored claim/utterance label attachments once. Binding
+  rows display the labels of their establishing claim, without inflating counts.
+- `records`: one filtered page, ordered by kind, label, ID; `matched`, `offset`,
+  `limit` describe the page. A record has `id`, `sourceId`, `kind`, `label`,
+  `status`, `activation`, `tags`, `domains`, `detail` and `truncated`.
+- `detail` is a JSON text preview of `{record, labels?, lifecycle?}`, capped at
+  16,000 characters; `label` is capped at 500. `truncated` is true if either
+  is clipped. A truncated detail is text, not necessarily parseable JSON.
+  Search still examines complete stored text. Returned containers are defensive.
+- `graph`: `nodes`, `edges: [{from,to,relation}]`, `totalNodes`, `totalEdges`.
+  The graph uses all filtered matches, independent of table offset/limit.
+  It traverses stored links to choose at most 80 records, then returns at most
+  240 links whose endpoints are displayed. Totals precede graph caps. Edges are
+  stored references, provenance, binding ownership/object/claim references and
+  relation-index links. Targets outside this inventory (such as transition-only
+  provenance targets) do not become invented nodes or visible edges.
+
+`activation: "untracked"` means no lifecycle is attached to this record;
+state/history never inherit evidence activation. `status` retains the stored
+claim decision, speech act, entity/event type or provenance relation. Bindings
+are `current`, `closed`, or `contested`. Diagnostic IDs are typed and stable;
+binding IDs include the slot, interval and establishing claim because the model
+has no standalone binding ID. They are inspection addresses, not new canon IDs.
+
+Inspection scans the local project namespace in memory. It has no write method,
+does not reinforce evidence, does not resolve conflicts, and does not alter
+`A007_MEMORY_V1` or the context projected to a model. No server-scale performance
+or remote authentication boundary is claimed.

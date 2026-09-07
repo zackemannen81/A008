@@ -61,7 +61,8 @@ test("holy invariant: no emitted reasoning substring reaches knowledge surfaces"
         readonly reasoning_budget?: number;
       };
       if (body.stream === false) {
-        analyzerInputs.push(JSON.parse(body.messages?.at(-1)?.content ?? "{}"));
+        const envelope = JSON.parse(body.messages?.at(-1)?.content ?? "{}");
+        if (envelope.operation === "knowledge_analysis") analyzerInputs.push(envelope);
         assert.equal(body.chat_template_kwargs?.enable_thinking, false);
         assert.equal(body.reasoning_budget, undefined);
         assert.equal(body.stream, SEMANTIC_JSON_GENERATION.stream);

@@ -13,6 +13,11 @@ import {
   type ChatInvocationBudget,
 } from "../core/chat-invocation.js";
 import { ChatError, isChatError } from "../core/errors.js";
+import { RuntimePreferencesStore } from "./runtime-preferences-store.js";
+import type { RuntimeBudgets } from "../core/runtime-preferences.js";
+import { ConversationScopes } from "../memory/knowledge/current-scope.js";
+import { DeterministicRetrievalPlanner } from "../memory/deterministic-retrieval-planner.js";
+import { chatGeneration, defaultSessionParameters, generationCapabilities, parseSessionParameters } from "../core/generation-controls.js";
 import {
   DEFAULT_MODEL_ID,
   defaultModelRegistry,
@@ -33,6 +38,7 @@ import type {
 import { MemoryError, isMemoryError } from "../memory/errors.js";
 import type { ProvenanceRelation } from "../memory/knowledge/evidence-types.js";
 import { ingest } from "../memory/knowledge/ingest.js";
+import { inspectKnowledge, type MemoryInspection, type MemoryInspectionQuery } from "../memory/knowledge/inspection.js";
 import {
   createSqliteKnowledgeContext,
   KnowledgeEngineCommit,
@@ -98,8 +104,6 @@ import {
 export const LOCAL_MEMORY_SCOPES = ["local"] as const;
 export const LIVE_PROJECTION_REINFORCEMENT = 0;
 export const LIVE_RECONCILIATION_REINFORCEMENT = 0.2;
-const INVOCATION_BUDGET_MAXIMUM = 16_384;
-const SEMANTIC_BUDGET_MAXIMUM = 16_384;
 
 /**
  * Speaker recorded when text is taken verbatim from an uploaded source. This
@@ -253,21 +257,27 @@ export interface SharedMemoryWriteResult {
 }
 
 
-function budget(): ChatInvocationBudget {
+function budget(maximum: number, label = "Semantic input (Parameters → Budgets)"): ChatInvocationBudget {
   return {
-    maximum: INVOCATION_BUDGET_MAXIMUM,
+    maximum,
+    label,
     measurer: new Utf8ByteChatMessageMeasurer(),
   };
 }
 
-function semanticBudget(): {
+function semanticBudget(maximum: number): {
   readonly maximum: number;
   readonly measurer: Utf8ByteKnowledgeIntakeMeasurer;
 } {
   return {
-    maximum: SEMANTIC_BUDGET_MAXIMUM,
+    maximum,
     measurer: new Utf8ByteKnowledgeIntakeMeasurer(),
   };
+}
+
+function semanticGeneration(model: string, limits: RuntimeBudgets) {
+  return { ...SEMANTIC_JSON_GENERATION,
+    maxTokens: Math.min(limits.semanticOutputTokens, generationCapabilities(model).maxTokens) };
 }
 
 function containedRelative(root: string, candidate: string): string | undefined {
@@ -492,10 +502,10 @@ function emitCommitTrace(
 }
 
 export class LocalMemorySession {
+  #parameters: import("../core/generation-controls.js").SessionParameters | undefined;
   readonly conversationId: ConversationId;
   readonly #runtime: LocalMemoryRuntime;
-  readonly #chat: MemoryAwareChatSession;
-  readonly #coordinator: PostOutputMemoryCoordinator;
+  readonly #chat: ChatSession;
   readonly #identityFactory: RuntimeIdentityFactory;
   #turnActive = false;
   #lastDiagnostic: string | undefined;
@@ -503,14 +513,12 @@ export class LocalMemorySession {
   constructor(options: {
     readonly runtime: LocalMemoryRuntime;
     readonly conversationId: ConversationId;
-    readonly chat: MemoryAwareChatSession;
-    readonly coordinator: PostOutputMemoryCoordinator;
+    readonly chat: ChatSession;
     readonly identityFactory: RuntimeIdentityFactory;
   }) {
     this.#runtime = options.runtime;
     this.conversationId = options.conversationId;
     this.#chat = options.chat;
-    this.#coordinator = options.coordinator;
     this.#identityFactory = options.identityFactory;
   }
 
@@ -522,11 +530,39 @@ export class LocalMemorySession {
     return this.#chat.messages;
   }
 
+  get parameters() {
+    const parameters = this.#parameters ?? this.#runtime.sessionParameters(this.model);
+    return { ...parameters, stop: parameters.stop === null ? null : [...parameters.stop] };
+  }
+
+  enableSessionControls(): void {
+    this.#parameters ??= this.#runtime.sessionParameters(this.model);
+  }
+
+  configureParameters(value: unknown): void {
+    if (this.#turnActive) throw new ChatError("configuration", "Cannot configure during an active turn.");
+    this.#parameters = parseSessionParameters(value, this.model);
+  }
+
+  get runtimePreferences() {
+    const snapshot = this.#runtime.preferences.snapshot();
+    return { ...snapshot, fields: snapshot.fields.map(field => field.key === "semanticOutputTokens"
+      ? { ...field, description: `${field.description} Saved effective limits: extraction/classification (${this.model}) ${semanticGeneration(this.model, snapshot.settings.budgets).maxTokens}; retrieval/source extraction (${DEFAULT_MODEL_ID}) ${semanticGeneration(DEFAULT_MODEL_ID, snapshot.settings.budgets).maxTokens}.` }
+      : field) };
+  }
+
+  configureRuntimePreferences(value: unknown, revision: string): void {
+    if (this.#turnActive) throw new ChatError("configuration", "Cannot configure during an active turn.");
+    this.#runtime.preferences.save(value, revision);
+  }
+
   reset(): void {
+    if (this.#turnActive) throw new ChatError("configuration", "Cannot reset during an active turn.");
     this.#chat.reset();
   }
 
   undoLastTurn(): boolean {
+    if (this.#turnActive) throw new ChatError("configuration", "Cannot undo during an active turn.");
     return this.#chat.undoLastTurn();
   }
 
@@ -540,7 +576,10 @@ export class LocalMemorySession {
     content: string,
     options: SendMessageOptions = {},
   ): Promise<ChatCompletion> {
-    const result = await this.turn(content, options);
+    const result = await this.turn(content, {
+      ...options,
+      ...(this.#parameters === undefined ? {} : { generation: chatGeneration(parseSessionParameters(this.#parameters, this.model)) }),
+    });
     this.#lastDiagnostic = result.memoryDiagnostic;
     return result.completion;
   }
@@ -559,95 +598,96 @@ export class LocalMemorySession {
     const traceId = randomUUID();
     const taskId = this.#identityFactory.create("task");
     try {
-    return await withTraceId(traceId, async () => {
-      this.#runtime.tracer.emit({
-        traceId,
-        surface: this.#runtime.surface,
-        phase: "turn_start",
-        summary: "memory-aware turn",
-      });
-      try {
-        const memoryResult = await this.#chat.send(
-          {
-            taskId,
-            message,
-            applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
-          },
-          {
-            ...(options.generation === undefined
-              ? {}
-              : { generation: options.generation }),
-            ...(options.signal === undefined ? {} : { signal: options.signal }),
-            ...(options.onDelta === undefined ? {} : { onDelta: options.onDelta }),
-          },
-        );
-        await this.#runtime.tracer.flush();
-        const answer = verifiedFinalAnswer(memoryResult.completion);
-        let postOutput = await this.#coordinator.process(
-          {
-            taskId,
-            message,
-            answer,
-            applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
-          },
-          options.signal === undefined ? {} : { signal: options.signal },
-        );
-        if (postOutput.status === "index_repair_required") {
-          postOutput = await this.#coordinator.repairAndResume(
-            postOutput.checkpoint,
+      return await this.#runtime.preferences.run(() => withTraceId(traceId, async () => {
+        const turn = this.#runtime.createTurn(this.#chat, this.conversationId);
+        this.#runtime.tracer.emit({
+          traceId,
+          surface: this.#runtime.surface,
+          phase: "turn_start",
+          summary: "memory-aware turn",
+        });
+        try {
+          const memoryResult = await turn.chat.send(
+            {
+              taskId,
+              message,
+              applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
+            },
+            {
+              ...(options.generation === undefined
+                ? {}
+                : { generation: options.generation }),
+              ...(options.signal === undefined ? {} : { signal: options.signal }),
+              ...(options.onDelta === undefined ? {} : { onDelta: options.onDelta }),
+            },
+          );
+          await this.#runtime.tracer.flush();
+          const answer = verifiedFinalAnswer(memoryResult.completion);
+          let postOutput = await turn.coordinator.process(
+            {
+              taskId,
+              message,
+              answer,
+              applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
+            },
             options.signal === undefined ? {} : { signal: options.signal },
           );
-        }
-        emitCommitTrace(
-          this.#runtime.tracer,
-          this.#runtime.surface,
-          traceId,
-          postOutput,
-        );
-        const memoryDiagnostic = describeMemoryOutcome(postOutput);
-        if (memoryDiagnostic !== undefined) {
+          if (postOutput.status === "index_repair_required") {
+            postOutput = await turn.coordinator.repairAndResume(
+              postOutput.checkpoint,
+              options.signal === undefined ? {} : { signal: options.signal },
+            );
+          }
+          emitCommitTrace(
+            this.#runtime.tracer,
+            this.#runtime.surface,
+            traceId,
+            postOutput,
+          );
+          const memoryDiagnostic = describeMemoryOutcome(postOutput);
+          if (memoryDiagnostic !== undefined) {
+            this.#runtime.tracer.emit({
+              traceId,
+              surface: this.#runtime.surface,
+              phase: "memory_failure",
+              status: "error",
+              summary: memoryDiagnostic,
+            });
+          }
+          this.#runtime.tracer.emit({
+            traceId,
+            surface: this.#runtime.surface,
+            phase: "turn_complete",
+            status: memoryDiagnostic === undefined ? "ok" : "degraded",
+            chatStatus: "ok",
+            memoryStatus: postOutput.status,
+          });
+          await this.#runtime.tracer.flush();
+          const sinkFailure = this.#runtime.tracer.consumeSinkFailure();
+          const diagnostic =
+            memoryDiagnostic ??
+            (sinkFailure === undefined
+              ? undefined
+              : `memory-trace sink failed: ${sinkFailure}`);
+          return {
+            completion: memoryResult.completion,
+            memory: memoryResult.memory,
+            taskId,
+            postOutput,
+            memoryDiagnostic: diagnostic,
+          };
+        } catch (error) {
           this.#runtime.tracer.emit({
             traceId,
             surface: this.#runtime.surface,
             phase: "memory_failure",
             status: "error",
-            summary: memoryDiagnostic,
+            summary: formatRuntimeError(error),
           });
+          await this.#runtime.tracer.flush();
+          throw error;
         }
-        this.#runtime.tracer.emit({
-          traceId,
-          surface: this.#runtime.surface,
-          phase: "turn_complete",
-          status: memoryDiagnostic === undefined ? "ok" : "degraded",
-          chatStatus: "ok",
-          memoryStatus: postOutput.status,
-        });
-        await this.#runtime.tracer.flush();
-        const sinkFailure = this.#runtime.tracer.consumeSinkFailure();
-        const diagnostic =
-          memoryDiagnostic ??
-          (sinkFailure === undefined
-            ? undefined
-            : `memory-trace sink failed: ${sinkFailure}`);
-        return {
-          completion: memoryResult.completion,
-          memory: memoryResult.memory,
-          taskId,
-          postOutput,
-          memoryDiagnostic: diagnostic,
-        };
-      } catch (error) {
-        this.#runtime.tracer.emit({
-          traceId,
-          surface: this.#runtime.surface,
-          phase: "memory_failure",
-          status: "error",
-          summary: formatRuntimeError(error),
-        });
-        await this.#runtime.tracer.flush();
-        throw error;
-      }
-    });
+      }));
     } finally {
       this.#turnActive = false;
     }
@@ -655,13 +695,14 @@ export class LocalMemorySession {
 }
 
 export class LocalMemoryRuntime {
+  readonly preferences: RuntimePreferencesStore;
   readonly surface: DebugTraceSurface;
   readonly projectId: ProjectId;
   readonly agentId: AgentId;
   readonly sqlitePath: string;
   readonly tracer: DebugTraceObserver;
   readonly #knowledge: SqliteKnowledgeContextHandle;
-  readonly #reader: MemoryReadPort;
+  readonly #createReader: (budgets: RuntimeBudgets) => MemoryReadPort;
   readonly #committerDecorator:
     | ((committer: StagedProposalCommitter) => StagedProposalCommitter)
     | undefined;
@@ -681,7 +722,8 @@ export class LocalMemoryRuntime {
     readonly sqlitePath: string;
     readonly tracer: DebugTraceObserver;
     readonly knowledge: SqliteKnowledgeContextHandle;
-    readonly reader: MemoryReadPort;
+    readonly preferences: RuntimePreferencesStore;
+    readonly createReader: (budgets: RuntimeBudgets) => MemoryReadPort;
     readonly committerDecorator?: (
       committer: StagedProposalCommitter,
     ) => StagedProposalCommitter;
@@ -699,7 +741,8 @@ export class LocalMemoryRuntime {
     this.sqlitePath = options.sqlitePath;
     this.tracer = options.tracer;
     this.#knowledge = options.knowledge;
-    this.#reader = options.reader;
+    this.preferences = options.preferences;
+    this.#createReader = options.createReader;
     this.#committerDecorator = options.committerDecorator;
     this.#transport = options.transport;
     this.#registry = options.registry;
@@ -736,6 +779,11 @@ export class LocalMemoryRuntime {
     };
   }
 
+  inspectMemory(query: MemoryInspectionQuery = {}): MemoryInspection {
+    if (this.#closed) throw new ChatError("configuration", "Local memory runtime is closed.");
+    return inspectKnowledge(this.#knowledge.context, { projectId: this.projectId, durable: this.sqlitePath !== ":memory:" }, query);
+  }
+
   async recallSharedMemory(input: SharedMemoryRecallInput): Promise<SharedMemoryRecallResult> {
     if (this.#closed) {
       throw new ChatError("configuration", "Local memory runtime is closed.");
@@ -751,7 +799,8 @@ export class LocalMemoryRuntime {
     // No scope classifier is composed here. This is intentionally the free,
     // deterministic retrieval path documented by KnowledgeMemoryReader: an
     // external memory lookup must never hide a provider call or funding event.
-    const reader = new KnowledgeMemoryReader({ context: this.#knowledge.context });
+    const reader = new KnowledgeMemoryReader({ context: this.#knowledge.context,
+      maximumProjectionBytes: this.preferences.current.budgets.memoryProjectionBytes });
     const result = await reader.read({
       projectId: this.projectId,
       conversationId: this.#identityFactory.create("conversation"),
@@ -812,6 +861,10 @@ export class LocalMemoryRuntime {
     };
   }
 
+  sessionParameters(model: string) {
+    return defaultSessionParameters(this.#registry.require(model), this.#chatGeneration);
+  }
+
   openSession(options: LocalMemorySessionOptions = {}): LocalMemorySession {
     if (this.#closed) {
       throw new ChatError(
@@ -829,23 +882,34 @@ export class LocalMemoryRuntime {
       // "checked against the model card" and is not edited to tune a run.
       generation: { ...profile.defaults, ...this.#chatGeneration },
     });
+    return new LocalMemorySession({
+      runtime: this, conversationId, chat: chatSession, identityFactory: this.#identityFactory,
+    });
+  }
+
+  /** Recompose each turn from one settings snapshot while retaining raw history. */
+  createTurn(chatSession: ChatSession, conversationId: ConversationId) {
+    const settings = this.preferences.current;
+    const limits = settings.budgets;
     const memoryAware = new MemoryAwareChatSession({
       chat: chatSession,
-      memoryReader: this.#reader,
+      memoryReader: this.#createReader(limits),
       context: {
         projectId: this.projectId,
         conversationId,
         agentId: this.agentId,
       },
-      invocationBudget: budget(),
+      invocationBudget: budget(limits.chatInputBytes, "Chat input (Parameters → Budgets)"),
+      recentMessageLimit: limits.recentMessages,
+      systemInstructions: settings.instructions,
     });
     const generator = new ChatTransportSemanticJsonGenerator({
       transport: this.#transport,
-      model: profile.id,
-      budget: budget(),
-      generation: SEMANTIC_JSON_GENERATION,
+      model: chatSession.model,
+      budget: budget(limits.semanticInputBytes),
+      generation: semanticGeneration(chatSession.model, limits),
     });
-    const intakeBudget = semanticBudget();
+    const intakeBudget = semanticBudget(limits.stagingBytes);
     const intake = new PostOutputKnowledgeIntake({
       analyzer: new ModelBackedPostOutputKnowledgeAnalyzer(generator),
       context: {
@@ -854,6 +918,7 @@ export class LocalMemoryRuntime {
         agentId: this.agentId,
       },
       budget: intakeBudget,
+      limits,
     });
     const committer = new KnowledgeEngineCommit({
       context: this.#knowledge.context,
@@ -863,13 +928,7 @@ export class LocalMemoryRuntime {
       stager: intake,
       committer: this.#committerDecorator?.(committer) ?? committer,
     });
-    return new LocalMemorySession({
-      runtime: this,
-      conversationId,
-      chat: memoryAware,
-      coordinator,
-      identityFactory: this.#identityFactory,
-    });
+    return { chat: memoryAware, coordinator };
   }
 
   /**
@@ -891,6 +950,10 @@ export class LocalMemoryRuntime {
    * `PostOutputMemoryCoordinator`.
    */
   async ingestSource(input: SourceIngestInput): Promise<SourceIngestOutcome> {
+    return this.preferences.run(() => this.#ingestSource(input));
+  }
+
+  async #ingestSource(input: SourceIngestInput): Promise<SourceIngestOutcome> {
     if (this.#closed) {
       throw new ChatError("configuration", "Local memory runtime is closed.");
     }
@@ -967,12 +1030,13 @@ export class LocalMemoryRuntime {
     utteranceId: string,
     signal: AbortSignal | undefined,
   ): Promise<SourceKnowledgeOutcome> {
+    const limits = this.preferences.current.budgets;
     const profile = this.#registry.require(DEFAULT_MODEL_ID);
     const generator = new ChatTransportSemanticJsonGenerator({
       transport: this.#transport,
       model: profile.id,
-      budget: budget(),
-      generation: SEMANTIC_JSON_GENERATION,
+      budget: budget(limits.semanticInputBytes),
+      generation: semanticGeneration(profile.id, limits),
     });
     // A source is not a conversation. It gets its own conversation and task
     // identity so nothing ties an uploaded file to whichever chat was open.
@@ -990,7 +1054,8 @@ export class LocalMemoryRuntime {
           conversationId,
           agentId: this.agentId,
         },
-        budget: semanticBudget(),
+        budget: semanticBudget(limits.stagingBytes),
+        limits,
       }),
       committer: this.#committerDecorator?.(committer) ?? committer,
     });
@@ -1041,6 +1106,7 @@ export function createLocalMemoryRuntime(
   });
   const identityFactory =
     options.identityFactory ?? new RuntimeIdentityFactory();
+  const preferences = new RuntimePreferencesStore(options.env, config.providerTimeoutMs);
   if (!config.sqliteIsMemory) {
     mkdirSync(dirname(config.sqlitePath), { recursive: true });
   }
@@ -1061,11 +1127,11 @@ export function createLocalMemoryRuntime(
       : { stderr: options.stderr }),
     secrets,
   });
-  const innerTransport = createNvidiaChatTransport({
+  const makeTransport = (timeoutMs: number) => createNvidiaChatTransport({
     env: options.env,
     // Without this the adapter falls back to its own 60-second default, which
     // a completeness-oriented extraction now routinely exceeds.
-    timeoutMs: config.providerTimeoutMs,
+    timeoutMs,
     ...(options.registry === undefined ? {} : { registry: options.registry }),
     ...(options.createTransport === undefined
       ? {
@@ -1077,50 +1143,76 @@ export function createLocalMemoryRuntime(
         }
       : { createTransport: options.createTransport }),
   });
-  const transport = tracedChatTransport(innerTransport, tracer, surface);
+  let transportTimeout = preferences.current.budgets.providerTimeoutMs;
+  let innerTransport = makeTransport(transportTimeout);
+  const transport = tracedChatTransport({
+    complete(request, callbacks) {
+      const timeout = preferences.current.budgets.providerTimeoutMs;
+      if (timeout !== transportTimeout) {
+        innerTransport = makeTransport(timeout);
+        transportTimeout = timeout;
+      }
+      return innerTransport.complete(request, callbacks);
+    },
+  }, tracer, surface);
   const knowledge = createSqliteKnowledgeContext({
     filename: config.sqlitePath,
     projectId,
     migrateV0: true,
   });
   const registry = options.registry ?? defaultModelRegistry;
-  const reader = new KnowledgeMemoryReader({
-    context: knowledge.context,
-    // The one provider call retrieval makes. It places a message in subject
-    // areas it never names — "hur fungerar människans minne?" becomes
-    // neuroscience — which is what lets a record be found by what it is about
-    // rather than by which of its words the question happened to repeat.
-    //
-    // It uses the default model rather than whichever `/model` selected, for
-    // the same reason the semantic profile pins temperature to zero: this is
-    // A008's own classification step and its behaviour should not change when
-    // the operator switches the model they are talking to.
-    scopeClassifier: new ModelBackedRetrievalScopeClassifier(
-      new ChatTransportSemanticJsonGenerator({
-        transport,
-        model: registry.require(DEFAULT_MODEL_ID).id,
-        budget: budget(),
-        generation: SEMANTIC_JSON_GENERATION,
+  const scopes = new ConversationScopes();
+  const createReader = (limits: RuntimeBudgets): MemoryReadPort => {
+    const reader = new KnowledgeMemoryReader({
+      context: knowledge.context,
+      scopes,
+      maximumScopeDomains: limits.maximumScopeDomains,
+      maximumProjectionBytes: limits.memoryProjectionBytes,
+      planner: new DeterministicRetrievalPlanner({
+        maxTerms: limits.retrievalTerms,
+        maxEntities: limits.retrievalEntities,
+        maxRecentTurns: limits.retrievalHistoryMessages,
+        maxTurnCharacters: limits.retrievalHistoryCharacters,
+        maxSemanticQueries: limits.retrievalSemanticQueries,
       }),
-    ),
-  });
-  const baseReader = options.readerDecorator?.(reader) ?? reader;
-  const tracedReader: MemoryReadPort = {
-    async read(request) {
-      const result = await baseReader.read(request);
-      tracer.emit({
-        traceId: currentTraceId(),
-        surface,
-        phase: "memory_read",
-        status: "ok",
-        selectedMemoryIds: [...result.evidence.selectedKnowledgeIds],
-        sizes: {
-          selected: result.evidence.selectedKnowledgeIds.length,
-          projectionBytes: result.evidence.projectionMeasuredUnits,
-        },
-      });
-      return result;
-    },
+      // The one provider call retrieval makes. It places a message in subject
+      // areas it never names — "hur fungerar människans minne?" becomes
+      // neuroscience — which is what lets a record be found by what it is about
+      // rather than by which of its words the question happened to repeat.
+      //
+      // It uses the default model rather than whichever `/model` selected, for
+      // the same reason the semantic profile pins temperature to zero: this is
+      // A008's own classification step and its behaviour should not change when
+      // the operator switches the model they are talking to.
+      scopeClassifier: new ModelBackedRetrievalScopeClassifier(
+        new ChatTransportSemanticJsonGenerator({
+          transport,
+          model: registry.require(DEFAULT_MODEL_ID).id,
+          budget: budget(limits.semanticInputBytes),
+          generation: semanticGeneration(registry.require(DEFAULT_MODEL_ID).id, limits),
+        }),
+        { maximumVocabulary: limits.retrievalVocabulary },
+      ),
+    });
+    const baseReader = options.readerDecorator?.(reader) ?? reader;
+    const tracedReader: MemoryReadPort = {
+      async read(request, options) {
+        const result = await baseReader.read(request, options);
+        tracer.emit({
+          traceId: currentTraceId(),
+          surface,
+          phase: "memory_read",
+          status: "ok",
+          selectedMemoryIds: [...result.evidence.selectedKnowledgeIds],
+          sizes: {
+            selected: result.evidence.selectedKnowledgeIds.length,
+            projectionBytes: result.evidence.projectionMeasuredUnits,
+          },
+        });
+        return result;
+      },
+    };
+    return tracedReader;
   };
   return new LocalMemoryRuntime({
     surface,
@@ -1129,7 +1221,8 @@ export function createLocalMemoryRuntime(
     sqlitePath: config.sqlitePath,
     tracer,
     knowledge,
-    reader: tracedReader,
+    preferences,
+    createReader,
     ...(options.committerDecorator === undefined
       ? {}
       : { committerDecorator: options.committerDecorator }),

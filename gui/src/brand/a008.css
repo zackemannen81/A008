@@ -31,6 +31,7 @@
   --a008-accent-soft: rgba(192, 168, 120, 0.09);
   --a008-good: #86a088;
   --a008-danger: #c07f74;
+  --a008-overlay: rgba(0, 0, 0, 0.6);
 
   /* Connection states read as status, not decoration. */
   --a008-idle: var(--a008-dim);
@@ -124,6 +125,21 @@ body {
   overflow: auto;
   background: var(--a008-bg-raised);
   border-right: 1px solid var(--a008-border);
+}
+
+.a008-header-tabs { display: flex; gap: .3rem; }
+.a008-header-tabs button { padding: .5rem .9rem; border: 1px solid transparent; border-radius: 4px; color: var(--a008-muted); background: transparent; font: inherit; font-size: .78rem; cursor: pointer; }
+.a008-header-tabs button[aria-current] { color: var(--a008-accent); background: var(--a008-accent-soft); border-color: var(--a008-border); }
+.a008-header-tabs button:focus-visible { outline: 2px solid var(--a008-accent); outline-offset: 2px; }
+.a008-main[hidden], .a008-memory-main[hidden], .a008-memory-workspace .a008-workbench { display: none; }
+.a008-memory-main { grid-column: 2 / -1; min-width: 0; min-height: 0; overflow: hidden; }
+@media (max-width: 850px) {
+  .a008-memory-workspace { grid-template-columns: minmax(0, 1fr); }
+  .a008-memory-workspace .a008-rail { display: none; }
+  .a008-memory-workspace .a008-memory-main { grid-column: 1; }
+  .a008-memory-workspace .a008-header { gap: .4rem; padding-inline: .65rem; }
+  .a008-memory-workspace .a008-brand-tagline { display: none; }
+  .a008-memory-workspace .a008-header-status { font-size: .52rem; letter-spacing: .02em; }
 }
 
 /* The conversation. The tallest thing on screen, which is the entire point. */
@@ -474,4 +490,24 @@ body {
 .a008-settings-connect:focus-visible {
   background: color-mix(in srgb, var(--a008-cyan) 12%, transparent);
   outline: none;
+}
+
+/* One usable surface per mobile screen; Tools retains terminal/upload access. */
+@media (max-width: 850px) {
+  .a008-app { grid-template-columns: minmax(0, 1fr); }
+  .a008-app .a008-rail { display: none; }
+  .a008-main, .a008-app .a008-memory-main, .a008-tools-workspace .a008-workbench { grid-column: 1; }
+  .a008-app:not(.a008-tools-workspace) .a008-workbench { display: none; }
+  .a008-header-actions { gap: .3rem; }
+  .a008-header-actions .a008-header-status { display: none; }
+  .a008-header { gap: .4rem; padding-inline: .6rem; }
+  .a008-brand-tagline { display: none; }
+  .a008-header-tabs button { padding-inline: .55rem; }
+}
+@media (max-width: 440px) {
+  .a008-header { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .a008-header-tabs { justify-content: center; gap: 0; }
+  .a008-header-tabs button { padding-inline: .35rem; font-size: .7rem; }
+  .a008-parameters-open { padding-inline: .45rem; font-size: .7rem; }
+  .a008-brand { gap: .4rem; }
 }

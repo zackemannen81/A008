@@ -1,8 +1,10 @@
+import { parseSessionControl, type SessionControl, type SessionSnapshot } from "../core/session-control.js";
 export const GUI_HOST_NAME = "A008-gui-host";
 export const DEFAULT_GUI_HOST_PORT = 8787;
 export const DEFAULT_GUI_HOST_BIND = "127.0.0.1";
 
 export type GuiHostClientMessage =
+  | { readonly type: "session/control"; readonly requestId: string; readonly sessionId: string; readonly control: SessionControl }
   | {
       readonly type: "session/new";
       readonly requestId: string;
@@ -21,8 +23,10 @@ export type GuiHostClientMessage =
     };
 
 export type GuiHostServerMessage =
+  | { readonly type: "session/control/ok"; readonly requestId: string; readonly sessionId: string; readonly state: SessionSnapshot }
   | {
       readonly type: "session/new/ok";
+      readonly state?: SessionSnapshot;
       readonly requestId: string;
       readonly sessionId: string;
     }
@@ -38,6 +42,7 @@ export type GuiHostServerMessage =
     }
   | {
       readonly type: "prompt/ok";
+      readonly state?: SessionSnapshot;
       readonly requestId: string;
       readonly sessionId: string;
     }
@@ -79,6 +84,11 @@ export function parseClientMessage(
       ? parsed.sessionId
       : undefined;
   const type = parsed.type;
+  if (type === "session/control") {
+    if (requestId === undefined || sessionId === undefined) return { error: "session/control requires requestId and sessionId." };
+    try { return { type, requestId, sessionId, control: parseSessionControl(parsed.control) }; }
+    catch (error) { return { error: error instanceof Error ? error.message : "Invalid session control.", requestId, sessionId }; }
+  }
   if (type === "session/new") {
     if (requestId === undefined) {
       return { error: "session/new requires requestId." };
