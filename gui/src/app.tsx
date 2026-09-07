@@ -4,7 +4,7 @@ import { ToolActivity } from "./tools/repository-pane.js";
 import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
 import { ChatPane, type ChatGeneratedImage } from "./chat/chat-pane.js";
-import type { EmptyShortcutId } from "./chat/empty-shortcuts.js";
+import { EmptyShortcuts, type EmptyShortcutId } from "./chat/empty-shortcuts.js";
 import { Composer } from "./composer/composer.js";
 import { generateImage, generatedImageSrc } from "./images/generate-image.js";
 import { useGuiSession } from "./session/use-gui-session.js";
@@ -253,7 +253,6 @@ export function App() {
       <main className="a008-main" hidden={page !== "chat"}>
         <ChatPane
           session={session}
-          onShortcut={onShortcut}
           onStartPrompt={(prompt) => void ask(prompt)}
           images={images}
         />
@@ -289,6 +288,12 @@ export function App() {
       <main className="a008-help-main" hidden={page !== "help"}>
         <HelpPage session={session} onChat={() => navigate("chat")} />
       </main>
+      <aside
+        className="a008-shortcut-dock"
+        hidden={page !== "chat" || filesOpen || toolsOpen}
+      >
+        <EmptyShortcuts onShortcut={onShortcut} />
+      </aside>
       <aside
         className="a008-files-float"
         id="a008-files-panel"
