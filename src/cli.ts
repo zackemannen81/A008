@@ -163,7 +163,7 @@ async function handleSlash(
       out.write(`project: ${ctx.runtime.projectId}\n`);
       out.write(`memory: ${ctx.runtime.sqlitePath}\n`);
       out.write(`turns: ${ctx.session.messages.filter((m) => m.role !== "system").length}\n`);
-      out.write("tools: exec_command (model-invoked, approval per action); /shell (user-initiated)\n");
+      out.write("tools: exec_command, list_files, read_file, create_file, edit_file, git (model-invoked, approval per action); /shell (user-initiated)\n");
       return "continue";
     case "cwd":
       out.write(`${ctx.deps.cwd}\n`);
@@ -172,7 +172,9 @@ async function handleSlash(
       out.write(
         "terminal  /shell <command>  native A008 runner in cwd\n" +
           "          /! <command>      alias\n" +
-          "exec_command  model-invoked shell; requires approval for each action (ADR 0028).\n",
+          "exec_command  model-invoked shell; requires approval for each action (ADR 0028).\n" +
+          "list_files/read_file/create_file/edit_file  workspace files, approved and revision-guarded.\n" +
+          "git  literal Git arguments in cwd; approval per action.\n",
       );
       return "continue";
     case "shell": {

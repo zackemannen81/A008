@@ -72,6 +72,7 @@ export function buildSettingsView(session: GuiSession): SettingsView {
       { id: "model", label: "Model", value: displayedModel },
       { id: "connection", label: "Connection", value: connection },
       { id: "session", label: "Session", value: displayedSession },
+      ...(session.details ? [{ id: "cwd", label: "Working directory", value: session.details.runtime.cwd }] : []),
       { id: "memory", label: "Memory", value: memory },
       { id: "telemetry", label: "Telemetry", value: telemetry },
       { id: "credentials", label: "Credentials", value: credentials },

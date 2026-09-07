@@ -38,7 +38,7 @@ export interface SessionSnapshot {
   model: string;
   parameters: SessionParameters;
   messages: readonly { role: "user" | "assistant"; content: string }[];
-  runtime: { cwd: string; projectId: string | null; memoryPath: string | null };
+  runtime: { cwd: string; projectId: string | null; memoryPath: string | null; tools?: readonly { name: string; description: string }[] };
   undone?: boolean;
   closed?: boolean;
 }
@@ -73,6 +73,7 @@ export function parseSessionSnapshot(v: unknown): SessionSnapshot {
     ) ||
     !record(v.runtime) ||
     typeof v.runtime.cwd !== "string" ||
+    (v.runtime.tools !== undefined && (!Array.isArray(v.runtime.tools) || !v.runtime.tools.every(tool => record(tool) && typeof tool.name === "string" && typeof tool.description === "string"))) ||
     ![v.runtime.projectId, v.runtime.memoryPath].every(
       (s) => s === null || typeof s === "string",
     ) ||

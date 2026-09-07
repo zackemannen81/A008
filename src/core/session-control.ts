@@ -17,6 +17,7 @@ export interface SessionSnapshot {
     readonly content: string;
   }[];
   readonly runtime: {
+    readonly tools?: readonly { readonly name: string; readonly description: string }[];
     readonly cwd: string;
     readonly projectId: string | null;
     readonly memoryPath: string | null;

@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { ToolPermissionDialog } from "./session/tool-permission-dialog.js";
+import { RepositoryPane, ToolActivity } from "./tools/repository-pane.js";
 import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
 import { ChatPane } from "./chat/chat-pane.js";
@@ -87,9 +88,7 @@ export function App() {
 
       <main className="a008-main" hidden={page !== "chat"}>
         <ChatPane session={session} />
-        {!!session.tools?.length && <section className="a008-tool-activity" aria-label="Tool activity">
-          {session.tools.map(tool => <details key={tool.id}><summary>{tool.title} · {tool.status}{tool.status === "pending" ? " — approve in client" : ""}</summary><pre>{tool.text}</pre></details>)}
-        </section>}
+        <ToolActivity session={session} />
         <Composer session={session} />
       </main>
 
@@ -100,6 +99,7 @@ export function App() {
       <Workbench
         label="Workbench"
         surfaces={[
+          { id: "repository", label: "Repository", render: () => <RepositoryPane session={session} onChat={() => setPage("chat")} /> },
           { id: "terminal", label: "Terminal", render: () => <TerminalPane /> },
           { id: "upload", label: "Upload", render: () => <UploadPane /> },
         ]}

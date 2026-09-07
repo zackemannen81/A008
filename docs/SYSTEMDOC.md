@@ -178,6 +178,20 @@ credentials; therefore it does not prove globally blocked external egress.
 
 ## A008 GUI host
 
+A008-0068 supports repository work directly from this standalone GUI (ADR 0029).
+`A008_GUI_WORKSPACE` optionally selects an existing absolute working directory
+at startup; cwd defaults to the host's launch directory. It applies to native
+file tools, Git and shell commands. It does not automatically select a different
+standalone memory store. Session snapshots expose optional `runtime.tools`
+native catalog metadata. Tools → Repository shows the catalog, cwd and explicit
+model-request shortcuts. See [GUI repository tools](GUI_REPOSITORY_TOOLS.md).
+
+The shared executor offers `list_files`, `read_file`, `create_file`, `edit_file`
+and `git` alongside `exec_command`. File edits require a matching SHA-256 and
+one exact text occurrence; new-file creation refuses overwrite. Git receives
+literal argv without shell expansion. All retain per-call approval and existing
+runtime budgets; these tools do not create another memory/provider owner.
+
 `src/gui-host/` is the A008-owned Node process that makes the shared core
 reachable from a browser without Agent Server. It is the product path in
 ADR 0019 D2. `npm run gui-host` starts it against an already-built GUI;

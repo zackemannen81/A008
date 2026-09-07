@@ -1,5 +1,11 @@
 # File Structure
 
+A008-0068 adds `src/tools/repository-tools.ts` (native file/Git definitions and
+execution), `gui/src/tools/repository-pane.tsx`, `repository.css` and
+`repository.test.ts` (catalog, workspace, shortcuts and activity). Additional
+native and standalone integration checks live in `test/model-tools.test.ts`.
+The runbook is [GUI_REPOSITORY_TOOLS.md](GUI_REPOSITORY_TOOLS.md).
+
 A008-0067 adds `src/engine/{server,engine-host}.ts`, the manifest-backed shared
 project/session composition; `src/tools/{model-tools,acp-tools}.ts` implement
 validated native/MCP calls and ACP approvals. `scripts/package-engine.mjs` builds

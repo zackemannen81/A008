@@ -297,6 +297,10 @@ reviewed secret provider. Automated tests never load it.
 
 ## Project workflow
 
+For file editing, commands and Git directly in the A008 GUI, see
+[Repository work in the GUI](docs/GUI_REPOSITORY_TOOLS.md). Run `npm run gui`,
+connect, then open Tools → Repository. No external frontend is required.
+
 Read `AGENTS.md`, then `docs/CURRENT_TASK.md` and the reading order it names.
 
 ## License
