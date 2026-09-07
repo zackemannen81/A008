@@ -2,7 +2,7 @@
 
 Task ID: A008-0066
 Parent Task: None
-Status: Paused
+Status: Complete
 Owner: Codex (operator)
 Created: 2026-09-07
 Last updated: 2026-09-07
@@ -58,21 +58,21 @@ backed by atomic local persistence and verified actual invocation behavior.
 
 ### Minimum Verification Gates
 
-- [ ] Root and GUI typechecks/build; complete npm test.
-- [ ] Persistence, validation, stale-write, budget and instruction-boundary tests.
-- [ ] Real host -> spawned ACP -> loopback provider proof with payload assertions.
-- [ ] Desktop/mobile browser save/reopen, budget repair and instruction editor proof.
-- [ ] Docs links/fences, staged secret boundary and git diff --check.
+- [x] Root and GUI typechecks/build; complete npm test.
+- [x] Persistence, validation, stale-write, budget and instruction-boundary tests.
+- [x] Real host -> spawned ACP -> loopback provider proof with payload assertions.
+- [x] Desktop/mobile browser save/reopen, budget repair and instruction editor proof.
+- [x] Docs links/fences, staged secret boundary and git diff --check.
 
 ## Checklist
 
 - [x] Read authority, inspect live limits and instruction composition, claim on main.
-- [ ] Implement settings contract, persistence and runtime snapshot wiring.
-- [ ] Implement global GUI settings and actionable budget feedback.
-- [ ] Repair the discovered generator allowlist refusal of retrieval_scope so
+- [x] Implement settings contract, persistence and runtime snapshot wiring.
+- [x] Implement global GUI settings and actionable budget feedback.
+- [x] Repair the discovered generator allowlist refusal of retrieval_scope so
   its configured input/output/vocabulary budgets reach an actual invocation;
   require non-empty actual scope-call evidence in regression tests.
-- [ ] Verify, document, archive and hand off.
+- [x] Verify, document, archive and hand off.
 
 ## Decisions and Notes
 
@@ -87,11 +87,11 @@ backed by atomic local persistence and verified actual invocation behavior.
 
 ## Verification
 
-Pending implementation.
+Owner-merged implementation at 06c7d2b. Remaining browser and documentation gates completed against the 0067 superset; see ../evidence/A008-0066_runtime-preferences.md and ../handoffs/A008-0066.md.
 
 ## Handoff and Follow-ups
 
-Pending verification. No push or live provider call authorized.
+Owner-merged implementation at 06c7d2b. Remaining browser and documentation gates completed against the 0067 superset; see ../evidence/A008-0066_runtime-preferences.md and ../handoffs/A008-0066.md.
 
 ## 2026-09-07 owner-directed priority change
 
@@ -102,3 +102,7 @@ this record does not claim Complete. Work pauses while the owner-requested
 engine distribution/integration is implemented. Resume condition: engine
 integration reaches handoff, then finish the remaining evidence/docs gates.
 The existing implementation and frozen scope are preserved.
+
+## Local completion, 2026-09-07
+
+Owner-merged implementation at 06c7d2b. Remaining browser and documentation gates completed against the 0067 superset; see ../evidence/A008-0066_runtime-preferences.md and ../handoffs/A008-0066.md.

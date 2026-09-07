@@ -8,6 +8,11 @@ replacement.
 
 ## Records
 
+- [0028-engine-package-and-panels.md](0028-engine-package-and-panels.md) —
+  Accepted; portable engine, shared sessions, bundled panels and approved tools.
+- [0027-runtime-preferences-and-instructions.md](0027-runtime-preferences-and-instructions.md) —
+  Accepted; global budgets and persistent user instructions.
+
 - [0026-gui-session-controls.md](0026-gui-session-controls.md) — Accepted;
   CLI session parity and model-specific generation controls through host/ACP.
 

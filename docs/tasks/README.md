@@ -11,6 +11,11 @@ the template before push.
 
 ## Records
 
+- [A008-0067_engine-package.md](A008-0067_engine-package.md) — Complete locally;
+  [archive](../finished/A008-0067_engine-package.md), engine/panel/tool distribution.
+- [A008-0066_runtime-preferences.md](A008-0066_runtime-preferences.md) — Complete;
+  [archive](../finished/A008-0066_runtime-preferences.md), owner-merged preferences closure.
+
 - [A008-0065_gui-session-controls.md](A008-0065_gui-session-controls.md) —
   Complete locally; session commands, runtime snapshots and model parameters;
   [archived](../finished/A008-0065_gui-session-controls.md).

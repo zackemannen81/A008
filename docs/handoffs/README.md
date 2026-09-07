@@ -11,7 +11,8 @@ authority. Workers do not append `docs/JOURNAL.md`.
 
 ## Required fields
 
-Latest local handoff: [A008-0065](A008-0065.md) — GUI session commands and parameters.
+Latest local handoffs: [A008-0067](A008-0067.md) — complete engine and panels;
+[A008-0066](A008-0066.md) — owner-merged runtime preferences closure.
 
 - Task ID and branch
 - Head commit SHA

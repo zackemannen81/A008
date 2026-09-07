@@ -8,4 +8,5 @@ charter, completed work, missing verification, next action, and resume condition
 
 ## Tasks
 
-- [A008-0066_runtime-preferences.md](A008-0066_runtime-preferences.md) — implementation merged; closure paused for owner-directed engine work.
+No tasks currently paused. A008-0066 resumed and completed its remaining closure;
+see [its archive](../finished/A008-0066_runtime-preferences.md).
