@@ -8,6 +8,14 @@ replacement.
 
 ## Records
 
+- [0031-workbench-context-and-memory-map.md](0031-workbench-context-and-memory-map.md) —
+  Accepted; Chat workbench is environment/sources context, tool help lives on
+  Help, and the memory map is a domain-clustered radial graph. Amends ADR 0030.
+
+- [0030-focused-standalone-workspace.md](0030-focused-standalone-workspace.md) —
+  Accepted; focused standalone GUI with left navigation, centred chat and an
+  optional workbench. Amends 0021 and 0022.
+
 - [0028-engine-package-and-panels.md](0028-engine-package-and-panels.md) —
   Accepted; portable engine, shared sessions, bundled panels and approved tools.
 - [0027-runtime-preferences-and-instructions.md](0027-runtime-preferences-and-instructions.md) —

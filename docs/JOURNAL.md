@@ -2,6 +2,45 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-07 — Workbench context, Help catalog and readable memory map
+
+- Task: A008-0070; operator: Grok; branch: `A008-0070-workbench-help-memory-map`.
+- Chat workbench is the environment/sources card. Tool catalog moved to Help.
+- Empty chat shortcuts open Review, Terminal, Browser, Files and the workbench.
+- Memory Relationship Map uses a domain-clustered radial layout and structured inspector.
+- Verification: GUI typecheck/build, 100 GUI tests. Interactive browser click-through
+  was not available in this agent session; DOM tests cover Help, workbench, shortcuts
+  and clustered graph markup.
+- Signature: Grok.
+
+## 2026-09-07 — Focused standalone GUI workspace merged
+
+- Task: A008-0069; operator: Codex; branch: `main`.
+- Neutral charcoal shell, left navigation, centred chat, optional workbench.
+- Verification and archive: `docs/finished/A008-0069-focused-gui.md`.
+- Signature: restored 2026-09-07 because the merge journal entry was missing.
+
+## 2026-09-07 — Standalone GUI repository tools merged
+
+- Task: A008-0068; operator: Codex; branch: `main`.
+- Native file/Git tools, visible catalog, standalone GUI-host verification.
+- Verification and archive: `docs/finished/A008-0068_gui-repository-tools.md`.
+- Signature: restored 2026-09-07 because the merge journal entry was missing.
+
+## 2026-09-07 — Engine package and panel integration merged
+
+- Task: A008-0067; operator: Codex; branch: `main`.
+- Portable engine, shared sessions, bundled surfaces, approved model tools.
+- Verification and archive: `docs/finished/A008-0067_engine-package.md`.
+- Signature: restored 2026-09-07 because the merge journal entry was missing.
+
+## 2026-09-07 — Runtime preferences and instructions merged
+
+- Task: A008-0066; operator: Codex; branch: `main`.
+- Editable tool limits and persistent instructions; version-2 settings save.
+- Verification and archive: `docs/finished/A008-0066_runtime-preferences.md`.
+- Signature: restored 2026-09-07 because the merge journal entry was missing.
+
 ## 2026-09-07 — GUI session controls integrated locally
 
 - Task: A008-0065; operator: Codex; branch: `main`.

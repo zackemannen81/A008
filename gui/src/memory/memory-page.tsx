@@ -20,7 +20,7 @@ const VIEWS: readonly { id: View; label: string; title: string }[] = [
   {
     id: "graph",
     label: "Relationship map",
-    title: "Memory Relationship Map Graph",
+    title: "Memory Relationship Map",
   },
   {
     id: "manager",
@@ -240,11 +240,27 @@ export function MemoryPage({ active }: { active: boolean }) {
             ) : (
               <div className="memory-explorer">
                 {view === "graph" ? (
-                  <MemoryGraph
-                    graph={snapshot.graph}
-                    selected={selected?.id}
-                    onSelect={setSelected}
-                  />
+                  <>
+                    <div className="memory-metrics memory-metrics-graph">
+                      {[
+                        ["Stored records", snapshot.summary.total, "Across all domains"],
+                        ["Open bindings", snapshot.summary.counts.state, "Active relationships"],
+                        ["Dormant evidence", snapshot.summary.dormant, "Not recently referenced"],
+                        ["Contested slots", snapshot.summary.contestedSlots, "Multiple conflicting claims"],
+                      ].map(([label, value, hint]) => (
+                        <article className="memory-metric" key={label}>
+                          <span className="memory-eyebrow">{label}</span>
+                          <strong>{Number(value).toLocaleString()}</strong>
+                          <span>{hint}</span>
+                        </article>
+                      ))}
+                    </div>
+                    <MemoryGraph
+                      graph={snapshot.graph}
+                      selected={selected?.id}
+                      onSelect={setSelected}
+                    />
+                  </>
                 ) : (
                   <section
                     className="memory-card memory-manager"
@@ -354,6 +370,14 @@ export function MemoryPage({ active }: { active: boolean }) {
                 )}
                 <MemoryInspector
                   record={selected}
+                  relatedCount={
+                    selected
+                      ? snapshot.graph.edges.filter(
+                          (edge) =>
+                            edge.from === selected.id || edge.to === selected.id,
+                        ).length
+                      : undefined
+                  }
                   onClose={() => setSelected(undefined)}
                 />
               </div>

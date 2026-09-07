@@ -13,6 +13,7 @@ import {
   type ChatAssistantTurn,
   type ChatUserTurn,
 } from "./chat-transcript.js";
+import { EmptyShortcuts, type EmptyShortcutId } from "./empty-shortcuts.js";
 import "./chat-pane.css";
 
 function ThoughtBlock({ turn }: { readonly turn: ChatAssistantTurn }) {
@@ -80,7 +81,10 @@ function AssistantTurnView({ turn }: { readonly turn: ChatAssistantTurn }) {
 }
 
 /** A008 chat transcript. Keep the ChatPane export. */
-export function ChatPane(props: { readonly session: GuiSession }) {
+export function ChatPane(props: {
+  readonly session: GuiSession;
+  readonly onShortcut?: (id: EmptyShortcutId) => void;
+}) {
   const { session } = props;
   const scrollerRef = useRef<HTMLDivElement>(null);
   const stickToBottom = useRef(true);
@@ -156,7 +160,13 @@ export function ChatPane(props: { readonly session: GuiSession }) {
             <span className="a008-empty-eyebrow">A008</span>
             <h1>What would you like to work on?</h1>
             <p>{emptyStateCopy(session.status)}</p>
-            <p className="a008-empty-hint">Work with your repository, explore memory, or start a conversation.</p>
+            {props.onShortcut ? (
+              <EmptyShortcuts onShortcut={props.onShortcut} />
+            ) : (
+              <p className="a008-empty-hint">
+                Work with your repository, explore memory, or start a conversation.
+              </p>
+            )}
           </div>
         ) : (
           transcript.turns.map((turn) =>

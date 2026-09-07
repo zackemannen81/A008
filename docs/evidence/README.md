@@ -9,6 +9,9 @@ credentials, and private source material do not belong in this collection.
 
 ## Records
 
+- [A008-0070_workbench-memory-map.md](A008-0070_workbench-memory-map.md) —
+  workbench environment/sources card, Help catalog, empty-chat shortcuts and
+  clustered memory graph. GUI tests and build; no interactive browser session.
 - [A008-0067_engine-package.md](A008-0067_engine-package.md) — portable engine,
   real client host, approved tools and existing panels with synthetic provider.
 - [A008-0066_runtime-preferences.md](A008-0066_runtime-preferences.md) —

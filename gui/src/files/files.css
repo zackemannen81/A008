@@ -1,0 +1,59 @@
+.a008-files {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+  min-height: 0;
+  padding: 1rem;
+}
+.a008-files h2 {
+  margin: 0;
+}
+.a008-files header p,
+.a008-files-status {
+  margin: 0.35rem 0 0;
+  color: var(--a008-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.a008-files input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--a008-border);
+  border-radius: 0.5rem;
+  background: var(--a008-bg);
+  color: var(--a008-fg);
+  font: inherit;
+}
+.a008-files ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+.a008-files button {
+  width: 100%;
+  padding: 0.45rem 0.4rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: transparent;
+  color: var(--a008-fg-soft);
+  font: 0.78rem var(--a008-mono);
+  text-align: left;
+  cursor: pointer;
+}
+.a008-files button:hover,
+.a008-files button:focus-visible {
+  background: var(--a008-accent-soft);
+  color: var(--a008-fg);
+}
+.a008-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}

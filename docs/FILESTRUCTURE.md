@@ -1,5 +1,11 @@
 # File Structure
 
+A008-0070 adds `gui/src/help/`, `gui/src/browser/`, `gui/src/files/`, and
+`gui/src/workbench/environment-panel.tsx` with git-status parsing. The Chat
+workbench is the environment/sources card; Help hosts the tool catalog; Tools
+keeps Terminal/Files/Browser/Upload. The memory graph is a clustered radial
+layout. Design decision: [ADR 0031](adr/0031-workbench-context-and-memory-map.md).
+
 A008-0069 adds `gui/src/brand/workspace.css`, loaded after shared tokens and
 feature styles by `main.tsx`. `app.tsx` owns sidebar/panel visibility and
 parameter focus restoration; chat/composer retain their feature ownership.
@@ -43,10 +49,14 @@ A008/
 |  |  |  |- memory-page.tsx          three views, filters, refresh and pagination
 |  |  |  |- memory-client.ts        validated host inspection client
 |  |  |  |- memory-overview.tsx      actual inventory and domain counts
-|  |  |  |- memory-graph.tsx         bounded stored-link graph and keyboard selection
+|  |  |  |- memory-graph.tsx         clustered radial graph (A008-0070)
 |  |  |  |- memory-inspector.tsx     escaped record details
 |  |  |  |- memory.css              responsive layout using existing tokens
 |  |  |  `- memory.test.ts           client, DOM and graph checks
+|  |  |- help/                       A008-0070 tool catalog and shortcuts
+|  |  |- workbench/                  tab host plus environment/sources card
+|  |  |- browser/                    A008-0070 sandboxed URL pane
+|  |  |- files/                      A008-0070 tracked-file list
 |  |  |- session/                    A008-0033 WebSocket session client
 |  |  |  |- protocol.ts              host protocol v1 frames and URL resolution
 |  |  |  |- gui-session-client.ts    socket lifecycle, controls and committed snapshots

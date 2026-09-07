@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { GuiSession } from "../session/types.js";
 import { ChatPane } from "./chat-pane.js";
+import { EMPTY_SHORTCUTS } from "./empty-shortcuts.js";
 
 const THOUGHT_TOKEN = "SECRET_THOUGHT_TOKEN";
 const ANSWER_TEXT = "A008 answers in the answer channel.";
@@ -150,6 +151,45 @@ test("DOM contract: committed answers stay free of the live thought", () => {
   );
   assert.equal(textsOn(nodes, "user").join("").includes(THOUGHT_TOKEN), false);
   assert.equal(occurrences(html, THOUGHT_TOKEN), 1);
+});
+
+test("empty chat renders shortcut chips when the shell provides them", () => {
+  const html = renderToStaticMarkup(
+    createElement(ChatPane, { session: fakeSession(), onShortcut() {} }),
+  );
+  assert.match(html, /Workbench shortcuts/u);
+  for (const item of EMPTY_SHORTCUTS) {
+    assert.ok(html.includes(item.label), item.label);
+    assert.ok(html.includes(item.keys), item.keys);
+  }
+});
+
+test("empty chat without a shortcut handler keeps the previous hint", () => {
+  const html = render(
+    fakeSession({
+      thought: "",
+      answer: "",
+      details: {
+        model: "fixture",
+        parameters: {
+          stream: true,
+          temperature: null,
+          topP: null,
+          maxTokens: 16,
+          enableThinking: null,
+          reasoningBudget: null,
+          reasoningEffort: null,
+          seed: null,
+          stop: null,
+        },
+        messages: [],
+        runtime: { cwd: "C:\\code\\A008", projectId: null, memoryPath: null },
+      },
+    }),
+  );
+  assert.match(html, /What would you like to work on/u);
+  assert.match(html, /a008-empty-hint/u);
+  assert.equal(html.includes("Workbench shortcuts"), false);
 });
 
 test("DOM contract: a thought-only turn renders no answer node", () => {
