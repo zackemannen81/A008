@@ -16,13 +16,7 @@ import {
 import "./chat-pane.css";
 
 function ThoughtBlock({ turn }: { readonly turn: ChatAssistantTurn }) {
-  const [open, setOpen] = useState(turn.live);
-
-  useEffect(() => {
-    if (turn.live) {
-      setOpen(true);
-    }
-  }, [turn.live]);
+  const [open, setOpen] = useState(false);
 
   if (turn.thought === "") {
     return null;
@@ -158,7 +152,12 @@ export function ChatPane(props: { readonly session: GuiSession }) {
         }}
       >
         {transcript.empty ? (
-          <p className="a008-chat-empty">{emptyStateCopy(session.status)}</p>
+          <div className="a008-chat-empty">
+            <span className="a008-empty-eyebrow">A008</span>
+            <h1>What would you like to work on?</h1>
+            <p>{emptyStateCopy(session.status)}</p>
+            <p className="a008-empty-hint">Work with your repository, explore memory, or start a conversation.</p>
+          </div>
         ) : (
           transcript.turns.map((turn) =>
             turn.kind === "user" ? (
