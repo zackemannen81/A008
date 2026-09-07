@@ -13,7 +13,6 @@ import {
   type ChatAssistantTurn,
   type ChatUserTurn,
 } from "./chat-transcript.js";
-import { EmptyShortcuts, type EmptyShortcutId } from "./empty-shortcuts.js";
 import { StartActions } from "./start-actions.js";
 import "./chat-pane.css";
 
@@ -90,7 +89,6 @@ function AssistantTurnView({ turn }: { readonly turn: ChatAssistantTurn }) {
 /** A008 chat transcript. Keep the ChatPane export. */
 export function ChatPane(props: {
   readonly session: GuiSession;
-  readonly onShortcut?: (id: EmptyShortcutId) => void;
   readonly onStartPrompt?: (prompt: string) => void;
   readonly images?: readonly ChatGeneratedImage[];
 }) {
@@ -169,9 +167,8 @@ export function ChatPane(props: {
             <span className="a008-empty-eyebrow">A008</span>
             <h1>What would you like to work on?</h1>
             <p>{emptyStateCopy(session.status)}</p>
-            {props.onStartPrompt ? <StartActions onPrompt={props.onStartPrompt} /> : null}
-            {props.onShortcut ? (
-              <EmptyShortcuts onShortcut={props.onShortcut} />
+            {props.onStartPrompt ? (
+              <StartActions onPrompt={props.onStartPrompt} />
             ) : (
               <p className="a008-empty-hint">
                 Work with your repository, explore memory, or start a conversation.

@@ -4,7 +4,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { GuiSession } from "../session/types.js";
 import { ChatPane } from "./chat-pane.js";
-import { EMPTY_SHORTCUTS } from "./empty-shortcuts.js";
+import { EMPTY_SHORTCUTS, EmptyShortcuts } from "./empty-shortcuts.js";
 
 const THOUGHT_TOKEN = "SECRET_THOUGHT_TOKEN";
 const ANSWER_TEXT = "A008 answers in the answer channel.";
@@ -153,9 +153,21 @@ test("DOM contract: committed answers stay free of the live thought", () => {
   assert.equal(occurrences(html, THOUGHT_TOKEN), 1);
 });
 
-test("empty chat renders shortcut chips when the shell provides them", () => {
+test("empty chat keeps start cards in the centre and does not host shortcut chips", () => {
   const html = renderToStaticMarkup(
-    createElement(ChatPane, { session: fakeSession(), onShortcut() {} }),
+    createElement(ChatPane, {
+      session: fakeSession(),
+      onStartPrompt() {},
+    }),
+  );
+  assert.match(html, /What would you like to work on/u);
+  assert.match(html, /Explore and understand the code/u);
+  assert.equal(html.includes("Workbench shortcuts"), false);
+});
+
+test("shortcut dock still lists every workbench action", () => {
+  const html = renderToStaticMarkup(
+    createElement(EmptyShortcuts, { onShortcut() {} }),
   );
   assert.match(html, /Workbench shortcuts/u);
   for (const item of EMPTY_SHORTCUTS) {
