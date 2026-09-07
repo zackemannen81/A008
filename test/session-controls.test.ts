@@ -24,7 +24,8 @@ const defaults = defaultSessionParameters(
 );
 
 test("all registered model defaults conform to their controls, including effort-only models", () => {
-  assert.throws(() => generationCapabilities("unverified-model"), /No verified/);
+  assert.equal(generationCapabilities("unverified-model").verifiedOn, "unverified");
+  assert.equal(generationCapabilities("unverified-model").maxTokens, 16384);
   for (const profile of defaultModelRegistry.list()) {
     const parameters = defaultSessionParameters(profile);
     assert.deepEqual(

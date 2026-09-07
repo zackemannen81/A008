@@ -76,7 +76,11 @@ export function generationCapabilities(model: string): GenerationCapabilities {
     case "poolside/laguna-xs-2.1":
       return { ...common, maxTokens: 16384, seed: false };
     default:
-      throw new ChatError("unknown_model", `No verified generation controls for ${model}.`);
+      return {
+        ...common,
+        maxTokens: 16384,
+        verifiedOn: "unverified",
+      };
   }
 }
 

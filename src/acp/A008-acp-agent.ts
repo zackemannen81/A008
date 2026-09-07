@@ -31,6 +31,12 @@ import {
   defaultModelRegistry,
   type ModelRegistry,
 } from "../core/model-registry.js";
+import type { ModelProfile } from "../core/types.js";
+import {
+  defaultCatalogPath,
+  loadUserCatalog,
+  userModelProfile,
+} from "../core/user-catalog.js";
 import {
   parseRuntimeId,
   RuntimeIdentityFactory,
@@ -257,6 +263,8 @@ export interface A008AcpAgentOptions {
   readonly runtimeInfo?: () => SessionSnapshot["runtime"];
   readonly createSession: (model: string) => AcpTurnSession;
   readonly registry?: ModelRegistry;
+  /** Extra chat models from the user catalog. Reloaded on each resolve. */
+  readonly extraProfiles?: () => readonly ModelProfile[];
   readonly createSessionId?: () => string;
   readonly onMemoryDiagnostic?: (message: string) => void;
   /**
@@ -278,6 +286,7 @@ export class A008AcpAgent {
   readonly #runtimeInfo: () => SessionSnapshot["runtime"];
   readonly #createSession: (model: string) => AcpTurnSession;
   readonly #registry: ModelRegistry;
+  readonly #extraProfiles: () => readonly ModelProfile[];
   readonly #createSessionId: () => string;
   readonly #onMemoryDiagnostic: ((message: string) => void) | undefined;
   readonly #ingestSource: IngestSource | undefined;
@@ -292,6 +301,15 @@ export class A008AcpAgent {
     this.#runtimeInfo = options.runtimeInfo ?? (() => ({ cwd: process.cwd(), projectId: null, memoryPath: null }));
     this.#createSession = options.createSession;
     this.#registry = options.registry ?? defaultModelRegistry;
+    this.#extraProfiles =
+      options.extraProfiles ??
+      (() => {
+        try {
+          return loadUserCatalog(defaultCatalogPath()).chatModels.map(userModelProfile);
+        } catch {
+          return [];
+        }
+      });
     this.#onMemoryDiagnostic = options.onMemoryDiagnostic;
     this.#ingestSource = options.ingestSource;
     this.#sharedMemoryCapabilities = options.sharedMemoryCapabilities;
@@ -367,8 +385,10 @@ export class A008AcpAgent {
       );
     }
 
-    const profile = this.#registry.get(params.value);
-    if (profile === undefined) {
+    let profile;
+    try {
+      profile = this.#resolveProfile(params.value);
+    } catch {
       throw RequestError.invalidParams(
         { model: params.value },
         `Unknown A008 model: ${params.value}`,
@@ -500,7 +520,7 @@ export class A008AcpAgent {
     }
     if (state.activeTurn !== undefined && control.action !== "inspect") throw new RequestError(-32000, "Session already has an active turn.");
     if (control.action === "model") {
-      const profile = this.#registry.require(control.model);
+      const profile = this.#resolveProfile(control.model);
       // Construct first: configuration failure must preserve the old conversation.
       const chat = this.#createSession(profile.id);
       chat.enableSessionControls?.();
@@ -537,10 +557,27 @@ export class A008AcpAgent {
     return {
       ...(runtimePreferences === undefined ? {} : { runtimePreferences }),
       model: state.model,
-      parameters: state.chat?.parameters ?? defaultSessionParameters(this.#registry.require(state.model)),
+      parameters: state.chat?.parameters ?? defaultSessionParameters(this.#resolveProfile(state.model)),
       messages: (state.chat?.messages ?? []).flatMap(message => message.role === "system" ? [] : [{ role: message.role, content: message.content }]),
       runtime: this.#runtimeInfo(),
     };
+  }
+
+  #listedProfiles(): ModelProfile[] {
+    const extras = this.#extraProfiles();
+    const seen = new Set(this.#registry.list().map((profile) => profile.id));
+    return [
+      ...this.#registry.list(),
+      ...extras.filter((profile) => !seen.has(profile.id)),
+    ];
+  }
+
+  #resolveProfile(id: string): ModelProfile {
+    return (
+      this.#registry.get(id) ??
+      this.#extraProfiles().find((profile) => profile.id === id) ??
+      this.#registry.require(id)
+    );
   }
 
   cancel(params: CancelNotification): void {
@@ -643,7 +680,7 @@ export class A008AcpAgent {
         description: "Provider model used by the shared A008 chat core.",
         category: "model",
         currentValue,
-        options: this.#registry.list().map((profile) => ({
+        options: this.#listedProfiles().map((profile) => ({
           value: profile.id,
           name: profile.name,
         })),

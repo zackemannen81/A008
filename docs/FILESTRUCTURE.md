@@ -1,5 +1,11 @@
 # File Structure
 
+A008-0071 adds `src/providers/nvidia/nvidia-image-transport.ts`,
+`nvidia-catalog.ts`, `src/core/user-catalog.ts`, `src/core/provider-secrets.ts`,
+`src/gui-host/provider-routes.ts`, `gui/src/settings/nvidia-catalog-panel.tsx`,
+`gui/src/images/`, and start-action cards. Design decision:
+[ADR 0032](adr/0032-nvidia-catalog-and-image-generation.md).
+
 A008-0070 adds `gui/src/help/`, `gui/src/browser/`, `gui/src/files/`, and
 `gui/src/workbench/environment-panel.tsx` with git-status parsing. The Chat
 workbench is the environment/sources card; Help hosts the tool catalog; Tools

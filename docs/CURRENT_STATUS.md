@@ -1,9 +1,16 @@
 # Current Status
 
-Reality as of 2026-09-07. This document records observed state; intended design
+Reality as of 2026-09-08. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
+
+A008-0071 adds NVIDIA Build catalog browse/add, chat image generation (default
+FLUX.1-schnell), write-only API key and image endpoint in Parameters → Provider,
+start-view task cards, and a Files side panel. User models persist in
+`~/.a008/catalog.json`. The renderer never receives the key. NVIDIA "Free
+Endpoint" is hosted inference against NGC credits, not an unlimited free quota.
+See [ADR 0032](adr/0032-nvidia-catalog-and-image-generation.md).
 
 A008-0070 replaces the Chat workbench's tool-help catalog with an
 environment/sources card, moves that catalog to Help, adds empty-chat shortcuts

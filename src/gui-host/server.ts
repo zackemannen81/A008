@@ -11,7 +11,6 @@ import {
 import { extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { ChatError, isChatError } from "../core/errors.js";
-import { defaultSessionParameters, generationCapabilities } from "../core/generation-controls.js";
 import { parseMemoryInspectionQuery } from "../memory/knowledge/inspection.js";
 import { sniffSourceMediaType } from "../ingest/media-type.js";
 import {
@@ -47,6 +46,26 @@ import {
   writeBlob,
 } from "./source-store.js";
 import { acceptWebSocket, isWebSocketUpgrade, type GuiWebSocket } from "./websocket.js";
+import {
+  assertPathOutsideRepo,
+  defaultCatalogPath,
+} from "../core/user-catalog.js";
+import {
+  defaultSecretsPath,
+  resolveNvidiaApiKey,
+} from "../core/provider-secrets.js";
+import { findRepositoryRoot, moduleDirectory } from "../runtime/local-runtime-config.js";
+import {
+  handleBlobGet,
+  handleImageGenerate,
+  handleNvidiaCatalogAdd,
+  handleNvidiaCatalogGet,
+  handleNvidiaCatalogRemove,
+  handleProviderSettingsPost,
+  mergedModels,
+  providerSettingsView,
+  type FetchLike,
+} from "./provider-routes.js";
 
 const MAX_JSON_BODY_BYTES = 64 * 1024;
 /** Default cap for `POST /v1/upload`; overridable via `GuiHostOptions.maxUploadBytes`. */
@@ -89,6 +108,9 @@ export interface GuiHostOptions {
    * Defaults to `A008_GUI_HOST_ALLOWED_ORIGINS`, and to none when unset.
    */
   readonly allowedOrigins?: readonly string[];
+  readonly fetch?: FetchLike;
+  readonly catalogPath?: string;
+  readonly secretsPath?: string;
 }
 
 export interface GuiHost {
@@ -115,6 +137,12 @@ export async function startGuiHost(
   const maxUploadBytes = options.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
   const allowedOrigins =
     options.allowedOrigins ?? parseAllowedOrigins(env[ALLOWED_ORIGINS_ENV]);
+  const fetchImpl = options.fetch ?? fetch;
+  const repoRoot = findRepositoryRoot(moduleDirectory(import.meta.url));
+  const catalogPath = options.catalogPath ?? defaultCatalogPath(env);
+  const secretsPath = options.secretsPath ?? defaultSecretsPath(env);
+  assertPathOutsideRepo(catalogPath, repoRoot, "A008_CATALOG_PATH");
+  assertPathOutsideRepo(secretsPath, repoRoot, "A008_SECRETS_PATH");
   const requestOriginAllowed = (request: IncomingMessage): boolean =>
     originAllowedBy(request, allowedOrigins);
   const sockets = new Set<GuiWebSocket>();
@@ -214,6 +242,9 @@ export async function startGuiHost(
       maxUploadBytes,
       allowedOrigins,
       getBridge,
+      fetchImpl,
+      catalogPath,
+      secretsPath,
     });
   });
 
@@ -318,6 +349,9 @@ async function handleHttp(input: {
   readonly maxUploadBytes: number;
   readonly allowedOrigins: readonly string[];
   readonly getBridge: () => Promise<AcpBridge>;
+  readonly fetchImpl: FetchLike;
+  readonly catalogPath: string;
+  readonly secretsPath: string;
 }): Promise<void> {
   const { request, response, sendJson } = input;
   const method = request.method ?? "GET";
@@ -358,13 +392,85 @@ async function handleHttp(input: {
     }
     if (method === "GET" && pathname === "/v1/models") {
       sendJson(response, 200, {
-        models: input.registry.list().map((profile) => ({
-          id: profile.id,
-          name: profile.name,
-          defaults: defaultSessionParameters(profile),
-          capabilities: generationCapabilities(profile.id),
-        })),
+        models: mergedModels(input.registry, input.catalogPath),
       });
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/catalog/nvidia") {
+      sendJson(
+        response,
+        200,
+        await handleNvidiaCatalogGet({
+          apiKey: resolveNvidiaApiKey(input.env, input.secretsPath),
+          fetch: input.fetchImpl,
+          registry: input.registry,
+          catalogPath: input.catalogPath,
+        }),
+      );
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/catalog/nvidia") {
+      if (!isJsonContentType(request)) {
+        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        return;
+      }
+      const added = handleNvidiaCatalogAdd(input.catalogPath, await readJsonBody(request));
+      sendJson(response, 200, { added });
+      return;
+    }
+    if (method === "DELETE" && pathname === "/v1/catalog/nvidia") {
+      const id = new URL(request.url ?? "/", "http://localhost").searchParams.get("id") ?? "";
+      handleNvidiaCatalogRemove(input.catalogPath, id);
+      sendJson(response, 200, { removed: id });
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/provider-settings") {
+      sendJson(
+        response,
+        200,
+        providerSettingsView(input.catalogPath, input.secretsPath, input.env),
+      );
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/provider-settings") {
+      if (!isJsonContentType(request)) {
+        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        return;
+      }
+      sendJson(
+        response,
+        200,
+        handleProviderSettingsPost({
+          catalogPath: input.catalogPath,
+          secretsPath: input.secretsPath,
+          env: input.env,
+          body: await readJsonBody(request),
+        }),
+      );
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/images") {
+      if (!isJsonContentType(request)) {
+        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        return;
+      }
+      sendJson(
+        response,
+        200,
+        await handleImageGenerate({
+          apiKey: resolveNvidiaApiKey(input.env, input.secretsPath),
+          fetch: input.fetchImpl,
+          catalogPath: input.catalogPath,
+          storeRoot: input.storeRoot,
+          body: await readJsonBody(request),
+        }),
+      );
+      return;
+    }
+    const blob = /^\/v1\/blobs\/([a-f0-9]{64})\/([^/]+)$/u.exec(pathname);
+    if (method === "GET" && blob) {
+      if (handleBlobGet(input.storeRoot, blob[1]!, blob[2]!, response)) return;
+      sendJson(response, 404, errorBody("Image not found."));
       return;
     }
     if (method === "POST" && pathname === "/v1/shell") {

@@ -11,7 +11,8 @@ authority. Workers do not append `docs/JOURNAL.md`.
 
 ## Required fields
 
-Latest local handoffs: [A008-0070](A008-0070.md) — workbench, Help and memory map;
+Latest local handoffs: [A008-0071](A008-0071.md) — NVIDIA catalog and images;
+[A008-0070](A008-0070.md) — workbench, Help and memory map;
 [A008-0067](A008-0067.md) — complete engine and panels;
 [A008-0066](A008-0066.md) — owner-merged runtime preferences closure.
 

@@ -8,6 +8,10 @@ replacement.
 
 ## Records
 
+- [0032-nvidia-catalog-and-image-generation.md](0032-nvidia-catalog-and-image-generation.md) —
+  Accepted; browse/add NVIDIA Build models, host image generation, write-only
+  API key in Parameters. Amends 0019 D3/D4; does not change ADR 0020 D6.
+
 - [0031-workbench-context-and-memory-map.md](0031-workbench-context-and-memory-map.md) —
   Accepted; Chat workbench is environment/sources context, tool help lives on
   Help, and the memory map is a domain-clustered radial graph. Amends ADR 0030.
