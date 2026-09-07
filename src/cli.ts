@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { createInterface } from "node:readline/promises";
+import { ModelToolSession } from "./tools/model-tools.js";
 import { pathToFileURL } from "node:url";
 import { parseSlash, SLASH_HELP } from "./cli/slash.js";
 import { ChatError, isChatError } from "./core/errors.js";
@@ -162,7 +163,7 @@ async function handleSlash(
       out.write(`project: ${ctx.runtime.projectId}\n`);
       out.write(`memory: ${ctx.runtime.sqlitePath}\n`);
       out.write(`turns: ${ctx.session.messages.filter((m) => m.role !== "system").length}\n`);
-      out.write("tools: terminal via /shell (user-initiated; not LangChain)\n");
+      out.write("tools: exec_command (model-invoked, approval per action); /shell (user-initiated)\n");
       return "continue";
     case "cwd":
       out.write(`${ctx.deps.cwd}\n`);
@@ -171,8 +172,7 @@ async function handleSlash(
       out.write(
         "terminal  /shell <command>  native A008 runner in cwd\n" +
           "          /! <command>      alias\n" +
-          "Model-invoked tool_calls are not on ChatTransport (ADR 0003).\n" +
-          "@langchain/community is not a dependency (zod 4 vs Stagehand zod 3).\n",
+          "exec_command  model-invoked shell; requires approval for each action (ADR 0028).\n",
       );
       return "continue";
     case "shell": {
@@ -289,6 +289,11 @@ async function runChat(
 
   deps.stdout.write(`Model: ${profile.name} (${profile.id})\n`);
   deps.stdout.write("Type /help for commands, /shell for a local terminal, /exit to quit.\n");
+  const modelTools = new ModelToolSession({ cwd: deps.cwd, env: deps.env });
+  let activeController: AbortController | undefined;
+  const interrupt = () => { if (activeController) activeController.abort(); else terminal.close(); };
+  terminal.on("SIGINT", interrupt);
+  process.on("SIGINT", interrupt);
 
   try {
     while (true) {
@@ -316,7 +321,18 @@ async function runChat(
       deps.stdout.write("assistant> ");
 
       try {
+        const controller = new AbortController();
+        activeController = controller;
         const result = await ctx.session.turn(command, {
+          signal: controller.signal,
+          prepareTools: (signal, budgets) => modelTools.prepare(budgets, {
+          approve: async (activity, approvalSignal) => {
+            deps.stdout.write(`\nTool: ${activity.name}\ncwd: ${activity.cwd}\n${activity.input}\n`);
+            try { return (await terminal.question("Allow this action once? [y/N] ", { signal: approvalSignal })).trim().toLowerCase() === "y"; }
+            catch { return false; }
+          },
+          update: async activity => { if (activity.status !== "pending") deps.stderr.write(`tool> ${activity.name}: ${activity.status}${activity.output ? `\n${activity.output}` : ""}\n`); },
+        }, signal),
           onDelta: (delta) => {
             if (delta.type === "reasoning") {
               if (!reasoningStarted) {
@@ -344,10 +360,14 @@ async function runChat(
       } catch (error) {
         deps.stdout.write("\n");
         writeError(deps.stderr, error);
+      } finally {
+        activeController = undefined;
       }
     }
   } finally {
+    process.off("SIGINT", interrupt);
     terminal.close();
+    await modelTools.close();
     runtime.close();
   }
 

@@ -38,10 +38,15 @@ export class RuntimePreferencesStore {
       try {
         raw = readFileSync(this.path, "utf8");
         const stored = JSON.parse(raw) as { version?: unknown; settings?: unknown };
-        if (stored.version !== 1) throw new Error("version");
-        settings = parseRuntimePreferences(stored.settings);
+        if (stored.version !== 1 && stored.version !== 2) throw new Error("version");
+        if (stored.version === 1) {
+          const legacy = stored.settings as RuntimePreferences;
+          const added = ["maximumToolCalls", "maximumToolDefinitions", "toolOutputBytes", "toolTimeoutMs"] as const;
+          if (!legacy?.budgets || Object.keys(legacy.budgets).length !== RUNTIME_BUDGET_FIELDS.length - added.length || added.some(k => k in legacy.budgets)) throw new Error("legacy budgets");
+          settings = parseRuntimePreferences({ ...legacy, budgets: { ...Object.fromEntries(added.map(k => [k, DEFAULT_RUNTIME_BUDGETS[k]])), ...legacy.budgets } });
+        } else settings = parseRuntimePreferences(stored.settings);
       } catch {
-        throw new ChatError("configuration", "Cannot read A008 global settings. Expected a valid version 1 settings file at A008_SETTINGS_PATH.");
+        throw new ChatError("configuration", "Cannot read A008 global settings. Expected a valid version 1 or 2 settings file at A008_SETTINGS_PATH.");
       }
     }
     return { revision: digest(raw), settings: parseRuntimePreferences(settings),
@@ -64,7 +69,7 @@ export class RuntimePreferencesStore {
       if (this.path === null) this.#volatile = settings;
       else {
         temporary = `${this.path}.${randomUUID()}.tmp`;
-        writeFileSync(temporary, JSON.stringify({ version: 1, settings }, null, 2) + "\n", { encoding: "utf8", flag: "wx", mode: 0o600 });
+        writeFileSync(temporary, JSON.stringify({ version: 2, settings }, null, 2) + "\n", { encoding: "utf8", flag: "wx", mode: 0o600 });
         renameSync(temporary, this.path);
         temporary = undefined;
       }

@@ -5,9 +5,12 @@ import type {
   ChatGenerationOptions,
   ChatMessage,
   ChatTransport,
+  ChatTools,
+  ChatWireMessage,
 } from "./types.js";
 import {
   composeChatInvocation,
+  validateBudget,
   type ChatInvocationPlan,
 } from "./chat-invocation.js";
 
@@ -19,6 +22,9 @@ export interface ChatSessionOptions {
 }
 
 export interface SendMessageOptions extends ChatCallbacks {
+  /** Runtime compositions resolve this inside their per-turn settings snapshot. */
+  readonly prepareTools?: (signal: AbortSignal, budgets: import("./runtime-preferences.js").RuntimeBudgets) => Promise<ChatTools>;
+  readonly tools?: ChatTools;
   readonly generation?: ChatGenerationOptions;
   readonly signal?: AbortSignal;
   readonly invocation?: ChatInvocationPlan;
@@ -85,16 +91,62 @@ export class ChatSession {
       ...options.generation,
     };
 
-    const completion = await this.#transport.complete(
+    let completion: ChatCompletion;
+    const wire: ChatWireMessage[] = [...invocation.messages];
+    const tools = options.tools;
+    if (tools && (!Number.isSafeInteger(tools.maximumCalls) || tools.maximumCalls < 1)) {
+      throw new ChatError("configuration", "Tool call budget must be a positive integer.");
+    }
+    let calls = 0;
+    const usedIds = new Set<string>();
+    for (;;) {
+      options.signal?.throwIfAborted();
+      if (tools) validateBudget(options.invocation?.budget, JSON.stringify({ messages: wire, tools: tools.definitions }));
+      // Stream activity immediately, while committing only the final completion.
+      let contentStreamed = false, reasoningStreamed = false;
+      completion = await this.#transport.complete(
       {
         model: this.#model,
-        messages: invocation.messages,
+        messages: wire,
+        ...(tools ? { tools: tools.definitions } : {}),
         options: generation,
         ...(options.signal === undefined ? {} : { signal: options.signal }),
       },
-      options.onDelta === undefined ? undefined : { onDelta: options.onDelta },
+      options.onDelta === undefined ? undefined : { onDelta: delta => {
+        if (delta.type === "content") contentStreamed = true; else reasoningStreamed = true;
+        options.onDelta?.(delta);
+      } },
     );
-
+      options.signal?.throwIfAborted();
+      if (completion.message.role !== "assistant") throw new ChatError("invalid_response", "Transport returned a non-assistant completion.");
+      if (tools) {
+        if (!reasoningStreamed && completion.reasoning) options.onDelta?.({ type: "reasoning", text: completion.reasoning });
+        if (!contentStreamed && completion.message.content) options.onDelta?.({ type: "content", text: completion.message.content });
+      }
+      if (!completion.toolCalls?.length) {
+        break;
+      }
+      if (completion.finishReason === "length") throw new ChatError("invalid_response", "Truncated provider tool call; nothing executed.");
+      if (!tools) throw new ChatError("invalid_response", "Provider requested tools that were not offered.");
+      if (calls + completion.toolCalls.length > tools.maximumCalls) {
+        throw new ChatError("configuration", `Tool call budget exceeded (${tools.maximumCalls}). Change it under Global budgets.`);
+      }
+      for (const call of completion.toolCalls) {
+        if (usedIds.has(call.id) || !tools.definitions.some(def => def.name === call.name)) {
+          throw new ChatError("invalid_response", "Provider returned a duplicate or unavailable tool call.");
+        }
+        usedIds.add(call.id);
+      }
+      wire.push({ role: "assistant", content: completion.message.content, toolCalls: completion.toolCalls,
+        ...(completion.reasoning ? { reasoning: completion.reasoning } : {}) });
+      for (const call of completion.toolCalls) {
+        options.signal?.throwIfAborted();
+        const result = await tools.execute(call, options.signal);
+        options.signal?.throwIfAborted();
+        wire.push({ role: "tool", toolCallId: call.id, content: result });
+        calls += 1;
+      }
+    }
     if (completion.message.role !== "assistant") {
       throw new ChatError(
         "invalid_response",

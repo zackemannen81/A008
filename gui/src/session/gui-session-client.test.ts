@@ -455,7 +455,9 @@ test("session implementation source does not embed provider credentials", () => 
       false,
       `${name} must not contain provider credential names`,
     );
-    assert.equal(source.includes("authorization"), false, name);
+    // The engine capability is local/session-scoped. Provider credentials
+    // remain forbidden in every module, including engine-access.
+    if (name !== "engine-access.ts") assert.equal(source.includes("authorization"), false, name);
   }
   assert.ok(scanned >= 3);
 });
@@ -569,4 +571,24 @@ test("model changes synchronize the client and exit closes the socket and active
 
 test("malformed snapshots cannot introduce a system message into GUI history", () => {
   assert.throws(() => parseServerMessage({ type: "session/control/ok", requestId: "r", sessionId: "s", state: { ...controlledState, messages: [{ role: "system", content: "private" }] } }), /invalid session snapshot/);
+});
+
+test("borrowed panel observes native work, rejects foreign permissions and detaches without closing its session", async () => {
+  const client = createClient(); const socket = await becomeReady(client);
+  socket.deliver({ type: "session/activity", sessionId: "sess-1", active: true, text: "Native question", state: controlledState });
+  assert.equal(client.busy, true); assert.equal(client.pendingText, "Native question");
+  socket.deliver({ type: "tool/permission", sessionId: "foreign", id: "bad", title: "Bad", text: "" });
+  assert.equal(client.getSnapshot().permission, undefined);
+  socket.deliver({ type: "tool/permission", sessionId: "sess-1", id: "once", title: "exec_command", text: "fixture" });
+  assert.ok(client.resolveToolPermission);
+  client.resolveToolPermission(false);
+  assert.equal(parsedFrames(socket).at(-1)?.allow, false);
+  assert.equal(client.getSnapshot().permission, undefined);
+  socket.deliver({ type: "session/activity", sessionId: "sess-1", active: false, state: controlledState });
+  assert.equal(client.busy, false);
+  const before = socket.sent.length;
+  client.dispose();
+  assert.equal(socket.sent.length, before); assert.equal(socket.readyState, 3);
+  socket.deliver({ type: "session/activity", sessionId: "sess-1", active: true });
+  assert.equal(client.busy, false);
 });

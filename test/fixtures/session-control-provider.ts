@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { once } from "node:events";
 
 /** Loopback-only provider for session-control proof; payloads are synthetic. */
-export async function startSessionControlProvider() {
+export async function startSessionControlProvider(chatReply?: (payload: Record<string, any>) => Record<string, unknown> | undefined) {
   const requests: Record<string, any>[] = [];
   const server = createServer(async (request, response) => {
     let text = "";
@@ -49,7 +49,7 @@ export async function startSessionControlProvider() {
       );
       return; // Disconnected by cancellation; no timer or provider spend.
     }
-    const message = {
+    const message = chatReply?.(payload) ?? {
       role: "assistant",
       content: `Fixture answer ${requests.filter((p) => !String(p.messages?.at(-1)?.content).includes('"operation"')).length}.`,
       reasoning_content: "Display-only fixture thought.",
@@ -68,7 +68,8 @@ export async function startSessionControlProvider() {
         `data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: message.reasoning_content } }] })}\n\n`,
       );
       response.write(
-        `data: ${JSON.stringify({ choices: [{ delta: { content: message.content }, finish_reason: "stop" }] })}\n\n`,
+        `data: ${JSON.stringify({ choices: [{ delta: { content: message.content,
+          ...(Array.isArray(message.tool_calls) ? { tool_calls: message.tool_calls.map((call, index) => ({ ...call, index })) } : {}) }, finish_reason: message.tool_calls ? "tool_calls" : "stop" }] })}\n\n`,
       );
       response.end("data: [DONE]\n\n");
     }

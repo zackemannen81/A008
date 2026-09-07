@@ -12,8 +12,8 @@ export class WireClient {
       else this.#queue.push(frame);
     });
   }
-  static async open(port: number) {
-    const socket = new WebSocket(`ws://127.0.0.1:${port}/v1/session`);
+  static async open(port: number, access?: string) {
+    const socket = new WebSocket(`ws://127.0.0.1:${port}/v1/session${access ? `?access=${access}` : ""}`);
     const client = new WireClient(socket);
     await new Promise<void>((resolve, reject) => {
       socket.addEventListener("open", () => resolve(), { once: true });
@@ -49,4 +49,3 @@ export class WireClient {
     }
   }
 }
-

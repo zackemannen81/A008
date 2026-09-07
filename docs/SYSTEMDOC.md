@@ -48,6 +48,25 @@ result, and updates this document.
 
 ## Application runtime
 
+`A008-engine` owns one shared runtime per canonical project directory inside its
+process. Native ACP chat and authenticated web panels borrow the same session.
+Disconnecting a panel preserves that session. Explicit close and engine EOF cancel
+active turns, settle approval requests, close MCP children, panels and SQLite.
+The engine package includes compiled CLI/ACP/GUI, a matching Node executable,
+production dependencies and notices. Data lives outside the installation. Full
+lifecycle, attachment and protocol details are in [ENGINE.md](ENGINE.md).
+
+Model tools enter through typed definitions and structured JSON/SSE calls. Native
+`exec_command` and client-approved stdio MCP tools require per-action approval.
+Validation precedes approval/execution; denial, cancellation, timeout, unknown
+tools, malformed schemas or exhausted budgets never become successful operations.
+Observations re-enter an ephemeral provider transcript. Only the original user
+message and final answer reach committed history and post-output intake.
+
+[Runtime settings](RUNTIME_SETTINGS.md) configure global instructions and local
+budgets. Each turn captures one snapshot; model generation settings remain scoped
+to its session. Saving settings neither calls a model nor mutates knowledge.
+
 ```text
 CLI / A008-acp -> createLocalMemoryRuntime
   |- NVIDIA credential + one ChatTransport
@@ -138,10 +157,11 @@ paths (`C:/code/...`); backslashes were consumed as shell escapes. The standard
 42-second readiness. Starting its exact locked Agent Server and Vite commands
 separately is the documented development fallback, not an A008 product runtime.
 
-The ACP process supports no tools, filesystem operations, permission prompts,
-MCP, rich prompt media, load/resume, authentication method, or runtime model
-switching. Local SQLite memory is now composed per process with one session
-conversation. Canonical ACP session identity is still ephemeral and is not
+ACP supports model switching, structured native tools, approved stdio MCP and
+per-action permission requests. Rich prompt media, load/resume and an ACP
+authentication method remain outside the current implementation. Local SQLite
+memory is composed per process/project with separate session conversations.
+Canonical ACP session identity is still ephemeral and is not
 bound to Agent Server's conversation identity because the current new-session
 request does not provide that external handle.
 

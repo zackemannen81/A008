@@ -5,6 +5,33 @@ export interface ChatMessage {
   readonly content: string;
 }
 
+export interface ChatToolDefinition {
+  readonly name: string;
+  readonly description: string;
+  readonly parameters: Record<string, unknown>;
+}
+export interface ChatToolCall {
+  readonly id: string;
+  readonly name: string;
+  readonly arguments: string;
+}
+/** Tool observations are invocation data, never committed conversation history. */
+export type ChatWireMessage = ChatMessage | {
+  readonly role: "assistant";
+  readonly content: string;
+  readonly toolCalls: readonly ChatToolCall[];
+  readonly reasoning?: string;
+} | {
+  readonly role: "tool";
+  readonly toolCallId: string;
+  readonly content: string;
+};
+export interface ChatTools {
+  readonly definitions: readonly ChatToolDefinition[];
+  readonly maximumCalls: number;
+  execute(call: ChatToolCall, signal?: AbortSignal): Promise<string>;
+}
+
 export interface ChatGenerationOptions {
   readonly temperature?: number | null;
   readonly topP?: number | null;
@@ -19,7 +46,8 @@ export interface ChatGenerationOptions {
 
 export interface ChatRequest {
   readonly model: string;
-  readonly messages: readonly ChatMessage[];
+  readonly messages: readonly ChatWireMessage[];
+  readonly tools?: readonly ChatToolDefinition[];
   readonly options?: ChatGenerationOptions;
   readonly signal?: AbortSignal;
 }
@@ -42,6 +70,7 @@ export interface ChatCompletion {
   readonly reasoning?: string;
   readonly finishReason?: string | null;
   readonly usage?: ChatUsage;
+  readonly toolCalls?: readonly ChatToolCall[];
 }
 
 export interface ChatCallbacks {

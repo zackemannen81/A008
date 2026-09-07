@@ -4,6 +4,7 @@ export const DEFAULT_GUI_HOST_PORT = 8787;
 export const DEFAULT_GUI_HOST_BIND = "127.0.0.1";
 
 export type GuiHostClientMessage =
+  | { readonly type: "tool/permission"; readonly requestId: string; readonly sessionId: string; readonly permissionId: string; readonly allow: boolean }
   | { readonly type: "session/control"; readonly requestId: string; readonly sessionId: string; readonly control: SessionControl }
   | {
       readonly type: "session/new";
@@ -23,6 +24,9 @@ export type GuiHostClientMessage =
     };
 
 export type GuiHostServerMessage =
+  | { readonly type: "tool/permission"; readonly sessionId: string; readonly id: string; readonly title: string; readonly text: string }
+  | { readonly type: "tool"; readonly sessionId: string; readonly id: string; readonly title: string; readonly status: string; readonly text: string }
+  | { readonly type: "session/activity"; readonly sessionId: string; readonly active: boolean; readonly text?: string; readonly state?: SessionSnapshot }
   | { readonly type: "session/control/ok"; readonly requestId: string; readonly sessionId: string; readonly state: SessionSnapshot }
   | {
       readonly type: "session/new/ok";
@@ -84,6 +88,10 @@ export function parseClientMessage(
       ? parsed.sessionId
       : undefined;
   const type = parsed.type;
+  if (type === "tool/permission") {
+    if (!requestId || !sessionId || typeof parsed.permissionId !== "string" || typeof parsed.allow !== "boolean") return { error: "Invalid tool permission response." };
+    return { type, requestId, sessionId, permissionId: parsed.permissionId, allow: parsed.allow };
+  }
   if (type === "session/control") {
     if (requestId === undefined || sessionId === undefined) return { error: "session/control requires requestId and sessionId." };
     try { return { type, requestId, sessionId, control: parseSessionControl(parsed.control) }; }

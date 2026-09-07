@@ -27,7 +27,7 @@ export type ComposerSubmitResult =
   | { readonly kind: "error"; readonly message: string };
 
 export const GUI_TOOLS =
-  "terminal  /shell <command>  native A008 runner\n          /! <command>      alias\nUpload stores sources; Memory inspects the shared store.\nTerminal commands are always user-initiated.";
+  "terminal  /shell <command>  native A008 runner\n          /! <command>      alias\nexec_command  model-invoked shell; approve each action in the client.\nApproved MCP tools are supplied by the client.\nUpload stores sources; Memory inspects the shared store.";
 
 export async function controlSession(
   session: GuiSession,

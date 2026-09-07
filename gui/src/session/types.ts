@@ -4,6 +4,8 @@ export const DEFAULT_GUI_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b";
 export type GuiSessionStatus = "idle" | "connecting" | "ready" | "error";
 
 export interface GuiSessionState {
+  readonly permission?: { id: string; title: string; text: string } | undefined;
+  readonly tools?: readonly { id: string; title: string; status: string; text: string }[];
   /** Absent only for a pre-ADR-0026 host. */
   readonly details?: SessionSnapshot;
   readonly busy?: boolean;
@@ -17,6 +19,7 @@ export interface GuiSessionState {
 }
 
 export interface GuiSession extends GuiSessionState {
+  resolveToolPermission?(allow: boolean): void;
   controlSession?(control: SessionControl): Promise<SessionSnapshot>;
   endSession?(): Promise<void>;
   connect(): Promise<void>;

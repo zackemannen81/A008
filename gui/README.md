@@ -1,5 +1,12 @@
 # A008 GUI
 
+The engine package also serves these existing views inside the external client's
+A008 panel. Its URL carries an ephemeral session capability and connects to the
+same chat automatically. Closing the panel detaches it; End session closes the
+shared conversation. Model tool requests appear as activity, with execution
+approval in the surrounding client (or an A008 dialog when running standalone).
+See [engine integration](../docs/ENGINE.md) and [global settings](../docs/RUNTIME_SETTINGS.md).
+
 A008-owned diagnostic GUI (ADR 0022). Not OpenHands Agent Canvas.
 
 Dev: start `gui-host` on port 8787, then `npm run dev` in this directory.

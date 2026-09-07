@@ -33,7 +33,11 @@ require explicit session/client approval; cancellation denies pending approvals.
 Shared MCP server descriptors come from the existing native client policy.
 A008 does not infer execution authority from the optional coding prompt.
 
-Generated reasoning stays display-only. Tool observations are untrusted context,
+Generated reasoning is excluded from committed history and memory. Within one
+tool turn, provider-returned reasoning accompanying a structured assistant call
+may be replayed only in that ephemeral tool transcript for provider compatibility.
+This narrowly amends the earlier no-replay rule; it does not make reasoning durable.
+Tool observations are untrusted context,
 not system instructions; post-output knowledge receives the original question
 and final answer under the existing memory boundary.
 
@@ -44,4 +48,3 @@ be verified. Existing standalone CLI/GUI paths remain available over the shared
 core. The engine bundle contains runtime code, UI assets, discovery metadata,
 dependency/license material and launch instructions, not user memory, settings,
 credentials or optional prompt text.
-

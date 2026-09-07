@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createHash } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import {
   createServer,
@@ -64,6 +64,8 @@ const MIME_TYPES: Readonly<Record<string, string>> = {
 };
 
 export interface GuiHostOptions {
+  /** Engine-only bearer capability; standalone host remains unchanged. */
+  readonly accessToken?: string;
   readonly host?: string;
   readonly port?: number;
   readonly env?: NodeJS.ProcessEnv;
@@ -183,7 +185,18 @@ export async function startGuiHost(
     response.end(text);
   };
 
+  const authorized = (request: IncomingMessage): boolean => {
+    if (options.accessToken === undefined) return true;
+    const token = request.headers.authorization?.replace(/^Bearer /, "") ?? new URL(request.url ?? "/", "http://127.0.0.1").searchParams.get("access") ?? "";
+    const expected = Buffer.from(options.accessToken);
+    const actual = Buffer.from(token);
+    return expected.length === actual.length && timingSafeEqual(expected, actual);
+  };
   const server = createServer((request, response) => {
+    if (requestPath(request).startsWith("/v1/") && !authorized(request)) {
+      sendJson(response, 401, { error: "Engine panel authorization required.", message: "Engine panel authorization required." });
+      return;
+    }
     void handleHttp({
       request,
       response,
@@ -207,11 +220,12 @@ export async function startGuiHost(
       socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
       return;
     }
-    if (!requestOriginAllowed(request)) {
+    if (!requestOriginAllowed(request) || !authorized(request)) {
       socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
       return;
     }
     const ownedSessions = new Set<string>();
+    const observers = new Map<string, () => void>();
     const activePrompts = new Map<string, AbortController>();
     const lifetime = { closed: false };
     const session: { ws: GuiWebSocket | undefined } = { ws: undefined };
@@ -225,6 +239,7 @@ export async function startGuiHost(
         ws: current,
         getBridge,
         ownedSessions,
+        observers,
         activePrompts,
         lifetime,
         secrets,
@@ -238,6 +253,8 @@ export async function startGuiHost(
     void ws.closed.then(async () => {
       lifetime.closed = true;
       sockets.delete(ws);
+      for (const unsubscribe of observers.values()) unsubscribe();
+      observers.clear();
       for (const controller of activePrompts.values()) {
         controller.abort();
       }
@@ -550,6 +567,7 @@ async function handleSocketMessage(input: {
   readonly ws: GuiWebSocket;
   readonly getBridge: () => Promise<AcpBridge>;
   readonly ownedSessions: Set<string>;
+  readonly observers: Map<string, () => void>;
   readonly activePrompts: Map<string, AbortController>;
   readonly lifetime: { closed: boolean };
   readonly secrets: readonly string[];
@@ -581,6 +599,10 @@ async function handleSocketMessage(input: {
         },
         input.secrets,
       );
+      if (bridge.subscribeSession) {
+        input.observers.get(created.sessionId)?.();
+        input.observers.set(created.sessionId, bridge.subscribeSession(created.sessionId, message => sendSocket(input.ws, message, input.secrets)));
+      }
       return;
     }
     if (parsed.type === "cancel") {
@@ -611,6 +633,12 @@ async function handleSocketMessage(input: {
         }),
         input.secrets,
       );
+      return;
+    }
+    if (parsed.type === "tool/permission") {
+      const bridge = await input.getBridge();
+      if (!bridge.resolveToolPermission) throw new Error("Approve this action in the native client.");
+      bridge.resolveToolPermission(parsed.sessionId, parsed.permissionId, parsed.allow);
       return;
     }
     if (parsed.type === "session/control" && parsed.control.action === "close") {
@@ -648,6 +676,8 @@ async function handleSocketMessage(input: {
         parsed.sessionId,
         parsed.text,
         {
+          onTool(message) { sendSocket(input.ws, message, input.secrets); },
+          onPermission(message) { sendSocket(input.ws, message, input.secrets); },
           onThought(text) {
             if (controller.signal.aborted || !input.ownedSessions.has(parsed.sessionId)) return;
             sendSocket(

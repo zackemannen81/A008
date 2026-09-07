@@ -333,7 +333,7 @@ function ParameterForm(props: {
         </p>
       ) : null}
       <p className="a008-parameter-footnote">
-        Settings belong to this session. A model change or new connection loads
+        Settings belong to this session. A model change or new session loads
         runtime defaults.
       </p>
     </form>

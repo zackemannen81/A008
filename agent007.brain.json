@@ -1,14 +1,14 @@
 {
   "schemaVersion": 2,
   "id": "a008",
-  "name": "008",
-  "description": "Provider-neutral local brain and durable memory runtime",
+  "name": "A008 Engine",
+  "description": "A008 chat, model tools, durable memory, settings and bundled panels",
   "transports": [
     {
       "kind": "ACP",
       "priority": 100,
       "launch": {
-        "entry": "dist/src/acp/server.js",
+        "entry": "dist/src/engine/server.js",
         "args": []
       }
     }

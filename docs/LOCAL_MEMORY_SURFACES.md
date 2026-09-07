@@ -5,6 +5,18 @@ read/chat/post-output loop.
 
 ## Boundary
 
+Engine mode reuses this composition once per canonical workspace within its
+process, selected by the real ACP `cwd`. Native client chat and A008 panels share
+the same store and session. See [ENGINE.md](ENGINE.md) for project paths and
+explicit legacy attachment. Stop other owners before attaching an existing store;
+cross-process exclusive ownership is not implemented.
+
+Global budgets and instructions are separate from project memory; see
+[RUNTIME_SETTINGS.md](RUNTIME_SETTINGS.md). Retrieval scope is an enabled semantic
+operation, with actual invocation coverage. Provider errors/cancellation do not
+silently manufacture successful scope results. Instructions enter chat only;
+tool transcripts and reasoning stay outside post-output extraction.
+
 ```text
 CLI / A008-acp
   -> createLocalMemoryRuntime

@@ -9,15 +9,21 @@ export const CLIENT_MESSAGE_KEYS = [
   "text",
   "model",
   "control",
+  "permissionId",
+  "allow",
 ] as const;
 
 export type ClientMessage =
+  | { type: "tool/permission"; requestId: string; sessionId: string; permissionId: string; allow: boolean }
   | { type: "session/control"; requestId: string; sessionId: string; control: SessionControl }
   | { type: "session/new"; requestId: string; model?: string }
   | { type: "prompt"; requestId: string; sessionId: string; text: string }
   | { type: "cancel"; requestId: string; sessionId: string };
 
 export type ServerMessage =
+  | { type: "tool/permission"; sessionId: string; id: string; title: string; text: string }
+  | { type: "tool"; sessionId: string; id: string; title: string; status: string; text: string }
+  | { type: "session/activity"; sessionId: string; active: boolean; text?: string; state?: SessionSnapshot }
   | { type: "session/control/ok"; requestId: string; sessionId: string; state: SessionSnapshot }
   | { type: "session/new/ok"; requestId: string; sessionId: string; state?: SessionSnapshot }
   | { type: "thought"; sessionId: string; text: string }
@@ -42,6 +48,7 @@ export function resolveGuiSessionUrl(
 
 export function encodeClientMessage(message: ClientMessage): string {
   switch (message.type) {
+    case "tool/permission": return JSON.stringify(message);
     case "session/control":
       return JSON.stringify({ type: message.type, requestId: message.requestId, sessionId: message.sessionId, control: message.control });
     case "session/new": {
@@ -76,6 +83,19 @@ export function parseServerMessage(value: unknown): ServerMessage | undefined {
   }
 
   switch (value.type) {
+    case "tool/permission": {
+      for (const key of ["sessionId", "id", "title", "text"]) if (typeof value[key] !== "string") throw new GuiHostProtocolError("Invalid tool permission.");
+      return { type: "tool/permission", sessionId: value.sessionId as string, id: value.id as string, title: value.title as string, text: value.text as string };
+    }
+    case "tool": {
+      for (const key of ["sessionId", "id", "title", "status", "text"]) if (typeof value[key] !== "string") throw new GuiHostProtocolError("Invalid tool activity.");
+      return { type: "tool", sessionId: value.sessionId as string, id: value.id as string, title: value.title as string, status: value.status as string, text: value.text as string };
+    }
+    case "session/activity": {
+      const sessionId = requiredString(value, "sessionId");
+      if (!sessionId || typeof value.active !== "boolean" || value.text !== undefined && typeof value.text !== "string") throw new GuiHostProtocolError("Invalid session activity.");
+      return { type: value.type, sessionId, active: value.active, ...(value.text === undefined ? {} : { text: value.text }), ...(value.state === undefined ? {} : { state: parseSessionSnapshot(value.state) }) };
+    }
     case "session/control/ok": {
       const requestId = requiredString(value, "requestId");
       const sessionId = requiredString(value, "sessionId");

@@ -1,3 +1,4 @@
+import { engineHeaders } from "./engine-access.js";
 /** Renderer-owned wire contract, ADR 0026. No runtime/provider imports. */
 import { isRuntimePreferencesSnapshot, type RuntimePreferences, type RuntimePreferencesSnapshot } from "../settings/runtime-preferences.js";
 export interface SessionParameters {
@@ -86,7 +87,7 @@ export function parseSessionSnapshot(v: unknown): SessionSnapshot {
 export async function loadModels(
   signal?: AbortSignal,
 ): Promise<readonly GuiModel[]> {
-  const response = await fetch("/v1/models", { cache: "no-store", signal });
+  const response = await fetch("/v1/models", { cache: "no-store", signal, headers: engineHeaders() });
   if (!response.ok) throw new Error(`Cannot load models (${response.status}).`);
   const body: unknown = await response.json();
   if (

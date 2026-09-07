@@ -1,3 +1,4 @@
+import { engineHeaders } from "../session/engine-access.js";
 /** Host protocol v1 shell endpoint (ADR 0019 D4). */
 export const SHELL_ENDPOINT = "/v1/shell";
 
@@ -46,6 +47,7 @@ export async function executeShellCommand(
       method: "POST",
       credentials: "omit",
       headers: {
+        ...engineHeaders(),
         accept: "application/json",
         "content-type": "application/json",
       },

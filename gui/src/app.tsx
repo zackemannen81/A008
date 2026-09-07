@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { ToolPermissionDialog } from "./session/tool-permission-dialog.js";
 import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
 import { ChatPane } from "./chat/chat-pane.js";
@@ -39,6 +40,7 @@ export function App() {
       className={`a008-app${page === "memory" ? " a008-memory-workspace" : page === "tools" ? " a008-tools-workspace" : ""}`}
     >
       <header className="a008-header">
+        <ToolPermissionDialog session={session} />
         <BrandMark />
         <nav className="a008-header-tabs" aria-label="Workspace">
           <button
@@ -85,6 +87,9 @@ export function App() {
 
       <main className="a008-main" hidden={page !== "chat"}>
         <ChatPane session={session} />
+        {!!session.tools?.length && <section className="a008-tool-activity" aria-label="Tool activity">
+          {session.tools.map(tool => <details key={tool.id}><summary>{tool.title} · {tool.status}{tool.status === "pending" ? " — approve in client" : ""}</summary><pre>{tool.text}</pre></details>)}
+        </section>}
         <Composer session={session} />
       </main>
 
