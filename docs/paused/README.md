@@ -8,4 +8,5 @@ charter, completed work, missing verification, next action, and resume condition
 
 ## Tasks
 
-None.
+No tasks currently paused. A008-0066 resumed and completed its remaining closure;
+see [its archive](../finished/A008-0066_runtime-preferences.md).

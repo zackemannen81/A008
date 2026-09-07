@@ -599,6 +599,7 @@ export class LocalMemorySession {
     const taskId = this.#identityFactory.create("task");
     try {
       return await this.#runtime.preferences.run(() => withTraceId(traceId, async () => {
+        const tools = options.prepareTools ? await options.prepareTools(options.signal ?? new AbortController().signal, this.#runtime.preferences.current.budgets) : options.tools;
         const turn = this.#runtime.createTurn(this.#chat, this.conversationId);
         this.#runtime.tracer.emit({
           traceId,
@@ -619,6 +620,7 @@ export class LocalMemorySession {
                 : { generation: options.generation }),
               ...(options.signal === undefined ? {} : { signal: options.signal }),
               ...(options.onDelta === undefined ? {} : { onDelta: options.onDelta }),
+              ...(tools === undefined ? {} : { tools }),
             },
           );
           await this.#runtime.tracer.flush();

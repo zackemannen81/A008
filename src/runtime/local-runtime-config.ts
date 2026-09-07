@@ -161,7 +161,7 @@ export function findRepositoryRoot(startDirectory: string): string {
   while (true) {
     if (
       existsSync(join(current, "package.json")) &&
-      existsSync(join(current, "AGENTS.md"))
+      (existsSync(join(current, "AGENTS.md")) || existsSync(join(current, "agent007.brain.json")))
     ) {
       return current;
     }

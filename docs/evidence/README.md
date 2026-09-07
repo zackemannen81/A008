@@ -9,6 +9,11 @@ credentials, and private source material do not belong in this collection.
 
 ## Records
 
+- [A008-0067_engine-package.md](A008-0067_engine-package.md) — portable engine,
+  real client host, approved tools and existing panels with synthetic provider.
+- [A008-0066_runtime-preferences.md](A008-0066_runtime-preferences.md) —
+  owner-merged preferences, completed runtime/browser/documentation closure.
+
 - [A008-0065_session-controls-proof.md](A008-0065_session-controls-proof.md),
   with [desktop parameters](A008-0065_parameters-desktop.png),
   [mobile parameters](A008-0065_parameters-mobile.png) and

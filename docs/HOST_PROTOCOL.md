@@ -15,6 +15,25 @@ document has a bug.
 
 ## What the host is
 
+Engine mode (ADR 0028) serves this same GUI/API from a session-bound loopback
+listener and an in-process ACP bridge. It borrows the external client's existing
+session instead of spawning a second one. [ENGINE.md](ENGINE.md) defines discovery,
+authentication, close metadata and project selection. Standalone mode below still
+spawns ACP. Panel URLs contain an ephemeral fragment capability; `/v1/*` and the
+WebSocket require it. Static assets and health contain no session data.
+
+Additive frames: `session/activity` carries `sessionId`, `active`, optional `text`
+and `state`; `tool` carries `sessionId`, `id`, `title`, `status`, `text`.
+Standalone GUI permissions arrive as `tool/permission` with `sessionId`, `id`,
+`title`, `text`. The client responds with `type: "tool/permission"`, `requestId`,
+`sessionId`, `permissionId`, `allow` (boolean). Pending IDs are single use and
+session-owned. In engine mode the surrounding native client owns the standard ACP
+permission dialog; the frame cannot grant it through the panel bridge.
+
+Session controls additionally support `configureRuntime` with `settings` and the
+last observed `revision`; snapshots include `runtimePreferences`. The complete
+contract and persistence boundary are in [RUNTIME_SETTINGS.md](RUNTIME_SETTINGS.md).
+
 `src/gui-host/` is a Node process. It serves static files, exposes five HTTP
 routes and one WebSocket, and bridges that WebSocket to an `A008-acp` stdio
 subprocess it owns.

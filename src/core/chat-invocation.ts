@@ -47,7 +47,7 @@ function historyLimit(value: number | undefined): number | undefined {
   return value;
 }
 
-function validateBudget(
+export function validateBudget(
   budget: ChatInvocationBudget | undefined,
   serialized: string,
 ): { readonly measuredUnits: number | null; readonly measurementUnit: string | null } {

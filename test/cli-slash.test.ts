@@ -92,7 +92,8 @@ test("interactive slash commands do not call the transport", async () => {
     const text = stdout.text();
     assert.match(text, /\/shell/u);
     assert.match(text, /cwd: C:\\code\\A008/u);
-    assert.match(text, /tools: terminal via \/shell/u);
+    assert.match(text, /tools: exec_command/u);
+    assert.match(text, /\/shell \(user-initiated\)/u);
     assert.match(text, /native A008 runner/u);
     assert.match(text, /No conversation turns/u);
     assert.match(text, /Nothing to undo/u);

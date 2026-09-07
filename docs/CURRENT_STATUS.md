@@ -1,9 +1,21 @@
 # Current Status
 
-Reality as of 2026-09-06. This document records observed state; intended design
+Reality as of 2026-09-07. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
+
+A008-0067 adds the portable engine and generic companion-client panel/permission
+integration. A real extracted package runs through the client's actual process
+host, shares its session with the panel, executes approved isolated commands,
+returns tool observations to a synthetic provider, uploads sources, and shuts
+down cleanly. Desktop/narrow-browser panel proof exists; this is not installed
+Electron product or live-provider proof. See [engine runbook](ENGINE.md) and
+[verification](evidence/A008-0067_engine-package.md).
+
+A008-0066's owner-merged preferences are now documented in
+[runtime settings](RUNTIME_SETTINGS.md). Version 1 settings retain their values;
+an explicit save upgrades to version 2 with four editable tool limits.
 
 | Surface | Observed state |
 | --- | --- |
@@ -16,7 +28,7 @@ belongs in `docs/PROJECT_BRIEF.md`.
 | Multi-agent add-on | Local ignored Apache-2.0 reference package exists. Its process server was not installed or configured for A008. |
 | Worker-clone root | `C:\code\A008-workers` is the configured sibling root. A008-0004 through A008-0015 use isolated Git worktrees; A008-0005 runtime state/evidence helpers are external siblings. No cleanup of those task paths is authorized or claimed. |
 | Runtime package | Private single-package Node.js/TypeScript ESM application. Node.js `>=22.12`, npm lockfile, TypeScript build/typecheck, public core exports, and CLI binary metadata exist. |
-| Chat core | Provider-neutral messages, generation options, separate reasoning/content stream deltas, completions, usage, typed errors, model profiles, transport port, and transactional in-memory `ChatSession` are implemented. Failed turns do not mutate history; reasoning is returned/displayed but never committed or replayed. |
+| Chat core | Provider-neutral messages, typed tool definitions/calls/results, generation options, separate reasoning/content deltas, usage, model profiles and transactional `ChatSession`. Failed turns do not mutate history. Reasoning is never committed; only a current tool invocation may replay its associated reasoning ephemerally (ADR 0028). |
 | NVIDIA adapter | Native-fetch adapter for `POST /v1/chat/completions`, injected endpoint/fetch/timeout, streaming SSE and non-streaming JSON, reasoning/content deltas, live channel-leak normalization, cancellation, timeout, and typed HTTP/network errors. It reads no environment itself. |
 | Model registry | Six profiles, all verified against the vendor's Build-tab API sample on 2026-09-04: `nvidia/nemotron-3.5-lightning-30b-a3b` (default, text), `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning` (text, image, video, audio), `moonshotai/kimi-k3` (text, image), `deepseek-ai/deepseek-v4-pro-0813`, `meta/muse-glimmer-30b` and `poolside/laguna-xs-2.1` (text). `ModelProfile` carries `inputModalities` and `verifiedOn`; the suite fails on a profile without a date. A008 still sends only text to a chat turn — `ChatMessage.content` is a `string` per ADR 0020 D6 — so a declared image modality records a capability A008 cannot yet use. |
 | CLI | `models`, `chat`, `--help`, and interactive `/help` `/exit` `/quit` `/reset` `/clear` `/undo` `/history` `/model` `/status` `/cwd` `/tools` `/shell` `/!`. Chat uses the shared local memory runtime; model/help paths require no credential. Terminal access is native `/shell` in cwd, not LangChain. Optional `--debug-trace` / `--debug-trace-file` share the environment parser. |
@@ -64,14 +76,14 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   durable mapping between an Agent Server conversation and an A008 ACP session.
   The identity/binding contract exists, but the current request lacks the
   external and application handles needed to register a verified binding.
-- No provider-backed retrieval planning/embedding generation, model-tokenizer
+- No provider-backed embedding generation, model-tokenizer
   adapter, graph retrieval, server-scale database adapter, or production memory
   API exists in A008. Local CLI/ACP now supply a bounded identity context,
   inject the existing transport/model/budgets, and invoke post-output in
   process. Durable queues, Agent Server conversation binding, and paid live
   provider runs remain separate.
-- No installed-package, desktop-packaging, live-provider, security-sandbox, or
-  conformance suite.
+- Portable engine extraction is verified. Installed desktop product, live-provider,
+  filesystem sandbox and full protocol conformance gates remain unproved.
 - A008-0064 adds a browser memory-diagnostics and chat-navigation proof against
   a real host/ACP process with synthetic SQLite and a loopback fake provider.
   It does not establish a complete GUI regression suite or live NVIDIA proof.

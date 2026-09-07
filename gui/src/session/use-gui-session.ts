@@ -1,4 +1,5 @@
-import { useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { engineAccessToken } from "./engine-access.js";
 import { createGuiSessionClient } from "./gui-session-client.js";
 import type { GuiSessionClient } from "./gui-session-client.js";
 import type { GuiSession, GuiSessionClientOptions } from "./types.js";
@@ -33,6 +34,10 @@ export function useGuiSession(options?: GuiSessionClientOptions): GuiSession {
     clientRef.current = createGuiSessionClient(options);
   }
   const client = clientRef.current;
+  useEffect(() => {
+    if (engineAccessToken()) void client.connect().catch(() => undefined);
+    return () => client.dispose();
+  }, [client]);
   const connectRef = useRef<(() => Promise<void>) | undefined>(undefined);
   if (connectRef.current === undefined) {
     connectRef.current = settleQuietly(client.connect);
@@ -44,6 +49,9 @@ export function useGuiSession(options?: GuiSessionClientOptions): GuiSession {
   );
 
   return {
+    permission: snapshot.permission,
+    resolveToolPermission: client.resolveToolPermission,
+    tools: snapshot.tools,
     details: snapshot.details,
     busy: snapshot.busy,
     pendingText: snapshot.pendingText,

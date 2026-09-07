@@ -6,6 +6,7 @@ import type {
   ChatRequest,
   ChatUsage,
   ChatTransport,
+  ChatToolCall,
 } from "../../core/types.js";
 import { parseSseData } from "./sse.js";
 import {
@@ -30,10 +31,12 @@ export interface NvidiaChatTransportOptions {
 
 interface NvidiaChoice {
   readonly delta?: {
+    readonly tool_calls?: unknown;
     readonly content?: unknown;
     readonly reasoning_content?: unknown;
   };
   readonly message?: {
+    readonly tool_calls?: unknown;
     readonly content?: unknown;
     readonly reasoning_content?: unknown;
   };
@@ -53,9 +56,18 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
   const options = request.options ?? {};
   const payload: Record<string, unknown> = {
     model: request.model,
-    messages: request.messages.map((message) => ({ ...message })),
+    messages: request.messages.map(message => message.role === "tool"
+      ? { role: "tool", tool_call_id: message.toolCallId, content: message.content }
+      : "toolCalls" in message ? { role: "assistant", content: message.content || null,
+        ...(message.reasoning ? { reasoning_content: message.reasoning } : {}),
+        tool_calls: message.toolCalls.map(call => ({ id: call.id, type: "function", function: { name: call.name, arguments: call.arguments } })) }
+      : { ...message }),
     stream: options.stream ?? true,
   };
+  if (request.tools?.length) {
+    payload.tools = request.tools.map(tool => ({ type: "function", function: tool }));
+    payload.tool_choice = "auto";
+  }
 
   assignOption(payload, "temperature", options.temperature);
   assignOption(payload, "top_p", options.topP);
@@ -74,6 +86,54 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
   }
 
   return payload;
+}
+
+function record(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new ChatError("invalid_response", "Invalid provider tool call.");
+  return value as Record<string, unknown>;
+}
+function toolCalls(value: unknown): ChatToolCall[] {
+  if (value == null) return [];
+  if (!Array.isArray(value)) throw new ChatError("invalid_response", "Provider tool calls must be an array.");
+  const ids = new Set<string>();
+  return value.map(item => {
+    const call = record(item), fn = record(call.function);
+    if (call.type !== "function" || typeof call.id !== "string" || !call.id || ids.has(call.id) ||
+      typeof fn.name !== "string" || !fn.name || typeof fn.arguments !== "string") {
+      throw new ChatError("invalid_response", "Invalid or duplicate provider tool call.");
+    }
+    ids.add(call.id);
+    return { id: call.id, name: fn.name, arguments: fn.arguments };
+  });
+}
+
+/** SSE fragments are structured protocol fields; prose is never executable. */
+class ToolCallStream {
+  readonly calls = new Map<number, { id: string; type: string; function: { name: string; arguments: string } }>();
+  push(value: unknown) {
+    if (value == null) return;
+    if (!Array.isArray(value)) throw new ChatError("invalid_response", "Invalid tool call stream.");
+    for (const item of value) {
+      const delta = record(item);
+      if (!Number.isSafeInteger(delta.index) || Number(delta.index) < 0) throw new ChatError("invalid_response", "Invalid tool call index.");
+      const index = Number(delta.index);
+      const call = this.calls.get(index) ?? { id: "", type: "function", function: { name: "", arguments: "" } };
+      if (delta.type !== undefined && delta.type !== "function") throw new ChatError("invalid_response", "Unsupported tool type.");
+      if (delta.id !== undefined) {
+        if (typeof delta.id !== "string") throw new ChatError("invalid_response", "Invalid tool call id.");
+        call.id += delta.id;
+      }
+      if (delta.function !== undefined) {
+        const fn = record(delta.function);
+        for (const key of ["name", "arguments"] as const) if (fn[key] !== undefined) {
+          if (typeof fn[key] !== "string") throw new ChatError("invalid_response", "Invalid tool function fragment.");
+          call.function[key] += fn[key];
+        }
+      }
+      this.calls.set(index, call);
+    }
+  }
+  finish() { return toolCalls([...this.calls.entries()].sort(([a], [b]) => a - b).map(([, value]) => value)); }
 }
 
 function assignOption(
@@ -279,6 +339,7 @@ export class NvidiaChatTransport implements ChatTransport {
     }
 
     const normalizer = new NvidiaReasoningNormalizer();
+    const toolStream = new ToolCallStream();
     let finishReason: string | null | undefined;
     let sawChoice = false;
 
@@ -293,6 +354,7 @@ export class NvidiaChatTransport implements ChatTransport {
         continue;
       }
       sawChoice = true;
+      toolStream.push(choice.delta?.tool_calls);
 
       const reasoningDelta = optionalString(choice.delta?.reasoning_content);
       if (reasoningDelta !== undefined && reasoningDelta.length > 0) {
@@ -326,6 +388,7 @@ export class NvidiaChatTransport implements ChatTransport {
 
     return {
       message: { role: "assistant", content: parts.content },
+      ...(toolStream.calls.size ? { toolCalls: toolStream.finish() } : {}),
       ...(parts.reasoning.length === 0 ? {} : { reasoning: parts.reasoning }),
       ...(finishReason === undefined ? {} : { finishReason }),
     };
@@ -334,7 +397,8 @@ export class NvidiaChatTransport implements ChatTransport {
   async #readJson(response: Response): Promise<ChatCompletion> {
     const parsed = parseJson(await response.text());
     const choice = firstChoice(parsed);
-    const content = optionalString(choice?.message?.content);
+    const calls = toolCalls(choice?.message?.tool_calls);
+    const content = optionalString(choice?.message?.content) ?? (calls.length ? "" : undefined);
     if (choice === undefined || content === undefined) {
       throw new ChatError(
         "invalid_response",
@@ -357,6 +421,7 @@ export class NvidiaChatTransport implements ChatTransport {
 
     return {
       message: { role: "assistant", content: answer },
+      ...(calls.length ? { toolCalls: calls } : {}),
       ...(reasoning === undefined || reasoning.length === 0
         ? {}
         : { reasoning }),

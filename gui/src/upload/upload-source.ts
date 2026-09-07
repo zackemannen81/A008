@@ -1,3 +1,4 @@
+import { engineHeaders } from "../session/engine-access.js";
 /** Host protocol v1 upload endpoint (ADR 0020 D3). */
 export const UPLOAD_ENDPOINT = "/v1/upload";
 
@@ -79,6 +80,7 @@ export async function uploadSource(
       method: "POST",
       credentials: "omit",
       headers: {
+        ...engineHeaders(),
         accept: "application/json",
         "content-type": "application/octet-stream",
         "x-a008-filename": encodeURIComponent(filename),

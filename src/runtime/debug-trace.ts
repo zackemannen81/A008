@@ -393,7 +393,7 @@ export function tracedChatTransport(
   return {
     async complete(request: ChatRequest, callbacks: ChatCallbacks = {}) {
       const operation = semanticOperation(request) ?? "chat";
-      const serialized = serializeChatMessages(request.messages);
+      const serialized = JSON.stringify(request.tools ? { messages: request.messages, tools: request.tools } : request.messages);
       const requestPhase =
         operation === "knowledge_analysis"
           ? "analyze_request"

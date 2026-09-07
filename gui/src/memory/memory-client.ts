@@ -1,3 +1,4 @@
+import { engineHeaders } from "../session/engine-access.js";
 export const MEMORY_KINDS = [
   "entity",
   "state",
@@ -174,6 +175,7 @@ export async function loadMemory(
   for (const key of ["query", "kind", "domain", "status"] as const)
     if (filters[key]) params.set(key, filters[key]);
   const response = await fetcher(`/v1/memory?${params}`, {
+    headers: engineHeaders(),
     signal,
     cache: "no-store",
   });

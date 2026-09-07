@@ -5,6 +5,8 @@ import { pathToFileURL } from "node:url";
 import * as acp from "@agentclientprotocol/sdk";
 import { createLocalMemoryRuntime } from "../runtime/local-memory-runtime.js";
 import { A008AcpAgent, sessionNotifier } from "./A008-acp-agent.js";
+import { ModelToolSession } from "../tools/model-tools.js";
+import { prepareAcpTools } from "../tools/acp-tools.js";
 
 export interface AcpServerOptions {
   readonly env?: NodeJS.ProcessEnv;
@@ -13,11 +15,8 @@ export interface AcpServerOptions {
   readonly stderr?: NodeJS.WritableStream;
 }
 
-export async function runAcpServer(options: AcpServerOptions = {}): Promise<void> {
-  const env = options.env ?? process.env;
-  const stdin = options.stdin ?? process.stdin;
-  const stdout = options.stdout ?? process.stdout;
-  const stderr = options.stderr ?? process.stderr;
+export function createAcpRuntime(options: { env: NodeJS.ProcessEnv; cwd?: string; stderr: NodeJS.WritableStream }) {
+  const { env, stderr } = options;
   const runtime = createLocalMemoryRuntime({
     env,
     surface: "acp",
@@ -25,7 +24,7 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
   });
   const agent = new A008AcpAgent({
     sessionControls: true,
-    runtimeInfo: () => ({ cwd: process.cwd(), projectId: runtime.projectId, memoryPath: runtime.sqlitePath }),
+    runtimeInfo: () => ({ cwd: options.cwd ?? process.cwd(), projectId: runtime.projectId, memoryPath: runtime.sqlitePath }),
     inspectMemory: (query) => runtime.inspectMemory(query),
     createSession: (model) => runtime.openSession({ model }),
     // Wired only here, so an agent constructed without a runtime refuses
@@ -50,6 +49,17 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
       stderr.write(`memory> ${message}\n`);
     },
   });
+  return { runtime, agent };
+}
+
+export async function runAcpServer(options: AcpServerOptions = {}): Promise<void> {
+  const env = options.env ?? process.env;
+  const stdin = options.stdin ?? process.stdin;
+  const stdout = options.stdout ?? process.stdout;
+  const stderr = options.stderr ?? process.stderr;
+  const { runtime, agent } = createAcpRuntime({ env, stderr });
+  const tools = new Map<string, ModelToolSession>();
+  const active = new Set<Promise<unknown>>();
   const stream = acp.ndJsonStream(
     Writable.toWeb(stdout) as WritableStream<Uint8Array>,
     Readable.toWeb(stdin) as ReadableStream<Uint8Array>,
@@ -58,19 +68,39 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
     const connection = acp
       .agent({ name: "A008" })
       .onRequest("initialize", (context) => agent.initialize(context.params))
-      .onRequest("session/new", (context) => agent.newSession(context.params))
+      .onRequest("session/new", context => {
+        const toolSession = new ModelToolSession({ cwd: process.cwd(), env, mcpServers: context.params.mcpServers });
+        const created = agent.newSession(context.params);
+        tools.set(created.sessionId, toolSession);
+        return created;
+      })
       .onRequest("session/set_config_option", (context) =>
         agent.setSessionConfigOption(context.params),
       )
-      .onRequest("session/prompt", (context) =>
-        agent.prompt(context.params, sessionNotifier(context.client)),
-      )
+      .onRequest("session/prompt", (context) => {
+        const work = agent.prompt(context.params, sessionNotifier(context.client), (signal, budgets) =>
+          prepareAcpTools(tools.get(context.params.sessionId)!, context.params.sessionId, budgets, signal,
+            sessionNotifier(context.client), params => context.client.request("session/request_permission", params)));
+        active.add(work);
+        void work.finally(() => active.delete(work)).catch(() => undefined);
+        return work;
+      })
       // The fluent agent builder registers nothing implicitly, so the optional
       // `session/close` method needs its own handler even though the agent
       // advertises the capability from `initialize`.
-      .onRequest("session/close", (context) => agent.closeSession(context.params))
+      .onRequest("session/close", async context => {
+        const result = agent.closeSession(context.params);
+        await tools.get(context.params.sessionId)?.close(); tools.delete(context.params.sessionId);
+        return result;
+      })
       .onRequest("_a008/session/control", (params: unknown) => params,
-        (context) => agent.controlSession(context.params))
+        async context => {
+          const result = agent.controlSession(context.params);
+          for (const [id, tool] of tools) {
+            if (!agent.openSessionIds().includes(id)) { tools.delete(id); await tool.close(); }
+          }
+          return result;
+        })
       // ADR 0020 D4. Registered through the custom-method overload, which takes
       // an explicit params parser; the agent re-validates regardless.
       .onRequest(
@@ -100,6 +130,9 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
 
     await connection.closed;
   } finally {
+    for (const id of agent.openSessionIds()) agent.cancel({ sessionId: id });
+    await Promise.allSettled([...active]);
+    await Promise.allSettled([...tools.values()].map(tool => tool.close()));
     runtime.close();
   }
 }

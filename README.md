@@ -23,6 +23,15 @@ deferred.
 
 ## What works now
 
+- A portable **A008 Engine** with bundled Node/runtime dependencies and all current
+  A008 views, opened in a session-bound panel by the companion Felix client.
+  See [engine setup and packaging](docs/ENGINE.md).
+- Structured model tools: an approved shell command or approved stdio MCP tool
+  executes on the host and returns its result to the model. Instructions remain
+  user-owned; no coding prompt is hardcoded or automatically loaded.
+- Global editable budgets and persistent instructions across projects/models;
+  see [runtime settings](docs/RUNTIME_SETTINGS.md).
+
 - Transactional in-memory `ChatSession` with successful-turn commit and failed-
   turn rollback.
 - Provider-neutral message, request, stream-delta, result, error, model, and

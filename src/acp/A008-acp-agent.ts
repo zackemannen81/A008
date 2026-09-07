@@ -388,6 +388,7 @@ export class A008AcpAgent {
   async prompt(
     params: PromptRequest,
     notify: NotifySession,
+    prepareTools?: (signal: AbortSignal, budgets: import("../core/runtime-preferences.js").RuntimeBudgets) => Promise<import("../core/types.js").ChatTools>,
   ): Promise<PromptResponse> {
     const state = this.#requireSession(params.sessionId);
     if (state.activeTurn !== undefined) {
@@ -426,6 +427,7 @@ export class A008AcpAgent {
 
     try {
       const completion = await state.chat.send(content, {
+        ...(prepareTools ? { prepareTools } : {}),
         signal: controller.signal,
         onDelta: (delta) => queueDelta(delta.type, delta.text),
       });
@@ -496,7 +498,7 @@ export class A008AcpAgent {
       this.closeSession({ sessionId: params.sessionId });
       return { ...snapshot, closed: true };
     }
-    if (state.activeTurn !== undefined) throw new RequestError(-32000, "Session already has an active turn.");
+    if (state.activeTurn !== undefined && control.action !== "inspect") throw new RequestError(-32000, "Session already has an active turn.");
     if (control.action === "model") {
       const profile = this.#registry.require(control.model);
       // Construct first: configuration failure must preserve the old conversation.
@@ -570,6 +572,8 @@ export class A008AcpAgent {
   openSessionIds(): readonly string[] {
     return [...this.#sessions.keys()];
   }
+
+  sessionConfigOptions(sessionId: string) { return this.#modelOptions(this.#requireSession(sessionId).model); }
 
   /**
    * ACP `_a008/source/ingest` (ADR 0020 D4).

@@ -56,6 +56,7 @@ export interface MemoryAwareTurnOptions {
   readonly generation?: ChatGenerationOptions;
   readonly signal?: AbortSignal;
   readonly onDelta?: SendMessageOptions["onDelta"];
+  readonly tools?: SendMessageOptions["tools"];
 }
 
 export interface MemoryAwareTurnResult {
@@ -224,6 +225,7 @@ export class MemoryAwareChatSession {
           : { generation: options.generation }),
         ...(options.signal === undefined ? {} : { signal: options.signal }),
         ...(options.onDelta === undefined ? {} : { onDelta: options.onDelta }),
+        ...(options.tools === undefined ? {} : { tools: options.tools }),
       };
       const completion = await this.#chat.send(message, sendOptions);
       return { completion, memory };

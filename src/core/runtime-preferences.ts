@@ -20,6 +20,10 @@ export const DEFAULT_RUNTIME_BUDGETS = Object.freeze({
   retrievalHistoryCharacters: 1_000,
   retrievalSemanticQueries: 3,
   providerTimeoutMs: 180_000,
+  maximumToolCalls: 12,
+  maximumToolDefinitions: 128,
+  toolOutputBytes: 65_536,
+  toolTimeoutMs: 60_000,
 });
 export type RuntimeBudgetKey = keyof typeof DEFAULT_RUNTIME_BUDGETS;
 export type RuntimeBudgets = { readonly [K in RuntimeBudgetKey]: number };
@@ -58,6 +62,10 @@ export const RUNTIME_BUDGET_FIELDS: readonly RuntimeBudgetField[] = Object.freez
   field("retrievalHistoryCharacters", "Retrieval history length", "characters/message", "Maximum characters of each prior message used by the planner."),
   field("retrievalSemanticQueries", "Planned semantic queries", "queries", "Maximum query variants in the retrieval plan. Vector retrieval is not enabled in the live knowledge reader."),
   field("providerTimeoutMs", "Provider request timeout", "milliseconds", "Time allowed for each chat or memory provider call.", 1_000, 2_147_483_647),
+  field("maximumToolCalls", "Tool calls per turn", "calls", "Approved or denied model tool calls before a turn stops. Each call needs explicit approval."),
+  field("maximumToolDefinitions", "Available tools", "tools", "Maximum native and approved MCP tools offered to the model. An oversized catalog fails visibly."),
+  field("toolOutputBytes", "Tool result budget", "UTF-8 bytes", "Maximum observation text returned from each tool. Longer output is marked as truncated."),
+  field("toolTimeoutMs", "Tool execution timeout", "milliseconds", "Time for each shell command or MCP request, excluding user approval.", 1, 2_147_483_647),
 ]);
 
 export interface RuntimePreferencesSnapshot {

@@ -1,5 +1,16 @@
 # File Structure
 
+A008-0067 adds `src/engine/{server,engine-host}.ts`, the manifest-backed shared
+project/session composition; `src/tools/{model-tools,acp-tools}.ts` implement
+validated native/MCP calls and ACP approvals. `scripts/package-engine.mjs` builds
+the portable directory; `scripts/verify-engine-package.mjs` tests an extracted
+copy through the external client's actual native host. `test/engine-host.test.ts`,
+`test/model-tools.test.ts` and `test/fixtures/tool-mcp.ts` cover these boundaries.
+Renderer session authentication and approvals live in `gui/src/session/engine-access.ts`
+and `tool-permission-dialog.tsx`. Runbooks: [ENGINE.md](ENGINE.md) and
+[RUNTIME_SETTINGS.md](RUNTIME_SETTINGS.md). Package output and evidence binaries
+are outside the repository. The separate companion frontend source stays external.
+
 ```text
 A008/
 |- AGENTS.md                         entry point and safety rules
