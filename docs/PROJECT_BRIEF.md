@@ -11,6 +11,10 @@ add-on model for capabilities such as semantic memory.
 
 ## Approved product direction
 
+- ADR 0029/0030: the owner also selects A008's standalone GUI for repository
+  work, with a focused neutral workspace inspired by their Codex screenshot.
+  External clients continue to consume the same shared engine contract.
+
 - One shared application core serves both CLI and GUI rather than maintaining
   two independent chat implementations.
 - The legacy CLI is behavioral evidence for provider/model configuration,

@@ -5,6 +5,12 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0069 gives the standalone GUI neutral surfaces, left navigation, a centred
+conversation and integrated composer. The chat workbench is optional; runtime
+details and thought blocks start collapsed. Desktop/narrow navigation retains
+chat drafts and exposes all existing tools, memory views and parameters.
+See [ADR 0030](adr/0030-focused-standalone-workspace.md).
+
 A008-0068 adds standalone GUI repository work: the connected tool catalog,
 cwd, read/root/Git shortcuts, native UTF-8 file tools and literal-argument Git.
 The real standalone GUI-host → ACP → synthetic-provider loop verifies approved
@@ -41,7 +47,7 @@ an explicit save upgrades to version 2 with four editable tool limits.
 | Shared NVIDIA composition | `createNvidiaChatTransport` owns credential validation, model defaults, optional trusted endpoint override, and construction of the existing adapter. `createLocalMemoryRuntime` injects that one transport into CLI and ACP memory turns. Core remains environment-neutral. |
 | Agent Canvas ACP bridge | `A008-acp` implements stable ACP v1 over stdio with initialize, canonical `A008_v1_acp_session_<UUIDv4>` in-memory sessions, the verified model option, text/resource-link prompts, thought/answer streaming, cancellation, and the shared local memory runtime. Agent Server is expected to own the process. |
 | Agent Canvas runtime proof | Real Canvas 1.16.0 and Agent Server 1.44.1 processes on Windows configured the compiled A008 Custom ACP command, sent a browser prompt, reached the existing adapter at a loopback fake SSE endpoint, rendered `A008-CANVAS-LOOPBACK-OK`, and finished the conversation. Safe evidence and screenshot are tracked under `docs/evidence/`. |
-| A008 GUI role | ADR 0022: `gui/` is a live-test surface, not the product interface. The standalone product client is maintained outside this repository and will run against either A007 or A008. The host protocol is therefore an integration contract, documented in `docs/HOST_PROTOCOL.md`, and changes only through a claimed task and an ADR. ADR 0021's remaining restyling programme is cancelled; its shell and palette stand. |
+| A008 GUI role | ADR 0029/0030 support standalone repository work and a focused A008-owned interface. The external client remains supported through the shared host contract. ADR 0022's earlier design restriction is superseded for this surface. |
 | A008 GUI program | A008-0030 Complete. ADR 0019 wave 1 landed all six children (A008-0032..A008-0037) on `main`. The product GUI is `gui/` plus `src/gui-host/`; Canvas + Agent Server remains an operator ACP path and is not the product. |
 | A008 GUI host | `src/gui-host/` is a Node process that serves the built `gui/dist`, answers `GET /health`, `GET /v1/models`, and `POST /v1/shell` through the existing `runTerminalCommand`, and bridges `WS /v1/session` to an `A008-acp` stdio subprocess using the ADR 0019 D4 frame schema. It reads `NVIDIA_API_KEY` and memory settings from process environment only, redacts credential values and the `authorization` token from outbound text, rejects any cross-origin request that is neither same-origin nor loopback on every route and on the WebSocket upgrade, and requires `application/json` on `POST /v1/shell`. It also answers `POST /v1/upload`, which writes the original bytes to a content-addressed store outside the repository and asks the ACP process to ingest the resulting locator. The host never reads file content and never makes a provider call. `npm run gui-host` starts it; `npm run gui` builds the GUI first and then starts it. |
 | A008 memory diagnostics | A008-0064 adds Memory Overview, Memory Relationship Map Graph and Memory Knowledge Manager to the existing diagnostic GUI. GET /v1/memory reaches read-only memory/inspect in the chat ACP runtime; no model call, second store or mutation. Actual totals, dormant evidence, state/history, search, filters, pagination, stored links and escaped details are visible. Refresh is explicit and the graph is capped at 80 nodes/240 links. Browser proof covers desktop/mobile, empty/unavailable states and chat/draft preservation. See docs/evidence/A008-0064_memory-gui-proof.md. |

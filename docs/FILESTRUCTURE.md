@@ -1,5 +1,10 @@
 # File Structure
 
+A008-0069 adds `gui/src/brand/workspace.css`, loaded after shared tokens and
+feature styles by `main.tsx`. `app.tsx` owns sidebar/panel visibility and
+parameter focus restoration; chat/composer retain their feature ownership.
+Design decision: [ADR 0030](adr/0030-focused-standalone-workspace.md).
+
 A008-0068 adds `src/tools/repository-tools.ts` (native file/Git definitions and
 execution), `gui/src/tools/repository-pane.tsx`, `repository.css` and
 `repository.test.ts` (catalog, workspace, shortcuts and activity). Additional

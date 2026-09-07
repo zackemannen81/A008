@@ -1,0 +1,117 @@
+/* Standalone workspace composition. Shared feature styles retain their tokens. */
+.a008-app {
+  grid-template-columns: 15rem minmax(0, 1fr);
+  grid-template-rows: 3.75rem minmax(0, 1fr);
+  background: var(--a008-bg);
+  font-size: .9rem;
+}
+.a008-app [hidden] { display: none !important; }
+.a008-app button { letter-spacing: normal; text-transform: none; }
+.a008-app :focus-visible { outline: 2px solid var(--a008-accent); outline-offset: 3px; }
+.a008-app .a008-rail {
+  grid-column: 1; grid-row: 1 / -1; display: flex; flex-direction: column;
+  gap: 1.25rem; padding: 1.2rem .75rem .75rem; border: 0;
+}
+.a008-sidebar-brand { padding: .1rem .55rem .8rem; }
+.a008-brand-name { letter-spacing: .03em; font-size: 1.1rem; }
+.a008-brand-tagline { display: none; }
+.a008-sidebar-nav { display: grid; gap: .25rem; }
+.a008-sidebar-nav button {
+  display: flex; align-items: center; gap: .7rem; padding: .65rem .7rem;
+  border: 0; border-radius: .55rem; background: transparent;
+  color: var(--a008-fg-soft); text-align: left; font: inherit; cursor: pointer;
+}
+.a008-sidebar-nav button span { width: 1.1rem; font-size: 1.15rem; text-align: center; }
+.a008-sidebar-nav button:hover, .a008-sidebar-nav button[aria-current="page"] { background: var(--a008-accent-soft); color: var(--a008-fg); }
+.a008-sidebar-workspace { padding: .5rem .65rem; }
+.a008-sidebar-caption { color: var(--a008-muted); font-size: .75rem; }
+.a008-workspace-name { font-weight: 600; overflow-wrap: anywhere; }
+.a008-sidebar-hint { font-size: .75rem; line-height: 1.6; color: var(--a008-muted); overflow-wrap: anywhere; }
+.a008-runtime-details { padding: .7rem .6rem; border-top: 1px solid var(--a008-border); font-size: .8rem; }
+.a008-runtime-details > summary { color: var(--a008-muted); cursor: pointer; }
+.a008-settings { min-height: 0; padding: 1rem 0; }
+.a008-settings-title { display: none; }
+.a008-settings-row dt { letter-spacing: normal; text-transform: none; }
+.a008-sidebar-footer { margin-top: auto; padding: .65rem; font-size: .75rem; color: var(--a008-muted); }
+.a008-header { grid-column: 2 / -1; grid-row: 1; display: flex; justify-content: space-between; gap: .75rem; padding: .65rem 1.5rem; background: var(--a008-bg); border: 0; }
+.a008-header-title { display: flex; align-items: center; gap: .75rem; min-width: 0; font-weight: 600; }
+.a008-header-workspace { color: var(--a008-muted); font-size: .8rem; font-weight: 400; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.a008-header-actions { gap: .6rem; flex-shrink: 0; }
+.a008-header-status { font-size: .7rem; text-transform: none; letter-spacing: normal; }
+.a008-connection-dot { box-shadow: none; width: .4rem; height: .4rem; }
+.a008-panel-toggle, .a008-navigation-toggle, .a008-header .a008-parameters-open {
+  background: transparent; border: 1px solid var(--a008-border); border-radius: .5rem;
+  color: var(--a008-fg-soft); padding: .5rem .65rem; font: inherit; font-size: .75rem; cursor: pointer;
+}
+.a008-panel-toggle[aria-expanded="true"] { background: var(--a008-panel); }
+.a008-navigation-toggle { display: none; }
+.a008-app .a008-main, .a008-app .a008-memory-main { grid-column: 2; grid-row: 2; background: var(--a008-bg); }
+.a008-app .a008-main { padding: 0 1.5rem 1rem; }
+.a008-app.a008-chat-workspace.a008-panel-open { grid-template-columns: 15rem minmax(0, 1fr) minmax(20rem, 25rem); }
+.a008-tools-panel { grid-column: 2; grid-row: 2; display: flex; overflow: hidden; min-width: 0; min-height: 0; padding: .5rem 1rem 1rem; }
+.a008-chat-workspace .a008-tools-panel { grid-column: 3; }
+.a008-app .a008-workbench { display: flex; flex: 1; border: 1px solid var(--a008-border); border-radius: 1rem; background: var(--a008-panel); }
+.a008-workbench-tabs { padding: .6rem .7rem 0; }
+.a008-workbench-tab { letter-spacing: normal; text-transform: none; }
+.a008-app .a008-chat { padding: 0; }
+.a008-chat-transcript { overflow: auto; padding: 1.5rem max(.5rem, calc((100% - 49rem) / 2)); gap: 1.8rem; scrollbar-width: thin; }
+.a008-chat-turn { max-width: 100%; width: 100%; gap: .6rem; line-height: 1.7; }
+.a008-chat-turn-user { width: auto; max-width: 85%; }
+.a008-chat-label { font-size: .72rem; }
+.a008-chat-turn-user .a008-chat-label { display: none; }
+.a008-chat-bubble { padding: .8rem 1rem; border-radius: 1.25rem; }
+.a008-chat-bubble-user { background: var(--a008-panel); }
+.a008-chat-bubble-answer { background: transparent; padding: 0; }
+.a008-chat-thought summary { display: flex; align-items: center; gap: .5rem; }
+.a008-chat-thought summary::after { content: '›'; font-size: 1.1rem; }
+.a008-chat-thought[open] summary::after { transform: rotate(90deg); }
+.a008-chat-empty { max-width: 35rem; }
+.a008-empty-eyebrow { color: var(--a008-muted); font-weight: 600; letter-spacing: .12em; font-size: .75rem; }
+.a008-chat-empty h1 { color: var(--a008-fg); font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 500; line-height: 1.3; margin: 1rem 0; }
+.a008-chat-empty p { line-height: 1.6; }
+.a008-empty-hint { font-size: .8rem; }
+.a008-app .a008-composer {
+  box-sizing: border-box; width: 100%; max-width: 50rem; align-self: center;
+  padding: .85rem 1rem .6rem; border: 1px solid var(--a008-border); border-radius: 1.3rem;
+  background: var(--a008-panel); color: var(--a008-fg-soft);
+}
+.a008-composer-form { align-items: flex-end; }
+.a008-composer-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.a008-composer-input { border: 0; background: transparent; padding: .25rem 0; min-height: 3.5rem; max-height: 24vh; font-size: .9rem; line-height: 1.5; }
+.a008-composer-input:focus-visible { outline: none; }
+.a008-composer:focus-within { border-color: var(--a008-border-strong); }
+.a008-composer-send { border-radius: 2rem; background: var(--a008-fg); color: var(--a008-bg); padding: .65rem .8rem; font-weight: 600; }
+.a008-composer-send:hover:not(:disabled) { background: var(--a008-fg-soft); }
+.a008-composer-send:disabled { opacity: .4; }
+.a008-session-toolbar { margin: .5rem 0 0; gap: .2rem; }
+.a008-session-toolbar button, .a008-session-toolbar select { padding: .4rem .5rem; border: 0; background: transparent; }
+.a008-session-toolbar option { background: var(--a008-panel); }
+.a008-composer-footer { display: flex; align-items: center; justify-content: space-between; gap: .7rem; color: var(--a008-muted); font-size: .65rem; padding-top: .5rem; }
+.a008-composer-footer button { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; color: var(--a008-fg-soft); background: none; border: 0; cursor: pointer; font: inherit; padding: .3rem 0; }
+.a008-tool-activity { width: 100%; max-width: 50rem; box-sizing: border-box; align-self: center; border: 1px solid var(--a008-border); border-radius: .8rem; margin-bottom: .65rem; font-size: .8rem; background: var(--a008-panel-quiet); }
+.a008-tool-permission { border-radius: 1rem; background: var(--a008-panel); color: var(--a008-fg); }
+@media (max-width: 1150px) {
+  .a008-app.a008-chat-workspace.a008-panel-open { grid-template-columns: 12rem minmax(0,1fr) 20rem; }
+  .a008-header-status, .a008-header-workspace { display: none; }
+  .a008-app .a008-main { padding-inline: .8rem; }
+}
+@media (max-width: 850px) {
+  .a008-app, .a008-app.a008-chat-workspace.a008-panel-open { grid-template-columns: minmax(0, 1fr); }
+  .a008-app .a008-rail { display: none; }
+  .a008-app.a008-navigation-open .a008-rail { display: flex; grid-column: 1; grid-row: 2; z-index: 5; overflow: auto; }
+  .a008-app.a008-navigation-open > main, .a008-app.a008-navigation-open > .a008-tools-panel { visibility: hidden; }
+  .a008-header { grid-column: 1; padding: .5rem .7rem; }
+  .a008-navigation-toggle { display: block; }
+  .a008-app .a008-main, .a008-app .a008-memory-main, .a008-app .a008-tools-panel { grid-column: 1; }
+  .a008-chat-workspace.a008-panel-open .a008-main { visibility: hidden; }
+  .a008-chat-workspace.a008-panel-open .a008-tools-panel { z-index: 2; background: var(--a008-bg); }
+  .a008-app .a008-workbench { display: flex; }
+  .a008-composer-footer > span { display: none; }
+  .a008-composer-footer { justify-content: flex-end; }
+  .a008-composer-footer button { max-width: 100%; }
+  .a008-header-title { font-size: .8rem; gap: .4rem; }
+  .a008-header-actions { gap: .25rem; }
+  .a008-header .a008-parameters-open, .a008-panel-toggle { padding-inline: .45rem; font-size: .7rem; }
+  .a008-chat-transcript { padding: 1rem .25rem; }
+}
+.a008-parameters .a008-parameter-toggle { display: flex; }

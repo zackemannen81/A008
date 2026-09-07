@@ -302,9 +302,9 @@ recorded as fact.
 
 ## A008 GUI client
 
-`gui/` is an A008-owned Vite + React + TypeScript application. It follows Agent
-Canvas UX but imports no `@openhands/*` package, no Canvas route, and no
-telemetry. `gui/src/app.tsx` is the shell; each feature module owns only its own
+`gui/` is an A008-owned Vite + React + TypeScript application. ADR 0030
+introduces a neutral workspace inspired by the owner's Codex screenshot. It
+imports no third-party client UI code, Canvas route or telemetry. `gui/src/app.tsx` is the shell; each feature module owns only its own
 directory per ADR 0019 D7.
 
 `useGuiSession` in `gui/src/session/` is the browser client for host protocol
@@ -332,6 +332,21 @@ host supplies no snapshot.
 `POST /v1/shell` rather than executing anything in the browser, and
 `gui/src/settings/` plus `gui/src/brand/` own the shell chrome and A008
 identity. No provider call, credential, or telemetry ships in the renderer.
+
+### Focused workspace (A008-0069)
+
+Left navigation selects Chat, Memory or Tools. Runtime details are collapsed.
+Chat has a centred transcript, collapsed thought blocks, and a rounded composer
+with the existing commands plus a shortcut to model parameters. Closing the
+parameter dialog restores focus to its opener. Navigation keeps chat mounted,
+so drafts and in-session history survive. It does not create saved conversations.
+
+Workbench toggles the Repository/Terminal/Upload panel beside Chat. On narrow
+screens it occupies the main area; the same button closes it. Tools opens the
+full workbench. Navigation to Chat, including a repository prompt shortcut,
+closes the panel. The narrow-screen navigation toggle exposes all three pages.
+The token file `brand/a008.css` provides neutral colours; `brand/workspace.css`
+is loaded last for shell and responsive feature composition.
 
 ### GUI session operations and parameters (A008-0065)
 
