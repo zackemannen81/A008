@@ -2,6 +2,17 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-07 — GUI session controls integrated locally
+
+- Task: A008-0065; operator: Codex; branch: `main`.
+- Fast-forwarded the completed branch at `1c728a3` locally before the owner's
+  next requested extension. CLI commands and model parameters reach real ACP
+  sessions; generated output budgets are distinct from runtime input limits.
+- Verification: 530 test executions, both typechecks, GUI build and desktop/mobile
+  browser proof, recorded in `docs/evidence/A008-0065_session-controls-proof.md`.
+- Archive and handoff exist; CURRENT_TASK is the empty template. No push or live
+  provider call. Signature: Codex.
+
 ## 2026-09-06 — Memory diagnostic views integrated locally
 
 - Task: A008-0064; operator: Codex; branch: `main`.
