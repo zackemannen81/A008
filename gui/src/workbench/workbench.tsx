@@ -21,9 +21,12 @@ export interface WorkbenchSurface {
 export function Workbench(props: {
   readonly surfaces: readonly WorkbenchSurface[];
   readonly label: string;
+  readonly selectedId?: string;
+  readonly onSelect?: (id: string) => void;
 }) {
   const first = props.surfaces[0];
-  const [selectedId, setSelectedId] = useState(first?.id);
+  const [internalId, setInternalId] = useState(first?.id);
+  const selectedId = props.selectedId ?? internalId;
   const selected =
     props.surfaces.find((surface) => surface.id === selectedId) ?? first;
 
@@ -43,7 +46,10 @@ export function Workbench(props: {
             aria-selected={surface.id === selected?.id}
             aria-controls={`a008-workbench-pane-${surface.id}`}
             className="a008-workbench-tab"
-            onClick={() => setSelectedId(surface.id)}
+            onClick={() => {
+              setInternalId(surface.id);
+              props.onSelect?.(surface.id);
+            }}
           >
             {surface.label}
           </button>

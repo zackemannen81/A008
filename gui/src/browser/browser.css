@@ -1,0 +1,57 @@
+.a008-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  height: 100%;
+  min-height: 0;
+  padding: 0.85rem;
+}
+.a008-browser-bar {
+  display: flex;
+  gap: 0.5rem;
+}
+.a008-browser-bar label {
+  flex: 1;
+  min-width: 0;
+}
+.a008-browser-bar input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--a008-border);
+  border-radius: 0.5rem;
+  background: var(--a008-bg);
+  color: var(--a008-fg);
+  font: inherit;
+}
+.a008-browser-bar button {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--a008-border);
+  border-radius: 0.5rem;
+  background: var(--a008-panel);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.a008-browser iframe {
+  flex: 1;
+  min-height: 18rem;
+  width: 100%;
+  border: 1px solid var(--a008-border);
+  border-radius: 0.7rem;
+  background: #111;
+}
+.a008-browser-note,
+.a008-browser [role="alert"] {
+  margin: 0;
+  color: var(--a008-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.a008-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}

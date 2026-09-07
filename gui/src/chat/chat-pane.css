@@ -56,6 +56,56 @@
   text-align: center;
 }
 
+.a008-empty-shortcuts {
+  list-style: none;
+  margin: 1.4rem auto 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  text-align: left;
+  max-width: 22rem;
+}
+
+.a008-empty-shortcuts button {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--a008-border, #333);
+  border-radius: 0.85rem;
+  background: var(--a008-panel, #242424);
+  color: var(--a008-fg, #eee);
+  font: inherit;
+  cursor: pointer;
+}
+
+.a008-empty-shortcuts button:hover,
+.a008-empty-shortcuts button:focus-visible {
+  border-color: var(--a008-border-strong, #555);
+  background: var(--a008-accent-soft, rgba(228, 228, 228, 0.09));
+}
+
+.a008-empty-shortcuts button > span:first-child {
+  width: 1.1rem;
+  color: var(--a008-muted, #a0a0a0);
+  text-align: center;
+}
+
+.a008-empty-shortcuts button > span:nth-child(2) {
+  flex: 1;
+  text-align: left;
+}
+
+.a008-empty-shortcuts kbd {
+  font: 0.68rem var(--a008-mono, monospace);
+  color: var(--a008-muted, #a0a0a0);
+  border: 1px solid var(--a008-border-strong, #555);
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  white-space: nowrap;
+}
+
 .a008-chat-turn {
   display: flex;
   flex-direction: column;

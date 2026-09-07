@@ -10,7 +10,8 @@ authority.
 - Task prefix: `A008`
 - Purpose: build one AI client with a shared core, a CLI, an Agent
   Canvas-derived GUI/client, and optional add-ons such as semantic memory.
-- Phase: repository bootstrap; no A008 product source exists yet.
+- Phase: product implementation. Shared core, CLI, A008-owned GUI host/client,
+  and local semantic memory exist. Remaining work is bounded product slices.
 - License: Apache-2.0 for A008-owned repository contents. Imported or adapted
   third-party material retains its own notices and terms.
 
@@ -52,10 +53,11 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
   is ignored by Git and must not be executed or copied wholesale.
 - `C:\code\OpenHands` is an external MIT-licensed Agent Canvas source clone.
   Its repository instructions govern changes made there; it is not A008 truth.
-- The A008 memory-engine has not been created. The owner-supplied Context-First
-  document is architecture input, not executable source. Related repositories
-  such as `C:\code\acme` are not a baseline or dependency unless a future owner
-  decision explicitly adopts a bounded part.
+- The A008 memory engine lives in `src/memory/` with SQLite persistence and
+  local CLI/ACP composition. The owner-supplied Context-First document remains
+  architecture input, not an external code baseline. Related repositories such
+  as `C:\code\acme` are not a dependency unless a future owner decision
+  explicitly adopts a bounded part.
 - Bootstrap and protocol/add-on copies in the repository root are ignored
   reference inputs, not shipped A008 content.
 

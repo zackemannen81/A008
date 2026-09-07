@@ -1,5 +1,6 @@
 /* Standalone workspace composition. Shared feature styles retain their tokens. */
 .a008-app {
+  position: relative;
   grid-template-columns: 15rem minmax(0, 1fr);
   grid-template-rows: 3.75rem minmax(0, 1fr);
   background: var(--a008-bg);
@@ -45,11 +46,17 @@
 }
 .a008-panel-toggle[aria-expanded="true"] { background: var(--a008-panel); }
 .a008-navigation-toggle { display: none; }
-.a008-app .a008-main, .a008-app .a008-memory-main { grid-column: 2; grid-row: 2; background: var(--a008-bg); }
+.a008-app .a008-main, .a008-app .a008-memory-main, .a008-app .a008-help-main { grid-column: 2; grid-row: 2; background: var(--a008-bg); min-width: 0; min-height: 0; }
 .a008-app .a008-main { padding: 0 1.5rem 1rem; }
-.a008-app.a008-chat-workspace.a008-panel-open { grid-template-columns: 15rem minmax(0, 1fr) minmax(20rem, 25rem); }
+.a008-help-main { overflow: auto; }
+.a008-environment-float {
+  position: absolute; top: 4.35rem; right: 1.1rem; width: 22.5rem;
+  max-height: calc(100% - 5.2rem); overflow: auto; z-index: 6;
+  border: 1px solid var(--a008-border); border-radius: 1.15rem;
+  background: var(--a008-panel); box-shadow: 0 16px 40px rgba(0,0,0,.38);
+}
+.a008-environment-float[hidden] { display: none !important; }
 .a008-tools-panel { grid-column: 2; grid-row: 2; display: flex; overflow: hidden; min-width: 0; min-height: 0; padding: .5rem 1rem 1rem; }
-.a008-chat-workspace .a008-tools-panel { grid-column: 3; }
 .a008-app .a008-workbench { display: flex; flex: 1; border: 1px solid var(--a008-border); border-radius: 1rem; background: var(--a008-panel); }
 .a008-workbench-tabs { padding: .6rem .7rem 0; }
 .a008-workbench-tab { letter-spacing: normal; text-transform: none; }
@@ -65,7 +72,8 @@
 .a008-chat-thought summary { display: flex; align-items: center; gap: .5rem; }
 .a008-chat-thought summary::after { content: '›'; font-size: 1.1rem; }
 .a008-chat-thought[open] summary::after { transform: rotate(90deg); }
-.a008-chat-empty { max-width: 35rem; }
+.a008-chat-empty { max-width: 36rem; }
+.a008-empty-shortcuts { max-width: 24rem; }
 .a008-empty-eyebrow { color: var(--a008-muted); font-weight: 600; letter-spacing: .12em; font-size: .75rem; }
 .a008-chat-empty h1 { color: var(--a008-fg); font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 500; line-height: 1.3; margin: 1rem 0; }
 .a008-chat-empty p { line-height: 1.6; }
@@ -91,20 +99,22 @@
 .a008-tool-activity { width: 100%; max-width: 50rem; box-sizing: border-box; align-self: center; border: 1px solid var(--a008-border); border-radius: .8rem; margin-bottom: .65rem; font-size: .8rem; background: var(--a008-panel-quiet); }
 .a008-tool-permission { border-radius: 1rem; background: var(--a008-panel); color: var(--a008-fg); }
 @media (max-width: 1150px) {
-  .a008-app.a008-chat-workspace.a008-panel-open { grid-template-columns: 12rem minmax(0,1fr) 20rem; }
   .a008-header-status, .a008-header-workspace { display: none; }
   .a008-app .a008-main { padding-inline: .8rem; }
+  .a008-environment-float { width: 20rem; right: .7rem; }
 }
 @media (max-width: 850px) {
   .a008-app, .a008-app.a008-chat-workspace.a008-panel-open { grid-template-columns: minmax(0, 1fr); }
   .a008-app .a008-rail { display: none; }
   .a008-app.a008-navigation-open .a008-rail { display: flex; grid-column: 1; grid-row: 2; z-index: 5; overflow: auto; }
-  .a008-app.a008-navigation-open > main, .a008-app.a008-navigation-open > .a008-tools-panel { visibility: hidden; }
+  .a008-app.a008-navigation-open > main, .a008-app.a008-navigation-open > .a008-tools-panel, .a008-app.a008-navigation-open > .a008-environment-float { visibility: hidden; }
   .a008-header { grid-column: 1; padding: .5rem .7rem; }
   .a008-navigation-toggle { display: block; }
-  .a008-app .a008-main, .a008-app .a008-memory-main, .a008-app .a008-tools-panel { grid-column: 1; }
+  .a008-app .a008-main, .a008-app .a008-memory-main, .a008-app .a008-help-main, .a008-app .a008-tools-panel { grid-column: 1; }
+  .a008-environment-float {
+    position: absolute; inset: 3.75rem .5rem .5rem; width: auto; max-height: none;
+  }
   .a008-chat-workspace.a008-panel-open .a008-main { visibility: hidden; }
-  .a008-chat-workspace.a008-panel-open .a008-tools-panel { z-index: 2; background: var(--a008-bg); }
   .a008-app .a008-workbench { display: flex; }
   .a008-composer-footer > span { display: none; }
   .a008-composer-footer { justify-content: flex-end; }

@@ -333,20 +333,24 @@ host supplies no snapshot.
 `gui/src/settings/` plus `gui/src/brand/` own the shell chrome and A008
 identity. No provider call, credential, or telemetry ships in the renderer.
 
-### Focused workspace (A008-0069)
+### Focused workspace (A008-0069, amended by A008-0070)
 
-Left navigation selects Chat, Memory or Tools. Runtime details are collapsed.
+Left navigation selects Chat, Memory, Tools or Help. Runtime details are collapsed.
 Chat has a centred transcript, collapsed thought blocks, and a rounded composer
 with the existing commands plus a shortcut to model parameters. Closing the
 parameter dialog restores focus to its opener. Navigation keeps chat mounted,
 so drafts and in-session history survive. It does not create saved conversations.
 
-Workbench toggles the Repository/Terminal/Upload panel beside Chat. On narrow
-screens it occupies the main area; the same button closes it. Tools opens the
-full workbench. Navigation to Chat, including a repository prompt shortcut,
-closes the panel. The narrow-screen navigation toggle exposes all three pages.
-The token file `brand/a008.css` provides neutral colours; `brand/workspace.css`
-is loaded last for shell and responsive feature composition.
+Empty chat offers Review, Terminal, Browser, Files and Workbench shortcuts
+(Ctrl+Shift+G, Ctrl+`, Ctrl+T, Ctrl+P, Ctrl+Alt+S). Workbench opens a floating
+environment/sources card: git branch and change counts from host-shell
+`git status -sb` / shortstat, session uploads, and clipboard ingest through
+`POST /v1/upload`. It is not the tool catalog. Help hosts that catalog and the
+shortcut reference. Tools keeps Terminal, Files, Browser and Upload as working
+panes. On a narrow screen the workbench card occupies the main area; the same
+button closes it. The token file `brand/a008.css` provides neutral colours;
+`brand/workspace.css` is loaded last for shell and responsive feature composition.
+See [ADR 0031](adr/0031-workbench-context-and-memory-map.md).
 
 ### GUI session operations and parameters (A008-0065)
 
@@ -373,10 +377,11 @@ The host serializes controls with prompts, checks socket ownership, cleans up
 failed/new sessions and refuses unsupported controls on older ACP bridges.
 Cancellation holds the busy state through the terminal acknowledgment.
 
-At 850px and below Chat, Memory and Tools each use the full workspace width.
-Tools retains the mounted Terminal/Upload workbench; navigation preserves chat,
-draft and workbench state. The modal traps focus natively, restores it on Escape
-or close, and scrolls independently on a phone-sized viewport.
+At 850px and below Chat, Memory, Tools and Help each use the full workspace width.
+Tools retains Terminal, Files, Browser and Upload; the Chat workbench card covers
+the conversation while open. Navigation preserves chat, draft and workbench state.
+The modal traps focus natively, restores it on Escape or close, and scrolls
+independently on a phone-sized viewport.
 
 See [ADR 0026](adr/0026-gui-session-controls.md) for endpoint sources and
 [the proof](evidence/A008-0065_session-controls-proof.md) for browser/payload gates.
@@ -399,10 +404,12 @@ The contract and limits are specified in [HOST_PROTOCOL.md](HOST_PROTOCOL.md).
 Overview shows actual inventory, lifecycle and contested-slot counts plus domain
 attachments. Knowledge Manager provides substring search, surface/domain/status
 filters, pagination and escaped stored details. It offers no mutation actions.
-The graph shows only stored connections among its bounded nodes, supports keyboard
-selection and zoom, and opens the same inspector. Empty, unavailable, loading and
-truncated states are explicit. The detailed inventory includes unaccepted and
-dormant evidence a chat projection may omit; layout distances are not similarity.
+The graph shows only stored connections among its bounded nodes. A008-0070 lays
+them out as a domain-clustered radial map around a hub record, with kind colours,
+cluster labels, focus mode and zoom. Distances still make no similarity claim.
+The inspector shows chips, a details table and escaped content. Empty,
+unavailable, loading and truncated states are explicit. The detailed inventory
+includes unaccepted and dormant evidence a chat projection may omit.
 
 ### Memory runtime
 

@@ -86,3 +86,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0067 | complete engine distribution and client panel integration | Codex (operator) | 2026-09-07 | engine lifecycle, shared sessions, bundled surfaces, model tools and external adapter |
 | A008-0068 | standalone GUI repository tools | Codex (operator) | 2026-09-07 | native file tools, Git, visible tool catalog and standalone GUI verification |
 | A008-0069 | focused standalone GUI workspace | Codex (operator) | 2026-09-07 | neutral shell, sidebar navigation, optional tools panel and integrated composer |
+| A008-0070 | workbench context, help catalog and readable memory map | Grok (operator) | 2026-09-07 | environment/sources workbench, Help tab, empty-chat shortcuts, clustered memory graph |

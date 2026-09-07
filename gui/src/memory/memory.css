@@ -209,28 +209,28 @@
   margin-left: 1rem;
 }
 .memory-kind-entity {
-  --memory-kind-color: var(--a008-accent);
+  --memory-kind-color: #e8c547;
 }
 .memory-kind-state {
-  --memory-kind-color: var(--a008-good);
+  --memory-kind-color: #5b8def;
 }
 .memory-kind-history {
-  --memory-kind-color: var(--a008-muted);
+  --memory-kind-color: #8a8a8a;
 }
 .memory-kind-claim {
-  --memory-kind-color: var(--a008-fg-soft);
+  --memory-kind-color: #6bcb8b;
 }
 .memory-kind-event {
-  --memory-kind-color: var(--a008-danger);
+  --memory-kind-color: #d08a6a;
 }
 .memory-kind-utterance {
-  --memory-kind-color: var(--a008-accent);
+  --memory-kind-color: #e8a05a;
 }
 .memory-kind-artifact {
-  --memory-kind-color: var(--a008-muted);
+  --memory-kind-color: #a78bfa;
 }
 .memory-kind-provenance {
-  --memory-kind-color: var(--a008-good);
+  --memory-kind-color: #5ec8d6;
 }
 .memory-kind-dot {
   width: 0.45rem;
@@ -332,9 +332,12 @@
 }
 .memory-explorer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(235px, 290px);
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
   gap: 1rem;
   align-items: start;
+}
+.memory-metrics-graph {
+  grid-column: 1 / -1;
 }
 .memory-inspector {
   position: sticky;
@@ -350,22 +353,64 @@
   font-size: 1.25rem;
 }
 .memory-inspector h3 {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   line-height: 1.65;
   overflow-wrap: anywhere;
   font-weight: 500;
+  margin: 0.7rem 0 0.4rem;
 }
-.memory-inspector dl {
+.memory-inspector-id {
+  font-size: 0.68rem;
+  margin: 0 0 0.8rem;
+}
+.memory-inspector-id dt {
+  color: var(--a008-muted);
+}
+.memory-inspector-id dd {
+  margin: 0.2rem 0 0;
+  font-family: var(--a008-mono);
+  overflow-wrap: anywhere;
+  line-height: 1.45;
+}
+.memory-chip-block {
+  margin: 0.7rem 0;
+}
+.memory-chip-block > span {
+  display: block;
+  color: var(--a008-muted);
+  font-size: 0.65rem;
+  margin-bottom: 0.35rem;
+}
+.memory-chip-block em {
+  font-style: normal;
+  color: var(--a008-muted);
   font-size: 0.72rem;
 }
-.memory-inspector dt {
-  color: var(--a008-muted);
-  margin-top: 1rem;
+.memory-chip {
+  display: inline-block;
+  margin: 0 0.3rem 0.3rem 0;
+  padding: 0.18rem 0.45rem;
+  border: 1px solid var(--a008-border-strong);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  color: var(--a008-fg-soft);
 }
-.memory-inspector dd {
-  margin: 0.25rem 0;
+.memory-inspector-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  margin: 0.6rem 0 1rem;
+}
+.memory-inspector-table th {
+  text-align: left;
+  font-weight: 450;
+  color: var(--a008-muted);
+  padding: 0.35rem 0.5rem 0.35rem 0;
+  width: 8rem;
+}
+.memory-inspector-table td {
+  padding: 0.35rem 0;
   overflow-wrap: anywhere;
-  line-height: 1.5;
 }
 .memory-inspector summary {
   cursor: pointer;
@@ -535,11 +580,33 @@
 .memory-graph-scroll {
   overflow: auto;
   width: 100%;
-  height: min(65vh, 640px);
-  min-height: 350px;
-  background: var(--a008-bg);
+  height: min(70vh, 780px);
+  min-height: 380px;
+  background: #101010;
   border: 1px solid var(--a008-border);
-  border-radius: 4px;
+  border-radius: 8px;
+}
+.memory-graph-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.memory-focus-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--a008-muted);
+  font-size: 0.72rem;
+}
+.memory-cluster text {
+  fill: var(--a008-muted);
+  font: 11px var(--a008-sans);
+  text-anchor: middle;
+  letter-spacing: 0.04em;
+}
+.memory-cluster-count {
+  fill: var(--a008-dim);
+  font: 9px var(--a008-mono) !important;
 }
 .memory-graph svg {
   display: block;
@@ -547,11 +614,11 @@
   min-height: 100%;
 }
 .memory-edge line {
-  stroke: var(--a008-border-strong);
-  stroke-width: 1.2;
+  stroke: rgba(232, 197, 71, 0.28);
+  stroke-width: 1.15;
 }
 .memory-edge.selected line {
-  stroke: var(--a008-accent);
+  stroke: #e8c547;
   stroke-width: 1.8;
 }
 .memory-graph marker path {
@@ -570,20 +637,30 @@
 }
 .memory-node circle {
   fill: var(--memory-kind-color);
-  stroke: var(--a008-bg);
+  stroke: #101010;
   stroke-width: 3;
+}
+.memory-node.hub circle,
+.memory-node.selected circle {
+  fill: #e8c547;
+  stroke: #f5e6a3;
+  stroke-width: 2;
 }
 .memory-node text {
   fill: var(--a008-fg-soft);
-  font: 10px var(--a008-sans);
+  font: 11px var(--a008-sans);
   paint-order: stroke;
-  stroke: var(--a008-bg);
-  stroke-width: 3px;
+  stroke: #101010;
+  stroke-width: 4px;
   stroke-linejoin: round;
+}
+.memory-node.hub text {
+  font-weight: 600;
+  fill: #f3f0e4;
 }
 .memory-node.selected circle,
 .memory-node:focus circle {
-  stroke: var(--a008-fg);
+  stroke: #fff6c8;
 }
 .memory-node:focus {
   outline: none;

@@ -11,6 +11,9 @@ the template before push.
 
 ## Records
 
+- [A008-0070_workbench-help-memory-map.md](A008-0070_workbench-help-memory-map.md) —
+  Complete locally; [archive](../finished/A008-0070_workbench-help-memory-map.md),
+  workbench context, Help catalog and clustered memory map.
 - [A008-0067_engine-package.md](A008-0067_engine-package.md) — Complete locally;
   [archive](../finished/A008-0067_engine-package.md), engine/panel/tool distribution.
 - [A008-0066_runtime-preferences.md](A008-0066_runtime-preferences.md) — Complete;

@@ -138,6 +138,8 @@ test("inspector escapes untrusted content and exposes acceptance separately from
   assert.match(html, /&lt;script&gt;/u);
   assert.match(html, /asserted/u);
   assert.match(html, /dormant/u);
+  assert.match(html, /memory-chip/u);
+  assert.match(html, /runtime/u);
   const state = renderToStaticMarkup(
     createElement(MemoryInspector, {
       record: {
@@ -164,6 +166,7 @@ test("graph is deterministic and keyboard inspectable without invented links", (
   assert.match(html, /role="button"/u);
   assert.match(html, /tabindex="0"/u);
   assert.match(html, /No stored links connect/u);
+  assert.match(html, /Focus mode/u);
   assert.equal(html.includes("<line"), false);
   const bounded = renderToStaticMarkup(
     createElement(MemoryGraph, {
@@ -173,4 +176,39 @@ test("graph is deterministic and keyboard inspectable without invented links", (
     }),
   );
   assert.match(bounded, /Bounded graph/u);
+});
+
+test("graph clusters neighbour records by primary domain around a hub", () => {
+  const other: MemoryRecord = {
+    ...record,
+    id: "utterance:other",
+    sourceId: "other",
+    kind: "utterance",
+    domains: ["cognition"],
+    label: "neighbour",
+  };
+  const layout = layoutGraph(
+    [record, other],
+    [{ from: record.id, to: other.id, relation: "about" }],
+    record.id,
+  );
+  assert.equal(layout.hubId, record.id);
+  assert.equal(layout.points.length, 2);
+  assert.equal(layout.clusters.length, 1);
+  assert.equal(layout.clusters[0]?.name, "cognition");
+  const html = renderToStaticMarkup(
+    createElement(MemoryGraph, {
+      graph: {
+        nodes: [record, other],
+        edges: [{ from: record.id, to: other.id, relation: "about" }],
+        totalNodes: 2,
+        totalEdges: 1,
+      },
+      selected: record.id,
+      onSelect() {},
+    }),
+  );
+  assert.match(html, /cognition/u);
+  assert.match(html, /1 nodes/u);
+  assert.match(html, /<line/u);
 });
