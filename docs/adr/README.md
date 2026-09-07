@@ -117,3 +117,4 @@ replacement.
   messages. Closes ADR 0023 D5. Its D5 records a ceiling that is not in the
   owner's specification, and why.
 - [0027 — Runtime preferences and instructions](0027-runtime-preferences-and-instructions.md)
+- [0028 — Engine package and panels](0028-engine-package-and-panels.md)
