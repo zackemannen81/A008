@@ -9,6 +9,7 @@ import {
 import type { ModelRegistry } from "../core/model-registry.js";
 import {
   loadProviderSecrets,
+  resolveKieApiKey,
   resolveNvidiaApiKey,
   saveProviderSecrets,
 } from "../core/provider-secrets.js";
@@ -18,10 +19,13 @@ import {
   removeUserChatModel,
   saveUserCatalog,
   userModelProfile,
+  type CatalogProvider,
   type UserChatModel,
 } from "../core/user-catalog.js";
 import { fetchNvidiaCatalog } from "../providers/nvidia/nvidia-catalog.js";
 import { NvidiaImageTransport } from "../providers/nvidia/nvidia-image-transport.js";
+import { KieJobTransport } from "../providers/kie/kie-jobs.js";
+import { KIE_MARKET_MODELS } from "../providers/kie/kie-models.js";
 import { blobPath, sanitiseUploadFilename, writeBlob } from "./source-store.js";
 
 export type FetchLike = typeof fetch;
@@ -94,8 +98,25 @@ export function handleNvidiaCatalogRemove(catalogPath: string, id: string): void
   saveUserCatalog(catalogPath, removeUserChatModel(loadUserCatalog(catalogPath), id.trim()));
 }
 
+export function handleKieCatalogGet(catalogPath: string) {
+  const catalog = loadUserCatalog(catalogPath);
+  const added = new Set(catalog.chatModels.map((model) => model.id));
+  return {
+    source: "https://docs.kie.ai/",
+    browse: "https://kie.ai/market",
+    note: "kie.ai is an aggregator. Chat uses OpenAI-compatible completions; images use async Market jobs. Media URLs expire; A008 stores a local copy.",
+    models: KIE_MARKET_MODELS.map((model) => ({
+      id: model.id,
+      kind: model.kind,
+      name: model.name,
+      added: added.has(model.id) || catalog.kie.imageModel === model.id,
+    })),
+  };
+}
+
 export async function handleImageGenerate(input: {
   apiKey: string | undefined;
+  kieApiKey: string | undefined;
   fetch: FetchLike;
   catalogPath: string;
   storeRoot: string | undefined;
@@ -107,30 +128,49 @@ export async function handleImageGenerate(input: {
   mediaType: string;
   filename: string;
 }> {
-  if (!input.apiKey) {
-    throw new ChatError(
-      "configuration",
-      "NVIDIA_API_KEY is not configured. Set it in Parameters → Provider.",
-    );
-  }
   if (!input.storeRoot) {
     throw new ChatError("configuration", "A008_SOURCE_STORE_PATH is required to store generated images.");
   }
   if (!isRecord(input.body) || typeof input.body.prompt !== "string") {
     throw new ChatError("configuration", "prompt must be a string.");
   }
+  const prompt = input.body.prompt;
+  const width = input.body.width;
+  const height = input.body.height;
+  const seed = input.body.seed;
   const catalog = loadUserCatalog(input.catalogPath);
-  const transport = new NvidiaImageTransport({
-    apiKey: input.apiKey,
-    endpoint: catalog.image.endpoint,
-    fetch: input.fetch,
-  });
-  const generated = await transport.generate({
-    prompt: input.body.prompt,
-    ...(typeof input.body.width === "number" ? { width: input.body.width } : {}),
-    ...(typeof input.body.height === "number" ? { height: input.body.height } : {}),
-    ...(typeof input.body.seed === "number" ? { seed: input.body.seed } : {}),
-  });
+  const generated =
+    catalog.imageProvider === "kie"
+      ? await (async () => {
+          if (!input.kieApiKey) {
+            throw new ChatError(
+              "configuration",
+              "KIE_API_KEY is not configured. Set it in Parameters → Provider.",
+            );
+          }
+          return new KieJobTransport({ apiKey: input.kieApiKey, fetch: input.fetch }).generateImage(
+            catalog.kie.imageModel,
+            prompt,
+          );
+        })()
+      : await (async () => {
+          if (!input.apiKey) {
+            throw new ChatError(
+              "configuration",
+              "NVIDIA_API_KEY is not configured. Set it in Parameters → Provider.",
+            );
+          }
+          return new NvidiaImageTransport({
+            apiKey: input.apiKey,
+            endpoint: catalog.image.endpoint,
+            fetch: input.fetch,
+          }).generate({
+            prompt,
+            ...(typeof width === "number" ? { width } : {}),
+            ...(typeof height === "number" ? { height } : {}),
+            ...(typeof seed === "number" ? { seed } : {}),
+          });
+        })();
   const sha256 = createHash("sha256").update(generated.bytes).digest("hex");
   const filename = sanitiseUploadFilename(
     generated.mediaType === "image/jpeg" ? "generated.jpg" : "generated.png",
@@ -166,12 +206,20 @@ export function handleBlobGet(
 
 export function providerSettingsView(catalogPath: string, secretsPath: string, env: NodeJS.ProcessEnv) {
   const catalog = loadUserCatalog(catalogPath);
-  const key = resolveNvidiaApiKey(env, secretsPath);
+  const nvidia = resolveNvidiaApiKey(env, secretsPath);
+  const kie = resolveKieApiKey(env, secretsPath);
   return {
-    nvidiaApiKeyConfigured: Boolean(key),
+    nvidiaApiKeyConfigured: Boolean(nvidia),
+    kieApiKeyConfigured: Boolean(kie),
     imageModel: catalog.image.model,
     imageEndpoint: catalog.image.endpoint,
-    keySource: env.NVIDIA_API_KEY?.trim() ? "environment" : key ? "secrets-file" : "missing",
+    chatProvider: catalog.chatProvider,
+    imageProvider: catalog.imageProvider,
+    kieChatModel: catalog.kie.chatModel,
+    kieChatEndpoint: catalog.kie.chatEndpoint,
+    kieImageModel: catalog.kie.imageModel,
+    keySource: env.NVIDIA_API_KEY?.trim() ? "environment" : nvidia ? "secrets-file" : "missing",
+    kieKeySource: env.KIE_API_KEY?.trim() ? "environment" : kie ? "secrets-file" : "missing",
   };
 }
 
@@ -184,32 +232,57 @@ export function handleProviderSettingsPost(input: {
   if (!isRecord(input.body)) {
     throw new ChatError("configuration", "Provider settings must be a JSON object.");
   }
+  const currentSecrets = loadProviderSecrets(input.secretsPath);
+  let nvidiaApiKey = currentSecrets.nvidiaApiKey;
+  let kieApiKey = currentSecrets.kieApiKey;
   if (typeof input.body.nvidiaApiKey === "string") {
     const key = input.body.nvidiaApiKey.trim();
     if (key.length === 0) {
       throw new ChatError("configuration", "nvidiaApiKey must be non-empty when provided.");
     }
-    const current = loadProviderSecrets(input.secretsPath);
-    saveProviderSecrets(input.secretsPath, { ...current, nvidiaApiKey: key });
+    nvidiaApiKey = key;
   }
-  if (
-    typeof input.body.imageModel === "string" ||
-    typeof input.body.imageEndpoint === "string"
-  ) {
-    const catalog = loadUserCatalog(input.catalogPath);
-    saveUserCatalog(input.catalogPath, {
-      ...catalog,
-      image: {
-        model:
-          typeof input.body.imageModel === "string" && input.body.imageModel.trim()
-            ? input.body.imageModel.trim()
-            : catalog.image.model,
-        endpoint:
-          typeof input.body.imageEndpoint === "string" && input.body.imageEndpoint.trim()
-            ? input.body.imageEndpoint.trim()
-            : catalog.image.endpoint,
-      },
-    });
+  if (typeof input.body.kieApiKey === "string") {
+    const key = input.body.kieApiKey.trim();
+    if (key.length === 0) {
+      throw new ChatError("configuration", "kieApiKey must be non-empty when provided.");
+    }
+    kieApiKey = key;
   }
+  if (nvidiaApiKey !== currentSecrets.nvidiaApiKey || kieApiKey !== currentSecrets.kieApiKey) {
+    saveProviderSecrets(input.secretsPath, { nvidiaApiKey, kieApiKey });
+  }
+  const catalog = loadUserCatalog(input.catalogPath);
+  const asProvider = (value: unknown): CatalogProvider | undefined =>
+    value === "kie" || value === "nvidia" ? value : undefined;
+  saveUserCatalog(input.catalogPath, {
+    ...catalog,
+    chatProvider: asProvider(input.body.chatProvider) ?? catalog.chatProvider,
+    imageProvider: asProvider(input.body.imageProvider) ?? catalog.imageProvider,
+    image: {
+      model:
+        typeof input.body.imageModel === "string" && input.body.imageModel.trim()
+          ? input.body.imageModel.trim()
+          : catalog.image.model,
+      endpoint:
+        typeof input.body.imageEndpoint === "string" && input.body.imageEndpoint.trim()
+          ? input.body.imageEndpoint.trim()
+          : catalog.image.endpoint,
+    },
+    kie: {
+      chatModel:
+        typeof input.body.kieChatModel === "string" && input.body.kieChatModel.trim()
+          ? input.body.kieChatModel.trim()
+          : catalog.kie.chatModel,
+      chatEndpoint:
+        typeof input.body.kieChatEndpoint === "string" && input.body.kieChatEndpoint.trim()
+          ? input.body.kieChatEndpoint.trim()
+          : catalog.kie.chatEndpoint,
+      imageModel:
+        typeof input.body.kieImageModel === "string" && input.body.kieImageModel.trim()
+          ? input.body.kieImageModel.trim()
+          : catalog.kie.imageModel,
+    },
+  });
   return providerSettingsView(input.catalogPath, input.secretsPath, input.env);
 }

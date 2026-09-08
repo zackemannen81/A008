@@ -54,7 +54,8 @@ Usage:
   A008 --help
 
 Environment:
-  NVIDIA_API_KEY              Required only for the chat command.
+  NVIDIA_API_KEY              Required for NVIDIA chat (or set KIE_API_KEY).
+  KIE_API_KEY                 Optional kie.ai key for chat and image jobs.
   NVIDIA_CHAT_COMPLETIONS_URL Optional trusted endpoint override.
   A008_PROJECT_ID             Optional stable project runtime ID.
   A008_AGENT_ID               Optional stable agent runtime ID.

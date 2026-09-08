@@ -52,8 +52,10 @@ client ──HTTP/WS──> A008 GUI host ──stdio ACP──> A008-acp ──
 
 Chat completions still run in the ACP subprocess. ADR 0032 lets the host call
 NVIDIA's catalog (`GET /v1/models` upstream) and image-generation endpoints with
-the process or secrets-file key. The renderer never sees a credential. `GET`
-provider-settings reports only whether a key is configured.
+the process or secrets-file key. ADR 0033 adds kie.ai: curated catalog, OpenAI-
+compatible chat in ACP, and async Market image jobs on the host. The renderer
+never sees a credential. `GET` provider-settings reports only whether each key
+is configured.
 
 Start it with `npm run gui-host`, or `npm run gui` to build the bundled test
 surface first. Default bind is `127.0.0.1:8787`.
@@ -116,7 +118,54 @@ Each model also carries `defaults` (the complete parameter object below) and
 controls for the hosted endpoint. The current model list has six entries.
 Defaults here come from model profiles; environment overrides appear in the
 session snapshot after connection. No environment values or input modalities
-are published by this route.
+are published by this route. User-catalog additions (NVIDIA Build or kie.ai)
+appear here after they are added from Parameters → Provider.
+
+### `GET /v1/catalog/nvidia`
+
+Live NVIDIA Build list. Needs `NVIDIA_API_KEY`. Never returns the key.
+
+### `GET /v1/catalog/kie`
+
+Curated kie.ai market ids (chat, image, video). Needs no credential. Video is
+listed, not invoked.
+
+### `POST /v1/catalog/nvidia`
+
+```json
+{ "id": "gemini-3-flash", "provider": "kie" }
+```
+
+Adds a chat model to `~/.a008/catalog.json`. `provider` defaults to `nvidia`.
+
+### `DELETE /v1/catalog/nvidia?id=`
+
+Removes that user-catalog chat model.
+
+### `GET /v1/provider-settings`
+
+Reports `nvidiaApiKeyConfigured`, `kieApiKeyConfigured`, `chatProvider`,
+`imageProvider`, NVIDIA image model/endpoint, kie chat/image model ids, and
+key sources (`environment` | `secrets-file` | `missing`). Never the key.
+
+### `POST /v1/provider-settings`
+
+Write-only NVIDIA and/or kie API keys plus the catalog fields above. Empty key
+strings are rejected. Omitted keys leave the stored value unchanged.
+
+### `POST /v1/images`
+
+```json
+{ "prompt": "a coffee shop interior" }
+```
+
+Uses `imageProvider`. NVIDIA path is the configured NIM; kie path is
+createTask + recordInfo, then the first result URL is downloaded. Stores
+PNG/JPEG in the source store and returns a `source:<sha256>/…` locator.
+
+### `GET /v1/blobs/:sha256/:name`
+
+Serves a stored generated image. Private cache.
 
 ### `POST /v1/shell`
 
@@ -280,7 +329,8 @@ expose cwd, project identity, memory path and effective generation settings.
 | `A008_GUI_HOST_PORT` | listen port, default `8787` |
 | `A008_GUI_HOST_ALLOWED_ORIGINS` | extra origins, comma-separated, empty by default |
 | `A008_SOURCE_STORE_PATH` | upload store; must be outside the repository. Unset disables uploads |
-| `NVIDIA_API_KEY` | provider credential |
+| `NVIDIA_API_KEY` | NVIDIA provider credential |
+| `KIE_API_KEY` | optional kie.ai credential |
 | `A008_MEMORY_SQLITE_PATH` | memory store; must be outside the repository |
 | `A008_PROJECT_ID`, `A008_AGENT_ID` | canonical `A008_v1_<kind>_<lowercase UUIDv4>` |
 | `A008_PROVIDER_TIMEOUT_MS` | per-request ceiling, default `180000` |

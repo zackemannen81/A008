@@ -1,20 +1,29 @@
 import { useEffect, useState } from "react";
 import {
   addNvidiaModel,
+  loadKieCatalog,
   loadNvidiaCatalog,
   loadProviderSettings,
   saveProviderSettings,
+  type KieCatalog,
   type NvidiaCatalog,
   type ProviderSettings,
 } from "./nvidia-catalog.js";
 
 export function NvidiaCatalogPanel() {
   const [catalog, setCatalog] = useState<NvidiaCatalog>();
+  const [kieCatalog, setKieCatalog] = useState<KieCatalog>();
   const [settings, setSettings] = useState<ProviderSettings>();
   const [query, setQuery] = useState("");
   const [key, setKey] = useState("");
+  const [kieKey, setKieKey] = useState("");
   const [imageModel, setImageModel] = useState("");
   const [imageEndpoint, setImageEndpoint] = useState("");
+  const [chatProvider, setChatProvider] = useState<"nvidia" | "kie">("nvidia");
+  const [imageProvider, setImageProvider] = useState<"nvidia" | "kie">("nvidia");
+  const [kieChatModel, setKieChatModel] = useState("");
+  const [kieChatEndpoint, setKieChatEndpoint] = useState("");
+  const [kieImageModel, setKieImageModel] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,6 +33,16 @@ export function NvidiaCatalogPanel() {
     setSettings(next);
     setImageModel(next.imageModel);
     setImageEndpoint(next.imageEndpoint);
+    setChatProvider(next.chatProvider);
+    setImageProvider(next.imageProvider);
+    setKieChatModel(next.kieChatModel);
+    setKieChatEndpoint(next.kieChatEndpoint);
+    setKieImageModel(next.kieImageModel);
+    try {
+      setKieCatalog(await loadKieCatalog(signal));
+    } catch {
+      setKieCatalog(undefined);
+    }
     try {
       setCatalog(await loadNvidiaCatalog(signal));
     } catch (reason) {
@@ -76,12 +95,67 @@ export function NvidiaCatalogPanel() {
           onChange={(event) => setKey(event.target.value)}
         />
       </label>
+      <h3>kie.ai</h3>
+      <p>
+        Aggregator for chat, image and video models. Docs:{" "}
+        <a href="https://docs.kie.ai/">docs.kie.ai</a>. Chat uses OpenAI-compatible
+        completions; images use async Market jobs. Video is listed but not wired
+        in this slice.
+      </p>
+      <p>
+        kie.ai API key:{" "}
+        {settings?.kieApiKeyConfigured
+          ? `configured (${settings.kieKeySource})`
+          : "missing"}
+      </p>
       <label>
-        Image model
+        kie.ai API key
+        <input
+          type="password"
+          autoComplete="off"
+          value={kieKey}
+          placeholder="write only; never shown again"
+          onChange={(event) => setKieKey(event.target.value)}
+        />
+      </label>
+      <label>
+        Chat provider
+        <select
+          value={chatProvider}
+          onChange={(event) => setChatProvider(event.target.value === "kie" ? "kie" : "nvidia")}
+        >
+          <option value="nvidia">NVIDIA</option>
+          <option value="kie">kie.ai</option>
+        </select>
+      </label>
+      <label>
+        Image provider
+        <select
+          value={imageProvider}
+          onChange={(event) => setImageProvider(event.target.value === "kie" ? "kie" : "nvidia")}
+        >
+          <option value="nvidia">NVIDIA</option>
+          <option value="kie">kie.ai</option>
+        </select>
+      </label>
+      <label>
+        kie.ai chat model
+        <input value={kieChatModel} onChange={(event) => setKieChatModel(event.target.value)} />
+      </label>
+      <label>
+        kie.ai chat endpoint
+        <input value={kieChatEndpoint} onChange={(event) => setKieChatEndpoint(event.target.value)} />
+      </label>
+      <label>
+        kie.ai image model
+        <input value={kieImageModel} onChange={(event) => setKieImageModel(event.target.value)} />
+      </label>
+      <label>
+        NVIDIA image model
         <input value={imageModel} onChange={(event) => setImageModel(event.target.value)} />
       </label>
       <label>
-        Image endpoint
+        NVIDIA image endpoint
         <input value={imageEndpoint} onChange={(event) => setImageEndpoint(event.target.value)} />
       </label>
       <button
@@ -93,16 +167,23 @@ export function NvidiaCatalogPanel() {
           setNotice("");
           void saveProviderSettings({
             ...(key.trim() ? { nvidiaApiKey: key.trim() } : {}),
+            ...(kieKey.trim() ? { kieApiKey: kieKey.trim() } : {}),
             imageModel,
             imageEndpoint,
+            chatProvider,
+            imageProvider,
+            kieChatModel,
+            kieChatEndpoint,
+            kieImageModel,
           })
             .then((next) => {
               setSettings(next);
               setKey("");
+              setKieKey("");
               setNotice(
-                key.trim()
+                key.trim() || kieKey.trim()
                   ? "Saved. Reconnect the session so chat uses the new key."
-                  : "Image settings saved.",
+                  : "Provider settings saved.",
               );
             })
             .catch((reason) => {
@@ -164,6 +245,52 @@ export function NvidiaCatalogPanel() {
         ))}
       </ul>
       {visible.length > 80 ? <p>Showing 80 of {visible.length}. Filter to narrow.</p> : null}
+      {kieCatalog ? (
+        <>
+          <h3>kie.ai market (curated)</h3>
+          <p className="a008-catalog-note">{kieCatalog.note}</p>
+          <ul>
+            {kieCatalog.models.map((model) => (
+              <li key={model.id}>
+                <code>{model.id}</code>
+                <span>{model.kind}</span>
+                <button
+                  type="button"
+                  disabled={busy || model.added || model.kind === "video"}
+                  onClick={() => {
+                    setBusy(true);
+                    setError("");
+                    const work =
+                      model.kind === "image"
+                        ? saveProviderSettings({
+                            imageProvider: "kie",
+                            kieImageModel: model.id,
+                          })
+                        : model.kind === "video"
+                          ? Promise.reject(new Error("Video models are listed but not wired yet."))
+                          : addNvidiaModel(model.id, fetch, "kie").then(() =>
+                              saveProviderSettings({
+                                chatProvider: "kie",
+                                kieChatModel: model.id,
+                                kieChatEndpoint: `https://api.kie.ai/${encodeURIComponent(model.id)}/v1/chat/completions`,
+                              }),
+                            );
+                    void work
+                      .then(() => refresh())
+                      .then(() => setNotice(`Selected ${model.id}.`))
+                      .catch((reason) => {
+                        setError(reason instanceof Error ? reason.message : "Add failed.");
+                      })
+                      .finally(() => setBusy(false));
+                  }}
+                >
+                  {model.kind === "video" ? "Not wired" : model.added ? "Added" : "Use"}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
       {error ? <p role="alert">{error}</p> : null}
       {notice ? <p role="status">{notice}</p> : null}
     </section>

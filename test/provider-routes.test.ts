@@ -6,8 +6,10 @@ import test from "node:test";
 import { defaultModelRegistry } from "../src/core/model-registry.js";
 import {
   handleImageGenerate,
+  handleKieCatalogGet,
   handleNvidiaCatalogAdd,
   handleNvidiaCatalogGet,
+  handleProviderSettingsPost,
   mergedModels,
   providerSettingsView,
 } from "../src/gui-host/provider-routes.js";
@@ -58,6 +60,7 @@ test("image generate stores a blob and returns a locator, not the credential", a
   writeFileSync(catalogPath, JSON.stringify({ version: 1, chatModels: [], image: { model: "x", endpoint: "https://example.test/img" } }));
   const result = await handleImageGenerate({
     apiKey: "nvapi-test",
+    kieApiKey: undefined,
     fetch: async () =>
       new Response(JSON.stringify({ artifacts: [{ base64: PNG.toString("base64") }] })),
     catalogPath,
@@ -78,5 +81,64 @@ test("provider settings report configured without echoing a key", () => {
   );
   assert.equal(view.nvidiaApiKeyConfigured, true);
   assert.equal(view.keySource, "environment");
+  assert.equal(view.kieApiKeyConfigured, false);
   assert.equal("nvidiaApiKey" in view, false);
+  assert.equal("kieApiKey" in view, false);
+});
+
+test("kie catalog is curated and needs no API key", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a008-kie-cat-"));
+  const listed = handleKieCatalogGet(join(dir, "catalog.json"));
+  const body = JSON.stringify(listed);
+  assert.match(body, /docs\.kie\.ai/u);
+  assert.ok(listed.models.some((model) => model.id === "gemini-3-flash" && model.kind === "chat"));
+  assert.ok(listed.models.some((model) => model.kind === "video"));
+});
+
+test("saving a kie key does not echo it back", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a008-kie-sec-"));
+  const view = handleProviderSettingsPost({
+    catalogPath: join(dir, "catalog.json"),
+    secretsPath: join(dir, "secrets.json"),
+    env: {},
+    body: { kieApiKey: "kie-secret-value", chatProvider: "kie" },
+  });
+  assert.equal(view.kieApiKeyConfigured, true);
+  assert.equal(view.chatProvider, "kie");
+  assert.equal(JSON.stringify(view).includes("kie-secret-value"), false);
+});
+
+test("kie image generate stores a blob and never returns the credential", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "a008-kie-img-"));
+  const catalogPath = join(dir, "catalog.json");
+  writeFileSync(
+    catalogPath,
+    JSON.stringify({ version: 1, imageProvider: "kie", kie: { imageModel: "flux-2/flex-text-to-image" } }),
+  );
+  const result = await handleImageGenerate({
+    apiKey: undefined,
+    kieApiKey: "kie-secret",
+    fetch: async (input) => {
+      const url = String(input);
+      if (url.includes("createTask")) {
+        return new Response(JSON.stringify({ code: 200, data: { taskId: "task_gui" } }));
+      }
+      if (url.includes("recordInfo")) {
+        return new Response(
+          JSON.stringify({
+            data: { state: "success", resultJson: JSON.stringify({ resultUrls: ["https://example.test/k.png"] }) },
+          }),
+        );
+      }
+      if (url === "https://example.test/k.png") {
+        return new Response(PNG);
+      }
+      throw new Error(url);
+    },
+    catalogPath,
+    storeRoot: join(dir, "store"),
+    body: { prompt: "a coffee shop interior" },
+  });
+  assert.match(result.locator, /^source:[a-f0-9]{64}\/generated\.png$/u);
+  assert.equal(JSON.stringify(result).includes("kie-secret"), false);
 });

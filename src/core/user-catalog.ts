@@ -7,6 +7,11 @@ import {
   DEFAULT_IMAGE_MODEL,
   NVIDIA_IMAGE_GENERATE_URL,
 } from "../providers/nvidia/nvidia-image-transport.js";
+import {
+  DEFAULT_KIE_CHAT_MODEL,
+  DEFAULT_KIE_IMAGE_MODEL,
+  kieChatCompletionsUrl,
+} from "../providers/kie/kie-models.js";
 
 export const CATALOG_PATH_ENV = "A008_CATALOG_PATH";
 export const DEFAULT_USER_IMAGE_MODEL = DEFAULT_IMAGE_MODEL;
@@ -24,16 +29,36 @@ export interface UserImageSettings {
   readonly endpoint: string;
 }
 
+export type CatalogProvider = "nvidia" | "kie";
+
+export interface KieCatalogSettings {
+  readonly chatModel: string;
+  readonly chatEndpoint: string;
+  readonly imageModel: string;
+}
+
 export interface UserCatalog {
   readonly version: 1;
   readonly chatModels: readonly UserChatModel[];
   readonly image: UserImageSettings;
+  readonly chatProvider: CatalogProvider;
+  readonly imageProvider: CatalogProvider;
+  readonly kie: KieCatalogSettings;
 }
+
+const DEFAULT_KIE: KieCatalogSettings = {
+  chatModel: DEFAULT_KIE_CHAT_MODEL,
+  chatEndpoint: kieChatCompletionsUrl(DEFAULT_KIE_CHAT_MODEL),
+  imageModel: DEFAULT_KIE_IMAGE_MODEL,
+};
 
 const EMPTY: UserCatalog = {
   version: 1,
   chatModels: [],
   image: { model: DEFAULT_USER_IMAGE_MODEL, endpoint: DEFAULT_USER_IMAGE_ENDPOINT },
+  chatProvider: "nvidia",
+  imageProvider: "nvidia",
+  kie: DEFAULT_KIE,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -86,7 +111,30 @@ export function parseUserCatalog(value: unknown): UserCatalog {
       });
     }
   }
-  return { version: 1, chatModels, image };
+  const provider = (value: unknown): CatalogProvider => (value === "kie" ? "kie" : "nvidia");
+  const kieRaw = isRecord(value.kie) ? value.kie : {};
+  const kie: KieCatalogSettings = {
+    chatModel:
+      typeof kieRaw.chatModel === "string" && kieRaw.chatModel.trim()
+        ? kieRaw.chatModel.trim()
+        : DEFAULT_KIE.chatModel,
+    chatEndpoint:
+      typeof kieRaw.chatEndpoint === "string" && kieRaw.chatEndpoint.trim()
+        ? kieRaw.chatEndpoint.trim()
+        : DEFAULT_KIE.chatEndpoint,
+    imageModel:
+      typeof kieRaw.imageModel === "string" && kieRaw.imageModel.trim()
+        ? kieRaw.imageModel.trim()
+        : DEFAULT_KIE.imageModel,
+  };
+  return {
+    version: 1,
+    chatModels,
+    image,
+    chatProvider: provider(value.chatProvider),
+    imageProvider: provider(value.imageProvider),
+    kie,
+  };
 }
 
 export function userModelProfile(model: UserChatModel): ModelProfile {

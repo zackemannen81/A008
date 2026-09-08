@@ -1,5 +1,10 @@
 # File Structure
 
+A008-0073 adds `src/providers/kie/` (`kie-models.ts`, `kie-chat-transport.ts`,
+`kie-jobs.ts`), `src/runtime/chat-dispatch.ts`, host `GET /v1/catalog/kie`, and
+Provider settings for a write-only kie key plus `chatProvider`/`imageProvider`.
+Design decision: [ADR 0033](adr/0033-kie-provider.md).
+
 A008-0071 adds `src/providers/nvidia/nvidia-image-transport.ts`,
 `nvidia-catalog.ts`, `src/core/user-catalog.ts`, `src/core/provider-secrets.ts`,
 `src/gui-host/provider-routes.ts`, `gui/src/settings/nvidia-catalog-panel.tsx`,
@@ -77,7 +82,9 @@ A008/
 |  |  |- terminal/                   A008-0036 terminal pane
 |  |  |- settings/                   A008-0037 settings
 |  |  |  |- parameters-panel.tsx     A008-0065 model-aware generation dialog
-|  |  |  `- parameters.css          parameter and session-control styling
+|  |  |  |- parameters.css          parameter and session-control styling
+|  |  |  |- nvidia-catalog.ts        NVIDIA/kie catalog and provider-settings client
+|  |  |  `- nvidia-catalog-panel.tsx Provider keys, NVIDIA Build, kie market
 |  |  |- brand/                      A008-0037 identity
 |  |  `- upload/                     A008-0045 upload client and pane
 |  `- test/                          A008-0039 shared GUI test runner
@@ -93,6 +100,7 @@ A008/
 |  |  |- websocket.ts                minimal dependency-free WebSocket server
 |  |  |- origin.ts                   same-origin/loopback guard
 |  |  |- source-store.ts             A008-0044 content-addressed blob store
+|  |  |- provider-routes.ts          catalog, provider settings, image generate
 |  |  `- redact.ts                   credential and authorization redaction
 |  |- ingest/                        A008-0042 source extraction (ADR 0020)
 |  |  |- types.ts                    SourceExtractor, ExtractedSource, ImageDescriber
@@ -122,6 +130,8 @@ A008/
 |  |  |- model-registry.ts           verified model profiles and lookup
 |  |  |- generation-controls.ts     capabilities, complete parameter sets and validation
 |  |  |- session-control.ts         shared control/snapshot contract
+|  |  |- user-catalog.ts            ~/.a008/catalog.json chat/image provider settings
+|  |  |- provider-secrets.ts        write-only NVIDIA/kie keys in ~/.a008/secrets.json
 |  |  `- chat-session.ts             transactional in-memory conversation
 |  |- identity/
 |  |  |- types.ts                    branded IDs and ACP binding repository port
@@ -189,17 +199,27 @@ A008/
 |  |- benchmark/
 |  |  `- memory-loop.ts              fake-provider/actual-SQLite two-turn proof
 |  |- providers/
-|  |  `- nvidia/
-|  |     |- nvidia-chat-transport.ts  NVIDIA fetch adapter and response mapping
-|  |     |- reasoning-normalizer.ts   SSE channel-transition reasoning isolation
-|  |     `- sse.ts                    chunk-safe SSE data parser
+|  |  |- nvidia/
+|  |  |  |- nvidia-chat-transport.ts  NVIDIA fetch adapter and response mapping
+|  |  |  |- nvidia-image-transport.ts NIM image generate
+|  |  |  |- nvidia-catalog.ts         NVIDIA Build model list
+|  |  |  |- reasoning-normalizer.ts   SSE channel-transition reasoning isolation
+|  |  |  `- sse.ts                    chunk-safe SSE data parser
+|  |  `- kie/
+|  |     |- kie-models.ts             curated market ids and chat URL helper
+|  |     |- kie-chat-transport.ts     OpenAI-compatible kie chat
+|  |     `- kie-jobs.ts               createTask + recordInfo image poll
 |  `- runtime/
 |     |- nvidia-session.ts            NVIDIA credential and transport owner
+|     |- chat-dispatch.ts            NVIDIA vs kie chat transport selection
 |     |- local-runtime-config.ts      SQLite, identity, and debug settings
 |     |- debug-trace.ts               opt-in secret-safe JSONL observer
 |     |- user-assertion-gate.ts       runtime-owned new-memory activation
 |     `- local-memory-runtime.ts      CLI/ACP memory composition root
 |- test/                              fake/local chat, ACP, memory, retrieval, identity, and orchestration tests
+|  |- chat-dispatch.test.ts           NVIDIA vs kie chat routing
+|  |- kie-chat-transport.test.ts      kie OpenAI-compatible chat JSON/SSE
+|  |- kie-jobs.test.ts                Market createTask/recordInfo image poll
 |  |- gui-host.test.ts                host routes, upload, WS bridge, credential gate
 |  |- session-controls.test.ts        model parameters, lifecycle and real host/ACP payload proof
 |  |- memory-inspection.test.ts       inventory, nonmutation, bounds, HTTP/ACP proof

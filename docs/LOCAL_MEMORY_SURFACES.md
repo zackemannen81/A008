@@ -115,8 +115,8 @@ npm run cli -- chat
 
 Cost, credential, and data expectations:
 
-- `NVIDIA_API_KEY` is required only for live chat. Automated tests never load
-  `.env.local` and never call a paid endpoint.
+- `NVIDIA_API_KEY` or `KIE_API_KEY` is required for live chat. Automated tests
+  never load `.env.local` and never call a paid endpoint.
 - Local SQLite and optional JSONL traces may contain prompts, answers, and
   extracted propositions. They are ignored by Git. Delete them after testing.
 - Raw traces additionally persist reasoning and semantic JSON. Treat the file
