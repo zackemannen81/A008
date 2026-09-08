@@ -50,3 +50,4 @@ Latest local handoffs: [A008-0071](A008-0071.md) — NVIDIA catalog and images;
 - [`A008-0044.md`](A008-0044.md) — GUI host upload route and blob store. Merged 2026-09-03 (PR #18).
 - [`A008-0045.md`](A008-0045.md) — GUI upload module. Merged 2026-09-03 (PR #17).
 - [A008-0068.md](A008-0068.md) — Standalone GUI repository tools.
+- [A008-0082.md](A008-0082.md) — Complete; independent L3 association lifecycle.
