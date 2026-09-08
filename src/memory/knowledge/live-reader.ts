@@ -127,6 +127,7 @@ export class KnowledgeMemoryReader {
     const result = readKnowledge(
       {
         message: request.message,
+        applicabilityScopes: request.applicabilityScopes,
         verifiedScope: {
           verified: true,
           tags: [

@@ -1,3 +1,4 @@
+import { prepareAssociations } from "./association-commit.js";
 import { DEFAULT_MEMORY_LIFECYCLE_POLICY, isKnowledgeSeverity, parseMemoryLifecyclePolicy, type MemoryLifecyclePolicy } from "../../core/memory-lifecycle-policy.js";
 import type { SemanticOperationContext } from "../../orchestration/semantic-operation.js";
 import { atomicKnowledge } from "./knowledge-transaction.js";
@@ -89,7 +90,14 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     const occurrenceId = origin.kind === "source"
       ? "source:" + createHash("sha256").update(JSON.stringify([input.batch.sourceMessage, source])).digest("hex")
       : `turn:${input.batch.conversationId}:${input.batch.taskId}`;
+    const associations = prepareAssociations(this.#context, targets,
+      source !== undefined && (origin.kind !== "source" || sourceArtifact?.locator === input.batch.sourceMessage)
+        ? { origin: origin.kind === "source" ? "source" : "message", content: source } : undefined,
+      origin.kind === "source" ? input.batch.sourceMessage : occurrenceId,
+      staged.proposal.scope,
+    );
     const classifierInput = {
+      ...(associations.associationContext === undefined ? {} : { associationContext: associations.associationContext }),
       ...(validSupport ? { sourceSupport: { origin: span.source, content: source, start: span.start, end: span.end } } : {}),
       proposal: {
         proposition: staged.proposal.proposition,
@@ -103,14 +111,19 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       candidates,
     };
     const serialized = serializeRelationClassifierInput(classifierInput);
-    const classifierDecision = await this.#classifier.classify(classifierInput, operation);
+    const classifierDecision = await this.#classifier.classify(structuredClone(classifierInput), operation);
     operation.signal?.throwIfAborted();
     if (!classifierDecision || !["new", "restatement", "extend", "supersede", "conflict"].includes(classifierDecision.type)) throw new Error("Invalid live relation decision");
     return atomicKnowledge(this.#context, () => {
       operation.signal?.throwIfAborted();
+      const applyAssociations = (claimId: string, utteranceId: string): readonly string[] => {
+        const result = associations.apply(classifierDecision.associations, claimId, utteranceId, occurrenceId, at, this.#policy);
+        operation.signal?.throwIfAborted();
+        return result;
+      };
       const priorCreation = this.#context.evidence.listClaims().find(claim => claim.label === staged.proposal.proposition && this.#context.lifecycle.get(claim.id)?.lifecycle.creationOccurrenceId === occurrenceId);
       if (priorCreation !== undefined) {
-        return this.#reusedClaimResult(classifierDecision, priorCreation.id, "duplicate_creation", candidates, serialized);
+        return this.#reusedClaimResult(classifierDecision, priorCreation.id, "duplicate_creation", candidates, serialized, classifierDecision.associations === undefined ? [] : applyAssociations(priorCreation.id, this.#ingestOnce(input, at)));
       }
       const utteranceId = this.#ingestOnce(input, at);
       const selected = "targetHandle" in classifierDecision ? targets.get(classifierDecision.targetHandle) : undefined;
@@ -129,7 +142,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         reinforcement = !validSupport || classifierDecision.supportsTarget !== true || committedSource?.content !== source
           ? "skipped_unproven_source"
           : this.#context.lifecycle.reinforceOccurrence({ occurrenceId, evidenceId: selected.id, at, support: { utteranceId, start: span.start, end: span.end } }) ? "applied" : "duplicate_or_creation";
-        return this.#reusedClaimResult(classifierDecision, selected.id, reinforcement, candidates, serialized);
+        return this.#reusedClaimResult(classifierDecision, selected.id, reinforcement, candidates, serialized, applyAssociations(selected.id, utteranceId));
       }
 
       const drafts: readonly ClaimDraft[] = [
@@ -274,6 +287,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           else reinforcement = this.#context.lifecycle.reinforceOccurrence({ occurrenceId, evidenceId: selected.id, at, support: { utteranceId, start: span.start, end: span.end } }) ? "applied" : "duplicate_or_creation";
         }
       }
+      const associationResults = applyAssociations(evidenceClaim?.id ?? "", utteranceId);
       operation.signal?.throwIfAborted();
       const mappedDecision = mappedReconciliation(classifierDecision, relation);
       return {
@@ -286,6 +300,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           conflictTargetIds,
         },
         evidence: {
+          associations: associationResults,
           reinforcement,
           materializedCandidateIds: candidates.map((candidate) => candidate.handle),
           classifierCandidateIds: candidates.map((candidate) => candidate.handle),
@@ -304,12 +319,14 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     reinforcement: string,
     candidates: readonly RelationClassifierCandidate[],
     serialized: string,
+    associations: readonly string[],
   ): RelationGatedCommitResult {
     return {
       classifierDecision,
       reconciliationDecision: { type: "restatement", targetId },
       reconciliation: { relation: "restatement", item: null, previousItem: null, conflictTargetIds: [] },
       evidence: {
+        associations,
         reinforcement,
         materializedCandidateIds: candidates.map(candidate => candidate.handle),
         classifierCandidateIds: candidates.map(candidate => candidate.handle),

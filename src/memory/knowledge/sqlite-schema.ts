@@ -1,4 +1,4 @@
-export const KNOWLEDGE_SQLITE_SCHEMA_VERSION = 3;
+export const KNOWLEDGE_SQLITE_SCHEMA_VERSION = 4;
 
 export const KNOWLEDGE_SQLITE_SCHEMA = `
 CREATE TABLE IF NOT EXISTS A008_knowledge_schema (
@@ -207,6 +207,28 @@ CREATE TABLE IF NOT EXISTS A008_knowledge_relations (
   to_id TEXT NOT NULL,
   relation TEXT NOT NULL,
   PRIMARY KEY(namespace, from_id, to_id, relation)
+);
+
+CREATE TABLE IF NOT EXISTS A008_knowledge_association_lifecycle (
+  namespace TEXT NOT NULL,
+  edge_key TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  PRIMARY KEY(namespace, edge_key)
+);
+
+CREATE TABLE IF NOT EXISTS A008_knowledge_association_receipts (
+  namespace TEXT NOT NULL,
+  occurrence_id TEXT NOT NULL,
+  edge_key TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  PRIMARY KEY(namespace, occurrence_id, edge_key)
+);
+
+CREATE TABLE IF NOT EXISTS A008_knowledge_association_transitions (
+  namespace TEXT NOT NULL,
+  seq INTEGER NOT NULL,
+  payload_json TEXT NOT NULL,
+  PRIMARY KEY(namespace, seq)
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS A008_knowledge_fts USING fts5(

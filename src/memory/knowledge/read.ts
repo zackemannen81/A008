@@ -19,6 +19,7 @@ import { retrieve } from "./retrieve.js";
 import { KnowledgeState } from "./state.js";
 
 export interface ReadInput extends DefineInput {
+  readonly applicabilityScopes?: readonly string[];
   readonly budget?: ProjectBudget;
   readonly taskTags?: readonly string[];
 }
@@ -47,7 +48,7 @@ export function readKnowledge(
   input: ReadInput,
   context: KnowledgeReadContext,
 ): ReadResult {
-  context = { ...context, evaluatedAt: context.evaluatedAt ?? context.lifecycle.now() };
+  context = { ...context, ...(input.applicabilityScopes === undefined ? {} : { applicabilityScopes: input.applicabilityScopes }), evaluatedAt: context.evaluatedAt ?? context.lifecycle.now() };
   const scope = define(input, context);
   const retrieved = retrieve(scope, context, { message: input.message });
   const expanded = expand(retrieved, scope, context, { message: input.message });

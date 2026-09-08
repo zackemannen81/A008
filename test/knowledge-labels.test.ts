@@ -559,7 +559,7 @@ test("a version 1 database opens and is migrated, not refused", () => {
       projectId: sqliteKnowledgeTestProjectId(),
     });
     try {
-      assert.equal(handle.store.schemaVersion, 3);
+      assert.equal(handle.store.schemaVersion, 4);
       assert.deepEqual(handle.context.labels.list(), []);
       handle.context.labels.attach({
         recordId: "u1",
@@ -578,7 +578,7 @@ test("a version 1 database opens and is migrated, not refused", () => {
       const row = check
         .prepare("SELECT version FROM A008_knowledge_schema WHERE singleton = 1")
         .get() as { readonly version: number };
-      assert.equal(row.version, 3);
+      assert.equal(row.version, 4);
     } finally {
       check.close();
     }

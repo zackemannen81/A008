@@ -544,7 +544,7 @@ unclassified with strength 1, threshold 0.5, half-life 90 days and no inferred
 pin. One day means 86400 seconds, not a calendar interval.
 
 The existing global runtime preferences owner accepts the advanced
-`memoryLifecycle` object (settings format 3), validated by
+`memoryLifecycle` object (settings format 4, reading formats 1-3), validated by
 `src/core/memory-lifecycle-policy.ts`. No new policy editor is introduced.
 Existing clients saving only instructions/budgets preserve this object.
 Operation snapshots and stored numeric policies prevent mid-operation changes
@@ -596,6 +596,69 @@ dormant  =/=> unusable
 dormant  =/=> ineligible for a direct match
 ```
 
+### 7.5 Independent semantic associations
+
+Implemented L3 amendment: [ADR 0035](adr/0035-frozen-instruction-and-memory-target.md),
+P6. Association persistence is independent metadata beside `RelationIndex`, never
+lifecycle on a `RelationshipBinding`, entity or evidence endpoint.
+
+Identity is the enclosing project namespace plus canonical from/to IDs, the exact
+semantic relation type and a sorted, duplicate-free applicability scope. Direction
+is preserved; no current relation definition declares symmetry. Binding intervals
+never identify this record. Changing direction, endpoint, relation or scope selects
+a different edge. Domain/display/provenance links and co-occurrence are not
+promoted into semantic associations by storage, graph inspection or retrieval.
+
+The existing relation comparator may return independently supported associations.
+Candidate claim handles and registry entity handles map to exact canonical IDs;
+`proposal` resolves only to the actual committed/reused claim. The runtime never
+creates an endpoint for an association. It revalidates captured endpoints after
+asynchronous comparison and under the existing commit lock. If resolution fails,
+it skips and reports that edge. This first live producer handles existing claims,
+registry entities and the actual proposal; it does not infer missing entities or
+add an extraction/classification call when intake produces no proposal.
+
+Every edge update requires its own affirmative semantic support and non-empty
+UTF-16 span in the original message or attributed source, with matching locator,
+content, origin and valid bounds. Proposal/answer text, endpoint co-retrieval,
+questions, mere quotation and traversal are not new evidence. Claim support and
+edge support are independent: one occurrence may justify either or both, each
+with its own receipt and proof. Strength writes never accept/reject a claim,
+change confidence, establish a binding, resolve a conflict or rewrite world time.
+
+An association stores `association-exponential-v1`, baseline strength,
+`strengthUpdatedAt`, lambda, threshold, boost, cap and actual last-reinforcement
+time (null at creation). The accepted creation policy is strength 0.4, half-life
+45 days, threshold 0.2, boost 0.2 and cap 1. Day 45 is exactly active; after that
+an unreinforced default edge is dormant. Evaluation uses the same pure arithmetic
+as §7.2. Reinforcement first decays, then adds the stored boost and caps at 1;
+backward time cannot move the baseline earlier. A new occurrence at cap refreshes
+the baseline; a small boost can leave an edge dormant.
+
+Creation and recurrence each record an occurrence/edge receipt and audit, in a
+namespace separate from claim receipts. Atomic knowledge commit includes both
+families and their source records. Duplicate delivery, retry and restart cannot
+repeat an edge update. No receipt or baseline is written by reading, graph
+rendering or endpoint retrieval. Runtime preferences' `association` category is
+snapshotted per operation and stored per new edge. Older settings acquire the
+default only for future creation; older clients omitting the category on save
+preserve its current value. Changes to existing baselines require explicit rebase.
+
+The one-hop consumer evaluates edge activity at the operation time and requires
+an overlapping runtime applicability scope (or an unscoped edge). It then checks
+endpoint evidence activity separately. Direct hits and independently eligible
+routes survive a dormant edge. No strength multiplier or recursive propagation
+is added. Legacy links lacking semantic identity/provenance remain untracked
+with their previous traversal behavior. Later exact evidence initializes metadata
+for that identity; an unscoped legacy link is replaced in traversal only by its
+same unscoped identity. A differently scoped edge is a distinct route.
+
+Inspection remains a read-only inventory: each record's existing detail includes
+outgoing associations with stored and evaluated values. Scope variants retain
+separate metadata while sharing one graph line. Model projections exclude this
+metadata. Fixed-clock/source/transaction/recovery evidence is in
+[association-lifecycle.test.ts](../test/knowledge-model/association-lifecycle.test.ts).
+
 ---
 
 ## 8. Retrieval
@@ -614,7 +677,7 @@ a direct hit may be reported as a diagnostic candidate; reading alone NEVER stre
 ASSOCIATIVE EXPANSION        (relation depth <= 1, similarity, "tell me about X")
       |
 memory state IS an eligibility filter
-dormant evidence is normally excluded
+dormant evidence is normally excluded; tracked edges must independently be active and applicable
 ```
 
 Worked example. Scope tags `house`, `color`, `brittan`:
@@ -804,6 +867,15 @@ defect.
 `UPDATE` must never set a memory state on anything. Closing an interval is not
 "making a memory dormant".
 
+| | `ESTABLISH_ASSOCIATION` (L3 RelationIndex owner) |
+| --- | --- |
+| Input | Resolved canonical edge, runtime applicability scope, original-source semantic proof and occurrence identity |
+| Reads | Captured and current endpoints, original utterance/locator, existing edge baseline and receipts |
+| May write | Association metadata, occurrence/edge receipt and audit, atomically with the live knowledge commit |
+| Must not write | Endpoints, claim status/confidence, bindings, state/history or world clocks |
+| Output | Created / reinforced / duplicate, or an explicit skipped-edge diagnostic from runtime validation |
+| Rule | Only independent source evidence writes; traversal/rendering never invokes this operation |
+
 ### 10.2 Read path
 
 | | `DEFINE` |
@@ -829,7 +901,7 @@ defect.
 | Reads | Relation graph, depth ≤ 1 |
 | May write | Nothing |
 | Output | Related records, marked as associative |
-| Rule | Memory state filters here, and only here |
+| Rule | Evaluate tracked edge activity/applicability and endpoint evidence separately; retain direct and alternate eligible routes; no strengthening |
 
 | | `FILTER` |
 | --- | --- |
@@ -1039,21 +1111,30 @@ version. Saved strength, threshold (including zero), pins, evidence and history
 survive. Legacy severity stays null; legacy half-life is explicitly 90 days,
 boost 0.2 and cap 1. Unknown world/recurrence times remain unknown. Corrupt data
 fails the upgrade; a failed conversion rolls back and can be retried. Schema 3
-also stores occurrence/claim receipts. Association links are unchanged; L3 is
-not implemented. Old binaries reject the new schema before they can write it.
+also stores occurrence/claim receipts.
+
+L3 advances to schema 4 under P6: new edge metadata, receipts and audit are added
+in the same transaction as the version change. Existing schema-3 baselines are
+validated and preserved without re-aging or policy conversion. Legacy links stay
+untracked; no numeric metadata/proof is invented during migration. Older schema-1/2
+stores retain the same accepted L2 conversion on their path to schema 4.
+Unsupported versions and corrupt association records fail rather than being
+silently dropped. Old binaries reject the new schema before they can write it.
 
 Before opening a valuable existing store with the new build, stop A008 writers
 and create a SQLite backup using SQLite's backup API (or an offline copy of the
 entire database/WAL set). A lone copy of the main file while writers run is not
 a complete backup. Keep the backup until upgrade verification is accepted. Also preserve the
-global settings file before saving settings format 3 if a binary rollback may
+global settings file before saving settings format 4 if a binary rollback may
 be needed. Restore compatible settings together with the older binary. To
 roll back, stop all writers, preserve the upgraded database/WAL set separately,
 and restore the complete pre-upgrade backup to its original path before opening
 it with the previous binary. Never combine an upgraded WAL with a restored
-database. The lifecycle fixture executes backup, interrupted
-upgrade, retry, previous published store rejection and restoration. No user
-runtime database was opened or migrated during A008-0081 verification.
+database. The L2 and L3 lifecycle fixtures execute backup, interrupted upgrade,
+retry, previous published store rejection and restoration. The L3 fixture creates
+its legacy database through the published L2 store implementation and verifies
+both namespaces and unchanged evidence baselines. No user runtime database was
+opened or migrated during A008-0081/A008-0082 verification.
 
 
 No SQLite table, JSON shape, index, FTS configuration, embedding column, or

@@ -38,7 +38,7 @@ export function loadSnapshot(
     snapshot.lifecycle,
     snapshot.lifecycleNextTransition,
   );
-  if (target.relations instanceof RelationIndex) target.relations.hydrate(snapshot.relations);
+  if (target.relations instanceof RelationIndex) target.relations.hydrate(snapshot.relations, snapshot.associations);
 }
 
 export function captureSnapshot(
@@ -61,5 +61,6 @@ export function captureSnapshot(
     lifecycle: context.lifecycle.snapshot(),
     lifecycleNextTransition: context.lifecycle.transitionSequence(),
     relations,
+    ...(context.relations instanceof RelationIndex ? { associations: context.relations.associationSnapshot() } : {}),
   };
 }

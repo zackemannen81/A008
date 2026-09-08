@@ -43,13 +43,26 @@ export interface RelationClassifierCandidate {
   readonly activationStatus: "active" | "dormant";
 }
 
+export interface SemanticAssociationDecision {
+  readonly fromHandle: string;
+  readonly toHandle: string;
+  readonly relation: string;
+  readonly supportsRelation: boolean;
+  readonly support: { readonly source: "message" | "source"; readonly start: number; readonly end: number };
+}
+export interface AssociationClassifierContext {
+  readonly source: { readonly origin: "message" | "source"; readonly content: string };
+  readonly entities: readonly { readonly handle: string; readonly labels: readonly string[]; readonly type: string }[];
+  readonly existing: readonly { readonly fromHandle: string; readonly toHandle: string; readonly relation: string; readonly scope: readonly string[] }[];
+}
 export interface RelationClassifierInput {
+  readonly associationContext?: AssociationClassifierContext;
   readonly sourceSupport?: { readonly origin: "message" | "source"; readonly content: string; readonly start: number; readonly end: number };
   readonly proposal: RelationClassifierProposal;
   readonly candidates: readonly RelationClassifierCandidate[];
 }
 
-export type RelationClassifierDecision =
+export type RelationClassifierDecision = { readonly associations?: readonly SemanticAssociationDecision[] } & (
   | { readonly type: "new" }
   | {
       readonly type: "restatement" | "extend" | "supersede";
@@ -59,7 +72,7 @@ export type RelationClassifierDecision =
   | {
       readonly type: "conflict";
       readonly targetHandles: readonly string[];
-    };
+    });
 
 export interface KnowledgeRelationClassifier {
   classify(
@@ -107,6 +120,7 @@ export interface RelationCommitInput {
 
 export interface RelationCommitEvidence {
   readonly reinforcement?: string;
+  readonly associations?: readonly string[];
   readonly materializedCandidateIds: readonly string[];
   readonly classifierCandidateIds: readonly string[];
   readonly classifierInputSerialized: string;
@@ -299,6 +313,11 @@ export function serializeRelationClassifierInput(
   input: RelationClassifierInput,
 ): string {
   return JSON.stringify({
+    ...(input.associationContext === undefined ? {} : { associationContext: {
+      source: { origin: input.associationContext.source.origin, content: input.associationContext.source.content },
+      entities: input.associationContext.entities.map(e => ({ handle: e.handle, labels: [...e.labels], type: e.type })),
+      existing: input.associationContext.existing.map(e => ({ fromHandle: e.fromHandle, toHandle: e.toHandle, relation: e.relation, scope: [...e.scope] })),
+    } }),
     ...(input.sourceSupport === undefined ? {} : { sourceSupport: input.sourceSupport }),
     proposal: {
       proposition: input.proposal.proposition,

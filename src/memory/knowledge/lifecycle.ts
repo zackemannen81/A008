@@ -372,10 +372,17 @@ export function validateLifecycle(life: MemoryLifecycle): void {
 }
 export function evaluateLifecycle(life: MemoryLifecycle, at: string) {
   validateLifecycle(life);
+  return evaluatePersistence(life, at);
+}
+/** Pure arithmetic shared by independent evidence and association owners. */
+export function evaluatePersistence(life: Pick<MemoryLifecycle, "strength" | "threshold" | "decayLambda" | "strengthUpdatedAt"> & { readonly pinned?: boolean }, at: string) {
+  finiteUnit(life.strength, "strength"); finiteUnit(life.threshold, "threshold");
+  if (!Number.isFinite(life.decayLambda) || life.decayLambda < 0) throw new KnowledgeModelError("invalid_input", "Invalid decay lambda");
+  operationalTime(life.strengthUpdatedAt);
   const evaluatedAt = operationalTime(at);
   const elapsedSeconds = Math.max(0, (Date.parse(evaluatedAt) - Date.parse(life.strengthUpdatedAt)) / 1000);
   const strength = life.strength * Math.exp(-life.decayLambda * elapsedSeconds);
-  const memoryState = derivedLifecycleState({ ...life, strength });
+  const memoryState: MemoryLifecycleState = life.pinned || strength >= life.threshold ? "active" : "dormant";
   const delay = life.strength >= life.threshold && life.threshold > 0 && life.decayLambda > 0
     ? Math.log(life.strength / life.threshold) / life.decayLambda * 1000 : null;
   const crossing = delay === null ? null : Date.parse(life.strengthUpdatedAt) + delay;

@@ -1,3 +1,5 @@
+import { AssociationLifecycle, associationKey, EMPTY_ASSOCIATIONS, evaluateAssociation, type AssociationIdentity, type AssociationReceipt, type AssociationSnapshot } from "./association-lifecycle.js";
+import type { MemoryLifecyclePolicy } from "../../core/memory-lifecycle-policy.js";
 import { viewLifecycle } from "./lifecycle.js";
 import type {
   ExpandResult,
@@ -19,6 +21,11 @@ export interface RelationLink {
 }
 
 export class RelationIndex implements RelationIndexPort {
+  readonly #associations = new AssociationLifecycle();
+  associationSnapshot(): AssociationSnapshot { return this.#associations.snapshot(); }
+  establishAssociation(edge: AssociationIdentity, occurrence: Omit<AssociationReceipt, "edgeKey">, policy?: MemoryLifecyclePolicy) {
+    return this.#associations.establish(edge, occurrence, policy);
+  }
   readonly #out = new Map<string, RelationHop[]>();
 
   link(from: string, to: string, relation: string): void {
@@ -31,7 +38,10 @@ export class RelationIndex implements RelationIndexPort {
   }
 
   neighbors(id: string): readonly RelationHop[] {
-    return [...(this.#out.get(id) ?? [])];
+    const tracked = this.#associations.outgoing(id);
+    const keys = new Set(tracked.map(edge => edge.key));
+    const legacy = (this.#out.get(id) ?? []).filter(hop => !keys.has(associationKey({ from: id, to: hop.to, relation: hop.relation, scope: [] })));
+    return structuredClone([...legacy, ...tracked.map(edge => ({ to: edge.to, relation: edge.relation, association: edge }))]);
   }
 
   exportLinks(): readonly RelationLink[] {
@@ -44,7 +54,8 @@ export class RelationIndex implements RelationIndexPort {
     return links;
   }
 
-  hydrate(links: readonly RelationLink[]): void {
+  hydrate(links: readonly RelationLink[], associations: AssociationSnapshot = EMPTY_ASSOCIATIONS): void {
+    this.#associations.hydrate(associations);
     this.#out.clear();
     for (const link of links) {
       this.link(link.from, link.to, link.relation);
@@ -73,7 +84,14 @@ export function expand(
       if (seen.has(related.id)) {
         continue;
       }
-      seen.add(related.id);
+      if (hop.association !== undefined) {
+        const edge = hop.association;
+        const applicable = edge.scope.length === 0 || edge.scope.some(name => context.applicabilityScopes?.includes(name));
+        if (!applicable || evaluateAssociation(edge, context.evaluatedAt!).memoryState === "dormant") {
+          omitted.push({ record: related, reason: applicable ? "association_dormant" : "association_not_applicable" });
+          continue;
+        }
+      }
       if (related.memoryState === "dormant") {
         omitted.push({
           record: related,
@@ -81,11 +99,19 @@ export function expand(
         });
         continue;
       }
+      seen.add(related.id);
       records.push(related);
     }
   }
 
-  return { records, omitted };
+  // A failed route must not suppress a later eligible one or leave contradictory diagnostics.
+  const exclusions = new Set<string>();
+  return { records, omitted: omitted.filter(item => {
+    const key = JSON.stringify([item.record.id, item.reason]);
+    if (seen.has(item.record.id) || exclusions.has(key)) return false;
+    exclusions.add(key);
+    return true;
+  }) };
 }
 
 function expansionSeeds(

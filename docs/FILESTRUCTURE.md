@@ -349,8 +349,17 @@ at a stable owned path first.
 - `src/core/memory-lifecycle-policy.ts`: validated creation policies in runtime preferences.
 - `src/memory/knowledge/lifecycle.ts` and `lifecycle-types.ts`: baselines, evaluation, maintenance and occurrence receipts.
 - `src/memory/knowledge/knowledge-transaction.ts`: shared snapshot/rollback for the existing context.
-- `src/memory/knowledge/sqlite-context.ts`, `sqlite-store.ts`, `sqlite-schema.ts`: atomic namespace persistence, schema 3 upgrade and receipts.
+- `src/memory/knowledge/sqlite-context.ts`, `sqlite-store.ts`, `sqlite-schema.ts`: atomic namespace persistence, schema 3/4 upgrade and independent claim/association receipts.
 - `test/knowledge-model/lifecycle-v1.test.ts`: fixed-clock, source proof, concurrency, migration and recovery acceptance fixtures.
+
+## L3 association lifecycle owners
+
+- `src/memory/knowledge/association-lifecycle.ts`: independent identity, policy baselines, pure evaluation, receipts and audit validation.
+- `src/memory/knowledge/association-commit.ts`: exact runtime handles and source proof in the existing semantic/atomic commit.
+- `src/memory/knowledge/expand.ts`: RelationIndex metadata and one-hop edge/endpoint eligibility; `inspection.ts` exposes outgoing detail.
+- `src/memory/knowledge/live-reader.ts`, `read.ts`, `read-types.ts`: explicit runtime applicability scope, preserved read contracts.
+- Existing SQLite/context/snapshot and runtime preference owners persist schema/settings 4 and preserve legacy records.
+- `test/knowledge-model/association-lifecycle.test.ts`: A25-A30, source independence, migration/restart/concurrency and backup restoration.
 
 ## Product paths
 

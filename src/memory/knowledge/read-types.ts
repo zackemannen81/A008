@@ -63,6 +63,7 @@ export type RetrievedSurface =
   | "provenance";
 
 export interface RelationHop {
+  readonly association?: import("./association-lifecycle.js").AssociationRecord;
   readonly to: string;
   readonly relation: string;
 }
@@ -72,6 +73,7 @@ export interface RelationIndexPort {
 }
 
 export interface KnowledgeReadContext {
+  readonly applicabilityScopes?: readonly string[];
   readonly atomic?: <T>(operation: () => T) => T;
   readonly evaluatedAt?: string;
   readonly entities: EntityRegistry;

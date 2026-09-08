@@ -1,3 +1,4 @@
+import { evaluateAssociation } from "./association-lifecycle.js";
 import { evaluateLifecycle } from "./lifecycle.js";
 import { MemoryError } from "../errors.js";
 import { normalizeLabel } from "./labels.js";
@@ -171,6 +172,10 @@ export function inspectKnowledge(
     const full = JSON.stringify(
       {
         record: data,
+        ...(() => {
+          const associations = context.relations.neighbors(sourceId).flatMap(hop => hop.association ? [{ ...hop.association, evaluated: evaluateAssociation(hop.association, evaluatedAt) }] : []);
+          return associations.length ? { associations } : {};
+        })(),
         ...(labels === undefined ? {} : { labels }),
         ...(life === undefined ? {} : { lifecycle: life }),
       },
@@ -286,9 +291,15 @@ export function inspectKnowledge(
     records.map((record) => [record.sourceId, record.id]),
   );
   for (const record of records) {
+    const displayed = new Set<string>();
     for (const hop of context.relations.neighbors(record.sourceId)) {
       const target = bySource.get(hop.to);
-      if (target !== undefined) link(record.id, target, hop.relation);
+      const edgeKey = JSON.stringify([hop.to, hop.relation]);
+      // Applicability variants remain distinct in stored detail, but share one graph line.
+      if (target !== undefined && !displayed.has(edgeKey)) {
+        link(record.id, target, hop.relation);
+        displayed.add(edgeKey);
+      }
     }
   }
   const domains = new Map<string, number>();

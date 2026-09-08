@@ -242,7 +242,7 @@ test("existing version 1 global settings migrate without losing instructions, bu
     assert.equal(first.settings.budgets.maximumToolCalls, budgets.maximumToolCalls);
     assert.equal(JSON.parse(readFileSync(path, "utf8")).version, 1);
     store.save(first.settings, first.revision);
-    assert.equal(JSON.parse(readFileSync(path, "utf8")).version, 3);
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).version, 4);
     assert.throws(() => store.save(first.settings, first.revision), /changed elsewhere/);
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 });

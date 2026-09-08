@@ -1,4 +1,5 @@
-import { migrateLegacyLifecycle, operationalTime } from "./lifecycle.js";
+import { AssociationLifecycle, EMPTY_ASSOCIATIONS, type AssociationRecord, type AssociationReceipt, type AssociationTransition, type AssociationSnapshot } from "./association-lifecycle.js";
+import { migrateLegacyLifecycle, operationalTime, validateLifecycle } from "./lifecycle.js";
 import type { ReinforcementReceipt } from "./lifecycle-types.js";
 import Database from "better-sqlite3";
 import type { Database as BetterSqliteDatabase } from "better-sqlite3";
@@ -49,6 +50,7 @@ export interface SqliteKnowledgeStoreOptions {
 }
 
 export interface KnowledgeNamespaceSnapshot {
+  readonly associations?: AssociationSnapshot;
   readonly entities: readonly Entity[];
   readonly slots: readonly SlotDefinition[];
   readonly state: KnowledgeStateSnapshot;
@@ -153,9 +155,11 @@ export class SqliteKnowledgeStore {
       if (this.filename !== ":memory:") {
         this.database.pragma("journal_mode = WAL");
       }
-      this.database.exec(KNOWLEDGE_SQLITE_SCHEMA);
-      this.migrateSchemaVersion();
-      this.assertSchemaVersion();
+      this.database.transaction(() => {
+        this.database.exec(KNOWLEDGE_SQLITE_SCHEMA);
+        this.migrateSchemaVersion();
+        this.assertSchemaVersion();
+      }).immediate();
     } catch (error) {
       if (this.ownsDatabase) {
         this.database.close();
@@ -355,12 +359,30 @@ export class SqliteKnowledgeStore {
         ),
       },
       lifecycleNextTransition: meta?.lifecycle_next_transition ?? 0,
+      associations: this.loadAssociations(),
       relations: relations.map((row) => ({
         from: row.from_id,
         to: row.to_id,
         relation: row.relation,
       })),
     };
+  }
+
+  private loadAssociations(): AssociationSnapshot {
+    const records = (this.database.prepare("SELECT edge_key, payload_json FROM A008_knowledge_association_lifecycle WHERE namespace = ? ORDER BY edge_key").all(this.namespace) as (PayloadRow & { edge_key: string })[]).map(row => {
+      const record = parseJson<AssociationRecord>(row.payload_json, "association");
+      if (record.key !== row.edge_key) throw new Error("Corrupt association storage key");
+      return record;
+    });
+    const receipts = (this.database.prepare("SELECT occurrence_id, edge_key, payload_json FROM A008_knowledge_association_receipts WHERE namespace = ? ORDER BY occurrence_id, edge_key").all(this.namespace) as (PayloadRow & { edge_key: string; occurrence_id: string })[]).map(row => {
+      const receipt = parseJson<AssociationReceipt>(row.payload_json, "association receipt");
+      if (receipt.edgeKey !== row.edge_key || receipt.occurrenceId !== row.occurrence_id) throw new Error("Corrupt association receipt key");
+      return receipt;
+    });
+    const transitions = (this.database.prepare("SELECT payload_json FROM A008_knowledge_association_transitions WHERE namespace = ? ORDER BY seq").all(this.namespace) as PayloadRow[]).map(row => parseJson<AssociationTransition>(row.payload_json, "association audit"));
+    const owner = new AssociationLifecycle();
+    owner.hydrate({ records, receipts, transitions });
+    return owner.snapshot();
   }
 
   replaceNamespace(snapshot: KnowledgeNamespaceSnapshot): void {
@@ -627,6 +649,14 @@ export class SqliteKnowledgeStore {
           link.relation,
         );
       }
+      const associations = snapshot.associations ?? EMPTY_ASSOCIATIONS;
+      new AssociationLifecycle().hydrate(associations);
+      const insertAssociation = this.database.prepare("INSERT INTO A008_knowledge_association_lifecycle(namespace, edge_key, payload_json) VALUES (?, ?, ?)");
+      for (const record of associations.records) insertAssociation.run(this.namespace, record.key, JSON.stringify(record));
+      const insertAssociationReceipt = this.database.prepare("INSERT INTO A008_knowledge_association_receipts(namespace, occurrence_id, edge_key, payload_json) VALUES (?, ?, ?, ?)");
+      for (const receipt of associations.receipts) insertAssociationReceipt.run(this.namespace, receipt.occurrenceId, receipt.edgeKey, JSON.stringify(receipt));
+      const insertAudit = this.database.prepare("INSERT INTO A008_knowledge_association_transitions(namespace, seq, payload_json) VALUES (?, ?, ?)");
+      associations.transitions.forEach((transition, index) => insertAudit.run(this.namespace, index + 1, JSON.stringify(transition)));
       this.rebuildFts(snapshot);
     });
     persist();
@@ -679,6 +709,9 @@ export class SqliteKnowledgeStore {
       "A008_knowledge_label_index",
       "A008_knowledge_labels",
       "A008_knowledge_relations",
+      "A008_knowledge_association_receipts",
+      "A008_knowledge_association_transitions",
+      "A008_knowledge_association_lifecycle",
       "A008_knowledge_reinforcement_receipts",
       "A008_knowledge_lifecycle_transitions",
       "A008_knowledge_lifecycle",
@@ -723,34 +756,23 @@ export class SqliteKnowledgeStore {
     return rows.map((row) => parseJson<KnowledgeItem>(row.payload_json, "v0 knowledge"));
   }
 
-  /**
-   * Brings an older namespace up to the current schema version.
-   *
-   * Version 2 adds the label tables and nothing else: no column changed, no row
-   * moved, no meaning altered. `CREATE TABLE IF NOT EXISTS` in the schema script
-   * has already created them by the time this runs, so the migration is the
-   * version stamp itself.
-   *
-   * It matters that this exists rather than the version simply being bumped.
-   * `INSERT OR IGNORE` leaves an existing database stamped 1, and
-   * `assertSchemaVersion` would then refuse to open a store that is in fact
-   * perfectly readable — turning an additive change into a lost memory file.
-   *
-   * Anything other than a known upgrade path is left alone for
-   * `assertSchemaVersion` to refuse by name, including a version from the
-   * future, which this code cannot know how to read.
+  /** Schema 1/2 gets L2's baseline conversion; schema 3 baselines are validated
+   * unchanged. L3 adds empty metadata/receipt/audit tables, never promotes old
+   * links. The constructor encloses DDL and this version update in one transaction.
    */
   private migrateSchemaVersion(): void {
     this.database.transaction(() => {
       const row = this.database.prepare("SELECT version FROM A008_knowledge_schema WHERE singleton = 1").get() as { version: number } | undefined;
-      if (row?.version !== 1 && row?.version !== 2) return;
+      if (row?.version !== 1 && row?.version !== 2 && row?.version !== 3) return;
+      const baselineAlreadyMigrated = row.version === 3;
       const at = operationalTime(this.clock());
       const records = this.database.prepare("SELECT namespace, evidence_id, payload_json FROM A008_knowledge_lifecycle").all() as { namespace: string; evidence_id: string; payload_json: string }[];
       const save = this.database.prepare("UPDATE A008_knowledge_lifecycle SET payload_json = ? WHERE namespace = ? AND evidence_id = ?");
       for (const row of records) {
         const record = parseJson<LifecycleRecord>(row.payload_json, "legacy lifecycle");
         if (record.evidenceId !== row.evidence_id) throw new KnowledgeModelError("invalid_input", "Corrupt lifecycle identity");
-        save.run(JSON.stringify(migrateLegacyLifecycle(record, at)), row.namespace, row.evidence_id);
+        if (baselineAlreadyMigrated) validateLifecycle(record.lifecycle);
+        else save.run(JSON.stringify(migrateLegacyLifecycle(record, at)), row.namespace, row.evidence_id);
       }
       this.database.prepare("UPDATE A008_knowledge_schema SET version = ? WHERE singleton = 1").run(KNOWLEDGE_SQLITE_SCHEMA_VERSION);
     }).immediate();
@@ -956,6 +978,7 @@ function migrateV0Items(
       claims,
       provenance,
       relations: existing.relations,
+      ...(existing.associations === undefined ? {} : { associations: existing.associations }),
       state: {
         ...existing.state,
         bindings,

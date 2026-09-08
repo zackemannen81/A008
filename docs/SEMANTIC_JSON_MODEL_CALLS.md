@@ -73,6 +73,25 @@ source under the commit lock, and records the occurrence receipt atomically.
 This adds no model call. Semantic correctness against live models remains a
 separate evaluation; deterministic tests inject synthetic semantic decisions.
 
+## L3 association resolution
+
+The same relation call receives `associationContext`: original message/source
+content, registry entity handles and existing semantic association types/scopes
+expressed through local handles. Existing claim candidates and `proposal` may
+also be endpoints. Runtime retains the ID map. The model may return `associations`
+with from/to handles, exact relation type, `supportsRelation` and edge-specific
+support bounds. It cannot choose scope, numbers or canonical IDs. Applicability
+scope comes from the staged operation.
+
+This judgment is independent of the claim's five-way decision and support.
+Runtime revalidates endpoint/source identity under the same atomic commit and
+reports unresolved/unproven updates without boosting endpoints. Read the
+[association contract](KNOWLEDGE_MEMORY_MODEL.md#75-independent-semantic-associations).
+The existing serialized-message budget still applies and no extra provider call
+is added. Fake semantic-adapter fixtures verify one call per attempt, canonical
+proposal reuse and ignored numeric/scope suggestions; they do not establish
+live model accuracy.
+
 ## Shared ownership
 
 One `SemanticJsonGenerator` is injected into both:

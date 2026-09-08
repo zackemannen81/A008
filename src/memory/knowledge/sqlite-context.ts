@@ -130,7 +130,7 @@ export function createSqliteKnowledgeContext(
       "decay",
       "hydrate",
     ]),
-    relations: persisting(relations, safeAtomic, ["link", "hydrate"]),
+    relations: persisting(relations, safeAtomic, ["link", "hydrate", "establishAssociation"]),
   };
   persistEnabled = true;
 

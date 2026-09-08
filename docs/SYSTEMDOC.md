@@ -442,11 +442,48 @@ SQLite write lock, validate the target/source, then commit evidence, state,
 boost, receipt and audit together. In-memory writes restore the prior snapshot
 on failure. Reads never call these writes. Schema 3 converts legacy baselines
 without inventing severity, history or elapsed age; see the constitution's
-backup/restore procedure. Settings format 3 holds advanced creation policy in
+backup/restore procedure. Settings format 4 holds advanced creation policy in
 the existing runtime owner; existing-client saves preserve it.
 
-The v0 compatibility engine retains its old contract. L3 association metadata,
-new ranking, background sweeps and new model calls are absent.
+The v0 compatibility engine retains its old contract.
+
+## Independent association lifecycle (L3)
+
+A008-0082 implements ADR 0035 P6 alongside RelationIndex. Its
+[constitution contract](KNOWLEDGE_MEMORY_MODEL.md#75-independent-semantic-associations)
+owns identity, source proof and numeric policy. A directed edge is keyed by the
+project namespace, canonical endpoints, exact semantic relation and sorted unique
+applicability scope. No binding interval or endpoint strength participates.
+
+`association-commit.ts` captures runtime claim/entity handles before the existing
+asynchronous comparator. The comparator may independently propose source-supported
+associations, including a handle for the actual newly committed/reused proposal
+claim. Runtime resolves unchanged endpoints and checks source locator/content and
+edge-specific bounds under the existing transaction lock. Unresolved/unproven
+edges are skipped with diagnostics. No new entities, truth or state are created
+by the association strength operation, and no extra model call is made.
+
+`association-lifecycle.ts` owns independent metadata, creation/recurrence receipts
+and audit. It shares only pure exponential arithmetic with evidence lifecycle.
+Creation defaults are strength 0.4, half-life 45 days, threshold 0.2, boost 0.2,
+cap 1; numeric policy is stored once per edge. Read-time evaluation never writes.
+One-hop expansion skips a dormant or inapplicable edge, then independently checks
+endpoint evidence eligibility. A failed route cannot consume deduplication and
+block a valid alternative. No edge score, ranking change or recursive propagation
+is introduced. Existing runtime applicability scopes are passed explicitly; labels
+or domains cannot impersonate them.
+
+Knowledge schema 4 atomically adds metadata/receipt/audit tables. Existing L2
+baselines and all namespaces survive unchanged; pre-L2 stores still receive the
+accepted L2 conversion. Legacy links have no invented strength or proof. Graph
+lines remain inventory; outgoing record detail contains the separate baseline
+and evaluated association values. Scoped variants share a graph line and retain
+their separate detail. Model projections do not carry these numbers.
+
+Offline acceptance and regression evidence is in
+[test/knowledge-model/association-lifecycle.test.ts](../test/knowledge-model/association-lifecycle.test.ts)
+and the [L3 charter](tasks/A008-0082_association-lifecycle.md). No live model
+judgment, user-data upgrade or running-application restart is claimed.
 
 ## Semantic-memory core
 

@@ -14,17 +14,36 @@ The 501 core and 116 GUI tests pass, including real local host/ACP/engine and
 captured NVIDIA/kie payloads. Live model obedience has not been evaluated.
 A008-0081 implements L2: per-claim severity, lazy exponential decay, source
 support and exact-target reinforcement with atomic occurrence receipts. Creation
-policy belongs to runtime preferences (format 3); knowledge schema 3 performs
+policy belongs to runtime preferences; L2 introduced knowledge schema 3 for
 the accepted legacy conversion. Restatement reuses canonical evidence, while
-reads and inspection never strengthen it. L3 remains unactivated.
+reads and inspection never strengthen it.
+A008-0082 implements L3: independently supported, directed and scoped semantic
+associations have their own baselines, occurrence receipts and audit alongside
+RelationIndex. The existing comparator resolves handles and edge-specific source
+spans; no new model call is added. One-hop expansion evaluates edge and endpoint
+eligibility separately, preserving direct hits and eligible alternate routes.
+Graph/inspection reads do not strengthen or promote links. Existing record detail
+shows outgoing association baselines and evaluated state.
 
-Verification: 511 core tests, 116 GUI tests and 4 membership checks pass, with
+Schema 4 adds association persistence transactionally. L2 baselines remain
+unchanged; old links retain untracked traversal until exact supporting evidence
+initializes the corresponding edge. Settings format 4 adds the independent
+association policy and preserves it through older-client saves. See the
+[association contract](KNOWLEDGE_MEMORY_MODEL.md#75-independent-semantic-associations).
+
+Verification: 521 core tests, 116 GUI tests and 4 membership checks pass, with
 no failures/skips. The ten new groups in
 [test/knowledge-model/lifecycle-v1.test.ts](../test/knowledge-model/lifecycle-v1.test.ts)
 cover A09-A24 and claim-side A29: fixed clocks, read/write isolation, source
 attribution, duplicate/cancelled commits, two SQLite connections, restart,
 versioned migration failure/retry, the previous published store's rejection and
-backup restoration. A30 is recorded in the completed charter. Existing L1 and
+backup restoration. Ten additional groups in
+[association-lifecycle.test.ts](../test/knowledge-model/association-lifecycle.test.ts)
+cover A25-A29 and P2/P4/P6: exact directed/scoped identity, day-45 boundary,
+independent claim/edge proof, same-call proposal resolution, alternative routes,
+read isolation, rollback/retry/concurrent namespaces and the published L2 store's
+upgrade/rejection plus backup restoration. A30 is recorded in the completed
+charters. Existing L1 and
 state/history/direct-retrieval regressions remain passing. Tests use synthetic
 semantic decisions; live model source-support judgments and the user's running
 database were not evaluated or migrated. The
