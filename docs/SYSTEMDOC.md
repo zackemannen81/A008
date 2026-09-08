@@ -363,7 +363,9 @@ so drafts and in-session history survive. It does not create saved conversations
 Empty chat shows the owner ASCII mark (`gui/src/brand/a008-ascii.ts`) above
 the start cards, then a rule and the heading. The mark is decorative
 (`aria-hidden`). Empty chat also offers Review, Terminal, Browser, Files and Workbench shortcuts
-(Ctrl+Shift+G, Ctrl+`, Ctrl+T, Ctrl+P, Ctrl+Alt+S). Workbench opens a floating
+(Ctrl+Shift+G, Ctrl+`, Ctrl+T, Ctrl+P, Ctrl+Alt+S). The chip dock can be hidden;
+a Shortcuts control restores it, and the choice is remembered in localStorage.
+Keyboard shortcuts still work while the dock is hidden. Workbench opens a floating
 environment/sources card: git branch and change counts from host-shell
 `git status -sb` / shortstat, session uploads, and clipboard ingest through
 `POST /v1/upload`. It is not the tool catalog. Help hosts that catalog and the

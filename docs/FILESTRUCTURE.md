@@ -1,5 +1,8 @@
 # File Structure
 
+A008-0075 lets the empty-chat shortcut dock hide and restore from a Shortcuts
+control; the choice is stored in localStorage. Keyboard shortcuts stay active.
+
 A008-0074 adds `gui/src/brand/a008-ascii.ts` and `ascii-logo.tsx`: the owner
 ASCII mark on the empty conversation, above the start cards.
 
@@ -77,6 +80,7 @@ A008/
 |  |  |  |- session-controls.ts     renderer control types and metadata/snapshot validation
 |  |  |  `- use-gui-session.ts       React hook exposing GuiSession
 |  |  |- chat/                       A008-0034 transcript
+|  |  |  |- empty-shortcuts.tsx      workbench shortcut chips and hide/show dock
 |  |  |  |- chat-pane.tsx            user, answer, and thought DOM channels
 |  |  |  |- chat-history.ts          pure turn-commit reducer
 |  |  |  |- chat-transcript.ts       transcript model

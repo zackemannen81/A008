@@ -4,7 +4,12 @@ import { ToolActivity } from "./tools/repository-pane.js";
 import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
 import { ChatPane, type ChatGeneratedImage } from "./chat/chat-pane.js";
-import { EmptyShortcuts, type EmptyShortcutId } from "./chat/empty-shortcuts.js";
+import {
+  persistShortcutDockVisible,
+  ShortcutDock,
+  shortcutDockVisible,
+  type EmptyShortcutId,
+} from "./chat/empty-shortcuts.js";
 import { Composer } from "./composer/composer.js";
 import { generateImage, generatedImageSrc } from "./images/generate-image.js";
 import { useGuiSession } from "./session/use-gui-session.js";
@@ -52,6 +57,7 @@ export function App() {
   const [page, setPage] = useState<Page>("chat");
   const [toolsOpen, setToolsOpen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(() => shortcutDockVisible());
   const [toolSurface, setToolSurface] = useState<ToolSurface>("terminal");
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [sources, setSources] = useState<readonly SessionSource[]>([]);
@@ -288,12 +294,21 @@ export function App() {
       <main className="a008-help-main" hidden={page !== "help"}>
         <HelpPage session={session} onChat={() => navigate("chat")} />
       </main>
-      <aside
-        className="a008-shortcut-dock"
+      <ShortcutDock
         hidden={page !== "chat" || filesOpen || toolsOpen}
-      >
-        <EmptyShortcuts onShortcut={onShortcut} />
-      </aside>
+        open={shortcutsOpen}
+        onShortcut={onShortcut}
+        onHide={() => {
+          setShortcutsOpen(false);
+          persistShortcutDockVisible(false);
+        }}
+        onOpen={() => {
+          setShortcutsOpen(true);
+          setFilesOpen(false);
+          setToolsOpen(false);
+          persistShortcutDockVisible(true);
+        }}
+      />
       <aside
         className="a008-files-float"
         id="a008-files-panel"
