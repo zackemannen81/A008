@@ -1,3 +1,5 @@
+Standalone GUI authentication remains inside the existing host boundary: `src/gui-host/pin-auth.ts` adds an optional six-digit browser gate, random cookie session and failed-attempt throttle without adding a renderer dependency or second credential owner.
+
 # File Structure
 
 A008-0085 adds `scripts/check-semantic-extraction.mjs`: a dry-run-by-default
@@ -149,6 +151,7 @@ A008/
 |  |  |- protocol.ts                 host protocol v1 frames and defaults
 |  |  |- websocket.ts                minimal dependency-free WebSocket server
 |  |  |- origin.ts                   same-origin/loopback guard
+|  |  |- pin-auth.ts                  optional six-digit standalone browser gate
 |  |  |- source-store.ts             A008-0044 content-addressed blob store
 |  |  |- provider-routes.ts          catalog, provider settings, image generate
 |  |  |- frame-policy.ts             CSP/XFO framing allow check

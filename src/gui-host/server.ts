@@ -40,6 +40,7 @@ import {
   type GuiHostServerMessage,
 } from "./protocol.js";
 import { redactWireText, wireSecrets } from "./redact.js";
+import { createPinAuthGate, GUI_PIN_ENV, GUI_PIN_LOGIN_PATH } from "./pin-auth.js";
 import {
   resolveSourceStorePath,
   sanitiseUploadFilename,
@@ -88,6 +89,8 @@ const MIME_TYPES: Readonly<Record<string, string>> = {
 export interface GuiHostOptions {
   /** Engine-only bearer capability; standalone host remains unchanged. */
   readonly accessToken?: string;
+  /** Optional standalone six-digit browser PIN. */
+  readonly pin?: string;
   readonly host?: string;
   readonly port?: number;
   readonly env?: NodeJS.ProcessEnv;
@@ -126,6 +129,12 @@ export async function startGuiHost(
   options: GuiHostOptions = {},
 ): Promise<GuiHost> {
   const env = options.env ?? process.env;
+  const configuredPin = options.pin?.trim();
+  const pin = configuredPin === undefined || configuredPin === "" ? undefined : configuredPin;
+  if (pin !== undefined && !/^\d{6}$/u.test(pin)) {
+    throw new ChatError("configuration", "A008 GUI PIN must contain exactly six digits.");
+  }
+  const pinAuth = createPinAuthGate(pin);
   const configuredWorkspace = options.cwd ?? (env.A008_GUI_WORKSPACE?.trim() || process.cwd());
   if (!isAbsolute(configuredWorkspace)) throw new ChatError("configuration", "GUI workspace must be an absolute directory.");
   const cwd = realpathSync(configuredWorkspace);
@@ -149,6 +158,7 @@ export async function startGuiHost(
     ...wireSecrets(env),
     resolveNvidiaApiKey(env, secretsPath),
     resolveKieApiKey(env, secretsPath),
+    pin,
   ].filter((value): value is string => typeof value === "string" && value.length > 0);
   const requestOriginAllowed = (request: IncomingMessage): boolean =>
     originAllowedBy(request, allowedOrigins);
@@ -231,16 +241,49 @@ export async function startGuiHost(
     response.end(text);
   };
 
-  const authorized = (request: IncomingMessage): boolean => {
-    if (options.accessToken === undefined) return true;
+  const accessAuthorized = (request: IncomingMessage): boolean => {
+    if (options.accessToken === undefined) return false;
     const token = request.headers.authorization?.replace(/^Bearer /, "") ?? new URL(request.url ?? "/", "http://127.0.0.1").searchParams.get("access") ?? "";
     const expected = Buffer.from(options.accessToken);
     const actual = Buffer.from(token);
     return expected.length === actual.length && timingSafeEqual(expected, actual);
   };
+  const requestAuthorized = (request: IncomingMessage): boolean => {
+    if (options.accessToken === undefined && !pinAuth.enabled) return true;
+    return accessAuthorized(request) || (pinAuth.enabled && pinAuth.authorized(request));
+  };
+  const sendHtml = (response: ServerResponse, status: number, text: string): void => {
+    response.writeHead(status, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "content-length": Buffer.byteLength(text) });
+    response.end(text);
+  };
+  const handlePinLogin = async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
+    if (!requestOriginAllowed(request)) { sendJson(response, 403, errorBody("Cross-origin requests are refused.")); return; }
+    if (request.method !== "POST") { sendJson(response, 405, errorBody("PIN login supports POST only.")); return; }
+    if (!isJsonContentType(request)) { sendJson(response, 415, errorBody("Content-Type must be application/json.")); return; }
+    const body = await readJsonBody(request);
+    const candidate = isRecord(body) && typeof body.pin === "string" ? body.pin : "";
+    const result = pinAuth.attempt(request, candidate);
+    if (!result.ok) {
+      if (result.retryAfterSeconds !== undefined) response.setHeader("retry-after", String(result.retryAfterSeconds));
+      sendJson(response, result.retryAfterSeconds === undefined ? 401 : 429, errorBody(result.retryAfterSeconds === undefined ? "Invalid PIN." : "Too many PIN attempts. Try again shortly."));
+      return;
+    }
+    response.setHeader("set-cookie", pinAuth.sessionCookie(request));
+    sendJson(response, 200, { ok: true });
+  };
   const server = createServer((request, response) => {
-    if (requestPath(request).startsWith("/v1/") && !authorized(request)) {
-      sendJson(response, 401, { error: "Engine panel authorization required.", message: "Engine panel authorization required." });
+    const pathname = requestPath(request);
+    if (pinAuth.enabled && pathname === GUI_PIN_LOGIN_PATH) {
+      void handlePinLogin(request, response);
+      return;
+    }
+    if (pinAuth.enabled && (pathname === "/" || pathname === "/index.html") && !pinAuth.authorized(request)) {
+      sendHtml(response, 200, pinAuth.loginPage());
+      return;
+    }
+    if (pathname.startsWith("/v1/") && !requestAuthorized(request)) {
+      const message = pinAuth.enabled ? "Authentication required." : "Engine panel authorization required.";
+      sendJson(response, 401, errorBody(message));
       return;
     }
     void handleHttp({
@@ -269,7 +312,7 @@ export async function startGuiHost(
       socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
       return;
     }
-    if (!requestOriginAllowed(request) || !authorized(request)) {
+    if (!requestOriginAllowed(request) || !requestAuthorized(request)) {
       socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
       return;
     }
@@ -1039,8 +1082,10 @@ if (entryPath !== undefined && import.meta.url === pathToFileURL(entryPath).href
   const stderr = process.stderr;
   try {
     const listenOptions = parseListenOptions(process.argv.slice(2), process.env);
+    const configuredPin = process.env[GUI_PIN_ENV]?.trim();
     const host = await startGuiHost({
       ...listenOptions,
+      ...(configuredPin ? { pin: configuredPin } : {}),
       stderr,
     });
     stderr.write(`A008-gui-host listening on http://${host.host}:${String(host.port)}\n`);

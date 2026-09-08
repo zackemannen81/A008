@@ -255,12 +255,16 @@ legitimately discussing those names is shown redacted. The host may call
 NVIDIA catalog/image endpoints and kie.ai job endpoints; chat completions still
 run in the ACP subprocess.
 
-Two guards protect the shell surface. Any request carrying an `Origin` that is
-neither same-origin nor loopback is refused with 403 on every route and on the
-WebSocket upgrade, which is what stops a cross-origin page from reaching
-`/v1/shell` through a simple form post that would skip a CORS preflight.
-`POST /v1/shell` additionally requires `application/json`. Clients that send no
-`Origin`, and the Vite dev proxy on loopback, are unaffected.
+Three boundaries protect the shell surface. Any request carrying an `Origin`
+that is neither same-origin nor loopback is refused with 403 on every route and
+on the WebSocket upgrade. Standalone hosts may additionally set the exact
+six-digit `A008_GUI_PIN`: unauthenticated root requests receive a built-in login
+page, successful login creates a random process-lifetime `HttpOnly`,
+`SameSite=Strict` cookie, and every `/v1/*` route plus `WS /v1/session` requires
+that cookie. Five failed attempts from one client cause a 60-second lockout;
+`GET /health` remains public. `POST /v1/shell` additionally requires
+`application/json`. The PIN gate is deliberately lightweight and does not
+replace identity-aware edge protection for an Internet-exposed host.
 
 An ACP failure is reported with its real reason recovered from the SDK error
 details, and a host that cannot start `A008-acp` appends the subprocess stderr

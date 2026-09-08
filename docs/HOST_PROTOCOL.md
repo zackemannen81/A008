@@ -60,6 +60,23 @@ is configured.
 Start it with `npm run gui-host`, or `npm run gui` to build the bundled test
 surface first. Default bind is `127.0.0.1:8787`.
 
+## Standalone PIN gate
+
+Set `A008_GUI_PIN` to exactly six digits to enable the lightweight standalone
+browser gate. An unauthenticated `/` serves the built-in PIN page; `POST
+/auth/login` accepts `{ "pin": "123456" }`. A successful login replaces the
+PIN with a random process-lifetime session token in an `HttpOnly`,
+`SameSite=Strict` cookie (`Secure` behind an HTTPS proxy). The browser cookie
+expires after 24 hours; restarting the host invalidates it immediately.
+
+With the gate enabled, every `/v1/*` route and `WS /v1/session` requires that
+session cookie. `GET /health` remains public. Five failed PIN attempts from one
+client produce a 60-second lockout and HTTP 429 with `Retry-After`. The PIN is
+never sent to the renderer after login and should live only in local environment
+configuration. This is a convenience gate, not an identity system: six digits
+have low entropy, so an Internet-exposed host should also use an edge control
+such as Cloudflare Access.
+
 ## Origin rules — read this before writing a client
 
 The host refuses a request whose `Origin` header is neither same-host nor
@@ -109,7 +126,9 @@ fields carry the same string; `message` is the one to display.
 { "models": [{ "id": "nvidia/nemotron-3.5-lightning-30b-a3b", "name": "…" }] }
 ```
 
-Needs no credential. Use it to check the host is reachable and configured.
+In standalone mode this route needs no credential only when `A008_GUI_PIN` is
+disabled; with the PIN gate enabled it requires the authenticated cookie. Engine
+mode retains its separate capability authentication.
 
 Each model also carries `defaults` (the complete parameter object below) and
 `capabilities`: `maxTokens` (integer ceiling), `topP`, `thinking`, `seed`, `stop`

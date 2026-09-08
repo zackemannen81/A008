@@ -94,12 +94,13 @@ async function httpJson(
   host: GuiHost,
   path: string,
   init: RequestInit = {},
-): Promise<{ readonly status: number; readonly body: unknown; readonly raw: string }> {
+): Promise<{ readonly status: number; readonly body: unknown; readonly raw: string; readonly headers: Headers }> {
   const response = await fetch(`http://127.0.0.1:${String(host.port)}${path}`, init);
   const raw = await response.text();
   return {
     status: response.status,
     raw,
+    headers: response.headers,
     body: raw.length === 0 ? undefined : (JSON.parse(raw) as unknown),
   };
 }
@@ -271,6 +272,78 @@ test("GET /health and /v1/models do not require a credential", async () => {
     }
     assertWireClean([health.raw, models.raw]);
   });
+});
+
+test("standalone PIN gate protects HTTP and WebSocket access", async () => {
+  const pin = "123456";
+  await withHost({ pin }, async (host) => {
+    const origin = `http://127.0.0.1:${String(host.port)}`;
+    const root = await fetch(`${origin}/`);
+    const loginHtml = await root.text();
+    assert.equal(root.status, 200);
+    assert.match(loginHtml, /six-digit PIN/u);
+    assert.equal(loginHtml.includes(pin), false);
+
+    const locked = await httpJson(host, "/v1/models");
+    assert.equal(locked.status, 401);
+    const blockedSocket = await attemptUpgrade(host.port, { origin });
+    assert.deepEqual(blockedSocket, { status: 403, upgraded: false });
+
+    const wrong = await httpJson(host, "/auth/login", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin },
+      body: JSON.stringify({ pin: "000000" }),
+    });
+    assert.equal(wrong.status, 401);
+
+    const login = await httpJson(host, "/auth/login", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin, "x-forwarded-proto": "https" },
+      body: JSON.stringify({ pin }),
+    });
+    assert.equal(login.status, 200);
+    const setCookie = login.headers.get("set-cookie") ?? "";
+    assert.match(setCookie, /^a008_auth=[a-f0-9]{64};/u);
+    assert.match(setCookie, /HttpOnly/u);
+    assert.match(setCookie, /SameSite=Strict/u);
+    assert.match(setCookie, /Secure/u);
+    assert.equal(setCookie.includes(pin), false);
+
+    const cookie = setCookie.split(";", 1)[0]!;
+    const models = await httpJson(host, "/v1/models", { headers: { cookie } });
+    assert.equal(models.status, 200);
+    const openSocket = await attemptUpgrade(host.port, { origin, cookie });
+    assert.equal(openSocket.upgraded, true);
+  });
+});
+
+test("standalone PIN gate rate-limits repeated failures", async () => {
+  await withHost({ pin: "123456" }, async (host) => {
+    const headers = {
+      "content-type": "application/json",
+      "cf-connecting-ip": "203.0.113.7",
+    };
+    for (let attempt = 1; attempt <= 4; attempt += 1) {
+      const result = await httpJson(host, "/auth/login", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ pin: "000000" }),
+      });
+      assert.equal(result.status, 401);
+    }
+    const blocked = await httpJson(host, "/auth/login", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ pin: "000000" }),
+    });
+    assert.equal(blocked.status, 429);
+    assert.equal(blocked.headers.get("retry-after"), "60");
+  });
+});
+
+test("standalone PIN must contain exactly six digits", async () => {
+  await assert.rejects(() => startGuiHost({ pin: "12345" }), /exactly six digits/u);
+  await assert.rejects(() => startGuiHost({ pin: "abcdef" }), /exactly six digits/u);
 });
 
 test("POST /v1/shell reuses the injected terminal runner in host cwd", async () => {
