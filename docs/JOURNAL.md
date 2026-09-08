@@ -2,6 +2,39 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — A008-0078: necessity gate integrated locally
+
+- Task: A008-0078; operator: Codex; branch: `main`.
+- Owner request: add the docs-first Necessity Gate to A008 before a specific
+  implementation that must not drift. The incoming feature remains unchartered.
+- Integrated the completed branch locally at `83d96fe`, including implementation
+  `d064180` and its handoff. No remote push was performed.
+- The Core Product Contract in `docs/PROJECT_BRIEF.md` owns six stable PC
+  clauses grounded in A008's existing decisions. The Necessity Gate in
+  `docs/TASK_WORKFLOW.md` requires exact authority, observable need and omission
+  consequence, smallest sufficient approach and verification. AGENTS,
+  contribution guidance and the task template require its use. SYSTEMDOC now
+  distinguishes evidence of existing behavior from authority to implement it.
+- `docs/adr/0034-product-contract-and-necessity-gate.md` records explicit
+  adoption from docs-first continuity protocol commit `c1b7b44`, Apache-2.0.
+  Existing retrieval exceptions, budgets, scope behavior, provider boundaries
+  and permissions were preserved; no product code or settings changed.
+- Verification: twelve A008-specific manual case verdicts agreed with the
+  adopted rule. Reference/anchor, fence, membership, whitespace, template-byte,
+  frozen-charter and preservation checks passed without new failures;
+  `git diff 440bea9 --check` passed. Three pre-existing missing evidence links
+  were routed to `docs/backlog/runtime-proof-reference-repair.md`.
+- Archive: `docs/finished/A008-0078_necessity-gate.md`; integration handoff:
+  `docs/handoffs/A008-0078.md`. Earlier journal entries remain unchanged.
+- Identity was claimed on local main at `c1175bc` before Ready. Reconcile with
+  shared main before a future push; the claim has no remote visibility yet.
+- Not performed: runtime/build/live-provider tests, independent actor testing,
+  pilot programme, push, publication or release. This is a required review
+  practice, not an automated enforcement or measured drift-prevention claim.
+- Handoff: CURRENT_TASK is restored byte-for-byte from the updated template;
+  the owner's next specific implementation must supply its own gate arguments.
+- Signature: Codex.
+
 ## 2026-09-08 — browser iframe frame-ancestors fallback
 
 - Task: A008-0077; operator: Grok; branch: `A008-0077-browser-frame`.
