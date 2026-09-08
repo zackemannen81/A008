@@ -5,10 +5,11 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
-A008-0079 prepares the [instruction and memory lifecycle specification](backlog/instruction-plane-and-memory-lifecycle.md).
-Its three implementation slices and numeric defaults are Proposed. No prompt,
-retrieval, decay, reinforcement, edge, schema or runtime setting has changed.
-The instruction slice is independent of the lifecycle policy decisions.
+A008-0079's [instruction and memory specification](backlog/instruction-plane-and-memory-lifecycle.md)
+is owner-reviewed and frozen as an Accepted target by
+[ADR 0035](adr/0035-frozen-instruction-and-memory-target.md), including P1–P6.
+A008-0080 is Ready for L1; runtime behavior is not yet changed. L2/L3 remain
+unactivated and their accepted policy has not been applied to stored data.
 
 A008-0078 adopts the Core Product Contract in `docs/PROJECT_BRIEF.md` and the
 Necessity Gate in `docs/TASK_WORKFLOW.md`, under

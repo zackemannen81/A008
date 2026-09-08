@@ -1,9 +1,9 @@
 # File Structure
 
-A008-0079 adds `docs/backlog/instruction-plane-and-memory-lifecycle.md`, a
-Proposed implementation specification indexed in the existing backlog. Its
-requirements, proposed defaults, authority amendments and acceptance cases
-share that one stable owner; current runtime behavior remains in SYSTEMDOC.
+A008-0079 adds `docs/backlog/instruction-plane-and-memory-lifecycle.md`, now
+frozen under `docs/adr/0035-frozen-instruction-and-memory-target.md`. Its body
+remains the one reviewed requirement owner. A008-0080's L1 charter is in
+`docs/tasks/A008-0080_coherent-instruction.md`; current behavior is in SYSTEMDOC.
 
 A008-0078 adds the core product contract to the existing brief and the necessity
 gate to the workflow and task template. Adoption authority is

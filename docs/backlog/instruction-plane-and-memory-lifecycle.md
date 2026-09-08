@@ -1,10 +1,17 @@
 # One instruction plane and evidence-driven memory lifecycle
 
-Status: Proposed
+Status: Accepted
 Date: 2026-09-08
 Specification task: A008-0079
-Implementation task: Not activated
+Implementation task: A008-0080 (L1); L2/L3 not activated
 Source baseline: `d7c542811b9744e2c3f30a65564c6c50b2c4392b`
+
+The owner reviewed and froze this target on 2026-09-08 under
+[ADR 0035](../adr/0035-frozen-instruction-and-memory-target.md), including P1–P6.
+The body below retains its reviewed wording, including its former Proposed
+labels. ADR 0035 records their acceptance and pins the unchanged body hash.
+Current implementation status is owned by CURRENT_STATUS; acceptance is not
+evidence that L1–L3 are implemented.
 
 ## 1. Purpose and authority
 

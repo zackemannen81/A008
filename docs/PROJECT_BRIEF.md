@@ -62,6 +62,11 @@ add-on model for capabilities such as semantic memory.
 
 ## Approved product direction
 
+- ADR 0035 freezes the owner-reviewed instruction/memory target, including
+  P1–P6, at its recorded body hash. Its exact amendments refine PC-01/02/04/05/06;
+  L1, L2 and L3 remain separately bounded implementation slices. Acceptance
+  does not claim implementation; CURRENT_STATUS records actual availability.
+
 - ADR 0029/0030: the owner also selects A008's standalone GUI for repository
   work, with a focused neutral workspace inspired by their Codex screenshot.
   External clients continue to consume the same shared engine contract.

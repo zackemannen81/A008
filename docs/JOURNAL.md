@@ -2,6 +2,24 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — A008-0080: reviewed target published and frozen
+
+- Owner confirms specification review and authorizes committing/pushing to main,
+  freezing and implementation. Operator: Codex.
+- Published the eleven pending preparation commits through `97f36eb`; remote
+  main and local main were verified equal. Published task identity `2f2275c`.
+- ADR 0035 accepts P1–P6 and pins the reviewed specification's unchanged body
+  hash. Status/index updates distinguish this target adoption from runtime work.
+- `docs/tasks/A008-0080_coherent-instruction.md` freezes L1 only. The CLI's
+  earlier generic fallback injection is included because it otherwise loses
+  explicit/default provenance before the shared runtime can compose instructions.
+- Body-hash, current-task template and diff checks passed. No product code or
+  stored policy changed in this freeze. L2/L3 remain unactivated.
+- Earlier journals/archives stay immutable. Existing `.grok/` remains unrelated,
+  untracked and unmodified. No paid/live call or release is authorized here.
+- Next: implement and verify the frozen L1 charter on its task branch.
+- Signature: Codex.
+
 ## 2026-09-08 — A008-0079: instruction and memory specification
 
 - Task: A008-0079; operator: Codex; branch: `main`.

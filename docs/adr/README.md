@@ -8,6 +8,9 @@ replacement.
 
 ## Records
 
+- [0035-frozen-instruction-and-memory-target.md](0035-frozen-instruction-and-memory-target.md)
+  — Accepted; owner-reviewed specification and P1–P6 frozen; bounded L1 first.
+
 - [0034-product-contract-and-necessity-gate.md](0034-product-contract-and-necessity-gate.md)
   — Accepted; current product contract and necessity gate for substantive changes,
   preserving A008's detailed product decisions and operator workflow.
