@@ -139,8 +139,16 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
     payload.tool_choice = "auto";
   }
   if (options.maxTokens != null) payload.max_completion_tokens = options.maxTokens;
-  if (options.reasoningEffort != null) payload.reasoning_effort = options.reasoningEffort;
-  if (options.temperature != null) payload.temperature = options.temperature;
+  // GPT-5.6 Luna Chat Completions rejects function tools with reasoning_effort > none.
+  // Keep A008 tools available by lowering only the effective tool-call request.
+  const reasoningEffort =
+    request.model === "gpt-5.6-luna" && request.tools?.length
+      ? "none"
+      : options.reasoningEffort;
+  if (reasoningEffort != null) payload.reasoning_effort = reasoningEffort;
+  if (request.model !== "gpt-5.6-luna" && options.temperature != null) {
+    payload.temperature = options.temperature;
+  }
   if (options.topP != null) payload.top_p = options.topP;
   if (options.seed != null) payload.seed = options.seed;
   if (options.stop != null) payload.stop = [...options.stop];
@@ -148,7 +156,18 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
   return payload;
 }
 
-function httpError(status: number): ChatError {
+function providerErrorDetail(text: string): string | undefined {
+  try {
+    const parsed = JSON.parse(text) as { readonly error?: { readonly message?: unknown } };
+    const message = parsed.error?.message;
+    if (typeof message !== "string" || message.trim().length === 0) return undefined;
+    return message.replace(/\s+/gu, " ").trim().slice(0, 800);
+  } catch {
+    return undefined;
+  }
+}
+
+function httpError(status: number, detail?: string): ChatError {
   if (status === 401 || status === 403) {
     return new ChatError("authentication", `OpenAI authentication failed with HTTP ${status}.`, { status });
   }
@@ -164,7 +183,13 @@ function httpError(status: number): ChatError {
       retryable: true,
     });
   }
-  return new ChatError("provider", `OpenAI request failed with HTTP ${status}.`, { status });
+  return new ChatError(
+    "provider",
+    detail
+      ? `OpenAI request failed with HTTP ${status}: ${detail}`
+      : `OpenAI request failed with HTTP ${status}.`,
+    { status },
+  );
 }
 
 function isAbortError(value: unknown): boolean {
@@ -270,7 +295,10 @@ export class OpenAiChatTransport implements ChatTransport {
         body: JSON.stringify(buildPayload(request)),
         signal: controller.signal,
       });
-      if (!response.ok) throw httpError(response.status);
+      if (!response.ok) {
+        const detail = providerErrorDetail(await response.text());
+        throw httpError(response.status, detail);
+      }
       return streaming
         ? await this.#readStreaming(response, callbacks)
         : await this.#readJson(response);

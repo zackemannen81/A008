@@ -39,7 +39,7 @@ test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async 
     model: "gpt-5.6-luna",
     messages: [{ role: "user", content: "hi" }],
     tools: [{ name: "read_file", description: "Read", parameters: { type: "object" } }],
-    options: { stream: false, maxTokens: 1234, reasoningEffort: "medium" },
+    options: { stream: false, maxTokens: 1234, reasoningEffort: "medium", temperature: 0.7 },
   });
   assert.equal(url, OPENAI_CHAT_COMPLETIONS_URL);
   assert.equal(auth, "Bearer sk-test-secret");
@@ -47,7 +47,8 @@ test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async 
   const payload = JSON.parse(body) as Record<string, unknown>;
   assert.equal(payload.model, "gpt-5.6-luna");
   assert.equal(payload.max_completion_tokens, 1234);
-  assert.equal(payload.reasoning_effort, "medium");
+  assert.equal(payload.reasoning_effort, "none");
+  assert.equal(Object.hasOwn(payload, "temperature"), false);
   assert.equal(Array.isArray(payload.tools), true);
   assert.equal(payload.tool_choice, "auto");
   assert.equal(completion.message.content, "ok");
@@ -128,5 +129,22 @@ test("OpenAI HTTP 429 is a typed retryable rate-limit error", async () => {
       typeof error === "object" && error !== null &&
       "code" in error && error.code === "rate_limit" &&
       "retryable" in error && error.retryable === true,
+  );
+});
+
+test("OpenAI provider errors preserve the bounded provider message", async () => {
+  const transport = new OpenAiChatTransport({
+    apiKey: "sk-test",
+    fetch: async () => jsonResponse({ error: { message: "Unsupported parameter combination." } }, 400),
+  });
+  await assert.rejects(
+    () => transport.complete({
+      model: "gpt-5.6-luna",
+      messages: [{ role: "user", content: "hi" }],
+      options: { stream: false },
+    }),
+    (error: unknown) =>
+      error instanceof Error &&
+      /HTTP 400: Unsupported parameter combination\./u.test(error.message),
   );
 });

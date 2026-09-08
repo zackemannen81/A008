@@ -117,11 +117,15 @@ and constructs `NvidiaChatTransport`. `createNvidiaChatSession` still returns a
 bare `ChatSession` for tests and direct callers.
 
 Live CLI and ACP chat without an injected transport use
-`createDispatchingChatTransport` (A008-0073, amended by A008-0087). It sends
-NVIDIA registry models through `NvidiaChatTransport`, kie.ai chat through
-`KieChatTransport`, and built-in `gpt-5.6-luna` through `OpenAiChatTransport`.
-Any one of `NVIDIA_API_KEY`, `KIE_API_KEY`, or `OPENAI_API_KEY` is enough to
-start the runtime. Image generation on the host
+`createDispatchingChatTransport` (A008-0073, amended by A008-0087/A008-0088).
+Explicit model identity owns routing: NVIDIA registry models use
+`NvidiaChatTransport`, kie.ai models use `KieChatTransport`, and built-in
+`gpt-5.6-luna` uses `OpenAiChatTransport`; a saved OpenAI provider preference
+does not override a selected non-OpenAI model. Luna Chat Completions omits
+`temperature` entirely. When function tools are attached, the adapter uses
+effective `reasoning_effort: none` because OpenAI rejects non-none reasoning
+with Luna tools on `/v1/chat/completions`. Any one of `NVIDIA_API_KEY`,
+`KIE_API_KEY`, or `OPENAI_API_KEY` is enough to start the runtime. Image generation on the host
 follows `imageProvider`: NVIDIA NIMs or kie Market jobs
 (`POST /api/v1/jobs/createTask` then poll `GET /api/v1/jobs/recordInfo`).
 

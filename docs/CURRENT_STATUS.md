@@ -6,13 +6,17 @@ belongs in `docs/PROJECT_BRIEF.md`.
 ## What exists
 
 A008-0087 adds OpenAI GPT-5.6 Luna as a built-in third chat provider through
-the existing `ChatTransport`/ACP/tool-permission path. The OpenAI key is
-write-only in Parameters or `OPENAI_API_KEY`; the renderer receives only
-configured/source metadata. Luna defaults to medium reasoning for chat while
-A008 semantic JSON calls use `none`. With no NVIDIA key, retrieval scope uses
-Luna so an OpenAI-only runtime does not fail before chat. Offline verification:
-538 core, 4 membership and 119 GUI tests pass. No live OpenAI call was made.
-See [ADR 0036](adr/0036-openai-gpt-56-luna-provider.md).
+the existing `ChatTransport`/ACP/tool-permission path. A008-0088 fixes the first
+live Chat Completions compatibility issue: Luna requests omit `temperature`, and
+function-tool turns normalize effective reasoning effort to `none` because the
+provider rejects tools with non-none reasoning on this endpoint. Explicit model
+identity now wins OpenAI routing, so a saved OpenAI provider preference cannot
+hijack NVIDIA/Kimi/etc. selections. The OpenAI key remains write-only in
+Parameters or `OPENAI_API_KEY`; the renderer receives only configured/source
+metadata. With no NVIDIA key, retrieval scope can use Luna. Verification: 540
+core, 4 membership and 119 GUI tests pass, the production GUI builds, and an
+owner-authorized live A008 adapter smoke request with a function tool returned
+HTTP 200 without exposing the locally configured key. See [ADR 0036](adr/0036-openai-gpt-56-luna-provider.md).
 
 A008-0085 corrects the extraction instruction after a further owner-reported
 malformed JSON response. Canonical serialized examples distinguish greetings

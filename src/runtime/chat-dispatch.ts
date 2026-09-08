@@ -32,7 +32,7 @@ function isKnownOpenAiChatModel(model: string, catalog: UserCatalog): boolean {
 
 export function usesOpenAiChat(model: string, catalogPath: string): boolean {
   const catalog = loadUserCatalog(catalogPath);
-  return isKnownOpenAiChatModel(model, catalog) || catalog.chatProvider === "openai";
+  return isKnownOpenAiChatModel(model, catalog);
 }
 
 export function createDispatchingChatTransport(options: {
@@ -63,7 +63,7 @@ export function createDispatchingChatTransport(options: {
   return {
     complete(request: ChatRequest, callbacks?: ChatCallbacks): Promise<ChatCompletion> {
       const catalog = loadUserCatalog(options.catalogPath);
-      if (isKnownOpenAiChatModel(request.model, catalog) || catalog.chatProvider === "openai") {
+      if (isKnownOpenAiChatModel(request.model, catalog)) {
         if (!openAiKey) {
           throw new ChatError("configuration", "OPENAI_API_KEY is required for OpenAI chat.");
         }

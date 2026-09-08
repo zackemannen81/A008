@@ -34,6 +34,8 @@ test("usesKieChat follows curated ids, catalog provider, and chatProvider fallba
   assert.equal(usesKieChat("custom-kie", kie), true);
   assert.equal(usesKieChat("nvidia/nemotron-3.5-lightning-30b-a3b", fallback), true);
   assert.equal(usesOpenAiChat("gpt-5.6-luna", nvidia), true);
+  const openaiFallback = catalogFile({ version: 1, chatProvider: "openai" });
+  assert.equal(usesOpenAiChat("nvidia/nemotron-3.5-lightning-30b-a3b", openaiFallback), false);
 });
 
 test("dispatch posts kie chat to the model URL and NVIDIA chat to NVIDIA", async () => {

@@ -2156,3 +2156,15 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Live-provider status: no OpenAI API call was made. The operator-created key remains external to Git and must be entered through Parameters → Provider before live use.
 - Handoff: `docs/handoffs/A008-0087.md`.
 - Signature: Codex
+## 2026-09-09 — A008-0088 Luna tool-call compatibility
+
+- Date: 2026-09-09
+- Author: Codex
+- Task: A008-0088
+- Branch: `main`
+- Live diagnosis: OpenAI accepted Luna, the configured key, `temperature: 0`, and reasoning independently, but rejected Chat Completions when function tools were combined with non-`none` reasoning effort.
+- Change: Luna now omits `temperature`, tool-enabled Luna requests normalize effective reasoning to `none`, explicit model identity wins OpenAI routing, and bounded OpenAI 4xx error detail is preserved.
+- Live proof: the A008 OpenAI adapter sent a tool-shaped Luna request using the locally configured key without exposing it and received HTTP 200 / `OK`.
+- Verification: focused affected surfaces 39/39; full suite 540 core, 4 membership, 119 GUI; production GUI build and `git diff --check` passed.
+- Handoff: `docs/handoffs/A008-0088.md`.
+- Signature: Codex

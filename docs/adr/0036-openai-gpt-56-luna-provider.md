@@ -22,9 +22,11 @@ introduced by this task.
 only configured/missing state and source, never the value. The GUI host injects
 the resolved key into a newly spawned ACP child and includes it in wire redaction.
 Luna exposes reasoning effort `none`, `low`, `medium`, `high`, `xhigh` and `max`.
-Chat defaults to `medium`. A008's internal strict semantic-JSON calls use
-`reasoning_effort: none` so their existing deterministic `temperature: 0`
-profile remains compatible and independent from chat reasoning settings.
+Chat defaults to `medium` when no function tools are attached. OpenAI Chat
+Completions rejects Luna function tools with non-`none` reasoning effort, so a
+tool-enabled Luna request is normalized to effective `reasoning_effort: none`.
+A008 omits `temperature` entirely for Luna, including internal strict
+semantic-JSON calls; those semantic calls also use `reasoning_effort: none`.
 
 When no NVIDIA credential exists but OpenAI does, the retrieval-scope classifier
 uses Luna instead of requiring the NVIDIA default. Thus an OpenAI-only runtime
@@ -32,11 +34,14 @@ can complete the same memory-aware turn rather than failing before chat.
 
 ## Consequences
 
-Provider-neutral core contracts and tool permissions do not change. OpenAI
-provider failures retain typed auth/rate-limit/server/network/cancel outcomes.
-Luna is text/image-capable upstream, but A008 chat input remains text-only under
-ADR 0020 D6.
+Provider-neutral core contracts and tool permissions do not change. Explicit
+model identity wins provider routing: selecting Luna routes OpenAI, while a
+selected NVIDIA/Kimi/etc. model is not hijacked by a saved OpenAI provider
+preference. OpenAI provider failures retain typed outcomes and a bounded
+provider error message for actionable 4xx diagnostics. Luna is text/image-capable
+upstream, but A008 chat input remains text-only under ADR 0020 D6.
 
-Automated verification uses injected fake fetch responses only. A live OpenAI
-call requires the owner's locally supplied credential and is not implied by
-this decision.
+A008-0087 used injected fake responses for acceptance. A008-0088 additionally
+performed an owner-authorized live smoke call with the locally configured key,
+without printing or committing the credential, to verify the tool-compatible
+wire shape against OpenAI.
