@@ -2,6 +2,46 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — A008-0082: L3 implemented and published
+
+- Task: A008-0082; operator: Codex; branch: `main`.
+- Integrated implementation `27a17081cf99a3fe8f868ffd25161fc8dc5a2be7`
+  and handoff `a347a872b319267e02b2ff04e7cc6b1c425fc620`. Published main
+  and verified local/remote equality at `a347a87` before this closure entry.
+- Implemented accepted P6: independent directed/scoped association baselines,
+  occurrence/edge receipts and audit alongside RelationIndex. Existing semantic
+  comparison supplies exact handles and edge-specific original-source support;
+  runtime validates under the existing atomic knowledge owner. Claim and edge
+  proof remain independent; no strength transfers to endpoints or truth/state.
+- One-hop expansion evaluates edge activity/applicability and endpoint evidence
+  separately, preserving direct/alternate routes. Reads/graph views never boost
+  or promote links. Existing record detail exposes baseline/effective values;
+  scope variants retain separate metadata and share one display line.
+- Knowledge schema 4 adds metadata/receipts/audit transactionally, preserves L2
+  baselines and legacy untracked links, and rejects incompatible older writers.
+  Settings format 4 reads earlier formats and preserves association policy on
+  older-client saves. No new model call, ranking, recursion or background job.
+- Verification: typecheck/build passed; core 521/521; membership 4/4; GUI 116/116,
+  without failures/skips. Ten L3 groups in
+  `test/knowledge-model/association-lifecycle.test.ts` cover exact directed/scope
+  identity, day-45 boundaries, independent source proof, cap/backward clocks,
+  same-call proposal resolution, duplicate/cancelled commits, complete rollback,
+  receipt failure/retry, concurrent connections and namespace/restart isolation.
+  A fixture created by the published L2 store proves DDL/version rollback,
+  unchanged namespace baselines, old-store rejection and backup restoration.
+- Final necessity and documentation checks passed: frozen specification body and
+  charter unchanged, prior immutable records intact, current template restored,
+  UTF-8, changed references/anchors/fences, credential patterns and diff checks.
+  Archive: `docs/finished/A008-0082_association-lifecycle.md`; handoff:
+  `docs/handoffs/A008-0082.md`. Owning model/system/status/semantic-call docs and
+  indexes now describe L3. L1-L3 each have their own verification record.
+- The owner's d867226 ASCII-logo CSS remains byte-for-byte intact. Pre-existing
+  `.grok/` was not read, modified or staged. No live/paid model evaluation,
+  physical power-loss test, user-data migration, running-application restart,
+  packaged distribution rebuild or deployment was performed. Synthetic judgments
+  do not establish live model accuracy; the existing backup/restore procedure
+  remains the continuation for any later upgrade of valuable runtime data.
+
 ## 2026-09-08 — A008-0081: L2 implemented and published
 
 - Task: A008-0081; operator: Codex; branch: `main`.
