@@ -61,6 +61,36 @@
   text-align: center;
 }
 
+.a008-empty-logo-wrap {
+  container-type: inline-size;
+  width: min(100%, 28rem);
+  margin: 0 auto;
+}
+
+.a008-empty-logo {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: none;
+  color: color-mix(in srgb, var(--a008-chat-fg, #101418) 28%, transparent);
+  font-family: var(--a008-mono, ui-monospace, monospace);
+  font-size: 4.5px;
+  font-size: 1cqi;
+  line-height: 1.08;
+  letter-spacing: 0;
+  white-space: pre;
+  user-select: none;
+  pointer-events: none;
+}
+
+.a008-empty-rule {
+  width: min(100%, 28rem);
+  margin: 1.35rem auto 0;
+  border: 0;
+  border-top: 1px solid var(--a008-chat-rule);
+}
+
 .a008-empty-shortcuts {
   list-style: none;
   margin: 1.4rem auto 0;
