@@ -40,8 +40,8 @@ export class ChatSession {
     this.#model = options.model;
     this.#transport = options.transport;
     this.#generation = options.generation;
-    this.#messages = options.systemMessage
-      ? [{ role: "system", content: options.systemMessage }]
+    this.#messages = options.systemMessage?.trim()
+      ? [{ role: "system", content: options.systemMessage.trim() }]
       : [];
   }
 

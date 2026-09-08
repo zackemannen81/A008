@@ -19,7 +19,6 @@ import {
   type LocalMemoryRuntime,
   type LocalMemorySession,
 } from "./runtime/local-memory-runtime.js";
-import { DEFAULT_SYSTEM_MESSAGE } from "./runtime/nvidia-session.js";
 import {
   formatTerminalResult,
   runTerminalCommand,
@@ -41,7 +40,7 @@ export interface CliDependencies {
 
 interface ChatCommandOptions {
   readonly model: string;
-  readonly systemMessage: string;
+  readonly systemMessage?: string;
   readonly debugTrace?: string;
   readonly debugTraceFile?: string;
 }
@@ -96,7 +95,7 @@ async function handleSlash(
   ctx: {
     readonly deps: CliDependencies;
     readonly runtime: LocalMemoryRuntime;
-    systemMessage: string;
+    systemMessage: string | undefined;
     session: LocalMemorySession;
   },
 ): Promise<"quit" | "continue" | "unhandled"> {
@@ -153,7 +152,7 @@ async function handleSlash(
       const profile = ctx.deps.registry.require(parsed.argument);
       ctx.session = ctx.runtime.openSession({
         model: profile.id,
-        systemMessage: ctx.systemMessage,
+        ...(ctx.systemMessage === undefined ? {} : { systemMessage: ctx.systemMessage }),
       });
       out.write(`Model: ${profile.name} (${profile.id}). Conversation reset.\n`);
       return "continue";
@@ -201,7 +200,7 @@ async function handleSlash(
 
 function parseChatOptions(args: readonly string[]): ChatCommandOptions {
   let model = DEFAULT_MODEL_ID;
-  let systemMessage = DEFAULT_SYSTEM_MESSAGE;
+  let systemMessage: string | undefined;
   let debugTrace: string | undefined;
   let debugTraceFile: string | undefined;
 
@@ -238,7 +237,7 @@ function parseChatOptions(args: readonly string[]): ChatCommandOptions {
 
   return {
     model,
-    systemMessage,
+    ...(systemMessage === undefined ? {} : { systemMessage }),
     ...(debugTrace === undefined ? {} : { debugTrace }),
     ...(debugTraceFile === undefined ? {} : { debugTraceFile }),
   };
@@ -281,7 +280,7 @@ async function runChat(
     systemMessage: options.systemMessage,
     session: runtime.openSession({
       model: profile.id,
-      systemMessage: options.systemMessage,
+      ...(options.systemMessage === undefined ? {} : { systemMessage: options.systemMessage }),
     }),
   };
   const terminal = createInterface({

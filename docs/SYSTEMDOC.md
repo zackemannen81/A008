@@ -88,12 +88,22 @@ CLI / A008-acp -> createLocalMemoryRuntime
 calls the transport, and commits user plus assistant messages only after a valid
 completion. Transport failure leaves prior history unchanged.
 
-An optional invocation plan can add ephemeral system context, substitute the
-provider-visible current user content, bound the outgoing committed-dialogue
-tail, and enforce a hard measurement budget over stable JSON serialization of
-the exact role/content array. The committed pending turn still uses the
-original normalized user text. Direct callers without a plan retain existing
-behavior.
+`composeChatInvocation` owns the single final chat system message (A008-0080,
+ADR 0035 L1). It combines the explicit session base, invocation/global
+`systemMessages`, and applicable `contextSystemMessages`, in that order. The
+generic fallback is selected only when session/global configuration is absent;
+memory data-handling rules do not suppress the fallback. The runtime factories
+and CLI preserve an absent explicit base instead of injecting the fallback
+early. An explicit base equal to the fallback remains explicit configuration.
+
+The invocation plan can substitute provider-visible current user content, bound
+the outgoing dialogue tail and enforce the hard budget over the exact composed
+role/content serialization. Envelope serialization and retrieval are unchanged.
+Tool continuations reuse the same instruction/settings snapshot. The pending
+committed turn uses the original normalized user text and actual final answer;
+the automatically selected fallback and contextual rule are never committed as
+dialogue. Existing explicit session-base metadata remains separate from dialogue.
+Bare chat composition also emits one fallback instruction when no base is set.
 
 Core contracts own provider-neutral messages, options, deltas, completions,
 usage, errors, model metadata, and the transport port. Core imports do not read

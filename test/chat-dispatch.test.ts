@@ -3,6 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
+import { ChatSession } from "../src/core/chat-session.js";
 import { createDispatchingChatTransport, usesKieChat } from "../src/runtime/chat-dispatch.js";
 
 function catalogFile(body: unknown): string {
@@ -88,4 +89,29 @@ test("chatProvider kie rewrites a NVIDIA model id to the configured kie chat mod
   assert.match(url, /api\.kie\.ai\/gemini-3-pro\/v1\/chat\/completions/u);
   assert.match(body, /"model":"gemini-3-pro"/u);
   assert.equal(result.message.content, "from kie");
+});
+
+test("NVIDIA and kie HTTP payloads retain the shared single chat instruction", async () => {
+  const catalogPath = catalogFile({ version: 1 });
+  const bodies: Array<{ messages: Array<{ role: string; content: string }> }> = [];
+  const transport = createDispatchingChatTransport({
+    env: { NVIDIA_API_KEY: "nvapi-test", KIE_API_KEY: "kie-secret" },
+    catalogPath, timeoutMs: 5000,
+    fetch: async (_input, init) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return jsonChat("ok");
+    },
+  });
+  for (const model of ["gemini-3-flash", "nvidia/nemotron-3.5-lightning-30b-a3b"]) {
+    const session = new ChatSession({ model, transport, systemMessage: "Explicit base." });
+    await session.send("Question", {
+      generation: { stream: false },
+      invocation: { systemMessages: ["Global instruction."] },
+    });
+  }
+  assert.equal(bodies.length, 2);
+  for (const body of bodies) assert.deepEqual(body.messages, [
+    { role: "system", content: "Explicit base.\n\nGlobal instruction." },
+    { role: "user", content: "Question" },
+  ]);
 });

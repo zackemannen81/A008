@@ -1,6 +1,8 @@
 import { ChatError } from "./errors.js";
 import type { ChatMessage } from "./types.js";
 
+export const DEFAULT_SYSTEM_MESSAGE = "You are a helpful AI assistant.";
+
 export interface ChatMessageMeasurer {
   readonly unit: string;
   measure(serializedMessages: string): number;
@@ -13,7 +15,10 @@ export interface ChatInvocationBudget {
 }
 
 export interface ChatInvocationPlan {
+  /** Explicit invocation configuration, combined with the session base. */
   readonly systemMessages?: readonly string[];
+  /** Applicable data-handling rules; these do not replace the base fallback. */
+  readonly contextSystemMessages?: readonly string[];
   readonly providerUserContent?: string;
   readonly historyMessageLimit?: number;
   readonly budget?: ChatInvocationBudget;
@@ -101,7 +106,7 @@ export function composeChatInvocation(
   const maximumHistory = historyLimit(plan.historyMessageLimit);
   const persistentSystemMessages = committedMessages
     .filter((message) => message.role === "system")
-    .map((message) => ({ ...message }));
+    .map((message) => nonEmpty(message.content, "Session system message"));
   const dialogue = committedMessages
     .filter((message) => message.role !== "system")
     .map((message) => ({ ...message }));
@@ -111,18 +116,22 @@ export function composeChatInvocation(
       : maximumHistory === 0
         ? []
         : dialogue.slice(-maximumHistory);
-  const ephemeralSystemMessages = (plan.systemMessages ?? []).map(
-    (content, index): ChatMessage => ({
-      role: "system",
-      content: nonEmpty(
+  const configuredInstructions = [
+    ...persistentSystemMessages,
+    ...(plan.systemMessages ?? []).map((content, index) => nonEmpty(
         content,
         `Chat invocation system message ${index + 1}`,
-      ),
-    }),
+      )),
+  ];
+  const contextInstructions = (plan.contextSystemMessages ?? []).map(
+    (content, index) => nonEmpty(content, `Chat context instruction ${index + 1}`),
   );
+  const systemInstruction = [
+    ...(configuredInstructions.length ? configuredInstructions : [DEFAULT_SYSTEM_MESSAGE]),
+    ...contextInstructions,
+  ].join("\n\n");
   const messages: ChatMessage[] = [
-    ...persistentSystemMessages,
-    ...ephemeralSystemMessages,
+    { role: "system", content: systemInstruction },
     ...boundedDialogue,
     { role: "user", content: providerUserContent },
   ];

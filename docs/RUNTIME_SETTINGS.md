@@ -25,6 +25,14 @@ No chat message, source file or retrieved memory is automatically promoted into
 instructions. Optional prompt files are neither auto-loaded nor bundled.
 Delivery is deterministic; model compliance is not guaranteed by persistence.
 
+A008-0080 delivers those instructions in one system message with any explicit
+session base and the applicable memory-handling rule. The generic assistant
+fallback is used only when neither session nor global instructions are set.
+An explicit CLI `--system` is preserved across model changes, even if its text
+equals the generic fallback. Empty/whitespace configuration uses the fallback;
+the memory envelope still treats retrieved content as untrusted background.
+See [ADR 0035](adr/0035-frozen-instruction-and-memory-target.md), L1.
+
 The shared runtime captures settings once per operation. Mid-turn saves apply
 to the next operation. Prior dialogue remains stored in session history even
 when the configured projection sends fewer messages. Semantic retrieval scope,

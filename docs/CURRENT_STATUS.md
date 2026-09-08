@@ -8,8 +8,12 @@ belongs in `docs/PROJECT_BRIEF.md`.
 A008-0079's [instruction and memory specification](backlog/instruction-plane-and-memory-lifecycle.md)
 is owner-reviewed and frozen as an Accepted target by
 [ADR 0035](adr/0035-frozen-instruction-and-memory-target.md), including P1–P6.
-A008-0080 is Ready for L1; runtime behavior is not yet changed. L2/L3 remain
-unactivated and their accepted policy has not been applied to stored data.
+A008-0080 implements L1: one final chat system instruction, late fallback
+selection, integrated memory handling and explicit CLI/session-base provenance.
+The 501 core and 116 GUI tests pass, including real local host/ACP/engine and
+captured NVIDIA/kie payloads. Live model obedience has not been evaluated.
+L2/L3 remain unactivated; their accepted policy has not been applied to stored
+data. Retrieval, lifecycle and schemas retain the existing implementation.
 
 A008-0078 adopts the Core Product Contract in `docs/PROJECT_BRIEF.md` and the
 Necessity Gate in `docs/TASK_WORKFLOW.md`, under

@@ -7,6 +7,7 @@ import { isolatedMemoryEnv } from "./helpers.js";
 import { startSessionControlProvider } from "./fixtures/session-control-provider.js";
 import { WireClient } from "./fixtures/gui-wire-client.js";
 import type { SessionNotification } from "@agentclientprotocol/sdk";
+import { MEMORY_CONTEXT_SYSTEM_INSTRUCTION } from "../src/orchestration/memory-prompt-composer.js";
 
 test("engine panel shares external session, settings, stream and project memory; closing panel keeps session", async () => {
   const provider = await startSessionControlProvider();
@@ -42,7 +43,11 @@ test("engine panel shares external session, settings, stream and project memory;
     const state = engine.control(created.sessionId, { action: "inspect" });
     assert.equal(state.messages.length, 2);
     assert.ok(notifications.some(n => n.update.sessionUpdate === "agent_message_chunk"));
-    assert.ok(provider.requests.some(r => r.messages.some((m: any) => m.content === "Engine instruction fixture.")));
+    const configured = provider.requests.find(r => r.messages.some((m: any) => m.role === "system" && m.content.includes("Engine instruction fixture.")));
+    assert.ok(configured);
+    assert.deepEqual(configured.messages.filter((m: any) => m.role === "system"), [{
+      role: "system", content: `Engine instruction fixture.\n\n${MEMORY_CONTEXT_SYSTEM_INSTRUCTION}`,
+    }]);
     const upload = await fetch(`${origin}/v1/upload`, { method: "POST", headers: { ...headers, "content-type": "application/octet-stream", "x-a008-filename": "engine.txt" }, body: "Engine upload fixture." });
     assert.equal(upload.status, 200);
     const memory = await (await fetch(`${origin}/v1/memory`, { headers })).json() as any;

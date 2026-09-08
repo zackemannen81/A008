@@ -214,8 +214,8 @@ export class MemoryAwareChatSession {
         invocation: {
           systemMessages: [
             ...(this.#systemInstructions ? [this.#systemInstructions] : []),
-            prompt.systemInstruction,
           ],
+          contextSystemMessages: [prompt.systemInstruction],
           providerUserContent: prompt.userEnvelope,
           historyMessageLimit: this.#recentMessageLimit,
           budget: this.#invocationBudget,

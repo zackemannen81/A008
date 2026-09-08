@@ -11,8 +11,9 @@ the template before push.
 
 ## Records
 
-- [A008-0080_coherent-instruction.md](A008-0080_coherent-instruction.md) — Ready;
-  frozen L1 charter under ADR 0035; L2/L3 not active.
+- [A008-0080_coherent-instruction.md](A008-0080_coherent-instruction.md) — Complete;
+  [archive](../finished/A008-0080_coherent-instruction.md), verified L1 under
+  ADR 0035; L2/L3 not active.
 
 - [A008-0071_nvidia-catalog-images.md](A008-0071_nvidia-catalog-images.md) —
   Complete locally; [archive](../finished/A008-0071_nvidia-catalog-images.md).

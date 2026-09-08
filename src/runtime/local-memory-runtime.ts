@@ -97,7 +97,6 @@ import {
 import {
   createNvidiaChatTransport,
   createNvidiaTransportOptions,
-  DEFAULT_SYSTEM_MESSAGE,
 } from "./nvidia-session.js";
 import { createDispatchingChatTransport } from "./chat-dispatch.js";
 import { defaultCatalogPath } from "../core/user-catalog.js";
@@ -881,7 +880,7 @@ export class LocalMemoryRuntime {
     const chatSession = new ChatSession({
       model: profile.id,
       transport: this.#transport,
-      systemMessage: options.systemMessage ?? DEFAULT_SYSTEM_MESSAGE,
+      ...(options.systemMessage === undefined ? {} : { systemMessage: options.systemMessage }),
       // Profile defaults first, operator overrides on top. The profile means
       // "checked against the model card" and is not edited to tune a run.
       generation: { ...profile.defaults, ...this.#chatGeneration },

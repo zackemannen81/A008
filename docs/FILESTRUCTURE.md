@@ -5,6 +5,11 @@ frozen under `docs/adr/0035-frozen-instruction-and-memory-target.md`. Its body
 remains the one reviewed requirement owner. A008-0080's L1 charter is in
 `docs/tasks/A008-0080_coherent-instruction.md`; current behavior is in SYSTEMDOC.
 
+A008-0080's L1 uses the existing `src/core/chat-invocation.ts` as the final
+instruction owner, with explicit/global configuration and contextual components.
+Existing runtime factories, memory orchestration and CLI preserve base provenance.
+No new runtime module, dependency, memory schema or settings schema is introduced.
+
 A008-0078 adds the core product contract to the existing brief and the necessity
 gate to the workflow and task template. Adoption authority is
 `docs/adr/0034-product-contract-and-necessity-gate.md`; completion and integration

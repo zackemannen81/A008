@@ -11,7 +11,7 @@ import {
   type NvidiaChatTransportOptions,
 } from "../providers/nvidia/nvidia-chat-transport.js";
 
-export const DEFAULT_SYSTEM_MESSAGE = "You are a helpful AI assistant.";
+export { DEFAULT_SYSTEM_MESSAGE } from "../core/chat-invocation.js";
 export const NVIDIA_ENDPOINT_ENV = "NVIDIA_CHAT_COMPLETIONS_URL";
 
 export interface NvidiaSessionCompositionOptions {
@@ -73,7 +73,7 @@ export function createNvidiaChatSession(
   return new ChatSession({
     model: profile.id,
     transport,
-    systemMessage: options.systemMessage ?? DEFAULT_SYSTEM_MESSAGE,
+    ...(options.systemMessage === undefined ? {} : { systemMessage: options.systemMessage }),
     generation: profile.defaults,
   });
 }
