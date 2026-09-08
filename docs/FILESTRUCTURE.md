@@ -1,5 +1,10 @@
 # File Structure
 
+A008-0078 adds the core product contract to the existing brief and the necessity
+gate to the workflow and task template. Adoption authority is
+`docs/adr/0034-product-contract-and-necessity-gate.md`; completion and integration
+evidence use the existing finished-task and handoff collections.
+
 A008-0077 adds `src/gui-host/frame-policy.ts` and `browser-frame.ts`, plus
 `GET /v1/browser/frame-check`. Sites that forbid iframes are not framed; the
 Browser pane offers Open in the system browser.
@@ -284,9 +289,9 @@ A008/
    |- DEBUG_TRACE.md                  implemented opt-in secret-safe diagnostics
    |- RUNTIME_IDENTITY.md             implemented v0 IDs and ACP binding limits
    |- CURRENT_TASK.md                empty template on `main`; workers restore it before push
-   |- template_CURRENT_TASK.md       clean task form
-   |- TASK_WORKFLOW.md               lifecycle, freeze, and routing
-   |- PROJECT_BRIEF.md               approved direction and open decisions
+   |- template_CURRENT_TASK.md       clean task form with necessity arguments
+   |- TASK_WORKFLOW.md               lifecycle, necessity gate, freeze and routing
+   |- PROJECT_BRIEF.md               core product contract, direction and decisions
    |- CONTRIBUTING.md                contribution and source-intake rules
    |- CURRENT_STATUS.md              observed current reality
    |- SYSTEMDOC.md                   implemented durable system

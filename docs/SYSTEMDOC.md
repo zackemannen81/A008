@@ -793,7 +793,7 @@ privacy, authorization, retention, deletion, and export policies.
 
 ## Authority order
 
-When evidence disagrees:
+For observed current reality, when evidence disagrees:
 
 1. Executable or working-tree evidence.
 2. `docs/CURRENT_STATUS.md` and this implemented-system document, corrected with
@@ -801,3 +801,22 @@ When evidence disagrees:
 3. Accepted decisions and contracts.
 4. The frozen active charter.
 5. Agent reports, runtime logs, and chat summaries.
+
+This order establishes what exists, not what is authorized. Implementation
+authority comes from the Core Product Contract in `docs/PROJECT_BRIEF.md` and
+its accepted detailed decisions, bounded by the frozen task. Existing code,
+tests or stale descriptions cannot authorize new policy or override a required
+outcome. Record a discrepancy and route it rather than treating it as permission.
+
+## Implementation necessity
+
+ADR 0034 adopts the Necessity Gate in `docs/TASK_WORKFLOW.md`. The brief owns
+PC-01 through PC-06; the workflow owns the gate; task charters record arguments
+and Verification records results. Entry and contribution guidance route to
+these owners. The operator reviews before Ready/delegation, implementers recheck
+material changes and the final diff, and updated contracts require revalidation.
+
+This is a repository working rule, with no runtime enforcement or semantic
+scoring engine. It preserves existing product exceptions and the operator's
+allocation/integration responsibilities. Main's current-task file remains an
+empty copy of the updated template.

@@ -36,7 +36,7 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
 - `docs/CURRENT_TASK.md`: empty template on `main`. A worker may fill it on
   its branch while implementing, then must restore the template before push.
   Active program records live under `docs/tasks/`.
-- `docs/PROJECT_BRIEF.md`: approved product direction and non-goals.
+- `docs/PROJECT_BRIEF.md`: core product contract, approved direction and non-goals.
 - `docs/CURRENT_STATUS.md`: observed current reality and verified gaps.
 - `docs/SYSTEMDOC.md`: durable behavior that actually exists.
 - `docs/JOURNAL.md`: append-only, dated work waves.
@@ -75,6 +75,17 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
   a handoff, and restoration of `docs/CURRENT_TASK.md` from
   `docs/template_CURRENT_TASK.md` before push. `main` keeps that empty
   template. The operator appends the journal on merge.
+
+### Necessity gate
+
+Before Ready/delegation and substantive implementation, apply the Necessity Gate
+in `docs/TASK_WORKFLOW.md` against the Core Product Contract in
+`docs/PROJECT_BRIEF.md`. Record the exact PC clause and accepted constraint,
+observable need and consequence of omission, smallest sufficient approach, and
+verification in the task. Product necessity and frozen task scope must both
+permit a change. Missing necessity means do not implement the affected change;
+use existing routing. Recheck material changes and the final diff. Existing
+code or a vague robustness claim cannot supply product authority.
 
 ## Multi-Agent Work
 

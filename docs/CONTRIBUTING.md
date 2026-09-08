@@ -6,10 +6,12 @@ Read `AGENTS.md` and its ordered authority list before changing the repository.
 
 ## Working loop
 
-1. The operator claims a task identity on `main` and delegates a frozen charter.
+1. The operator claims a task identity on `main`, reviews the Necessity Gate in
+   `docs/TASK_WORKFLOW.md` against the Core Product Contract in
+   `docs/PROJECT_BRIEF.md`, then freezes/delegates the charter.
 2. A worker may copy that charter into `docs/CURRENT_TASK.md` on its branch.
 3. Work the checklist and keep it truthful.
-4. Verify against the named gates.
+4. Review actual changes against necessity and scope, then verify the named gates.
 5. Update owned documents in the same change as behavior.
 6. Archive the task under `docs/finished/`, restore `docs/CURRENT_TASK.md` from
    the template, write the handoff, then push and open a pull request.

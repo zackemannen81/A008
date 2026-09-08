@@ -5,6 +5,15 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0078 adopts the Core Product Contract in `docs/PROJECT_BRIEF.md` and the
+Necessity Gate in `docs/TASK_WORKFLOW.md`, under
+[ADR 0034](adr/0034-product-contract-and-necessity-gate.md). The local task
+template records exact authority, observable necessity, smallest sufficient
+approach and verification. This is a required development review practice;
+it changes no runtime behavior and makes no claim of automatic enforcement or
+measured prevention of agent drift. Existing detailed product decisions remain
+binding, including their explicit exceptions.
+
 A008-0071 adds NVIDIA Build catalog browse/add, chat image generation (default
 FLUX.1-schnell), write-only API key and image endpoint in Parameters → Provider,
 start-view task cards, and a Files side panel. User models persist in
