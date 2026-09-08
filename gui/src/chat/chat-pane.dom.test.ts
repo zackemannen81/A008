@@ -162,6 +162,8 @@ test("empty chat keeps start cards in the centre and does not host shortcut chip
   );
   assert.match(html, /What would you like to work on/u);
   assert.match(html, /Explore and understand the code/u);
+  assert.match(html, /a008-empty-logo/u);
+  assert.match(html, /a008-empty-rule/u);
   assert.equal(html.includes("Workbench shortcuts"), false);
 });
 
@@ -216,6 +218,8 @@ test("DOM contract: the empty transcript shows A008 copy and no channels", () =>
   const html = render(fakeSession({ status: "ready" }));
   assert.deepEqual(channelNodes(html), []);
   assert.equal(html.includes("A008 is ready. Send a message to start."), true);
+  assert.match(html, /a008-empty-logo/u);
+  assert.match(html, /aria-hidden="true"/u);
 });
 
 test("DOM contract: session error renders outside the answer channel", () => {

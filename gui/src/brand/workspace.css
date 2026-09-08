@@ -96,8 +96,13 @@
 .a008-chat-thought summary::after { content: '›'; font-size: 1.1rem; }
 .a008-chat-thought[open] summary::after { transform: rotate(90deg); }
 .a008-chat-empty { max-width: 36rem; }
+.a008-empty-logo-wrap { width: min(92%, 28rem); }
+.a008-empty-logo { color: color-mix(in srgb, var(--a008-fg) 24%, transparent); }
+.a008-empty-rule { border-top-color: var(--a008-border); }
+@media (max-height: 760px) {
+  .a008-empty-logo-wrap { width: min(70%, 20rem); }
+}
 .a008-empty-shortcuts { max-width: 24rem; }
-.a008-empty-eyebrow { color: var(--a008-muted); font-weight: 600; letter-spacing: .12em; font-size: .75rem; }
 .a008-chat-empty h1 { color: var(--a008-fg); font-size: clamp(1.5rem, 2.5vw, 2rem); font-weight: 500; line-height: 1.3; margin: 1rem 0; }
 .a008-chat-empty p { line-height: 1.6; }
 .a008-empty-hint { font-size: .8rem; }
@@ -142,6 +147,7 @@
   .a008-app .a008-workbench { display: flex; }
   .a008-composer-footer > span { display: none; }
   .a008-composer-footer { justify-content: flex-end; }
+  .a008-empty-logo-wrap { width: min(88%, 18rem); }
   .a008-composer-footer button { max-width: 100%; }
   .a008-header-title { font-size: .8rem; gap: .4rem; }
   .a008-header-actions { gap: .25rem; }

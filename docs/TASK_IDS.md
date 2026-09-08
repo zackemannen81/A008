@@ -89,3 +89,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0070 | workbench context, help catalog and readable memory map | Grok (operator) | 2026-09-07 | environment/sources workbench, Help tab, empty-chat shortcuts, clustered memory graph |
 | A008-0071 | NVIDIA Build catalog, image generation and start/file surfaces | Grok (operator) | 2026-09-08 | browse/add preview models, chat image generation, provider settings, start cards, file panel |
 | A008-0073 | kie.ai provider for chat and image jobs | Grok (operator) | 2026-09-08 | KIE_API_KEY, OpenAI-compatible chat, async image jobs, Provider settings |
+| A008-0074 | empty-chat ASCII logo | Grok (operator) | 2026-09-08 | centre the owner ASCII mark on the empty conversation |

@@ -13,6 +13,7 @@ import {
   type ChatAssistantTurn,
   type ChatUserTurn,
 } from "./chat-transcript.js";
+import { AsciiLogo } from "../brand/ascii-logo.js";
 import { StartActions } from "./start-actions.js";
 import "./chat-pane.css";
 
@@ -164,7 +165,8 @@ export function ChatPane(props: {
       >
         {transcript.empty && (props.images?.length ?? 0) === 0 ? (
           <div className="a008-chat-empty">
-            <span className="a008-empty-eyebrow">A008</span>
+            <AsciiLogo />
+            <hr className="a008-empty-rule" />
             <h1>What would you like to work on?</h1>
             <p>{emptyStateCopy(session.status)}</p>
             {props.onStartPrompt ? (

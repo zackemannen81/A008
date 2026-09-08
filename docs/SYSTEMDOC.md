@@ -360,7 +360,9 @@ with the existing commands plus a shortcut to model parameters. Closing the
 parameter dialog restores focus to its opener. Navigation keeps chat mounted,
 so drafts and in-session history survive. It does not create saved conversations.
 
-Empty chat offers Review, Terminal, Browser, Files and Workbench shortcuts
+Empty chat shows the owner ASCII mark (`gui/src/brand/a008-ascii.ts`) above
+the start cards, then a rule and the heading. The mark is decorative
+(`aria-hidden`). Empty chat also offers Review, Terminal, Browser, Files and Workbench shortcuts
 (Ctrl+Shift+G, Ctrl+`, Ctrl+T, Ctrl+P, Ctrl+Alt+S). Workbench opens a floating
 environment/sources card: git branch and change counts from host-shell
 `git status -sb` / shortstat, session uploads, and clipboard ingest through

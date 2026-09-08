@@ -2,6 +2,14 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — empty-chat ASCII logo
+
+- Task: A008-0074; operator: Grok; branch: `A008-0074-ascii-logo`.
+- Owner ASCII mark on the empty conversation, above the start cards.
+- Verification: GUI typecheck, 106 GUI tests, GUI build. No live provider call.
+  Interactive browser click-through was not available in this agent session.
+- Signature: Grok.
+
 ## 2026-09-08 — kie.ai provider for chat and image jobs
 
 - Task: A008-0073; operator: Grok; branch: `A008-0073-kie-provider`.

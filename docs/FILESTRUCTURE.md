@@ -1,5 +1,8 @@
 # File Structure
 
+A008-0074 adds `gui/src/brand/a008-ascii.ts` and `ascii-logo.tsx`: the owner
+ASCII mark on the empty conversation, above the start cards.
+
 A008-0073 adds `src/providers/kie/` (`kie-models.ts`, `kie-chat-transport.ts`,
 `kie-jobs.ts`), `src/runtime/chat-dispatch.ts`, host `GET /v1/catalog/kie`, and
 Provider settings for a write-only kie key plus `chatProvider`/`imageProvider`.
@@ -86,6 +89,8 @@ A008/
 |  |  |  |- nvidia-catalog.ts        NVIDIA/kie catalog and provider-settings client
 |  |  |  `- nvidia-catalog-panel.tsx Provider keys, NVIDIA Build, kie market
 |  |  |- brand/                      A008-0037 identity
+|  |  |  |- a008-ascii.ts            A008-0074 owner ASCII source
+|  |  |  `- ascii-logo.tsx           empty-chat decorative mark
 |  |  `- upload/                     A008-0045 upload client and pane
 |  `- test/                          A008-0039 shared GUI test runner
 |     |- loader.mjs                  registers the resolver for node --test
