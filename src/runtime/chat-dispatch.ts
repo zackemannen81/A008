@@ -4,6 +4,7 @@ import { loadUserCatalog, type UserCatalog } from "../core/user-catalog.js";
 import { KieChatTransport, type FetchLike } from "../providers/kie/kie-chat-transport.js";
 import { isKieChatModelId } from "../providers/kie/kie-models.js";
 import { NvidiaChatTransport } from "../providers/nvidia/nvidia-chat-transport.js";
+import { OpenAiChatTransport } from "../providers/openai/openai-chat-transport.js";
 import { NVIDIA_ENDPOINT_ENV } from "./nvidia-session.js";
 
 export function usesKieChat(model: string, catalogPath: string): boolean {
@@ -22,6 +23,18 @@ function isKnownKieChatModel(model: string, catalog: UserCatalog): boolean {
   );
 }
 
+function isKnownOpenAiChatModel(model: string, catalog: UserCatalog): boolean {
+  return (
+    model === "gpt-5.6-luna" ||
+    catalog.chatModels.some((entry) => entry.id === model && entry.provider === "openai")
+  );
+}
+
+export function usesOpenAiChat(model: string, catalogPath: string): boolean {
+  const catalog = loadUserCatalog(catalogPath);
+  return isKnownOpenAiChatModel(model, catalog) || catalog.chatProvider === "openai";
+}
+
 export function createDispatchingChatTransport(options: {
   readonly env: NodeJS.ProcessEnv;
   readonly catalogPath: string;
@@ -30,10 +43,11 @@ export function createDispatchingChatTransport(options: {
 }): ChatTransport {
   const nvidiaKey = options.env.NVIDIA_API_KEY?.trim();
   const kieKey = options.env.KIE_API_KEY?.trim();
-  if (!nvidiaKey && !kieKey) {
+  const openAiKey = options.env.OPENAI_API_KEY?.trim();
+  if (!nvidiaKey && !kieKey && !openAiKey) {
     throw new ChatError(
       "configuration",
-      "NVIDIA_API_KEY or KIE_API_KEY is required for chat.",
+      "NVIDIA_API_KEY, KIE_API_KEY, or OPENAI_API_KEY is required for chat.",
     );
   }
   const nvidiaEndpoint = options.env[NVIDIA_ENDPOINT_ENV]?.trim();
@@ -48,6 +62,19 @@ export function createDispatchingChatTransport(options: {
 
   return {
     complete(request: ChatRequest, callbacks?: ChatCallbacks): Promise<ChatCompletion> {
+      const catalog = loadUserCatalog(options.catalogPath);
+      if (isKnownOpenAiChatModel(request.model, catalog) || catalog.chatProvider === "openai") {
+        if (!openAiKey) {
+          throw new ChatError("configuration", "OPENAI_API_KEY is required for OpenAI chat.");
+        }
+        const model = isKnownOpenAiChatModel(request.model, catalog) ? request.model : "gpt-5.6-luna";
+        const transport = new OpenAiChatTransport({
+          apiKey: openAiKey,
+          timeoutMs: options.timeoutMs,
+          ...(options.fetch ? { fetch: options.fetch } : {}),
+        });
+        return transport.complete(model === request.model ? request : { ...request, model }, callbacks);
+      }
       if (usesKieChat(request.model, options.catalogPath)) {
         if (!kieKey) {
           throw new ChatError("configuration", "KIE_API_KEY is required for kie.ai chat.");

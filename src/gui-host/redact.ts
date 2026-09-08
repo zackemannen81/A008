@@ -1,8 +1,8 @@
-const FORBIDDEN_NAME = /NVIDIA_API_KEY|KIE_API_KEY|authorization/giu;
+const FORBIDDEN_NAME = /NVIDIA_API_KEY|KIE_API_KEY|OPENAI_API_KEY|authorization/giu;
 
 export function wireSecrets(env: NodeJS.ProcessEnv): readonly string[] {
   const secrets: string[] = [];
-  for (const name of ["NVIDIA_API_KEY", "KIE_API_KEY"] as const) {
+  for (const name of ["NVIDIA_API_KEY", "KIE_API_KEY", "OPENAI_API_KEY"] as const) {
     const apiKey = env[name];
     if (typeof apiKey === "string" && apiKey.length > 0) {
       secrets.push(apiKey);

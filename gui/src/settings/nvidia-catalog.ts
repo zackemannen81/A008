@@ -16,15 +16,17 @@ export interface NvidiaCatalog {
 export interface ProviderSettings {
   readonly nvidiaApiKeyConfigured: boolean;
   readonly kieApiKeyConfigured: boolean;
+  readonly openAiApiKeyConfigured: boolean;
   readonly imageModel: string;
   readonly imageEndpoint: string;
-  readonly chatProvider: "nvidia" | "kie";
+  readonly chatProvider: "nvidia" | "kie" | "openai";
   readonly imageProvider: "nvidia" | "kie";
   readonly kieChatModel: string;
   readonly kieChatEndpoint: string;
   readonly kieImageModel: string;
   readonly keySource: string;
   readonly kieKeySource: string;
+  readonly openAiKeySource: string;
 }
 
 export async function loadNvidiaCatalog(
@@ -109,9 +111,10 @@ export async function saveProviderSettings(
   body: {
     nvidiaApiKey?: string;
     kieApiKey?: string;
+    openAiApiKey?: string;
     imageModel?: string;
     imageEndpoint?: string;
-    chatProvider?: "nvidia" | "kie";
+    chatProvider?: "nvidia" | "kie" | "openai";
     imageProvider?: "nvidia" | "kie";
     kieChatModel?: string;
     kieChatEndpoint?: string;

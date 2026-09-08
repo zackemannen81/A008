@@ -77,6 +77,13 @@ test("the omni profile is selectable and declares image input", () => {
   );
 });
 
+test("OpenAI GPT-5.6 Luna is a verified selectable profile", () => {
+  const luna = defaultModelRegistry.require("gpt-5.6-luna");
+  assert.equal(luna.provider, "openai");
+  assert.equal(luna.defaults.reasoningEffort, "medium");
+  assert.equal(acceptsModality(luna, "image"), true);
+});
+
 test("the model id is matched exactly", () => {
   // The vendor's model card names a different id than its API sample —
   // `...-NVFP4` versus the lower-case path form. A008 ships the one the
@@ -101,6 +108,7 @@ test("every image-capable model is reachable and every text model is honest", ()
     .map((profile) => profile.id);
 
   assert.deepEqual(withImage.sort(), [
+    "gpt-5.6-luna",
     "moonshotai/kimi-k3",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
   ]);

@@ -2143,3 +2143,16 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   provider ownership, cross-component identity contract, and first memory-engine
   specification slice.
 - Signature: Codex
+
+## 2026-09-09 — A008-0087 OpenAI GPT-5.6 Luna provider
+
+- Date: 2026-09-09
+- Author: Codex
+- Task: A008-0087
+- Branch: `main`
+- Change: added OpenAI GPT-5.6 Luna as a first-class chat and semantic provider using the existing provider-neutral runtime, tool approval loop, memory pipeline and host-owned credential boundary. Provider settings accept a write-only OpenAI API key; no secret is returned to the renderer.
+- Runtime: Luna chat routes to OpenAI with streaming/function calling; retrieval scope, knowledge analysis and relation classification follow the active OpenAI model instead of consuming NVIDIA quota. Chat uses reasoning effort `medium`; semantic JSON work uses `none`.
+- Verification: 539 core, 4 membership and 119 GUI tests passed; production GUI build passed; OpenAI-only runtime regression observed no NVIDIA request; `git diff --check` passed.
+- Live-provider status: no OpenAI API call was made. The operator-created key remains external to Git and must be entered through Parameters → Provider before live use.
+- Handoff: `docs/handoffs/A008-0087.md`.
+- Signature: Codex

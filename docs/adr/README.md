@@ -8,6 +8,10 @@ replacement.
 
 ## Records
 
+- [0036-openai-gpt-56-luna-provider.md](0036-openai-gpt-56-luna-provider.md)
+  — Accepted; OpenAI GPT-5.6 Luna chat through the shared transport, write-only
+  credential handling and OpenAI-only memory-aware runtime composition.
+
 - [0035-frozen-instruction-and-memory-target.md](0035-frozen-instruction-and-memory-target.md)
   — Accepted; owner-reviewed specification and P1–P6 frozen; bounded L1 first.
 

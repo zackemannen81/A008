@@ -55,6 +55,7 @@ import {
   defaultSecretsPath,
   resolveKieApiKey,
   resolveNvidiaApiKey,
+  resolveOpenAiApiKey,
 } from "../core/provider-secrets.js";
 import { findRepositoryRoot, moduleDirectory } from "../runtime/local-runtime-config.js";
 import { handleBrowserFrameCheck } from "./browser-frame.js";
@@ -158,6 +159,7 @@ export async function startGuiHost(
     ...wireSecrets(env),
     resolveNvidiaApiKey(env, secretsPath),
     resolveKieApiKey(env, secretsPath),
+    resolveOpenAiApiKey(env, secretsPath),
     pin,
   ].filter((value): value is string => typeof value === "string" && value.length > 0);
   const requestOriginAllowed = (request: IncomingMessage): boolean =>
@@ -181,6 +183,9 @@ export async function startGuiHost(
                 : {}),
               ...(resolveKieApiKey(env, secretsPath)
                 ? { KIE_API_KEY: resolveKieApiKey(env, secretsPath) }
+                : {}),
+              ...(resolveOpenAiApiKey(env, secretsPath)
+                ? { OPENAI_API_KEY: resolveOpenAiApiKey(env, secretsPath) }
                 : {}),
             },
             cwd,

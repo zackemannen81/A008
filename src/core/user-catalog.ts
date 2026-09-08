@@ -30,6 +30,7 @@ export interface UserImageSettings {
 }
 
 export type CatalogProvider = "nvidia" | "kie";
+export type ChatCatalogProvider = CatalogProvider | "openai";
 
 export interface KieCatalogSettings {
   readonly chatModel: string;
@@ -41,7 +42,7 @@ export interface UserCatalog {
   readonly version: 1;
   readonly chatModels: readonly UserChatModel[];
   readonly image: UserImageSettings;
-  readonly chatProvider: CatalogProvider;
+  readonly chatProvider: ChatCatalogProvider;
   readonly imageProvider: CatalogProvider;
   readonly kie: KieCatalogSettings;
 }
@@ -111,7 +112,10 @@ export function parseUserCatalog(value: unknown): UserCatalog {
       });
     }
   }
-  const provider = (value: unknown): CatalogProvider => (value === "kie" ? "kie" : "nvidia");
+  const imageProvider = (value: unknown): CatalogProvider =>
+    value === "kie" ? "kie" : "nvidia";
+  const chatProvider = (value: unknown): ChatCatalogProvider =>
+    value === "kie" || value === "openai" ? value : "nvidia";
   const kieRaw = isRecord(value.kie) ? value.kie : {};
   const kie: KieCatalogSettings = {
     chatModel:
@@ -131,8 +135,8 @@ export function parseUserCatalog(value: unknown): UserCatalog {
     version: 1,
     chatModels,
     image,
-    chatProvider: provider(value.chatProvider),
-    imageProvider: provider(value.imageProvider),
+    chatProvider: chatProvider(value.chatProvider),
+    imageProvider: imageProvider(value.imageProvider),
     kie,
   };
 }

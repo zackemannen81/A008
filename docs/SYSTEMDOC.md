@@ -69,7 +69,7 @@ to its session. Saving settings neither calls a model nor mutates knowledge.
 
 ```text
 CLI / A008-acp -> createLocalMemoryRuntime
-  |- NVIDIA credential + one ChatTransport
+  |- resolved NVIDIA / kie.ai / OpenAI credential + one ChatTransport
   |- project-namespaced SQLite knowledge store
   |- KnowledgeMemoryReader (DEFINE..PROJECT; writes nothing)
   |- MemoryAwareChatSession
@@ -79,9 +79,11 @@ CLI / A008-acp -> createLocalMemoryRuntime
                  |
                  v
           ChatTransport
-            -> NvidiaChatTransport
-               -> traced fetch
-                  -> NVIDIA endpoint
+            -> provider dispatch
+               |- NvidiaChatTransport
+               |- KieChatTransport
+               `- OpenAiChatTransport
+                  -> traced fetch -> selected provider endpoint
 ```
 
 `ChatSession` owns in-memory conversation history. It constructs a pending turn,
@@ -115,10 +117,11 @@ and constructs `NvidiaChatTransport`. `createNvidiaChatSession` still returns a
 bare `ChatSession` for tests and direct callers.
 
 Live CLI and ACP chat without an injected transport use
-`createDispatchingChatTransport` (A008-0073). It sends NVIDIA registry models
-through `NvidiaChatTransport` and kie.ai chat through `KieChatTransport` at
-`https://api.kie.ai/<model>/v1/chat/completions`. Either `NVIDIA_API_KEY` or
-`KIE_API_KEY` is enough to start the runtime. Image generation on the host
+`createDispatchingChatTransport` (A008-0073, amended by A008-0087). It sends
+NVIDIA registry models through `NvidiaChatTransport`, kie.ai chat through
+`KieChatTransport`, and built-in `gpt-5.6-luna` through `OpenAiChatTransport`.
+Any one of `NVIDIA_API_KEY`, `KIE_API_KEY`, or `OPENAI_API_KEY` is enough to
+start the runtime. Image generation on the host
 follows `imageProvider`: NVIDIA NIMs or kie Market jobs
 (`POST /api/v1/jobs/createTask` then poll `GET /api/v1/jobs/recordInfo`).
 
@@ -229,7 +232,7 @@ POST   /v1/catalog/nvidia      add a chat model to ~/.a008/catalog.json
 DELETE /v1/catalog/nvidia?id=
 GET    /v1/catalog/kie         curated kie.ai chat/image/video ids (no key)
 GET    /v1/provider-settings   providers, models, key configured? (never the key)
-POST   /v1/provider-settings   write-only NVIDIA/kie keys and provider settings
+POST   /v1/provider-settings   write-only NVIDIA/kie/OpenAI keys and provider settings
 POST   /v1/images              generate; store PNG/JPEG in the source store
 GET    /v1/blobs/:sha256/:name serve a stored generated image
 GET    /v1/browser/frame-check  whether a URL's CSP/XFO allows the iframe
@@ -249,12 +252,13 @@ concatenated into an `answer` frame. No Agent Server schema and no OpenHands
 TypeScript client participate. `session/control` and `session/control/ok`
 carry the session operations and snapshots specified in HOST_PROTOCOL.md.
 
-Credentials stay in the host process. `NVIDIA_API_KEY`, `KIE_API_KEY`, optional
-secrets-file copies under `~/.a008/secrets.json`, the optional NVIDIA endpoint
+Credentials stay in the host process. `NVIDIA_API_KEY`, `KIE_API_KEY`,
+`OPENAI_API_KEY`, optional secrets-file copies under `~/.a008/secrets.json`,
+the optional NVIDIA endpoint
 override, and memory settings are read from process environment or that file.
 The renderer never reads a key. Outbound text is redacted so neither a
-credential value, the literal tokens `NVIDIA_API_KEY` and `KIE_API_KEY`, nor
-the string `authorization` reaches the renderer; the trade is that an answer
+credential value, the literal tokens `NVIDIA_API_KEY`, `KIE_API_KEY` and
+`OPENAI_API_KEY`, nor the string `authorization` reaches the renderer; the trade is that an answer
 legitimately discussing those names is shown redacted. The host may call
 NVIDIA catalog/image endpoints and kie.ai job endpoints; chat completions still
 run in the ACP subprocess.
@@ -684,7 +688,10 @@ provider implementation or credential owner.
 
 The runtime uses the existing generation capability registry for semantic top P
 and output ceilings. Explicit null omits top P for Kimi K3; it cannot be restored
-by the generator default. Other models retain their fixed semantic sampling.
+by the generator default. Luna semantic JSON calls use reasoning effort `none`
+while chat defaults to `medium`, preserving the existing deterministic
+`temperature: 0` semantic profile. Other models retain their fixed semantic
+sampling.
 The classifier instruction distinguishes the input envelope from the output
 decision and gives concrete JSON shapes (A008-0083).
 A008-0085 adds serialized, fictional extractor examples covering empty social
@@ -773,8 +780,9 @@ guarantees.
 
 ## Local CLI and ACP memory composition
 
-`createLocalMemoryRuntime` is the live local composition root. It validates the
-NVIDIA credential first, then opens a SQLite file outside the repository,
+`createLocalMemoryRuntime` is the live local composition root. It requires at
+least one configured NVIDIA, kie.ai, or OpenAI chat credential (unless a test
+injects a transport), then opens a SQLite file outside the repository,
 resolves a stable project ID, migrates any v0 supersede chains into intervals
 with unknown boundaries, and wraps one transport for both chat and stateless
 semantic calls.

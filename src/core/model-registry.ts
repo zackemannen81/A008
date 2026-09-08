@@ -117,6 +117,20 @@ export const POOLSIDE_LAGUNA_XS: ModelProfile = Object.freeze({
   verifiedOn: "2026-09-04",
 });
 
+/** Text and image input; A008 chat remains text-only today. */
+export const OPENAI_GPT_56_LUNA: ModelProfile = Object.freeze({
+  id: "gpt-5.6-luna",
+  name: "OpenAI GPT-5.6 Luna",
+  provider: "openai",
+  defaults: Object.freeze({
+    maxTokens: 16_384,
+    reasoningEffort: "medium",
+    stream: true,
+  }),
+  inputModalities: Object.freeze(["text", "image"] as const),
+  verifiedOn: "2026-09-09",
+});
+
 /** True when the model accepts image input, whatever A008 can send today. */
 export function acceptsModality(
   profile: ModelProfile,
@@ -168,4 +182,5 @@ export const defaultModelRegistry = new ModelRegistry([
   DEEPSEEK_V4_PRO,
   META_MUSE_GLIMMER_30B,
   POOLSIDE_LAGUNA_XS,
+  OPENAI_GPT_56_LUNA,
 ]);

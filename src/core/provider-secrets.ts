@@ -8,6 +8,7 @@ export const SECRETS_PATH_ENV = "A008_SECRETS_PATH";
 export interface ProviderSecrets {
   readonly nvidiaApiKey: string | undefined;
   readonly kieApiKey: string | undefined;
+  readonly openAiApiKey: string | undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -25,7 +26,8 @@ export function parseProviderSecrets(value: unknown): ProviderSecrets {
   }
   const nvidia = optionalKey(value.nvidiaApiKey, "nvidiaApiKey");
   const kie = optionalKey(value.kieApiKey, "kieApiKey");
-  return { nvidiaApiKey: nvidia, kieApiKey: kie };
+  const openAi = optionalKey(value.openAiApiKey, "openAiApiKey");
+  return { nvidiaApiKey: nvidia, kieApiKey: kie, openAiApiKey: openAi };
 }
 function optionalKey(value: unknown, field: string): string | undefined {
   if (value === undefined || value === null) return undefined;
@@ -36,7 +38,7 @@ function optionalKey(value: unknown, field: string): string | undefined {
 }
 
 export function loadProviderSecrets(path: string): ProviderSecrets {
-  if (!existsSync(path)) return { nvidiaApiKey: undefined, kieApiKey: undefined };
+  if (!existsSync(path)) return { nvidiaApiKey: undefined, kieApiKey: undefined, openAiApiKey: undefined };
   try {
     return parseProviderSecrets(JSON.parse(readFileSync(path, "utf8")) as unknown);
   } catch (error) {
@@ -49,7 +51,7 @@ export function saveProviderSecrets(path: string, secrets: ProviderSecrets): voi
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(
     path,
-    `${JSON.stringify({ version: 1, nvidiaApiKey: secrets.nvidiaApiKey ?? null, kieApiKey: secrets.kieApiKey ?? null }, null, 2)}\n`,
+    `${JSON.stringify({ version: 1, nvidiaApiKey: secrets.nvidiaApiKey ?? null, kieApiKey: secrets.kieApiKey ?? null, openAiApiKey: secrets.openAiApiKey ?? null }, null, 2)}\n`,
     { encoding: "utf8", mode: 0o600 },
   );
 }
@@ -65,4 +67,10 @@ export function resolveKieApiKey(env: NodeJS.ProcessEnv, secretsPath: string): s
   const fromEnv = env.KIE_API_KEY?.trim();
   if (fromEnv) return fromEnv;
   return loadProviderSecrets(secretsPath).kieApiKey;
+}
+
+export function resolveOpenAiApiKey(env: NodeJS.ProcessEnv, secretsPath: string): string | undefined {
+  const fromEnv = env.OPENAI_API_KEY?.trim();
+  if (fromEnv) return fromEnv;
+  return loadProviderSecrets(secretsPath).openAiApiKey;
 }

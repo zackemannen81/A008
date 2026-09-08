@@ -11,6 +11,7 @@ import {
   loadProviderSecrets,
   resolveKieApiKey,
   resolveNvidiaApiKey,
+  resolveOpenAiApiKey,
   saveProviderSecrets,
 } from "../core/provider-secrets.js";
 import {
@@ -20,6 +21,7 @@ import {
   saveUserCatalog,
   userModelProfile,
   type CatalogProvider,
+  type ChatCatalogProvider,
   type UserChatModel,
 } from "../core/user-catalog.js";
 import { fetchNvidiaCatalog } from "../providers/nvidia/nvidia-catalog.js";
@@ -208,9 +210,11 @@ export function providerSettingsView(catalogPath: string, secretsPath: string, e
   const catalog = loadUserCatalog(catalogPath);
   const nvidia = resolveNvidiaApiKey(env, secretsPath);
   const kie = resolveKieApiKey(env, secretsPath);
+  const openAi = resolveOpenAiApiKey(env, secretsPath);
   return {
     nvidiaApiKeyConfigured: Boolean(nvidia),
     kieApiKeyConfigured: Boolean(kie),
+    openAiApiKeyConfigured: Boolean(openAi),
     imageModel: catalog.image.model,
     imageEndpoint: catalog.image.endpoint,
     chatProvider: catalog.chatProvider,
@@ -220,6 +224,7 @@ export function providerSettingsView(catalogPath: string, secretsPath: string, e
     kieImageModel: catalog.kie.imageModel,
     keySource: env.NVIDIA_API_KEY?.trim() ? "environment" : nvidia ? "secrets-file" : "missing",
     kieKeySource: env.KIE_API_KEY?.trim() ? "environment" : kie ? "secrets-file" : "missing",
+    openAiKeySource: env.OPENAI_API_KEY?.trim() ? "environment" : openAi ? "secrets-file" : "missing",
   };
 }
 
@@ -235,6 +240,7 @@ export function handleProviderSettingsPost(input: {
   const currentSecrets = loadProviderSecrets(input.secretsPath);
   let nvidiaApiKey = currentSecrets.nvidiaApiKey;
   let kieApiKey = currentSecrets.kieApiKey;
+  let openAiApiKey = currentSecrets.openAiApiKey;
   if (typeof input.body.nvidiaApiKey === "string") {
     const key = input.body.nvidiaApiKey.trim();
     if (key.length === 0) {
@@ -249,16 +255,29 @@ export function handleProviderSettingsPost(input: {
     }
     kieApiKey = key;
   }
-  if (nvidiaApiKey !== currentSecrets.nvidiaApiKey || kieApiKey !== currentSecrets.kieApiKey) {
-    saveProviderSecrets(input.secretsPath, { nvidiaApiKey, kieApiKey });
+  if (typeof input.body.openAiApiKey === "string") {
+    const key = input.body.openAiApiKey.trim();
+    if (key.length === 0) {
+      throw new ChatError("configuration", "openAiApiKey must be non-empty when provided.");
+    }
+    openAiApiKey = key;
+  }
+  if (
+    nvidiaApiKey !== currentSecrets.nvidiaApiKey ||
+    kieApiKey !== currentSecrets.kieApiKey ||
+    openAiApiKey !== currentSecrets.openAiApiKey
+  ) {
+    saveProviderSecrets(input.secretsPath, { nvidiaApiKey, kieApiKey, openAiApiKey });
   }
   const catalog = loadUserCatalog(input.catalogPath);
-  const asProvider = (value: unknown): CatalogProvider | undefined =>
+  const asChatProvider = (value: unknown): ChatCatalogProvider | undefined =>
+    value === "kie" || value === "nvidia" || value === "openai" ? value : undefined;
+  const asImageProvider = (value: unknown): CatalogProvider | undefined =>
     value === "kie" || value === "nvidia" ? value : undefined;
   saveUserCatalog(input.catalogPath, {
     ...catalog,
-    chatProvider: asProvider(input.body.chatProvider) ?? catalog.chatProvider,
-    imageProvider: asProvider(input.body.imageProvider) ?? catalog.imageProvider,
+    chatProvider: asChatProvider(input.body.chatProvider) ?? catalog.chatProvider,
+    imageProvider: asImageProvider(input.body.imageProvider) ?? catalog.imageProvider,
     image: {
       model:
         typeof input.body.imageModel === "string" && input.body.imageModel.trim()

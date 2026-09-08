@@ -10,6 +10,9 @@ test("provider panel explains Free Endpoint and write-only API key", () => {
   assert.match(html, /write only/u);
   assert.match(html, /NGC credits/u);
   assert.match(html, /kie.ai/u);
+  assert.match(html, /OpenAI/u);
+  assert.match(html, /GPT-5.6 Luna/u);
+  assert.match(html, /sk-…/u);
   assert.match(html, /docs.kie.ai/u);
   assert.match(html, /async Market jobs/u);
 });

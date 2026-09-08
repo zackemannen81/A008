@@ -46,6 +46,11 @@ control; the choice is stored in localStorage. Keyboard shortcuts stay active.
 A008-0074 adds `gui/src/brand/a008-ascii.ts` and `ascii-logo.tsx`: the owner
 ASCII mark on the empty conversation, above the start cards.
 
+A008-0087 adds `src/providers/openai/openai-chat-transport.ts`, the built-in
+`gpt-5.6-luna` profile, OpenAI dispatch, write-only OpenAI provider settings and
+OpenAI-only semantic/retrieval composition. Design decision:
+[ADR 0036](adr/0036-openai-gpt-56-luna-provider.md).
+
 A008-0073 adds `src/providers/kie/` (`kie-models.ts`, `kie-chat-transport.ts`,
 `kie-jobs.ts`), `src/runtime/chat-dispatch.ts`, host `GET /v1/catalog/kie`, and
 Provider settings for a write-only kie key plus `chatProvider`/`imageProvider`.
@@ -133,8 +138,8 @@ A008/
 |  |  |- settings/                   A008-0037 settings
 |  |  |  |- parameters-panel.tsx     A008-0065 model-aware generation dialog
 |  |  |  |- parameters.css          parameter and session-control styling
-|  |  |  |- nvidia-catalog.ts        NVIDIA/kie catalog and provider-settings client
-|  |  |  `- nvidia-catalog-panel.tsx Provider keys, NVIDIA Build, kie market
+|  |  |  |- nvidia-catalog.ts        NVIDIA/kie/OpenAI provider-settings client
+|  |  |  `- nvidia-catalog-panel.tsx Provider keys, NVIDIA Build, kie market, OpenAI
 |  |  |- brand/                      A008-0037 identity
 |  |  |  |- a008-ascii.ts            A008-0074 owner ASCII source
 |  |  |  `- ascii-logo.tsx           empty-chat decorative mark
@@ -186,7 +191,7 @@ A008/
 |  |  |- generation-controls.ts     capabilities, complete parameter sets and validation
 |  |  |- session-control.ts         shared control/snapshot contract
 |  |  |- user-catalog.ts            ~/.a008/catalog.json chat/image provider settings
-|  |  |- provider-secrets.ts        write-only NVIDIA/kie keys in ~/.a008/secrets.json
+|  |  |- provider-secrets.ts        write-only NVIDIA/kie/OpenAI keys in ~/.a008/secrets.json
 |  |  `- chat-session.ts             transactional in-memory conversation
 |  |- identity/
 |  |  |- types.ts                    branded IDs and ACP binding repository port
@@ -260,19 +265,22 @@ A008/
 |  |  |  |- nvidia-catalog.ts         NVIDIA Build model list
 |  |  |  |- reasoning-normalizer.ts   SSE channel-transition reasoning isolation
 |  |  |  `- sse.ts                    chunk-safe SSE data parser
-|  |  `- kie/
-|  |     |- kie-models.ts             curated market ids and chat URL helper
-|  |     |- kie-chat-transport.ts     OpenAI-compatible kie chat
-|  |     `- kie-jobs.ts               createTask + recordInfo image poll
+|  |  |- kie/
+|  |  |  |- kie-models.ts             curated market ids and chat URL helper
+|  |  |  |- kie-chat-transport.ts     OpenAI-compatible kie chat
+|  |  |  `- kie-jobs.ts               createTask + recordInfo image poll
+|  |  `- openai/
+|  |     `- openai-chat-transport.ts  GPT-5.6 Luna Chat Completions + tools/SSE
 |  `- runtime/
 |     |- nvidia-session.ts            NVIDIA credential and transport owner
-|     |- chat-dispatch.ts            NVIDIA vs kie chat transport selection
+|     |- chat-dispatch.ts            NVIDIA vs kie vs OpenAI chat transport selection
 |     |- local-runtime-config.ts      SQLite, identity, and debug settings
 |     |- debug-trace.ts               opt-in secret-safe JSONL observer
 |     |- user-assertion-gate.ts       runtime-owned new-memory activation
 |     `- local-memory-runtime.ts      CLI/ACP memory composition root
 |- test/                              fake/local chat, ACP, memory, retrieval, identity, and orchestration tests
-|  |- chat-dispatch.test.ts           NVIDIA vs kie chat routing
+|  |- chat-dispatch.test.ts           NVIDIA vs kie vs OpenAI chat routing
+|  |- openai-chat-transport.test.ts  OpenAI payload, SSE, tool calls and errors
 |  |- kie-chat-transport.test.ts      kie OpenAI-compatible chat JSON/SSE
 |  |- kie-jobs.test.ts                Market createTask/recordInfo image poll
 |  |- gui-host.test.ts                host routes, upload, WS bridge, credential gate

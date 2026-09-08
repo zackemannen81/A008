@@ -9,6 +9,7 @@ export {
   DEFAULT_MODEL_ID,
   ModelRegistry,
   NVIDIA_NEMOTRON_35_LIGHTNING,
+  OPENAI_GPT_56_LUNA,
   defaultModelRegistry,
 } from "./core/model-registry.js";
 export type {
@@ -43,6 +44,14 @@ export type {
   FetchLike,
   NvidiaChatTransportOptions,
 } from "./providers/nvidia/nvidia-chat-transport.js";
+export {
+  OPENAI_CHAT_COMPLETIONS_URL,
+  OpenAiChatTransport,
+} from "./providers/openai/openai-chat-transport.js";
+export type {
+  OpenAiChatTransportOptions,
+  OpenAiFetchLike,
+} from "./providers/openai/openai-chat-transport.js";
 export { parseSseData } from "./providers/nvidia/sse.js";
 export {
   NvidiaReasoningNormalizer,

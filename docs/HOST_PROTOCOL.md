@@ -56,10 +56,10 @@ client ──HTTP/WS──> A008 GUI host ──stdio ACP──> A008-acp ──
 
 Chat completions still run in the ACP subprocess. ADR 0032 lets the host call
 NVIDIA's catalog (`GET /v1/models` upstream) and image-generation endpoints with
-the process or secrets-file key. ADR 0033 adds kie.ai: curated catalog, OpenAI-
-compatible chat in ACP, and async Market image jobs on the host. The renderer
-never sees a credential. `GET` provider-settings reports only whether each key
-is configured.
+the process or secrets-file key. ADR 0033 adds kie.ai: curated catalog, OpenAI-compatible chat in ACP, and async
+Market image jobs on the host. ADR 0036 adds OpenAI GPT-5.6 Luna chat through
+the same ACP/provider-neutral boundary. The renderer never sees a credential.
+`GET` provider-settings reports only whether each key is configured.
 
 Start it with `npm run gui-host`, or `npm run gui` to build the bundled test
 surface first. Default bind is `127.0.0.1:8787`.
@@ -138,7 +138,7 @@ Each model also carries `defaults` (the complete parameter object below) and
 `capabilities`: `maxTokens` (integer ceiling), `topP`, `thinking`, `seed`, `stop`
 (booleans), `reasoningBudget` (integer ceiling or null), `reasoningEfforts`
 (string array), and `verifiedOn` (ISO date). These describe the supported A008
-controls for the hosted endpoint. The current model list has six entries.
+controls for the hosted endpoint. The current built-in model list has seven entries, including `gpt-5.6-luna`.
 Defaults here come from model profiles; environment overrides appear in the
 session snapshot after connection. No environment values or input modalities
 are published by this route. User-catalog additions (NVIDIA Build or kie.ai)
@@ -179,14 +179,17 @@ Removes that user-catalog chat model.
 
 ### `GET /v1/provider-settings`
 
-Reports `nvidiaApiKeyConfigured`, `kieApiKeyConfigured`, `chatProvider`,
-`imageProvider`, NVIDIA image model/endpoint, kie chat/image model ids, and
-key sources (`environment` | `secrets-file` | `missing`). Never the key.
+Reports `nvidiaApiKeyConfigured`, `kieApiKeyConfigured`,
+`openAiApiKeyConfigured`, `chatProvider`, `imageProvider`, NVIDIA image
+model/endpoint, kie chat/image model ids, and per-provider key sources
+(`environment` | `secrets-file` | `missing`). Never a key value.
 
 ### `POST /v1/provider-settings`
 
-Write-only NVIDIA and/or kie API keys plus the catalog fields above. Empty key
-strings are rejected. Omitted keys leave the stored value unchanged.
+Write-only NVIDIA, kie.ai and/or OpenAI API keys plus the catalog fields above.
+`chatProvider` accepts `nvidia`, `kie`, or `openai`; image provider remains
+NVIDIA/kie only. Empty key strings are rejected. Omitted keys leave stored values
+unchanged.
 
 ### `POST /v1/images`
 
@@ -366,6 +369,7 @@ expose cwd, project identity, memory path and effective generation settings.
 | `A008_SOURCE_STORE_PATH` | upload store; must be outside the repository. Unset disables uploads |
 | `NVIDIA_API_KEY` | NVIDIA provider credential |
 | `KIE_API_KEY` | optional kie.ai credential |
+| `OPENAI_API_KEY` | optional OpenAI chat credential; enables built-in `gpt-5.6-luna` |
 | `A008_MEMORY_SQLITE_PATH` | memory store; must be outside the repository |
 | `A008_PROJECT_ID`, `A008_AGENT_ID` | canonical `A008_v1_<kind>_<lowercase UUIDv4>` |
 | `A008_PROVIDER_TIMEOUT_MS` | per-request ceiling, default `180000` |

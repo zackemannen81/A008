@@ -75,6 +75,15 @@ export function generationCapabilities(model: string): GenerationCapabilities {
       };
     case "poolside/laguna-xs-2.1":
       return { ...common, maxTokens: 16384, seed: false };
+    case "gpt-5.6-luna":
+      return {
+        ...common,
+        maxTokens: 128000,
+        topP: false,
+        reasoningEfforts: ["none", "low", "medium", "high", "xhigh", "max"],
+        seed: false,
+        verifiedOn: "2026-09-09",
+      };
     default:
       return {
         ...common,
@@ -91,8 +100,10 @@ export function defaultSessionParameters(
   const options = { ...profile.defaults, ...overrides };
   const caps = generationCapabilities(profile.id);
   const effort =
-    profile.id === "moonshotai/kimi-k3"
-      ? "max"
+    profile.id === "gpt-5.6-luna"
+      ? (options.reasoningEffort ?? "medium")
+      : profile.id === "moonshotai/kimi-k3"
+        ? "max"
       : profile.id === "meta/muse-glimmer-30b"
         ? "high"
         : profile.id === "deepseek-ai/deepseek-v4-pro-0813"

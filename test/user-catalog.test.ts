@@ -53,12 +53,20 @@ test("user catalog round-trips added chat models and image settings", () => {
 test("secrets file stores a key and loads it without exposing it in thrown parse errors", () => {
   const dir = mkdtempSync(join(tmpdir(), "a008-secrets-"));
   const path = join(dir, "secrets.json");
-  saveProviderSecrets(path, { nvidiaApiKey: "nvapi-stored-key", kieApiKey: undefined });
+  saveProviderSecrets(path, { nvidiaApiKey: "nvapi-stored-key", kieApiKey: undefined, openAiApiKey: undefined });
   assert.equal(loadProviderSecrets(path).nvidiaApiKey, "nvapi-stored-key");
   assert.equal(loadProviderSecrets(path).kieApiKey, undefined);
-  saveProviderSecrets(path, { nvidiaApiKey: "nvapi-stored-key", kieApiKey: "kie-stored-key" });
+  saveProviderSecrets(path, { nvidiaApiKey: "nvapi-stored-key", kieApiKey: "kie-stored-key", openAiApiKey: "sk-stored-key" });
   assert.equal(loadProviderSecrets(path).kieApiKey, "kie-stored-key");
+  assert.equal(loadProviderSecrets(path).openAiApiKey, "sk-stored-key");
   const raw = readFileSync(path, "utf8");
   assert.match(raw, /nvapi-stored-key/u);
   assert.match(raw, /kie-stored-key/u);
+  assert.match(raw, /sk-stored-key/u);
+});
+
+test("user catalog accepts OpenAI for chat without widening image providers", () => {
+  const catalog = parseUserCatalog({ version: 1, chatProvider: "openai", imageProvider: "openai" });
+  assert.equal(catalog.chatProvider, "openai");
+  assert.equal(catalog.imageProvider, "nvidia");
 });

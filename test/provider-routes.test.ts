@@ -82,8 +82,10 @@ test("provider settings report configured without echoing a key", () => {
   assert.equal(view.nvidiaApiKeyConfigured, true);
   assert.equal(view.keySource, "environment");
   assert.equal(view.kieApiKeyConfigured, false);
+  assert.equal(view.openAiApiKeyConfigured, false);
   assert.equal("nvidiaApiKey" in view, false);
   assert.equal("kieApiKey" in view, false);
+  assert.equal("openAiApiKey" in view, false);
 });
 
 test("kie catalog is curated and needs no API key", () => {
@@ -106,6 +108,20 @@ test("saving a kie key does not echo it back", () => {
   assert.equal(view.kieApiKeyConfigured, true);
   assert.equal(view.chatProvider, "kie");
   assert.equal(JSON.stringify(view).includes("kie-secret-value"), false);
+});
+
+test("saving an OpenAI key is write-only and can select OpenAI chat", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a008-openai-sec-"));
+  const view = handleProviderSettingsPost({
+    catalogPath: join(dir, "catalog.json"),
+    secretsPath: join(dir, "secrets.json"),
+    env: {},
+    body: { openAiApiKey: "sk-openai-secret-value", chatProvider: "openai" },
+  });
+  assert.equal(view.openAiApiKeyConfigured, true);
+  assert.equal(view.chatProvider, "openai");
+  assert.equal(view.openAiKeySource, "secrets-file");
+  assert.equal(JSON.stringify(view).includes("sk-openai-secret-value"), false);
 });
 
 test("kie image generate stores a blob and never returns the credential", async () => {

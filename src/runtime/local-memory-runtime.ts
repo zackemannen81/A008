@@ -280,6 +280,7 @@ function semanticGeneration(model: string, limits: RuntimeBudgets) {
   const capabilities = generationCapabilities(model);
   return { ...SEMANTIC_JSON_GENERATION,
     ...(capabilities.topP ? {} : { topP: null }),
+    ...(model === "gpt-5.6-luna" ? { reasoningEffort: "none" } : {}),
     maxTokens: Math.min(limits.semanticOutputTokens, capabilities.maxTokens) };
 }
 
@@ -1127,13 +1128,14 @@ export function createLocalMemoryRuntime(
   const projectId = resolveProjectId(config, identityFactory);
   const agentId = resolveAgentId(config, identityFactory);
   const kieKey = options.env.KIE_API_KEY?.trim() ?? "";
-  if (!nvidiaOptions && !kieKey && options.createTransport === undefined) {
+  const openAiKey = options.env.OPENAI_API_KEY?.trim() ?? "";
+  if (!nvidiaOptions && !kieKey && !openAiKey && options.createTransport === undefined) {
     throw new ChatError(
       "configuration",
-      "NVIDIA_API_KEY or KIE_API_KEY is required for chat.",
+      "NVIDIA_API_KEY, KIE_API_KEY, or OPENAI_API_KEY is required for chat.",
     );
   }
-  const secrets = [nvidiaOptions?.apiKey, kieKey].filter(
+  const secrets = [nvidiaOptions?.apiKey, kieKey, openAiKey].filter(
     (value): value is string => typeof value === "string" && value.length >= 8,
   );
   const tracer = createDebugTracer({
@@ -1180,6 +1182,11 @@ export function createLocalMemoryRuntime(
     migrateV0: true,
   });
   const registry = options.registry ?? defaultModelRegistry;
+  const semanticModelId = nvidiaOptions
+    ? DEFAULT_MODEL_ID
+    : openAiKey
+      ? "gpt-5.6-luna"
+      : DEFAULT_MODEL_ID;
   const scopes = new ConversationScopes();
   const createReader = (limits: RuntimeBudgets): MemoryReadPort => {
     const reader = new KnowledgeMemoryReader({
@@ -1206,9 +1213,9 @@ export function createLocalMemoryRuntime(
       scopeClassifier: new ModelBackedRetrievalScopeClassifier(
         new ChatTransportSemanticJsonGenerator({
           transport,
-          model: registry.require(DEFAULT_MODEL_ID).id,
+          model: registry.require(semanticModelId).id,
           budget: budget(limits.semanticInputBytes),
-          generation: semanticGeneration(registry.require(DEFAULT_MODEL_ID).id, limits),
+          generation: semanticGeneration(registry.require(semanticModelId).id, limits),
         }),
         { maximumVocabulary: limits.retrievalVocabulary },
       ),

@@ -224,6 +224,45 @@ test("Kimi extraction and relation commit reach the NVIDIA payload without immut
   } finally { runtime.close(); rmSync(isolated.directory, { recursive: true, force: true }); }
 });
 
+test("OpenAI-only Luna runtime keeps chat and semantic scope off NVIDIA", async () => {
+  const isolated = isolatedMemoryEnv({ NVIDIA_API_KEY: undefined, OPENAI_API_KEY: "sk-openai-fixture" });
+  const originalFetch = globalThis.fetch;
+  const calls: Array<{ url: string; body: any }> = [];
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+    const body = JSON.parse(String(init?.body ?? "{}"));
+    calls.push({ url, body });
+    let op: string | undefined;
+    try { op = JSON.parse(body.messages.at(-1).content).operation; } catch { /* chat */ }
+    if (body.stream === true) {
+      return new Response(
+        `data: ${JSON.stringify({ choices: [{ delta: { content: "Luna answer." }, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`,
+        { status: 200, headers: { "content-type": "text/event-stream" } },
+      );
+    }
+    const content = op === "retrieval_scope"
+      ? '{"domains":[],"relatedDomains":[]}'
+      : "[]";
+    return new Response(JSON.stringify({ choices: [{ message: { content }, finish_reason: "stop" }] }),
+      { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const runtime = createLocalMemoryRuntime({ env: isolated.env, surface: "cli" });
+  try {
+    const result = await runtime.openSession({ model: "gpt-5.6-luna" }).turn("hello");
+    assert.equal(result.completion.message.content, "Luna answer.");
+    assert.deepEqual(calls.map(call => operation({ messages: call.body.messages } as ChatRequest) ?? "chat"),
+      ["retrieval_scope", "chat", "knowledge_analysis"]);
+    assert.equal(calls.every(call => call.url === "https://api.openai.com/v1/chat/completions"), true);
+    assert.equal(calls.every(call => call.body.model === "gpt-5.6-luna"), true);
+    assert.equal(calls.filter(call => call.body.stream === false).every(call => call.body.reasoning_effort === "none"), true);
+    assert.equal(calls.find(call => call.body.stream === true)?.body.reasoning_effort, "medium");
+  } finally {
+    runtime.close();
+    globalThis.fetch = originalFetch;
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
+});
+
 test("malformed social extraction preserves the delivered answer and leaves memory unwritten", async () => {
   const isolated = isolatedMemoryEnv();
   const calls: string[] = [];

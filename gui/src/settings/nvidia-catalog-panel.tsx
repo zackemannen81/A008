@@ -17,9 +17,10 @@ export function NvidiaCatalogPanel() {
   const [query, setQuery] = useState("");
   const [key, setKey] = useState("");
   const [kieKey, setKieKey] = useState("");
+  const [openAiKey, setOpenAiKey] = useState("");
   const [imageModel, setImageModel] = useState("");
   const [imageEndpoint, setImageEndpoint] = useState("");
-  const [chatProvider, setChatProvider] = useState<"nvidia" | "kie">("nvidia");
+  const [chatProvider, setChatProvider] = useState<"nvidia" | "kie" | "openai">("nvidia");
   const [imageProvider, setImageProvider] = useState<"nvidia" | "kie">("nvidia");
   const [kieChatModel, setKieChatModel] = useState("");
   const [kieChatEndpoint, setKieChatEndpoint] = useState("");
@@ -118,13 +119,38 @@ export function NvidiaCatalogPanel() {
           onChange={(event) => setKieKey(event.target.value)}
         />
       </label>
+      <h3>OpenAI</h3>
+      <p>
+        GPT-5.6 Luna is built in as a chat model. The key stays on the A008 host
+        and is write-only from this panel.
+      </p>
+      <p>
+        OpenAI API key:{" "}
+        {settings?.openAiApiKeyConfigured
+          ? `configured (${settings.openAiKeySource})`
+          : "missing"}
+      </p>
+      <label>
+        OpenAI API key
+        <input
+          type="password"
+          autoComplete="off"
+          value={openAiKey}
+          placeholder="sk-…  (write only; never shown again)"
+          onChange={(event) => setOpenAiKey(event.target.value)}
+        />
+      </label>
       <label>
         Chat provider
         <select
           value={chatProvider}
-          onChange={(event) => setChatProvider(event.target.value === "kie" ? "kie" : "nvidia")}
+          onChange={(event) => {
+            const value = event.target.value;
+            setChatProvider(value === "openai" ? "openai" : value === "kie" ? "kie" : "nvidia");
+          }}
         >
           <option value="nvidia">NVIDIA</option>
+          <option value="openai">OpenAI</option>
           <option value="kie">kie.ai</option>
         </select>
       </label>
@@ -168,6 +194,7 @@ export function NvidiaCatalogPanel() {
           void saveProviderSettings({
             ...(key.trim() ? { nvidiaApiKey: key.trim() } : {}),
             ...(kieKey.trim() ? { kieApiKey: kieKey.trim() } : {}),
+            ...(openAiKey.trim() ? { openAiApiKey: openAiKey.trim() } : {}),
             imageModel,
             imageEndpoint,
             chatProvider,
@@ -180,8 +207,9 @@ export function NvidiaCatalogPanel() {
               setSettings(next);
               setKey("");
               setKieKey("");
+              setOpenAiKey("");
               setNotice(
-                key.trim() || kieKey.trim()
+                key.trim() || kieKey.trim() || openAiKey.trim()
                   ? "Saved. Reconnect the session so chat uses the new key."
                   : "Provider settings saved.",
               );

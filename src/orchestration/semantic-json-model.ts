@@ -193,10 +193,15 @@ function generationOptions(
   const maxTokens =
     optionalPositiveInteger(raw.maxTokens, "maxTokens") ??
     SEMANTIC_JSON_GENERATION.maxTokens;
+  const reasoningEffort =
+    raw.reasoningEffort === null || raw.reasoningEffort === undefined
+      ? undefined
+      : nonEmpty(raw.reasoningEffort, "reasoningEffort");
   return {
     ...(temperature === undefined ? {} : { temperature }),
     ...(topP === undefined ? {} : { topP }),
     ...(maxTokens === undefined ? {} : { maxTokens }),
+    ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
     enableThinking: false,
     stream: false,
   };

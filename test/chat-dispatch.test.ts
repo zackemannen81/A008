@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { ChatSession } from "../src/core/chat-session.js";
-import { createDispatchingChatTransport, usesKieChat } from "../src/runtime/chat-dispatch.js";
+import { createDispatchingChatTransport, usesKieChat, usesOpenAiChat } from "../src/runtime/chat-dispatch.js";
 
 function catalogFile(body: unknown): string {
   const dir = mkdtempSync(join(tmpdir(), "a008-dispatch-"));
@@ -33,13 +33,14 @@ test("usesKieChat follows curated ids, catalog provider, and chatProvider fallba
   assert.equal(usesKieChat("nvidia/nemotron-3.5-lightning-30b-a3b", nvidia), false);
   assert.equal(usesKieChat("custom-kie", kie), true);
   assert.equal(usesKieChat("nvidia/nemotron-3.5-lightning-30b-a3b", fallback), true);
+  assert.equal(usesOpenAiChat("gpt-5.6-luna", nvidia), true);
 });
 
 test("dispatch posts kie chat to the model URL and NVIDIA chat to NVIDIA", async () => {
   const catalogPath = catalogFile({ version: 1 });
   const urls: string[] = [];
   const transport = createDispatchingChatTransport({
-    env: { NVIDIA_API_KEY: "nvapi-test", KIE_API_KEY: "kie-secret" },
+    env: { NVIDIA_API_KEY: "nvapi-test", KIE_API_KEY: "kie-secret", OPENAI_API_KEY: "sk-openai-test" },
     catalogPath,
     timeoutMs: 5_000,
     fetch: async (input) => {
@@ -57,10 +58,17 @@ test("dispatch posts kie chat to the model URL and NVIDIA chat to NVIDIA", async
     messages: [{ role: "user", content: "hi" }],
     options: { stream: false },
   });
+  await transport.complete({
+    model: "gpt-5.6-luna",
+    messages: [{ role: "user", content: "hi" }],
+    options: { stream: false },
+  });
   assert.match(urls[0] ?? "", /api\.kie\.ai\/gemini-3-flash\/v1\/chat\/completions/u);
   assert.match(urls[1] ?? "", /integrate\.api\.nvidia\.com/u);
+  assert.match(urls[2] ?? "", /api\.openai\.com\/v1\/chat\/completions/u);
   assert.equal(JSON.stringify(urls).includes("kie-secret"), false);
   assert.equal(JSON.stringify(urls).includes("nvapi-test"), false);
+  assert.equal(JSON.stringify(urls).includes("sk-openai-test"), false);
 });
 
 test("chatProvider kie rewrites a NVIDIA model id to the configured kie chat model", async () => {
