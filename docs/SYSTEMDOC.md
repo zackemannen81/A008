@@ -99,15 +99,22 @@ Core contracts own provider-neutral messages, options, deltas, completions,
 usage, errors, model metadata, and the transport port. Core imports do not read
 environment variables or terminal state.
 
-`createNvidiaChatTransport` remains the credential/transport owner. It
+`createNvidiaChatTransport` remains the NVIDIA credential/transport owner. It
 validates `NVIDIA_API_KEY`, resolves the optional trusted endpoint override,
 and constructs `NvidiaChatTransport`. `createNvidiaChatSession` still returns a
 bare `ChatSession` for tests and direct callers.
 
-CLI chat and A008 ACP now use `createLocalMemoryRuntime`, which calls that
-transport owner once and injects the same transport into answer and semantic
-calls. Identity, SQLite path, and debug settings are read only at this outer
-composition.
+Live CLI and ACP chat without an injected transport use
+`createDispatchingChatTransport` (A008-0073). It sends NVIDIA registry models
+through `NvidiaChatTransport` and kie.ai chat through `KieChatTransport` at
+`https://api.kie.ai/<model>/v1/chat/completions`. Either `NVIDIA_API_KEY` or
+`KIE_API_KEY` is enough to start the runtime. Image generation on the host
+follows `imageProvider`: NVIDIA NIMs or kie Market jobs
+(`POST /api/v1/jobs/createTask` then poll `GET /api/v1/jobs/recordInfo`).
+
+CLI chat and A008 ACP now use `createLocalMemoryRuntime`, which injects one
+transport into answer and semantic calls. Identity, SQLite path, and debug
+settings are read only at this outer composition.
 
 `NvidiaChatTransport` owns NVIDIA payload mapping, authorization header,
 stream/non-stream response parsing, timeout/cancellation, and provider error
@@ -198,7 +205,7 @@ ADR 0019 D2. `npm run gui-host` starts it against an already-built GUI;
 `npm run gui` builds `gui/` first and then starts it on one origin.
 
 The host serves `gui/dist` as static content when that directory exists, and
-answers health, models, shell, upload, memory, and A008-0071 provider routes:
+answers health, models, shell, upload, memory, and provider routes:
 
 ```text
 GET    /health
@@ -206,8 +213,9 @@ GET    /v1/models              built-in + user-catalog chat models
 GET    /v1/catalog/nvidia      live NVIDIA Build list (needs API key)
 POST   /v1/catalog/nvidia      add a chat model to ~/.a008/catalog.json
 DELETE /v1/catalog/nvidia?id=
-GET    /v1/provider-settings   image model/endpoint; key configured? (never the key)
-POST   /v1/provider-settings   write-only API key and image settings
+GET    /v1/catalog/kie         curated kie.ai chat/image/video ids (no key)
+GET    /v1/provider-settings   providers, models, key configured? (never the key)
+POST   /v1/provider-settings   write-only NVIDIA/kie keys and provider settings
 POST   /v1/images              generate; store PNG/JPEG in the source store
 GET    /v1/blobs/:sha256/:name serve a stored generated image
 POST   /v1/shell
@@ -226,11 +234,15 @@ concatenated into an `answer` frame. No Agent Server schema and no OpenHands
 TypeScript client participate. `session/control` and `session/control/ok`
 carry the session operations and snapshots specified in HOST_PROTOCOL.md.
 
-Credentials stay in the host process. `NVIDIA_API_KEY`, the optional endpoint
-override, and memory settings are read from process environment only. Outbound
-text is redacted so neither a credential value, the literal token
-`NVIDIA_API_KEY`, nor the string `authorization` reaches the renderer; the
-trade is that an answer legitimately discussing those names is shown redacted.
+Credentials stay in the host process. `NVIDIA_API_KEY`, `KIE_API_KEY`, optional
+secrets-file copies under `~/.a008/secrets.json`, the optional NVIDIA endpoint
+override, and memory settings are read from process environment or that file.
+The renderer never reads a key. Outbound text is redacted so neither a
+credential value, the literal tokens `NVIDIA_API_KEY` and `KIE_API_KEY`, nor
+the string `authorization` reaches the renderer; the trade is that an answer
+legitimately discussing those names is shown redacted. The host may call
+NVIDIA catalog/image endpoints and kie.ai job endpoints; chat completions still
+run in the ACP subprocess.
 
 Two guards protect the shell surface. Any request carrying an `Origin` that is
 neither same-origin nor loopback is refused with 403 on every route and on the

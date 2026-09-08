@@ -9,5 +9,7 @@ test("provider panel explains Free Endpoint and write-only API key", () => {
   assert.match(html, /NVIDIA Build/u);
   assert.match(html, /write only/u);
   assert.match(html, /NGC credits/u);
-  assert.match(html, /Image endpoint/u);
+  assert.match(html, /kie.ai/u);
+  assert.match(html, /docs.kie.ai/u);
+  assert.match(html, /async Market jobs/u);
 });

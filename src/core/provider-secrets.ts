@@ -7,6 +7,7 @@ export const SECRETS_PATH_ENV = "A008_SECRETS_PATH";
 
 export interface ProviderSecrets {
   readonly nvidiaApiKey: string | undefined;
+  readonly kieApiKey: string | undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -22,15 +23,20 @@ export function parseProviderSecrets(value: unknown): ProviderSecrets {
   if (!isRecord(value) || value.version !== 1) {
     throw new ChatError("configuration", "Secrets file must be a version 1 document.");
   }
-  const key = value.nvidiaApiKey;
-  if (key !== undefined && (typeof key !== "string" || key.trim().length === 0)) {
-    throw new ChatError("configuration", "nvidiaApiKey must be a non-empty string when set.");
+  const nvidia = optionalKey(value.nvidiaApiKey, "nvidiaApiKey");
+  const kie = optionalKey(value.kieApiKey, "kieApiKey");
+  return { nvidiaApiKey: nvidia, kieApiKey: kie };
+}
+function optionalKey(value: unknown, field: string): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new ChatError("configuration", `${field} must be a non-empty string when set.`);
   }
-  return { nvidiaApiKey: typeof key === "string" ? key.trim() : undefined };
+  return value.trim();
 }
 
 export function loadProviderSecrets(path: string): ProviderSecrets {
-  if (!existsSync(path)) return { nvidiaApiKey: undefined };
+  if (!existsSync(path)) return { nvidiaApiKey: undefined, kieApiKey: undefined };
   try {
     return parseProviderSecrets(JSON.parse(readFileSync(path, "utf8")) as unknown);
   } catch (error) {
@@ -43,7 +49,7 @@ export function saveProviderSecrets(path: string, secrets: ProviderSecrets): voi
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(
     path,
-    `${JSON.stringify({ version: 1, nvidiaApiKey: secrets.nvidiaApiKey ?? null }, null, 2)}\n`,
+    `${JSON.stringify({ version: 1, nvidiaApiKey: secrets.nvidiaApiKey ?? null, kieApiKey: secrets.kieApiKey ?? null }, null, 2)}\n`,
     { encoding: "utf8", mode: 0o600 },
   );
 }
@@ -53,4 +59,10 @@ export function resolveNvidiaApiKey(env: NodeJS.ProcessEnv, secretsPath: string)
   const fromEnv = env.NVIDIA_API_KEY?.trim();
   if (fromEnv) return fromEnv;
   return loadProviderSecrets(secretsPath).nvidiaApiKey;
+}
+
+export function resolveKieApiKey(env: NodeJS.ProcessEnv, secretsPath: string): string | undefined {
+  const fromEnv = env.KIE_API_KEY?.trim();
+  if (fromEnv) return fromEnv;
+  return loadProviderSecrets(secretsPath).kieApiKey;
 }

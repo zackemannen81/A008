@@ -47,6 +47,7 @@ test("help works without credentials", async () => {
 
   assert.equal(code, 0);
   assert.match(fixture.stdout.text(), /NVIDIA_API_KEY/u);
+  assert.match(fixture.stdout.text(), /KIE_API_KEY/u);
   assert.match(fixture.stdout.text(), /A008_DEBUG_TRACE/u);
   assert.match(fixture.stdout.text(), /\/shell/u);
   assert.match(fixture.stdout.text(), /LangChain/u);

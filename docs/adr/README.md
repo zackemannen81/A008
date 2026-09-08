@@ -8,6 +8,9 @@ replacement.
 
 ## Records
 
+- [0033-kie-provider.md](0033-kie-provider.md) —
+  Accepted; kie.ai as a second chat/image provider. Amends 0032.
+
 - [0032-nvidia-catalog-and-image-generation.md](0032-nvidia-catalog-and-image-generation.md) —
   Accepted; browse/add NVIDIA Build models, host image generation, write-only
   API key in Parameters. Amends 0019 D3/D4; does not change ADR 0020 D6.

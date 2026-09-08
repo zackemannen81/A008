@@ -99,6 +99,8 @@ import {
   createNvidiaTransportOptions,
   DEFAULT_SYSTEM_MESSAGE,
 } from "./nvidia-session.js";
+import { createDispatchingChatTransport } from "./chat-dispatch.js";
+import { defaultCatalogPath } from "../core/user-catalog.js";
 
 
 export const LOCAL_MEMORY_SCOPES = ["local"] as const;
@@ -1101,7 +1103,9 @@ export function createLocalMemoryRuntime(
   options: LocalMemoryRuntimeOptions,
 ): LocalMemoryRuntime {
   const surface = options.surface;
-  const nvidiaOptions = createNvidiaTransportOptions({ env: options.env });
+  const nvidiaOptions = options.env.NVIDIA_API_KEY?.trim()
+    ? createNvidiaTransportOptions({ env: options.env })
+    : undefined;
   const config = parseLocalRuntimeConfig(options.env, {
     surface: surface === "acp" ? "acp" : "cli",
     ...(options.cli === undefined ? {} : { cli: options.cli }),
@@ -1117,7 +1121,16 @@ export function createLocalMemoryRuntime(
   }
   const projectId = resolveProjectId(config, identityFactory);
   const agentId = resolveAgentId(config, identityFactory);
-  const secrets = [nvidiaOptions.apiKey].filter((value) => value.length >= 8);
+  const kieKey = options.env.KIE_API_KEY?.trim() ?? "";
+  if (!nvidiaOptions && !kieKey && options.createTransport === undefined) {
+    throw new ChatError(
+      "configuration",
+      "NVIDIA_API_KEY or KIE_API_KEY is required for chat.",
+    );
+  }
+  const secrets = [nvidiaOptions?.apiKey, kieKey].filter(
+    (value): value is string => typeof value === "string" && value.length >= 8,
+  );
   const tracer = createDebugTracer({
     mode: config.debugTrace,
     surface,
@@ -1129,22 +1142,21 @@ export function createLocalMemoryRuntime(
       : { stderr: options.stderr }),
     secrets,
   });
-  const makeTransport = (timeoutMs: number) => createNvidiaChatTransport({
-    env: options.env,
-    // Without this the adapter falls back to its own 60-second default, which
-    // a completeness-oriented extraction now routinely exceeds.
-    timeoutMs,
-    ...(options.registry === undefined ? {} : { registry: options.registry }),
-    ...(options.createTransport === undefined
-      ? {
-          fetch: tracedFetch(
-            globalThis.fetch.bind(globalThis),
-            tracer,
-            surface,
-          ),
-        }
-      : { createTransport: options.createTransport }),
-  });
+  const makeTransport = (timeoutMs: number) => {
+    if (options.createTransport !== undefined) {
+      return createNvidiaChatTransport({
+        env: options.env,
+        timeoutMs,
+        createTransport: options.createTransport,
+      });
+    }
+    return createDispatchingChatTransport({
+      env: options.env,
+      catalogPath: defaultCatalogPath(options.env),
+      timeoutMs,
+      fetch: tracedFetch(globalThis.fetch.bind(globalThis), tracer, surface),
+    });
+  };
   let transportTimeout = preferences.current.budgets.providerTimeoutMs;
   let innerTransport = makeTransport(transportTimeout);
   const transport = tracedChatTransport({

@@ -52,6 +52,7 @@ import {
 } from "../core/user-catalog.js";
 import {
   defaultSecretsPath,
+  resolveKieApiKey,
   resolveNvidiaApiKey,
 } from "../core/provider-secrets.js";
 import { findRepositoryRoot, moduleDirectory } from "../runtime/local-runtime-config.js";
@@ -59,6 +60,7 @@ import {
   handleBlobGet,
   handleImageGenerate,
   handleNvidiaCatalogAdd,
+  handleKieCatalogGet,
   handleNvidiaCatalogGet,
   handleNvidiaCatalogRemove,
   handleProviderSettingsPost,
@@ -129,7 +131,6 @@ export async function startGuiHost(
   if (!statSync(cwd).isDirectory()) throw new ChatError("configuration", "GUI workspace must be a directory.");
   const host = options.host ?? DEFAULT_GUI_HOST_BIND;
   const port = options.port ?? DEFAULT_GUI_HOST_PORT;
-  const secrets = wireSecrets(env);
   const registry = options.registry ?? defaultModelRegistry;
   const runTerminal = options.runTerminal ?? runTerminalCommand;
   const staticDir = resolveStaticDir(options.staticDir, cwd, env);
@@ -143,6 +144,11 @@ export async function startGuiHost(
   const secretsPath = options.secretsPath ?? defaultSecretsPath(env);
   assertPathOutsideRepo(catalogPath, repoRoot, "A008_CATALOG_PATH");
   assertPathOutsideRepo(secretsPath, repoRoot, "A008_SECRETS_PATH");
+  const secrets = [
+    ...wireSecrets(env),
+    resolveNvidiaApiKey(env, secretsPath),
+    resolveKieApiKey(env, secretsPath),
+  ].filter((value): value is string => typeof value === "string" && value.length > 0);
   const requestOriginAllowed = (request: IncomingMessage): boolean =>
     originAllowedBy(request, allowedOrigins);
   const sockets = new Set<GuiWebSocket>();
@@ -157,7 +163,15 @@ export async function startGuiHost(
       bridgePending = Promise.resolve(
         options.createAcpBridge?.() ??
           createSpawnedAcpBridge({
-            env,
+            env: {
+              ...env,
+              ...(resolveNvidiaApiKey(env, secretsPath)
+                ? { NVIDIA_API_KEY: resolveNvidiaApiKey(env, secretsPath) }
+                : {}),
+              ...(resolveKieApiKey(env, secretsPath)
+                ? { KIE_API_KEY: resolveKieApiKey(env, secretsPath) }
+                : {}),
+            },
             cwd,
             ...(options.stderr === undefined ? {} : { stderr: options.stderr }),
           }),
@@ -396,6 +410,10 @@ async function handleHttp(input: {
       });
       return;
     }
+    if (method === "GET" && pathname === "/v1/catalog/kie") {
+      sendJson(response, 200, handleKieCatalogGet(input.catalogPath));
+      return;
+    }
     if (method === "GET" && pathname === "/v1/catalog/nvidia") {
       sendJson(
         response,
@@ -459,6 +477,7 @@ async function handleHttp(input: {
         200,
         await handleImageGenerate({
           apiKey: resolveNvidiaApiKey(input.env, input.secretsPath),
+          kieApiKey: resolveKieApiKey(input.env, input.secretsPath),
           fetch: input.fetchImpl,
           catalogPath: input.catalogPath,
           storeRoot: input.storeRoot,

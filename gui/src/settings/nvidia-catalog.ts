@@ -15,9 +15,16 @@ export interface NvidiaCatalog {
 
 export interface ProviderSettings {
   readonly nvidiaApiKeyConfigured: boolean;
+  readonly kieApiKeyConfigured: boolean;
   readonly imageModel: string;
   readonly imageEndpoint: string;
+  readonly chatProvider: "nvidia" | "kie";
+  readonly imageProvider: "nvidia" | "kie";
+  readonly kieChatModel: string;
+  readonly kieChatEndpoint: string;
+  readonly kieImageModel: string;
   readonly keySource: string;
+  readonly kieKeySource: string;
 }
 
 export async function loadNvidiaCatalog(
@@ -35,7 +42,11 @@ export async function loadNvidiaCatalog(
   return (await response.json()) as NvidiaCatalog;
 }
 
-export async function addNvidiaModel(id: string, fetchImpl: typeof fetch = fetch): Promise<void> {
+export async function addNvidiaModel(
+  id: string,
+  fetchImpl: typeof fetch = fetch,
+  provider = "nvidia",
+): Promise<void> {
   const response = await fetchImpl("/v1/catalog/nvidia", {
     method: "POST",
     headers: {
@@ -43,7 +54,7 @@ export async function addNvidiaModel(id: string, fetchImpl: typeof fetch = fetch
       accept: "application/json",
       "content-type": "application/json",
     },
-    body: JSON.stringify({ id }),
+    body: JSON.stringify({ id, provider }),
   });
   if (!response.ok) {
     throw new Error(await errorMessage(response, "Could not add that model."));
@@ -65,8 +76,47 @@ export async function loadProviderSettings(
   return (await response.json()) as ProviderSettings;
 }
 
+export interface KieCatalogModel {
+  readonly id: string;
+  readonly name: string;
+  readonly kind: "chat" | "image" | "video";
+  readonly added: boolean;
+}
+
+export interface KieCatalog {
+  readonly source: string;
+  readonly browse: string;
+  readonly note: string;
+  readonly models: readonly KieCatalogModel[];
+}
+
+export async function loadKieCatalog(
+  signal?: AbortSignal,
+  fetchImpl: typeof fetch = fetch,
+): Promise<KieCatalog> {
+  const response = await fetchImpl("/v1/catalog/kie", {
+    headers: { ...engineHeaders(), accept: "application/json" },
+    signal,
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    throw new Error(await errorMessage(response, "Could not load the kie.ai catalog."));
+  }
+  return (await response.json()) as KieCatalog;
+}
+
 export async function saveProviderSettings(
-  body: { nvidiaApiKey?: string; imageModel?: string; imageEndpoint?: string },
+  body: {
+    nvidiaApiKey?: string;
+    kieApiKey?: string;
+    imageModel?: string;
+    imageEndpoint?: string;
+    chatProvider?: "nvidia" | "kie";
+    imageProvider?: "nvidia" | "kie";
+    kieChatModel?: string;
+    kieChatEndpoint?: string;
+    kieImageModel?: string;
+  },
   fetchImpl: typeof fetch = fetch,
 ): Promise<ProviderSettings> {
   const response = await fetchImpl("/v1/provider-settings", {

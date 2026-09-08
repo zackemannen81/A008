@@ -2,6 +2,19 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — kie.ai provider for chat and image jobs
+
+- Task: A008-0073; operator: Grok; branch: `A008-0073-kie-provider`.
+- Second provider beside NVIDIA: `KIE_API_KEY` / write-only `kieApiKey`,
+  OpenAI-compatible chat transport, Market job image poll, curated market list
+  in Parameters, dispatch by `chatProvider` / `imageProvider` / profile.provider.
+- Video, music, Claude native `/messages`, and GPT `/responses` remain out of
+  scope.
+- Verification: both typechecks and full `npm test` (485 core, 4 membership,
+  105 GUI). No live kie.ai or NVIDIA call. Interactive browser click-through
+  was not available in this agent session; DOM tests cover Provider copy.
+- Signature: Grok.
+
 ## 2026-09-08 — NVIDIA catalog, image generation, start cards and file panel
 
 - Task: A008-0071; operator: Grok; branch: `A008-0071-nvidia-catalog-images`.

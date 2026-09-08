@@ -39,7 +39,8 @@ Rules:
 Every mode excludes:
 
 - `Authorization` and other secret-bearing headers
-- API keys and the configured `NVIDIA_API_KEY` value wherever it appears
+- API keys and the configured `NVIDIA_API_KEY` / `KIE_API_KEY` values wherever
+  they appear
 - environment dumps
 - transport internals beyond the request URL/method and redacted headers
 

@@ -45,13 +45,20 @@ test("user catalog round-trips added chat models and image settings", () => {
   const loaded = loadUserCatalog(path);
   assert.equal(loaded.chatModels.length, 2);
   assert.equal(loaded.image.endpoint, "https://example.test/image");
+  assert.equal(catalog.chatProvider, "nvidia");
+  assert.equal(catalog.imageProvider, "nvidia");
+  assert.equal(catalog.kie.chatModel, "gemini-3-flash");
 });
 
 test("secrets file stores a key and loads it without exposing it in thrown parse errors", () => {
   const dir = mkdtempSync(join(tmpdir(), "a008-secrets-"));
   const path = join(dir, "secrets.json");
-  saveProviderSecrets(path, { nvidiaApiKey: "nvapi-stored-key" });
+  saveProviderSecrets(path, { nvidiaApiKey: "nvapi-stored-key", kieApiKey: undefined });
   assert.equal(loadProviderSecrets(path).nvidiaApiKey, "nvapi-stored-key");
+  assert.equal(loadProviderSecrets(path).kieApiKey, undefined);
+  saveProviderSecrets(path, { nvidiaApiKey: "nvapi-stored-key", kieApiKey: "kie-stored-key" });
+  assert.equal(loadProviderSecrets(path).kieApiKey, "kie-stored-key");
   const raw = readFileSync(path, "utf8");
   assert.match(raw, /nvapi-stored-key/u);
+  assert.match(raw, /kie-stored-key/u);
 });
