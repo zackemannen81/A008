@@ -121,6 +121,18 @@ session snapshot after connection. No environment values or input modalities
 are published by this route. User-catalog additions (NVIDIA Build or kie.ai)
 appear here after they are added from Parameters → Provider.
 
+### `GET /v1/browser/frame-check?url=`
+
+```json
+{ "url": "https://chatgpt.com/", "embeddable": false, "reason": "frame-ancestors" }
+```
+
+GET the target from the host (not the renderer) and read
+`Content-Security-Policy` / `X-Frame-Options`. `embeddable` is false when the
+site forbids framing A008. Report-Only CSP is ignored. A probe failure returns
+`embeddable: true` so the pane can still try. `url` must be absolute http(s).
+The host does not return page bodies.
+
 ### `GET /v1/catalog/nvidia`
 
 Live NVIDIA Build list. Needs `NVIDIA_API_KEY`. Never returns the key.

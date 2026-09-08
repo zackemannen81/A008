@@ -56,6 +56,7 @@ import {
   resolveNvidiaApiKey,
 } from "../core/provider-secrets.js";
 import { findRepositoryRoot, moduleDirectory } from "../runtime/local-runtime-config.js";
+import { handleBrowserFrameCheck } from "./browser-frame.js";
 import {
   handleBlobGet,
   handleImageGenerate,
@@ -402,6 +403,22 @@ async function handleHttp(input: {
     }
     if (method === "GET" && pathname === "/health") {
       sendJson(response, 200, { ok: true, name: GUI_HOST_NAME });
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/browser/frame-check") {
+      const target = new URL(request.url ?? "/", "http://localhost").searchParams.get("url") ?? "";
+      const originHeader = firstHeaderValue(request.headers.origin);
+      const host = firstHeaderValue(request.headers.host);
+      const embedderOrigin = originHeader || (host ? `http://${host}` : "http://127.0.0.1");
+      sendJson(
+        response,
+        200,
+        await handleBrowserFrameCheck({
+          url: target,
+          embedderOrigin,
+          fetch: input.fetchImpl,
+        }),
+      );
       return;
     }
     if (method === "GET" && pathname === "/v1/models") {
