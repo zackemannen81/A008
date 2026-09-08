@@ -96,3 +96,4 @@ the template before push.
 `A008-0066`: [runtime preferences](A008-0066_runtime-preferences.md).
 - [A008-0067_engine-package.md](A008-0067_engine-package.md) — In Progress; complete engine and external panel integration.
 - [A008-0068_gui-repository-tools.md](A008-0068_gui-repository-tools.md) — Complete; standalone GUI file and Git tools.
+- [A008-0081_evidence-lifecycle.md](A008-0081_evidence-lifecycle.md) — Ready; accepted L2 evidence lifecycle.
