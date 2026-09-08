@@ -2,6 +2,14 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — hideable shortcut dock
+
+- Task: A008-0075; operator: Grok; branch: `A008-0075-hide-shortcuts`.
+- Empty-chat shortcut chips can be hidden; a Shortcuts control restores them.
+- Keyboard shortcuts remain. Header Parameters/Files/Workbench unchanged.
+- Verification: GUI typecheck, 109 GUI tests. No live provider call.
+- Signature: Grok.
+
 ## 2026-09-08 — empty-chat ASCII logo
 
 - Task: A008-0074; operator: Grok; branch: `A008-0074-ascii-logo`.
