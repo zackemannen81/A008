@@ -277,8 +277,10 @@ function semanticBudget(maximum: number): {
 }
 
 function semanticGeneration(model: string, limits: RuntimeBudgets) {
+  const capabilities = generationCapabilities(model);
   return { ...SEMANTIC_JSON_GENERATION,
-    maxTokens: Math.min(limits.semanticOutputTokens, generationCapabilities(model).maxTokens) };
+    ...(capabilities.topP ? {} : { topP: null }),
+    maxTokens: Math.min(limits.semanticOutputTokens, capabilities.maxTokens) };
 }
 
 function containedRelative(root: string, candidate: string): string | undefined {

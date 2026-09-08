@@ -657,10 +657,17 @@ existing exact ID-free proposal/candidate envelope. Both may share one generator
 and therefore one transport/model configuration without constructing another
 provider implementation or credential owner.
 
-Only non-empty strict JSON assistant content is returned. Provider reasoning,
-usage, and finish metadata are ignored; fenced or prose-wrapped JSON fails
-closed. Parsed results remain untrusted until the existing intake and relation-
-gate validators explicitly materialize allowed fields and handles.
+The runtime uses the existing generation capability registry for semantic top P
+and output ceilings. Explicit null omits top P for Kimi K3; it cannot be restored
+by the generator default. Other models retain their fixed semantic sampling.
+The classifier instruction distinguishes the input envelope from the output
+decision and gives concrete JSON shapes (A008-0083).
+
+Only non-empty strict JSON assistant content is returned. A single whole-content
+Markdown fence may be unwrapped (ADR 0012 D6); prose, fragments and malformed JSON
+fail closed. Provider reasoning is ignored; finish reason is diagnostic only.
+Parsed results remain untrusted until existing intake and relation-gate validators
+explicitly materialize allowed fields and handles.
 
 An optional `SemanticOperationContext` forwards one `AbortSignal` from process
 or resume through the relevant semantic port to `ChatRequest.signal`. Analysis

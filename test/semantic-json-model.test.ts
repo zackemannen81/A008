@@ -138,6 +138,34 @@ test("semantic JSON generator applies the exact multibyte message budget before 
   assert.equal(calls, 1);
 });
 
+test("semantic top P null omits the control while undefined retains its default", async () => {
+  for (const topP of [null, undefined, 0.95]) {
+    let options: ChatRequest["options"];
+    const model = new ChatTransportSemanticJsonGenerator({
+      transport: { async complete(request) { options = request.options; return completion('{}'); } },
+      model: "fixture/model",
+      budget: { maximum: 10000, measurer: new Utf8ByteChatMessageMeasurer() },
+      generation: topP === undefined ? {} : { topP },
+    });
+    await model.generate(semanticInput);
+    assert.equal(options?.topP, topP === null ? undefined : topP ?? 1);
+    assert.equal(Object.hasOwn(options!, "topP"), topP !== null);
+  }
+});
+
+test("reported malformed relation envelope cannot salvage an embedded valid decision", async () => {
+  let calls = 0;
+  const model = generator({ async complete() {
+    calls += 1;
+    return completion('{"operation":"relation_classification: new {"type": "new"}');
+  } });
+  await assert.rejects(model.generate({ ...semanticInput, operation: "relation_classification",
+    systemInstruction: KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION }),
+    (error: unknown) => error instanceof ChatError && error.code === "invalid_response" &&
+      /strict JSON.*finishReason=stop/.test(error.message));
+  assert.equal(calls, 1);
+});
+
 test("semantic JSON generator rejects invalid local configuration before transport", async () => {
   let calls = 0;
   const transport: ChatTransport = {

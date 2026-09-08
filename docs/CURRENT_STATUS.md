@@ -5,6 +5,13 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0083 fixes the observed Kimi semantic HTTP 400 by omitting immutable top P
+through the existing capability owner. Relation instructions now specify the
+exact decision shape and exclude the input envelope. Offline end-to-end NVIDIA
+payload/commit regression passes, as do 524 core, 116 GUI and 4 membership tests.
+The reported malformed JSON is still rejected; live model compliance has not
+been re-evaluated. See [handoff](handoffs/A008-0083.md).
+
 A008-0079's [instruction and memory specification](backlog/instruction-plane-and-memory-lifecycle.md)
 is owner-reviewed and frozen as an Accepted target by
 [ADR 0035](adr/0035-frozen-instruction-and-memory-target.md), including P1–P6.

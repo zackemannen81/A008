@@ -1,5 +1,9 @@
 # File Structure
 
+A008-0083 repairs semantic options/instructions in the existing runtime and
+semantic JSON owner. Its charter, archive and handoff use the existing task
+collections; no new runtime module, package or data schema is introduced.
+
 A008-0079 adds `docs/backlog/instruction-plane-and-memory-lifecycle.md`, now
 frozen under `docs/adr/0035-frozen-instruction-and-memory-target.md`. Its body
 remains the one reviewed requirement owner. A008-0080's L1 charter is in

@@ -18,6 +18,7 @@ import { createSqliteKnowledgeContext } from "../src/memory/knowledge/index.js";
 import { ingest } from "../src/memory/knowledge/ingest.js";
 import { DEFAULT_SYSTEM_MESSAGE } from "../src/core/chat-invocation.js";
 import { MEMORY_CONTEXT_SYSTEM_INSTRUCTION } from "../src/orchestration/memory-prompt-composer.js";
+import { NvidiaChatTransport } from "../src/providers/nvidia/nvidia-chat-transport.js";
 
 const identity = "Du heter Agent 008, oavsett modell eller leverantör.";
 const defaults = (): RuntimePreferences => ({ instructions: "", budgets: { ...DEFAULT_RUNTIME_BUDGETS } });
@@ -183,12 +184,43 @@ test("semantic output can exceed the old 16384 default and reports each model's 
       await session.send("fixture");
       const extraction = fake.requests.filter(r => operation(r) === "knowledge_analysis").at(-1)!;
       assert.equal(extraction.options?.maxTokens, generationCapabilities(model.id).maxTokens);
+      assert.equal(extraction.options?.topP, generationCapabilities(model.id).topP ? 1 : undefined);
       assert.match(session.runtimePreferences.fields.find(f => f.key === "semanticOutputTokens")!.description,
         new RegExp(String(generationCapabilities(model.id).maxTokens)));
     }
     const scopeRequests = fake.requests.filter(r => operation(r) === "retrieval_scope");
     assert.equal(scopeRequests.length, defaultModelRegistry.list().length);
     assert.equal(scopeRequests.every(r => r.options?.maxTokens === 32768), true);
+  } finally { runtime.close(); rmSync(isolated.directory, { recursive: true, force: true }); }
+});
+
+test("Kimi extraction and relation commit reach the NVIDIA payload without immutable top P", async () => {
+  const isolated = isolatedMemoryEnv();
+  const operations: string[] = [];
+  const transport = new NvidiaChatTransport({ apiKey: "fixture-token", fetch: async (_url, init) => {
+    const payload = JSON.parse(String(init?.body));
+    let op: string | undefined;
+    try { op = JSON.parse(payload.messages.at(-1).content).operation; } catch { /* chat */ }
+    if (op && payload.model === "moonshotai/kimi-k3") {
+      operations.push(op);
+      assert.equal(Object.hasOwn(payload, "top_p"), false);
+      assert.equal(payload.stream, false);
+      assert.equal(payload.temperature, 0);
+      assert.equal(payload.max_tokens, 16384);
+    }
+    const content = op === "knowledge_analysis" ? JSON.stringify([{ proposition: "The fixture box is blue.", kind: "fact", tags: ["box"], domains: ["fixture"], entities: ["box"], severity: "minor" }]) :
+      op === "relation_classification" ? '{"type":"new"}' :
+      op === "retrieval_scope" ? '{"domains":[],"relatedDomains":[]}' : "Fixture answer.";
+    return new Response(JSON.stringify({ choices: [{ message: { content }, finish_reason: "stop" }] }),
+      { status: 200, headers: { "content-type": "application/json" } });
+  } });
+  const runtime = createLocalMemoryRuntime({ env: isolated.env, surface: "cli",
+    createTransport: () => ({ complete: request => transport.complete({ ...request, options: { ...request.options, stream: false } }) }) });
+  try {
+    const result = await runtime.openSession({ model: "moonshotai/kimi-k3" }).turn("The fixture box is blue.");
+    assert.equal(result.postOutput.status, "completed");
+    assert.deepEqual(operations, ["knowledge_analysis", "relation_classification"]);
+    assert.equal("records" in result.postOutput && result.postOutput.records.length > 0, true);
   } finally { runtime.close(); rmSync(isolated.directory, { recursive: true, force: true }); }
 });
 

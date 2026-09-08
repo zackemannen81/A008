@@ -105,6 +105,13 @@ variables or instantiate `NvidiaChatTransport`. A future composition root can
 therefore reuse the authorized provider adapter and credential owner while
 keeping the semantic jobs separate from the user's chat session.
 
+A008-0083 reuses runtime model capabilities to omit immutable top P for Kimi K3.
+The provider-neutral generator preserves explicit `topP: null` as omission, while
+an absent option retains the semantic default for other models. The relation
+instruction supplies decision examples and prohibits echoing the input envelope;
+this is a prompt correction, not a guarantee of live model compliance. Malformed
+responses remain failures without repair, fragment extraction or extra calls.
+
 `stream` is always forced to `false`. The exact stable role/content array is
 measured before transport; the local reference measurer is exact UTF-8 bytes.
 An exact model-token measurer may be injected later without changing the call
