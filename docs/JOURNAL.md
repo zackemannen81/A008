@@ -2,6 +2,24 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — A008-0084: readable memory map published
+
+- Task: A008-0084; operator: Codex; branch: `main`.
+- Integrated and published `6115aa8ef40009f62eab08019a5d1366c05a7e3e`; local/remote main equality verified.
+- Stable spaced domain clusters replace clamped fans. Selective labels, kind
+  colours, curved stored edges and a neighbourhood focus camera improve reading;
+  selecting records preserves coordinates. The inspector follows directed stored
+  links and preserves full escaped content, without graph or lifecycle writes.
+- GUI typecheck/build and 118/118 GUI tests pass; inspection core 8/8 passes,
+  including local HTTP/ACP with no provider call or SQLite mutation.
+- Synthetic browser evidence covers 80 nodes/240 links, one/many domains, empty
+  states, desktop/narrow screens, stable selection, keyboard Space, linked-record
+  navigation, focus, zoom/Fit and search/filter/clear. No page error or overlay.
+- Final necessity/charter, local links, frozen target, prior archives, dependency
+  files and owner logo CSS review passed. CURRENT_TASK is restored to the template.
+- [Handoff](handoffs/A008-0084.md) and [preview recipe](../gui/test/README.md).
+  Real owner-data visual review and live model compliance remain unverified.
+
 ## 2026-09-08 — A008-0083: semantic request repair published
 
 - Task: A008-0083; operator: Codex; branch: `main`.
