@@ -2,6 +2,42 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — A008-0080: L1 implemented and published
+
+- Task: A008-0080; operator: Codex; branch: `main`.
+- Implemented and integrated `ea158bf` plus handoff `3f5adb6`. Pushed main and
+  verified remote/local equality at `3f5adb6` before this closure entry.
+- `composeChatInvocation` owns one final system message: explicit session base,
+  global/invocation configuration and applicable context rule. It selects the
+  generic fallback only when explicit configuration is absent. Both runtime
+  factories and the CLI preserve explicit/default provenance; an explicit
+  default-equivalent --system survives model changes.
+- The memory rule now uses ordinary background/trust wording in that same
+  message. Envelope serialization, semantic operations, retrieval, lifecycle,
+  schemas, runtime settings and dependencies are unchanged. Tool continuations
+  retain the captured instruction; raw question/final answer remain the only
+  durable dialogue/intake pair. The injected fallback is outgoing context,
+  not synthetic history; explicit session-base metadata remains supported.
+- Verification: typecheck/build passed; targeted suite 60/60; full core 501/501;
+  membership 4/4; GUI 116/116, with no failures or skips. Core tests cover actual
+  local host/ACP/engine paths and captured NVIDIA/kie HTTP payloads, including
+  settings changes during tool execution and exact Unicode byte boundaries.
+- The completed charter maps all A01–A08 to executed evidence. Model obedience
+  remains unverified against a live provider. No paid/live provider call,
+  package rebuild, deployment or versioned release was performed.
+- Documentation review after handoff: 8 changed Markdown files/81 links; no
+  new path/anchor/fence errors. Frozen target body and charter, prior immutable
+  records, template bytes and scope checks passed. Credential-pattern and diff
+  checks passed. The final check includes this journal entry.
+- Archive: `docs/finished/A008-0080_coherent-instruction.md`; stable charter:
+  `docs/tasks/A008-0080_coherent-instruction.md`; handoff:
+  `docs/handoffs/A008-0080.md`. CURRENT_TASK is restored to its template.
+- Reviewed target/Ready charter was published at `b9cfe1a` before implementation.
+  P1–P6 are accepted through ADR 0035. L2 and L3 remain unactivated and need
+  their own bounded task identities/charters, not repeated approval of the same
+  frozen policy choices. Existing `.grok/` remains outside this work.
+- Signature: Codex.
+
 ## 2026-09-08 — A008-0080: reviewed target published and frozen
 
 - Owner confirms specification review and authorizes committing/pushing to main,
