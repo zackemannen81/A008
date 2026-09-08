@@ -57,6 +57,44 @@ The relation payload is the existing exact serialization. Candidate references
 are invocation-local handles such as `candidate_1`; durable/runtime IDs,
 revisions, scores, provenance, reasoning, audit, and history remain excluded.
 
+## Extraction response examples and verification
+
+A008-0085 retains the source-fidelity and completeness rules but makes the output
+syntax explicit: double-quoted JSON keys/strings, typed fields, no pseudocode.
+Fictional examples are serialized from actual objects in the fixed instruction.
+Their output arrays are tested through the real strict parser and stager; support
+spans address exactly the original message or source, never the answer. A greeting
+alone yields an empty example; a mixed message retains its durable factual clause.
+The model still owns semantic judgement; there is no lexical greeting filter.
+
+The new response diagnostic includes operation and model so a capped raw trace
+does not conceal which semantic job failed. It still rejects malformed content
+without retry, repair or fragment selection; the delivered answer survives.
+The two reported malformed forms remain regression failures in one call.
+
+After `npm run build`, run this without credentials to review the synthetic
+request set (no provider is called):
+
+```powershell
+node scripts/check-semantic-extraction.mjs --model moonshotai/kimi-k3
+```
+
+After explicit live-provider authority, the same command may add `--live` and
+use Node's existing `--env-file-if-exists=.env.local` loading. Confirm the actual
+failing model first. The check sends at most three extraction calls, with the
+normal semantic sampling, at most 16384 output tokens per call and no retries.
+It uses the existing generator, NVIDIA transport and pure stager; it never opens
+a memory store. It prints synthetic claim results for human semantic review,
+separate from strict-JSON, count and source-span checks. A successful sample does
+not guarantee future model output. Do not commit raw completions or reasoning.
+
+The [hosted Kimi parameter reference](https://docs.api.nvidia.com/nim/reference/moonshotai-kimi-k3-infer)
+and [hosted Nemotron reference](https://docs.api.nvidia.com/nim/reference/nvidia-nemotron-3-5-lightning-30b-a3b-infer)
+were reviewed on 2026-09-08 and do not document `response_format` in their exposed
+request fields. Model-weight or self-hosted structured-output support alone is
+insufficient evidence to send that option to the hosted endpoint. No new provider
+parameter or compatibility claim is added here.
+
 ## L2 extraction and support
 
 The same analysis call now requires `severity` (`critical`, `important`, `minor`)

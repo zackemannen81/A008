@@ -166,6 +166,29 @@ test("reported malformed relation envelope cannot salvage an embedded valid deci
   assert.equal(calls, 1);
 });
 
+test("malformed extraction syntax identifies its model and operation without parsing a fragment", async () => {
+  let calls = 0;
+  const broken = '[ { "proposition": "The speaker says hello, kind: greeting, tags: [\'greeting\'], domains: [\'conversation\'], entities: [\'speaker\'] } ]';
+  const owner = generator({ async complete() { calls += 1; return completion(broken); } });
+  await assert.rejects(owner.generate(semanticInput), (error: unknown) => {
+    assert.ok(error instanceof ChatError);
+    assert.equal(error.code, "invalid_response");
+    assert.match(error.message, /Semantic knowledge_analysis \(fake\/semantic-model\)/u);
+    assert.match(error.message, /strict JSON.*finishReason=stop/u);
+    assert.ok(error.cause instanceof ChatError);
+    assert.equal(error.message.includes("private reasoning"), false);
+    return true;
+  });
+  assert.equal(calls, 1);
+});
+
+test("provider and cancellation failures are not relabelled as invalid semantic JSON", async () => {
+  for (const code of ["provider", "rate_limit", "cancelled"] as const) {
+    const failure = new ChatError(code, "Synthetic transport failure.");
+    await assert.rejects(generator({ async complete() { throw failure; } }).generate(semanticInput), error => error === failure);
+  }
+});
+
 test("semantic JSON generator rejects invalid local configuration before transport", async () => {
   let calls = 0;
   const transport: ChatTransport = {

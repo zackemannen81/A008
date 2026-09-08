@@ -5,6 +5,14 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0085 corrects the extraction instruction after a further owner-reported
+malformed JSON response. Canonical serialized examples distinguish greetings
+from durable mixed-message/source facts; support shapes no longer use pseudocode.
+Invalid-response diagnostics identify the semantic operation and model. Offline
+core 528/528 and GUI 118/118 pass; live compliance is pending explicit test
+authority and is not established by these tests. The prepared opt-in check is
+`scripts/check-semantic-extraction.mjs` (dry-run by default, at most three calls).
+
 A008-0084 makes the existing memory map stable and readable: spaced primary-domain
 clusters, selective labels, curved stored links, and a focus camera over the
 selected neighbourhood. Node positions survive selection; the inspector follows

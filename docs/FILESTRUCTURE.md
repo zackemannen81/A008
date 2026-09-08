@@ -1,5 +1,11 @@
 # File Structure
 
+A008-0085 adds `scripts/check-semantic-extraction.mjs`: a dry-run-by-default
+synthetic extraction check through the existing built generator/transport/stager.
+Live mode requires an explicit flag, selected model and separate task authority;
+it opens no memory store. Instruction and diagnostic fixes stay in the existing
+`src/orchestration/semantic-json-model.ts`; no new runtime/API/schema owner.
+
 A008-0084 adds `gui/src/memory/memory-graph-layout.ts` for deterministic cluster
 and label geometry. `gui/test/memory-map-preview.mjs` and its TSX fixture expose
 an isolated synthetic preview only when the test runner is started;

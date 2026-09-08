@@ -224,6 +224,27 @@ test("Kimi extraction and relation commit reach the NVIDIA payload without immut
   } finally { runtime.close(); rmSync(isolated.directory, { recursive: true, force: true }); }
 });
 
+test("malformed social extraction preserves the delivered answer and leaves memory unwritten", async () => {
+  const isolated = isolatedMemoryEnv();
+  const calls: string[] = [];
+  const runtime = createLocalMemoryRuntime({ env: isolated.env, surface: "cli", createTransport: () => ({ async complete(request) {
+    const op = operation(request);
+    calls.push(op ?? "chat");
+    return { message: { role: "assistant", content: op === "knowledge_analysis" ?
+      '[{"proposition":"The speaker greets, kind: greeting, tags: [\'hello\']}]' :
+      op === "retrieval_scope" ? '{"domains":[],"relatedDomains":[]}' : "Good evening!" }, finishReason: "stop" };
+  } }) });
+  try {
+    const session = runtime.openSession({ model: "moonshotai/kimi-k3" });
+    const result = await session.turn("Hello, good evening.");
+    assert.equal(result.postOutput.status, "staging_failed");
+    assert.match(result.memoryDiagnostic!, /knowledge_analysis \(moonshotai\/kimi-k3\)/u);
+    assert.equal(session.messages.at(-1)?.content, "Good evening!");
+    assert.equal(runtime.inspectMemory().summary.total, 0);
+    assert.deepEqual(calls, ["retrieval_scope", "chat", "knowledge_analysis"]);
+  } finally { runtime.close(); rmSync(isolated.directory, { recursive: true, force: true }); }
+});
+
 test("cancelling the actual retrieval call stops before chat or memory writes", async () => {
   const isolated = isolatedMemoryEnv();
   let started!: () => void;

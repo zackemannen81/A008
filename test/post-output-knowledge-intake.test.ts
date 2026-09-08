@@ -12,6 +12,8 @@ import {
 } from "../src/orchestration/post-output-knowledge-intake.js";
 import { parseProposalConfidence } from "../src/orchestration/post-output-knowledge-intake.js";
 import { describeMemoryOutcome } from "../src/runtime/local-memory-runtime.js";
+import { ChatTransportSemanticJsonGenerator, ModelBackedPostOutputKnowledgeAnalyzer, POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION } from "../src/orchestration/semantic-json-model.js";
+import { Utf8ByteChatMessageMeasurer } from "../src/core/chat-invocation.js";
 
 const PROJECT = parseRuntimeId(
   "A008_v1_project_30000000-0000-4000-8000-000000000001",
@@ -57,6 +59,43 @@ const input = {
   answer: "  Reasoning is display-only.  ",
   applicabilityScopes: ["runtime", "memory", "runtime"],
 } as const;
+
+test("documented extractor examples are valid JSON batches with exact original-source support", async () => {
+  const encoded = /<examples>(.*?)<\/examples>/u.exec(POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION)?.[1];
+  assert.ok(encoded);
+  const examples = JSON.parse(encoded) as readonly {
+    input: { message: string; answer: string } | { kind: "source"; locator: string; content: string };
+    output: readonly AnalyzedKnowledgeDraft[];
+  }[];
+  assert.equal(examples.length, 3);
+  assert.deepEqual(examples.map(e => e.output.length), [0, 1, 1]);
+  let calls = 0;
+  for (const example of examples) {
+    const analyzer = new ModelBackedPostOutputKnowledgeAnalyzer(new ChatTransportSemanticJsonGenerator({
+      model: "fixture/extractor", budget: { maximum: 16384, measurer: new Utf8ByteChatMessageMeasurer() },
+      transport: { async complete() {
+        calls += 1;
+        return { message: { role: "assistant", content: JSON.stringify(example.output) }, reasoning: "private example reasoning" };
+      } },
+    }));
+    const stager = intake(analyzer);
+    const result = await stager.stage("content" in example.input ? {
+      ...example.input, taskId: TASK, utteranceId: "fixture-source-utterance", applicabilityScopes: ["fixtures"],
+    } : { ...example.input, taskId: TASK, applicabilityScopes: ["fixtures"] });
+    assert.equal(result.proposals.length, example.output.length);
+    assert.deepEqual(result.skippedProposals, []);
+    for (const proposal of result.proposals) {
+      assert.equal(proposal.severity, "minor");
+      assert.ok(proposal.support);
+      const source = "content" in example.input ? example.input.content : example.input.message;
+      assert.equal(source.slice(proposal.support.start, proposal.support.end), proposal.proposal.proposition);
+      assert.equal(proposal.support.source, "content" in example.input ? "source" : "message");
+    }
+    assert.equal(JSON.stringify(result).includes("private example reasoning"), false);
+  }
+  assert.equal(calls, 3);
+  // These exercise the wire contract and runtime admission, not live model judgement.
+});
 
 test("intake exposes only message and final answer and applies runtime-owned fields", async () => {
   let received: PostOutputAnalyzerInput | undefined;

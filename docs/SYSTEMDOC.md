@@ -679,6 +679,14 @@ and output ceilings. Explicit null omits top P for Kimi K3; it cannot be restore
 by the generator default. Other models retain their fixed semantic sampling.
 The classifier instruction distinguishes the input envelope from the output
 decision and gives concrete JSON shapes (A008-0083).
+A008-0085 adds serialized, fictional extractor examples covering empty social
+exchange, a greeting with a durable fact and an ingested source. All example
+outputs pass the existing stager, including exact UTF-16 support spans. The
+instruction describes types in prose instead of displaying JSON-like pseudocode.
+Completeness applies to qualifying durable claims; no runtime greeting blacklist
+is added. Invalid-response diagnostics identify the model and semantic operation,
+retaining strict failure and the bounded response excerpt. Provider/cancellation
+failures retain their original error identity.
 
 Only non-empty strict JSON assistant content is returned. A single whole-content
 Markdown fence may be unwrapped (ADR 0012 D6); prose, fragments and malformed JSON
