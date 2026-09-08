@@ -100,3 +100,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0082 | L3 independent association lifecycle | Codex (operator) | 2026-09-08 | accepted P6: exact semantic edges, independent receipts and one-hop eligibility |
 | A008-0083 | semantic request compatibility and JSON response contract | Codex (operator) | 2026-09-08 | fix observed Kimi parameter rejection; preserve strict semantic validation |
 | A008-0084 | readable memory relationship map | Codex (operator) | 2026-09-08 | stable spaced domain clusters, selective labels and existing read-only inspection |
+| A008-0085 | extraction JSON contract and live regression | Codex (operator) | 2026-09-08 | remove prompt pseudocode, distinguish durable facts from greetings and identify failing model/operation |
