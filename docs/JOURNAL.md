@@ -2,6 +2,30 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — A008-0085: extraction JSON contract corrected
+
+- Task: A008-0085; operator: Codex; branch: `main`.
+- Integrated `4034c2389adef9509976a59a7dc391166d0a01a6` under the owner's
+  standing commit/push/main authority. CURRENT_TASK matches its empty template.
+- A further reported extraction response is malformed JSON. Its full request
+  and selected model are unavailable because the local trace was already capped.
+  The extractor's pseudocode is a concrete prompt defect and plausible
+  contributor; this does not establish the model's exact generation cause.
+- Canonical fictional examples and typed support fields replace pseudocode;
+  durable selection excludes pure social exchange while preserving mixed facts.
+  Existing strict response failures now name their operation and model.
+- Typecheck/build, core 528/528, GUI 118/118 and membership 4/4 pass without skips.
+  Prompt examples stage with exact source spans. Malformed responses remain
+  one-call failures; the delivered answer survives with zero memory writes.
+- The prepared synthetic check passes syntax and credential-free dry-run only.
+  Live compliance remains unverified, pending explicit provider authority and
+  confirmation of the failing model. No live call was made. Its maximum is
+  three calls with 16384 output tokens each, no retries and no store access.
+- Final necessity, frozen charter/target, earlier archives/ADRs, documentation
+  links, dependencies and owner GUI/logo CSS preservation checks pass.
+- [Handoff](handoffs/A008-0085.md) records the exact pending verification and
+  limitations. No raw trace, model response, reasoning or credential is published.
+
 ## 2026-09-08 — A008-0084: readable memory map published
 
 - Task: A008-0084; operator: Codex; branch: `main`.
