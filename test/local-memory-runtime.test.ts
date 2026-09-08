@@ -49,7 +49,7 @@ function assertionTransport() {
       const raw = input as { readonly message?: unknown; readonly answer?: unknown };
       if (raw.message === ASSERTION) {
         return [
-          {
+          { severity: "important",
             proposition: PROPOSITION,
             kind: "fact",
             tags: ["memory"],
@@ -224,7 +224,7 @@ test("chat rollback, staging failure, stale commit, and read failure stay distin
   const stale = memoryAwareFakeTransport({
     chat: () => ({ content: "ok" }),
     analyze: () => [
-      {
+      { severity: "important",
         proposition: PROPOSITION,
         kind: "fact",
         tags: ["memory"],
@@ -472,7 +472,7 @@ function restatementTransport() {
         return [];
       }
       return [
-        {
+        { severity: "important",
           proposition: PROPOSITION,
           kind: "fact",
           tags: ["memory"],
@@ -631,7 +631,7 @@ test("overlapping turns are rejected and cannot rewrite sourceMessage", async ()
             message: {
               role: "assistant",
               content: JSON.stringify([
-                {
+                { severity: "important",
                   proposition: PROPOSITION,
                   kind: "fact",
                   tags: ["memory"],

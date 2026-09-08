@@ -34,7 +34,7 @@ test("CLI two-turn chat commits a user assertion and projects it next turn", asy
       const raw = input as { readonly message?: unknown };
       return raw.message === ASSERTION
         ? [
-            {
+            { severity: "important",
               proposition: PROPOSITION,
               kind: "fact",
               tags: ["memory"],

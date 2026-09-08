@@ -924,6 +924,7 @@ export class LocalMemoryRuntime {
       limits,
     });
     const committer = new KnowledgeEngineCommit({
+      ...(this.preferences.current.memoryLifecycle === undefined ? {} : { policy: this.preferences.current.memoryLifecycle }),
       context: this.#knowledge.context,
       classifier: new ModelBackedKnowledgeRelationClassifier(generator),
     });
@@ -993,6 +994,8 @@ export class LocalMemoryRuntime {
       },
       { store: this.#knowledge.context.evidence },
     );
+    const lifecycleAt = this.#knowledge.context.lifecycle.now();
+    for (const utterance of result.utterances) this.#knowledge.context.lifecycle.attach({ evidenceId: utterance.id, evidenceKind: "utterance", at: lifecycleAt, caller: "source-ingest" });
     const outcome: SourceIngestOutcome = {
       artifactId: result.artifact.id,
       utteranceIds: result.utterances.map((utterance) => utterance.id),
@@ -1046,6 +1049,7 @@ export class LocalMemoryRuntime {
     const conversationId = this.#identityFactory.create("conversation");
     const taskId = this.#identityFactory.create("task");
     const committer = new KnowledgeEngineCommit({
+      ...(this.preferences.current.memoryLifecycle === undefined ? {} : { policy: this.preferences.current.memoryLifecycle }),
       context: this.#knowledge.context,
       classifier: new ModelBackedKnowledgeRelationClassifier(generator),
     });

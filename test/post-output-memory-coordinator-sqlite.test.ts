@@ -76,7 +76,7 @@ test("actual SQLite multi-proposal flow observes earlier indexed canon", async (
             message: {
               role: "assistant",
               content: JSON.stringify([
-                {
+                { severity: "important",
                   proposition: "SQLite stores canonical memory.",
                   kind: "architecture-decision",
                   tags: ["memory", "sqlite"],
@@ -84,7 +84,7 @@ test("actual SQLite multi-proposal flow observes earlier indexed canon", async (
                   entities: ["sqlite"],
                   confidence: 0.9,
                 },
-                {
+                { severity: "important",
                   proposition:
                     "SQLite stores canonical memory and relation decisions.",
                   kind: "architecture-decision",

@@ -12,8 +12,24 @@ A008-0080 implements L1: one final chat system instruction, late fallback
 selection, integrated memory handling and explicit CLI/session-base provenance.
 The 501 core and 116 GUI tests pass, including real local host/ACP/engine and
 captured NVIDIA/kie payloads. Live model obedience has not been evaluated.
-L2/L3 remain unactivated; their accepted policy has not been applied to stored
-data. Retrieval, lifecycle and schemas retain the existing implementation.
+A008-0081 implements L2: per-claim severity, lazy exponential decay, source
+support and exact-target reinforcement with atomic occurrence receipts. Creation
+policy belongs to runtime preferences (format 3); knowledge schema 3 performs
+the accepted legacy conversion. Restatement reuses canonical evidence, while
+reads and inspection never strengthen it. L3 remains unactivated.
+
+Verification: 511 core tests, 116 GUI tests and 4 membership checks pass, with
+no failures/skips. The ten new groups in
+[test/knowledge-model/lifecycle-v1.test.ts](../test/knowledge-model/lifecycle-v1.test.ts)
+cover A09-A24 and claim-side A29: fixed clocks, read/write isolation, source
+attribution, duplicate/cancelled commits, two SQLite connections, restart,
+versioned migration failure/retry, the previous published store's rejection and
+backup restoration. A30 is recorded in the completed charter. Existing L1 and
+state/history/direct-retrieval regressions remain passing. Tests use synthetic
+semantic decisions; live model source-support judgments and the user's running
+database were not evaluated or migrated. The
+[constitution](KNOWLEDGE_MEMORY_MODEL.md#12-storage-deliberately-deferred)
+describes backup/restore before opening existing data with the new build.
 
 A008-0078 adopts the Core Product Contract in `docs/PROJECT_BRIEF.md` and the
 Necessity Gate in `docs/TASK_WORKFLOW.md`, under
@@ -100,7 +116,7 @@ an explicit save upgrades to version 2 with four editable tool limits.
 | Committed memory-loop proof | `npm run benchmark:memory-loop` composes actual in-memory SQLite read/write/index state with two memory-aware chat turns and one shared fake transport. Exact call order is chat/analyze/classify/chat; active canon extends from revision one to two and the second turn projects the new proposition. New-draft auto-activation remains explicitly unproven. |
 | Runtime identity core | Exported branded/parser-validated project, conversation, runtime-task, agent, and ACP-session IDs use versioned lowercase UUIDv4 values. A namespaced external-reference contract, atomic in-memory ACP binding repository, conflict/idempotency rules, and defensive lookup surfaces exist. No complete external conversation binding is created at runtime. |
 | Live knowledge projection | ADR 0023: a surface may not suppress another surface. `projection-items.ts` collects all seven — state, claim, event, history, utterance, artifact, provenance — then deduplicates identical propositions to the highest-ranked carrier, ranks by surface weight with a stable tiebreak, and applies a 32768-byte default budget. All three reasons a record can be missing are reported in `omittedKnowledgeIds`; one item larger than the whole budget is still sent. Until A008-0058 the projection returned state, or failing that claims, or failing that utterances, and never read the other four surfaces at all, so one current-state hit discarded everything else the read had admitted. `live-reader.ts` had no tests; it has fourteen now, with a fixture that reproduces the reported live failure rather than a tidied version of it. |
-| Retrieval matching | Records carry their own tags and domains. `KnowledgeLabelStore` holds them beside the record the way `EvidenceLifecycleStore` holds strength, normalised on both sides of every comparison, merged rather than replaced on re-attach, and persisted in knowledge schema 2 with a 1-to-2 migration so an existing memory file still opens. `live-commit` attaches what the analyzer already produced to both the claim and the utterance. A label retrieval channel makes a record reachable because it is *about* the subject even when the message names none of its entities, and the claim's binding is reachable the same way. `filter()` matches on either axis and treats unlabelled as unlabelled rather than unmatched, and a label hit is exempt from the entity gate that would otherwise undo it. `channelCounts.tag` and `channelCounts.domain` were hardcoded to zero because nothing could set them; they count now. Matching is lexical: the message is compared against the labels the store holds. The semantic step — classify into domains and *related* domains and accumulate a `current_scope` — is a provider call and is specified in `docs/backlog/current-scope-retrieval.md`, not built. |
+| Retrieval matching | Records carry their own tags and domains. `KnowledgeLabelStore` holds them beside the record the way `EvidenceLifecycleStore` holds strength, normalised on both sides of every comparison, merged rather than replaced on re-attach, and introduced in knowledge schema 2 and preserved by L2 schema 3 migration. `live-commit` attaches what the analyzer already produced to both the claim and the utterance. A label retrieval channel makes a record reachable because it is *about* the subject even when the message names none of its entities, and the claim's binding is reachable the same way. `filter()` matches on either axis and treats unlabelled as unlabelled rather than unmatched, and a label hit is exempt from the entity gate that would otherwise undo it. `channelCounts.tag` and `channelCounts.domain` were hardcoded to zero because nothing could set them; they count now. Matching is lexical: the message is compared against the labels the store holds. The semantic step — classify into domains and *related* domains and accumulate a `current_scope` — is a provider call and is specified in `docs/backlog/current-scope-retrieval.md`, not built. |
 | Automated tests | A008-0073: 485 core, 4 membership, 105 GUI (2026-09-08). No live NVIDIA or kie.ai call. All core test files are referenced by `test:core`, and A008-0057 made that a checked fact rather than a habit: `core-suite-membership.test.ts` fails by name on a test file the list does not run, on an entry whose source is gone, and on a duplicate. The check runs both as a suite member and by name through `npm run test:membership`, so deleting its own entry does not disable it. Root `npm test` is the full gate: it runs `test:core` against compiled output and then `test:gui`. `npm --prefix gui run test` discovers `gui/src/**/*.test.ts` under `node --experimental-strip-types` through one shared loader at `gui/test/`, so a new GUI test file runs with no script edit and a failing GUI test fails the root command. No test loads `.env.local` or makes a live call. |
 
 ## Security observation
@@ -266,7 +282,8 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   classifier adapters now exist. Local CLI/ACP invoke them after each answer
   and attempt one in-process index repair. A durable checkpoint queue and
   background repair owner do not.
-- The full local loop now proves next-turn reuse for an `extend` of existing
+- Historical v0 verification (the current L2 live path is described above):
+  the local loop proved next-turn reuse for an `extend` of existing
   active canon and, separately, for a brand-new user assertion that the runtime
   activation gate marks keep-alive. Live restatement/extend also boost
   `relevanceScore` by `0.2` and may reactivate dormant canon when the boosted

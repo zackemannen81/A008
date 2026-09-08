@@ -227,7 +227,7 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
           response,
           envelope?.input?.message === ASSERTION
             ? [
-                {
+                { severity: "important",
                   proposition: PROPOSITION,
                   kind: "fact",
                   tags: ["memory"],

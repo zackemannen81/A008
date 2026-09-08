@@ -58,6 +58,7 @@ async function stagedBatch(
       async analyze() {
         return [
           {
+            severity: "important",
             proposition,
             kind: "architecture-decision",
             tags: ["memory", "reasoning"],

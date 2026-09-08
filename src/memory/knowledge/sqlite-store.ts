@@ -1,3 +1,5 @@
+import { migrateLegacyLifecycle, operationalTime } from "./lifecycle.js";
+import type { ReinforcementReceipt } from "./lifecycle-types.js";
 import Database from "better-sqlite3";
 import type { Database as BetterSqliteDatabase } from "better-sqlite3";
 import { parseRuntimeId } from "../../identity/runtime-id.js";
@@ -40,6 +42,7 @@ import {
 } from "./sqlite-schema.js";
 
 export interface SqliteKnowledgeStoreOptions {
+  readonly clock?: () => string;
   readonly filename: string;
   readonly projectId: ProjectId;
   readonly database?: BetterSqliteDatabase;
@@ -129,8 +132,15 @@ export class SqliteKnowledgeStore {
   private readonly database: BetterSqliteDatabase;
   private readonly ownsDatabase: boolean;
   private closed = false;
+  private readonly clock: () => string;
+  revision(): string {
+    const local = this.database.prepare("SELECT total_changes() AS n").get() as { n: number };
+    return `${this.database.pragma("data_version", { simple: true })}:${local.n}`;
+  }
+  atomic<T>(operation: () => T): T { this.requireOpen(); return this.database.transaction(operation).immediate(); }
 
   constructor(options: SqliteKnowledgeStoreOptions) {
+    this.clock = options.clock ?? (() => new Date().toISOString());
     this.filename = requireNonEmpty(options.filename, "SQLite filename");
     this.projectId = parseRuntimeId(options.projectId, "project");
     this.namespace = this.projectId;
@@ -191,7 +201,8 @@ export class SqliteKnowledgeStore {
     }
     const snapshot = this.load();
     const migrated = migrateV0Items(this.loadV0Items(), snapshot);
-    this.replaceNamespace(migrated.snapshot);
+    const migrationAt = this.clock();
+    this.replaceNamespace({ ...migrated.snapshot, lifecycle: { ...migrated.snapshot.lifecycle, records: migrated.snapshot.lifecycle.records.map(r => migrateLegacyLifecycle(r, migrationAt)) } });
     this.database
       .prepare(
         `INSERT INTO A008_knowledge_migration(namespace, from_schema, status, chains_migrated)
@@ -335,6 +346,7 @@ export class SqliteKnowledgeStore {
       ),
       labels: labelRows.map((row) => parseJson<LabelRecord>(row.payload_json, "labels")),
       lifecycle: {
+        receipts: (this.database.prepare("SELECT payload_json FROM A008_knowledge_reinforcement_receipts WHERE namespace = ? ORDER BY occurrence_id, evidence_id").all(this.namespace) as PayloadRow[]).map(r => parseJson<ReinforcementReceipt>(r.payload_json, "reinforcement receipt")),
         records: lifecycleRecords.map((row) =>
           parseJson<LifecycleRecord>(row.payload_json, "lifecycle"),
         ),
@@ -578,6 +590,8 @@ export class SqliteKnowledgeStore {
            namespace, evidence_id, evidence_kind, payload_json
          ) VALUES (?, ?, ?, ?)`,
       );
+      const insertReceipt = this.database.prepare("INSERT INTO A008_knowledge_reinforcement_receipts(namespace, occurrence_id, evidence_id, payload_json) VALUES (?, ?, ?, ?)");
+      for (const receipt of snapshot.lifecycle.receipts ?? []) insertReceipt.run(this.namespace, receipt.occurrenceId, receipt.evidenceId, JSON.stringify(receipt));
       for (const record of snapshot.lifecycle.records) {
         insertLifecycle.run(
           this.namespace,
@@ -665,6 +679,7 @@ export class SqliteKnowledgeStore {
       "A008_knowledge_label_index",
       "A008_knowledge_labels",
       "A008_knowledge_relations",
+      "A008_knowledge_reinforcement_receipts",
       "A008_knowledge_lifecycle_transitions",
       "A008_knowledge_lifecycle",
       "A008_knowledge_provenance",
@@ -726,17 +741,19 @@ export class SqliteKnowledgeStore {
    * future, which this code cannot know how to read.
    */
   private migrateSchemaVersion(): void {
-    const row = this.database
-      .prepare("SELECT version FROM A008_knowledge_schema WHERE singleton = 1")
-      .get() as { readonly version: number } | undefined;
-    if (row === undefined || row.version !== 1) {
-      return;
-    }
-    this.database
-      .prepare(
-        "UPDATE A008_knowledge_schema SET version = ? WHERE singleton = 1 AND version = 1",
-      )
-      .run(KNOWLEDGE_SQLITE_SCHEMA_VERSION);
+    this.database.transaction(() => {
+      const row = this.database.prepare("SELECT version FROM A008_knowledge_schema WHERE singleton = 1").get() as { version: number } | undefined;
+      if (row?.version !== 1 && row?.version !== 2) return;
+      const at = operationalTime(this.clock());
+      const records = this.database.prepare("SELECT namespace, evidence_id, payload_json FROM A008_knowledge_lifecycle").all() as { namespace: string; evidence_id: string; payload_json: string }[];
+      const save = this.database.prepare("UPDATE A008_knowledge_lifecycle SET payload_json = ? WHERE namespace = ? AND evidence_id = ?");
+      for (const row of records) {
+        const record = parseJson<LifecycleRecord>(row.payload_json, "legacy lifecycle");
+        if (record.evidenceId !== row.evidence_id) throw new KnowledgeModelError("invalid_input", "Corrupt lifecycle identity");
+        save.run(JSON.stringify(migrateLegacyLifecycle(record, at)), row.namespace, row.evidence_id);
+      }
+      this.database.prepare("UPDATE A008_knowledge_schema SET version = ? WHERE singleton = 1").run(KNOWLEDGE_SQLITE_SCHEMA_VERSION);
+    }).immediate();
   }
 
   private assertSchemaVersion(): void {
@@ -911,7 +928,7 @@ function migrateV0Items(
           threshold: item.activationThreshold,
           pinned: item.keepAlive,
           lastReinforcedAt: UNKNOWN_INSTANT,
-        },
+        } as LifecycleRecord["lifecycle"],
       });
       lifecycleTransitions.push({
         id: `A008_knowledge_lifecycle_${String(lifeSeq).padStart(4, "0")}`,

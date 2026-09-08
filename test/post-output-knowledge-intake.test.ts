@@ -63,6 +63,7 @@ test("intake exposes only message and final answer and applies runtime-owned fie
   let calls = 0;
   const untrusted = [
     {
+      severity: "important",
       proposition: " Reasoning never becomes knowledge. ",
       kind: " architecture-decision ",
       tags: ["reasoning", "memory", "reasoning"],
@@ -114,7 +115,7 @@ test("intake exposes only message and final answer and applies runtime-owned fie
     },
   );
   assert.deepEqual(result.proposals, [
-    {
+    { severity: "important" as const,
       proposal: {
         proposition: "Reasoning never becomes knowledge.",
         kind: "architecture-decision",
@@ -146,7 +147,7 @@ test("intake enforces the exact multibyte serialized budget", async () => {
   const analyzer: PostOutputKnowledgeAnalyzer = {
     async analyze() {
       return [
-        {
+        { severity: "important",
           proposition: "ÅÄÖ memory",
           kind: "fact",
           tags: ["svenska"],
@@ -173,8 +174,8 @@ test("a batch-level defect still fails closed", async () => {
     {
       async analyze() {
         return [
-          { proposition: "one", kind: "fact" },
-          { proposition: "two", kind: "fact" },
+          { severity: "important", proposition: "one", kind: "fact" },
+          { severity: "important", proposition: "two", kind: "fact" },
         ];
       },
     },
@@ -194,14 +195,14 @@ test("one bad item is skipped and reported, not allowed to discard the batch", a
   const staged = await intake({
     async analyze() {
       return [
-        { proposition: "first durable claim", kind: "fact" },
-        { proposition: "", kind: "fact" },
-        { proposition: "second durable claim", kind: "fact" },
-        { proposition: "third durable claim", kind: "fact", confidence: 2 },
-        { proposition: "fourth durable claim", kind: "fact" },
+        { severity: "important", proposition: "first durable claim", kind: "fact" },
+        { severity: "important", proposition: "", kind: "fact" },
+        { severity: "important", proposition: "second durable claim", kind: "fact" },
+        { severity: "important", proposition: "third durable claim", kind: "fact", confidence: 2 },
+        { severity: "important", proposition: "fourth durable claim", kind: "fact" },
         // A near-duplicate: the instruction asks for recursive splitting, so
         // the model will not always dedupe perfectly.
-        { proposition: "First durable claim", kind: "Fact" },
+        { severity: "important", proposition: "First durable claim", kind: "Fact" },
         "not an object",
       ] as never;
     },
@@ -223,7 +224,7 @@ test("one bad item is skipped and reported, not allowed to discard the batch", a
 test("a clean extraction reports nothing skipped", async () => {
   const staged = await intake({
     async analyze() {
-      return [{ proposition: "a durable claim", kind: "fact" }];
+      return [{ severity: "important", proposition: "a durable claim", kind: "fact" }];
     },
   }).stage(input);
 
@@ -287,7 +288,7 @@ test("the default staging ceiling holds a real extraction, not eight proposals",
   const staged = await intake(
     {
       async analyze() {
-        return Array.from({ length: REAL_WORLD_PROPOSALS }, (_value, index) => ({
+        return Array.from({ length: REAL_WORLD_PROPOSALS }, (_value, index) => ({ severity: "important",
           proposition: `Distinct durable claim number ${String(index)}`,
           kind: "fact",
         }));
@@ -310,7 +311,7 @@ test("the default staging ceiling is still a ceiling", async () => {
       intake(
         {
           async analyze() {
-            return Array.from({ length: OVER_CEILING }, (_value, index) => ({
+            return Array.from({ length: OVER_CEILING }, (_value, index) => ({ severity: "important",
               proposition: `Claim number ${String(index)}`,
               kind: "fact",
             }));
@@ -328,7 +329,7 @@ test("a source variant reaches the analyzer as a source, not as a turn", async (
   const staged = await intake({
     async analyze(value) {
       received = value;
-      return [{ proposition: "The invoice total is 4500 SEK", kind: "fact" }];
+      return [{ severity: "important", proposition: "The invoice total is 4500 SEK", kind: "fact" }];
     },
   }).stage({
     kind: "source",
@@ -359,7 +360,7 @@ test("a source batch carries its locator as sourceMessage, never its content", a
   const content = "The invoice total is 4500 SEK. Approved by finance.";
   const staged = await intake({
     async analyze() {
-      return [{ proposition: "The invoice total is 4500 SEK", kind: "fact" }];
+      return [{ severity: "important", proposition: "The invoice total is 4500 SEK", kind: "fact" }];
     },
   }).stage({
     kind: "source",
@@ -384,7 +385,7 @@ test("a source batch carries its locator as sourceMessage, never its content", a
 test("a dialogue batch still declares its origin", async () => {
   const staged = await intake({
     async analyze() {
-      return [{ proposition: "Reasoning is display-only", kind: "fact" }];
+      return [{ severity: "important", proposition: "Reasoning is display-only", kind: "fact" }];
     },
   }).stage(input);
 
@@ -396,8 +397,8 @@ test("a completed batch reports skipped proposals through the diagnostic", async
   const staged = await intake({
     async analyze() {
       return [
-        { proposition: "a durable claim", kind: "fact" },
-        { proposition: "", kind: "fact" },
+        { severity: "important", proposition: "a durable claim", kind: "fact" },
+        { severity: "important", proposition: "", kind: "fact" },
       ] as never;
     },
   }).stage(input);
@@ -461,7 +462,7 @@ test("a word-confidence proposal is staged instead of skipped", async () => {
   const staged = await intake({
     async analyze() {
       return [
-        {
+        { severity: "important",
           proposition: "Sömn är avgörande för minneskonsolidering",
           kind: "condition",
           tags: ["sömn"],

@@ -1,3 +1,4 @@
+import { DEFAULT_MEMORY_LIFECYCLE_POLICY, parseMemoryLifecyclePolicy, type MemoryLifecyclePolicy } from "./memory-lifecycle-policy.js";
 import { ChatError } from "./errors.js";
 
 /** Local limits. Units intentionally distinguish serialized bytes from tokens. */
@@ -28,6 +29,7 @@ export const DEFAULT_RUNTIME_BUDGETS = Object.freeze({
 export type RuntimeBudgetKey = keyof typeof DEFAULT_RUNTIME_BUDGETS;
 export type RuntimeBudgets = { readonly [K in RuntimeBudgetKey]: number };
 export interface RuntimePreferences {
+  readonly memoryLifecycle?: MemoryLifecyclePolicy;
   readonly instructions: string;
   readonly budgets: RuntimeBudgets;
 }
@@ -79,7 +81,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 export function parseRuntimePreferences(value: unknown): RuntimePreferences {
-  if (!isRecord(value) || Object.keys(value).length !== 2 ||
+  if (!isRecord(value) || Object.keys(value).some(k => !["instructions", "budgets", "memoryLifecycle"].includes(k)) ||
       typeof value.instructions !== "string" || !isRecord(value.budgets) ||
       Object.keys(value.budgets).length !== RUNTIME_BUDGET_FIELDS.length) {
     throw new ChatError("configuration", "Invalid runtime settings. Reload Global settings and try again.");
@@ -92,5 +94,6 @@ export function parseRuntimePreferences(value: unknown): RuntimePreferences {
     }
     budgets[field.key] = n;
   }
-  return { instructions: value.instructions.trim(), budgets };
+  try { return { instructions: value.instructions.trim(), budgets, memoryLifecycle: parseMemoryLifecyclePolicy(value.memoryLifecycle ?? DEFAULT_MEMORY_LIFECYCLE_POLICY) }; }
+  catch { throw new ChatError("configuration", "Invalid memory lifecycle policy."); }
 }

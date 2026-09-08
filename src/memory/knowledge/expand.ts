@@ -58,6 +58,7 @@ export function expand(
   context: KnowledgeReadContext,
   query: { readonly message: string },
 ): ExpandResult {
+  context = { ...context, evaluatedAt: context.evaluatedAt ?? context.lifecycle.now() };
   const records: RetrievedRecord[] = [...retrieved];
   const omitted: OmittedRecord[] = [];
   const seen = new Set(retrieved.map((record) => record.id));
@@ -120,7 +121,7 @@ function lookupRelated(
 ): RetrievedRecord | undefined {
   const utterance = context.evidence.listUtterances().find((item) => item.id === id);
   if (utterance !== undefined) {
-    const viewed = viewLifecycle(context.lifecycle, utterance.id);
+    const viewed = viewLifecycle(context.lifecycle, utterance.id, context.evaluatedAt);
     const score = scoreRetrieved({
       matchKind: "associative",
       exactSlot: false,
@@ -151,7 +152,7 @@ function lookupRelated(
 
   const claim = context.evidence.listClaims().find((item) => item.id === id);
   if (claim !== undefined) {
-    const viewed = viewLifecycle(context.lifecycle, claim.id);
+    const viewed = viewLifecycle(context.lifecycle, claim.id, context.evaluatedAt);
     const score = scoreRetrieved({
       matchKind: "associative",
       exactSlot: false,
@@ -183,7 +184,7 @@ function lookupRelated(
 
   const event = context.state.events().find((item) => item.id === id);
   if (event !== undefined) {
-    const viewed = viewLifecycle(context.lifecycle, event.id);
+    const viewed = viewLifecycle(context.lifecycle, event.id, context.evaluatedAt);
     const score = scoreRetrieved({
       matchKind: "associative",
       exactSlot: false,

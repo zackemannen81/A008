@@ -34,7 +34,7 @@ test("ACP agent streams thought/answer then settles memory without protocol diag
       const raw = input as { readonly message?: unknown };
       return raw.message === ASSERTION
         ? [
-            {
+            { severity: "important",
               proposition: PROPOSITION,
               kind: "fact",
               tags: ["memory"],

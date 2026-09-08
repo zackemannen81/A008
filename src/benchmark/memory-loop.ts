@@ -205,7 +205,7 @@ try {
             message: {
               role: "assistant",
               content: JSON.stringify([
-                {
+                { severity: "important",
                   proposition: EXTENDED_PROPOSITION,
                   kind: "architecture-decision",
                   tags: ["memory", "reasoning"],

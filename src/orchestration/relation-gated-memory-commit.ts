@@ -44,6 +44,7 @@ export interface RelationClassifierCandidate {
 }
 
 export interface RelationClassifierInput {
+  readonly sourceSupport?: { readonly origin: "message" | "source"; readonly content: string; readonly start: number; readonly end: number };
   readonly proposal: RelationClassifierProposal;
   readonly candidates: readonly RelationClassifierCandidate[];
 }
@@ -53,6 +54,7 @@ export type RelationClassifierDecision =
   | {
       readonly type: "restatement" | "extend" | "supersede";
       readonly targetHandle: string;
+      readonly supportsTarget?: boolean;
     }
   | {
       readonly type: "conflict";
@@ -104,6 +106,7 @@ export interface RelationCommitInput {
 }
 
 export interface RelationCommitEvidence {
+  readonly reinforcement?: string;
   readonly materializedCandidateIds: readonly string[];
   readonly classifierCandidateIds: readonly string[];
   readonly classifierInputSerialized: string;
@@ -296,6 +299,7 @@ export function serializeRelationClassifierInput(
   input: RelationClassifierInput,
 ): string {
   return JSON.stringify({
+    ...(input.sourceSupport === undefined ? {} : { sourceSupport: input.sourceSupport }),
     proposal: {
       proposition: input.proposal.proposition,
       kind: input.proposal.kind,

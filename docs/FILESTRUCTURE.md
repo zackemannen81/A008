@@ -344,6 +344,14 @@ Collections declare index or naming-convention discoverability in their README.
 Do not cite disposable material from immutable records; restate the needed fact
 at a stable owned path first.
 
+## L2 evidence lifecycle owners
+
+- `src/core/memory-lifecycle-policy.ts`: validated creation policies in runtime preferences.
+- `src/memory/knowledge/lifecycle.ts` and `lifecycle-types.ts`: baselines, evaluation, maintenance and occurrence receipts.
+- `src/memory/knowledge/knowledge-transaction.ts`: shared snapshot/rollback for the existing context.
+- `src/memory/knowledge/sqlite-context.ts`, `sqlite-store.ts`, `sqlite-schema.ts`: atomic namespace persistence, schema 3 upgrade and receipts.
+- `test/knowledge-model/lifecycle-v1.test.ts`: fixed-clock, source proof, concurrency, migration and recovery acceptance fixtures.
+
 ## Product paths
 
 `src/core/` is provider- and UI-neutral. Provider adapters live under

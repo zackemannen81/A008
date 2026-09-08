@@ -38,7 +38,7 @@ export class RuntimePreferencesStore {
       try {
         raw = readFileSync(this.path, "utf8");
         const stored = JSON.parse(raw) as { version?: unknown; settings?: unknown };
-        if (stored.version !== 1 && stored.version !== 2) throw new Error("version");
+        if (stored.version !== 1 && stored.version !== 2 && stored.version !== 3) throw new Error("version");
         if (stored.version === 1) {
           const legacy = stored.settings as RuntimePreferences;
           const added = ["maximumToolCalls", "maximumToolDefinitions", "toolOutputBytes", "toolTimeoutMs"] as const;
@@ -46,7 +46,7 @@ export class RuntimePreferencesStore {
           settings = parseRuntimePreferences({ ...legacy, budgets: { ...Object.fromEntries(added.map(k => [k, DEFAULT_RUNTIME_BUDGETS[k]])), ...legacy.budgets } });
         } else settings = parseRuntimePreferences(stored.settings);
       } catch {
-        throw new ChatError("configuration", "Cannot read A008 global settings. Expected a valid version 1 or 2 settings file at A008_SETTINGS_PATH.");
+        throw new ChatError("configuration", "Cannot read A008 global settings. Expected a valid version 1, 2 or 3 settings file at A008_SETTINGS_PATH.");
       }
     }
     return { revision: digest(raw), settings: parseRuntimePreferences(settings),
@@ -54,7 +54,7 @@ export class RuntimePreferencesStore {
   }
 
   save(value: unknown, revision: string): RuntimePreferencesSnapshot {
-    const settings = parseRuntimePreferences(value);
+    let settings = parseRuntimePreferences(value);
     let lock: number | undefined;
     let temporary: string | undefined;
     try {
@@ -63,13 +63,16 @@ export class RuntimePreferencesStore {
         try { lock = openSync(`${this.path}.lock`, "wx", 0o600); }
         catch { throw new ChatError("configuration", "Global settings are being saved by another process. Retry after it finishes."); }
       }
-      if (this.snapshot().revision !== revision) {
+      const current = this.snapshot();
+      // Existing clients edit only instructions/budgets; omission preserves advanced policy.
+      if (typeof value === "object" && value !== null && !("memoryLifecycle" in value)) settings = parseRuntimePreferences({ ...settings, memoryLifecycle: current.settings.memoryLifecycle });
+      if (current.revision !== revision) {
         throw new ChatError("configuration", "Global settings changed elsewhere. Reload saved settings before saving again.");
       }
       if (this.path === null) this.#volatile = settings;
       else {
         temporary = `${this.path}.${randomUUID()}.tmp`;
-        writeFileSync(temporary, JSON.stringify({ version: 2, settings }, null, 2) + "\n", { encoding: "utf8", flag: "wx", mode: 0o600 });
+        writeFileSync(temporary, JSON.stringify({ version: 3, settings }, null, 2) + "\n", { encoding: "utf8", flag: "wx", mode: 0o600 });
         renameSync(temporary, this.path);
         temporary = undefined;
       }

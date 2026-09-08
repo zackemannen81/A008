@@ -215,7 +215,7 @@ function copyClassifierDecision(
   if (decision.type === "conflict") {
     return { type: "conflict", targetHandles: [...decision.targetHandles] };
   }
-  return { type: decision.type, targetHandle: decision.targetHandle };
+  return { type: decision.type, targetHandle: decision.targetHandle, ...(decision.supportsTarget === undefined ? {} : { supportsTarget: decision.supportsTarget }) };
 }
 
 function copyReconciliationDecision(
@@ -263,6 +263,7 @@ function copyCommitResult(
     ),
     reconciliation: copyReconciliation(result.reconciliation),
     evidence: {
+      ...(result.evidence.reinforcement === undefined ? {} : { reinforcement: result.evidence.reinforcement }),
       materializedCandidateIds: [...result.evidence.materializedCandidateIds],
       classifierCandidateIds: [...result.evidence.classifierCandidateIds],
       classifierInputSerialized: result.evidence.classifierInputSerialized,
@@ -279,6 +280,8 @@ function copyStagedProposal(
   staged: StagedKnowledgeProposal,
 ): StagedKnowledgeProposal {
   return {
+    ...(staged.severity === undefined ? {} : { severity: staged.severity }),
+    ...(staged.support === undefined ? {} : { support: { ...staged.support } }),
     proposal: {
       ...staged.proposal,
       tags: [...(staged.proposal.tags ?? [])],

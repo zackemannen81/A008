@@ -32,6 +32,7 @@ export function retrieve(
   context: KnowledgeReadContext,
   query: RetrieveQuery,
 ): readonly RetrievedRecord[] {
+  context = { ...context, evaluatedAt: context.evaluatedAt ?? context.lifecycle.now() };
   const records: RetrievedRecord[] = [];
   const seen = new Set<string>();
   const intents = new Set(scope.intents);
@@ -420,7 +421,7 @@ function slotClaimRecord(
   required: boolean,
   reasons: readonly string[],
 ): RetrievedRecord {
-  const viewed = viewLifecycle(context.lifecycle, claim.id);
+  const viewed = viewLifecycle(context.lifecycle, claim.id, context.evaluatedAt);
   const score = scoreRetrieved({
     matchKind,
     exactSlot: true,
@@ -459,7 +460,7 @@ function eventRecord(
   required: boolean,
   reasons: readonly string[],
 ): RetrievedRecord {
-  const viewed = viewLifecycle(context.lifecycle, event.id);
+  const viewed = viewLifecycle(context.lifecycle, event.id, context.evaluatedAt);
   const score = scoreRetrieved({
     matchKind,
     exactSlot: false,
@@ -498,7 +499,7 @@ function utteranceRecord(
   required: boolean,
   reasons: readonly string[],
 ): RetrievedRecord {
-  const viewed = viewLifecycle(context.lifecycle, utterance.id);
+  const viewed = viewLifecycle(context.lifecycle, utterance.id, context.evaluatedAt);
   const score = scoreRetrieved({
     matchKind,
     exactSlot: false,
@@ -536,7 +537,7 @@ function evidenceClaimRecord(
   required: boolean,
   reasons: readonly string[],
 ): RetrievedRecord {
-  const viewed = viewLifecycle(context.lifecycle, claim.id);
+  const viewed = viewLifecycle(context.lifecycle, claim.id, context.evaluatedAt);
   const score = scoreRetrieved({
     matchKind,
     exactSlot: false,

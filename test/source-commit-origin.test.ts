@@ -44,7 +44,7 @@ function batch(
   sourceMessage: string,
 ): StagedKnowledgeBatch {
   const proposals = [
-    {
+    { severity: "important" as const,
       proposal: {
         id: "prop-1",
         proposition: PROPOSITION,
@@ -214,7 +214,7 @@ test("a classifier conflict is applied even when cardinality allows both", async
     const proposals = [
       { proposition: "Zorros häst heter Fresca" },
       { proposition: "Zorros häst heter Tornado" },
-    ].map((entry, index) => ({
+    ].map((entry, index) => ({ severity: "important" as const,
       proposal: {
         id: `prop-${index + 1}`,
         proposition: entry.proposition,

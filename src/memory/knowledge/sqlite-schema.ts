@@ -1,4 +1,4 @@
-export const KNOWLEDGE_SQLITE_SCHEMA_VERSION = 2;
+export const KNOWLEDGE_SQLITE_SCHEMA_VERSION = 3;
 
 export const KNOWLEDGE_SQLITE_SCHEMA = `
 CREATE TABLE IF NOT EXISTS A008_knowledge_schema (
@@ -155,6 +155,14 @@ CREATE TABLE IF NOT EXISTS A008_knowledge_provenance (
   id TEXT NOT NULL,
   payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
   PRIMARY KEY(namespace, id)
+);
+
+CREATE TABLE IF NOT EXISTS A008_knowledge_reinforcement_receipts (
+  namespace TEXT NOT NULL,
+  occurrence_id TEXT NOT NULL,
+  evidence_id TEXT NOT NULL,
+  payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
+  PRIMARY KEY(namespace, occurrence_id, evidence_id)
 );
 
 CREATE TABLE IF NOT EXISTS A008_knowledge_lifecycle (

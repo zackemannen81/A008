@@ -3,7 +3,7 @@
 Status: Accepted
 Date: 2026-09-08
 Specification task: A008-0079
-Implementation task: A008-0080 (L1); L2/L3 not activated
+Implementation task: A008-0080 (L1); A008-0081 (L2); L3 not activated
 Source baseline: `d7c542811b9744e2c3f30a65564c6c50b2c4392b`
 
 The owner reviewed and froze this target on 2026-09-08 under

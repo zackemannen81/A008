@@ -1,3 +1,4 @@
+import { evaluateLifecycle } from "./lifecycle.js";
 import { MemoryError } from "../errors.js";
 import { normalizeLabel } from "./labels.js";
 import { slotKey } from "./registry.js";
@@ -134,7 +135,12 @@ export function inspectKnowledge(
     INSPECTION_KINDS.map((kind) => [kind, 0]),
   ) as Record<InspectionKind, number>;
   const state = context.state.snapshot();
-  const lifecycle = context.lifecycle.snapshot();
+  const evaluatedAt = context.lifecycle.now();
+  const snapshot = context.lifecycle.snapshot();
+  const lifecycle = { ...snapshot, records: snapshot.records.map(r => {
+    const evaluated = evaluateLifecycle(r.lifecycle, evaluatedAt);
+    return { ...r, lifecycle: { ...r.lifecycle, state: evaluated.memoryState, effectiveStrength: evaluated.strength, evaluatedAt, baselineState: r.lifecycle.state, thresholdCrossingAt: evaluated.thresholdCrossingAt } };
+  }) };
   const lifeById = new Map(
     lifecycle.records.map((record) => [record.evidenceId, record.lifecycle]),
   );

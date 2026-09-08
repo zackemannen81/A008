@@ -120,7 +120,7 @@ test("input-budget repair retains history; global instructions survive zero hist
 
 test("memory output, input, staging and proposal limits reach the existing pipeline", async () => {
   const isolated = isolatedMemoryEnv();
-  const proposals = ["One fixture fact", "Another fixture fact"].map(proposition => ({ proposition, kind: "fact", tags: ["one", "two"], domains: ["fixtures"], entities: ["fixture"], confidence: .9 }));
+  const proposals = ["One fixture fact", "Another fixture fact"].map(proposition => ({ severity: "important", proposition, kind: "fact", tags: ["one", "two"], domains: ["fixtures"], entities: ["fixture"], confidence: .9 }));
   const fake = fakeTransport(() => proposals);
   const runtime = createLocalMemoryRuntime({ env: isolated.env, surface: "cli", createTransport: () => fake.transport });
   try {

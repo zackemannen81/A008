@@ -114,7 +114,7 @@ function seedProposal(): KnowledgeProposal {
 }
 
 const relationDrafts: Readonly<Record<string, AnalyzedKnowledgeDraft>> = {
-  new: {
+  new: { severity: "important",
     proposition: "SQLite is the local memory baseline.",
     kind: "architecture-decision",
     tags: ["memory", "sqlite"],
@@ -122,7 +122,7 @@ const relationDrafts: Readonly<Record<string, AnalyzedKnowledgeDraft>> = {
     entities: ["sqlite"],
     confidence: 0.9,
   },
-  restatement: {
+  restatement: { severity: "important",
     proposition: "SQLite is the local memory baseline.",
     kind: "architecture-decision",
     tags: ["memory", "sqlite"],
@@ -130,7 +130,7 @@ const relationDrafts: Readonly<Record<string, AnalyzedKnowledgeDraft>> = {
     entities: ["sqlite"],
     confidence: 0.95,
   },
-  extend: {
+  extend: { severity: "important",
     proposition: "SQLite memory also stores relation decisions.",
     kind: "architecture-decision",
     tags: ["memory", "relations", "sqlite"],
@@ -138,7 +138,7 @@ const relationDrafts: Readonly<Record<string, AnalyzedKnowledgeDraft>> = {
     entities: ["relation-gate", "sqlite"],
     confidence: 0.92,
   },
-  supersede: {
+  supersede: { severity: "important",
     proposition: "PostgreSQL becomes the memory baseline.",
     kind: "architecture-decision",
     tags: ["memory", "postgresql"],
@@ -146,7 +146,7 @@ const relationDrafts: Readonly<Record<string, AnalyzedKnowledgeDraft>> = {
     entities: ["postgresql"],
     confidence: 0.91,
   },
-  conflict: {
+  conflict: { severity: "important",
     proposition: "SQLite must not be used for local memory.",
     kind: "architecture-decision",
     tags: ["memory", "sqlite"],

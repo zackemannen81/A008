@@ -72,6 +72,8 @@ export interface RelationIndexPort {
 }
 
 export interface KnowledgeReadContext {
+  readonly atomic?: <T>(operation: () => T) => T;
+  readonly evaluatedAt?: string;
   readonly entities: EntityRegistry;
   readonly slots: SlotRegistry;
   readonly state: KnowledgeState;

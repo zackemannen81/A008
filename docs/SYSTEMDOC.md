@@ -425,6 +425,29 @@ independently on a phone-sized viewport.
 See [ADR 0026](adr/0026-gui-session-controls.md) for endpoint sources and
 [the proof](evidence/A008-0065_session-controls-proof.md) for browser/payload gates.
 
+## Evidence lifecycle (L2)
+
+A008-0081 implements ADR 0035 P1-P5 in the existing knowledge engine. The
+[constitution](KNOWLEDGE_MEMORY_MODEL.md#72-the-lifecycle-record) owns the
+policy, occurrence and migration rules. Claims receive validated severity from
+the existing analyzer; one operation time evaluates a persisted exponential
+baseline. Direct dormant matches stay eligible. Inspection exposes baseline and
+evaluated values; model projection contains no lifecycle numbers.
+
+Live reinforcement resolves one invocation-local handle to one stored claim and
+requires independent support from the original message or attributed source.
+Restatement reuses canonical evidence where acceptance permits. Writes execute
+synchronously after asynchronous comparison: refresh stale state under the
+SQLite write lock, validate the target/source, then commit evidence, state,
+boost, receipt and audit together. In-memory writes restore the prior snapshot
+on failure. Reads never call these writes. Schema 3 converts legacy baselines
+without inventing severity, history or elapsed age; see the constitution's
+backup/restore procedure. Settings format 3 holds advanced creation policy in
+the existing runtime owner; existing-client saves preserve it.
+
+The v0 compatibility engine retains its old contract. L3 association metadata,
+new ranking, background sweeps and new model calls are absent.
+
 ## Semantic-memory core
 
 ### GUI memory diagnostics (A008-0064)

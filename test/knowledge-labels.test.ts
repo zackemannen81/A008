@@ -307,7 +307,7 @@ test("a proposition's words do not become entity aliases", async () => {
             return [];
           }
           return [
-            {
+            { severity: "important",
               proposition: HORSE_PROPOSITION,
               kind: "fact",
               tags: ["häst"],
@@ -559,7 +559,7 @@ test("a version 1 database opens and is migrated, not refused", () => {
       projectId: sqliteKnowledgeTestProjectId(),
     });
     try {
-      assert.equal(handle.store.schemaVersion, 2);
+      assert.equal(handle.store.schemaVersion, 3);
       assert.deepEqual(handle.context.labels.list(), []);
       handle.context.labels.attach({
         recordId: "u1",
@@ -578,7 +578,7 @@ test("a version 1 database opens and is migrated, not refused", () => {
       const row = check
         .prepare("SELECT version FROM A008_knowledge_schema WHERE singleton = 1")
         .get() as { readonly version: number };
-      assert.equal(row.version, 2);
+      assert.equal(row.version, 3);
     } finally {
       check.close();
     }
@@ -613,7 +613,7 @@ test("many statements about one entity coexist instead of conflicting", async ()
           if (typeof raw.message !== "string" || !raw.message.includes("Fresca")) {
             return [];
           }
-          return facts.map((proposition) => ({
+          return facts.map((proposition) => ({ severity: "important",
             proposition,
             kind: "fact",
             tags: ["zorro"],

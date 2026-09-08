@@ -1,7 +1,7 @@
 # Stateless semantic JSON model calls
 
-Status: Implemented provider-neutral call and adapter boundary. It is not
-constructed by CLI, ACP, Agent Server, Canvas, GUI, or a background worker.
+Status: Implemented provider-neutral call and adapter boundary, composed by
+the shared local runtime used by supported clients.
 
 ## Purpose
 
@@ -56,6 +56,22 @@ or:
 The relation payload is the existing exact serialization. Candidate references
 are invocation-local handles such as `candidate_1`; durable/runtime IDs,
 revisions, scores, provenance, reasoning, audit, and history remain excluded.
+
+## L2 extraction and support
+
+The same analysis call now requires `severity` (`critical`, `important`, `minor`)
+on every new claim draft. Optional `support` identifies a UTF-16 start/exclusive
+end span in the original `message` or ingested `source`; the final answer cannot
+supply reinforcement evidence. Staging rejects an invalid severity per item and
+reports invalid support without discarding unrelated valid extraction.
+
+The existing relation call receives optional `sourceSupport` with the original
+content and validated bounds. On restatement/extend it explicitly reports
+`supportsTarget`; absence/false means no automatic reinforcement. Runtime keeps
+the exact handle-to-claim mapping outside model input, revalidates target and
+source under the commit lock, and records the occurrence receipt atomically.
+This adds no model call. Semantic correctness against live models remains a
+separate evaluation; deterministic tests inject synthetic semantic decisions.
 
 ## Shared ownership
 

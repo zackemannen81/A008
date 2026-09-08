@@ -508,21 +508,70 @@ Does **not** apply to: `AttributeBinding`, `RelationshipBinding`,
 
 ### 7.2 The lifecycle record
 
+Implemented L2 amendment: [ADR 0035](adr/0035-frozen-instruction-and-memory-target.md), P1-P5.
+
 ```text
 MemoryLifecycle
-  state             active | dormant
-  strength          0..1
-  decayRate         0..1
-  threshold         0..1
+  severity          critical | important | minor | null (unclassified)
+  policyVersion     exponential-v1 | legacy-exponential-v1
+  strength          stored baseline, 0..1
+  strengthUpdatedAt operational UTC timestamp, independent of world clocks
+  decayLambda       finite >= 0, per second
+  threshold         >0..1 (legacy zero is explicitly preserved)
+  boost             stored recurrence increment, 0..1
+  maximum           1
   pinned            boolean
-  lastReinforcedAt  time
+  state             cache at baseline; never overrides evaluated activation
+  lastReinforcedAt  real recurrence time or unknown
+  creationOccurrenceId optional original occurrence; creation cannot boost itself
+  decayRate         legacy explicit-maintenance rate; never exponential lambda
 ```
 
-`state` is derived: `pinned || strength >= threshold ? active : dormant`.
+At one operation time, compute
+`effective = strength * exp(-decayLambda * max(0, elapsedSeconds))`.
+Activation is derived from `pinned || effective >= threshold`. Equality is
+active; zero and underflow do not delete evidence. Backward clocks cannot grow
+strength or move the next baseline earlier. Reads and inspection write nothing;
+inspection distinguishes baseline strength/state from effective strength/state,
+evaluation time and the optional absolute threshold crossing.
 
-`MemoryLifecycle` is attached to evidence records. It is not the identity of
-the knowledge, and the same lifecycle shape can be applied to any evidence
-record type.
+Only newly extracted claims receive semantic severity. The existing analyzer
+must return the enum; staging reports/skips an invalid or missing enum per item.
+Model-supplied lifecycle numbers do not choose policy. Critical starts at 1 with
+a 365-day half-life, important at 0.8/90 days, minor at 0.4/14 days. Each uses
+threshold 0.2, boost 0.2 and cap 1. Raw utterance/event/summary evidence remains
+unclassified with strength 1, threshold 0.5, half-life 90 days and no inferred
+pin. One day means 86400 seconds, not a calendar interval.
+
+The existing global runtime preferences owner accepts the advanced
+`memoryLifecycle` object (settings format 3), validated by
+`src/core/memory-lifecycle-policy.ts`. No new policy editor is introduced.
+Existing clients saving only instructions/budgets preserve this object.
+Operation snapshots and stored numeric policies prevent mid-operation changes
+or retrospective reclassification. Changed settings affect later creations.
+Changing existing records requires an explicit migration/rebase.
+
+Automatic reinforcement needs an original message/source span, a semantically
+supported relation and the exact existing claim resolved from that invocation's
+handle map. The existing comparator judges support using the original source;
+answer-only text, retrieval, questions, mere quotation, conflicts and unrelated
+content do not establish recurrence. Runtime validates source ownership, span
+bounds and the unchanged canonical target. Missing proof skips reinforcement
+with a result diagnostic, while valid extraction can proceed.
+
+Restatement reuses the canonical carrier when it does not require the existing
+user-acceptance transition. Its new utterance retains attribution; source
+repetition does not become a user assertion. Extend may reinforce only its
+underlying target. Supersede/conflict and mechanical correction/retraction
+cannot boost a displaced target. No substring/all-record reinforcement remains.
+
+An original dialogue task/conversation or source locator/content determines a
+stable occurrence identity. One occurrence/claim receipt, decayed boost, new
+baseline and lifecycle audit commit atomically. Duplicate proposals/reimports,
+retries, restart and concurrent delivery cannot repeat that pair's boost.
+Receipts live in the existing project namespace. New evidence at the cap still
+refreshes the baseline; a small boost below threshold remains dormant. Neither
+reinforcement nor migration changes claim acceptance, state or historical clocks.
 
 ### 7.3 States versus transitions
 
@@ -560,7 +609,7 @@ DIRECT MATCH                 (exact slot, exact entity, explicit scope match)
       |
 memory state plays NO eligibility role
 active and dormant are equally eligible
-a direct hit MAY schedule REACTIVATE, after the read
+a direct hit may be reported as a diagnostic candidate; reading alone NEVER strengthens it
 
 ASSOCIATIVE EXPANSION        (relation depth <= 1, similarity, "tell me about X")
       |
@@ -807,26 +856,13 @@ of L11, because it makes every read a write and every answer a lifecycle event.
 
 ### 10.3 Lifecycle path
 
-| | `REINFORCE` |
+| Process | Authority and writes |
 | --- | --- |
-| Input | Evidence record ids, an explicit reason, a named caller |
-| May write | `strength`, `lastReinforcedAt`, and a `reinforced` transition |
-| Must not write | State, bindings, history, claim status |
-| Rule | Never invoked implicitly by a read. The caller is recorded. |
+| Automatic `reinforceOccurrence` | Validated fresh supporting occurrence, exact claim and restatement/extend relation; decay first, then capped boost. Writes baseline/time, derived cache, real recurrence time, audit and durable receipt in one transaction. Never writes truth/state/history. |
+| Explicit `reinforce` maintenance | Named caller/reason; operates on evaluated strength and rebases. Kept as a deliberate maintenance API, never invoked by reads or used instead of the automatic occurrence gate. |
+| Explicit `weaken` / `decay` maintenance | Named caller/reason; subtracts an explicit amount or the retained legacy `decayRate * elapsed` amount from evaluated strength, then rebases. This preserves the manual API's units; it is not the automatic exponential calculation or a scheduled job. |
+| Explicit `reactivate` maintenance | Explicit request only; may raise strength to the threshold and rebase. No read or diagnostic candidate authorizes it; maintenance is not a fresh recurrence. |
 
-| | `WEAKEN` / `DECAY` |
-| --- | --- |
-| Input | Evidence record ids or a scheduled sweep, elapsed time |
-| May write | `strength`, and a `weakened` / `decayed` transition |
-| Must not write | State, bindings, history, claim status |
-| Rule | Decay may move a record to `dormant`. It never makes it untrue, and it never touches state. |
-
-| | `REACTIVATE` |
-| --- | --- |
-| Input | A dormant evidence record that was a direct match, or an explicit request |
-| May write | `strength` and a `reactivated` transition |
-| Must not write | State, bindings, history |
-| Rule | Runs after the read completes, never as part of eligibility. |
 
 ---
 
@@ -996,6 +1032,30 @@ MUST NOT  leave an accepted binding with no surviving accepted claim (L12)
 
 ## 12. Storage: deliberately deferred
 
+The original sequencing below is historical. L2 upgrades the implemented
+knowledge store to schema 3 under ADR 0035 P4. One `BEGIN IMMEDIATE` transaction
+converts all existing namespaces at one operational timestamp and changes the
+version. Saved strength, threshold (including zero), pins, evidence and history
+survive. Legacy severity stays null; legacy half-life is explicitly 90 days,
+boost 0.2 and cap 1. Unknown world/recurrence times remain unknown. Corrupt data
+fails the upgrade; a failed conversion rolls back and can be retried. Schema 3
+also stores occurrence/claim receipts. Association links are unchanged; L3 is
+not implemented. Old binaries reject the new schema before they can write it.
+
+Before opening a valuable existing store with the new build, stop A008 writers
+and create a SQLite backup using SQLite's backup API (or an offline copy of the
+entire database/WAL set). A lone copy of the main file while writers run is not
+a complete backup. Keep the backup until upgrade verification is accepted. Also preserve the
+global settings file before saving settings format 3 if a binary rollback may
+be needed. Restore compatible settings together with the older binary. To
+roll back, stop all writers, preserve the upgraded database/WAL set separately,
+and restore the complete pre-upgrade backup to its original path before opening
+it with the previous binary. Never combine an upgraded WAL with a restored
+database. The lifecycle fixture executes backup, interrupted
+upgrade, retry, previous published store rejection and restoration. No user
+runtime database was opened or migrated during A008-0081 verification.
+
+
 No SQLite table, JSON shape, index, FTS configuration, embedding column, or
 migration belongs in this document, and none should be designed until §1–§11
 are accepted and §10 has passing acceptance tests against an in-memory
@@ -1128,6 +1188,13 @@ interface Provenance {
 // ---- lifecycle (evidence only) ----------------------------------------
 
 interface MemoryLifecycle {
+  readonly severity: "critical" | "important" | "minor" | null;
+  readonly policyVersion: "exponential-v1" | "legacy-exponential-v1";
+  readonly strengthUpdatedAt: string;
+  readonly decayLambda: number;
+  readonly boost: number;
+  readonly maximum: 1;
+  readonly creationOccurrenceId?: string;
   readonly state: "active" | "dormant";
   readonly strength: number;
   readonly decayRate: number;
@@ -1160,7 +1227,7 @@ no lifecycle field on any binding.
 5. **Negation.** "Rickard does not own a car" as a first-class claim shape.
 6. **Set-slot closure.** Does absence from a re-observation close a `set`
    member's interval, or does closure require an explicit removal claim?
-7. **Decay schedule ownership.** Who runs `DECAY`, how often, and how is a
-   sweep made deterministic for tests?
+7. **Resolved by L2 / ADR 0035:** automatic decay is lazy at an injected
+   operation time. No background sweep is required.
 8. **Severity.** §9 groups by severity; severity is not yet defined anywhere
    in the model.

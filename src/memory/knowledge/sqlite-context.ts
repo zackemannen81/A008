@@ -1,3 +1,4 @@
+import { captureSnapshot, loadSnapshot } from "./knowledge-transaction.js";
 import type { Database as BetterSqliteDatabase } from "better-sqlite3";
 import type { ProjectId } from "../../identity/types.js";
 import { EvidenceStore } from "./evidence.js";
@@ -17,6 +18,7 @@ export interface SqliteKnowledgeContextOptions {
   readonly projectId: ProjectId;
   readonly database?: BetterSqliteDatabase;
   readonly migrateV0?: boolean;
+  readonly clock?: () => string;
 }
 
 export interface SqliteKnowledgeContextHandle {
@@ -38,6 +40,7 @@ export function createSqliteKnowledgeContext(
   options: SqliteKnowledgeContextOptions,
 ): SqliteKnowledgeContextHandle {
   const store = new SqliteKnowledgeStore({
+    ...(options.clock === undefined ? {} : { clock: options.clock }),
     filename: options.filename,
     projectId: options.projectId,
     ...(options.database === undefined ? {} : { database: options.database }),
@@ -51,30 +54,57 @@ export function createSqliteKnowledgeContext(
   const state = new KnowledgeState();
   const evidence = new EvidenceStore();
   const labels = new KnowledgeLabelStore();
-  const lifecycle = new EvidenceLifecycleStore();
+  const lifecycle = new EvidenceLifecycleStore(options.clock);
   const relations = new RelationIndex();
 
+  let loadedRevision = "";
   const hydrate = (): void => {
     const snapshot = store.load();
     loadSnapshot(
       { entities, slots, state, evidence, labels, lifecycle, relations },
       snapshot,
     );
+    loadedRevision = store.revision();
   };
-  hydrate();
+  try { hydrate(); } catch (error) { store.close(); throw error; }
 
   let persistEnabled = false;
   const persist = (): void => {
     if (!persistEnabled) {
       return;
     }
-    store.replaceNamespace(captureSnapshot(inner));
+    store.atomic(() => {
+      if (loadedRevision !== store.revision()) throw new Error("Knowledge changed before explicit persist; reload before retrying");
+      store.replaceNamespace(captureSnapshot(inner));
+      loadedRevision = store.revision();
+    });
   };
 
+  const atomic = <T>(operation: () => T): T => {
+    if (!persistEnabled) return operation();
+    return store.atomic(() => {
+      persistEnabled = false;
+      try {
+        if (loadedRevision !== store.revision()) hydrate();
+        const result = operation();
+        store.replaceNamespace(captureSnapshot(inner));
+        loadedRevision = store.revision();
+        return result;
+      } catch (error) {
+        // Reload after SQLite has rolled back (the outer catch below).
+        throw error;
+      } finally { persistEnabled = true; }
+    });
+  };
+  const safeAtomic = <T>(operation: () => T): T => {
+    if (!persistEnabled) return operation();
+    try { return atomic(operation); } catch (error) { hydrate(); throw error; }
+  };
   const inner: KnowledgeReadContext = {
-    entities: persisting(entities, persist, ["register"]),
-    slots: persisting(slots, persist, ["register", "widenToSet"]),
-    state: persisting(state, persist, [
+    atomic: safeAtomic,
+    entities: persisting(entities, safeAtomic, ["register"]),
+    slots: persisting(slots, safeAtomic, ["register", "widenToSet"]),
+    state: persisting(state, safeAtomic, [
       "recordClaim",
       "recordEvent",
       "setClaimStatus",
@@ -82,7 +112,7 @@ export function createSqliteKnowledgeContext(
       "applyAtomicUpdate",
       "hydrate",
     ]),
-    evidence: persisting(evidence, persist, [
+    evidence: persisting(evidence, safeAtomic, [
       "addArtifact",
       "addUtterance",
       "addProvenance",
@@ -90,16 +120,17 @@ export function createSqliteKnowledgeContext(
       "applyAcceptance",
       "hydrate",
     ]),
-    labels: persisting(labels, persist, ["attach", "hydrate"]),
-    lifecycle: persisting(lifecycle, persist, [
+    labels: persisting(labels, safeAtomic, ["attach", "hydrate"]),
+    lifecycle: persisting(lifecycle, safeAtomic, [
       "attach",
       "reinforce",
+      "reinforceOccurrence",
       "weaken",
       "reactivate",
       "decay",
       "hydrate",
     ]),
-    relations: persisting(relations, persist, ["link", "hydrate"]),
+    relations: persisting(relations, safeAtomic, ["link", "hydrate"]),
   };
   persistEnabled = true;
 
@@ -113,67 +144,14 @@ export function createSqliteKnowledgeContext(
       persistEnabled = true;
     },
     close(): void {
-      persist();
       store.close();
     },
   };
 }
 
-function loadSnapshot(
-  target: {
-    readonly entities: EntityRegistry;
-    readonly slots: SlotRegistry;
-    readonly state: KnowledgeState;
-    readonly evidence: EvidenceStore;
-    readonly labels: KnowledgeLabelStore;
-    readonly lifecycle: EvidenceLifecycleStore;
-    readonly relations: RelationIndex;
-  },
-  snapshot: KnowledgeNamespaceSnapshot,
-): void {
-  target.entities.hydrate(snapshot.entities);
-  target.slots.hydrate(snapshot.slots);
-  target.state.hydrate(snapshot.state, snapshot.stateNextTransition);
-  target.evidence.hydrate({
-    artifacts: snapshot.artifacts,
-    utterances: snapshot.utterances,
-    claims: snapshot.claims,
-    provenance: snapshot.provenance,
-  });
-  target.labels.hydrate(snapshot.labels);
-  target.lifecycle.hydrate(
-    snapshot.lifecycle,
-    snapshot.lifecycleNextTransition,
-  );
-  target.relations.hydrate(snapshot.relations);
-}
-
-function captureSnapshot(
-  context: KnowledgeReadContext,
-): KnowledgeNamespaceSnapshot {
-  const relations =
-    context.relations instanceof RelationIndex
-      ? context.relations.exportLinks()
-      : [];
-  return {
-    entities: context.entities.list(),
-    slots: context.slots.list(),
-    state: context.state.snapshot(),
-    stateNextTransition: context.state.transitionSequence(),
-    artifacts: context.evidence.listArtifacts(),
-    utterances: context.evidence.listUtterances(),
-    claims: context.evidence.listClaims(),
-    labels: context.labels.list(),
-    provenance: context.evidence.listProvenance(),
-    lifecycle: context.lifecycle.snapshot(),
-    lifecycleNextTransition: context.lifecycle.transitionSequence(),
-    relations,
-  };
-}
-
 function persisting<T extends object>(
   target: T,
-  persist: () => void,
+  atomic: <R>(operation: () => R) => R,
   mutating: readonly string[],
 ): T {
   const names = new Set(mutating);
@@ -187,12 +165,10 @@ function persisting<T extends object>(
         return value.bind(source);
       }
       return (...args: unknown[]) => {
-        const result = (value as (...inner: unknown[]) => unknown).apply(
+        return atomic(() => (value as (...inner: unknown[]) => unknown).apply(
           source,
           args,
-        );
-        persist();
-        return result;
+        ));
       };
     },
   }) as T;

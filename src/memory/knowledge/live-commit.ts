@@ -1,7 +1,11 @@
-import { randomUUID } from "node:crypto";
+import { DEFAULT_MEMORY_LIFECYCLE_POLICY, isKnowledgeSeverity, parseMemoryLifecyclePolicy, type MemoryLifecyclePolicy } from "../../core/memory-lifecycle-policy.js";
+import type { SemanticOperationContext } from "../../orchestration/semantic-operation.js";
+import { atomicKnowledge } from "./knowledge-transaction.js";
+import { createHash, randomUUID } from "node:crypto";
 import { Utf8ByteKnowledgeIntakeMeasurer } from "../../orchestration/post-output-knowledge-intake.js";
 import type {
   RelationClassifierDecision,
+  RelationClassifierCandidate,
   RelationCommitInput,
   RelationGatedCommitResult,
   KnowledgeRelationClassifier,
@@ -24,7 +28,7 @@ import { asEntityId } from "./ids.js";
 import type { KnowledgeState } from "./state.js";
 import type { ReconcileDecision } from "./state-types.js";
 import { ingest } from "./ingest.js";
-import { reinforce } from "./lifecycle.js";
+import { viewLifecycle } from "./lifecycle.js";
 import type { KnowledgeReadContext } from "./read-types.js";
 import { reconcile } from "./reconcile.js";
 import type { SlotClaim } from "./state-types.js";
@@ -36,6 +40,7 @@ import type {
 } from "./types.js";
 
 export interface KnowledgeEngineCommitOptions {
+  readonly policy?: MemoryLifecyclePolicy;
   readonly context: KnowledgeReadContext;
   readonly classifier: KnowledgeRelationClassifier;
   readonly idFactory?: KnowledgeIdFactory;
@@ -48,24 +53,44 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
   readonly #context: KnowledgeReadContext;
   readonly #classifier: KnowledgeRelationClassifier;
   readonly #idFactory: KnowledgeIdFactory;
-  readonly #ingested = new Map<string, string>();
+  readonly #policy: MemoryLifecyclePolicy;
   readonly #measurer = new Utf8ByteKnowledgeIntakeMeasurer();
 
   constructor(options: KnowledgeEngineCommitOptions) {
+    this.#policy = parseMemoryLifecyclePolicy(options.policy ?? DEFAULT_MEMORY_LIFECYCLE_POLICY);
     this.#context = options.context;
     this.#classifier = options.classifier;
     this.#idFactory = options.idFactory ?? randomUUID;
   }
 
-  async commit(input: RelationCommitInput): Promise<RelationGatedCommitResult> {
+  async commit(input: RelationCommitInput, operation: SemanticOperationContext = {}): Promise<RelationGatedCommitResult> {
+    operation.signal?.throwIfAborted();
+    input = structuredClone(input);
     const staged = input.batch.proposals[input.proposalIndex];
     if (staged === undefined) {
       throw new Error(
         `proposal ${input.proposalIndex} is missing from the staged batch`,
       );
     }
-    const candidates = this.#classifierCandidates();
+    if (!isKnowledgeSeverity(staged.severity)) throw new Error("Live claim requires validated severity");
+    const at = this.#context.lifecycle.now();
+    const candidateRecords = this.#context.evidence.listClaims();
+    const targets = new Map(candidateRecords.map((claim, index) => [`candidate_${index + 1}`, claim]));
+    const candidates = this.#classifierCandidates(candidateRecords, at);
+    const origin = input.batch.origin;
+    const sourceUtterance = origin.kind === "source" ? this.#context.evidence.listUtterances().find(u => u.id === origin.utteranceId) : undefined;
+    const sourceArtifact = sourceUtterance === undefined ? undefined : this.#context.evidence.listArtifacts().find(a => a.id === sourceUtterance.artifactId);
+    const source = origin.kind === "source" ? sourceUtterance?.content : input.batch.sourceMessage;
+    const span = staged.support;
+    const validSupport = span !== undefined && source !== undefined &&
+      span.source === (origin.kind === "source" ? "source" : "message") &&
+      (origin.kind !== "source" || sourceArtifact?.locator === input.batch.sourceMessage) &&
+      Number.isSafeInteger(span.start) && Number.isSafeInteger(span.end) && span.start >= 0 && span.end > span.start && span.end <= source.length;
+    const occurrenceId = origin.kind === "source"
+      ? "source:" + createHash("sha256").update(JSON.stringify([input.batch.sourceMessage, source])).digest("hex")
+      : `turn:${input.batch.conversationId}:${input.batch.taskId}`;
     const classifierInput = {
+      ...(validSupport ? { sourceSupport: { origin: span.source, content: source, start: span.start, end: span.end } } : {}),
       proposal: {
         proposition: staged.proposal.proposition,
         kind: staged.proposal.kind,
@@ -78,148 +103,216 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       candidates,
     };
     const serialized = serializeRelationClassifierInput(classifierInput);
-    const classifierDecision = await this.#classifier.classify(classifierInput);
-    const utteranceId = this.#ingestOnce(input);
-    const drafts: readonly ClaimDraft[] = [
-      {
-        label: staged.proposal.proposition,
-        proposition: {
-          kind: "attribute_binding",
-          entityLabel: entityLabelOf(staged.entities, staged.proposal.proposition),
-          attribute: STATEMENT_SLOT,
-          value: staged.proposal.proposition,
+    const classifierDecision = await this.#classifier.classify(classifierInput, operation);
+    operation.signal?.throwIfAborted();
+    if (!classifierDecision || !["new", "restatement", "extend", "supersede", "conflict"].includes(classifierDecision.type)) throw new Error("Invalid live relation decision");
+    return atomicKnowledge(this.#context, () => {
+      operation.signal?.throwIfAborted();
+      const priorCreation = this.#context.evidence.listClaims().find(claim => claim.label === staged.proposal.proposition && this.#context.lifecycle.get(claim.id)?.lifecycle.creationOccurrenceId === occurrenceId);
+      if (priorCreation !== undefined) {
+        return this.#reusedClaimResult(classifierDecision, priorCreation.id, "duplicate_creation", candidates, serialized);
+      }
+      const utteranceId = this.#ingestOnce(input, at);
+      const selected = "targetHandle" in classifierDecision ? targets.get(classifierDecision.targetHandle) : undefined;
+      const currentTarget = selected === undefined ? undefined : this.#context.evidence.listClaims().find(c => c.id === selected.id);
+      const resolved = selected !== undefined && currentTarget !== undefined && JSON.stringify(selected) === JSON.stringify(currentTarget) && this.#context.lifecycle.get(selected.id)?.evidenceKind === "claim";
+      let reinforcement = "not_eligible";
+      const targetBinding = selected === undefined ? undefined : this.#context.state.snapshot().bindings.find(b => b.claimId === selected.id && b.interval.to === null);
+      // A restatement reuses its canonical carrier. Retain the new attributed utterance;
+      // do not create another identical claim that a later retry could select instead.
+      if (resolved && classifierDecision.type === "restatement" &&
+          (origin.kind === "source" || currentTarget.status === "accepted") &&
+          !["contested", "retracted", "rejected"].includes(currentTarget.status) &&
+          (targetBinding === undefined || !this.#context.state.isContested(targetBinding.slot))) {
+        this.#context.labels.attach({ recordId: utteranceId, recordKind: "utterance", tags: [...(staged.proposal.tags ?? [])], domains: [...staged.domains] });
+        const committedSource = this.#context.evidence.listUtterances().find(u => u.id === utteranceId);
+        reinforcement = !validSupport || classifierDecision.supportsTarget !== true || committedSource?.content !== source
+          ? "skipped_unproven_source"
+          : this.#context.lifecycle.reinforceOccurrence({ occurrenceId, evidenceId: selected.id, at, support: { utteranceId, start: span.start, end: span.end } }) ? "applied" : "duplicate_or_creation";
+        return this.#reusedClaimResult(classifierDecision, selected.id, reinforcement, candidates, serialized);
+      }
+
+      const drafts: readonly ClaimDraft[] = [
+        {
+          label: staged.proposal.proposition,
+          proposition: {
+            kind: "attribute_binding",
+            entityLabel: entityLabelOf(staged.entities, staged.proposal.proposition),
+            attribute: STATEMENT_SLOT,
+            value: staged.proposal.proposition,
+          },
+          certainty: "certain",
+          aboutInterval: { from: UNKNOWN_INSTANT, to: null },
         },
-        certainty: "certain",
-        aboutInterval: { from: UNKNOWN_INSTANT, to: null },
-      },
-    ];
-    const recorded = recordClaimsFromUtterance(
-      this.#context.evidence,
-      asUtteranceId(utteranceId),
-      drafts,
-      { idFactory: this.#idFactory },
-    );
-    const evidenceClaim = recorded[0];
-    // Tags and domains have always been extracted by the analyzer, carried
-    // through staging and read by the relation classifier. Until A008-0060 this
-    // is where they stopped: a claim, an entity and a binding were written and
-    // both label sets were dropped, so nothing downstream could ever match on
-    // them. They are attached to the utterance as well as the claim because the
-    // utterance is what a source ingest already created and what the projection
-    // sends when no claim was accepted.
-    const labelInput = {
-      tags: [...(staged.proposal.tags ?? [])],
-      domains: [...staged.domains],
-    };
-    this.#context.labels.attach({
-      recordId: utteranceId,
-      recordKind: "utterance",
-      ...labelInput,
-    });
-    if (evidenceClaim !== undefined) {
+      ];
+      const recorded = recordClaimsFromUtterance(
+        this.#context.evidence,
+        asUtteranceId(utteranceId),
+        drafts,
+        { idFactory: this.#idFactory },
+      );
+      const evidenceClaim = recorded[0];
+      // Tags and domains have always been extracted by the analyzer, carried
+      // through staging and read by the relation classifier. Until A008-0060 this
+      // is where they stopped: a claim, an entity and a binding were written and
+      // both label sets were dropped, so nothing downstream could ever match on
+      // them. They are attached to the utterance as well as the claim because the
+      // utterance is what a source ingest already created and what the projection
+      // sends when no claim was accepted.
+      const labelInput = {
+        tags: [...(staged.proposal.tags ?? [])],
+        domains: [...staged.domains],
+      };
       this.#context.labels.attach({
-        recordId: evidenceClaim.id,
-        recordKind: "claim",
+        recordId: utteranceId,
+        recordKind: "utterance",
         ...labelInput,
       });
-      this.#context.lifecycle.attach({
-        evidenceId: evidenceClaim.id,
-        evidenceKind: "claim",
-        at: UNKNOWN_INSTANT,
-        caller: "knowledge-commit",
+      if (evidenceClaim !== undefined) {
+        this.#context.labels.attach({
+          recordId: evidenceClaim.id,
+          recordKind: "claim",
+          ...labelInput,
+        });
+        this.#context.lifecycle.attach({
+          evidenceId: evidenceClaim.id,
+          evidenceKind: "claim",
+          severity: staged.severity!,
+          policy: this.#policy,
+          creationOccurrenceId: occurrenceId,
+          at,
+          caller: "knowledge-commit",
+        });
+        // `user-assertion-v1` applies only to something the user actually said.
+        // An uploaded document is not a user assertion, and its text contains
+        // every proposition extracted from it, so running the policy over a
+        // source batch would accept the whole document as though the user had
+        // stated each claim. Source claims stay `asserted`, attributed to the
+        // source.
+        if (input.batch.origin.kind !== "source") {
+          accept(
+            {
+              claimId: evidenceClaim.id,
+              policy: ACCEPT_POLICY,
+              authority: { verified: true, speakerRole: "user" },
+              sourceMessage: input.batch.sourceMessage,
+            },
+            this.#context.evidence,
+          );
+        }
+      }
+
+      const accepted =
+        evidenceClaim !== undefined &&
+        this.#context.evidence.requireClaim(evidenceClaim.id).status === "accepted";
+      const slot = this.#ensureSlot(staged.entities, staged.proposal.proposition);
+      const slotClaim = statementClaim({
+        id: evidenceClaim?.id ?? `slot:${this.#idFactory()}`,
+        slot: slot.ref,
+        value: staged.proposal.proposition,
+        causedBy: utteranceId,
       });
-      // `user-assertion-v1` applies only to something the user actually said.
-      // An uploaded document is not a user assertion, and its text contains
-      // every proposition extracted from it, so running the policy over a
-      // source batch would accept the whole document as though the user had
-      // stated each claim. Source claims stay `asserted`, attributed to the
-      // source.
-      if (input.batch.origin.kind !== "source") {
-        accept(
-          {
-            claimId: evidenceClaim.id,
-            policy: ACCEPT_POLICY,
-            authority: { verified: true, speakerRole: "user" },
-            sourceMessage: input.batch.sourceMessage,
-          },
-          this.#context.evidence,
-        );
+      if (this.#context.state.claim(slotClaim.id) === undefined) {
+        this.#context.state.recordClaim(slotClaim);
       }
-    }
 
-    const accepted =
-      evidenceClaim !== undefined &&
-      this.#context.evidence.requireClaim(evidenceClaim.id).status === "accepted";
-    const slot = this.#ensureSlot(staged.entities, staged.proposal.proposition);
-    const slotClaim = statementClaim({
-      id: evidenceClaim?.id ?? `slot:${this.#idFactory()}`,
-      slot: slot.ref,
-      value: staged.proposal.proposition,
-      causedBy: utteranceId,
-    });
-    if (this.#context.state.claim(slotClaim.id) === undefined) {
-      this.#context.state.recordClaim(slotClaim);
-    }
+      let relation: ReconciliationRelation = "new";
+      const conflictTargetIds: string[] = [];
+      let permitsReinforcement = true;
+      if (accepted) {
+        const decision = reconcile(this.#context.state, slotClaim, slot);
+        if (classifierDecision.type === "conflict" || decision.outcome === "conflict") {
+          // The two can now disagree, and before A008-0062 they almost never did.
+          // With `<entity>.statement` single-valued, a second distinct value was
+          // mechanically a conflict, so `reconcile` agreed with any classifier
+          // that said so. As a set it does not: two statements about one entity
+          // coexist, and `reconcile` returns `change`.
+          //
+          // When only the classifier calls it a conflict, its judgement is the one
+          // that counts — it is the semantic judge and reconcile is the mechanical
+          // bookkeeper — but `applyConflict` requires a conflict decision and
+          // would throw on the `change` it was handed. So the decision is
+          // restated as the conflict the classifier found, naming the open
+          // members it competes with.
+          this.#context.state.applyConflict(
+            decision.outcome === "conflict"
+              ? decision
+              : asClassifierConflict(decision, this.#context.state, slot),
+          );
+          permitsReinforcement = false;
+          relation = "conflict";
+          conflictTargetIds.push(...decision.competingClaimIds);
+        } else if (decision.outcome === "change") {
+          update(this.#context.state, decision, { decidedBy: USER_ASSERTION_POLICY_ID });
+          relation =
+            classifierDecision.type === "supersede" ||
+            classifierDecision.type === "extend"
+              ? classifierDecision.type
+              : "new";
+        } else if (decision.outcome === "re_assertion") {
+          relation = "restatement";
 
-    let relation: ReconciliationRelation = "new";
-    const conflictTargetIds: string[] = [];
-    if (accepted) {
-      const decision = reconcile(this.#context.state, slotClaim, slot);
-      if (classifierDecision.type === "conflict" || decision.outcome === "conflict") {
-        // The two can now disagree, and before A008-0062 they almost never did.
-        // With `<entity>.statement` single-valued, a second distinct value was
-        // mechanically a conflict, so `reconcile` agreed with any classifier
-        // that said so. As a set it does not: two statements about one entity
-        // coexist, and `reconcile` returns `change`.
-        //
-        // When only the classifier calls it a conflict, its judgement is the one
-        // that counts — it is the semantic judge and reconcile is the mechanical
-        // bookkeeper — but `applyConflict` requires a conflict decision and
-        // would throw on the `change` it was handed. So the decision is
-        // restated as the conflict the classifier found, naming the open
-        // members it competes with.
-        this.#context.state.applyConflict(
-          decision.outcome === "conflict"
-            ? decision
-            : asClassifierConflict(decision, this.#context.state, slot),
-        );
-        relation = "conflict";
-        conflictTargetIds.push(...decision.competingClaimIds);
-      } else if (decision.outcome === "change") {
-        update(this.#context.state, decision, { decidedBy: USER_ASSERTION_POLICY_ID });
-        relation =
-          classifierDecision.type === "supersede" ||
-          classifierDecision.type === "extend"
-            ? classifierDecision.type
-            : "new";
-      } else if (decision.outcome === "re_assertion") {
+        } else if (
+          decision.outcome === "correction" ||
+          decision.outcome === "retraction"
+        ) {
+          update(this.#context.state, decision, { decidedBy: USER_ASSERTION_POLICY_ID });
+          permitsReinforcement = false;
+          relation = "supersede";
+        }
+      } else if (classifierDecision.type === "restatement") {
         relation = "restatement";
-        this.#reinforceEvidence(slotClaim.id, utteranceId);
-      } else if (
-        decision.outcome === "correction" ||
-        decision.outcome === "retraction"
-      ) {
-        update(this.#context.state, decision, { decidedBy: USER_ASSERTION_POLICY_ID });
-        relation = "supersede";
-      }
-    } else if (classifierDecision.type === "restatement") {
-      relation = "restatement";
-      this.#reinforceMatchingEvidence(staged.proposal.proposition);
-    }
 
-    const mappedDecision = mappedReconciliation(classifierDecision, relation);
+      }
+
+      if (permitsReinforcement && (classifierDecision.type === "restatement" || classifierDecision.type === "extend")) {
+        if (!resolved) reinforcement = "skipped_unresolved_target";
+        else if (!validSupport || classifierDecision.supportsTarget !== true) reinforcement = "skipped_unproven_source";
+        else {
+          const committedSource = this.#context.evidence.listUtterances().find(u => u.id === utteranceId);
+          if (committedSource?.content !== source) reinforcement = "skipped_changed_source";
+          else reinforcement = this.#context.lifecycle.reinforceOccurrence({ occurrenceId, evidenceId: selected.id, at, support: { utteranceId, start: span.start, end: span.end } }) ? "applied" : "duplicate_or_creation";
+        }
+      }
+      operation.signal?.throwIfAborted();
+      const mappedDecision = mappedReconciliation(classifierDecision, relation);
+      return {
+        classifierDecision,
+        reconciliationDecision: mappedDecision,
+        reconciliation: {
+          relation,
+          item: null,
+          previousItem: null,
+          conflictTargetIds,
+        },
+        evidence: {
+          reinforcement,
+          materializedCandidateIds: candidates.map((candidate) => candidate.handle),
+          classifierCandidateIds: candidates.map((candidate) => candidate.handle),
+          classifierInputSerialized: serialized,
+          classifierInputMeasuredUnits: this.#measurer.measure(serialized),
+          classifierInputMeasurementUnit: this.#measurer.unit,
+        },
+        index: { status: "not_required" },
+      };
+    });
+  }
+
+  #reusedClaimResult(
+    classifierDecision: RelationClassifierDecision,
+    targetId: string,
+    reinforcement: string,
+    candidates: readonly RelationClassifierCandidate[],
+    serialized: string,
+  ): RelationGatedCommitResult {
     return {
       classifierDecision,
-      reconciliationDecision: mappedDecision,
-      reconciliation: {
-        relation,
-        item: null,
-        previousItem: null,
-        conflictTargetIds,
-      },
+      reconciliationDecision: { type: "restatement", targetId },
+      reconciliation: { relation: "restatement", item: null, previousItem: null, conflictTargetIds: [] },
       evidence: {
-        materializedCandidateIds: candidates.map((candidate) => candidate.handle),
-        classifierCandidateIds: candidates.map((candidate) => candidate.handle),
+        reinforcement,
+        materializedCandidateIds: candidates.map(candidate => candidate.handle),
+        classifierCandidateIds: candidates.map(candidate => candidate.handle),
         classifierInputSerialized: serialized,
         classifierInputMeasuredUnits: this.#measurer.measure(serialized),
         classifierInputMeasurementUnit: this.#measurer.unit,
@@ -234,16 +327,20 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     return { status: "updated", document: pending.document };
   }
 
-  #ingestOnce(input: RelationCommitInput): string {
+  #ingestOnce(input: RelationCommitInput, at: string): string {
     // A source was already ingested by `LocalMemoryRuntime.ingestSource`, with
     // the extractor's own speaker, relation and locator. Re-ingesting it here
     // would duplicate the utterance and replace that provenance with
     // `speaker: "user"` and a fabricated `turn:` locator.
     if (input.batch.origin.kind === "source") {
-      return input.batch.origin.utteranceId;
+      const sourceId = input.batch.origin.utteranceId;
+      if (!this.#context.evidence.listUtterances().some(u => u.id === sourceId)) throw new Error("Source utterance does not belong to this namespace");
+      if (!this.#context.lifecycle.get(sourceId)) this.#context.lifecycle.attach({ evidenceId: sourceId, evidenceKind: "utterance", at });
+      return sourceId;
     }
-    const key = `${input.batch.taskId}:${input.batch.sourceMessage}`;
-    const existing = this.#ingested.get(key);
+    const locator = `turn:${input.batch.conversationId}:${input.batch.taskId}`;
+    const artifact = this.#context.evidence.listArtifacts().find(a => a.locator === locator);
+    const existing = artifact === undefined ? undefined : this.#context.evidence.listUtterances().find(u => u.artifactId === artifact.id && u.content === input.batch.sourceMessage)?.id;
     if (existing !== undefined) {
       return existing;
     }
@@ -251,7 +348,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       {
         content: input.batch.sourceMessage,
         speaker: "user",
-        locator: `turn:${input.batch.taskId}`,
+        locator,
         assertedAt: UNKNOWN_INSTANT,
         ingestedAt: UNKNOWN_INSTANT,
         scope: {
@@ -270,10 +367,10 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     this.#context.lifecycle.attach({
       evidenceId: utterance.id,
       evidenceKind: "utterance",
-      at: UNKNOWN_INSTANT,
+      at,
       caller: "knowledge-commit",
     });
-    this.#ingested.set(key, utterance.id);
+
     return utterance.id;
   }
 
@@ -359,71 +456,14 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     return definition;
   }
 
-  #classifierCandidates() {
-    const current = this.#context.state
-      .snapshot()
-      .bindings.filter((binding) => binding.interval.to === null);
-    return current.map((binding, index) => {
-      const viewed = this.#context.lifecycle.get(binding.claimId);
-      return {
-        handle: `candidate_${index + 1}`,
-        proposition: binding.label,
-        kind: "fact",
-        tags: [],
-        scope: ["local"],
-        authority: 1,
-        confidence: 0.5,
-        activationStatus: (viewed?.lifecycle.state === "dormant"
-          ? "dormant"
-          : "active") as "active" | "dormant",
-      };
-    });
+  #classifierCandidates(claims: ReturnType<KnowledgeReadContext["evidence"]["listClaims"]>, at: string) {
+    // Comparison includes dormant and source-attributed claims; activation is not truth.
+    return claims.map((claim, index) => ({
+      handle: `candidate_${index + 1}`, proposition: claim.label, kind: "fact", tags: [], scope: ["local"], authority: 1, confidence: 0.5,
+      activationStatus: viewLifecycle(this.#context.lifecycle, claim.id, at).memoryState,
+    }));
   }
 
-  #reinforceEvidence(claimId: string, utteranceId: string): void {
-    const ids = [claimId, utteranceId].filter((id) =>
-      this.#context.lifecycle.get(id) !== undefined,
-    );
-    if (ids.length === 0) {
-      return;
-    }
-    reinforce(this.#context.lifecycle, {
-      evidenceIds: ids,
-      caller: "knowledge-commit",
-      reason: "re_assertion after ACCEPT",
-      at: UNKNOWN_INSTANT,
-    });
-  }
-
-  #reinforceMatchingEvidence(proposition: string): void {
-    const ids = this.#context.lifecycle
-      .list()
-      .filter((record) => {
-        if (record.evidenceKind === "claim") {
-          const claim = this.#context.evidence
-            .listClaims()
-            .find((item) => item.id === record.evidenceId);
-          return claim?.label === proposition;
-        }
-        if (record.evidenceKind === "utterance") {
-          const utterance = this.#context.evidence
-            .listUtterances()
-            .find((item) => item.id === record.evidenceId);
-          return utterance?.content.includes(proposition) === true;
-        }
-        return false;
-      })
-      .map((record) => record.evidenceId);
-    if (ids.length === 0) {
-      return;
-    }
-    reinforce(this.#context.lifecycle, {
-      evidenceIds: ids,
-      caller: "knowledge-commit",
-      reason: "classifier restatement comparator",
-      at: UNKNOWN_INSTANT,
-    });
-  }
 }
 
 function statementClaim(input: {

@@ -42,7 +42,7 @@ async function batchWith(count: number): Promise<StagedKnowledgeBatch> {
   return new PostOutputKnowledgeIntake({
     analyzer: {
       async analyze() {
-        return Array.from({ length: count }, (_, index) => ({
+        return Array.from({ length: count }, (_, index) => ({ severity: "important",
           proposition: `Knowledge proposal ${index + 1}`,
           kind: "architecture-decision",
           tags: ["memory", `proposal-${index + 1}`],

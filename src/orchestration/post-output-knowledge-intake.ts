@@ -1,3 +1,4 @@
+import { isKnowledgeSeverity, type KnowledgeSeverity } from "../core/memory-lifecycle-policy.js";
 import { parseRuntimeId } from "../identity/runtime-id.js";
 import type {
   AgentId,
@@ -39,7 +40,14 @@ export type PostOutputAnalyzerInput =
   | DialogueAnalyzerInput
   | SourceAnalyzerInput;
 
+export interface KnowledgeSupportSpan {
+  readonly source: "message" | "source";
+  readonly start: number;
+  readonly end: number;
+}
 export interface AnalyzedKnowledgeDraft {
+  readonly severity?: string;
+  readonly support?: KnowledgeSupportSpan;
   readonly proposition: string;
   readonly kind: string;
   readonly tags?: readonly string[];
@@ -119,6 +127,8 @@ export type StagePostOutputKnowledgeInput =
   | StageSourceKnowledgeInput;
 
 export interface StagedKnowledgeProposal {
+  readonly severity?: KnowledgeSeverity;
+  readonly support?: KnowledgeSupportSpan;
   readonly proposal: KnowledgeProposal;
   readonly domains: readonly string[];
   readonly entities: readonly string[];
@@ -336,6 +346,8 @@ export function serializeStagedKnowledgeProposals(
 ): string {
   return JSON.stringify({
     proposals: proposals.map((entry) => ({
+      ...(entry.severity === undefined ? {} : { severity: entry.severity }),
+      ...(entry.support === undefined ? {} : { support: entry.support }),
       proposition: entry.proposal.proposition,
       kind: entry.proposal.kind,
       tags: [...(entry.proposal.tags ?? [])],
@@ -463,6 +475,12 @@ export class PostOutputKnowledgeIntake {
         );
       }
       const raw = value as Record<string, unknown>;
+      if (!isKnowledgeSeverity(raw.severity)) throw new MemoryError("policy", `proposal ${index + 1} requires severity critical, important or minor`);
+      const support = raw.support as KnowledgeSupportSpan | undefined;
+      const sourceText = analyzerInput.kind === "source" ? analyzerInput.content : analyzerInput.message;
+      const expectedSource = analyzerInput.kind === "source" ? "source" : "message";
+      const validSupport = support !== null && support !== undefined && support.source === expectedSource && Number.isSafeInteger(support.start) && Number.isSafeInteger(support.end) && support.start >= 0 && support.end > support.start && support.end <= sourceText.length;
+      if (support !== undefined && !validSupport) skipped.push(`proposal ${index + 1} reinforcement skipped: invalid source span`);
       const proposition = nonEmpty(
         raw.proposition,
         `proposal ${index + 1} proposition`,
@@ -501,6 +519,8 @@ export class PostOutputKnowledgeIntake {
         provenance: [],
       };
       return {
+        severity: raw.severity,
+        ...(validSupport ? { support: { source: support.source, start: support.start, end: support.end } } : {}),
         proposal,
         domains: normalizedStrings(
           raw.domains,
