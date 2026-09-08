@@ -94,3 +94,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0076 | empty-chat 4D starfield | Grok (operator) | 2026-09-08 | transparent starfield behind the empty conversation only |
 | A008-0077 | browser iframe frame-ancestors fallback | Grok (operator) | 2026-09-08 | detect sites that refuse framing; open in system browser instead |
 | A008-0078 | core product contract and necessity gate | Codex (operator) | 2026-09-08 | docs-first implementation authority and task template |
+| A008-0079 | instruction plane and memory lifecycle specification | Codex (operator) | 2026-09-08 | bounded requirements, proposed policy defaults and acceptance cases |
