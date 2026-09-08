@@ -1,5 +1,8 @@
 # File Structure
 
+A008-0076 adds a transparent 4D starfield canvas behind the empty conversation
+only (`gui/src/chat/starfield.tsx`). It unmounts when the transcript has turns.
+
 A008-0075 lets the empty-chat shortcut dock hide and restore from a Shortcuts
 control; the choice is stored in localStorage. Keyboard shortcuts stay active.
 
@@ -81,6 +84,8 @@ A008/
 |  |  |  `- use-gui-session.ts       React hook exposing GuiSession
 |  |  |- chat/                       A008-0034 transcript
 |  |  |  |- empty-shortcuts.tsx      workbench shortcut chips and hide/show dock
+|  |  |  |- starfield.tsx            empty-chat 4D starfield layer
+|  |  |  |- starfield-engine.ts      4D rotate/project and canvas loop
 |  |  |  |- chat-pane.tsx            user, answer, and thought DOM channels
 |  |  |  |- chat-history.ts          pure turn-commit reducer
 |  |  |  |- chat-transcript.ts       transcript model

@@ -91,3 +91,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0073 | kie.ai provider for chat and image jobs | Grok (operator) | 2026-09-08 | KIE_API_KEY, OpenAI-compatible chat, async image jobs, Provider settings |
 | A008-0074 | empty-chat ASCII logo | Grok (operator) | 2026-09-08 | centre the owner ASCII mark on the empty conversation |
 | A008-0075 | hideable shortcut dock | Grok (operator) | 2026-09-08 | Hide/show the empty-chat shortcut chips; keep keyboard shortcuts |
+| A008-0076 | empty-chat 4D starfield | Grok (operator) | 2026-09-08 | transparent starfield behind the empty conversation only |
