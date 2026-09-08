@@ -2,6 +2,40 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — A008-0081: L2 implemented and published
+
+- Task: A008-0081; operator: Codex; branch: `main`.
+- Integrated implementation `e7f4874b9ee4616b7b029f54d0d1ae43b225fea0`
+  and handoff `2d151da5f056140a5692f93277c971eae719f5ff`. Published main
+  and verified local/remote equality at `2d151da` before this closure entry.
+- Implemented accepted P1-P5: per-claim severity, numeric creation policy
+  snapshots, operational exponential baselines, lazy activation and independent
+  source support for exact-target restatement/extend. Canonical carrier reuse,
+  creation-occurrence dedup and atomic occurrence/claim receipts prevent retry
+  strengthening. Source attribution and state/history ownership survive.
+- Existing SQLite ownership now encloses whole live commits, with rollback and
+  stale-connection protection. Schema 3 converts legacy baselines at one time,
+  preserves thresholds/pins/unknown historical clocks, and stores receipts.
+  Settings format 3 preserves advanced policy through existing-client saves.
+- Verification: typecheck/build passed; core 511/511; membership 4/4; GUI 116/116.
+  The ten new L2 groups cover fixed clocks, source proof, rollback, duplicate
+  creation/receipt, cancellation, concurrent connection delivery and restart,
+  legacy migration interruption/retry, the prior published store's actual
+  executable rejection and SQLite backup restoration. No failures or skips.
+- Final necessity and documentation checks passed: frozen specification body
+  and charter unchanged, prior immutable records intact, current-task template
+  restored, references/anchors/fences and UTF-8 valid, no credential-pattern
+  additions or staged whitespace errors. Existing historical broken references
+  remain separately tracked; no new failures were introduced.
+- Archive: `docs/finished/A008-0081_evidence-lifecycle.md`; handoff:
+  `docs/handoffs/A008-0081.md`. Owning constitution/system/status/semantic-call
+  docs and indexes now describe L2. The reviewed specification body is frozen.
+- L3 is not activated. No live/paid provider call, physical power-loss test,
+  user-data migration, running-application restart, packaged distribution
+  rebuild or deployment was performed. Synthetic judgments do not establish
+  live model accuracy. Backup/restore before opening valuable existing data is
+  documented in the constitution. Pre-existing `.grok/` remains untouched.
+
 ## 2026-09-08 — A008-0080: L1 implemented and published
 
 - Task: A008-0080; operator: Codex; branch: `main`.
