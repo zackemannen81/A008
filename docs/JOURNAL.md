@@ -2,6 +2,14 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — empty-chat 4D starfield
+
+- Task: A008-0076; operator: Grok; branch: `A008-0076-empty-starfield`.
+- Transparent 4D starfield canvas behind the empty conversation only.
+- Unmounts on the first message; reduced-motion skips the loop.
+- Verification: GUI typecheck and tests. No live provider call.
+- Signature: Grok.
+
 ## 2026-09-08 — hideable shortcut dock
 
 - Task: A008-0075; operator: Grok; branch: `A008-0075-hide-shortcuts`.

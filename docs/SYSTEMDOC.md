@@ -362,7 +362,9 @@ so drafts and in-session history survive. It does not create saved conversations
 
 Empty chat shows the owner ASCII mark (`gui/src/brand/a008-ascii.ts`) above
 the start cards, then a rule and the heading. The mark is decorative
-(`aria-hidden`). Empty chat also offers Review, Terminal, Browser, Files and Workbench shortcuts
+(`aria-hidden`). Behind that empty pane a transparent 4D starfield canvas
+runs until the first message or generated image; `prefers-reduced-motion`
+skips the animation loop. Empty chat also offers Review, Terminal, Browser, Files and Workbench shortcuts
 (Ctrl+Shift+G, Ctrl+`, Ctrl+T, Ctrl+P, Ctrl+Alt+S). The chip dock can be hidden;
 a Shortcuts control restores it, and the choice is remembered in localStorage.
 Keyboard shortcuts still work while the dock is hidden. Workbench opens a floating

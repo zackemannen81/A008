@@ -15,6 +15,7 @@ import {
 } from "./chat-transcript.js";
 import { AsciiLogo } from "../brand/ascii-logo.js";
 import { StartActions } from "./start-actions.js";
+import { EmptyStarfield } from "./starfield.js";
 import "./chat-pane.css";
 
 export interface ChatGeneratedImage {
@@ -146,6 +147,7 @@ export function ChatPane(props: {
 
   return (
     <section className="a008-chat" aria-label="A008 chat">
+      {transcript.empty && (props.images?.length ?? 0) === 0 ? <EmptyStarfield /> : null}
       {session.error !== undefined && session.error !== "" ? (
         <p className="a008-chat-error" data-a008-chat="error" role="alert">
           {session.error}

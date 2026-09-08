@@ -164,6 +164,7 @@ test("empty chat keeps start cards in the centre and does not host shortcut chip
   assert.match(html, /Explore and understand the code/u);
   assert.match(html, /a008-empty-logo/u);
   assert.match(html, /a008-empty-rule/u);
+  assert.match(html, /a008-starfield/u);
   assert.equal(html.includes("Workbench shortcuts"), false);
 });
 
@@ -212,6 +213,7 @@ test("DOM contract: a thought-only turn renders no answer node", () => {
   assert.deepEqual(textsOn(nodes, "answer"), []);
   assert.equal(textsOn(nodes, "thought")[0]?.includes(THOUGHT_TOKEN), true);
   assert.equal(html.includes("Thinking"), true);
+  assert.equal(html.includes("a008-starfield"), false);
 });
 
 test("DOM contract: the empty transcript shows A008 copy and no channels", () => {
