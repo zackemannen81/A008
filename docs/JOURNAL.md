@@ -2,6 +2,17 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — A008-0083: semantic request repair published
+
+- Task: A008-0083; operator: Codex; branch: `main`.
+- Integrated and published `ec77d63`: Kimi semantic calls omit immutable top P;
+  the relation instruction explicitly returns a decision rather than an envelope.
+- Typecheck/build passed, core 524/524, GUI 116/116 and membership 4/4; no skips.
+  Offline NVIDIA payload/commit coverage and malformed-envelope rejection pass.
+- Strict parsing and one-call ownership remain intact. No live model compliance
+  claim, private trace publication, user settings/database change or logo edit.
+- [Handoff](handoffs/A008-0083.md); next authorized work is A008-0084.
+
 ## 2026-09-08 — A008-0082: L3 implemented and published
 
 - Task: A008-0082; operator: Codex; branch: `main`.
