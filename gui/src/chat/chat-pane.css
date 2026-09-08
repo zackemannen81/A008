@@ -91,8 +91,30 @@
   padding: 0;
   overflow: hidden;
   border: 0;
-  background: none;
-  color: color-mix(in srgb, var(--a008-chat-fg, #101418) 28%, transparent);
+
+  background: linear-gradient(
+    to bottom,
+    #3fbf6f 0%,
+    #3fbf6f 16.66%,
+    #d9d64a 16.66%,
+    #d9d64a 33.33%,
+    #e48b3c 33.33%,
+    #e48b3c 50%,
+    #d94a4a 50%,
+    #d94a4a 66.66%,
+    #8d3f78 66.66%,
+    #8d3f78 83.33%,
+    #3d7fc4 83.33%,
+    #3d7fc4 100%
+  );
+
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  opacity: 0.92;
+
   font-family: var(--a008-mono, ui-monospace, monospace);
   font-size: 4.5px;
   font-size: 1cqi;
