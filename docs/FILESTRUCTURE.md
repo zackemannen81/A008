@@ -1,5 +1,11 @@
 # File Structure
 
+A008-0084 adds `gui/src/memory/memory-graph-layout.ts` for deterministic cluster
+and label geometry. `gui/test/memory-map-preview.mjs` and its TSX fixture expose
+an isolated synthetic preview only when the test runner is started;
+`gui/test/README.md` records browser checks. The existing MemoryPage/SVG/inspector
+remain the presentation owners; no runtime, schema, API or package change.
+
 A008-0083 repairs semantic options/instructions in the existing runtime and
 semantic JSON owner. Its charter, archive and handoff use the existing task
 collections; no new runtime module, package or data schema is introduced.
@@ -92,7 +98,8 @@ A008/
 |  |  |  |- memory-page.tsx          three views, filters, refresh and pagination
 |  |  |  |- memory-client.ts        validated host inspection client
 |  |  |  |- memory-overview.tsx      actual inventory and domain counts
-|  |  |  |- memory-graph.tsx         clustered radial graph (A008-0070)
+|  |  |  |- memory-graph.tsx         stable SVG graph, focus camera and zoom
+|  |  |  |- memory-graph-layout.ts  spaced domain clusters and selective labels
 |  |  |  |- memory-inspector.tsx     escaped record details
 |  |  |  |- memory.css              responsive layout using existing tokens
 |  |  |  `- memory.test.ts           client, DOM and graph checks

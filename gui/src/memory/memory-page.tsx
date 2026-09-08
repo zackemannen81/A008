@@ -10,7 +10,7 @@ import {
   type MemorySnapshot,
 } from "./memory-client.js";
 import { MemoryGraph } from "./memory-graph.js";
-import { MemoryInspector } from "./memory-inspector.js";
+import { MemoryInspector, storedConnections } from "./memory-inspector.js";
 import { MemoryOverview } from "./memory-overview.js";
 import "./memory.css";
 
@@ -76,12 +76,16 @@ export function MemoryPage({ active }: { active: boolean }) {
     setSelected(undefined);
   }
   const title = VIEWS.find((candidate) => candidate.id === view)!.title;
+  const connections =
+    selected && snapshot
+      ? storedConnections(selected.id, snapshot.graph)
+      : undefined;
   const statuses = [
     ...new Set(["active", "dormant", ...(snapshot?.summary.statuses ?? [])]),
   ];
   return (
     <section
-      className="memory-page"
+      className={`memory-page${view === "graph" ? " memory-page-map" : ""}`}
       aria-label="Memory diagnostics"
       aria-busy={loading}
     >
@@ -243,10 +247,26 @@ export function MemoryPage({ active }: { active: boolean }) {
                   <>
                     <div className="memory-metrics memory-metrics-graph">
                       {[
-                        ["Stored records", snapshot.summary.total, "Across all domains"],
-                        ["Open bindings", snapshot.summary.counts.state, "Active relationships"],
-                        ["Dormant evidence", snapshot.summary.dormant, "Not recently referenced"],
-                        ["Contested slots", snapshot.summary.contestedSlots, "Multiple conflicting claims"],
+                        [
+                          "Stored records",
+                          snapshot.summary.total,
+                          "Across all domains",
+                        ],
+                        [
+                          "Open bindings",
+                          snapshot.summary.counts.state,
+                          "Current state slots",
+                        ],
+                        [
+                          "Dormant evidence",
+                          snapshot.summary.dormant,
+                          "Below activation threshold",
+                        ],
+                        [
+                          "Contested slots",
+                          snapshot.summary.contestedSlots,
+                          "Multiple conflicting claims",
+                        ],
                       ].map(([label, value, hint]) => (
                         <article className="memory-metric" key={label}>
                           <span className="memory-eyebrow">{label}</span>
@@ -370,14 +390,9 @@ export function MemoryPage({ active }: { active: boolean }) {
                 )}
                 <MemoryInspector
                   record={selected}
-                  relatedCount={
-                    selected
-                      ? snapshot.graph.edges.filter(
-                          (edge) =>
-                            edge.from === selected.id || edge.to === selected.id,
-                        ).length
-                      : undefined
-                  }
+                  relatedCount={connections?.length}
+                  connections={connections}
+                  onSelect={setSelected}
                   onClose={() => setSelected(undefined)}
                 />
               </div>

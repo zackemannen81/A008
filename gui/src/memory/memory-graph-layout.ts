@@ -1,0 +1,205 @@
+import type { MemoryEdge, MemoryRecord } from "./memory-client.js";
+
+export interface GraphPoint {
+  readonly id: string;
+  x: number;
+  y: number;
+}
+export interface GraphCluster {
+  readonly name: string;
+  x: number;
+  y: number;
+  readonly radius: number;
+  readonly count: number;
+  readonly leadId: string;
+}
+export interface GraphLayout {
+  readonly points: GraphPoint[];
+  readonly clusters: GraphCluster[];
+  readonly hubId: string | undefined;
+  readonly width: number;
+  readonly height: number;
+}
+
+export function primaryDomain(node: MemoryRecord): string {
+  return node.domains[0] ?? "Unlabelled";
+}
+
+export function degreeMap(
+  nodes: readonly MemoryRecord[],
+  edges: readonly MemoryEdge[],
+) {
+  const degree = new Map(nodes.map((node) => [node.id, 0]));
+  for (const edge of edges) {
+    degree.set(edge.from, (degree.get(edge.from) ?? 0) + 1);
+    degree.set(edge.to, (degree.get(edge.to) ?? 0) + 1);
+  }
+  return degree;
+}
+
+const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const compareId = (a: MemoryRecord, b: MemoryRecord) =>
+  a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+
+/** Deterministic circle packing around a hub, without simulation or clamping.
+ * Domains are presentation groups; placement never manufactures a relation. */
+export function layoutGraph(
+  nodes: readonly MemoryRecord[],
+  edges: readonly MemoryEdge[],
+  hubId?: string,
+): GraphLayout {
+  if (!nodes.length)
+    return {
+      points: [],
+      clusters: [],
+      hubId: undefined,
+      width: 1000,
+      height: 680,
+    };
+  const degree = degreeMap(nodes, edges);
+  const ranked = [...nodes].sort(
+    (a, b) => degree.get(b.id)! - degree.get(a.id)! || compareId(a, b),
+  );
+  const hub = nodes.find((node) => node.id === hubId) ?? ranked[0]!;
+  const points: GraphPoint[] = [{ id: hub.id, x: 0, y: 0 }];
+  const grouped = new Map<string, MemoryRecord[]>();
+  for (const node of ranked) {
+    if (node.id === hub.id) continue;
+    const domain = primaryDomain(node);
+    const members = grouped.get(domain) ?? [];
+    members.push(node);
+    grouped.set(domain, members);
+  }
+  const groups = [...grouped].sort(
+    ([a, aa], [b, bb]) => bb.length - aa.length || (a < b ? -1 : a > b ? 1 : 0),
+  );
+  const clusters: GraphCluster[] = [];
+  const occupied = [{ x: 0, y: 0, radius: 100 }];
+  for (const [name, members] of groups) {
+    const radius = Math.max(88, 34 * Math.sqrt(members.length) + 48);
+    let x = 0,
+      y = 0,
+      step = 0;
+    do {
+      const distance = 22 * Math.sqrt(++step);
+      const angle = step * GOLDEN_ANGLE;
+      x = Math.cos(angle) * distance * 1.45;
+      y = Math.sin(angle) * distance * 0.75;
+    } while (
+      occupied.some(
+        (other) =>
+          Math.hypot(x - other.x, y - other.y) < radius + other.radius + 24,
+      )
+    );
+    occupied.push({ x, y, radius });
+    clusters.push({
+      name,
+      x,
+      y,
+      radius,
+      count: members.length,
+      leadId: members[0]!.id,
+    });
+    members.forEach((node, i) => {
+      const distance = i === 0 ? 0 : 34 * Math.sqrt(i);
+      points.push({
+        id: node.id,
+        x: x + Math.cos(i * GOLDEN_ANGLE) * distance,
+        y: y + Math.sin(i * GOLDEN_ANGLE) * distance,
+      });
+    });
+  }
+  const left = Math.min(...occupied.map((c) => c.x - c.radius)) - 35;
+  const top = Math.min(...occupied.map((c) => c.y - c.radius)) - 35;
+  const right = Math.max(...occupied.map((c) => c.x + c.radius)) + 35;
+  const bottom = Math.max(...occupied.map((c) => c.y + c.radius)) + 35;
+  const width = Math.max(1000, right - left),
+    height = Math.max(680, bottom - top);
+  const dx = -left + (width - (right - left)) / 2;
+  const dy = -top + (height - (bottom - top)) / 2;
+  for (const point of points) {
+    point.x += dx;
+    point.y += dy;
+  }
+  for (const cluster of clusters) {
+    cluster.x += dx;
+    cluster.y += dy;
+  }
+  return { points, clusters, hubId: hub.id, width, height };
+}
+
+export interface GraphLabel {
+  readonly id: string;
+  readonly text: string;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+}
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+const overlaps = (a: Box, b: Box) =>
+  a.x < b.x + b.width &&
+  a.x + a.width > b.x &&
+  a.y < b.y + b.height &&
+  a.y + a.height > b.y;
+export const shorten = (text: string, limit: number) =>
+  text.length > limit ? `${text.slice(0, limit)}…` : text;
+
+/** Put high-priority labels first; omit labels that cannot fit, never records.
+ * Full labels remain in the keyboard-accessible inspector and native titles. */
+export function layoutLabels(
+  layout: GraphLayout,
+  nodes: readonly MemoryRecord[],
+  priority: readonly string[],
+) {
+  const records = new Map(nodes.map((node) => [node.id, node]));
+  const points = new Map(layout.points.map((point) => [point.id, point]));
+  const boxes: Box[] = layout.points.map((p) => ({
+    x: p.x - 16,
+    y: p.y - 16,
+    width: 32,
+    height: 32,
+  }));
+  for (const c of layout.clusters)
+    boxes.push({ x: c.x - 110, y: c.y - c.radius + 3, width: 220, height: 44 });
+  const labels: GraphLabel[] = [];
+  for (const id of new Set(priority)) {
+    const point = points.get(id),
+      record = records.get(id);
+    if (!point || !record) continue;
+    const text = shorten(record.label || record.sourceId, 22);
+    const width = Math.max(44, [...text].length * 11 + 16);
+    const candidates = [
+      { x: point.x + 20, y: point.y - 15, width, height: 30 },
+      { x: point.x - width - 20, y: point.y - 15, width, height: 30 },
+      { x: point.x - width / 2, y: point.y + 20, width, height: 30 },
+      { x: point.x - width / 2, y: point.y - 50, width, height: 30 },
+    ];
+    const box = candidates.find(
+      (b) =>
+        b.x >= 8 &&
+        b.y >= 8 &&
+        b.x + b.width <= layout.width - 8 &&
+        b.y + b.height <= layout.height - 8 &&
+        !boxes.some((other) => overlaps(b, other)),
+    );
+    if (!box) continue;
+    boxes.push(box);
+    labels.push({ id, text, x: box.x, y: box.y, width });
+  }
+  return labels;
+}
+
+export function edgePath(a: GraphPoint, b: GraphPoint): string {
+  if (a.id === b.id)
+    return `M ${a.x - 5} ${a.y - 10} C ${a.x - 60} ${a.y - 72}, ${a.x + 60} ${a.y - 72}, ${a.x + 5} ${a.y - 10}`;
+  const dx = b.x - a.x,
+    dy = b.y - a.y,
+    distance = Math.hypot(dx, dy);
+  const bend = Math.min(48, distance * 0.15);
+  return `M ${a.x} ${a.y} Q ${(a.x + b.x) / 2 - (dy / distance) * bend} ${(a.y + b.y) / 2 + (dx / distance) * bend} ${b.x} ${b.y}`;
+}

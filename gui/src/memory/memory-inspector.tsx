@@ -1,4 +1,30 @@
-import { KIND_LABEL, type MemoryRecord } from "./memory-client.js";
+import {
+  KIND_LABEL,
+  type MemoryRecord,
+  type MemorySnapshot,
+} from "./memory-client.js";
+
+export function storedConnections(id: string, graph: MemorySnapshot["graph"]) {
+  const nodes = new Map(graph.nodes.map((node) => [node.id, node]));
+  return graph.edges.flatMap((edge) => {
+    if (edge.from !== id && edge.to !== id) return [];
+    const record = nodes.get(edge.from === id ? edge.to : edge.from);
+    return record
+      ? [
+          {
+            record,
+            relation: edge.relation,
+            direction:
+              edge.from === edge.to
+                ? "self"
+                : edge.from === id
+                  ? "outgoing"
+                  : "incoming",
+          },
+        ]
+      : [];
+  });
+}
 
 function parseDetail(detail: string): Record<string, unknown> | undefined {
   try {
@@ -13,7 +39,9 @@ function parseDetail(detail: string): Record<string, unknown> | undefined {
 }
 
 function textField(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+  return typeof value === "string" && value.trim().length > 0
+    ? value
+    : undefined;
 }
 
 function numberField(value: unknown): string | undefined {
@@ -25,10 +53,14 @@ function numberField(value: unknown): string | undefined {
 export function MemoryInspector({
   record,
   relatedCount,
+  connections,
+  onSelect,
   onClose,
 }: {
   record: MemoryRecord | undefined;
   relatedCount?: number;
+  connections?: ReturnType<typeof storedConnections>;
+  onSelect?: (record: MemoryRecord) => void;
   onClose: () => void;
 }) {
   const parsed = record ? parseDetail(record.detail) : undefined;
@@ -57,13 +89,16 @@ export function MemoryInspector({
         [
           "Links",
           relatedCount !== undefined
-            ? `${relatedCount} related records`
+            ? `${relatedCount} stored links in this view`
             : undefined,
         ],
       ].filter((row): row is [string, string] => row[1] !== undefined)
     : [];
   return (
-    <aside className="memory-inspector memory-card" aria-label="Record inspector">
+    <aside
+      className="memory-inspector memory-card"
+      aria-label="Record inspector"
+    >
       <div className="memory-section-heading">
         <h2>Record inspector</h2>
         {record ? (
@@ -120,7 +155,42 @@ export function MemoryInspector({
               ))}
             </tbody>
           </table>
-          <details open>
+          {connections && onSelect ? (
+            <div className="memory-stored-connections">
+              <h3>
+                Connected records <span>{connections.length} links</span>
+              </h3>
+              {connections.length ? (
+                <ul>
+                  {connections.map((connection, index) => (
+                    <li
+                      key={`${connection.record.id}:${connection.direction}:${connection.relation}:${index}`}
+                    >
+                      <button onClick={() => onSelect(connection.record)}>
+                        <span className="memory-connection-relation">
+                          {connection.direction === "outgoing"
+                            ? "→"
+                            : connection.direction === "incoming"
+                              ? "←"
+                              : "↻"}{" "}
+                          {connection.relation} · {connection.direction}
+                        </span>
+                        <span>
+                          {connection.record.label ||
+                            connection.record.sourceId}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="memory-muted">
+                  No stored links in this bounded view.
+                </p>
+              )}
+            </div>
+          ) : null}
+          <details>
             <summary>Content</summary>
             {record.truncated ? (
               <p className="memory-warning">

@@ -5,6 +5,16 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0084 makes the existing memory map stable and readable: spaced primary-domain
+clusters, selective labels, curved stored links, and a focus camera over the
+selected neighbourhood. Node positions survive selection; the inspector follows
+actual directed links and preserves full escaped text. Graph limits, retrieval
+and lifecycle remain unchanged. GUI build/typecheck and 118 GUI tests pass;
+eight inspection core tests pass, including real HTTP/ACP with no provider call.
+Synthetic browser checks cover 80 nodes/240 links, desktop/narrow sizes,
+keyboard selection, focus/zoom, search/filter and empty states.
+See [handoff](handoffs/A008-0084.md) and [repeatable preview](../gui/test/README.md).
+
 A008-0083 fixes the observed Kimi semantic HTTP 400 by omitting immutable top P
 through the existing capability owner. Relation instructions now specify the
 exact decision shape and exclude the input envelope. Offline end-to-end NVIDIA

@@ -11,7 +11,8 @@ import {
   type MemorySnapshot,
 } from "./memory-client.js";
 import { layoutGraph, MemoryGraph } from "./memory-graph.js";
-import { MemoryInspector } from "./memory-inspector.js";
+import { MemoryInspector, storedConnections } from "./memory-inspector.js";
+import { edgePath, layoutLabels } from "./memory-graph-layout.js";
 import { MemoryOverview } from "./memory-overview.js";
 
 const record: MemoryRecord = {
@@ -210,5 +211,115 @@ test("graph clusters neighbour records by primary domain around a hub", () => {
   );
   assert.match(html, /cognition/u);
   assert.match(html, /1 nodes/u);
-  assert.match(html, /<line/u);
+  assert.match(html, /class="memory-edge selected"/u);
+  assert.match(html, /<path d="M /u);
+});
+
+test("dense single-domain and many-domain maps preserve spacing, bounds and order independence", () => {
+  for (const domains of [1, 6, 79]) {
+    const nodes = Array.from({ length: 80 }, (_, i) => ({
+      ...record,
+      id: `node:${String(i).padStart(2, "0")}`,
+      label: `Long synthetic memory label number ${i}`,
+      domains: [`domain ${i % domains}`],
+    }));
+    const edges = nodes
+      .slice(1)
+      .map((node) => ({
+        from: nodes[0]!.id,
+        to: node.id,
+        relation: "references",
+      }));
+    const layout = layoutGraph(nodes, edges);
+    assert.deepEqual(
+      layout,
+      layoutGraph([...nodes].reverse(), [...edges].reverse()),
+    );
+    assert.equal(layout.points.length, 80);
+    for (const [i, a] of layout.points.entries()) {
+      assert.ok(
+        a.x >= 24 &&
+          a.x <= layout.width - 24 &&
+          a.y >= 24 &&
+          a.y <= layout.height - 24,
+      );
+      for (const b of layout.points.slice(i + 1))
+        assert.ok(
+          Math.hypot(a.x - b.x, a.y - b.y) >= 33,
+          `${domains}: ${a.id}/${b.id}`,
+        );
+    }
+    const labels = layoutLabels(
+      layout,
+      nodes,
+      nodes.map((node) => node.id),
+    );
+    for (const [i, a] of labels.entries())
+      for (const b of labels.slice(i + 1)) {
+        assert.ok(
+          a.x + a.width <= b.x ||
+            b.x + b.width <= a.x ||
+            a.y + 30 <= b.y ||
+            b.y + 30 <= a.y,
+        );
+      }
+    const render = (selected: string | undefined) =>
+      renderToStaticMarkup(
+        createElement(MemoryGraph, {
+          graph: {
+            nodes,
+            edges,
+            totalNodes: nodes.length,
+            totalEdges: edges.length,
+          },
+          selected,
+          onSelect() {},
+        }),
+      );
+    const positions = (html: string) =>
+      [...html.matchAll(/transform="translate\([^"]+"/gu)].map((m) => m[0]);
+    assert.deepEqual(
+      positions(render(undefined)),
+      positions(render(nodes[40]!.id)),
+    );
+  }
+});
+
+test("inspector navigation preserves stored direction, parallel labels and self links", () => {
+  const other = { ...record, id: "other", label: "Other <script> record" };
+  const graph = {
+    nodes: [record, other],
+    totalNodes: 2,
+    totalEdges: 4,
+    edges: [
+      { from: record.id, to: other.id, relation: "supports" },
+      { from: other.id, to: record.id, relation: "derived_from" },
+      { from: record.id, to: other.id, relation: "references" },
+      { from: record.id, to: record.id, relation: "self_reference" },
+    ],
+  };
+  const connections = storedConnections(record.id, graph);
+  assert.deepEqual(
+    connections.map((c) => c.direction),
+    ["outgoing", "incoming", "outgoing", "self"],
+  );
+  assert.deepEqual(
+    connections.map((c) => c.relation),
+    graph.edges.map((e) => e.relation),
+  );
+  const html = renderToStaticMarkup(
+    createElement(MemoryInspector, {
+      record,
+      connections,
+      relatedCount: 4,
+      onSelect() {},
+      onClose() {},
+    }),
+  );
+  assert.match(html, /4 stored links in this view/u);
+  assert.match(html, /Other &lt;script&gt; record/u);
+  assert.equal(html.includes("<script>"), false);
+  const point = { id: "self", x: 100, y: 100 };
+  assert.match(edgePath(point, point), / C /u);
+  assert.equal(edgePath(point, point).includes("NaN"), false);
 });

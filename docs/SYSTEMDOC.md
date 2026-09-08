@@ -503,12 +503,29 @@ The contract and limits are specified in [HOST_PROTOCOL.md](HOST_PROTOCOL.md).
 Overview shows actual inventory, lifecycle and contested-slot counts plus domain
 attachments. Knowledge Manager provides substring search, surface/domain/status
 filters, pagination and escaped stored details. It offers no mutation actions.
-The graph shows only stored connections among its bounded nodes. A008-0070 lays
-them out as a domain-clustered radial map around a hub record, with kind colours,
-cluster labels, focus mode and zoom. Distances still make no similarity claim.
-The inspector shows chips, a details table and escaped content. Empty,
-unavailable, loading and truncated states are explicit. The detailed inventory
-includes unaccepted and dormant evidence a chat projection may omit.
+The graph shows only stored connections among its bounded nodes. A008-0084
+refines ADR 0031's domain-clustered layout: deterministic circle packing separates
+primary domains around a hub chosen by displayed link count. Stable ID ordering
+breaks ties; selection changes emphasis, never coordinates. Bounds grow instead
+of clamping nodes together. Kind colours remain intact even on the selected hub;
+node size reflects displayed links and dashed rings identify dormant evidence.
+
+Labels prioritize selected/hovered records, their neighbours and cluster leads;
+collision checks omit crowded labels, never records. Full labels remain in native
+titles, a caption and the inspector. Curved lines represent only stored edges.
+The inspector lists exact incoming/outgoing/self relations and navigates their
+existing endpoints; parallel relations remain separate entries. Its link count
+means displayed stored links, not unique related records or the complete store.
+
+Focus mode hides unrelated records and frames the selected neighbourhood without
+changing its positions. Fit restores the current frame; zoom and native scrolling
+work on desktop and narrow screens. The inspector follows the graph below the
+existing responsive breakpoint. Distances make no similarity claim; domain
+shading and reads do not create/reinforce edges or activate evidence. Graph limits
+remain 80 records and 240 links. Empty, unavailable, loading and truncated states
+are explicit; the inventory includes evidence a chat projection may omit.
+The isolated synthetic preview and verification recipe are in
+[gui/test/README.md](../gui/test/README.md); no preview route enters production.
 
 ### Memory runtime
 
