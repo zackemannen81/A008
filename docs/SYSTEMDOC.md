@@ -218,6 +218,7 @@ GET    /v1/provider-settings   providers, models, key configured? (never the key
 POST   /v1/provider-settings   write-only NVIDIA/kie keys and provider settings
 POST   /v1/images              generate; store PNG/JPEG in the source store
 GET    /v1/blobs/:sha256/:name serve a stored generated image
+GET    /v1/browser/frame-check  whether a URL's CSP/XFO allows the iframe
 POST   /v1/shell
 ```
 
@@ -372,7 +373,10 @@ environment/sources card: git branch and change counts from host-shell
 `git status -sb` / shortstat, session uploads, and clipboard ingest through
 `POST /v1/upload`. It is not the tool catalog. Help hosts that catalog and the
 shortcut reference. Tools keeps Terminal, Files, Browser and Upload as working
-panes. On a narrow screen the workbench card occupies the main area; the same
+panes. The Browser pane is a sandboxed iframe; sites that set
+`frame-ancestors` or `X-Frame-Options` (ChatGPT, NVIDIA Build, …) are not
+framed. The host probes those headers and the pane offers Open in the system
+browser instead. On a narrow screen the workbench card occupies the main area; the same
 button closes it. The token file `brand/a008.css` provides neutral colours;
 `brand/workspace.css` is loaded last for shell and responsive feature composition.
 See [ADR 0031](adr/0031-workbench-context-and-memory-map.md).

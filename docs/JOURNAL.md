@@ -2,6 +2,15 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — browser iframe frame-ancestors fallback
+
+- Task: A008-0077; operator: Grok; branch: `A008-0077-browser-frame`.
+- ChatGPT and NVIDIA Build set `frame-ancestors`; A008 cannot iframe them.
+- Host probes CSP/XFO and the pane opens those sites in the system browser
+  instead of loading a blank frame.
+- Verification: core browser-frame tests, membership, GUI typecheck/116 tests.
+- Signature: Grok.
+
 ## 2026-09-08 — empty-chat 4D starfield
 
 - Task: A008-0076; operator: Grok; branch: `A008-0076-empty-starfield`.

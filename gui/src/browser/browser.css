@@ -24,7 +24,8 @@
   color: var(--a008-fg);
   font: inherit;
 }
-.a008-browser-bar button {
+.a008-browser-bar button,
+.a008-browser-open {
   padding: 0.55rem 0.8rem;
   border: 1px solid var(--a008-border);
   border-radius: 0.5rem;
@@ -32,6 +33,32 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.a008-browser-blocked {
+  flex: 1;
+  min-height: 18rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.7rem;
+  padding: 1.2rem;
+  border: 1px solid var(--a008-border);
+  border-radius: 0.7rem;
+  background: var(--a008-panel);
+  color: var(--a008-fg-soft);
+  text-align: center;
+}
+.a008-browser-blocked p { margin: 0; line-height: 1.5; }
+.a008-browser-blocked a {
+  align-self: center;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--a008-border);
+  border-radius: 0.5rem;
+  color: inherit;
+  text-decoration: none;
 }
 .a008-browser iframe {
   flex: 1;

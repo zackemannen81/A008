@@ -1,5 +1,9 @@
 # File Structure
 
+A008-0077 adds `src/gui-host/frame-policy.ts` and `browser-frame.ts`, plus
+`GET /v1/browser/frame-check`. Sites that forbid iframes are not framed; the
+Browser pane offers Open in the system browser.
+
 A008-0076 adds a transparent 4D starfield canvas behind the empty conversation
 only (`gui/src/chat/starfield.tsx`). It unmounts when the transcript has turns.
 
@@ -115,6 +119,8 @@ A008/
 |  |  |- origin.ts                   same-origin/loopback guard
 |  |  |- source-store.ts             A008-0044 content-addressed blob store
 |  |  |- provider-routes.ts          catalog, provider settings, image generate
+|  |  |- frame-policy.ts             CSP/XFO framing allow check
+|  |  |- browser-frame.ts            host probe for Browser pane iframe
 |  |  `- redact.ts                   credential and authorization redaction
 |  |- ingest/                        A008-0042 source extraction (ADR 0020)
 |  |  |- types.ts                    SourceExtractor, ExtractedSource, ImageDescriber
