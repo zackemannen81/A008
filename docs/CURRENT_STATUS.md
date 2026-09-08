@@ -5,6 +5,11 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0079 prepares the [instruction and memory lifecycle specification](backlog/instruction-plane-and-memory-lifecycle.md).
+Its three implementation slices and numeric defaults are Proposed. No prompt,
+retrieval, decay, reinforcement, edge, schema or runtime setting has changed.
+The instruction slice is independent of the lifecycle policy decisions.
+
 A008-0078 adopts the Core Product Contract in `docs/PROJECT_BRIEF.md` and the
 Necessity Gate in `docs/TASK_WORKFLOW.md`, under
 [ADR 0034](adr/0034-product-contract-and-necessity-gate.md). The local task

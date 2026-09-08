@@ -1,5 +1,10 @@
 # File Structure
 
+A008-0079 adds `docs/backlog/instruction-plane-and-memory-lifecycle.md`, a
+Proposed implementation specification indexed in the existing backlog. Its
+requirements, proposed defaults, authority amendments and acceptance cases
+share that one stable owner; current runtime behavior remains in SYSTEMDOC.
+
 A008-0078 adds the core product contract to the existing brief and the necessity
 gate to the workflow and task template. Adoption authority is
 `docs/adr/0034-product-contract-and-necessity-gate.md`; completion and integration

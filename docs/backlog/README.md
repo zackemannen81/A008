@@ -11,6 +11,7 @@ when its status changes.
 
 | Proposal | Status | Outcome |
 | --- | --- | --- |
+| [instruction-plane-and-memory-lifecycle.md](instruction-plane-and-memory-lifecycle.md) | Proposed | Separate instruction composition, evidence lifecycle and association slices; explicit policy decisions, migration obligations and acceptance cases. |
 | [runtime-proof-reference-repair.md](runtime-proof-reference-repair.md) | Open | Resolve three pre-existing runtime-proof references after checking original evidence and stable paths. |
 | [`legacy-credential-remediation.md`](legacy-credential-remediation.md) | Completed | Credential revoked/rotated; secure provider-neutral intake delivered by A008-0003. |
 | [`first-shared-chat-slice.md`](first-shared-chat-slice.md) | Completed | A008-0003 through A008-0005 prove CLI/core, ACP, and visible Canvas loopback behavior. |
