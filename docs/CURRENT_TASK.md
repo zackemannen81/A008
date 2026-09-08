@@ -2,11 +2,11 @@
 
 Task ID: A008-0078
 Parent Task: None
-Status: Draft
+Status: Ready
 Owner: Codex (operator)
 Created: 2026-09-08
 Last updated: 2026-09-08
-Charter frozen at:
+Charter frozen at: 2026-09-08
 
 ## Read First
 
@@ -79,7 +79,7 @@ that the next actor can use directly.
 ### Necessity Gate
 
 Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
-Contract revision: pending commit of the approved contract before Ready.
+Contract revision: `6b84c11aa789f3acf72f5b98a02ed14d81618411`.
 Constraint: the owner requested this process update; ADR 0034 adopts it.
 
 | Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
@@ -105,7 +105,7 @@ Constraint: the owner requested this process update; ADR 0034 adopts it.
 ## Checklist
 
 - [x] Read A008 authority and claim A008-0078 on local main.
-- [ ] Commit the product contract and decision; pin and freeze this charter.
+- [x] Commit the product contract and decision; pin and freeze this charter.
 - [ ] Apply the gate to operating documents and template.
 - [ ] Review cases and verify documentation and preservation boundaries.
 - [ ] Archive, restore template, hand off and integrate locally with journal.
