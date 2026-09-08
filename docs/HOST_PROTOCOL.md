@@ -34,8 +34,12 @@ and `state`; `tool` carries `sessionId`, `id`, `title`, `status`, `text`.
 Standalone GUI permissions arrive as `tool/permission` with `sessionId`, `id`,
 `title`, `text`. The client responds with `type: "tool/permission"`, `requestId`,
 `sessionId`, `permissionId`, `allow` (boolean). Pending IDs are single use and
-session-owned. In engine mode the surrounding native client owns the standard ACP
-permission dialog; the frame cannot grant it through the panel bridge.
+session-owned. The bundled standalone GUI offers Reject, Allow once and Allow all;
+Allow all is client-local state that auto-sends the existing `allow: true` response
+for later requests in that same GUI session and resets on reconnect. It does not
+change this wire contract or grant authority from model/content. In engine mode the
+surrounding native client owns the standard ACP permission dialog; the frame cannot
+grant it through the panel bridge.
 
 Session controls additionally support `configureRuntime` with `settings` and the
 last observed `revision`; snapshots include `runtimePreferences`. The complete

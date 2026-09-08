@@ -206,8 +206,12 @@ model-request shortcuts. See [GUI repository tools](GUI_REPOSITORY_TOOLS.md).
 The shared executor offers `list_files`, `read_file`, `create_file`, `edit_file`
 and `git` alongside `exec_command`. File edits require a matching SHA-256 and
 one exact text occurrence; new-file creation refuses overwrite. Git receives
-literal argv without shell expansion. All retain per-call approval and existing
-runtime budgets; these tools do not create another memory/provider owner.
+literal argv without shell expansion. All retain the established explicit
+approval boundary and existing runtime budgets. The bundled standalone GUI may let
+the operator choose Allow all for the current GUI session; this is local client
+state that answers later permission requests and resets on reconnect, not model-
+derived authority or a persistent policy. These tools do not create another
+memory/provider owner.
 
 `src/gui-host/` is the A008-owned Node process that makes the shared core
 reachable from a browser without Agent Server. It is the product path in

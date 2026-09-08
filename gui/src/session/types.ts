@@ -18,8 +18,10 @@ export interface GuiSessionState {
   readonly error: string | undefined;
 }
 
+export type ToolPermissionDecision = "reject" | "allow_once" | "allow_all";
+
 export interface GuiSession extends GuiSessionState {
-  resolveToolPermission?(allow: boolean): void;
+  resolveToolPermission?(decision: ToolPermissionDecision): void;
   controlSession?(control: SessionControl): Promise<SessionSnapshot>;
   endSession?(): Promise<void>;
   connect(): Promise<void>;

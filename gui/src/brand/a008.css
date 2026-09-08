@@ -491,4 +491,4 @@ body {
 .a008-tool-activity pre, .a008-tool-permission pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .a008-tool-permission { width: min(44rem, 90vw); max-height: 85vh; overflow: auto; background: var(--a008-surface, #171813); color: var(--a008-text, #eee); border: 1px solid var(--a008-border, #555); padding: 1.5rem; }
 .a008-tool-permission::backdrop { background: #0009; }
-.a008-tool-permission footer { display: flex; gap: 1rem; justify-content: flex-end; }
+.a008-tool-permission footer { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: flex-end; }

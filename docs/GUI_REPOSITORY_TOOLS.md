@@ -20,8 +20,10 @@ working directory and available native tools come from the connected runtime.
 
 Click **Read AGENTS.md & list root**, or type your request into Chat. Each
 structured tool call opens an approval dialog in this GUI. Check its arguments
-and choose Allow once or Reject. Actual observations return to the model and
-appear under Tool activity. Tool-shaped prose never executes. The shortcut
+and choose Reject, Allow once, or Allow all. Allow all approves the current request
+and later tool requests automatically for this connected GUI session only; a
+reconnect resets that choice. Actual observations return to the model and appear
+under Tool activity. Tool-shaped prose never executes. The shortcut
 buttons send ordinary user requests; they do not install a system prompt.
 
 ## Files, commands and Git

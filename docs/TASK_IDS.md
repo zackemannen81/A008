@@ -101,3 +101,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0083 | semantic request compatibility and JSON response contract | Codex (operator) | 2026-09-08 | fix observed Kimi parameter rejection; preserve strict semantic validation |
 | A008-0084 | readable memory relationship map | Codex (operator) | 2026-09-08 | stable spaced domain clusters, selective labels and existing read-only inspection |
 | A008-0085 | extraction JSON contract and live regression | Codex (operator) | 2026-09-08 | remove prompt pseudocode, distinguish durable facts from greetings and identify failing model/operation |
+| A008-0086 | standalone GUI allow-all tool approval | Codex (operator) | 2026-09-08 | session-scoped third permission choice; no protocol expansion |

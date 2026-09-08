@@ -573,6 +573,31 @@ test("malformed snapshots cannot introduce a system message into GUI history", (
   assert.throws(() => parseServerMessage({ type: "session/control/ok", requestId: "r", sessionId: "s", state: { ...controlledState, messages: [{ role: "system", content: "private" }] } }), /invalid session snapshot/);
 });
 
+test("Allow all auto-approves later tools in one GUI session and resets on reconnect", async () => {
+  const client = createClient(); const socket = await becomeReady(client);
+  socket.deliver({ type: "tool/permission", sessionId: "sess-1", id: "first", title: "exec_command", text: "one" });
+  assert.equal(client.getSnapshot().permission?.id, "first");
+  client.resolveToolPermission!("allow_all");
+  assert.deepEqual(parsedFrames(socket).at(-1), { type: "tool/permission", requestId: "req-2", sessionId: "sess-1", permissionId: "first", allow: true });
+  assert.equal(client.getSnapshot().permission, undefined);
+
+  const beforeSecond = socket.sent.length;
+  socket.deliver({ type: "tool/permission", sessionId: "sess-1", id: "second", title: "git", text: "two" });
+  assert.equal(client.getSnapshot().permission, undefined);
+  assert.equal(socket.sent.length, beforeSecond + 1);
+  assert.deepEqual(parsedFrames(socket).at(-1), { type: "tool/permission", requestId: "req-3", sessionId: "sess-1", permissionId: "second", allow: true });
+
+  client.dispose();
+  const reconnect = client.connect(); const next = fakeSockets.at(-1)!; next.open();
+  const request = parsedFrames(next)[0]!;
+  next.deliver({ type: "session/new/ok", requestId: request.requestId, sessionId: "sess-2" });
+  await reconnect;
+  const beforeThird = next.sent.length;
+  next.deliver({ type: "tool/permission", sessionId: "sess-2", id: "third", title: "exec_command", text: "three" });
+  assert.equal(client.getSnapshot().permission?.id, "third");
+  assert.equal(next.sent.length, beforeThird);
+});
+
 test("borrowed panel observes native work, rejects foreign permissions and detaches without closing its session", async () => {
   const client = createClient(); const socket = await becomeReady(client);
   socket.deliver({ type: "session/activity", sessionId: "sess-1", active: true, text: "Native question", state: controlledState });
@@ -581,7 +606,7 @@ test("borrowed panel observes native work, rejects foreign permissions and detac
   assert.equal(client.getSnapshot().permission, undefined);
   socket.deliver({ type: "tool/permission", sessionId: "sess-1", id: "once", title: "exec_command", text: "fixture" });
   assert.ok(client.resolveToolPermission);
-  client.resolveToolPermission(false);
+  client.resolveToolPermission("reject");
   assert.equal(parsedFrames(socket).at(-1)?.allow, false);
   assert.equal(client.getSnapshot().permission, undefined);
   socket.deliver({ type: "session/activity", sessionId: "sess-1", active: false, state: controlledState });

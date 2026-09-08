@@ -2,6 +2,17 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — A008-0086: session-scoped Allow all tool approval
+
+- Task: A008-0086; operator: Codex; branch: `main`.
+- Added the owner-requested third standalone permission choice: Reject, Allow once, Allow all.
+- Allow all is GUI-session state only. It answers later permission requests with the existing boolean allow frame and resets on reconnect/end/dispose; no host/ACP protocol or engine/native-client permission policy changed.
+- PC-05 remains intact: only structured tool permission requests can execute, and model/retrieved content cannot grant authority.
+- Verification: core 531/531, membership 4/4, GUI 119/119; focused regression covers current/later approval and reconnect reset; `git diff --check` passed.
+- Production GUI was rebuilt and the public Cloudflare-served asset was verified to contain `Allow all`. The standalone host was restarted.
+- [Handoff](handoffs/A008-0086.md).
+- Signature: Codex
+
 ## 2026-09-08 — A008-0085: extraction JSON contract corrected
 
 - Task: A008-0085; operator: Codex; branch: `main`.

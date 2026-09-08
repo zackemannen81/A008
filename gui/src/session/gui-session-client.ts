@@ -10,6 +10,7 @@ import type {
   GuiSessionClientOptions,
   GuiSessionState,
   GuiSessionStatus,
+  ToolPermissionDecision,
   GuiWebSocket,
   GuiWebSocketConstructor,
   GuiWebSocketEvent,
@@ -53,6 +54,7 @@ class GuiSessionClientImpl implements GuiSessionClient {
   #pendingPrompt: PendingRequest | undefined;
   #cancelled = false;
   #observedActive = false;
+  #allowAllTools = false;
   #pendingControl: { requestId: string; control: SessionControl; resolve: (state: SessionSnapshot) => void; reject: (error: Error) => void } | undefined;
 
   constructor(options: GuiSessionClientOptions) {
@@ -96,16 +98,18 @@ class GuiSessionClientImpl implements GuiSessionClient {
   }
 
   getSnapshot = (): GuiSessionState => this.#snapshot;
-  resolveToolPermission = (allow: boolean): void => {
-    const permission = this.#snapshot.permission, sessionId = this.#snapshot.sessionId;
-    if (!permission || !sessionId || this.#socket?.readyState !== SOCKET_OPEN) return;
-    this.#socket.send(encodeClientMessage({ type: "tool/permission", requestId: this.#createRequestId(), sessionId, permissionId: permission.id, allow }));
+  resolveToolPermission = (decision: ToolPermissionDecision): void => {
+    const permission = this.#snapshot.permission;
+    if (!permission) return;
+    this.#sendToolPermission(permission.id, decision !== "reject");
+    if (decision === "allow_all") this.#allowAllTools = true;
     this.#replaceSnapshot({ permission: undefined });
   };
 
   dispose = (): void => {
     this.#generation += 1;
     this.#observedActive = false;
+    this.#allowAllTools = false;
     this.#detachSocket();
     const error = new Error("Panel disconnected.");
     this.#pendingConnect?.reject(error); this.#pendingPrompt?.reject(error); this.#pendingControl?.reject(error);
@@ -136,6 +140,7 @@ class GuiSessionClientImpl implements GuiSessionClient {
       await this.controlSession({ action: "close" });
     }
     this.#generation += 1;
+    this.#allowAllTools = false;
     const failure = new Error("Session ended.");
     this.#pendingConnect?.reject(failure);
     this.#pendingPrompt?.reject(failure);
@@ -261,6 +266,7 @@ class GuiSessionClientImpl implements GuiSessionClient {
   #openSession(): Promise<void> {
     this.#generation += 1;
     const generation = this.#generation;
+    this.#allowAllTools = false;
     this.#detachSocket();
     this.#replaceSnapshot({
       status: "connecting",
@@ -389,7 +395,12 @@ class GuiSessionClientImpl implements GuiSessionClient {
 
     switch (message.type) {
       case "tool/permission":
-        if (message.sessionId === this.#snapshot.sessionId) this.#replaceSnapshot({ permission: { id: message.id, title: message.title, text: message.text } });
+        if (message.sessionId !== this.#snapshot.sessionId) return;
+        if (this.#allowAllTools) {
+          this.#sendToolPermission(message.id, true);
+          return;
+        }
+        this.#replaceSnapshot({ permission: { id: message.id, title: message.title, text: message.text } });
         return;
       case "tool": {
         if (message.sessionId !== this.#snapshot.sessionId) return;
@@ -438,6 +449,18 @@ class GuiSessionClientImpl implements GuiSessionClient {
         this.#onHostError(message.requestId, message.message);
         return;
     }
+  }
+
+  #sendToolPermission(permissionId: string, allow: boolean): void {
+    const sessionId = this.#snapshot.sessionId;
+    if (!sessionId || this.#socket?.readyState !== SOCKET_OPEN) return;
+    this.#socket.send(encodeClientMessage({
+      type: "tool/permission",
+      requestId: this.#createRequestId(),
+      sessionId,
+      permissionId,
+      allow,
+    }));
   }
 
   #onSessionOk(requestId: string, sessionId: string, state?: SessionSnapshot): void {
