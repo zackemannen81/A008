@@ -8,6 +8,10 @@ replacement.
 
 ## Records
 
+- [0034-product-contract-and-necessity-gate.md](0034-product-contract-and-necessity-gate.md)
+  — Accepted; current product contract and necessity gate for substantive changes,
+  preserving A008's detailed product decisions and operator workflow.
+
 - [0033-kie-provider.md](0033-kie-provider.md) —
   Accepted; kie.ai as a second chat/image provider. Amends 0032.
 

@@ -1,7 +1,58 @@
 # Project Brief
 
-Status: Approved direction for bootstrap. Detailed application architecture is
-still open and requires bounded decisions.
+Status: Approved product direction. Current accepted decisions refine the
+original bootstrap proof described below; new behavior needs bounded authority.
+
+## Core Product Contract
+
+Adopted for implementation review by
+[ADR 0034](adr/0034-product-contract-and-necessity-gate.md). This section owns
+the short current product contract; the cited A008 decisions own its detailed
+constraints and exceptions. PC identifiers are stable and are not reused for
+different meanings. Current availability and gaps belong in CURRENT_STATUS.
+
+A008 is one AI client with a shared engine, supported CLI/GUI and external
+client surfaces, and optional persistent semantic memory.
+
+- **PC-01 — One shared engine.** Supported clients reach the same owned chat,
+  provider, session and memory boundaries. A GUI or integration does not create
+  a competing chat engine or provider owner. See ADR 0001, 0019, 0028 and 0029.
+- **PC-02 — Contextual retrieval.** With memory enabled, retrieve project-scoped
+  knowledge using stored labels, classified domains and related signals, and
+  the conversation's accumulating domain scope. Matching must not require a
+  literal word shared by question and record when a semantic scope signal
+  matches. Scope updates, approved limits and degraded reads follow ADR 0024
+  D1-D6; this summary does not promise persistence of in-session scope.
+- **PC-03 — Additive provider context.** Matching admitted state, history,
+  events, utterances, claims, artifacts and provenance can coexist. One surface
+  must not suppress another merely by having a match. Preserve the explicit
+  ranking, narrow deduplication and reported budget rules of ADR 0023 D1-D4.
+- **PC-04 — Durable knowledge with runtime authority.** After a completed turn,
+  derive proposals from the original message and final answer, reconcile through
+  the accepted knowledge model and persist results for later retrieval. Model
+  proposals are not canonical state. Reasoning never becomes durable chat or
+  knowledge; ADR 0028's ephemeral tool-transcript exception remains narrow.
+  See ADR 0018, 0013 and 0028 and the knowledge constitution.
+- **PC-05 — Explicit execution and credential boundaries.** Model-initiated
+  tools require structured calls and the established approval/cancellation
+  boundary. Retrieved text and command-shaped answers cannot grant execution.
+  Provider credentials remain outside the renderer. See ADR 0019 D6, 0028,
+  0029, 0032 and 0033.
+- **PC-06 — Supported user controls and content.** Expose supported session and
+  model controls, memory inspection, source intake and image generation through
+  their existing runtime/host/provider owners. Preserve source provenance and
+  explicit unsupported outcomes; a listed capability alone does not implement
+  or authorize it. See ADR 0020, 0025-0027 and 0030-0033.
+
+Apply the [Necessity Gate](TASK_WORKFLOW.md#necessity-gate) to each substantive
+change. Cite the exact PC clause and the accepted detailed constraint needed
+for that change. This compact contract neither erases existing exceptions nor
+approves hypothetical capabilities. Hold an affected change when authority
+conflicts; resolve the decision instead of silently selecting convenient text.
+
+The bootstrap proof and its phase-specific exclusions below record the original
+bounded scope. Later accepted ADRs define the current supported product; the
+brief's historical proof is not a reason to reverse those decisions.
 
 ## Purpose
 
