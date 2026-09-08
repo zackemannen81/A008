@@ -2,6 +2,47 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-08 — A008-0079: instruction and memory specification
+
+- Task: A008-0079; operator: Codex; branch: `main`.
+- Owner request: turn the supplied instruction-plane, severity, reinforcement,
+  decay and relationship-strength brief into a clear implementation
+  specification. The owner explicitly requested concrete defaults for decision.
+- Integrated the completed branch locally at `35f73a4`, including specification
+  `ad84f20` and its handoff. No push or product implementation was performed.
+- `docs/backlog/instruction-plane-and-memory-lifecycle.md` owns the Proposed
+  specification: 22 requirement groups, 30 future acceptance cases and three
+  bounded slices. L1 fixes final system-message composition through existing
+  shared owners; L2 handles evidence lifecycle; L3 handles independent edges.
+  Scope accumulation, additive context, truth/state ownership and budgets are
+  preserved. L1 does not depend on lifecycle policy decisions.
+- Six explicit proposed decisions cover severity carriers, numeric defaults,
+  fresh source/exact target/atomic retry receipts, migration, authority
+  amendments and the association consumer. Existing authority is not amended.
+  Model obedience and lifecycle correctness are not claimed as runtime facts.
+- Proposed half-lives are 365/90/14 days for critical/important/minor and
+  45 days for edges, with threshold 0.20 on new classified carriers/edges.
+  Independent Python calculations confirm crossing times of 847.503754634,
+  180, 14 and 45 days; equality remains active. Legacy thresholds and unknown
+  clocks have explicit proposed treatment rather than invented historical data.
+- Verification: source/requirement review, numeric calculations and ad hoc
+  Markdown review passed. After handoff, 7 changed Markdown files and 53 links
+  had no new reference/fence errors. Requirement IDs, backlog membership/state,
+  frozen charter, template bytes and preservation checks passed.
+  `git diff d7c5428 --check` and staged whitespace checks passed; added-text
+  credential scan found no matches. Final closure also checks this entry.
+- Product files, SYSTEMDOC, accepted ADRs and prior immutable records are
+  unchanged. Skipped runtime/typecheck/build/unit/integration/migration and
+  live-provider tests: this was specification work. A01–A30 remain future tests.
+  Existing untracked `.grok/` was not read, changed or staged.
+- Archive: `docs/finished/A008-0079_instruction-memory-spec.md`; handoff:
+  `docs/handoffs/A008-0079.md`. CURRENT_TASK is restored from its template.
+- Identity was claimed on local main in `a35b544` before Ready `b271be8`.
+  Reconcile shared main before a future push; this local claim is unpublished.
+- Next implementation: charter L1 when requested. Record P1–P5 before L2 and
+  P6 before L3; specification completion does not adopt those recommendations.
+- Signature: Codex.
+
 ## 2026-09-08 — A008-0078: necessity gate integrated locally
 
 - Task: A008-0078; operator: Codex; branch: `main`.
