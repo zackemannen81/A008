@@ -45,6 +45,12 @@ Session controls additionally support `configureRuntime` with `settings` and the
 last observed `revision`; snapshots include `runtimePreferences`. The complete
 contract and persistence boundary are in [RUNTIME_SETTINGS.md](RUNTIME_SETTINGS.md).
 
+A008-0091 Code Canvas adds no HTTP, WebSocket, ACP, permission or session-snapshot
+field. The bundled renderer derives a transient HTML artifact only from completed
+assistant answer content and previews it locally in a sandboxed `srcdoc` iframe.
+Writing that content to the workspace remains an ordinary approved repository-tool
+action; clients must not infer a host-side artifact API from the Canvas UI.
+
 `src/gui-host/` is a Node process. It serves static files, exposes HTTP
 routes and one WebSocket, and bridges that WebSocket to an `A008-acp` stdio
 subprocess it owns.

@@ -62,14 +62,15 @@
 }
 .a008-shortcut-show { color: var(--a008-fg-soft); }
 .a008-shortcut-hide:hover, .a008-shortcut-show:hover { border-color: var(--a008-border-strong); color: var(--a008-fg); }
-.a008-environment-float, .a008-files-float {
+.a008-environment-float, .a008-files-float, .a008-code-canvas-float {
   position: absolute; top: 4.35rem; right: 1.1rem; width: 22.5rem;
   max-height: calc(100% - 5.2rem); overflow: auto; z-index: 6;
   border: 1px solid var(--a008-border); border-radius: 1.15rem;
   background: var(--a008-panel); box-shadow: 0 16px 40px rgba(0,0,0,.38);
 }
 .a008-files-float { width: 24rem; }
-.a008-environment-float[hidden], .a008-files-float[hidden], .a008-shortcut-dock[hidden] { display: none !important; }
+.a008-code-canvas-float { width: min(46rem, calc(100% - 18rem)); height: calc(100% - 5.2rem); overflow: hidden; }
+.a008-environment-float[hidden], .a008-files-float[hidden], .a008-code-canvas-float[hidden], .a008-shortcut-dock[hidden] { display: none !important; }
 .a008-start-actions {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem;
   margin: 1.2rem auto 0; max-width: 36rem; text-align: left;
@@ -145,12 +146,15 @@
   .a008-app .a008-rail { display: none; }
   .a008-app.a008-navigation-open .a008-rail { display: flex; grid-column: 1; grid-row: 2; z-index: 5; overflow: auto; }
   .a008-shortcut-dock { display: none !important; }
-  .a008-app.a008-navigation-open > main, .a008-app.a008-navigation-open > .a008-tools-panel, .a008-app.a008-navigation-open > .a008-environment-float, .a008-app.a008-navigation-open > .a008-files-float { visibility: hidden; }
+  .a008-app.a008-navigation-open > main, .a008-app.a008-navigation-open > .a008-tools-panel, .a008-app.a008-navigation-open > .a008-environment-float, .a008-app.a008-navigation-open > .a008-files-float, .a008-app.a008-navigation-open > .a008-code-canvas-float { visibility: hidden; }
   .a008-header { grid-column: 1; padding: .5rem .7rem; }
   .a008-navigation-toggle { display: block; }
   .a008-app .a008-main, .a008-app .a008-memory-main, .a008-app .a008-help-main, .a008-app .a008-tools-panel { grid-column: 1; }
   .a008-environment-float {
     position: absolute; inset: 3.75rem .5rem .5rem; width: auto; max-height: none;
+  }
+  .a008-code-canvas-float {
+    position: absolute; inset: 3.75rem .5rem .5rem; width: auto; height: auto; max-height: none;
   }
   .a008-chat-workspace.a008-panel-open .a008-main { visibility: hidden; }
   .a008-app .a008-workbench { display: flex; }

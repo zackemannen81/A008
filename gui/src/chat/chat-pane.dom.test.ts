@@ -251,3 +251,39 @@ test("DOM contract: rendered markup carries A008 copy and no OpenHands identity"
   assert.equal(/agent server/iu.test(html), false);
   assert.equal(/posthog/iu.test(html), false);
 });
+
+test("completed HTML code renders separately and exposes an explicit Canvas action", () => {
+  const session = fakeSession({
+    details: {
+      model: "fixture",
+      parameters: { stream: true, temperature: null, topP: null, maxTokens: 16,
+        enableThinking: null, reasoningBudget: null, reasoningEffort: null, seed: null, stop: null },
+      messages: [
+        { role: "user", content: "make a canvas" },
+        { role: "assistant", content: "Here\n```html\n<canvas id=\"demo\"></canvas>\n```\nDone" },
+      ],
+      runtime: { cwd: "C:\\code\\A008", projectId: null, memoryPath: null },
+    },
+  });
+  const html = renderToStaticMarkup(createElement(ChatPane, { session, onArtifactOpen() {} }));
+  assert.match(html, /a008-chat-code/u);
+  assert.match(html, /Open in Canvas/u);
+  assert.match(html, /&lt;canvas id=&quot;demo&quot;&gt;/u);
+  const answers = textsOn(channelNodes(html), "answer");
+  assert.equal(answers.length, 1);
+  assert.equal(answers[0]?.includes("canvas"), true);
+});
+
+test("live or incomplete HTML never exposes the Canvas action", () => {
+  const live = renderToStaticMarkup(createElement(ChatPane, {
+    session: fakeSession({ answer: "```html\n<canvas></canvas>\n```" }),
+    onArtifactOpen() {},
+  }));
+  assert.equal(live.includes("Open in Canvas"), false);
+
+  const incomplete = renderToStaticMarkup(createElement(ChatPane, {
+    session: fakeSession({ answer: "```html\n<canvas></canvas>" }),
+    onArtifactOpen() {},
+  }));
+  assert.equal(incomplete.includes("Open in Canvas"), false);
+});

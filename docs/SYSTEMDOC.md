@@ -381,6 +381,33 @@ host supplies no snapshot.
 `gui/src/settings/` plus `gui/src/brand/` own the shell chrome and A008
 identity. No provider call, credential, or telemetry ships in the renderer.
 
+### Session Code Canvas (A008-0091)
+
+A completed assistant `html` or `htm` fence may become one transient Code Canvas
+artifact in the existing GUI. The artifact is derived from answer content after
+the turn completes; it is not a model tool result, repository file, memory record
+or host-side object. Chat still uses the same `useGuiSession`/ACP/provider path.
+Ordinary prose, streaming/incomplete fences and code above the 256 KiB UTF-8
+ceiling remain ordinary chat content and cannot seed the preview.
+
+`gui/src/artifact/` owns parsing, artifact state presentation and preview policy.
+The Code tab edits only browser state. Preview uses `iframe srcdoc` without
+`allow-same-origin`; the sandbox grants only `allow-scripts`. A policy prepended
+before the artifact denies default/network/worker/frame/object/form/base access
+and permits only inline script/style plus data/blob media required for local
+rendering. A bootstrap also disables the common connection APIs in the sandbox.
+No credential, ACP transport, shell runner, filesystem API or new HTTP/WS route is
+passed into the artifact. The preview is therefore a content-rendering boundary,
+not execution authority on the A008 host.
+
+When a later completed model answer contains HTML, an untouched open artifact may
+advance to that model version. If the user has local edits, A008 preserves them
+and exposes an explicit Use model update action instead of overwriting them.
+Reset/new conversation clears the transient artifact. Saving or applying code to
+the workspace is deliberately separate: the model must still use the existing
+`create_file`, `edit_file` or Git tools, with their existing approval/cancellation
+boundary. There is no direct Save-to-repository path in A008-0091.
+
 ### Focused workspace (A008-0069, amended by A008-0070)
 
 Left navigation selects Chat, Memory, Tools or Help. Runtime details are collapsed.

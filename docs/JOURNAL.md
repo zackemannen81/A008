@@ -2180,3 +2180,18 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Verification: 540 core, 4 membership, 119 GUI tests passed; production GUI build and `git diff --check` passed.
 - Live verification: owner-authorized Luna streaming + function-tool probe returned `OK` using the locally configured key without printing or committing it.
 - Signature: Codex
+
+## 2026-09-09 — A008-0091 Session Code Canvas
+
+- Date: 2026-09-09
+- Author: Codex
+- Task: A008-0091
+- Branch: `codex/A008-0091-code-artifact`
+- Direction correction: A008-0090 was superseded rather than rewritten after owner review clarified that in-chat code is transient content, not a repository mutation.
+- Change: added a renderer-local Code Canvas for completed assistant `html`/`htm` fences, with separate code rendering, local textarea edits, explicit Open in Canvas, and HTML/JavaScript/Canvas preview.
+- Boundary: no new host route, ACP method, provider path, native/model tool or repository mutation surface. Workspace writes remain the existing approved file/Git tools.
+- Preview safety: 256 KiB UTF-8 ceiling; `srcdoc` iframe sandboxed with `allow-scripts` only; restrictive CSP and connection-API guards; provider credentials, ACP, shell and filesystem objects never enter the artifact surface.
+- Update semantics: later model HTML replaces an untouched artifact; dirty local edits are preserved until explicit Use model update. Reset/new conversation clears transient artifact state.
+- Verification: production GUI build passed; GUI 125/125; root suite 540 core + 4 membership + 125 GUI; repository-tool approval regression passed; final diff check performed after task cleanup.
+- Handoff: `docs/handoffs/A008-0091.md`.
+- Signature: Codex

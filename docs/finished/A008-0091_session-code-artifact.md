@@ -2,7 +2,7 @@
 
 Task ID: A008-0091
 Parent Task: A008-0090
-Status: Ready
+Status: Complete
 Owner: Codex (operator)
 Created: 2026-09-09
 Last updated: 2026-09-09
@@ -59,18 +59,18 @@ allows local text edits, and renders it in an isolated no-credential preview.
 
 ### Definition of Done
 
-- [ ] Completed assistant HTML fences render as code blocks and can become the
+- [x] Completed assistant HTML fences render as code blocks and can become the
       current artifact without mutating the repository.
-- [ ] Code panel permits local edits and Preview rerenders the current source.
-- [ ] Preview supports inline HTML/CSS/JavaScript/Canvas while remaining in a
+- [x] Code panel permits local edits and Preview rerenders the current source.
+- [x] Preview supports inline HTML/CSS/JavaScript/Canvas while remaining in a
       sandboxed unique-origin iframe with restrictive CSP.
-- [ ] Assistant prose or command-shaped text alone cannot create host execution.
-- [ ] No artifact action writes to disk; repository mutation still requires the
+- [x] Assistant prose or command-shaped text alone cannot create host execution.
+- [x] No artifact action writes to disk; repository mutation still requires the
       existing model file/Git tools and their approval/cancellation flow.
-- [ ] Oversized or malformed/incomplete HTML fences fail as artifact candidates
+- [x] Oversized or malformed/incomplete HTML fences fail as artifact candidates
       without breaking ordinary chat rendering.
-- [ ] GUI typecheck/build, focused GUI tests and full repository tests pass.
-- [ ] Owning protocol/system/status/file-structure docs describe actual behavior.
+- [x] GUI typecheck/build, focused GUI tests and full repository tests pass.
+- [x] Owning protocol/system/status/file-structure docs describe actual behavior.
 
 ### Necessity Gate
 
@@ -86,15 +86,15 @@ Contract revision: `6e0b966e8dea3f9f3138010084bb09b55471c642`
 
 ### Minimum Verification Gates
 
-- [ ] Parser distinguishes prose, complete HTML fences, incomplete fences and
+- [x] Parser distinguishes prose, complete HTML fences, incomplete fences and
       source over the artifact byte ceiling.
-- [ ] Preview builder injects restrictive CSP and iframe uses only `allow-scripts`
+- [x] Preview builder injects restrictive CSP and iframe uses only `allow-scripts`
       sandboxing, never `allow-same-origin`, forms, popups or top navigation.
-- [ ] Chat DOM keeps thought isolated and renders code separately from prose.
-- [ ] Artifact edits remain renderer-local; no new HTTP/WS mutation or native tool.
-- [ ] Existing repository-tool approval regression remains green.
-- [ ] `npm test`, GUI production build and `git diff --check` pass.
-- [ ] Final diff is reviewed against the frozen necessity arguments.
+- [x] Chat DOM keeps thought isolated and renders code separately from prose.
+- [x] Artifact edits remain renderer-local; no new HTTP/WS mutation or native tool.
+- [x] Existing repository-tool approval regression remains green.
+- [x] `npm test`, GUI production build and `git diff --check` pass.
+- [x] Final diff is reviewed against the frozen necessity arguments.
 
 ## References
 
@@ -110,13 +110,13 @@ Contract revision: `6e0b966e8dea3f9f3138010084bb09b55471c642`
 ## Checklist
 
 - [x] Claim A008-0091 and supersede A008-0090 without rewriting its frozen scope.
-- [ ] Copy this charter to `docs/CURRENT_TASK.md` on the implementation branch.
-- [ ] Implement pure artifact parsing and preview policy first.
-- [ ] Render fenced code in chat and wire explicit artifact selection.
-- [ ] Add Code/Preview panel with renderer-local edits.
-- [ ] Add focused security/DOM/layout tests.
-- [ ] Run full verification and review no new host/provider/tool surface exists.
-- [ ] Update owning docs, archive, handoff and restore CURRENT_TASK template.
+- [x] Copy this charter to `docs/CURRENT_TASK.md` on the implementation branch.
+- [x] Implement pure artifact parsing and preview policy first.
+- [x] Render fenced code in chat and wire explicit artifact selection.
+- [x] Add Code/Preview panel with renderer-local edits.
+- [x] Add focused security/DOM/layout tests.
+- [x] Run full verification and review no new host/provider/tool surface exists.
+- [x] Update owning docs, archive, handoff and restore CURRENT_TASK template.
 
 ## Decisions and Notes
 
@@ -136,23 +136,26 @@ Contract revision: `6e0b966e8dea3f9f3138010084bb09b55471c642`
 
 ## Verification
 
-- [ ] Pending implementation.
+- [x] `npm --prefix gui run build` passed after the final reset/new-conversation artifact cleanup.
+- [x] `npm --prefix gui test`: 125/125 passed, including parser, DOM, sandbox/CSP and credential-boundary regressions.
+- [x] Root `npm test`: 540 core, 4 membership and 125 GUI tests passed. Existing repository-tool approval tests remained green.
+- [x] Source/diff review found no new host HTTP/WS route, ACP method, provider path or native/model tool for artifact mutation.
+- [x] Final `git diff --check` passed after archive/handoff cleanup and CURRENT_TASK template restoration.
 
 ## Documentation Updates
 
-- [ ] `docs/CURRENT_STATUS.md`
-- [ ] `docs/SYSTEMDOC.md`
-- [ ] `docs/HOST_PROTOCOL.md`
-- [ ] `docs/FILESTRUCTURE.md`
+- [x] `docs/CURRENT_STATUS.md`
+- [x] `docs/SYSTEMDOC.md`
+- [x] `docs/HOST_PROTOCOL.md`
+- [x] `docs/FILESTRUCTURE.md`
 
 ## Handoff and Follow-ups
 
-- Current state: Ready/frozen, implementation not started.
-- Next recommended step: pure parser and preview-policy slice.
+- Current state: Complete. The bounded session artifact, local editor and isolated preview are implemented in the product GUI.
+- Repository boundary: unchanged; persistence still requires the existing approved file/Git tools.
 - Blockers: none.
 - Child tasks: none.
-- Resume condition: this charter and repository state.
-- Open questions: none required for this bounded slice.
+- Follow-up candidates, not part of this task: multi-file artifacts, durable artifact persistence, or a dedicated explicit export/apply UX.
 
 ## Finalize When Complete
 

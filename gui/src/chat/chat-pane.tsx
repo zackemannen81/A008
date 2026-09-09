@@ -16,6 +16,11 @@ import {
 import { AsciiLogo } from "../brand/ascii-logo.js";
 import { StartActions } from "./start-actions.js";
 import { EmptyStarfield } from "./starfield.js";
+import {
+  htmlArtifactFromAnswer,
+  parseAssistantAnswer,
+  type HtmlArtifactCandidate,
+} from "../artifact/code-artifact.js";
 import "./chat-pane.css";
 
 export interface ChatGeneratedImage {
@@ -62,7 +67,12 @@ function UserTurnView({ turn }: { readonly turn: ChatUserTurn }) {
   );
 }
 
-function AssistantTurnView({ turn }: { readonly turn: ChatAssistantTurn }) {
+function AssistantTurnView(props: {
+  readonly turn: ChatAssistantTurn;
+  readonly onArtifactOpen?: (artifact: HtmlArtifactCandidate) => void;
+}) {
+  const { turn } = props;
+  const segments = parseAssistantAnswer(turn.answer);
   return (
     <article
       className="a008-chat-turn a008-chat-turn-assistant"
@@ -71,13 +81,30 @@ function AssistantTurnView({ turn }: { readonly turn: ChatAssistantTurn }) {
       <span className="a008-chat-label">A008</span>
       <ThoughtBlock turn={turn} />
       {turn.answer !== "" ? (
-        <p
+        <div
           className="a008-chat-bubble a008-chat-bubble-answer"
           data-a008-channel={CHAT_CHANNEL.answer}
           aria-label="Answer"
         >
-          {turn.answer}
-        </p>
+          {segments.map((segment, index) => segment.kind === "text" ? (
+            <span key={`text-${index}`} className="a008-chat-answer-text">{segment.text}</span>
+          ) : (
+            <figure key={`code-${index}`} className="a008-chat-code">
+              <figcaption className="a008-chat-code-head">
+                <span>{segment.language || "code"}</span>
+                {!turn.live && segment.artifactEligible && props.onArtifactOpen ? (
+                  <button type="button" onClick={() => props.onArtifactOpen?.({
+                    sourceTurnId: turn.id,
+                    language: "html",
+                    source: segment.code,
+                    bytes: new TextEncoder().encode(segment.code).byteLength,
+                  })}>Open in Canvas</button>
+                ) : segment.oversized ? <span>Too large for Canvas</span> : null}
+              </figcaption>
+              <pre><code>{segment.code}</code></pre>
+            </figure>
+          ))}
+        </div>
       ) : null}
       {turn.live ? (
         <span className="a008-chat-live" aria-live="polite">
@@ -92,6 +119,8 @@ function AssistantTurnView({ turn }: { readonly turn: ChatAssistantTurn }) {
 export function ChatPane(props: {
   readonly session: GuiSession;
   readonly onStartPrompt?: (prompt: string) => void;
+  readonly onArtifactOpen?: (artifact: HtmlArtifactCandidate) => void;
+  readonly onArtifactCandidate?: (artifact: HtmlArtifactCandidate) => void;
   readonly images?: readonly ChatGeneratedImage[];
 }) {
   const { session } = props;
@@ -136,6 +165,24 @@ export function ChatPane(props: {
       }),
     [session, history],
   );
+
+  const latestArtifact = useMemo(() => {
+    for (let index = transcript.turns.length - 1; index >= 0; index -= 1) {
+      const turn = transcript.turns[index];
+      if (turn?.kind !== "assistant" || turn.live) continue;
+      const artifact = htmlArtifactFromAnswer(turn.answer, turn.id);
+      if (artifact !== undefined) return artifact;
+    }
+    return undefined;
+  }, [transcript.turns]);
+  const reportedArtifact = useRef("");
+  useEffect(() => {
+    if (!latestArtifact || !props.onArtifactCandidate) return;
+    const key = `${latestArtifact.sourceTurnId}:${latestArtifact.bytes}:${latestArtifact.source}`;
+    if (reportedArtifact.current === key) return;
+    reportedArtifact.current = key;
+    props.onArtifactCandidate(latestArtifact);
+  }, [latestArtifact, props.onArtifactCandidate]);
 
   useEffect(() => {
     const root = scrollerRef.current;
@@ -185,7 +232,7 @@ export function ChatPane(props: {
               turn.kind === "user" ? (
                 <UserTurnView key={turn.id} turn={turn} />
               ) : (
-                <AssistantTurnView key={turn.id} turn={turn} />
+                <AssistantTurnView key={turn.id} turn={turn} onArtifactOpen={props.onArtifactOpen} />
               ),
             )}
             {(props.images ?? []).map((image) => (

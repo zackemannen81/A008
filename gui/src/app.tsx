@@ -25,6 +25,11 @@ import { MemoryPage } from "./memory/memory-page.js";
 import { HelpPage } from "./help/help-page.js";
 import { BrowserPane } from "./browser/browser-pane.js";
 import { FilesPane } from "./files/files-pane.js";
+import {
+  CodeArtifactPanel,
+  type CodeArtifactView,
+} from "./artifact/code-artifact-panel.js";
+import type { HtmlArtifactCandidate } from "./artifact/code-artifact.js";
 
 const STATUS_LABEL = {
   idle: "Not connected",
@@ -63,19 +68,40 @@ export function App() {
   const [sources, setSources] = useState<readonly SessionSource[]>([]);
   const [images, setImages] = useState<readonly ChatGeneratedImage[]>([]);
   const [imageError, setImageError] = useState("");
+  const [canvasOpen, setCanvasOpen] = useState(false);
+  const [artifact, setArtifact] = useState<CodeArtifactView>();
+  const [pendingArtifact, setPendingArtifact] = useState<HtmlArtifactCandidate>();
+  const artifactSessionId = useRef<string | undefined>(session.sessionId);
   const cwd = session.details?.runtime.cwd;
   const workspace = cwd?.split(/[\\/]/u).filter(Boolean).at(-1);
+
+  useEffect(() => {
+    if (artifactSessionId.current === session.sessionId) return;
+    artifactSessionId.current = session.sessionId;
+    setArtifact(undefined);
+    setPendingArtifact(undefined);
+    setCanvasOpen(false);
+  }, [session.sessionId]);
+
+  const committedMessageCount = session.details?.messages.length;
+  useEffect(() => {
+    if (committedMessageCount !== 0) return;
+    setArtifact(undefined);
+    setPendingArtifact(undefined);
+  }, [committedMessageCount]);
 
   function navigate(next: Page) {
     setPage(next);
     setNavigationOpen(false);
     if (next === "chat") setToolsOpen(false);
+    else setCanvasOpen(false);
   }
 
   function openTools(surface: ToolSurface) {
     setToolSurface(surface);
     setPage("tools");
     setToolsOpen(false);
+    setCanvasOpen(false);
     setNavigationOpen(false);
   }
 
@@ -96,16 +122,44 @@ export function App() {
     }
   }
 
+  function modelArtifact(next: HtmlArtifactCandidate): CodeArtifactView {
+    return { sourceTurnId: next.sourceTurnId, source: next.source, modelSource: next.source, dirty: false };
+  }
+
+  function openArtifact(next: HtmlArtifactCandidate) {
+    setArtifact(modelArtifact(next));
+    setPendingArtifact(undefined);
+    setCanvasOpen(true);
+    setFilesOpen(false);
+    setToolsOpen(false);
+  }
+
+  function considerArtifact(next: HtmlArtifactCandidate) {
+    if (!artifact) {
+      if (canvasOpen) setArtifact(modelArtifact(next));
+      return;
+    }
+    if (next.sourceTurnId === artifact.sourceTurnId && next.source === artifact.modelSource) return;
+    if (artifact.dirty) {
+      setPendingArtifact(next);
+      return;
+    }
+    setArtifact(modelArtifact(next));
+    setPendingArtifact(undefined);
+  }
+
   function onShortcut(id: EmptyShortcutId) {
     if (id === "review") void ask(REVIEW_PROMPT);
     if (id === "terminal") openTools("terminal");
     if (id === "browser") openTools("browser");
     if (id === "files") {
       setPage("chat");
+      setCanvasOpen(false);
       setFilesOpen((open) => !open);
     }
     if (id === "sidechat") {
       setPage("chat");
+      setCanvasOpen(false);
       setToolsOpen((open) => !open);
     }
   }
@@ -238,9 +292,24 @@ export function App() {
             <>
             <button
               className="a008-panel-toggle"
+              aria-expanded={canvasOpen}
+              aria-controls="a008-code-canvas-panel"
+              onClick={() => {
+                setCanvasOpen(!canvasOpen);
+                setFilesOpen(false);
+                setToolsOpen(false);
+              }}
+            >
+              Canvas{artifact ? " •" : ""}
+            </button>
+            <button
+              className="a008-panel-toggle"
               aria-expanded={filesOpen}
               aria-controls="a008-files-panel"
-              onClick={() => setFilesOpen(!filesOpen)}
+              onClick={() => {
+                setFilesOpen(!filesOpen);
+                setCanvasOpen(false);
+              }}
             >
               Files
             </button>
@@ -248,7 +317,10 @@ export function App() {
               className="a008-panel-toggle"
               aria-expanded={toolsOpen}
               aria-controls="a008-tools-panel"
-              onClick={() => setToolsOpen(!toolsOpen)}
+              onClick={() => {
+                setToolsOpen(!toolsOpen);
+                setCanvasOpen(false);
+              }}
             >
               Workbench
             </button>
@@ -260,6 +332,8 @@ export function App() {
         <ChatPane
           session={session}
           onStartPrompt={(prompt) => void ask(prompt)}
+          onArtifactOpen={openArtifact}
+          onArtifactCandidate={considerArtifact}
           images={images}
         />
         {imageError ? <p className="a008-chat-error" role="alert">{imageError}</p> : null}
@@ -295,7 +369,7 @@ export function App() {
         <HelpPage session={session} onChat={() => navigate("chat")} />
       </main>
       <ShortcutDock
-        hidden={page !== "chat" || filesOpen || toolsOpen}
+        hidden={page !== "chat" || filesOpen || toolsOpen || canvasOpen}
         open={shortcutsOpen}
         onShortcut={onShortcut}
         onHide={() => {
@@ -306,9 +380,37 @@ export function App() {
           setShortcutsOpen(true);
           setFilesOpen(false);
           setToolsOpen(false);
+          setCanvasOpen(false);
           persistShortcutDockVisible(true);
         }}
       />
+      <aside
+        className="a008-code-canvas-float"
+        id="a008-code-canvas-panel"
+        hidden={page !== "chat" || !canvasOpen}
+      >
+        <CodeArtifactPanel
+          artifact={artifact}
+          pending={pendingArtifact}
+          onClose={() => setCanvasOpen(false)}
+          onPrompt={(prompt) => void ask(prompt)}
+          onSourceChange={(source) => setArtifact((current) => current ? {
+            ...current,
+            source,
+            dirty: source !== current.modelSource,
+          } : current)}
+          onRevert={() => setArtifact((current) => current ? {
+            ...current,
+            source: current.modelSource,
+            dirty: false,
+          } : current)}
+          onUseModelUpdate={() => {
+            if (!pendingArtifact) return;
+            setArtifact(modelArtifact(pendingArtifact));
+            setPendingArtifact(undefined);
+          }}
+        />
+      </aside>
       <aside
         className="a008-files-float"
         id="a008-files-panel"

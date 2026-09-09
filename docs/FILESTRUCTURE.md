@@ -125,11 +125,17 @@ A008/
 |  |  |  |- gui-session-client.ts    socket lifecycle, controls and committed snapshots
 |  |  |  |- session-controls.ts     renderer control types and metadata/snapshot validation
 |  |  |  `- use-gui-session.ts       React hook exposing GuiSession
+|  |  |- artifact/                   A008-0091 transient Code Canvas
+|  |  |  |- code-artifact.ts             fenced HTML parser, 256 KiB bound and preview policy
+|  |  |  |- code-artifact-panel.tsx       renderer-local Code/Preview editor surface
+|  |  |  |- code-artifact.css             desktop/mobile Canvas composition
+|  |  |  |- code-artifact.test.ts         parser/CSP/sandbox regressions
+|  |  |  `- code-artifact-panel.test.ts   rendered sandbox/credential-boundary regression
 |  |  |- chat/                       A008-0034 transcript
 |  |  |  |- empty-shortcuts.tsx      workbench shortcut chips and hide/show dock
 |  |  |  |- starfield.tsx            empty-chat 4D starfield layer
 |  |  |  |- starfield-engine.ts      4D rotate/project and canvas loop
-|  |  |  |- chat-pane.tsx            user, answer, and thought DOM channels
+|  |  |  |- chat-pane.tsx            user/answer/thought channels plus explicit HTML Canvas action
 |  |  |  |- chat-history.ts          pure turn-commit reducer
 |  |  |  |- chat-transcript.ts       transcript model
 |  |  |  `- capture-prompt.ts        user-text observation shim

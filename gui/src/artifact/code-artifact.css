@@ -1,0 +1,85 @@
+.a008-code-canvas {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: var(--a008-panel);
+  color: var(--a008-fg);
+}
+.a008-code-canvas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .9rem 1rem .7rem;
+  border-bottom: 1px solid var(--a008-border);
+}
+.a008-code-canvas-header h2 { margin: .1rem 0 0; font-size: 1rem; font-weight: 600; }
+.a008-code-canvas-kicker { margin: 0; color: var(--a008-muted); font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; }
+.a008-code-canvas-close {
+  width: 2rem; height: 2rem; border: 0; border-radius: .5rem;
+  background: transparent; color: var(--a008-muted); font: 1.25rem/1 inherit; cursor: pointer;
+}
+.a008-code-canvas-close:hover { background: var(--a008-accent-soft); color: var(--a008-fg); }
+.a008-code-canvas-meta {
+  display: flex; justify-content: space-between; gap: .75rem;
+  padding: .55rem 1rem; color: var(--a008-muted); font-size: .7rem;
+  border-bottom: 1px solid var(--a008-border);
+}
+.a008-code-canvas-update {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  margin: .65rem; padding: .65rem .75rem; border: 1px solid var(--a008-border);
+  border-radius: .65rem; background: var(--a008-panel-quiet); font-size: .75rem;
+}
+.a008-code-canvas-update button,
+.a008-code-canvas-empty button,
+.a008-code-canvas-revert {
+  border: 1px solid var(--a008-border-strong); border-radius: .55rem;
+  background: transparent; color: var(--a008-fg); padding: .45rem .65rem;
+  font: inherit; cursor: pointer;
+}
+.a008-code-canvas-tabs { display: flex; gap: .25rem; padding: .55rem .7rem; border-bottom: 1px solid var(--a008-border); }
+.a008-code-canvas-tabs button {
+  border: 0; border-radius: .45rem; background: transparent; color: var(--a008-muted);
+  padding: .45rem .65rem; font: inherit; cursor: pointer;
+}
+.a008-code-canvas-tabs button[aria-selected="true"] { background: var(--a008-accent-soft); color: var(--a008-fg); }
+.a008-code-canvas-code-pane,
+.a008-code-canvas-preview-pane { min-height: 0; flex: 1; display: flex; flex-direction: column; }
+.a008-code-canvas-code-pane textarea {
+  box-sizing: border-box; flex: 1; min-height: 18rem; width: 100%; resize: none;
+  border: 0; outline: 0; padding: 1rem; background: #101010; color: #e7e7e7;
+  font: .78rem/1.55 var(--a008-mono, ui-monospace, monospace); tab-size: 2;
+}
+.a008-code-canvas-revert { align-self: flex-end; margin: .55rem .7rem; font-size: .72rem; }
+.a008-code-canvas-revert:disabled { opacity: .35; cursor: default; }
+.a008-code-canvas-preview-pane { background: #0b0b0b; }
+.a008-code-canvas-preview-pane iframe {
+  flex: 1; width: 100%; min-height: 24rem; border: 0; background: white;
+}
+.a008-code-canvas-empty {
+  margin: auto; max-width: 22rem; padding: 2rem; text-align: center;
+  color: var(--a008-fg-soft); line-height: 1.6;
+}
+.a008-code-canvas-empty button { margin: .6rem 0; }
+.a008-code-canvas-note { color: var(--a008-muted); font-size: .72rem; }
+
+.a008-chat-code {
+  width: 100%; overflow: hidden; border: 1px solid var(--a008-border);
+  border-radius: .75rem; background: #111;
+}
+.a008-chat-code-head {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  padding: .45rem .65rem; color: var(--a008-muted); font-size: .68rem;
+  border-bottom: 1px solid var(--a008-border);
+}
+.a008-chat-code-head button {
+  border: 1px solid var(--a008-border-strong); border-radius: .45rem;
+  background: transparent; color: var(--a008-fg-soft); padding: .3rem .5rem;
+  font: inherit; cursor: pointer;
+}
+.a008-chat-code pre { margin: 0; padding: .85rem; overflow: auto; max-height: 28rem; }
+.a008-chat-code code { white-space: pre; font: .76rem/1.5 var(--a008-mono, ui-monospace, monospace); color: #e7e7e7; }
+.a008-chat-bubble-answer { display: flex; flex-direction: column; gap: .7rem; width: 100%; }
+.a008-chat-answer-text { display: block; white-space: pre-wrap; overflow-wrap: anywhere; }
+.a008-code-canvas-preview-error { margin: auto; padding: 1rem; color: var(--a008-danger); font-size: .78rem; }
