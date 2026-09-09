@@ -2,7 +2,7 @@
 
 Task ID: A008-0092
 Parent Task: None
-Status: Ready
+Status: Complete
 Owner: Codex (operator)
 Created: 2026-09-09
 Last updated: 2026-09-09
@@ -41,13 +41,13 @@ A bounded host/client recovery path with WebSocket heartbeat, automatic reconnec
 
 ### Definition of Done
 
-- [ ] Idle standalone WebSockets receive periodic protocol pings and dead peers are closed.
-- [ ] Unexpected disconnect retains an idle ACP session only for the configured short grace period.
-- [ ] A reconnecting authorized browser can resume only with the session's ephemeral resume capability.
-- [ ] Client reconnects automatically with bounded backoff and returns to ready when resume succeeds.
-- [ ] Expired/invalid resume cannot hijack a session and eventually releases it.
-- [ ] In-flight work is cancelled on disconnect rather than silently replayed.
-- [ ] Full test/build gates pass and owning docs describe the behavior.
+- [x] Idle standalone WebSockets receive periodic protocol pings and dead peers are closed.
+- [x] Unexpected disconnect retains an idle ACP session only for the configured short grace period.
+- [x] A reconnecting authorized browser can resume only with the session's ephemeral resume capability.
+- [x] Client reconnects automatically with bounded backoff and returns to ready when resume succeeds.
+- [x] Expired/invalid resume cannot hijack a session and eventually releases it.
+- [x] In-flight work is cancelled on disconnect rather than silently replayed.
+- [x] Full test/build gates pass and owning docs describe the behavior.
 
 ### Necessity Gate
 
@@ -61,13 +61,13 @@ Contract revision: `f17d476a0ca77c1c3900e82481ac601a3c3b6ef0`
 | Preserve safety | PC-05 | reconnect must not widen tool/credential authority or replay model work | resume only existing idle session; cancel in-flight work; reset client allow-all on transport loss | existing approval/cancellation regression + focused tests |
 ### Minimum Verification Gates
 
-- [ ] Host heartbeat emits ping and closes a peer that does not pong within the liveness window.
-- [ ] Detached idle session is resumable before expiry and released after expiry.
-- [ ] Invalid resume capability is refused without exposing another session.
-- [ ] Disconnect during an active prompt aborts/cancels it and does not replay it on reconnect.
-- [ ] GUI automatically reconnects with deterministic bounded delays and resumes the same session when possible.
-- [ ] `Allow all` remains transport/session-local and is cleared across reconnect.
-- [ ] `npm test`, GUI production build and `git diff --check` pass.
+- [x] Host heartbeat emits ping and closes a peer that does not pong within the liveness window.
+- [x] Detached idle session is resumable before expiry and released after expiry.
+- [x] Invalid resume capability is refused without exposing another session.
+- [x] Disconnect during an active prompt aborts/cancels it and does not replay it on reconnect.
+- [x] GUI automatically reconnects with deterministic bounded delays and resumes the same session when possible.
+- [x] `Allow all` remains transport/session-local and is cleared across reconnect.
+- [x] `npm test`, GUI production build and `git diff --check` pass.
 
 ## References
 
@@ -82,12 +82,12 @@ Contract revision: `f17d476a0ca77c1c3900e82481ac601a3c3b6ef0`
 
 ## Checklist
 
-- [ ] Claim task identity on `main` and create isolated implementation worktree.
-- [ ] Implement heartbeat and resumable detached-session lease.
-- [ ] Implement GUI reconnect/resume path with bounded backoff.
-- [ ] Add focused host/protocol/client regressions.
-- [ ] Run full verification and review safety boundaries.
-- [ ] Update owning docs, archive, handoff and restore current-task template.
+- [x] Claim task identity on `main` and create isolated implementation worktree.
+- [x] Implement heartbeat and resumable detached-session lease.
+- [x] Implement GUI reconnect/resume path with bounded backoff.
+- [x] Add focused host/protocol/client regressions.
+- [x] Run full verification and review safety boundaries.
+- [x] Update owning docs, archive, handoff and restore current-task template.
 
 ## Decisions and Notes
 
@@ -97,17 +97,28 @@ Contract revision: `f17d476a0ca77c1c3900e82481ac601a3c3b6ef0`
 
 ## Verification
 
-- [ ] Pending implementation.
+- [x] `npm test`: 543 core, 4 membership and 129 GUI tests passed with zero failures.
+- [x] `npm --prefix gui run build` passed (TypeScript + production Vite build).
+- [x] Focused GUI-host suite: 38/38 passed, including protocol heartbeat, silent-peer timeout, same-session resume, invalid capability and expiry.
+- [x] GUI regressions prove bounded auto-reconnect, no in-flight prompt replay, resume refusal fallback, and `Allow all` reset across transport loss.
+- [x] Existing repository-tool approval/cancellation tests remained green; no provider, memory or tool semantic surface was added.
+- [x] No live provider call or `.env.local` credential was used by verification.
+- [x] Final `git diff --check`, staged credential scan and production build passed immediately before commit.
 
 ## Documentation Updates
 
-- [ ] `docs/CURRENT_STATUS.md`
-- [ ] `docs/SYSTEMDOC.md`
-- [ ] `docs/HOST_PROTOCOL.md`
-- [ ] `docs/FILESTRUCTURE.md` if structure changes
+- [x] `docs/CURRENT_STATUS.md`
+- [x] `docs/SYSTEMDOC.md`
+- [x] `docs/HOST_PROTOCOL.md`
+- [x] `docs/FILESTRUCTURE.md` reviewed; no source-path/structure change required
 
 ## Finalize When Complete
 
 - Archive under `docs/finished/A008-0092_mobile-websocket-recovery.md`.
 - Restore `docs/CURRENT_TASK.md` from template.
 - Write `docs/handoffs/A008-0092.md` and append signed journal entry.
+## Completion
+
+- Outcome: standalone mobile WebSocket recovery is implemented with protocol heartbeat, an opaque short-lived resume lease and bounded GUI reconnect.
+- Security: resume capability is in-memory bearer authority only; active work is aborted and never replayed; explicit close/expiry/host shutdown invalidate the lease.
+- Follow-up: durable reload/cross-device resume, connected-session idle timeout and global session caps remain out of scope.

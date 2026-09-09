@@ -8,6 +8,9 @@ replacement.
 
 ## Records
 
+- [0037-mobile-websocket-recovery.md](0037-mobile-websocket-recovery.md)
+  — Accepted; heartbeat, bounded reconnect and short capability-bound resume for standalone GUI sessions.
+
 - [0036-openai-gpt-56-luna-provider.md](0036-openai-gpt-56-luna-provider.md)
   — Accepted; OpenAI GPT-5.6 Luna chat through the shared transport, write-only
   credential handling and OpenAI-only memory-aware runtime composition.

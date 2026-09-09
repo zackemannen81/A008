@@ -11,12 +11,14 @@ export const CLIENT_MESSAGE_KEYS = [
   "control",
   "permissionId",
   "allow",
+  "resumeToken",
 ] as const;
 
 export type ClientMessage =
   | { type: "tool/permission"; requestId: string; sessionId: string; permissionId: string; allow: boolean }
   | { type: "session/control"; requestId: string; sessionId: string; control: SessionControl }
   | { type: "session/new"; requestId: string; model?: string }
+  | { type: "session/resume"; requestId: string; sessionId: string; resumeToken: string }
   | { type: "prompt"; requestId: string; sessionId: string; text: string }
   | { type: "cancel"; requestId: string; sessionId: string };
 
@@ -25,7 +27,8 @@ export type ServerMessage =
   | { type: "tool"; sessionId: string; id: string; title: string; status: string; text: string }
   | { type: "session/activity"; sessionId: string; active: boolean; text?: string; state?: SessionSnapshot }
   | { type: "session/control/ok"; requestId: string; sessionId: string; state: SessionSnapshot }
-  | { type: "session/new/ok"; requestId: string; sessionId: string; state?: SessionSnapshot }
+  | { type: "session/new/ok"; requestId: string; sessionId: string; resumeToken?: string; state?: SessionSnapshot }
+  | { type: "session/resume/ok"; requestId: string; sessionId: string; resumeToken: string; state?: SessionSnapshot }
   | { type: "thought"; sessionId: string; text: string }
   | { type: "answer"; sessionId: string; text: string }
   | { type: "prompt/ok"; requestId: string; sessionId: string; state?: SessionSnapshot }
@@ -51,6 +54,8 @@ export function encodeClientMessage(message: ClientMessage): string {
     case "tool/permission": return JSON.stringify(message);
     case "session/control":
       return JSON.stringify({ type: message.type, requestId: message.requestId, sessionId: message.sessionId, control: message.control });
+    case "session/resume":
+      return JSON.stringify({ type: message.type, requestId: message.requestId, sessionId: message.sessionId, resumeToken: message.resumeToken });
     case "session/new": {
       const body: Record<string, string> = {
         type: "session/new",
@@ -105,12 +110,16 @@ export function parseServerMessage(value: unknown): ServerMessage | undefined {
     case "session/new/ok": {
       const requestId = requiredString(value, "requestId");
       const sessionId = requiredString(value, "sessionId");
-      if (requestId === undefined || sessionId === undefined) {
-        throw new GuiHostProtocolError(
-          "session/new/ok is missing requestId or sessionId.",
-        );
-      }
-      return { type: "session/new/ok", requestId, sessionId, ...(value.state === undefined ? {} : { state: parseSessionSnapshot(value.state) }) };
+      const resumeToken = optionalResumeToken(value);
+      if (requestId === undefined || sessionId === undefined) throw new GuiHostProtocolError("session/new/ok is missing identifiers.");
+      return { type: value.type, requestId, sessionId, ...(resumeToken === undefined ? {} : { resumeToken }), ...(value.state === undefined ? {} : { state: parseSessionSnapshot(value.state) }) };
+    }
+    case "session/resume/ok": {
+      const requestId = requiredString(value, "requestId");
+      const sessionId = requiredString(value, "sessionId");
+      const resumeToken = optionalResumeToken(value);
+      if (requestId === undefined || sessionId === undefined || resumeToken === undefined) throw new GuiHostProtocolError("session/resume/ok is missing valid identifiers or resume capability.");
+      return { type: value.type, requestId, sessionId, resumeToken, ...(value.state === undefined ? {} : { state: parseSessionSnapshot(value.state) }) };
     }
     case "thought":
     case "answer": {
@@ -172,4 +181,11 @@ function optionalString(
   }
   const value = record[key];
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function optionalResumeToken(record: Record<string, unknown>): string | undefined {
+  if (!("resumeToken" in record)) return undefined;
+  const value = record.resumeToken;
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/u.test(value)) throw new GuiHostProtocolError("Invalid resume capability.");
+  return value;
 }

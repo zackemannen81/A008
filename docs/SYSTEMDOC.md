@@ -285,18 +285,24 @@ details, and a host that cannot start `A008-acp` appends the subprocess stderr
 tail, so an unset credential or a malformed runtime ID is diagnosable from the
 GUI instead of surfacing as a generic internal error.
 
-Sessions are owned per socket and released on disconnect. Each `session/new`
-frame records its session against the socket that asked for it; when that
-socket closes, the host aborts any in-flight prompt and issues ACP
-`session/close` for every session that socket owned. `A008AcpAgent` implements
-that method — aborting the active turn, dropping the session state, and failing
-closed on a session it does not hold — and advertises
-`sessionCapabilities.close` from `initialize`. The host reads its existing
-bridge binding rather than starting one, so a socket that never opened a
-session cannot spawn an ACP subprocess on its way out, and it contains release
-failures because a close path has no client left to tell. Release is
-disconnect-driven only: there is no idle timeout or reaper, so a socket that
-never closes cleanly holds its sessions until the process exits.
+A008-0092 / ADR 0037 makes standalone session ownership recoverable across a
+brief transport interruption. Every `session/new` receives a random 32-byte
+resume capability and remains attached to its socket while that socket is live.
+The host sends protocol pings every 25 seconds; if the previous ping is still
+unanswered at the next cadence, it closes the dead peer. On disconnect it aborts
+all in-flight prompt controllers immediately, unsubscribes socket observers, and
+detaches the socket's sessions for a 45-second in-memory grace period. It does
+not replay the aborted operation.
+
+`session/resume` may claim only a detached session whose exact capability matches;
+the new socket then owns the same ACP session and receives its current snapshot.
+Invalid, already-attached or expired capabilities fail closed. Expiry performs
+ACP `session/close`; explicit close and host shutdown invalidate the lease too.
+`A008AcpAgent` remains the session-state owner and close implementation. A socket
+that never opened a session still cannot create an ACP process during cleanup.
+The resume token never enters model/provider/memory context and is not persisted,
+so reload, another device and host restart do not resume a session. Still-connected
+sessions have no new idle timeout or total-session cap.
 
 A008-0030 proved this chain end to end against a real host process, a real ACP
 subprocess, the real local memory runtime, and a loopback fake endpoint. See
@@ -364,7 +370,13 @@ status, `sessionId`, model, separate `thought` and `answer` buffers, `error`,
 pane offers an explicit Connect action. The hook-facing `connect` settles rather
 than rejecting, because the settings pane fires it and forgets it, while the
 underlying client still rejects for programmatic callers. Failure is carried by
-`status` and `error`.
+`status` and `error`. After an established standalone socket is lost, the client
+keeps the known session snapshot, clears session-scoped `Allow all`, rejects any
+pending prompt/control without replay, and retries resume after 0.5, 1, 2 and
+then 5 seconds (5-second cap). During recovery it uses the existing `connecting`
+state without a fatal error banner. Successful `session/resume/ok` restores
+`ready` on the same session; an expired/refused capability becomes an explicit
+error and the next manual Connect starts a new session.
 
 `gui/src/chat/` renders user text, the assistant answer, and streaming thought
 as three distinct DOM channels, with the thought channel display-only. A

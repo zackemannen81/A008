@@ -55,4 +55,6 @@ export interface GuiSessionClientOptions {
   readonly model?: string;
   readonly webSocket?: GuiWebSocketConstructor;
   readonly createRequestId?: () => string;
+  /** Test/embedding override; production defaults to 0.5s, 1s, 2s, then 5s capped. */
+  readonly reconnectDelaysMs?: readonly number[];
 }

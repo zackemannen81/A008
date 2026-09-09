@@ -12,6 +12,8 @@ const OPCODE_PONG = 0xa;
 
 export interface GuiWebSocket {
   send(text: string): void;
+  /** Send one heartbeat ping; false means the previous ping is still unanswered. */
+  ping(): boolean;
   close(code?: number, reason?: string): void;
   readonly closed: Promise<void>;
 }
@@ -75,6 +77,7 @@ class OpenGuiWebSocket implements GuiWebSocket {
   #fragmentOpcode: number | undefined;
   #fragments: Buffer[] = [];
   #closed = false;
+  #awaitingPong = false;
   #resolveClosed: () => void = () => undefined;
 
   constructor(socket: Duplex, head: Buffer, onMessage: (text: string) => void) {
@@ -104,6 +107,15 @@ class OpenGuiWebSocket implements GuiWebSocket {
       return;
     }
     this.#socket.write(encodeFrame(OPCODE_TEXT, Buffer.from(text, "utf8")));
+  }
+
+  ping(): boolean {
+    if (this.#closed || this.#awaitingPong) {
+      return false;
+    }
+    this.#awaitingPong = true;
+    this.#socket.write(encodeFrame(OPCODE_PING, Buffer.alloc(0)));
+    return true;
   }
 
   close(code = 1000, reason = ""): void {
@@ -148,6 +160,7 @@ class OpenGuiWebSocket implements GuiWebSocket {
       return;
     }
     if (frame.opcode === OPCODE_PONG) {
+      this.#awaitingPong = false;
       return;
     }
     const isData =

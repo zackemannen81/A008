@@ -20,6 +20,7 @@ import type { SessionSnapshot } from "./session-controls.js";
 import { buildChatTranscript } from "../chat/chat-transcript.js";
 
 const ALLOWED_CLIENT_KEYS = new Set<string>(CLIENT_MESSAGE_KEYS);
+const RESUME_TOKEN = "a".repeat(64);
 const SESSION_DIR = dirname(fileURLToPath(import.meta.url));
 const controlledState: SessionSnapshot = {
   model: DEFAULT_GUI_MODEL,
@@ -110,6 +111,7 @@ function createClient(
   overrides: {
     url?: string;
     model?: string;
+    reconnectDelaysMs?: readonly number[];
   } = {},
 ): GuiSessionClient {
   fakeSockets.length = 0;
@@ -117,6 +119,7 @@ function createClient(
   return createGuiSessionClient({
     url: overrides.url ?? "ws://gui.test/v1/session",
     model: overrides.model,
+    reconnectDelaysMs: overrides.reconnectDelaysMs,
     webSocket: FakeWebSocket,
     createRequestId: () => {
       nextId += 1;
@@ -137,6 +140,7 @@ async function becomeReady(
     type: "session/new/ok",
     requestId: "req-1",
     sessionId,
+    resumeToken: RESUME_TOKEN,
   });
   await pending;
   return socket;
@@ -184,6 +188,13 @@ test("encodeClientMessage writes only protocol fields", () => {
   const body = JSON.parse(encoded) as Record<string, unknown>;
   assert.deepEqual(Object.keys(body).sort(), ["model", "requestId", "type"]);
   assert.equal(body.type, "session/new");
+});
+
+test("resume frames carry only the bounded session capability", () => {
+  const encoded = JSON.parse(encodeClientMessage({ type: "session/resume", requestId: "r", sessionId: "s", resumeToken: RESUME_TOKEN })) as Record<string, unknown>;
+  assert.deepEqual(encoded, { type: "session/resume", requestId: "r", sessionId: "s", resumeToken: RESUME_TOKEN });
+  assert.deepEqual(parseServerMessage({ type: "session/resume/ok", requestId: "r", sessionId: "s", resumeToken: RESUME_TOKEN }), { type: "session/resume/ok", requestId: "r", sessionId: "s", resumeToken: RESUME_TOKEN });
+  assert.throws(() => parseServerMessage({ type: "session/resume/ok", requestId: "r", sessionId: "s", resumeToken: "bad" }), /resume capability/u);
 });
 
 test("parseServerMessage accepts host protocol v1 frames", () => {
@@ -413,6 +424,76 @@ test("connect after error opens a new socket", async () => {
     sessionId: "sess-2",
   });
   await retry;
+  assert.equal(client.status, "ready");
+  assert.equal(client.sessionId, "sess-2");
+});
+
+test("unexpected socket loss automatically resumes the same session with bounded backoff", async () => {
+  const client = createClient({ reconnectDelaysMs: [0] });
+  const first = await becomeReady(client);
+  first.deliver({ type: "tool/permission", sessionId: "sess-1", id: "first", title: "exec_command", text: "one" });
+  client.resolveToolPermission!("allow_all");
+  first.fail();
+  assert.equal(client.status, "connecting");
+  assert.equal(client.sessionId, "sess-1");
+  assert.equal(client.error, undefined);
+
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const second = fakeSockets.at(-1)!;
+  assert.notEqual(second, first);
+  second.open();
+  const resume = parsedFrames(second)[0]!;
+  assert.deepEqual(resume, { type: "session/resume", requestId: resume.requestId, sessionId: "sess-1", resumeToken: RESUME_TOKEN });
+  second.deliver({ type: "session/resume/ok", requestId: resume.requestId, sessionId: "sess-1", resumeToken: RESUME_TOKEN, state: controlledState });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(client.status, "ready");
+  assert.equal(client.sessionId, "sess-1");
+
+  const before = second.sent.length;
+  second.deliver({ type: "tool/permission", sessionId: "sess-1", id: "after", title: "git", text: "two" });
+  assert.equal(client.getSnapshot().permission?.id, "after", "Allow all must not survive transport loss");
+  assert.equal(second.sent.length, before);
+});
+
+test("transport loss rejects in-flight work and never replays the prompt on resume", async () => {
+  const client = createClient({ reconnectDelaysMs: [0] });
+  const first = await becomeReady(client);
+  const pending = client.prompt("do not replay");
+  first.fail();
+  await assert.rejects(pending, /interrupted/);
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const second = fakeSockets.at(-1)!;
+  second.open();
+  const frames = parsedFrames(second);
+  assert.equal(frames.length, 1);
+  assert.equal(frames[0]?.type, "session/resume");
+  assert.equal(frames.some((frame) => frame.type === "prompt"), false);
+  second.deliver({ type: "session/resume/ok", requestId: frames[0]?.requestId, sessionId: "sess-1", resumeToken: RESUME_TOKEN, state: controlledState });
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(client.status, "ready");
+});
+
+test("a refused resume stops reconnecting and requires a fresh manual connection", async () => {
+  const client = createClient({ reconnectDelaysMs: [0] });
+  const first = await becomeReady(client);
+  first.fail();
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  const second = fakeSockets.at(-1)!;
+  second.open();
+  const resume = parsedFrames(second)[0]!;
+  second.deliver({ type: "error", requestId: resume.requestId, sessionId: "sess-1", message: "Session resume is unavailable or expired." });
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.equal(client.status, "error");
+  assert.equal(client.sessionId, undefined);
+  assert.equal(fakeSockets.length, 2);
+
+  const fresh = client.connect();
+  const third = fakeSockets.at(-1)!;
+  third.open();
+  const request = parsedFrames(third)[0]!;
+  assert.equal(request.type, "session/new");
+  third.deliver({ type: "session/new/ok", requestId: request.requestId, sessionId: "sess-2", resumeToken: RESUME_TOKEN });
+  await fresh;
   assert.equal(client.status, "ready");
   assert.equal(client.sessionId, "sess-2");
 });

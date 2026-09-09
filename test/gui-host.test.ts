@@ -8,6 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { request as httpRequest } from "node:http";
+import { connect as netConnect, type Socket } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import test from "node:test";
@@ -81,6 +82,7 @@ async function withHost(
     cwd: process.cwd(),
     env: { ...process.env, NVIDIA_API_KEY: SECRET },
     createAcpBridge: () => injectedBridge(),
+    sessionResumeGraceMs: 25,
     ...options,
   });
   try {
@@ -223,6 +225,11 @@ test("parseClientMessage accepts host protocol v1 client frames", () => {
     ),
     { type: "prompt", requestId: "r2", sessionId: "s", text: "hi" },
   );
+  assert.deepEqual(
+    parseClientMessage(JSON.stringify({ type: "session/resume", requestId: "r3", sessionId: "s", resumeToken: "a".repeat(64) })),
+    { type: "session/resume", requestId: "r3", sessionId: "s", resumeToken: "a".repeat(64) },
+  );
+  assert.equal("error" in parseClientMessage(JSON.stringify({ type: "session/resume", requestId: "r4", sessionId: "s", resumeToken: "short" })), true);
   assert.equal(
     "error" in parseClientMessage("{"),
     true,
@@ -490,11 +497,11 @@ test("WebSocket session streams thought and answer then prompt/ok", async () => 
     const client = await SessionClient.open(host.port);
     try {
       client.send({ type: "session/new", requestId: "n1" });
-      assert.deepEqual(await client.next(), {
-        type: "session/new/ok",
-        requestId: "n1",
-        sessionId: SESSION_ID,
-      });
+      const created = await client.next() as { type: string; requestId: string; sessionId: string; resumeToken: string };
+      assert.equal(created.type, "session/new/ok");
+      assert.equal(created.requestId, "n1");
+      assert.equal(created.sessionId, SESSION_ID);
+      assert.match(created.resumeToken, /^[a-f0-9]{64}$/u);
       client.send({
         type: "prompt",
         requestId: "p1",
@@ -523,6 +530,89 @@ test("WebSocket session streams thought and answer then prompt/ok", async () => 
   });
 });
 
+
+async function openRawWebSocket(port: number): Promise<Socket> {
+  const socket = netConnect({ host: "127.0.0.1", port });
+  const key = randomBytes(16).toString("base64");
+  socket.write(
+    `GET /v1/session HTTP/1.1\r\nHost: 127.0.0.1:${String(port)}\r\n` +
+    `Origin: http://127.0.0.1:${String(port)}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n` +
+    `Sec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n\r\n`,
+  );
+  await new Promise<void>((resolve, reject) => {
+    let text = "";
+    const onData = (chunk: Buffer) => {
+      text += chunk.toString("latin1");
+      if (text.includes("\r\n\r\n")) { socket.off("data", onData); resolve(); }
+    };
+    socket.on("data", onData);
+    socket.once("error", reject);
+  });
+  return socket;
+}
+
+test("host heartbeat keeps responsive WebSockets alive and closes a peer that never pongs", async () => {
+  await withHost({ webSocketHeartbeatMs: 20 }, async (host) => {
+    const responsive = await SessionClient.open(host.port);
+    await new Promise((resolve) => setTimeout(resolve, 70));
+    responsive.send({ type: "session/new", requestId: "alive" });
+    const created = await responsive.next();
+    assert.equal((created as { type: string }).type, "session/new/ok");
+    responsive.close();
+
+    const silent = await openRawWebSocket(host.port);
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("silent WebSocket was not closed by heartbeat")), 250);
+      const done = () => { clearTimeout(timer); resolve(); };
+      silent.once("close", done);
+      silent.once("end", done);
+    });
+  });
+});
+
+test("a detached session resumes within grace with its opaque capability", async () => {
+  const released: string[] = [];
+  await withHost({ sessionResumeGraceMs: 300, createAcpBridge: () => injectedBridge(released) }, async (host) => {
+    const first = await SessionClient.open(host.port);
+    first.send({ type: "session/new", requestId: "n1" });
+    const created = await first.next() as { type: string; sessionId: string; resumeToken: string };
+    assert.match(created.resumeToken, /^[a-f0-9]{64}$/u);
+    first.close();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    assert.deepEqual(released, []);
+
+    const second = await SessionClient.open(host.port);
+    second.send({ type: "session/resume", requestId: "r1", sessionId: created.sessionId, resumeToken: created.resumeToken });
+    assert.deepEqual(await second.next(), { type: "session/resume/ok", requestId: "r1", sessionId: created.sessionId, resumeToken: created.resumeToken });
+    second.send({ type: "prompt", requestId: "p1", sessionId: created.sessionId, text: "hello" });
+    assert.equal((await second.next() as { type: string }).type, "thought");
+    assert.equal((await second.next() as { type: string }).type, "answer");
+    assert.equal((await second.next() as { type: string }).type, "prompt/ok");
+    second.close();
+  });
+});
+
+test("invalid or expired resume capability cannot claim a detached session", async () => {
+  const released: string[] = [];
+  await withHost({ sessionResumeGraceMs: 80, createAcpBridge: () => injectedBridge(released) }, async (host) => {
+    const first = await SessionClient.open(host.port);
+    first.send({ type: "session/new", requestId: "n1" });
+    const created = await first.next() as { sessionId: string; resumeToken: string };
+    first.close();
+
+    const attacker = await SessionClient.open(host.port);
+    attacker.send({ type: "session/resume", requestId: "bad", sessionId: created.sessionId, resumeToken: "0".repeat(64) });
+    assert.deepEqual(await attacker.next(), { type: "error", requestId: "bad", sessionId: created.sessionId, message: "Session resume is unavailable or expired." });
+    attacker.close();
+
+    await eventually(() => released.includes(created.sessionId), "detached session expiry", 1_000);
+    const late = await SessionClient.open(host.port);
+    late.send({ type: "session/resume", requestId: "late", sessionId: created.sessionId, resumeToken: created.resumeToken });
+    assert.equal((await late.next() as { type: string }).type, "error");
+    late.close();
+  });
+});
+
 /** Waits for a condition the host reaches asynchronously after a socket close. */
 async function eventually(
   check: () => boolean,
@@ -539,7 +629,7 @@ async function eventually(
   throw new Error(`Timed out waiting for ${what}.`);
 }
 
-test("a disconnecting renderer releases every session it owned", async () => {
+test("a disconnecting renderer releases every session it owned after resume grace", async () => {
   const released: string[] = [];
   await withHost(
     { createAcpBridge: () => injectedBridge(released) },
@@ -558,7 +648,7 @@ test("a disconnecting renderer releases every session it owned", async () => {
   );
 });
 
-test("one renderer disconnecting leaves another renderer's session alone", async () => {
+test("one renderer expiry leaves another renderer's session alone", async () => {
   const released: string[] = [];
   await withHost(
     { createAcpBridge: () => injectedBridge(released) },
@@ -612,7 +702,7 @@ test("a socket that opened no session releases nothing and starts no bridge", as
   );
 });
 
-test("a failing release does not take the host down", async () => {
+test("a failing detached-session release does not take the host down", async () => {
   const attempted: string[] = [];
   await withHost(
     {
@@ -641,7 +731,7 @@ test("a failing release does not take the host down", async () => {
   );
 });
 
-test("disconnecting while a prompt streams aborts the turn and still releases", async () => {
+test("disconnecting while a prompt streams aborts the turn and releases after grace", async () => {
   const released: string[] = [];
   await withHost(
     { createAcpBridge: () => injectedBridge(released) },

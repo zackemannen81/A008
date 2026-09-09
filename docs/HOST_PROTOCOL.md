@@ -17,6 +17,7 @@ D3–D4, [`adr/0022-gui-is-a-test-surface.md`](adr/0022-gui-is-a-test-surface.md
 Memory inspection and session controls are additive amendments in
 [`ADR 0025`](adr/0025-memory-inspection-gui.md) and
 [`ADR 0026`](adr/0026-gui-session-controls.md).
+A008-0092 recovery is specified by [`ADR 0037`](adr/0037-mobile-websocket-recovery.md).
 Where this document and an ADR disagree, the ADR is the decision and this
 document has a bug.
 
@@ -266,12 +267,14 @@ One socket carries one or more sessions. JSON text frames, one message each.
 { "type": "prompt",  "requestId": "r2", "sessionId": "…", "text": "…" }
 { "type": "cancel",  "requestId": "r3", "sessionId": "…" }
 { "type": "session/control", "requestId": "r4", "sessionId": "…", "control": { "action": "inspect" } }
+{ "type": "session/resume", "requestId": "r5", "sessionId": "…", "resumeToken": "<64 lowercase hex>" }
 ```
 
 ### Host → client
 
 ```jsonc
-{ "type": "session/new/ok", "requestId": "r1", "sessionId": "A008_v1_acp_session_…" }
+{ "type": "session/new/ok", "requestId": "r1", "sessionId": "A008_v1_acp_session_…", "resumeToken": "<64 lowercase hex>" }
+{ "type": "session/resume/ok", "requestId": "r5", "sessionId": "…", "resumeToken": "<same capability>", "state": { /* optional snapshot */ } }
 { "type": "thought",   "sessionId": "…", "text": "…" }   // repeats while streaming
 { "type": "answer",    "sessionId": "…", "text": "…" }   // repeats while streaming
 { "type": "prompt/ok", "requestId": "r2", "sessionId": "…" }
@@ -293,10 +296,28 @@ guarantee for its users.
 Both arrive as many small frames. Append per channel; a turn ends at
 `prompt/ok`.
 
-### Session lifetime
+### Session lifetime, heartbeat and recovery
 
-Closing the socket releases every session it opened. A client that reconnects
-starts a new session; there is no resume.
+A008-0092 / ADR 0037 separates a brief transport interruption from the ACP
+session lifetime. `session/new/ok` includes a random 32-byte resume capability
+encoded as 64 lowercase hex characters. If the WebSocket closes unexpectedly,
+the host aborts any in-flight prompt and detaches the socket-owned sessions for
+45 seconds by default instead of releasing them immediately. During that grace
+window, `session/resume` may reattach only the named detached session with its
+exact capability. Invalid, already-attached or expired capabilities are refused.
+Explicit close, grace expiry and host shutdown invalidate the capability.
+
+The host sends a WebSocket protocol ping every 25 seconds by default. A peer
+that has not answered the previous ping by the next cadence is closed. Browsers
+answer WebSocket ping frames at the protocol layer; no JSON heartbeat is needed.
+
+The bundled GUI retries unexpected transport loss after 0.5, 1, 2 and then 5
+seconds, capped at 5 seconds. A successful resume preserves the same committed
+session snapshot. `Allow all` is cleared on transport loss. An operation that
+was in flight is rejected/cancelled and is never replayed after reconnect. The
+resume capability lives only in renderer memory and is never model context,
+semantic memory, provider data or durable storage. Reload, another device and
+host restart therefore do not resume the session.
 
 ### Session controls (ADR 0026)
 
@@ -387,10 +408,13 @@ truncate the answer.
 
 ## What this protocol does not have
 
-Named so a client does not wait for them: no authentication, no session resume
-or reload, no multiplexed file transfer over the socket, no server-initiated
-push outside a turn, no versioning handshake. The host answers `GET /health`
-and that is the whole capability negotiation.
+Named so a client does not wait for them: no durable/page-reload/cross-device
+session resume, no multiplexed file transfer over the socket, no application-level
+heartbeat message, no server-initiated JSON push outside existing session/tool
+activity, and no versioning handshake. Standalone PIN and engine capability
+authentication remain the existing access boundaries; the resume token is only a
+short-lived session capability. The host answers `GET /health` and that remains
+the minimal capability probe.
 
 A client should treat any unknown frame `type` as ignorable rather than fatal,
 so a later addition does not break it.

@@ -2195,3 +2195,16 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Verification: production GUI build passed; GUI 125/125; root suite 540 core + 4 membership + 125 GUI; repository-tool approval regression passed; final diff check performed after task cleanup.
 - Handoff: `docs/handoffs/A008-0091.md`.
 - Signature: Codex
+
+## 2026-09-09 — A008-0092 mobile WebSocket recovery
+
+- Date: 2026-09-09
+- Author: Codex
+- Task: A008-0092
+- Branch: `codex/A008-0092-mobile-ws`
+- Change: added host WebSocket heartbeat, a 45-second detached ACP-session lease with opaque resume capability, and bundled-GUI automatic same-session reconnect with bounded 0.5/1/2/5-second backoff.
+- Safety: transport loss aborts in-flight work and rejects the client operation; prompts/controls are never replayed. Session-scoped Allow all resets. Resume authority is never model/provider/memory context and is not persisted.
+- Protocol: ADR 0037 adds `session/resume` / `session/resume/ok`; `session/new/ok` returns the resume capability. Explicit close, expiry and host shutdown invalidate it.
+- Verification: 543 core, 4 membership and 129 GUI tests passed; focused host suite 38/38; production GUI build passed. No live provider call.
+- Handoff: `docs/handoffs/A008-0092.md`.
+- Signature: Codex

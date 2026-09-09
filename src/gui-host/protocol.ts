@@ -12,6 +12,12 @@ export type GuiHostClientMessage =
       readonly model?: string;
     }
   | {
+      readonly type: "session/resume";
+      readonly requestId: string;
+      readonly sessionId: string;
+      readonly resumeToken: string;
+    }
+  | {
       readonly type: "prompt";
       readonly requestId: string;
       readonly sessionId: string;
@@ -33,6 +39,14 @@ export type GuiHostServerMessage =
       readonly state?: SessionSnapshot;
       readonly requestId: string;
       readonly sessionId: string;
+      readonly resumeToken: string;
+    }
+  | {
+      readonly type: "session/resume/ok";
+      readonly state?: SessionSnapshot;
+      readonly requestId: string;
+      readonly sessionId: string;
+      readonly resumeToken: string;
     }
   | {
       readonly type: "thought";
@@ -108,6 +122,15 @@ export function parseClientMessage(
       return { error: "session/new model must be a non-empty string.", requestId };
     }
     return { type: "session/new", requestId, model: parsed.model };
+  }
+  if (type === "session/resume") {
+    if (requestId === undefined || sessionId === undefined) {
+      return { error: "session/resume requires requestId and sessionId.", ...(requestId === undefined ? {} : { requestId }), ...(sessionId === undefined ? {} : { sessionId }) };
+    }
+    if (typeof parsed.resumeToken !== "string" || !/^[a-f0-9]{64}$/u.test(parsed.resumeToken)) {
+      return { error: "session/resume requires a valid resume capability.", requestId, sessionId };
+    }
+    return { type, requestId, sessionId, resumeToken: parsed.resumeToken };
   }
   if (type === "prompt") {
     if (requestId === undefined || sessionId === undefined) {

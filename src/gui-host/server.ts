@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, realpathSync, statSync } from "node:fs";
 import {
   createServer,
@@ -75,6 +75,14 @@ import {
 const MAX_JSON_BODY_BYTES = 64 * 1024;
 /** Default cap for `POST /v1/upload`; overridable via `GuiHostOptions.maxUploadBytes`. */
 const DEFAULT_MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+const DEFAULT_WEBSOCKET_HEARTBEAT_MS = 25_000;
+const DEFAULT_SESSION_RESUME_GRACE_MS = 45_000;
+
+interface SessionLease {
+  readonly resumeToken: string;
+  attached: boolean;
+  releaseTimer?: ReturnType<typeof setTimeout>;
+}
 const MIME_TYPES: Readonly<Record<string, string>> = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -118,6 +126,10 @@ export interface GuiHostOptions {
   readonly fetch?: FetchLike;
   readonly catalogPath?: string;
   readonly secretsPath?: string;
+  /** Host WebSocket ping cadence; defaults to 25 seconds. */
+  readonly webSocketHeartbeatMs?: number;
+  /** How long a disconnected ACP session may be resumed; defaults to 45 seconds. */
+  readonly sessionResumeGraceMs?: number;
 }
 
 export interface GuiHost {
@@ -147,6 +159,8 @@ export async function startGuiHost(
   const staticDir = resolveStaticDir(options.staticDir, cwd, env);
   const storeRoot = resolveSourceStorePath(options.sourceStorePath, cwd, env);
   const maxUploadBytes = options.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
+  const webSocketHeartbeatMs = positiveDuration(options.webSocketHeartbeatMs ?? DEFAULT_WEBSOCKET_HEARTBEAT_MS, "WebSocket heartbeat");
+  const sessionResumeGraceMs = positiveDuration(options.sessionResumeGraceMs ?? DEFAULT_SESSION_RESUME_GRACE_MS, "Session resume grace");
   const allowedOrigins =
     options.allowedOrigins ?? parseAllowedOrigins(env[ALLOWED_ORIGINS_ENV]);
   const fetchImpl = options.fetch ?? fetch;
@@ -165,6 +179,7 @@ export async function startGuiHost(
   const requestOriginAllowed = (request: IncomingMessage): boolean =>
     originAllowedBy(request, allowedOrigins);
   const sockets = new Set<GuiWebSocket>();
+  const sessionLeases = new Map<string, SessionLease>();
   let bridge: AcpBridge | undefined;
   let bridgePending: Promise<AcpBridge> | undefined;
 
@@ -204,32 +219,46 @@ export async function startGuiHost(
     }
   };
 
-  /**
-   * Give back every ACP session a closing socket owned.
-   *
-   * This deliberately reads `bridge` instead of calling `getBridge()`: a socket
-   * that never opened a session must not spawn an ACP subprocess on its way
-   * out. Failures are swallowed because this runs on a close path with no one
-   * left to tell — the socket is already gone, and a rejection here would
-   * surface as an unhandled rejection and could take the host down. The set is
-   * cleared either way, so a failed release is never retried against an agent
-   * that has likely already dropped the session itself.
-   */
-  const releaseSessions = async (sessionIds: Set<string>): Promise<void> => {
+  const forgetLease = (sessionId: string): void => {
+    const lease = sessionLeases.get(sessionId);
+    if (lease?.releaseTimer !== undefined) clearTimeout(lease.releaseTimer);
+    sessionLeases.delete(sessionId);
+  };
+
+  const releaseDetachedSession = async (sessionId: string): Promise<void> => {
+    const lease = sessionLeases.get(sessionId);
+    if (lease === undefined || lease.attached) return;
+    forgetLease(sessionId);
     const started = bridge;
-    if (started === undefined || sessionIds.size === 0) {
-      sessionIds.clear();
-      return;
+    if (started === undefined) return;
+    try { await started.closeSession(sessionId); } catch { /* detached release is best-effort */ }
+  };
+
+  const detachSessions = (sessionIds: Set<string>): void => {
+    for (const sessionId of sessionIds) {
+      const lease = sessionLeases.get(sessionId);
+      if (lease === undefined) continue;
+      lease.attached = false;
+      if (lease.releaseTimer !== undefined) clearTimeout(lease.releaseTimer);
+      lease.releaseTimer = setTimeout(() => { void releaseDetachedSession(sessionId); }, sessionResumeGraceMs);
+      lease.releaseTimer.unref?.();
     }
-    const releases = [...sessionIds].map(async (sessionId) => {
-      try {
-        await started.closeSession(sessionId);
-      } catch {
-        // Intentionally ignored; see the note above.
-      }
-    });
     sessionIds.clear();
-    await Promise.all(releases);
+  };
+
+  const registerLease = (sessionId: string): string => {
+    const resumeToken = randomBytes(32).toString("hex");
+    sessionLeases.set(sessionId, { resumeToken, attached: true });
+    return resumeToken;
+  };
+
+  const claimLease = (sessionId: string, resumeToken: string): boolean => {
+    const lease = sessionLeases.get(sessionId);
+    if (lease === undefined || lease.attached || !safeTextEqual(lease.resumeToken, resumeToken)) return false;
+    if (lease.releaseTimer !== undefined) clearTimeout(lease.releaseTimer);
+    delete lease.releaseTimer;
+    lease.attached = true;
+    return true;
   };
 
   const sendJson = (
@@ -340,6 +369,10 @@ export async function startGuiHost(
         activePrompts,
         lifetime,
         secrets,
+        registerLease,
+        claimLease,
+        forgetLease,
+        detachSession(sessionId) { detachSessions(new Set([sessionId])); },
       });
     });
     if (ws === undefined) {
@@ -347,7 +380,12 @@ export async function startGuiHost(
     }
     session.ws = ws;
     sockets.add(ws);
+    const heartbeat = setInterval(() => {
+      if (!ws.ping()) ws.close(1001, "heartbeat timeout");
+    }, webSocketHeartbeatMs);
+    heartbeat.unref?.();
     void ws.closed.then(async () => {
+      clearInterval(heartbeat);
       lifetime.closed = true;
       sockets.delete(ws);
       for (const unsubscribe of observers.values()) unsubscribe();
@@ -356,7 +394,7 @@ export async function startGuiHost(
         controller.abort();
       }
       activePrompts.clear();
-      await releaseSessions(ownedSessions);
+      detachSessions(ownedSessions);
     });
   });
 
@@ -375,6 +413,8 @@ export async function startGuiHost(
         socket.close();
       }
       sockets.clear();
+      for (const lease of sessionLeases.values()) if (lease.releaseTimer !== undefined) clearTimeout(lease.releaseTimer);
+      sessionLeases.clear();
       const pending = bridgePending;
       bridgePending = undefined;
       if (pending !== undefined) {
@@ -764,6 +804,10 @@ async function handleSocketMessage(input: {
   readonly activePrompts: Map<string, AbortController>;
   readonly lifetime: { closed: boolean };
   readonly secrets: readonly string[];
+  readonly registerLease: (sessionId: string) => string;
+  readonly claimLease: (sessionId: string, resumeToken: string) => boolean;
+  readonly forgetLease: (sessionId: string) => void;
+  readonly detachSession: (sessionId: string) => void;
 }): Promise<void> {
   const parsed = parseClientMessage(input.raw);
   if ("error" in parsed) {
@@ -782,12 +826,14 @@ async function handleSocketMessage(input: {
       catch (error) { await bridge.closeSession(created.sessionId).catch(() => undefined); throw error; }
       if (input.lifetime.closed) { await bridge.closeSession(created.sessionId).catch(() => undefined); return; }
       input.ownedSessions.add(created.sessionId);
+      const resumeToken = input.registerLease(created.sessionId);
       sendSocket(
         input.ws,
         {
           type: "session/new/ok",
           requestId: parsed.requestId,
           sessionId: created.sessionId,
+          resumeToken,
           ...(state === undefined ? {} : { state }),
         },
         input.secrets,
@@ -795,6 +841,28 @@ async function handleSocketMessage(input: {
       if (bridge.subscribeSession) {
         input.observers.get(created.sessionId)?.();
         input.observers.set(created.sessionId, bridge.subscribeSession(created.sessionId, message => sendSocket(input.ws, message, input.secrets)));
+      }
+      return;
+    }
+    if (parsed.type === "session/resume") {
+      if (!input.claimLease(parsed.sessionId, parsed.resumeToken)) {
+        sendSocket(input.ws, errorMessage({ message: "Session resume is unavailable or expired." }, { requestId: parsed.requestId, sessionId: parsed.sessionId }), input.secrets);
+        return;
+      }
+      input.ownedSessions.add(parsed.sessionId);
+      try {
+        const bridge = await input.getBridge();
+        const state = await bridge.controlSession?.(parsed.sessionId, { action: "inspect" });
+        if (input.lifetime.closed) { input.ownedSessions.delete(parsed.sessionId); input.detachSession(parsed.sessionId); return; }
+        sendSocket(input.ws, { type: "session/resume/ok", requestId: parsed.requestId, sessionId: parsed.sessionId, resumeToken: parsed.resumeToken, ...(state === undefined ? {} : { state }) }, input.secrets);
+        if (bridge.subscribeSession) {
+          input.observers.get(parsed.sessionId)?.();
+          input.observers.set(parsed.sessionId, bridge.subscribeSession(parsed.sessionId, message => sendSocket(input.ws, message, input.secrets)));
+        }
+      } catch (error) {
+        input.ownedSessions.delete(parsed.sessionId);
+        input.detachSession(parsed.sessionId);
+        throw error;
       }
       return;
     }
@@ -840,6 +908,7 @@ async function handleSocketMessage(input: {
       if (bridge.controlSession === undefined) throw new Error("Session controls require the current A008 runtime.");
       const state = await bridge.controlSession(parsed.sessionId, parsed.control);
       input.ownedSessions.delete(parsed.sessionId);
+      input.forgetLease(parsed.sessionId);
       sendSocket(input.ws, { type: "session/control/ok", requestId: parsed.requestId, sessionId: parsed.sessionId, state }, input.secrets);
       return;
     }
@@ -926,6 +995,17 @@ function sendSocket(
   secrets: readonly string[],
 ): void {
   ws.send(redactWireText(JSON.stringify(message), secrets));
+}
+
+function safeTextEqual(expected: string, actual: string): boolean {
+  const left = Buffer.from(expected);
+  const right = Buffer.from(actual);
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+function positiveDuration(value: number, label: string): number {
+  if (!Number.isFinite(value) || value <= 0) throw new ChatError("configuration", `${label} must be greater than zero.`);
+  return Math.floor(value);
 }
 
 function publicErrorMessage(error: unknown): string {
