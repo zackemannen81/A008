@@ -91,7 +91,7 @@ test("OpenAI streaming preserves content and assembles fragmented tool calls", a
   const transport = new OpenAiChatTransport({
     apiKey: "sk-test",
     fetch: async () => sseResponse([
-      JSON.stringify({ choices: [{ delta: { content: "Hi " }, finish_reason: null }] }),
+      JSON.stringify({ choices: [{ delta: { content: "Hi " }, finish_reason: null }], usage: null }),
       JSON.stringify({ choices: [{ delta: { content: "there" }, finish_reason: null }] }),
       JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, id: "call_", type: "function", function: { name: "read_", arguments: "{\"path\":\"" } }] }, finish_reason: null }] }),
       JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, id: "1", function: { name: "file", arguments: "a.txt\"}" } }] }, finish_reason: "tool_calls" }] }),

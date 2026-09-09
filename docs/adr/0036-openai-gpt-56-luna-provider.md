@@ -44,4 +44,6 @@ upstream, but A008 chat input remains text-only under ADR 0020 D6.
 A008-0087 used injected fake responses for acceptance. A008-0088 additionally
 performed an owner-authorized live smoke call with the locally configured key,
 without printing or committing the credential, to verify the tool-compatible
-wire shape against OpenAI.
+wire shape against OpenAI. A008-0089 confirmed that streaming chunks can carry
+`usage: null`; those chunks are now accepted until a later non-null usage object
+arrives, preserving streaming without inventing token counts.

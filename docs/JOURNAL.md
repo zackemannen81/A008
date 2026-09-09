@@ -2168,3 +2168,15 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Verification: focused affected surfaces 39/39; full suite 540 core, 4 membership, 119 GUI; production GUI build and `git diff --check` passed.
 - Handoff: `docs/handoffs/A008-0088.md`.
 - Signature: Codex
+
+## 2026-09-09 — A008-0089 Luna streaming nullable usage
+
+- Date: 2026-09-09
+- Author: Codex
+- Task: A008-0089
+- Branch: main
+- Change: fixed OpenAI Luna streaming parser to accept intermediate SSE events with `usage: null` and retain final non-null usage accounting.
+- Root cause: `usageFrom()` dereferenced null; the surrounding adapter catch mislabeled the parser TypeError as `OpenAI network request failed.`
+- Verification: 540 core, 4 membership, 119 GUI tests passed; production GUI build and `git diff --check` passed.
+- Live verification: owner-authorized Luna streaming + function-tool probe returned `OK` using the locally configured key without printing or committing it.
+- Signature: Codex

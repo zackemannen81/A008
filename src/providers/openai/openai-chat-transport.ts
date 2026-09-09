@@ -41,7 +41,7 @@ interface OpenAiResponse {
     readonly prompt_tokens?: unknown;
     readonly completion_tokens?: unknown;
     readonly total_tokens?: unknown;
-  };
+  } | null;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -84,7 +84,7 @@ function optionalNumber(value: unknown): number | undefined {
 
 function usageFrom(response: OpenAiResponse): ChatUsage | undefined {
   const raw = response.usage;
-  if (raw === undefined) return undefined;
+  if (raw == null) return undefined;
   const promptTokens = optionalNumber(raw.prompt_tokens);
   const completionTokens = optionalNumber(raw.completion_tokens);
   const totalTokens = optionalNumber(raw.total_tokens);

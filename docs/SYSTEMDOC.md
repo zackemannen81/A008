@@ -124,7 +124,9 @@ Explicit model identity owns routing: NVIDIA registry models use
 does not override a selected non-OpenAI model. Luna Chat Completions omits
 `temperature` entirely. When function tools are attached, the adapter uses
 effective `reasoning_effort: none` because OpenAI rejects non-none reasoning
-with Luna tools on `/v1/chat/completions`. Any one of `NVIDIA_API_KEY`,
+with Luna tools on `/v1/chat/completions`. Streaming SSE events may report
+`usage: null` before final usage; the adapter treats this as absent usage until
+a later non-null usage object arrives. Any one of `NVIDIA_API_KEY`,
 `KIE_API_KEY`, or `OPENAI_API_KEY` is enough to start the runtime. Image generation on the host
 follows `imageProvider`: NVIDIA NIMs or kie Market jobs
 (`POST /api/v1/jobs/createTask` then poll `GET /api/v1/jobs/recordInfo`).
