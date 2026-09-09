@@ -2,7 +2,7 @@
 
 Task ID: A008-0090
 Parent Task: None
-Status: Ready
+Status: Superseded
 Owner: Rickard (operator)
 Created: 2026-09-09
 Last updated: 2026-09-09
@@ -129,6 +129,7 @@ Contract revision: `main` revision containing the reviewed `docs/PROJECT_BRIEF.m
 ## Charter Amendment Log
 
 - 2026-09-09: Initial Draft created from the owner request.
+- 2026-09-09: Superseded by A008-0091 after owner review clarified that an in-chat code artifact is transient content, not a repository mutation. A008-0090's frozen implementation scope is not rewritten.
 
 ## Verification
 
