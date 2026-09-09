@@ -105,3 +105,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0087 | OpenAI GPT-5.6 Luna provider | Codex (operator) | 2026-09-09 | OpenAI chat-completions transport, secure key handling, model controls and provider-isolated semantic calls |
 | A008-0090 | A008-integrerad kod-canvas | Rickard (operator) | 2026-09-09 | chat-driven lokal HTML/Canvas-rendering över befintlig GUI/session/approval-gräns |
 | A008-0091 | session code artifact and isolated HTML/Canvas preview | Codex (operator) | 2026-09-09 | transient in-chat code content, local editor/preview, repository writes remain explicit approved tools |
+| A008-0092 | mobile WebSocket recovery | Codex (operator) | 2026-09-09 | host heartbeat, bounded reconnect and short authenticated ACP-session resume grace |
