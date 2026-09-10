@@ -8,6 +8,10 @@ replacement.
 
 ## Records
 
+- [0038-global-app-theme-system.md](0038-global-app-theme-system.md)
+  — Accepted; Neutral default plus selectable Deep Space; semantic tokens;
+  renderer-local appearance preference. Amends ADR 0021 D2 and ADR 0030.
+
 - [0037-mobile-websocket-recovery.md](0037-mobile-websocket-recovery.md)
   — Accepted; heartbeat, bounded reconnect and short capability-bound resume for standalone GUI sessions.
 

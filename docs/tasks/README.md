@@ -11,6 +11,10 @@ the template before push.
 
 ## Records
 
+- [A008-0093_global-app-theme-system.md](A008-0093_global-app-theme-system.md)
+  — Ready; persistent Neutral/Deep Space semantic theme system for the A008 GUI.
+  Direction: [ADR 0038](../adr/0038-global-app-theme-system.md).
+
 - [A008-0080_coherent-instruction.md](A008-0080_coherent-instruction.md) — Complete;
   [archive](../finished/A008-0080_coherent-instruction.md), verified L1 under
   ADR 0035; L2/L3 not active.
