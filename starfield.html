@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Orbitfall — Dot Planet</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #02030a; font-family: system-ui, sans-serif; }
+    body::after { content: ''; position: fixed; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,.55)); }
+    canvas { display: block; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
+    .hud { position: fixed; top: 24px; left: 26px; color: #dce7ff; pointer-events: none; text-shadow: 0 0 22px #536eff; }
+    h1 { margin: 0 0 6px; font-size: clamp(20px, 3vw, 34px); letter-spacing: .2em; font-weight: 500; }
+    p { margin: 0; opacity: .7; font-size: 10px; letter-spacing: .16em; }
+    .badge { position: fixed; right: 26px; top: 26px; padding: 8px 11px; border: 1px solid rgba(137,176,255,.3); border-radius: 99px; color: #a9c2ff; font-size: 10px; letter-spacing: .14em; background: rgba(8,13,35,.35); pointer-events: none; }
+    .hint { position: fixed; left: 26px; bottom: 22px; color: #aeb9df; opacity: .62; font-size: 10px; letter-spacing: .12em; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" aria-label="Interaktiv 3D-stjärnhimmel med roterande dot-planet"></canvas>
+  <div class="hud"><h1>ORBITFALL</h1><p>MOVE TO TILT · HOLD TO ACCELERATE</p></div>
+  <div class="badge">LOCAL / CANVAS 3D</div>
+  <div class="hint">A DOT PLANET DRIFTING THROUGH DEEP SPACE</div>
+  <script>
+    const canvas = document.querySelector('#canvas');
+    const context = canvas.getContext('2d');
+    const pointer = { x: 0, y: 0, targetX: 0, targetY: 0, down: false };
+    let width = 0, height = 0, stars = [], planetDots = [], pixelRatio = 1;
+
+    function randomStar(reset = false) {
+      return { x: (Math.random() - .5) * 2700, y: (Math.random() - .5) * 1800, z: reset ? 2400 : Math.random() * 2400 + 40, size: Math.random() * 1.8 + .2, hue: 185 + Math.random() * 85, streak: Math.random() * .8 + .2 };
+    }
+
+    function makePlanet() {
+      const dots = [], count = 1500, golden = Math.PI * (3 - Math.sqrt(5));
+      for (let index = 0; index < count; index += 1) {
+        const y = 1 - (index / (count - 1)) * 2, radius = Math.sqrt(1 - y * y), angle = golden * index;
+        dots.push({ x: Math.cos(angle) * radius, y, z: Math.sin(angle) * radius, size: Math.random() * 1.45 + .25, phase: Math.random() * Math.PI * 2 });
+      }
+      return dots;
+    }
+
+    function resize() {
+      pixelRatio = Math.min(devicePixelRatio || 1, 2);
+      width = innerWidth; height = innerHeight;
+      canvas.width = width * pixelRatio; canvas.height = height * pixelRatio;
+      context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      pointer.x = pointer.targetX = width / 2; pointer.y = pointer.targetY = height / 2;
+      stars = Array.from({ length: 1100 }, () => randomStar());
+      planetDots = makePlanet();
+    }
+
+    function move(event) { pointer.targetX = event.clientX; pointer.targetY = event.clientY; }
+    addEventListener('resize', resize);
+    canvas.addEventListener('pointermove', move);
+    canvas.addEventListener('pointerdown', event => { pointer.down = true; canvas.setPointerCapture(event.pointerId); });
+    canvas.addEventListener('pointerup', () => pointer.down = false);
+    canvas.addEventListener('pointercancel', () => pointer.down = false);
+
+    function rotate(point, yaw, pitch, roll = 0) {
+      let x = point.x * Math.cos(yaw) - point.z * Math.sin(yaw);
+      let z = point.x * Math.sin(yaw) + point.z * Math.cos(yaw);
+      let y = point.y * Math.cos(pitch) - z * Math.sin(pitch);
+      z = point.y * Math.sin(pitch) + z * Math.cos(pitch);
+      return { x: x * Math.cos(roll) - y * Math.sin(roll), y: x * Math.sin(roll) + y * Math.cos(roll), z };
+    }
+
+    function project(point, scale, depth = 1100) {
+      const perspective = depth / (depth + point.z);
+      return { x: width / 2 + point.x * scale * perspective, y: height / 2 + point.y * scale * perspective, perspective };
+    }
+
+    function frame(time) {
+      const seconds = time * .001, centerX = width / 2, centerY = height / 2;
+      context.fillStyle = 'rgba(2, 3, 10, .38)'; context.fillRect(0, 0, width, height);
+      pointer.x += (pointer.targetX - pointer.x) * .055; pointer.y += (pointer.targetY - pointer.y) * .055;
+      const tiltX = (pointer.y / height - .5) * .42, tiltY = (pointer.x / width - .5) * .42;
+      const speed = pointer.down ? 24 : 5.5;
+
+      for (const star of stars) {
+        const previousZ = star.z; star.z -= speed;
+        if (star.z < 24) Object.assign(star, randomStar(true));
+        const current = project({ x: star.x + (pointer.x - centerX) * .16, y: star.y + (pointer.y - centerY) * .16, z: star.z - 1150 }, 1, 1150);
+        const previous = project({ x: star.x + (pointer.x - centerX) * .16, y: star.y + (pointer.y - centerY) * .16, z: previousZ - 1150 }, 1, 1150);
+        if (current.x < -30 || current.x > width + 30 || current.y < -30 || current.y > height + 30) continue;
+        const alpha = Math.min(.95, current.perspective * 1.25), radius = Math.max(.35, star.size * current.perspective);
+        context.strokeStyle = `hsla(${star.hue}, 92%, 84%, ${alpha})`; context.lineWidth = radius;
+        context.beginPath(); context.moveTo(previous.x, previous.y); context.lineTo(current.x, current.y); context.stroke();
+      }
+
+      const radius = Math.min(width, height) * .245;
+      const atmosphere = context.createRadialGradient(centerX - radius * .36, centerY - radius * .42, radius * .08, centerX, centerY, radius * 1.65);
+      atmosphere.addColorStop(0, 'rgba(82, 195, 255, .22)'); atmosphere.addColorStop(.56, 'rgba(35, 85, 210, .1)'); atmosphere.addColorStop(1, 'rgba(2, 3, 10, 0)');
+      context.fillStyle = atmosphere; context.beginPath(); context.arc(centerX, centerY, radius * 1.7, 0, Math.PI * 2); context.fill();
+
+      const planet = [];
+      for (const dot of planetDots) {
+        const rotated = rotate(dot, seconds * .3 + tiltY, tiltX, Math.sin(seconds * .2) * .08);
+        if (rotated.z < -.18) continue;
+        planet.push({ dot, rotated, projected: project(rotated, radius, 900) });
+      }
+      planet.sort((a, b) => a.rotated.z - b.rotated.z);
+      for (const item of planet) {
+        const { dot, rotated, projected } = item;
+        const shimmer = .72 + Math.sin(seconds * 2.5 + dot.phase) * .22;
+        const alpha = Math.max(.13, (rotated.z + 1) * .48) * shimmer;
+        context.fillStyle = `hsla(${190 + rotated.y * 42}, 92%, ${64 + rotated.y * 18}%, ${alpha})`;
+        context.beginPath(); context.arc(projected.x, projected.y, dot.size * (1 + projected.perspective * .42), 0, Math.PI * 2); context.fill();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    resize(); requestAnimationFrame(frame);
+  </script>
+</body>
+</html>
