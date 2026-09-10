@@ -2,6 +2,17 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-11 — A008-0093: global app theme system
+
+- Task: A008-0093; operator: Grok; branch: `main`.
+- Integrated and published [PR #33](https://github.com/zackemannen81/A008/pull/33) at `235e79d`.
+- Persistent Neutral/Deep Space semantic themes. Neutral is the extracted current charcoal palette. Deep Space retints chrome and visualization tokens without touching session, runtime, memory, tools or Code Canvas preview.
+- Theme identity is renderer-local (`a008.preferences.appearance.theme`); missing or unknown values default to Neutral. Parameters → Appearance switches immediately.
+- Verification: core 543/543, membership 4/4, GUI 143/143; production GUI build passed; desktop/narrow and Memory screenshots recorded.
+- CURRENT_TASK matches its empty template. No live provider call.
+- [Handoff](handoffs/A008-0093.md). [Evidence](evidence/A008-0093_app-theme.md). [ADR 0038](adr/0038-global-app-theme-system.md).
+- Signature: Grok
+
 ## 2026-09-08 — A008-0086: session-scoped Allow all tool approval
 
 - Task: A008-0086; operator: Codex; branch: `main`.
