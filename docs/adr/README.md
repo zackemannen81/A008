@@ -8,6 +8,10 @@ replacement.
 
 ## Records
 
+- [0039-project-bootstrap.md](0039-project-bootstrap.md)
+  — Accepted; host-owned project create/open registry, docs-first starter,
+  lazy multi-agent policy, global memory with project namespace.
+
 - [0038-global-app-theme-system.md](0038-global-app-theme-system.md)
   — Accepted; Neutral default plus selectable Deep Space; semantic tokens;
   renderer-local appearance preference. Amends ADR 0021 D2 and ADR 0030.
