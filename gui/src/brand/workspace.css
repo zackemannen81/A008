@@ -8,7 +8,7 @@
 }
 .a008-app [hidden] { display: none !important; }
 .a008-app button { letter-spacing: normal; text-transform: none; }
-.a008-app :focus-visible { outline: 2px solid var(--a008-accent); outline-offset: 3px; }
+.a008-app :focus-visible { outline: 2px solid var(--a008-focus-ring); outline-offset: 3px; }
 .a008-app .a008-rail {
   grid-column: 1; grid-row: 1 / -1; display: flex; flex-direction: column;
   gap: 1.25rem; padding: 1.2rem .75rem .75rem; border: 0;
@@ -23,7 +23,8 @@
   color: var(--a008-fg-soft); text-align: left; font: inherit; cursor: pointer;
 }
 .a008-sidebar-nav button span { width: 1.1rem; font-size: 1.15rem; text-align: center; }
-.a008-sidebar-nav button:hover, .a008-sidebar-nav button[aria-current="page"] { background: var(--a008-accent-soft); color: var(--a008-fg); }
+.a008-sidebar-nav button:hover { background: var(--a008-surface-hover); color: var(--a008-fg); }
+.a008-sidebar-nav button[aria-current="page"] { background: var(--a008-surface-selected); color: var(--a008-fg); }
 .a008-sidebar-workspace { padding: .5rem .65rem; }
 .a008-sidebar-caption { color: var(--a008-muted); font-size: .75rem; }
 .a008-workspace-name { font-weight: 600; overflow-wrap: anywhere; }
@@ -66,7 +67,7 @@
   position: absolute; top: 4.35rem; right: 1.1rem; width: 22.5rem;
   max-height: calc(100% - 5.2rem); overflow: auto; z-index: 6;
   border: 1px solid var(--a008-border); border-radius: 1.15rem;
-  background: var(--a008-panel); box-shadow: 0 16px 40px rgba(0,0,0,.38);
+  background: var(--a008-panel); box-shadow: var(--a008-shadow-panel);
 }
 .a008-files-float { width: 24rem; }
 .a008-code-canvas-float { width: min(46rem, calc(100% - 18rem)); height: calc(100% - 5.2rem); overflow: hidden; }

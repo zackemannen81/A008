@@ -176,8 +176,8 @@ export function MemoryGraph({
           >
             <defs>
               <radialGradient id={`${id}-glow`}>
-                <stop offset="0%" stopColor="#e8c547" stopOpacity="0.28" />
-                <stop offset="100%" stopColor="#e8c547" stopOpacity="0" />
+                <stop offset="0%" stopColor="var(--a008-viz-identity)" stopOpacity="0.28" />
+                <stop offset="100%" stopColor="var(--a008-viz-identity)" stopOpacity="0" />
               </radialGradient>
               <marker
                 id={`${id}-arrow`}

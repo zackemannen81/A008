@@ -25,7 +25,7 @@
   opacity: 0.4;
 }
 .memory-page :focus-visible {
-  outline: 2px solid var(--a008-accent);
+  outline: 2px solid var(--a008-focus-ring);
   outline-offset: 3px;
 }
 .memory-page-heading {
@@ -209,28 +209,28 @@
   margin-left: 1rem;
 }
 .memory-kind-entity {
-  --memory-kind-color: #e8c547;
+  --memory-kind-color: var(--a008-viz-identity);
 }
 .memory-kind-state {
-  --memory-kind-color: #5b8def;
+  --memory-kind-color: var(--a008-viz-state);
 }
 .memory-kind-history {
-  --memory-kind-color: #8a8a8a;
+  --memory-kind-color: var(--a008-viz-history);
 }
 .memory-kind-claim {
-  --memory-kind-color: #6bcb8b;
+  --memory-kind-color: var(--a008-viz-claim);
 }
 .memory-kind-event {
-  --memory-kind-color: #d08a6a;
+  --memory-kind-color: var(--a008-viz-event);
 }
 .memory-kind-utterance {
-  --memory-kind-color: #e8a05a;
+  --memory-kind-color: var(--a008-viz-utterance);
 }
 .memory-kind-artifact {
-  --memory-kind-color: #a78bfa;
+  --memory-kind-color: var(--a008-viz-artifact);
 }
 .memory-kind-provenance {
-  --memory-kind-color: #5ec8d6;
+  --memory-kind-color: var(--a008-viz-provenance);
 }
 .memory-kind-dot {
   width: 0.45rem;
@@ -607,14 +607,18 @@
 }
 .memory-zoom button:focus-visible,
 .memory-stored-connections button:focus-visible {
-  outline: 2px solid var(--a008-accent);
+  outline: 2px solid var(--a008-focus-ring);
   outline-offset: 2px;
 }
 .memory-graph-scroll {
   overflow: auto;
   width: 100%;
   height: clamp(420px, 61vh, 860px);
-  background: radial-gradient(ellipse at center, #171815, #0e100f 78%);
+  background: radial-gradient(
+    ellipse at center,
+    var(--a008-viz-canvas-inner),
+    var(--a008-viz-canvas-outer) 78%
+  );
   border: 1px solid var(--a008-border);
   border-radius: 10px;
   scrollbar-color: var(--a008-border-strong) transparent;
@@ -636,19 +640,19 @@
   accent-color: var(--a008-accent);
 }
 .memory-cluster circle {
-  fill: #b3c6be;
+  fill: var(--a008-viz-cluster);
   fill-opacity: 0.022;
-  stroke: #b3c6be;
+  stroke: var(--a008-viz-cluster);
   stroke-opacity: 0.09;
   stroke-width: 1;
 }
 .memory-cluster text {
-  fill: #c9d0ca;
+  fill: var(--a008-text-secondary);
   font: 20px var(--a008-sans);
   text-anchor: middle;
 }
 .memory-cluster text.memory-cluster-count {
-  fill: #929b95;
+  fill: var(--a008-text-muted);
   font: 14px var(--a008-mono);
 }
 .memory-graph svg {
@@ -656,12 +660,12 @@
 }
 .memory-edge path {
   fill: none;
-  stroke: #b8c9bd;
+  stroke: var(--a008-viz-edge);
   stroke-opacity: 0.22;
   stroke-width: 1.25;
 }
 .memory-edge.selected path {
-  stroke: #e8c547;
+  stroke: var(--a008-viz-identity);
   stroke-opacity: 0.85;
   stroke-width: 2;
 }
@@ -669,7 +673,7 @@
   stroke-opacity: 0.07;
 }
 .memory-graph marker path {
-  fill: #e8c547;
+  fill: var(--a008-viz-identity);
 }
 .memory-node {
   cursor: pointer;
@@ -680,7 +684,7 @@
 }
 .memory-node .memory-node-dot {
   fill: var(--memory-kind-color);
-  stroke: #131914;
+  stroke: var(--a008-viz-canvas-outer);
   stroke-width: 2;
 }
 .memory-node .memory-node-ring {
@@ -692,10 +696,13 @@
 .memory-node.hub .memory-node-dot {
   stroke-width: 3;
 }
+.memory-node.selected .memory-node-dot {
+  filter: drop-shadow(var(--a008-glow-accent));
+}
 .memory-node.selected .memory-node-ring,
 .memory-node:focus .memory-node-ring,
 .memory-node:hover .memory-node-ring {
-  stroke: #fff1b4;
+  stroke: var(--a008-viz-highlight);
   stroke-opacity: 1;
   stroke-width: 2.5;
 }
@@ -717,19 +724,19 @@
   pointer-events: none;
 }
 .memory-node-labels rect {
-  fill: #121613;
+  fill: var(--a008-surface-1);
   fill-opacity: 0.94;
 }
 .memory-node-labels text {
-  fill: #e4e8e2;
+  fill: var(--a008-viz-label);
   font: 18px var(--a008-sans);
 }
 .memory-node-labels .selected rect {
-  stroke: #9c8446;
+  stroke: var(--a008-viz-identity);
   stroke-width: 1;
 }
 .memory-node-labels .selected text {
-  fill: #fff0b5;
+  fill: var(--a008-viz-highlight);
 }
 .memory-map-caption {
   display: flex;

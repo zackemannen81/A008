@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>A008</title>
+    <script>
+      (function () {
+        var theme = "neutral";
+        try {
+          var parsed = JSON.parse(localStorage.getItem("a008.preferences") || "null");
+          if (parsed && parsed.appearance && parsed.appearance.theme === "deep-space") {
+            theme = "deep-space";
+          }
+        } catch (e) {}
+        document.documentElement.setAttribute("data-a008-theme", theme);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -444,9 +444,18 @@ panes. The Browser pane is a sandboxed iframe; sites that set
 `frame-ancestors` or `X-Frame-Options` (ChatGPT, NVIDIA Build, …) are not
 framed. The host probes those headers and the pane offers Open in the system
 browser instead. On a narrow screen the workbench card occupies the main area; the same
-button closes it. The token file `brand/a008.css` provides neutral colours;
-`brand/workspace.css` is loaded last for shell and responsive feature composition.
-See [ADR 0031](adr/0031-workbench-context-and-memory-map.md).
+button closes it. `brand/themes.css` defines Neutral (the extracted current charcoal palette) and
+Deep Space (blue-black/navy with restrained electric-blue interaction) as semantic
+custom properties on `html[data-a008-theme]`. `brand/a008.css` aliases the older
+`--a008-*` names onto that model so unmigrated feature CSS follows the selected
+theme; `brand/workspace.css` is loaded last for shell and responsive composition.
+Parameters → Appearance → App theme switches immediately. The choice is stored in
+renderer-local `a008.preferences` as `{ appearance: { theme } }`, not in runtime
+settings or session state. Missing or unknown values default to Neutral. Graph
+and Memory kind colours use a separate `--a008-viz-*` family. The Code Canvas
+host chrome may follow the theme; the sandboxed preview document does not.
+See [ADR 0031](adr/0031-workbench-context-and-memory-map.md) and
+[ADR 0038](adr/0038-global-app-theme-system.md).
 
 ### GUI session operations and parameters (A008-0065)
 
@@ -456,6 +465,10 @@ report facts from the same ACP runtime. Reset keeps system/model/settings,
 undo removes a committed pair, and model switch opens a fresh local-memory
 conversation within the owned ACP session. End session releases it and leaves
 the page running. These operations do not delete saved memory.
+
+The header Parameters dialog includes Appearance, which selects Neutral or Deep
+Space without a connected session. Model, Provider, Budgets and Instructions
+remain session/runtime controls. Appearance is renderer-local only.
 
 The header Parameters dialog uses endpoint capability metadata from GET
 /v1/models. Stream, temperature omission or 0–1, top P, total generated-token

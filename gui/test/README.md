@@ -9,6 +9,8 @@ The fixture route exists only in this test runner, outside the production build.
 Query scenarios: `?scenario=dense` (80 nodes / 240 links), `single` (one domain),
 `many` (80 domains), and `empty`. The default has 80 nodes / 152 links in six
 domains. Search and surface/domain/activation filters work against the fixture.
+Add `theme=deep-space` to preview Deep Space surfaces and visualization colours;
+the default is Neutral.
 
 Check with an available browser driver (A008-0084 used agent-browser):
 

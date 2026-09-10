@@ -12,9 +12,14 @@ const server = await createServer({
         server.middlewares.use(async (request, response, next) => {
           if (request.url?.split("?")[0] !== "/__memory-map-check")
             return next();
+          const theme =
+            new URL(request.url, "http://127.0.0.1").searchParams.get("theme") ===
+            "deep-space"
+              ? "deep-space"
+              : "neutral";
           const html = await server.transformIndexHtml(
             request.url,
-            '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>A008 synthetic memory map check</title></head><body><div id="root"></div><script type="module" src="/test/memory-map-preview.tsx"></script></body></html>',
+            `<!doctype html><html data-a008-theme="${theme}"><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>A008 synthetic memory map check</title></head><body><div id="root"></div><script type="module" src="/test/memory-map-preview.tsx"></script></body></html>`,
           );
           response.setHeader("Content-Type", "text/html");
           response.end(html);

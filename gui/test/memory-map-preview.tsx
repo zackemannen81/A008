@@ -6,6 +6,7 @@ import {
   type MemoryRecord,
   type MemorySnapshot,
 } from "../src/memory/memory-client.js";
+import "../src/brand/themes.css";
 import "../src/brand/a008.css";
 import "../src/brand/workspace.css";
 

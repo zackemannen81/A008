@@ -163,24 +163,24 @@ charter mentioned one.
 
 ### Definition of Done
 
-- [ ] A008 starts with Neutral when no theme is stored.
-- [ ] Parameters has Appearance → App theme with Neutral and Deep Space.
-- [ ] Switching applies immediately without reload and without a new
+- [x] A008 starts with Neutral when no theme is stored.
+- [x] Parameters has Appearance → App theme with Neutral and Deep Space.
+- [x] Switching applies immediately without reload and without a new
       chat/session, model change, memory mutation or tool-permission change.
-- [ ] The choice survives page reload / app restart.
-- [ ] Neutral stays visually close to today's A008.
-- [ ] Deep Space changes the whole app's base material, not only Memory.
-- [ ] Shared chrome uses semantic tokens; both themes define every required
+- [x] The choice survives page reload / app restart.
+- [x] Neutral stays visually close to today's A008.
+- [x] Deep Space changes the whole app's base material, not only Memory.
+- [x] Shared chrome uses semantic tokens; both themes define every required
       token.
-- [ ] Relationship Map is theme-compatible through tokens, not theme branches.
-- [ ] Visualization colours are a separate token family from chrome.
-- [ ] Older GUI preferences remain readable; missing theme defaults to Neutral
+- [x] Relationship Map is theme-compatible through tokens, not theme branches.
+- [x] Visualization colours are a separate token family from chrome.
+- [x] Older GUI preferences remain readable; missing theme defaults to Neutral
       with no data loss.
-- [ ] Code Canvas preview document is not restyled by the host theme.
-- [ ] Desktop and narrow/mobile chrome render correctly.
-- [ ] Existing tests pass; new tests cover parsing, default, persistence and
+- [x] Code Canvas preview document is not restyled by the host theme.
+- [x] Desktop and narrow/mobile chrome render correctly.
+- [x] Existing tests pass; new tests cover parsing, default, persistence and
       live switching.
-- [ ] Owning docs and ADR 0038 describe the implemented behaviour.
+- [x] Owning docs and ADR 0038 describe the implemented behaviour.
 
 ### Necessity Gate
 
@@ -198,24 +198,24 @@ Contract revision: `f14e1f96407c969a4bb4ec5d53a818739c6139e3`
 
 ### Minimum Verification Gates
 
-- [ ] Unknown or missing theme parses to `neutral`.
-- [ ] Neutral and Deep Space round-trip through persistence.
-- [ ] Older preference documents remain readable; saving theme preserves
+- [x] Unknown or missing theme parses to `neutral`.
+- [x] Neutral and Deep Space round-trip through persistence.
+- [x] Older preference documents remain readable; saving theme preserves
       unrelated GUI preferences.
-- [ ] DocumentElement (or equivalent app root) receives the selected
+- [x] DocumentElement (or equivalent app root) receives the selected
       `data-a008-theme` attribute; changing the picker updates it immediately.
-- [ ] Appearance renders both choices; the active theme is indicated
+- [x] Appearance renders both choices; the active theme is indicated
       accessibly (`aria-pressed` / equivalent).
-- [ ] Theme switch keeps the same `sessionId`, does not call a provider, does
+- [x] Theme switch keeps the same `sessionId`, does not call a provider, does
       not clear the conversation, and does not alter the Code Canvas artifact
       source or preview document styles.
-- [ ] Both themes define all required semantic and visualization tokens.
-- [ ] Neutral token values match the extracted current palette.
-- [ ] Desktop and narrow/mobile screenshots or browser review cover Chat,
+- [x] Both themes define all required semantic and visualization tokens.
+- [x] Neutral token values match the extracted current palette.
+- [x] Desktop and narrow/mobile screenshots or browser review cover Chat,
       Parameters Appearance, Memory Relationship Map and Code Canvas chrome vs
       preview isolation.
-- [ ] `npm test`, GUI production build and `git diff --check` pass.
-- [ ] Final diff is reviewed against this necessity gate and frozen scope.
+- [x] `npm test`, GUI production build and `git diff --check` pass.
+- [x] Final diff is reviewed against this necessity gate and frozen scope.
 
 ## References
 
@@ -232,17 +232,17 @@ Contract revision: `f14e1f96407c969a4bb4ec5d53a818739c6139e3`
 ## Checklist
 
 - [x] Claim `A008-0093` on `main` and freeze this charter as Ready.
-- [ ] Copy this charter into `docs/CURRENT_TASK.md` on the implementation branch only.
-- [ ] Extract current Neutral token values from `gui/src/brand/a008.css`.
-- [ ] Add theme identity, persistence, early root attribute, and CSS token sets.
-- [ ] Add Parameters → Appearance → App theme picker.
-- [ ] Alias existing `--a008-*` names onto the semantic model.
-- [ ] Migrate common chrome and Memory/graph hardcoded global colours to tokens.
-- [ ] Keep Relationship Map algorithm and Code Canvas sandbox unchanged.
-- [ ] Add focused unit/DOM/CSS-contract/session-isolation tests.
-- [ ] Browser-verify desktop and narrow: Neutral closeness, Deep Space whole-app
+- [x] Copy this charter into `docs/CURRENT_TASK.md` on the implementation branch only.
+- [x] Extract current Neutral token values from `gui/src/brand/a008.css`.
+- [x] Add theme identity, persistence, early root attribute, and CSS token sets.
+- [x] Add Parameters → Appearance → App theme picker.
+- [x] Alias existing `--a008-*` names onto the semantic model.
+- [x] Migrate common chrome and Memory/graph hardcoded global colours to tokens.
+- [x] Keep Relationship Map algorithm and Code Canvas sandbox unchanged.
+- [x] Add focused unit/DOM/CSS-contract/session-isolation tests.
+- [x] Browser-verify desktop and narrow: Neutral closeness, Deep Space whole-app
       material, Memory map, Appearance picker, Canvas preview isolation.
-- [ ] Update owning docs; review the final diff against the gate; archive,
+- [x] Update owning docs; review the final diff against the gate; archive,
       restore the current-task template, and write the handoff.
 
 ## Decisions and Notes
@@ -268,32 +268,37 @@ Contract revision: `f14e1f96407c969a4bb4ec5d53a818739c6139e3`
 
 ## Verification
 
-- [ ] Review actual changes against the necessity arguments and frozen scope.
-- [ ] Record exact checks and outputs.
-- [ ] Record skipped checks and reasons.
+- [x] Review actual changes against the necessity arguments and frozen scope.
+- [x] Record exact checks and outputs.
+- [x] Record skipped checks and reasons.
+
+`npm test`: 543 core, 4 membership, 143 GUI tests, zero failures. GUI production
+build passed. `git diff --check` passed. No live provider call.
+
+Browser: headless Edge screenshots of production GUI Neutral/Deep Space at
+desktop and 390×844, plus synthetic Memory Overview in both themes. Appearance
+picker and Code Canvas preview isolation are automated DOM/source tests.
+Relationship Map graph tab was not clicked in the headless Memory preview;
+overview chrome and viz kind colours were captured instead. Token contract
+covers graph CSS.
 
 ## Documentation Updates
 
-- [ ] `docs/CURRENT_STATUS.md`
-- [ ] `docs/SYSTEMDOC.md`
-- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [x] `docs/CURRENT_STATUS.md`
+- [x] `docs/SYSTEMDOC.md`
+- [x] `docs/FILESTRUCTURE.md` when structure changes
 - [ ] `docs/JOURNAL.md` on operator merge
-- [ ] ADR 0038 consequences if implementation refines a recorded detail without
-      changing the decision
+- [x] ADR 0038 remains the direction record; implementation used renderer-local
+      `a008.preferences` and existing `gui/src/brand/` ownership as planned.
 
 ## Handoff and Follow-ups
 
-- Current state: Task ID `A008-0093` is claimed on `main`. Charter is Ready.
-  Direction is [ADR 0038](../adr/0038-global-app-theme-system.md).
-  `docs/CURRENT_TASK.md` on `main` remains the empty template.
-- Next recommended step: implement on a dedicated branch from this revision;
-  copy this charter into that branch's `docs/CURRENT_TASK.md` while working.
+- Current state: Complete on `grok/A008-0093-global-app-theme-system`.
+- Next recommended step: operator review, merge to `main`, signed journal.
 - Blockers: none.
 - Child tasks: none.
-- Resume condition: implementation begins under this frozen charter with
-  local/fake verification only. No live provider call.
-- Open questions: exact Deep Space hex values are implementation judgment
-  inside the recorded visual direction; Neutral must stay a migration.
+- Follow-up candidates, not part of this task: OLED/Warm/High Contrast/Custom
+  themes; user-selectable visualization palette.
 
 ## Finalize When Complete
 

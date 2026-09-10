@@ -144,9 +144,13 @@ A008/
 |  |  |- settings/                   A008-0037 settings
 |  |  |  |- parameters-panel.tsx     A008-0065 model-aware generation dialog
 |  |  |  |- parameters.css          parameter and session-control styling
+|  |  |  |- appearance-panel.tsx     A008-0093 App theme picker
 |  |  |  |- nvidia-catalog.ts        NVIDIA/kie/OpenAI provider-settings client
 |  |  |  `- nvidia-catalog-panel.tsx Provider keys, NVIDIA Build, kie market, OpenAI
-|  |  |- brand/                      A008-0037 identity
+|  |  |- brand/                      A008-0037 identity; A008-0093 theme tokens
+|  |  |  |- themes.css               Neutral and Deep Space semantic token values
+|  |  |  |- theme.ts                 theme identity and root attribute
+|  |  |  |- theme-storage.ts         renderer-local appearance preference
 |  |  |  |- a008-ascii.ts            A008-0074 owner ASCII source
 |  |  |  `- ascii-logo.tsx           empty-chat decorative mark
 |  |  `- upload/                     A008-0045 upload client and pane
