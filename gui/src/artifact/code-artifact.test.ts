@@ -8,6 +8,13 @@ import {
   parseAssistantAnswer,
 } from "./code-artifact.js";
 
+test("preview document stays free of host theme identity", () => {
+  const preview = buildPreviewDocument("<p>hello</p>");
+  assert.equal(preview.includes("data-a008-theme"), false);
+  assert.equal(preview.includes("--a008-"), false);
+  assert.equal(CODE_PREVIEW_SANDBOX, "allow-scripts");
+});
+
 test("assistant answer parser separates prose and complete fenced code", () => {
   const segments = parseAssistantAnswer(
     "Before\n```html\n<canvas id=\"c\"></canvas>\n```\nAfter",

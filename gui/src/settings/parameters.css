@@ -12,6 +12,7 @@
 .a008-parameters [hidden] { display: none !important; }
 .a008-parameter-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.4rem;
   margin-bottom: 1.6rem;
 }
@@ -208,7 +209,7 @@
 .a008-parameters textarea:focus-visible,
 .a008-session-toolbar :focus-visible,
 .a008-parameters-open:focus-visible {
-  outline: 2px solid var(--a008-accent);
+  outline: 2px solid var(--a008-focus-ring);
   outline-offset: 3px;
 }
 .a008-parameter-form {
@@ -355,5 +356,70 @@
 @media (prefers-reduced-motion: reduce) {
   .a008-parameter-toggle input::after {
     transition: none;
+  }
+}
+.a008-appearance h3 {
+  margin: 0.4rem 0 0;
+}
+.a008-theme-choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-top: 1.2rem;
+}
+.a008-theme-card {
+  position: relative;
+  min-height: 8.5rem;
+  padding: 1.1rem 1rem 1rem;
+  border: 1px solid var(--a008-border-subtle);
+  border-radius: 0.85rem;
+  background: var(--a008-bg-app);
+  color: var(--a008-text-primary);
+  box-shadow: var(--a008-shadow-panel);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  overflow: hidden;
+}
+.a008-theme-card strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+.a008-theme-card span {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--a008-text-secondary);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+.a008-theme-card[aria-pressed="true"] {
+  border-color: var(--a008-border-active);
+  box-shadow: var(--a008-glow-accent), var(--a008-shadow-panel);
+  outline: 2px solid var(--a008-focus-ring);
+  outline-offset: 2px;
+}
+.a008-theme-card[data-a008-theme="deep-space"]::before,
+.a008-theme-card[data-a008-theme="deep-space"]::after {
+  position: absolute;
+  color: var(--a008-accent);
+  opacity: 0.55;
+  pointer-events: none;
+  font-size: 0.7rem;
+}
+.a008-theme-card[data-a008-theme="deep-space"]::before {
+  content: "✦";
+  top: 0.7rem;
+  right: 1.1rem;
+}
+.a008-theme-card[data-a008-theme="deep-space"]::after {
+  content: "·  ✦";
+  right: 1.4rem;
+  bottom: 0.7rem;
+  letter-spacing: 0.35em;
+}
+@media (max-width: 640px) {
+  .a008-theme-choices {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

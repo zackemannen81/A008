@@ -1,0 +1,104 @@
+/* A008 app themes (ADR 0038). TypeScript owns identity; this file owns values. */
+
+:root,
+[data-a008-theme="neutral"] {
+  color-scheme: dark;
+
+  --a008-bg-app: #181818;
+  --a008-bg-sidebar: #202020;
+
+  --a008-surface-1: #202020;
+  --a008-surface-2: #242424;
+  --a008-surface-3: #2a2a2a;
+  --a008-surface-hover: rgba(228, 228, 228, 0.09);
+  --a008-surface-selected: rgba(228, 228, 228, 0.14);
+
+  --a008-border-subtle: rgba(238, 238, 238, 0.1);
+  --a008-border-default: rgba(238, 238, 238, 0.19);
+  --a008-border-active: rgba(228, 228, 228, 0.34);
+
+  --a008-text-primary: #eeeeee;
+  --a008-text-secondary: #d0d0d0;
+  --a008-text-muted: #a0a0a0;
+  --a008-text-disabled: #777777;
+
+  --a008-accent: #e4e4e4;
+  --a008-accent-hover: #f1f1f1;
+  --a008-accent-soft: rgba(228, 228, 228, 0.09);
+  --a008-focus-ring: #e4e4e4;
+
+  --a008-success: #86a088;
+  --a008-warning: #c8b48a;
+  --a008-danger: #c07f74;
+
+  --a008-glow-accent: 0 0 0 transparent;
+  --a008-shadow-panel: 0 16px 40px rgba(0, 0, 0, 0.38);
+  --a008-overlay: rgba(0, 0, 0, 0.6);
+  --a008-grid: rgba(238, 238, 238, 0.026);
+
+  --a008-viz-identity: #e8c547;
+  --a008-viz-state: #5b8def;
+  --a008-viz-claim: #6bcb8b;
+  --a008-viz-event: #d08a6a;
+  --a008-viz-artifact: #a78bfa;
+  --a008-viz-provenance: #5ec8d6;
+  --a008-viz-history: #8a8a8a;
+  --a008-viz-utterance: #e8a05a;
+  --a008-viz-canvas-inner: #171815;
+  --a008-viz-canvas-outer: #0e100f;
+  --a008-viz-cluster: #b3c6be;
+  --a008-viz-edge: #b8c9bd;
+  --a008-viz-label: #e4e8e2;
+  --a008-viz-highlight: #fff1b4;
+}
+
+[data-a008-theme="deep-space"] {
+  color-scheme: dark;
+
+  --a008-bg-app: #050a12;
+  --a008-bg-sidebar: #060c15;
+
+  --a008-surface-1: #08111c;
+  --a008-surface-2: #0b1623;
+  --a008-surface-3: #101d2c;
+  --a008-surface-hover: rgba(83, 153, 255, 0.07);
+  --a008-surface-selected: rgba(62, 135, 255, 0.14);
+
+  --a008-border-subtle: rgba(123, 164, 207, 0.12);
+  --a008-border-default: rgba(133, 177, 222, 0.19);
+  --a008-border-active: rgba(78, 163, 255, 0.55);
+
+  --a008-text-primary: #edf5ff;
+  --a008-text-secondary: #a6b7ca;
+  --a008-text-muted: #64788e;
+  --a008-text-disabled: #4a5c70;
+
+  --a008-accent: #4da3ff;
+  --a008-accent-hover: #69b3ff;
+  --a008-accent-soft: rgba(77, 163, 255, 0.13);
+  --a008-focus-ring: rgba(77, 163, 255, 0.45);
+
+  --a008-success: #43d99a;
+  --a008-warning: #ffba55;
+  --a008-danger: #ff7282;
+
+  --a008-glow-accent: 0 0 18px rgba(77, 163, 255, 0.18);
+  --a008-shadow-panel: 0 16px 40px rgba(2, 8, 18, 0.55);
+  --a008-overlay: rgba(2, 8, 18, 0.72);
+  --a008-grid: rgba(133, 177, 222, 0.035);
+
+  --a008-viz-identity: #5ec8d6;
+  --a008-viz-state: #43d99a;
+  --a008-viz-claim: #a78bfa;
+  --a008-viz-event: #ffba55;
+  --a008-viz-artifact: #4da3ff;
+  --a008-viz-provenance: #e879f9;
+  --a008-viz-history: #64788e;
+  --a008-viz-utterance: #69b3ff;
+  --a008-viz-canvas-inner: #08111c;
+  --a008-viz-canvas-outer: #050a12;
+  --a008-viz-cluster: #7ba4cf;
+  --a008-viz-edge: #5a738c;
+  --a008-viz-label: #edf5ff;
+  --a008-viz-highlight: #cfe6ff;
+}

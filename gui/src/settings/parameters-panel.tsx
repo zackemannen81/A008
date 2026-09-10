@@ -7,8 +7,24 @@ import {
 } from "../session/session-controls.js";
 import { controlSession } from "../composer/submit.js";
 import "./parameters.css";
+import { AppearancePanel } from "./appearance-panel.js";
 import { GlobalSettingsForm } from "./global-settings-form.js";
 import { NvidiaCatalogPanel } from "./nvidia-catalog-panel.js";
+
+type ParameterPage =
+  | "model"
+  | "provider"
+  | "budgets"
+  | "instructions"
+  | "appearance";
+
+const PARAMETER_TABS: readonly { id: ParameterPage; label: string }[] = [
+  { id: "model", label: "Model" },
+  { id: "provider", label: "Provider" },
+  { id: "budgets", label: "Budgets" },
+  { id: "instructions", label: "Instructions" },
+  { id: "appearance", label: "Appearance" },
+];
 
 const numberValue = (value: number | null): number | "" =>
   value !== null && Number.isFinite(value) ? value : "";
@@ -347,7 +363,7 @@ export function ParametersPanel(props: {
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [models, setModels] = useState<readonly GuiModel[]>([]);
-  const [page, setPage] = useState<"model" | "budgets" | "instructions" | "provider">(
+  const [page, setPage] = useState<ParameterPage>(
     props.session.error?.includes("hard budget") ? "budgets" : "model",
   );
   const [error, setError] = useState("");
@@ -405,9 +421,14 @@ export function ParametersPanel(props: {
       </header>
       <div className="a008-parameters-body">
         <nav className="a008-parameter-tabs" aria-label="Parameter sections">
-          {(["model", "provider", "budgets", "instructions"] as const).map(tab => (
-            <button key={tab} type="button" aria-pressed={page === tab} onClick={() => setPage(tab)}>
-              {tab === "model" ? "Model" : tab === "provider" ? "Provider" : tab === "budgets" ? "Budgets" : "Instructions"}
+          {PARAMETER_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              aria-pressed={page === tab.id}
+              onClick={() => setPage(tab.id)}
+            >
+              {tab.label}
             </button>
           ))}
         </nav>
@@ -439,7 +460,7 @@ export function ParametersPanel(props: {
           Changing model starts a new conversation.
         </p>
         </div>
-        {session.status !== "ready" ? (
+        {session.status !== "ready" && page !== "appearance" ? (
           <div className="a008-parameter-connect">
             <p>Connect to inspect and change the active session.</p>
             <button
@@ -473,9 +494,12 @@ export function ParametersPanel(props: {
           <p role="status">Loading model parameters…</p>
         ) : null}
         </div>
+        <div hidden={page !== "appearance"}>
+          <AppearancePanel />
+        </div>
         {session.details?.runtimePreferences && (page === "budgets" || page === "instructions") ? (
           <GlobalSettingsForm key={session.sessionId} session={session} initial={session.details.runtimePreferences} page={page} />
-        ) : page !== "model" && page !== "provider" && session.status === "ready" ? (
+        ) : page !== "model" && page !== "provider" && page !== "appearance" && session.status === "ready" ? (
           <p role="status">Global settings are unavailable. Restart the current A008 host.</p>
         ) : null}
       </div>

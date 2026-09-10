@@ -1,49 +1,34 @@
-/* A008 neutral charcoal tokens (ADR 0030). Values and implementation are A008's
- * own, inspired by the owner's desktop screenshot. Shared feature primitives
- * live here; workspace.css owns the standalone shell composition. */
+/* A008 shell primitives (ADR 0030, ADR 0038). Theme values live in themes.css.
+ * Existing token names alias the semantic model so unmigrated feature CSS
+ * follows the selected theme. workspace.css owns standalone composition. */
 
 :root {
   color-scheme: dark;
 
-  /* Ground and surfaces */
-  --a008-bg: #181818;
-  --a008-bg-raised: #202020;
-  --a008-panel: #242424;
-  --a008-panel-quiet: #202020;
+  --a008-bg: var(--a008-bg-app);
+  --a008-bg-raised: var(--a008-bg-sidebar);
+  --a008-panel: var(--a008-surface-2);
+  --a008-panel-quiet: var(--a008-surface-1);
 
-  /* Type */
-  --a008-fg: #eeeeee;
-  --a008-fg-soft: #d0d0d0;
-  --a008-muted: #a0a0a0;
-  --a008-dim: #777777;
+  --a008-fg: var(--a008-text-primary);
+  --a008-fg-soft: var(--a008-text-secondary);
+  --a008-muted: var(--a008-text-muted);
+  --a008-dim: var(--a008-text-disabled);
 
-  /* Lines. Translucent so they sit on any surface without a second value. */
-  --a008-border: rgba(238, 238, 238, 0.1);
-  --a008-border-strong: rgba(238, 238, 238, 0.19);
+  --a008-border: var(--a008-border-subtle);
+  --a008-border-strong: var(--a008-border-default);
 
-  /* One accent. A second accent is a decision, not a convenience. */
-  --a008-accent: #e4e4e4;
-  --a008-accent-soft: rgba(228, 228, 228, 0.09);
-  --a008-good: #86a088;
-  --a008-danger: #c07f74;
-  --a008-overlay: rgba(0, 0, 0, 0.6);
+  --a008-good: var(--a008-success);
 
-  /* Connection states read as status, not decoration. */
-  --a008-idle: var(--a008-dim);
+  --a008-idle: var(--a008-text-disabled);
   --a008-connecting: var(--a008-accent);
-  --a008-ready: var(--a008-good);
+  --a008-ready: var(--a008-success);
   --a008-error: var(--a008-danger);
 
-  /*
-   * Retired names, kept as aliases so modules owned by other tasks keep
-   * rendering without being edited across the ADR 0019 D7 boundary. The tasks
-   * that own gui/src/chat and gui/src/upload retire them when they restyle.
-   */
   --a008-cyan: var(--a008-accent);
-  --a008-cyan-dim: rgba(228, 228, 228, 0.34);
+  --a008-cyan-dim: var(--a008-border-active);
   --a008-gold: var(--a008-accent);
-  --a008-header-bg: var(--a008-panel);
-  --a008-grid: rgba(238, 238, 238, 0.026);
+  --a008-header-bg: var(--a008-surface-2);
 
   --a008-sans: "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --a008-mono: "Cascadia Mono", "Consolas", ui-monospace, monospace;
@@ -125,7 +110,7 @@ body {
 .a008-header-tabs { display: flex; gap: .3rem; }
 .a008-header-tabs button { padding: .5rem .9rem; border: 1px solid transparent; border-radius: 4px; color: var(--a008-muted); background: transparent; font: inherit; font-size: .78rem; cursor: pointer; }
 .a008-header-tabs button[aria-current] { color: var(--a008-accent); background: var(--a008-accent-soft); border-color: var(--a008-border); }
-.a008-header-tabs button:focus-visible { outline: 2px solid var(--a008-accent); outline-offset: 2px; }
+.a008-header-tabs button:focus-visible { outline: 2px solid var(--a008-focus-ring); outline-offset: 2px; }
 .a008-main[hidden], .a008-memory-main[hidden], .a008-memory-workspace .a008-workbench { display: none; }
 .a008-memory-main { grid-column: 2 / -1; min-width: 0; min-height: 0; overflow: hidden; }
 @media (max-width: 850px) {
@@ -489,6 +474,6 @@ body {
 
 .a008-tool-activity { flex: 0 1 auto; max-height: 30vh; overflow: auto; padding: .5rem 1rem; border-top: 1px solid var(--a008-border); }
 .a008-tool-activity pre, .a008-tool-permission pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-.a008-tool-permission { width: min(44rem, 90vw); max-height: 85vh; overflow: auto; background: var(--a008-surface, #171813); color: var(--a008-text, #eee); border: 1px solid var(--a008-border, #555); padding: 1.5rem; }
-.a008-tool-permission::backdrop { background: #0009; }
+.a008-tool-permission { width: min(44rem, 90vw); max-height: 85vh; overflow: auto; background: var(--a008-surface-2); color: var(--a008-text-primary); border: 1px solid var(--a008-border-default); padding: 1.5rem; }
+.a008-tool-permission::backdrop { background: var(--a008-overlay); }
 .a008-tool-permission footer { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: flex-end; }

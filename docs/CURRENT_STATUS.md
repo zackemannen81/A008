@@ -1,9 +1,21 @@
 # Current Status
 
-Reality as of 2026-09-09. This document records observed state; intended design
+Reality as of 2026-09-11. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
+
+A008-0093 adds a persistent global app theme. The GUI starts as Neutral, the
+extracted current charcoal palette. Parameters → Appearance → App theme can
+switch to Deep Space immediately without reload, a new session, a provider call
+or memory/tool changes. Theme identity is renderer-local
+(`localStorage` `a008.preferences.appearance.theme`); missing or unknown values
+default to Neutral. CSS custom properties on `html[data-a008-theme]` own colour
+values; existing `--a008-*` names alias that model. Visualization colours are a
+separate `--a008-viz-*` family used by the Relationship Map. The sandboxed Code
+Canvas preview document does not inherit the host theme. Verification: 543
+core, 4 membership and 143 GUI tests pass; the production GUI build passes.
+See [ADR 0038](adr/0038-global-app-theme-system.md).
 
 A008-0092 hardens standalone mobile connectivity. The GUI host now sends
 WebSocket protocol pings every 25 seconds and retains a disconnected ACP session

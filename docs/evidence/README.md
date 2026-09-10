@@ -9,6 +9,9 @@ credentials, and private source material do not belong in this collection.
 
 ## Records
 
+- [A008-0093_app-theme.md](A008-0093_app-theme.md) — Neutral/Deep Space semantic
+  theme system; production-GUI and Memory-preview screenshots; no provider call.
+
 - [A008-0071_nvidia-catalog-images.md](A008-0071_nvidia-catalog-images.md) —
   NVIDIA catalog, image generation, provider settings; fake-fetch tests only.
 - [A008-0070_workbench-memory-map.md](A008-0070_workbench-memory-map.md) —
