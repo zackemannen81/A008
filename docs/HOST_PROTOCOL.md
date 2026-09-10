@@ -7,6 +7,13 @@ frames. Absence means catalog metadata is unavailable, not that tools are enable
 `A008_GUI_WORKSPACE` selects the standalone host cwd at startup; this environment
 option adds no HTTP mutation route and does not change memory-store ownership.
 
+A008-0094 adds host-owned project bootstrap (ADR 0039). `GET /v1/projects` lists
+the registry. `POST /v1/projects/preview` returns planned mutations without
+writing. `POST /v1/projects/bootstrap` executes one confirmed create and switches
+workspace. `POST /v1/projects/open` opens a registered project. Workspace change
+restarts the ACP subprocess; the previous conversation is not kept. The renderer
+does not create directories or run Git.
+
 Discoverability: index. This is the complete surface an external client speaks
 to. It is written so a client can be implemented without reading this
 repository's decision history.

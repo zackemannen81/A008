@@ -5,6 +5,12 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0094 adds host-owned project bootstrap. Projects in the sidebar can create
+a named local folder with optional Git, Docs-First starter files, multi-agent
+policy (max workers and worker-clone root, no clones) and project-scoped global
+memory. Preview lists exact mutations; Confirm executes them. The renderer posts
+JSON only. Opening a project starts a new ACP session in that root.
+
 A008-0093 adds a persistent global app theme. The GUI starts as Neutral, the
 extracted current charcoal palette. Parameters → Appearance → App theme can
 switch to Deep Space immediately without reload, a new session, a provider call

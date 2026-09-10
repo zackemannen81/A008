@@ -158,7 +158,7 @@ Contract revision: `eb1d9b6bdab22d17a5da7b1b063e2d2d7e53ace7`
 ## Checklist
 
 - [x] Claim `A008-0094` on `main` and freeze this charter as Ready.
-- [ ] Copy this charter into `docs/CURRENT_TASK.md` on the implementation branch.
+- [x] Copy this charter into `docs/CURRENT_TASK.md` on the implementation branch.
 - [ ] Implement config, validation, preview and host execute.
 - [ ] Add A008-owned docs-first templates and registry.
 - [ ] Allow multi-namespace sqlite without breaking unregistered workspaces.

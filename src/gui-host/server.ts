@@ -60,6 +60,16 @@ import {
 import { findRepositoryRoot, moduleDirectory } from "../runtime/local-runtime-config.js";
 import { handleBrowserFrameCheck } from "./browser-frame.js";
 import {
+  bindingFor,
+  handleDirectoryList,
+  handleProjectBootstrap,
+  handleProjectList,
+  handleProjectOpen,
+  handleProjectPreview,
+} from "./project-routes.js";
+import { resolveProjectsPath } from "../bootstrap/registry.js";
+import { defaultSqlitePath, PROJECT_ID_ENV, SQLITE_PATH_ENV } from "../runtime/local-runtime-config.js";
+import {
   handleBlobGet,
   handleImageGenerate,
   handleNvidiaCatalogAdd,
@@ -126,6 +136,7 @@ export interface GuiHostOptions {
   readonly fetch?: FetchLike;
   readonly catalogPath?: string;
   readonly secretsPath?: string;
+  readonly projectsPath?: string;
   /** Host WebSocket ping cadence; defaults to 25 seconds. */
   readonly webSocketHeartbeatMs?: number;
   /** How long a disconnected ACP session may be resumed; defaults to 45 seconds. */
@@ -152,6 +163,12 @@ export async function startGuiHost(
   if (!isAbsolute(configuredWorkspace)) throw new ChatError("configuration", "GUI workspace must be an absolute directory.");
   const cwd = realpathSync(configuredWorkspace);
   if (!statSync(cwd).isDirectory()) throw new ChatError("configuration", "GUI workspace must be a directory.");
+  const projectsPath = options.projectsPath ?? resolveProjectsPath(env);
+  const workspace = {
+    cwd,
+    projectId: undefined as string | undefined,
+    useGlobalMemory: true,
+  };
   const host = options.host ?? DEFAULT_GUI_HOST_BIND;
   const port = options.port ?? DEFAULT_GUI_HOST_PORT;
   const registry = options.registry ?? defaultModelRegistry;
@@ -183,6 +200,25 @@ export async function startGuiHost(
   let bridge: AcpBridge | undefined;
   let bridgePending: Promise<AcpBridge> | undefined;
 
+  const acpEnv = (): NodeJS.ProcessEnv => ({
+    ...env,
+    ...(resolveNvidiaApiKey(env, secretsPath)
+      ? { NVIDIA_API_KEY: resolveNvidiaApiKey(env, secretsPath) }
+      : {}),
+    ...(resolveKieApiKey(env, secretsPath)
+      ? { KIE_API_KEY: resolveKieApiKey(env, secretsPath) }
+      : {}),
+    ...(resolveOpenAiApiKey(env, secretsPath)
+      ? { OPENAI_API_KEY: resolveOpenAiApiKey(env, secretsPath) }
+      : {}),
+    ...(workspace.projectId ? { [PROJECT_ID_ENV]: workspace.projectId } : {}),
+    ...(workspace.useGlobalMemory
+      ? {}
+      : { [SQLITE_PATH_ENV]: ":memory:" }),
+    ...(workspace.useGlobalMemory && !env[SQLITE_PATH_ENV]
+      ? { [SQLITE_PATH_ENV]: defaultSqlitePath() }
+      : {}),
+  });
   const getBridge = async (): Promise<AcpBridge> => {
     if (bridge !== undefined) {
       return bridge;
@@ -191,19 +227,8 @@ export async function startGuiHost(
       bridgePending = Promise.resolve(
         options.createAcpBridge?.() ??
           createSpawnedAcpBridge({
-            env: {
-              ...env,
-              ...(resolveNvidiaApiKey(env, secretsPath)
-                ? { NVIDIA_API_KEY: resolveNvidiaApiKey(env, secretsPath) }
-                : {}),
-              ...(resolveKieApiKey(env, secretsPath)
-                ? { KIE_API_KEY: resolveKieApiKey(env, secretsPath) }
-                : {}),
-              ...(resolveOpenAiApiKey(env, secretsPath)
-                ? { OPENAI_API_KEY: resolveOpenAiApiKey(env, secretsPath) }
-                : {}),
-            },
-            cwd,
+            env: acpEnv(),
+            cwd: workspace.cwd,
             ...(options.stderr === undefined ? {} : { stderr: options.stderr }),
           }),
       ).then((created) => {
@@ -217,6 +242,24 @@ export async function startGuiHost(
       bridgePending = undefined;
       throw error;
     }
+  };
+  const applyWorkspace = async (next: {
+    cwd: string;
+    projectId: string;
+    useGlobalMemory: boolean;
+  }): Promise<void> => {
+    const pending = bridgePending;
+    bridgePending = undefined;
+    if (pending !== undefined) {
+      const started = await pending.catch(() => undefined);
+      await started?.close();
+    } else if (bridge !== undefined) {
+      await bridge.close();
+    }
+    bridge = undefined;
+    workspace.cwd = next.cwd;
+    workspace.projectId = next.projectId;
+    workspace.useGlobalMemory = next.useGlobalMemory;
   };
 
   const forgetLease = (sessionId: string): void => {
@@ -323,7 +366,7 @@ export async function startGuiHost(
     void handleHttp({
       request,
       response,
-      cwd,
+      cwd: workspace.cwd,
       env,
       registry,
       runTerminal,
@@ -337,6 +380,8 @@ export async function startGuiHost(
       fetchImpl,
       catalogPath,
       secretsPath,
+      projectsPath,
+      applyWorkspace,
     });
   });
 
@@ -455,6 +500,12 @@ async function handleHttp(input: {
   readonly fetchImpl: FetchLike;
   readonly catalogPath: string;
   readonly secretsPath: string;
+  readonly projectsPath: string;
+  readonly applyWorkspace: (next: {
+    cwd: string;
+    projectId: string;
+    useGlobalMemory: boolean;
+  }) => Promise<void>;
 }): Promise<void> {
   const { request, response, sendJson } = input;
   const method = request.method ?? "GET";
@@ -595,6 +646,53 @@ async function handleHttp(input: {
     if (method === "GET" && blob) {
       if (handleBlobGet(input.storeRoot, blob[1]!, blob[2]!, response)) return;
       sendJson(response, 404, errorBody("Image not found."));
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/projects") {
+      sendJson(response, 200, handleProjectList({ registryPath: input.projectsPath }));
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/projects/browse") {
+      const pathValue = new URL(request.url ?? "/", "http://localhost").searchParams.get("path");
+      sendJson(response, 200, handleDirectoryList(pathValue));
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/projects/preview") {
+      if (!isJsonContentType(request)) {
+        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        return;
+      }
+      sendJson(
+        response,
+        200,
+        handleProjectPreview({ registryPath: input.projectsPath }, await readJsonBody(request)),
+      );
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/projects/bootstrap") {
+      if (!isJsonContentType(request)) {
+        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        return;
+      }
+      const created = handleProjectBootstrap(
+        { registryPath: input.projectsPath },
+        await readJsonBody(request),
+      );
+      await input.applyWorkspace(bindingFor(created.project));
+      sendJson(response, 200, created);
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/projects/open") {
+      if (!isJsonContentType(request)) {
+        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        return;
+      }
+      const opened = handleProjectOpen(
+        { registryPath: input.projectsPath },
+        await readJsonBody(request),
+      );
+      await input.applyWorkspace(opened);
+      sendJson(response, 200, opened);
       return;
     }
     if (method === "POST" && pathname === "/v1/shell") {
