@@ -12,7 +12,7 @@ the template before push.
 ## Records
 
 - [A008-0094_project-bootstrap.md](A008-0094_project-bootstrap.md)
-  — Ready; host-owned New/Open/Recent project bootstrap. Direction:
+  — Complete; [archive](../finished/A008-0094_project-bootstrap.md). Direction:
   [ADR 0039](../adr/0039-project-bootstrap.md).
 
 - [A008-0093_global-app-theme-system.md](A008-0093_global-app-theme-system.md)

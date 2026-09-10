@@ -107,6 +107,7 @@ A008/
 |  |- src/
 |  |  |- main.tsx                    renderer bootstrap
 |  |  |- app.tsx                     shell layout (operator-owned)
+|  |  |- projects/                   A008-0094 New/Open/Recent project wizard
 |  |  |- memory/                     A008-0064 read-only memory diagnostics
 |  |  |  |- memory-page.tsx          three views, filters, refresh and pagination
 |  |  |  |- memory-client.ts        validated host inspection client
@@ -160,6 +161,7 @@ A008/
 |     `- node-test-env.d.ts          the one ambient Node declaration for tests
 |- src/
 |  |- index.ts                       public core/provider exports
+|  |- bootstrap/                     A008-0094 project create/open registry
 |  |- gui-host/                      A008-0032 HTTP/WS ACP bridge (product GUI)
 |  |  |- server.ts                   HTTP routes, static GUI, upgrade handling
 |  |  |- acp-bridge.ts               A008-acp stdio subprocess bridge

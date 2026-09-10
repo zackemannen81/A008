@@ -30,6 +30,7 @@ import {
   type CodeArtifactView,
 } from "./artifact/code-artifact-panel.js";
 import type { HtmlArtifactCandidate } from "./artifact/code-artifact.js";
+import { ProjectsPage } from "./projects/projects-page.js";
 
 const STATUS_LABEL = {
   idle: "Not connected",
@@ -40,7 +41,7 @@ const STATUS_LABEL = {
 const REVIEW_PROMPT =
   "Granska ändringarna i arbetskopian med git status, git diff och git diff --cached. Läs berörda filer vid behov och sammanfatta fynden.";
 
-type Page = "chat" | "memory" | "tools" | "help";
+type Page = "chat" | "memory" | "tools" | "help" | "projects";
 type ToolSurface = "terminal" | "files" | "browser" | "upload";
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -234,6 +235,12 @@ export function App() {
           >
             <span aria-hidden="true">?</span> Help
           </button>
+          <button
+            aria-current={page === "projects" ? "page" : undefined}
+            onClick={() => navigate("projects")}
+          >
+            <span aria-hidden="true">▣</span> Projects
+          </button>
         </nav>
         <div className="a008-sidebar-workspace">
           <p className="a008-sidebar-caption">Workspace</p>
@@ -268,7 +275,9 @@ export function App() {
                 ? "Memory"
                 : page === "help"
                   ? "Help"
-                  : "Tools"}
+                  : page === "projects"
+                    ? "Projects"
+                    : "Tools"}
           </span>
           <span className="a008-header-workspace">{workspace}</span>
         </div>
@@ -367,6 +376,18 @@ export function App() {
       </main>
       <main className="a008-help-main" hidden={page !== "help"}>
         <HelpPage session={session} onChat={() => navigate("chat")} />
+      </main>
+      <main className="a008-help-main" hidden={page !== "projects"}>
+        <ProjectsPage
+          onOpened={() => {
+            void Promise.resolve(session.endSession?.())
+              .catch(() => undefined)
+              .finally(() => {
+                void session.connect();
+              });
+            navigate("chat");
+          }}
+        />
       </main>
       <ShortcutDock
         hidden={page !== "chat" || filesOpen || toolsOpen || canvasOpen}

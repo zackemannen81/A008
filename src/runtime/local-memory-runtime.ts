@@ -424,12 +424,6 @@ function resolveProjectId(
       : undefined;
   if (config.projectId !== undefined) {
     const configured = parseRuntimeId(config.projectId, "project");
-    if (persisted !== undefined && persisted !== configured) {
-      throw new ChatError(
-        "configuration",
-        "A008_PROJECT_ID does not match the SQLite project-id sidecar.",
-      );
-    }
     if (sidecar !== undefined && persisted === undefined) {
       writeFileSync(sidecar, `${configured}\n`, "utf8");
     }

@@ -12,6 +12,8 @@ and must be reviewed before distribution.
 | `better-sqlite3` | 13.0.3 | MIT | Synchronous SQLite runtime used by the explicitly configured local semantic-memory repository and retrieval index. |
 | `pdfjs-dist` | 6.3.289 | Apache-2.0 | Mozilla's PDF reference implementation. Used for text-layer extraction only, imported lazily by `src/ingest/pdf-extractor.ts` so no other code path loads it. Authorised by the owner and recorded in ADR 0020 D11. |
 | OpenHands Agent Canvas | `744e8652f254613045b779eb148bf4f741177975` | MIT | External integration evidence only; not copied and not an npm dependency. |
+| Docs-First Continuity Protocol | `c1b7b44309095d30262d273d8f5d0704629a943c` | Apache-2.0 | Inspected local source for A008-0094 starter templates. Not copied wholesale. |
+| Docs-First Multi-Agent Orchestrator Add-on | `7b57449935d93cfe1909c83b237367eab2d7bf5b` | Apache-2.0 | Inspected local source for A008-0094 policy shape. MCP server is not a runtime dependency. |
 
 The root Apache-2.0 license applies only to A008-owned content. Dependency
 packages retain their own terms and notices. A complete transitive audit and
