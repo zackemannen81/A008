@@ -2,6 +2,16 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-11 — A008-0094: project bootstrap
+
+- Task: A008-0094; operator: Grok; branch: `main`.
+- Integrated and published [PR #34](https://github.com/zackemannen81/A008/pull/34) at `16822d5`.
+- Host-owned New/Open/Recent project bootstrap. Preview lists mutations; Confirm creates the folder, optional Git, Docs-First starter and multi-agent policy without worker clones. Global memory is the existing store with a generated project namespace.
+- Inspected Apache-2.0 continuity protocol `c1b7b44` and orchestrator add-on `7b57449`; neither tree was copied wholesale. MCP process layer remains uninstalled.
+- Verification: `npm test` and GUI production build passed. No live provider call.
+- [Handoff](handoffs/A008-0094.md). [ADR 0039](adr/0039-project-bootstrap.md).
+- Signature: Grok
+
 ## 2026-09-11 — A008-0093: global app theme system
 
 - Task: A008-0093; operator: Grok; branch: `main`.
