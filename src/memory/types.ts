@@ -28,6 +28,7 @@ export interface KnowledgeItem {
 export interface KnowledgeProposal {
   readonly proposition: string;
   readonly kind: string;
+  readonly structuredProposition?: import("./knowledge/evidence-types.js").ClaimProposition;
   readonly tags?: readonly string[];
   readonly scope: readonly string[];
   readonly relevanceScore?: number;
