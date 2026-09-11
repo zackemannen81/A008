@@ -109,3 +109,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0093 | global app theme system | Grok (operator) | 2026-09-11 | persistent semantic Neutral and Deep Space GUI themes |
 | A008-0094 | project bootstrap | Grok (operator) | 2026-09-11 | host-owned new-project wizard, docs-first starter and project-scoped global memory |
 | A008-0095 | A008 Tool usage and representation in chat  | mrWhite, A008 (operator) | 2026-09-11 | Slice 1 |
+| A008-0096 | A008 Memory-engine behaviour changes  | mrWhite, A008 (operator) | 2026-09-11 | Slice 2 |
