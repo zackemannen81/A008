@@ -14,6 +14,13 @@ export interface ChatUserTurn {
   readonly text: string;
 }
 
+export interface ChatToolActivity {
+  readonly id: string;
+  readonly title: string;
+  readonly status: string;
+  readonly text: string;
+}
+
 export interface ChatAssistantTurn {
   readonly kind: "assistant";
   readonly id: string;
@@ -21,6 +28,7 @@ export interface ChatAssistantTurn {
   readonly thought: string;
   readonly answer: string;
   readonly live: boolean;
+  readonly tools?: readonly ChatToolActivity[];
 }
 
 export type ChatTurn = ChatUserTurn | ChatAssistantTurn;
@@ -131,6 +139,7 @@ function overlayLive(
           thought,
           answer: answer !== "" ? answer : last.answer,
           live: true,
+          ...(last.tools !== undefined ? { tools: last.tools } : {}),
         },
       ];
     }
@@ -148,6 +157,28 @@ function overlayLive(
   ];
 }
 
+function attachLiveTools(
+  turns: readonly ChatTurn[],
+  tools: readonly ChatToolActivity[] | undefined,
+): ChatTurn[] {
+  if (tools === undefined || tools.length === 0) return [...turns];
+  const copy = [...turns];
+  const last = copy.at(-1);
+  if (last?.kind === "assistant") {
+    copy[copy.length - 1] = { ...last, tools };
+    return copy;
+  }
+  copy.push({
+    kind: "assistant",
+    id: "a008-chat-assistant-tools",
+    thought: "",
+    answer: "",
+    live: true,
+    tools,
+  });
+  return copy;
+}
+
 /**
  * Build the A008 transcript. Thought is a separate display-only field and is
  * never concatenated into answer text.
@@ -163,7 +194,8 @@ export function buildChatTranscript(input: ChatTranscriptInput): ChatTranscript 
       const last = turns.at(-1);
       if (last?.kind === "assistant" && last.answer === session.answer) turns[turns.length - 1] = { ...last, thought: session.thought };
     }
-    return { status: session.status, error: session.error, empty: turns.length === 0, turns };
+    const withTools = attachLiveTools(turns, session.tools);
+    return { status: session.status, error: session.error, empty: withTools.length === 0, turns: withTools };
   }
   const messages = readOptionalMessages(input.session);
   const history =
@@ -176,12 +208,13 @@ export function buildChatTranscript(input: ChatTranscriptInput): ChatTranscript 
           turn.kind === "assistant" ? { ...turn, live: false } : turn,
         )
       : overlayLive(history, thought, answer);
+  const withTools = attachLiveTools(turns, input.session.tools);
 
   return {
     status: input.session.status,
     error: input.session.error,
-    empty: turns.length === 0,
-    turns,
+    empty: withTools.length === 0,
+    turns: withTools,
   };
 }
 

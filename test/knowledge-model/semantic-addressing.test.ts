@@ -179,6 +179,29 @@ test("unknown Instant and Interval round-trip without defaulting to now", () => 
   });
 });
 
+test("entity identity reuses a slug-equivalent label instead of re-registering", () => {
+  const entities = new EntityRegistry();
+  entities.register({
+    id: asEntityId("html5_canvas"),
+    type: "fact",
+    labels: ["HTML5 Canvas"],
+  });
+  const bySlug = entities.findByIdentity("html5_canvas");
+  const byDisplay = entities.findByIdentity("HTML5 Canvas");
+  const byAlias = entities.findByIdentity("HTML5_Canvas");
+  assert.equal(bySlug?.id, "html5_canvas");
+  assert.equal(byDisplay?.id, "html5_canvas");
+  assert.equal(byAlias?.id, "html5_canvas");
+  assert.throws(
+    () => entities.register({
+      id: asEntityId("html5_canvas"),
+      type: "fact",
+      labels: ["html5_canvas"],
+    }),
+    /already registered/u,
+  );
+});
+
 test("INTERPRET writes nothing to entity and slot registries", () => {
   const entities = new EntityRegistry();
   const slots = new SlotRegistry();

@@ -34,7 +34,7 @@ function intake(drafts: readonly AnalyzedKnowledgeDraft[]) {
   return new PostOutputKnowledgeIntake({ analyzer: { async analyze() { return drafts; } }, context: { projectId, conversationId, agentId }, budget: { maximum: 16384, measurer: new Utf8ByteKnowledgeIntakeMeasurer() } });
 }
 async function batch(n: number, message = proposition, support = true, severity = "minor") {
-  return intake([{ proposition, kind: "fact", severity, entities: ["fixture valve"], ...(support ? { support: { source: "message" as const, start: 0, end: message.length } } : {}) }]).stage({ taskId: taskId(n), message, answer: proposition, applicabilityScopes: ["local"] });
+  return intake([{ proposition, kind: "fact", severity, entities: ["fixture valve"], ...(support ? { support: { source: "message" as const, quote: message } } : {}) }]).stage({ taskId: taskId(n), message, answer: proposition, applicabilityScopes: ["local"] });
 }
 const classifier = (type: RelationClassifierDecision["type"], supportsTarget = true): KnowledgeRelationClassifier => ({
   async classify(input) {
@@ -172,7 +172,7 @@ test("A15-A18/A29: two SQLite connections deliver one target boost; source reimp
     assert.equal(a.context.lifecycle.snapshot().receipts!.length, 1);
     for (let i = 0; i < 2; i++) {
       const source = ingest({ content: proposition, speaker: "fixture-source", locator: "source:fixture", scope: { verified: true } }, { store: a.context.evidence });
-      const staged = await intake([{ proposition, kind: "fact", severity: "minor", support: { source: "source", start: 0, end: proposition.length } }]).stage({ kind: "source", taskId: taskId(10 + i), locator: "source:fixture", content: proposition, utteranceId: source.utterances[0]!.id, applicabilityScopes: ["local"] });
+      const staged = await intake([{ proposition, kind: "fact", severity: "minor", support: { source: "source", quote: proposition } }]).stage({ kind: "source", taskId: taskId(10 + i), locator: "source:fixture", content: proposition, utteranceId: source.utterances[0]!.id, applicabilityScopes: ["local"] });
       const exact = new KnowledgeEngineCommit({ context: a.context, classifier: { async classify(input) {
         const id = a.context.evidence.listClaims().findIndex(c => c.id === target);
         return { type: "restatement", targetHandle: input.candidates[id]!.handle, supportsTarget: true };

@@ -216,7 +216,11 @@ The shared executor offers `list_files`, `read_file`, `create_file`, `edit_file`
 and `git` alongside `exec_command`. File edits require a matching SHA-256 and
 one exact text occurrence; new-file creation refuses overwrite. Git receives
 literal argv without shell expansion. All retain the established explicit
-approval boundary and existing runtime budgets. The bundled standalone GUI may let
+approval boundary and existing runtime budgets. Duplicate or unknown model tool
+calls fail closed and name the id or tool. ACP stderr `memory>` diagnostics are
+not concatenated onto unrelated turn errors. In the standalone GUI, tool activity
+renders inside the assistant turn in the transcript, not as a footer above the
+composer. The bundled standalone GUI may let
 the operator choose Allow all for the current GUI session; this is local client
 state that answers later permission requests and resets on reconnect, not model-
 derived authority or a persistent policy. These tools do not create another
@@ -516,6 +520,10 @@ evaluated values; model projection contains no lifecycle numbers.
 
 Live reinforcement resolves one invocation-local handle to one stored claim and
 requires independent support from the original message or attributed source.
+The analyzer names that support as an exact quote; staging resolves it to a
+span. Entity commit reuses an existing registry identity when a later label
+slugs to the same id (`HTML5 Canvas` / `html5_canvas`) instead of refusing a
+duplicate register.
 Restatement reuses canonical evidence where acceptance permits. Writes execute
 synchronously after asynchronous comparison: refresh stale state under the
 SQLite write lock, validate the target/source, then commit evidence, state,
@@ -764,8 +772,12 @@ The classifier instruction distinguishes the input envelope from the output
 decision and gives concrete JSON shapes (A008-0083).
 A008-0085 adds serialized, fictional extractor examples covering empty social
 exchange, a greeting with a durable fact and an ingested source. All example
-outputs pass the existing stager, including exact UTF-16 support spans. The
-instruction describes types in prose instead of displaying JSON-like pseudocode.
+outputs pass the existing stager. Analyzer support is an exact `quote` from the
+original message or ingested source (optional 1-based `occurrence` when the
+quote repeats). Runtime computes canonical UTF-16 `start`/`end`; model-supplied
+offsets are ignored. A quote that is missing, rewritten or ambiguous skips
+reinforcement and keeps the proposal. The instruction describes types in prose
+instead of displaying JSON-like pseudocode.
 Completeness applies to qualifying durable claims; no runtime greeting blacklist
 is added. Invalid-response diagnostics identify the model and semantic operation,
 retaining strict failure and the bounded response excerpt. Provider/cancellation

@@ -199,6 +199,25 @@
   align-items: flex-start;
 }
 
+.a008-chat-turn .a008-tool-activity {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 44rem;
+  max-height: none;
+  align-self: stretch;
+  margin: 0;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--a008-border, #333);
+  border-radius: 0.75rem;
+  background: var(--a008-panel-quiet, var(--a008-panel, #242424));
+  font-size: 0.78rem;
+}
+
+.a008-chat-turn .a008-tool-activity summary {
+  cursor: pointer;
+  color: var(--a008-text-secondary, var(--a008-muted, #a0a0a0));
+}
+
 .a008-chat-label {
   font-size: 0.75rem;
   color: var(--a008-chat-muted);

@@ -118,6 +118,57 @@ test("session rejects empty messages before calling the transport", async () => 
   assert.equal(calls, 0);
 });
 
+test("unavailable and duplicate tool calls name the offending call", async () => {
+  const offered = {
+    definitions: [{ name: "read_file", description: "Read", parameters: { type: "object", properties: {} } }],
+    maximumCalls: 4,
+    async execute() { return "ok"; },
+  };
+  const session = new ChatSession({
+    model: "provider/model",
+    transport: {
+      async complete() {
+        return {
+          message: { role: "assistant", content: "" },
+          toolCalls: [{ id: "call-1", name: "memory", arguments: "{}" }],
+        };
+      },
+    },
+  });
+  await assert.rejects(
+    () => session.send("use memory", { tools: offered }),
+    (error: unknown) =>
+      error instanceof ChatError &&
+      error.message.includes('unavailable tool "memory"'),
+  );
+
+  let round = 0;
+  const looping = new ChatSession({
+    model: "provider/model",
+    transport: {
+      async complete() {
+        round += 1;
+        if (round === 1) {
+          return {
+            message: { role: "assistant", content: "" },
+            toolCalls: [{ id: "call-1", name: "read_file", arguments: "{}" }],
+          };
+        }
+        return {
+          message: { role: "assistant", content: "" },
+          toolCalls: [{ id: "call-1", name: "read_file", arguments: "{}" }],
+        };
+      },
+    },
+  });
+  await assert.rejects(
+    () => looping.send("read twice", { tools: offered }),
+    (error: unknown) =>
+      error instanceof ChatError &&
+      error.message.includes("duplicate tool call id (call-1)"),
+  );
+});
+
 test("reset preserves only the system message", async () => {
   const transport: ChatTransport = {
     async complete() {

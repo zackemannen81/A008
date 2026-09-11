@@ -1,10 +1,20 @@
 import { KnowledgeModelError } from "./errors.js";
+import { asEntityId } from "./ids.js";
 import type {
   Entity,
   EntityId,
   SlotDefinition,
   SlotRef,
 } from "./types.js";
+
+/** Deterministic identity for an entity label. Empty labels have no slug. */
+export function entitySlug(label: string): string {
+  return label
+    .trim()
+    .toLocaleLowerCase("und")
+    .replace(/[^a-z0-9]+/gu, "_")
+    .replace(/^_+|_+$/gu, "");
+}
 
 export function slotKey(ref: SlotRef): string {
   if (ref.kind === "attribute") {
@@ -37,6 +47,30 @@ export class EntityRegistry {
       }
     }
     return matches;
+  }
+
+  /**
+   * Reuse an entity whose label, id or any alias slugs to the same identity.
+   * Exact label wins; otherwise the slug id; otherwise a slug-equivalent alias.
+   */
+  findByIdentity(label: string, type?: string): Entity | undefined {
+    const trimmed = label.trim();
+    if (trimmed.length === 0) return undefined;
+    const labeled = this.findByLabel(trimmed, type);
+    if (labeled.length > 0) return labeled[0];
+    const slug = entitySlug(trimmed);
+    if (slug.length === 0) return undefined;
+    const byId = this.#byId.get(asEntityId(slug));
+    if (byId !== undefined && (type === undefined || byId.type === type)) {
+      return cloneEntity(byId);
+    }
+    for (const entity of this.#byId.values()) {
+      if (type !== undefined && entity.type !== type) continue;
+      if (entity.labels.some((item) => entitySlug(item) === slug)) {
+        return cloneEntity(entity);
+      }
+    }
+    return undefined;
   }
 
   resolve(

@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { createSpawnedAcpBridge, type AcpBridge } from "../src/gui-host/acp-bridge.js";
+import { acpFailure, createSpawnedAcpBridge, type AcpBridge } from "../src/gui-host/acp-bridge.js";
 import { isAllowedOrigin, parseAllowedOrigins } from "../src/gui-host/origin.js";
 import { parseClientMessage } from "../src/gui-host/protocol.js";
 import { redactWireText } from "../src/gui-host/redact.js";
@@ -206,6 +206,16 @@ function assertWireClean(raw: readonly string[]): void {
   assert.doesNotMatch(joined, /NVIDIA_API_KEY/u);
   assert.doesNotMatch(joined, /authorization/iu);
 }
+
+test("ACP failures do not glue memory diagnostics from stderr", () => {
+  const glued = acpFailure(
+    new Error("Provider requested unavailable tool \"memory\"."),
+    "memory> memory skipped 4 malformed proposals: proposal 1 reinforcement skipped: quote not found in source",
+  );
+  assert.equal(glued.message, 'Provider requested unavailable tool "memory".');
+  const startup = acpFailure(new Error("Internal error"), "NVIDIA_API_KEY is missing");
+  assert.match(startup.message, /NVIDIA_API_KEY is missing/u);
+});
 
 test("parseClientMessage accepts host protocol v1 client frames", () => {
   assert.deepEqual(

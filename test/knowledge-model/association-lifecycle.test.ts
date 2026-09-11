@@ -37,7 +37,7 @@ const edge: AssociationIdentity = { from: "a", to: "b", relation: "routes_to", s
 const relations = (context: KnowledgeReadContext) => context.relations as RelationIndex;
 async function batch(n: number, message = left, proposition = left, claimSupport = true, scopes = ["local"]) {
   const intake = new PostOutputKnowledgeIntake({
-    analyzer: { async analyze() { return [{ proposition, kind: "fact", severity: "important", entities: [proposition === right ? "reservoir" : "valve"], ...(claimSupport ? { support: { source: "message" as const, start: 0, end: message.length } } : {}) }]; } },
+    analyzer: { async analyze() { return [{ proposition, kind: "fact", severity: "important", entities: [proposition === right ? "reservoir" : "valve"], ...(claimSupport ? { support: { source: "message" as const, quote: message } } : {}) }]; } },
     context: { projectId, conversationId, agentId }, budget: { maximum: 16384, measurer: new Utf8ByteKnowledgeIntakeMeasurer() },
   });
   return intake.stage({ taskId: taskId(n), message, answer: "Fixture final answer", applicabilityScopes: scopes });

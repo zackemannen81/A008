@@ -4,6 +4,7 @@ import { parseRuntimeId } from "../src/identity/runtime-id.js";
 import { MemoryError } from "../src/memory/errors.js";
 import {
   PostOutputKnowledgeIntake,
+  resolveAnalyzerSupport,
   serializeStagedKnowledgeProposals,
   Utf8ByteKnowledgeIntakeMeasurer,
   type AnalyzedKnowledgeDraft,
@@ -464,6 +465,80 @@ test("a completed batch reports skipped proposals through the diagnostic", async
     undefined,
     "a clean batch stays silent",
   );
+});
+
+test("exact support quotes become runtime UTF-16 spans", async () => {
+  const message = "Hello. The sample box is blue.";
+  const quote = "The sample box is blue.";
+  const staged = await intake({
+    async analyze() {
+      return [{
+        severity: "important",
+        proposition: quote,
+        kind: "fact",
+        support: { source: "message", quote },
+      }];
+    },
+  }).stage({
+    taskId: TASK,
+    message,
+    answer: "Noted.",
+    applicabilityScopes: ["runtime"],
+  });
+  assert.deepEqual(staged.skippedProposals, []);
+  assert.deepEqual(staged.proposals[0]?.support, {
+    source: "message",
+    start: message.indexOf(quote),
+    end: message.indexOf(quote) + quote.length,
+  });
+  assert.equal(message.slice(staged.proposals[0]!.support!.start, staged.proposals[0]!.support!.end), quote);
+});
+
+test("model-supplied offsets cannot reinforce; missing quotes stay exact-match only", async () => {
+  const message = "I use TypeScript.";
+  const staged = await intake({
+    async analyze() {
+      return [
+        {
+          severity: "important",
+          proposition: "I use TypeScript.",
+          kind: "fact",
+          support: { source: "message", start: 0, end: message.length },
+        },
+        {
+          severity: "important",
+          proposition: "A second claim",
+          kind: "fact",
+          support: { source: "message", quote: "I use typescript." },
+        },
+      ] as never;
+    },
+  }).stage({
+    taskId: TASK,
+    message,
+    answer: "Ok.",
+    applicabilityScopes: ["runtime"],
+  });
+  assert.equal(staged.proposals.length, 2);
+  assert.equal(staged.proposals[0]?.support, undefined);
+  assert.equal(staged.proposals[1]?.support, undefined);
+  assert.equal(staged.skippedProposals.length, 2);
+  assert.match(staged.skippedProposals[0] ?? "", /quote not found/u);
+  assert.match(staged.skippedProposals[1] ?? "", /quote not found/u);
+});
+
+test("ambiguous quotes refuse reinforcement unless occurrence is unique", () => {
+  const source = "alpha beta alpha";
+  const quote = "alpha";
+  assert.deepEqual(resolveAnalyzerSupport({ source: "message", quote }, "message", source), {
+    ok: false,
+    reason: "quote is ambiguous",
+  });
+  assert.deepEqual(
+    resolveAnalyzerSupport({ source: "message", quote, occurrence: 2 }, "message", source),
+    { ok: true, span: { source: "message", start: 11, end: 16 } },
+  );
+  assert.equal(resolveAnalyzerSupport(undefined, "message", source), undefined);
 });
 
 test("the confidence a model actually writes is read, not discarded", () => {

@@ -472,7 +472,7 @@ body {
   outline: none;
 }
 
-.a008-tool-activity { flex: 0 1 auto; max-height: 30vh; overflow: auto; padding: .5rem 1rem; border-top: 1px solid var(--a008-border); }
+.a008-tool-activity { flex: 0 1 auto; max-height: 30vh; overflow: auto; padding: .5rem 1rem; }
 .a008-tool-activity pre, .a008-tool-permission pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .a008-tool-permission { width: min(44rem, 90vw); max-height: 85vh; overflow: auto; background: var(--a008-surface-2); color: var(--a008-text-primary); border: 1px solid var(--a008-border-default); padding: 1.5rem; }
 .a008-tool-permission::backdrop { background: var(--a008-overlay); }

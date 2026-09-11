@@ -17,11 +17,11 @@ test("repository actions stay disabled without connected host tool metadata", ()
   assert.equal(html.includes("exec_command"), false);
 });
 test("tool activity escapes arguments and distinguishes waiting, completed and failed calls", () => {
-  const html = renderToStaticMarkup(createElement(ToolActivity, { session: session({ tools: [
+  const html = renderToStaticMarkup(createElement(ToolActivity, { tools: [
     { id: "read", title: "read_file", status: "completed", text: "<script>untrusted file</script>" },
     { id: "write", title: "edit_file", status: "pending", text: '{"old_text":"old","new_text":"new"}' },
     { id: "git", title: "git", status: "failed", text: "User denied execution." },
-  ] }) }));
+  ] }));
   assert.match(html, /awaiting approval/);
   assert.match(html, /read_file · completed/);
   assert.match(html, /git · failed/);
