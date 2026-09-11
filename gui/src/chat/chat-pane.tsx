@@ -21,6 +21,7 @@ import {
   parseAssistantAnswer,
   type HtmlArtifactCandidate,
 } from "../artifact/code-artifact.js";
+import { HighlightedCode } from "../highlight/highlighted-code.js";
 import "./chat-pane.css";
 
 export interface ChatGeneratedImage {
@@ -101,7 +102,7 @@ function AssistantTurnView(props: {
                   })}>Open in Canvas</button>
                 ) : segment.oversized ? <span>Too large for Canvas</span> : null}
               </figcaption>
-              <pre><code>{segment.code}</code></pre>
+              <HighlightedCode code={segment.code} language={segment.language} />
             </figure>
           ))}
         </div>

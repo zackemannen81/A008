@@ -108,6 +108,7 @@ A008/
 |  |  |- main.tsx                    renderer bootstrap
 |  |  |- app.tsx                     shell layout (operator-owned)
 |  |  |- projects/                   A008-0094 New/Open/Recent project wizard
+|  |  |- highlight/                  highlight.js wrapper for chat/Canvas code
 |  |  |- memory/                     A008-0064 read-only memory diagnostics
 |  |  |  |- memory-page.tsx          three views, filters, refresh and pagination
 |  |  |  |- memory-client.ts        validated host inspection client

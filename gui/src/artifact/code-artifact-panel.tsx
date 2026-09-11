@@ -5,6 +5,7 @@ import {
   codeArtifactByteLength,
   type HtmlArtifactCandidate,
 } from "./code-artifact.js";
+import { HighlightedEditor } from "../highlight/highlighted-editor.js";
 import "./code-artifact.css";
 
 export interface CodeArtifactView {
@@ -69,11 +70,11 @@ export function CodeArtifactPanel(props: {
           </div>
           {tab === "code" ? (
             <div className="a008-code-canvas-code-pane">
-              <textarea
+              <HighlightedEditor
                 aria-label="HTML artifact source"
-                spellCheck={false}
+                language="html"
                 value={props.artifact.source}
-                onChange={(event) => props.onSourceChange(event.currentTarget.value)}
+                onChange={props.onSourceChange}
               />
               <button type="button" className="a008-code-canvas-revert" disabled={!props.artifact.dirty} onClick={props.onRevert}>Revert local edits</button>
             </div>
