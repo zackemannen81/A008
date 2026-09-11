@@ -7,6 +7,7 @@ import type {
   RuntimeTaskId,
 } from "../identity/types.js";
 import { MemoryError } from "../memory/errors.js";
+import { parseClaimProposition } from "../memory/knowledge/claim-proposition.js";
 import type { KnowledgeProposal } from "../memory/types.js";
 import type { SemanticOperationContext } from "./semantic-operation.js";
 
@@ -58,6 +59,7 @@ export interface AnalyzedKnowledgeDraft {
   readonly support?: AnalyzerSupportQuote;
   readonly proposition: string;
   readonly kind: string;
+  readonly structuredProposition?: unknown;
   readonly tags?: readonly string[];
   readonly domains?: readonly string[];
   readonly entities?: readonly string[];
@@ -240,7 +242,6 @@ export type StagePostOutputKnowledgeInput =
   | StageDialogueKnowledgeInput
   | StageSourceKnowledgeInput;
 
-const MAX_WRITE_DOMAINS_PER_UTTERANCE = 4;
 export interface StagedKnowledgeProposal {
   readonly severity?: KnowledgeSeverity;
   readonly support?: KnowledgeSupportSpan;
@@ -340,7 +341,7 @@ function positiveSafeInteger(value: number, field: string): number {
  * The analyzer instruction names `confidence` without saying it must be a
  * number, and a model asked for confidence writes "high" far more often than it
  * writes 0.85. The parser demanded a finite number and threw on anything else,
- * so an entire extraction — every proposal in it â€” was skipped for a field that
+ * so an entire extraction — every proposal in it — was skipped for a field that
  * is metadata about a proposition A008 had already read correctly.
  *
  * Converting a word to a number is lossy and the exact values are a judgement,
@@ -465,6 +466,9 @@ export function serializeStagedKnowledgeProposals(
       ...(entry.support === undefined ? {} : { support: entry.support }),
       proposition: entry.proposal.proposition,
       kind: entry.proposal.kind,
+      ...(entry.proposal.structuredProposition === undefined
+        ? {}
+        : { structuredProposition: entry.proposal.structuredProposition }),
       tags: [...(entry.proposal.tags ?? [])],
       scope: [...entry.proposal.scope],
       domains: [...entry.domains],
@@ -576,7 +580,7 @@ export class PostOutputKnowledgeIntake {
      * Nothing unsafe is admitted by this: a rejected item is still rejected,
      * it just no longer punishes its neighbours. Batch-level defects — output
      * that is not an array, more items than the ceiling, an over-budget
-     * result â€” still fail closed, because those say the response as a whole
+     * result — still fail closed, because those say the response as a whole
      * cannot be trusted rather than that one item was malformed.
      */
     const validateProposal = (
@@ -620,9 +624,23 @@ export class PostOutputKnowledgeIntake {
               raw.confidence,
               `proposal ${index + 1} confidence`,
             );
+      let structuredProposition;
+      if (raw.structuredProposition !== undefined) {
+        try {
+          structuredProposition = parseClaimProposition(raw.structuredProposition);
+        } catch (error) {
+          throw new MemoryError(
+            "policy",
+            error instanceof Error
+              ? `proposal ${index + 1} ${error.message}`
+              : `proposal ${index + 1} has invalid structuredProposition`,
+          );
+        }
+      }
       const proposal: KnowledgeProposal = {
         proposition,
         kind,
+        ...(structuredProposition === undefined ? {} : { structuredProposition }),
         tags: normalizedStrings(
           raw.tags,
           `proposal ${index + 1} tags`,
@@ -670,13 +688,7 @@ export class PostOutputKnowledgeIntake {
       }
     });
 
-
-    const boundedDomains = [...new Set(proposals.flatMap((entry) => entry.domains))].slice(0, MAX_WRITE_DOMAINS_PER_UTTERANCE);
-    const boundedProposals = proposals.map((entry) => ({
-      ...entry,
-      domains: entry.domains.filter((domain) => boundedDomains.includes(domain)),
-    }));
-    const serialized = serializeStagedKnowledgeProposals(boundedProposals);
+    const serialized = serializeStagedKnowledgeProposals(proposals);
     const measuredUnits = this.#budget.measurer.measure(serialized);
     if (!Number.isSafeInteger(measuredUnits) || measuredUnits < 0) {
       throw new MemoryError(
@@ -706,7 +718,7 @@ export class PostOutputKnowledgeIntake {
         analyzerInput.kind === "source"
           ? analyzerInput.locator
           : analyzerInput.message,
-      proposals: boundedProposals,
+      proposals,
       serialized,
       measuredUnits,
       measurementUnit: this.#budget.measurer.unit,
