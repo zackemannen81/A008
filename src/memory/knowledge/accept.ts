@@ -10,8 +10,10 @@ import {
   type ReconcileOutcome,
   type Utterance,
 } from "./evidence-types.js";
-
-const MINIMUM_PROPOSITION_CHARS = 8;
+import {
+  isExplicitAssertionEvidence,
+  type AssertionEvidenceSpan,
+} from "./assertion-evidence.js";
 
 export interface AcceptAuthority {
   readonly verified: boolean;
@@ -25,6 +27,7 @@ export interface AcceptInput {
   readonly reconcileOutcome?: ReconcileOutcome;
   readonly competingClaimIds?: readonly ClaimId[];
   readonly sourceMessage?: string;
+  readonly sourceSpan?: AssertionEvidenceSpan;
   readonly confidence?: number;
 }
 
@@ -86,13 +89,17 @@ function applyUserAssertionPolicy(
   utterance: Utterance | undefined,
 ): AcceptResult {
   const policyId = USER_ASSERTION_POLICY_ID;
+  const hasScopedEvidence = input.sourceSpan !== undefined;
 
-  if (utterance !== undefined && !allowsUserAssertionAcceptance(utterance.act)) {
+  if (
+    utterance !== undefined &&
+    !allowsUserAssertionAcceptance(utterance.act) &&
+    !hasScopedEvidence
+  ) {
     return applyStatus(store, claim.id, "asserted", {
       policyId,
       decision: "not_accepted",
-      reason:
-        "user-assertion-v1 does not accept a prediction as current-state knowledge",
+      reason: `user-assertion-v1 does not accept speech act ${utterance.act} without assertion-scoped evidence`,
     });
   }
 
@@ -104,26 +111,23 @@ function applyUserAssertionPolicy(
     });
   }
 
-  if (utterance !== undefined && utterance.act !== "assertion") {
-    return applyStatus(store, claim.id, "asserted", {
-      policyId,
-      decision: "not_accepted",
-      reason: `user-assertion-v1 does not accept speech act ${utterance.act}`,
-    });
-  }
-
   if (input.sourceMessage !== undefined) {
     const utteranceText = utterance?.content ?? claim.label;
-    const matchesUtterance = isExplicitUserAssertion(
+    const matchesUtterance = isExplicitAssertionEvidence(
       input.sourceMessage,
       utteranceText,
+      input.sourceSpan,
     );
-    const matchesLabel = isExplicitUserAssertion(input.sourceMessage, claim.label);
+    const matchesLabel = isExplicitAssertionEvidence(
+      input.sourceMessage,
+      claim.label,
+      input.sourceSpan,
+    );
     if (!matchesUtterance && !matchesLabel) {
       return applyStatus(store, claim.id, "asserted", {
         policyId,
         decision: "not_accepted",
-        reason: "source message is not an explicit user assertion of the claim",
+        reason: "source evidence is not an explicit user assertion of the claim",
       });
     }
   }
@@ -182,22 +186,6 @@ function requirePolicyId(policyId: string | undefined): string {
     );
   }
   return policyId.trim();
-}
-
-function isExplicitUserAssertion(message: string, proposition: string): boolean {
-  const normalizedMessage = collapse(message);
-  const normalizedProposition = collapse(proposition);
-  if (normalizedProposition.length < MINIMUM_PROPOSITION_CHARS) {
-    return false;
-  }
-  if (normalizedMessage.endsWith("?")) {
-    return false;
-  }
-  return normalizedMessage.includes(normalizedProposition);
-}
-
-function collapse(value: string): string {
-  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("und");
 }
 
 function assertNoLifecycleFields(claim: Claim): void {
