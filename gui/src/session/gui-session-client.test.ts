@@ -295,6 +295,7 @@ test("a new prompt clears previous thought and answer buffers", async () => {
   const second = client.prompt("two");
   assert.equal(client.thought, "");
   assert.equal(client.answer, "");
+  assert.deepEqual(client.getSnapshot().tools ?? [], []);
   socket.deliver({ type: "answer", sessionId: "sess-1", text: "fresh" });
   socket.deliver({
     type: "prompt/ok",
@@ -304,6 +305,45 @@ test("a new prompt clears previous thought and answer buffers", async () => {
   await second;
   assert.equal(client.answer, "fresh");
   assert.equal(client.thought, "");
+});
+
+test("a new prompt starts a fresh tool list", async () => {
+  const client = createClient();
+  const socket = await becomeReady(client);
+  const first = client.prompt("read then write");
+  socket.deliver({
+    type: "tool",
+    sessionId: "sess-1",
+    id: "read-1",
+    title: "read_file",
+    status: "completed",
+    text: "ok",
+  });
+  socket.deliver({
+    type: "prompt/ok",
+    requestId: "req-2",
+    sessionId: "sess-1",
+  });
+  await first;
+  assert.equal(client.getSnapshot().tools?.length, 1);
+
+  const second = client.prompt("edit again");
+  assert.deepEqual(client.getSnapshot().tools ?? [], []);
+  socket.deliver({
+    type: "tool",
+    sessionId: "sess-1",
+    id: "edit-2",
+    title: "edit_file",
+    status: "completed",
+    text: "ok",
+  });
+  socket.deliver({
+    type: "prompt/ok",
+    requestId: "req-3",
+    sessionId: "sess-1",
+  });
+  await second;
+  assert.deepEqual(client.getSnapshot().tools?.map((tool) => tool.id), ["edit-2"]);
 });
 
 test("overlapping prompt is rejected and does not send a second frame", async () => {

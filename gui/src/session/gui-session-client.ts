@@ -213,6 +213,7 @@ class GuiSessionClientImpl implements GuiSessionClient {
       pendingText: text.trim(),
       thought: "",
       answer: "",
+      tools: [],
       error: undefined,
     });
 
@@ -428,7 +429,7 @@ class GuiSessionClientImpl implements GuiSessionClient {
         this.#model = message.state.model;
         const clear = pending.control.action !== "inspect" && pending.control.action !== "configure";
         this.#replaceSnapshot({ details: message.state, model: message.state.model, error: undefined,
-          busy: this.#pendingPrompt !== undefined, ...(clear ? { thought: "", answer: "" } : {}) });
+          busy: this.#pendingPrompt !== undefined, ...(clear ? { thought: "", answer: "", tools: [] } : {}) });
         pending.resolve(message.state);
         return;
       }

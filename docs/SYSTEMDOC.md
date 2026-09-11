@@ -775,8 +775,11 @@ exchange, a greeting with a durable fact and an ingested source. All example
 outputs pass the existing stager. Analyzer support is an exact `quote` from the
 original message or ingested source (optional 1-based `occurrence` when the
 quote repeats). Runtime computes canonical UTF-16 `start`/`end`; model-supplied
-offsets are ignored. A quote that is missing, rewritten or ambiguous skips
-reinforcement and keeps the proposal. The instruction describes types in prose
+offsets are ignored. Newline encoding is the only mechanical variant. A rewritten
+quote may still reinforce when the proposition itself is a unique exact
+substring of the original source. A quote that exists only in the answer is
+omitted, not treated as malformed. Missing or ambiguous quotes skip
+reinforcement and keep the proposal. The instruction describes types in prose
 instead of displaying JSON-like pseudocode.
 Completeness applies to qualifying durable claims; no runtime greeting blacklist
 is added. Invalid-response diagnostics identify the model and semantic operation,
