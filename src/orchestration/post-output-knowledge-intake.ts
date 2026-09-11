@@ -624,7 +624,7 @@ export class PostOutputKnowledgeIntake {
               raw.confidence,
               `proposal ${index + 1} confidence`,
             );
-      let structuredProposition;
+      let structuredProposition: KnowledgeProposal["structuredProposition"];
       if (raw.structuredProposition !== undefined) {
         try {
           structuredProposition = parseClaimProposition(raw.structuredProposition);
