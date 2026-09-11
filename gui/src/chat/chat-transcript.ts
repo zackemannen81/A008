@@ -1,4 +1,4 @@
-import type { GuiSession } from "../session/types.js";
+import type { GuiSession, RuntimeToolCall } from "../session/types.js";
 
 export const CHAT_CHANNEL = {
   user: "user",
@@ -14,12 +14,7 @@ export interface ChatUserTurn {
   readonly text: string;
 }
 
-export interface ChatToolActivity {
-  readonly id: string;
-  readonly title: string;
-  readonly status: string;
-  readonly text: string;
-}
+export type ChatToolActivity = RuntimeToolCall;
 
 export interface ChatAssistantTurn {
   readonly kind: "assistant";

@@ -3,9 +3,25 @@ export const DEFAULT_GUI_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b";
 
 export type GuiSessionStatus = "idle" | "connecting" | "ready" | "error";
 
+export type RuntimeToolStatus = "running" | "ok" | "failed" | "completed" | "pending";
+
+export interface RuntimeToolCall {
+  readonly id: string;
+  readonly tool?: string;
+  readonly status: RuntimeToolStatus | string;
+  readonly startedAt?: number;
+  readonly finishedAt?: number;
+  readonly retryOf?: string;
+  readonly recoveredBy?: string;
+  readonly argsSummary?: string;
+  readonly errorSummary?: string;
+  readonly title?: string;
+  readonly text?: string;
+}
+
 export interface GuiSessionState {
   readonly permission?: { id: string; title: string; text: string } | undefined;
-  readonly tools?: readonly { id: string; title: string; status: string; text: string }[];
+  readonly tools?: readonly RuntimeToolCall[];
   /** Absent only for a pre-ADR-0026 host. */
   readonly details?: SessionSnapshot;
   readonly busy?: boolean;
