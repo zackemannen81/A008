@@ -268,7 +268,10 @@ test("completed HTML code renders separately and exposes an explicit Canvas acti
   const html = renderToStaticMarkup(createElement(ChatPane, { session, onArtifactOpen() {} }));
   assert.match(html, /a008-chat-code/u);
   assert.match(html, /Open in Canvas/u);
-  assert.match(html, /&lt;canvas id=&quot;demo&quot;&gt;/u);
+  assert.match(html, /a008-hl/u);
+  assert.match(html, /hljs-(?:tag|name|attr)/u);
+  assert.equal(html.includes("<canvas"), false);
+  assert.match(html, /&lt;/u);
   const answers = textsOn(channelNodes(html), "answer");
   assert.equal(answers.length, 1);
   assert.equal(answers[0]?.includes("canvas"), true);

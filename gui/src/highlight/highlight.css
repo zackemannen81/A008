@@ -1,0 +1,57 @@
+/* A008 syntax colours. highlight.js class names, A008 tokens. */
+.a008-hl,
+.a008-hl-editor {
+  color: var(--a008-text-primary);
+  font: .76rem/1.55 var(--a008-mono, ui-monospace, monospace);
+  tab-size: 2;
+}
+.a008-hl { margin: 0; padding: .85rem; overflow: auto; max-height: 28rem; }
+.a008-hl code,
+.a008-hl-backdrop code { white-space: pre; font: inherit; }
+.hljs-comment,
+.hljs-quote { color: var(--a008-text-muted); font-style: italic; }
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal { color: var(--a008-viz-claim); }
+.hljs-string,
+.hljs-attr,
+.hljs-attribute { color: var(--a008-viz-state); }
+.hljs-number { color: var(--a008-viz-event); }
+.hljs-title,
+.hljs-title.function_,
+.hljs-section { color: var(--a008-viz-identity); }
+.hljs-type,
+.hljs-class .hljs-title,
+.hljs-built_in { color: var(--a008-viz-artifact); }
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class { color: var(--a008-accent); }
+.hljs-tag { color: var(--a008-viz-provenance); }
+.hljs-meta,
+.hljs-doctag { color: var(--a008-text-secondary); }
+.hljs-variable,
+.hljs-template-variable,
+.hljs-params { color: var(--a008-text-primary); }
+.hljs-addition { color: var(--a008-success); }
+.hljs-deletion { color: var(--a008-danger); }
+
+.a008-hl-editor {
+  position: relative; flex: 1; min-height: 18rem; overflow: hidden;
+}
+.a008-hl-backdrop,
+.a008-hl-editor textarea {
+  box-sizing: border-box; margin: 0; position: absolute; inset: 0;
+  width: 100%; height: 100%; padding: 1rem; border: 0; overflow: auto;
+  font: .78rem/1.55 var(--a008-mono, ui-monospace, monospace); tab-size: 2;
+  white-space: pre; word-wrap: normal;
+}
+.a008-hl-backdrop {
+  pointer-events: none; background: var(--a008-surface-1); color: var(--a008-text-primary);
+}
+.a008-hl-editor textarea {
+  z-index: 1; resize: none; outline: 0; background: transparent;
+  color: transparent; caret-color: var(--a008-text-primary);
+}
+.a008-hl-editor textarea::selection {
+  background: var(--a008-surface-selected); color: transparent;
+}

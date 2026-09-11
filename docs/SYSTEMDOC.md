@@ -402,6 +402,11 @@ or host-side object. Chat still uses the same `useGuiSession`/ACP/provider path.
 Ordinary prose, streaming/incomplete fences and code above the 256 KiB UTF-8
 ceiling remain ordinary chat content and cannot seed the preview.
 
+Fenced code in chat and the Code Canvas Code tab are syntax-highlighted with
+`highlight.js` 11.12.0 (`gui/src/highlight/`). Colours map to A008 theme tokens.
+The sandboxed preview document is not highlighted. Blocks above 256 KiB stay
+escaped plaintext.
+
 `gui/src/artifact/` owns parsing, artifact state presentation and preview policy.
 The Code tab edits only browser state. Preview uses `iframe srcdoc` without
 `allow-same-origin`; the sandbox grants only `allow-scripts`. A policy prepended
