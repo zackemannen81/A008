@@ -1,37 +1,25 @@
 import type { KnowledgeProposal } from "../memory/types.js";
+import {
+  isExplicitAssertionEvidence,
+  type AssertionEvidenceSpan,
+} from "../memory/knowledge/assertion-evidence.js";
 
-const MINIMUM_PROPOSITION_CHARS = 8;
 const USER_ASSERTION_AUTHORITY = 0.8;
-
-function collapse(value: string): string {
-  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("und");
-}
 
 export function isExplicitUserAssertion(
   message: string,
   proposition: string,
+  support?: AssertionEvidenceSpan,
 ): boolean {
-  const normalizedMessage = collapse(message);
-  const normalizedProposition = collapse(proposition);
-  if (normalizedProposition.length < MINIMUM_PROPOSITION_CHARS) {
-    return false;
-  }
-  if (
-    normalizedMessage.endsWith("?") ||
-    /^\s*(lägg|lägg till|skapa|ändra|uppdatera|ta bort|gör|visa|kan du|please|add|create|update|remove)\b/iu.test(
-      normalizedMessage,
-    )
-  ) {
-    return false;
-  }
-  return normalizedMessage.includes(normalizedProposition);
+  return isExplicitAssertionEvidence(message, proposition, support);
 }
 
 export function applyUserAssertionActivation(
   message: string,
   proposal: KnowledgeProposal,
+  support?: AssertionEvidenceSpan,
 ): KnowledgeProposal {
-  if (!isExplicitUserAssertion(message, proposal.proposition)) {
+  if (!isExplicitUserAssertion(message, proposal.proposition, support)) {
     return {
       ...proposal,
       tags: [...(proposal.tags ?? [])],
