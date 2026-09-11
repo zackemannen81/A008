@@ -24,6 +24,7 @@
 
   --a008-accent: #e4e4e4;
   --a008-accent-hover: #f1f1f1;
+  --a008-on-accent: #181818;
   --a008-accent-soft: rgba(228, 228, 228, 0.09);
   --a008-focus-ring: #e4e4e4;
 
@@ -75,6 +76,7 @@
 
   --a008-accent: #4da3ff;
   --a008-accent-hover: #69b3ff;
+  --a008-on-accent: #ffffff;
   --a008-accent-soft: rgba(77, 163, 255, 0.13);
   --a008-focus-ring: rgba(77, 163, 255, 0.45);
 
