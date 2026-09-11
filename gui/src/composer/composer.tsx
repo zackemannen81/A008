@@ -88,7 +88,40 @@ export function Composer(props: {
 
   return (
     <section className="a008-composer">
+      <div className="a008-composer-card">
       <form className="a008-composer-form" onSubmit={onSubmit}>
+        <div className="a008-composer-top">
+        <label className="a008-composer-label" htmlFor={inputId}>
+          Message
+        </label>
+        <textarea
+          id={inputId}
+          className="a008-composer-input"
+          name="message"
+          rows={1}
+          value={draft}
+          placeholder="Ask anything, or describe a task…"
+          disabled={pending || props.session.busy}
+          onChange={(event) => {
+            setDraft(event.target.value);
+          }}
+          onKeyDown={onKeyDown}
+        />
+        <button
+          className="a008-composer-send"
+          type="submit"
+          disabled={pending || props.session.busy}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M3.15 20.85 21 12 3.15 3.15l-.4 7.15L14.2 12l-11.45 1.7z"
+            />
+          </svg>
+          Send
+        </button>
+        </div>
+        <div className="a008-composer-tools">
         {props.onImage ? (
           <details className="a008-composer-attach">
             <summary aria-label="Add">+</summary>
@@ -107,30 +140,6 @@ export function Composer(props: {
             </button>
           </details>
         ) : null}
-        <label className="a008-composer-label" htmlFor={inputId}>
-          Message
-        </label>
-        <textarea
-          id={inputId}
-          className="a008-composer-input"
-          name="message"
-          rows={2}
-          value={draft}
-          placeholder="Ask anything, or describe a task…"
-          disabled={pending || props.session.busy}
-          onChange={(event) => {
-            setDraft(event.target.value);
-          }}
-          onKeyDown={onKeyDown}
-        />
-        <button
-          className="a008-composer-send"
-          type="submit"
-          disabled={pending || props.session.busy}
-        >
-          Send
-        </button>
-      </form>
       <div className="a008-session-toolbar" aria-label="Session controls">
         <select
           aria-label="Session commands"
@@ -198,6 +207,9 @@ export function Composer(props: {
             Stop
           </button>
         ) : null}
+      </div>
+        </div>
+      </form>
       </div>
       <div className="a008-composer-footer">
         <span>Enter to send · Shift + Enter for a new line</span>

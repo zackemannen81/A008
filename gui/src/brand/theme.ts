@@ -39,6 +39,7 @@ export const REQUIRED_APP_THEME_TOKENS = [
   "--a008-text-disabled",
   "--a008-accent",
   "--a008-accent-hover",
+  "--a008-on-accent",
   "--a008-accent-soft",
   "--a008-focus-ring",
   "--a008-success",
