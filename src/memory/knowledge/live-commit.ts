@@ -149,7 +149,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       const drafts: readonly ClaimDraft[] = [
         {
           label: staged.proposal.proposition,
-          proposition: claimPropositionFor(staged.proposal.proposition, staged.entities),
+          proposition: { kind: "attribute_binding", entityLabel: entityLabelOf(staged.entities, staged.proposal.proposition), attribute: STATEMENT_SLOT, value: staged.proposal.proposition },
           certainty: "probable",
           aboutInterval: { from: UNKNOWN_INSTANT, to: null },
         },
@@ -423,7 +423,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         // signal that varied with the message. That is why the pollution was
         // load-bearing rather than merely untidy, and why removing it had to
         // wait until there was something to replace it.
-        labels: uniqueLabels([label, proposition, ...entities]),
+        labels: uniqueLabels([label, ...entities]),
       } as Entity);
     if (existing === undefined) {
       this.#context.entities.register(entity);
@@ -539,47 +539,6 @@ function asClassifierConflict(
     ],
     targetInterval: decision.proposal.aboutInterval,
     reason: "relation classifier judged the proposal to conflict",
-  };
-}
-
-function claimPropositionFor(
-  proposition: string,
-  entities: readonly string[],
-): ClaimDraft["proposition"] {
-  const normalized = proposition.trim();
-  const relationship = /^(?<subject>[^\s]+)\s+--(?<relation>[^>]+)-->(?<object>.+)$/u.exec(normalized);
-  if (relationship?.groups?.subject && relationship.groups.relation && relationship.groups.object) {
-    return {
-      kind: "relationship_binding",
-      subjectLabel: relationship.groups.subject,
-      relation: relationship.groups.relation.trim(),
-      objectLabel: relationship.groups.object.trim(),
-    };
-  }
-  const attribute = /^(?<entity>[^.]+)\.(?<name>[^=]+)=\s*(?<value>.+)$/u.exec(normalized);
-  if (attribute?.groups?.entity && attribute.groups.name && attribute.groups.value) {
-    return {
-      kind: "attribute_binding",
-      entityLabel: attribute.groups.entity.trim(),
-      attribute: attribute.groups.name.trim(),
-      value: attribute.groups.value.trim(),
-    };
-  }
-  const predicate = /^(?<name>[A-Za-z_][A-Za-z0-9_]*)\((?<arguments>.*)\)$/u.exec(normalized);
-  if (predicate?.groups?.name && predicate.groups.arguments !== undefined) {
-    return {
-      kind: "predicate",
-      name: predicate.groups.name,
-      arguments: predicate.groups.arguments.trim().length === 0
-        ? []
-        : predicate.groups.arguments.split(",").map((value) => value.trim()),
-    };
-  }
-  return {
-    kind: "attribute_binding",
-    entityLabel: entityLabelOf(entities, normalized),
-    attribute: STATEMENT_SLOT,
-    value: normalized,
   };
 }
 
