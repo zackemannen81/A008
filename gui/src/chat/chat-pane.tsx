@@ -200,7 +200,10 @@ export function ChatPane(props: {
   }, [transcript.empty]);
 
   useEffect(() => {
-    if (!session.tools?.length) return;
+    if (!session.tools?.length) {
+      setToolLog({});
+      return;
+    }
     const live = [...transcript.turns].reverse().find((turn) => turn.kind === "assistant");
     if (live?.kind !== "assistant") return;
     const next = session.tools;

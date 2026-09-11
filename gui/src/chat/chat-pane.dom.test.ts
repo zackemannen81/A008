@@ -278,6 +278,21 @@ test("live tools attach only to the latest assistant turn", () => {
   assert.equal(html.includes("read_file"), false);
 });
 
+test("empty tool snapshot clears stale activity before the next prompt cycle", () => {
+  const firstCycle = renderToStaticMarkup(createElement(ChatPane, {
+    session: fakeSession({
+      answer: "First answer",
+      tools: [{ id: "read-1", title: "read_file", status: "completed", text: "first" }],
+    }),
+  }));
+  const resetCycle = renderToStaticMarkup(createElement(ChatPane, {
+    session: fakeSession({ answer: "Second answer", tools: [] }),
+  }));
+  assert.match(firstCycle, /read_file · completed/u);
+  assert.equal(resetCycle.includes("read_file · completed"), false);
+  assert.equal(resetCycle.includes("First answer"), false);
+});
+
 test("tool activity renders inside the assistant turn, not as a page footer", () => {
   const html = renderToStaticMarkup(createElement(ChatPane, {
     session: fakeSession({
