@@ -21,7 +21,13 @@ const NEVER_WORLD_CLAIM_ACTS: ReadonlySet<SpeechAct> = new Set([
   "quotation",
   "hypothetical",
   "question",
+  "instruction",
+  "performative",
 ]);
+
+export function allowsUserAssertionAcceptance(act: SpeechAct): boolean {
+  return act === "assertion";
+}
 
 export function asUtteranceId(value: string): UtteranceId {
   return requireNonEmpty(value, "utterance id") as UtteranceId;

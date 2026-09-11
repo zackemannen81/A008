@@ -16,7 +16,12 @@ export function isExplicitUserAssertion(
   if (normalizedProposition.length < MINIMUM_PROPOSITION_CHARS) {
     return false;
   }
-  if (normalizedMessage.endsWith("?")) {
+  if (
+    normalizedMessage.endsWith("?") ||
+    /^\s*(lägg|lägg till|skapa|ändra|uppdatera|ta bort|gör|visa|kan du|please|add|create|update|remove)\b/iu.test(
+      normalizedMessage,
+    )
+  ) {
     return false;
   }
   return normalizedMessage.includes(normalizedProposition);

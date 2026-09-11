@@ -240,6 +240,7 @@ export type StagePostOutputKnowledgeInput =
   | StageDialogueKnowledgeInput
   | StageSourceKnowledgeInput;
 
+const MAX_WRITE_DOMAINS_PER_UTTERANCE = 4;
 export interface StagedKnowledgeProposal {
   readonly severity?: KnowledgeSeverity;
   readonly support?: KnowledgeSupportSpan;
@@ -339,7 +340,7 @@ function positiveSafeInteger(value: number, field: string): number {
  * The analyzer instruction names `confidence` without saying it must be a
  * number, and a model asked for confidence writes "high" far more often than it
  * writes 0.85. The parser demanded a finite number and threw on anything else,
- * so an entire extraction — every proposal in it — was skipped for a field that
+ * so an entire extraction — every proposal in it â€” was skipped for a field that
  * is metadata about a proposition A008 had already read correctly.
  *
  * Converting a word to a number is lossy and the exact values are a judgement,
@@ -575,7 +576,7 @@ export class PostOutputKnowledgeIntake {
      * Nothing unsafe is admitted by this: a rejected item is still rejected,
      * it just no longer punishes its neighbours. Batch-level defects — output
      * that is not an array, more items than the ceiling, an over-budget
-     * result — still fail closed, because those say the response as a whole
+     * result â€” still fail closed, because those say the response as a whole
      * cannot be trusted rather than that one item was malformed.
      */
     const validateProposal = (
@@ -670,7 +671,12 @@ export class PostOutputKnowledgeIntake {
     });
 
 
-    const serialized = serializeStagedKnowledgeProposals(proposals);
+    const boundedDomains = [...new Set(proposals.flatMap((entry) => entry.domains))].slice(0, MAX_WRITE_DOMAINS_PER_UTTERANCE);
+    const boundedProposals = proposals.map((entry) => ({
+      ...entry,
+      domains: entry.domains.filter((domain) => boundedDomains.includes(domain)),
+    }));
+    const serialized = serializeStagedKnowledgeProposals(boundedProposals);
     const measuredUnits = this.#budget.measurer.measure(serialized);
     if (!Number.isSafeInteger(measuredUnits) || measuredUnits < 0) {
       throw new MemoryError(
@@ -700,7 +706,7 @@ export class PostOutputKnowledgeIntake {
         analyzerInput.kind === "source"
           ? analyzerInput.locator
           : analyzerInput.message,
-      proposals,
+      proposals: boundedProposals,
       serialized,
       measuredUnits,
       measurementUnit: this.#budget.measurer.unit,

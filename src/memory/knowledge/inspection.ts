@@ -149,6 +149,7 @@ export function inspectKnowledge(
     context.labels.list().map((record) => [record.recordId, record]),
   );
   const edges: MemoryInspectionEdge[] = [];
+  const directProvenanceEdges = new Set<string>();
   const artifacts = context.evidence.listArtifacts();
   const artifactIds = new Set<string>(artifacts.map((artifact) => artifact.id));
   const key = (kind: string, id: string): string => `${kind}:${id}`;
@@ -229,7 +230,13 @@ export function inspectKnowledge(
   const evidenceClaimIds = new Set(claims.map((claim) => String(claim.id)));
   for (const claim of claims) {
     const id = add("claim", claim.id, claim.label, claim.status, claim);
-    link(id, key(claim.derivedFrom.kind, claim.derivedFrom.id), "derived_from");
+    directProvenanceEdges.add(
+      JSON.stringify([
+        key("claim", claim.id),
+        key(claim.derivedFrom.kind, claim.derivedFrom.id),
+        "derived_from",
+      ]),
+    );
   }
   // Some migrated/state-machine claims have no separate evidence claim.
   for (const claim of state.claims) {
@@ -281,11 +288,18 @@ export function inspectKnowledge(
     );
     link(id, key(provenance.fromKind, provenance.fromId), "from");
     link(id, key(provenance.toKind, provenance.toId), "to");
-    link(
+    const directEdge = JSON.stringify([
       key(provenance.fromKind, provenance.fromId),
       key(provenance.toKind, provenance.toId),
       provenance.relation,
-    );
+    ]);
+    if (!directProvenanceEdges.has(directEdge)) {
+      link(
+        key(provenance.fromKind, provenance.fromId),
+        key(provenance.toKind, provenance.toId),
+        provenance.relation,
+      );
+    }
   }
   const bySource = new Map(
     records.map((record) => [record.sourceId, record.id]),

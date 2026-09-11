@@ -1,5 +1,5 @@
 import { KnowledgeModelError } from "./errors.js";
-import { asUtteranceId } from "./evidence.js";
+import { allowsUserAssertionAcceptance, asUtteranceId } from "./evidence.js";
 import type { EvidenceStore } from "./evidence.js";
 import {
   USER_ASSERTION_POLICY_ID,
@@ -87,7 +87,7 @@ function applyUserAssertionPolicy(
 ): AcceptResult {
   const policyId = USER_ASSERTION_POLICY_ID;
 
-  if (utterance?.act === "prediction") {
+  if (utterance !== undefined && !allowsUserAssertionAcceptance(utterance.act)) {
     return applyStatus(store, claim.id, "asserted", {
       policyId,
       decision: "not_accepted",
