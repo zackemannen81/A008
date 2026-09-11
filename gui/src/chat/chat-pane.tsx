@@ -205,12 +205,18 @@ export function ChatPane(props: {
     if (live?.kind !== "assistant") return;
     const next = session.tools;
     setToolLog((current) => {
+      const owned = new Set(
+        Object.entries(current).flatMap(([id, tools]) =>
+          id === live.id ? [] : tools.map((tool) => tool.id),
+        ),
+      );
+      const scoped = next.filter((tool) => !owned.has(tool.id));
       const existing = current[live.id];
       if (
         existing !== undefined &&
-        existing.length === next.length &&
+        existing.length === scoped.length &&
         existing.every((tool, index) => {
-          const incoming = next[index];
+          const incoming = scoped[index];
           return incoming !== undefined &&
             tool.id === incoming.id &&
             tool.status === incoming.status &&
@@ -219,7 +225,7 @@ export function ChatPane(props: {
       ) {
         return current;
       }
-      return { ...current, [live.id]: next };
+      return { ...current, [live.id]: scoped };
     });
   }, [session.tools, transcript.turns]);
 

@@ -501,7 +501,7 @@ test("model-supplied offsets cannot reinforce; missing quotes stay exact-match o
       return [
         {
           severity: "important",
-          proposition: "I use TypeScript.",
+          proposition: "TypeScript is required everywhere.",
           kind: "fact",
           support: { source: "message", start: 0, end: message.length },
         },
@@ -525,6 +525,64 @@ test("model-supplied offsets cannot reinforce; missing quotes stay exact-match o
   assert.equal(staged.skippedProposals.length, 2);
   assert.match(staged.skippedProposals[0] ?? "", /quote not found/u);
   assert.match(staged.skippedProposals[1] ?? "", /quote not found/u);
+});
+
+test("a verbatim proposition can supply the span when the quote was rewritten", async () => {
+  const message = "I use TypeScript.";
+  const staged = await intake({
+    async analyze() {
+      return [{
+        severity: "important",
+        proposition: "I use TypeScript.",
+        kind: "fact",
+        support: { source: "message", quote: "I use typescript." },
+      }];
+    },
+  }).stage({
+    taskId: TASK,
+    message,
+    answer: "Noted.",
+    applicabilityScopes: ["runtime"],
+  });
+  assert.deepEqual(staged.skippedProposals, []);
+  assert.deepEqual(staged.proposals[0]?.support, {
+    source: "message",
+    start: 0,
+    end: message.length,
+  });
+});
+
+test("quotes that exist only in the answer are omitted rather than reported", async () => {
+  const staged = await intake({
+    async analyze() {
+      return [{
+        severity: "important",
+        proposition: "The start button launches the game",
+        kind: "fact",
+        support: { source: "message", quote: "Startknappen startar nu spelet korrekt." },
+      }];
+    },
+  }).stage({
+    taskId: TASK,
+    message: "det händer ingenting när man trycker på starta spelet",
+    answer: "Startknappen startar nu spelet korrekt.",
+    applicabilityScopes: ["runtime"],
+  });
+  assert.equal(staged.proposals[0]?.support, undefined);
+  assert.deepEqual(staged.skippedProposals, []);
+});
+
+test("CRLF in the original source still matches a LF quote", () => {
+  const source = "line one\r\nline two";
+  const located = resolveAnalyzerSupport(
+    { source: "message", quote: "line two" },
+    "message",
+    source,
+  );
+  assert.deepEqual(located, {
+    ok: true,
+    span: { source: "message", start: 10, end: 18 },
+  });
 });
 
 test("ambiguous quotes refuse reinforcement unless occurrence is unique", () => {

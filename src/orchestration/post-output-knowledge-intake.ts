@@ -68,15 +68,65 @@ export type SupportQuoteResolution =
   | { readonly ok: true; readonly span: KnowledgeSupportSpan }
   | { readonly ok: false; readonly reason: string };
 
+function quoteSearchForms(quote: string, sourceText: string): readonly string[] {
+  const forms = [quote];
+  if (sourceText.includes("\r\n") && quote.includes("\n") && !quote.includes("\r\n")) {
+    forms.push(quote.replaceAll("\n", "\r\n"));
+  }
+  if (!sourceText.includes("\r\n") && quote.includes("\r\n")) {
+    forms.push(quote.replaceAll("\r\n", "\n"));
+  }
+  return forms;
+}
+
+function exactQuotePositions(sourceText: string, quote: string): number[] {
+  const positions: number[] = [];
+  let from = 0;
+  while (from + quote.length <= sourceText.length) {
+    const index = sourceText.indexOf(quote, from);
+    if (index < 0) break;
+    positions.push(index);
+    from = index + quote.length;
+  }
+  return positions;
+}
+
+function locateExactQuote(
+  sourceText: string,
+  quote: string,
+  occurrence: number | undefined,
+): SupportQuoteResolution {
+  for (const form of quoteSearchForms(quote, sourceText)) {
+    const positions = exactQuotePositions(sourceText, form);
+    if (positions.length === 0) continue;
+    if (occurrence !== undefined) {
+      const start = positions[occurrence - 1];
+      if (start === undefined) {
+        return { ok: false, reason: "quote occurrence not found in source" };
+      }
+      return { ok: true, span: { source: "message", start, end: start + form.length } };
+    }
+    if (positions.length > 1) {
+      return { ok: false, reason: "quote is ambiguous" };
+    }
+    const start = positions[0];
+    if (start === undefined) continue;
+    return { ok: true, span: { source: "message", start, end: start + form.length } };
+  }
+  return { ok: false, reason: "quote not found in source" };
+}
+
 /**
- * Exact quote in the original source, no normalisation. The model names the
- * evidence; runtime computes the UTF-16 span. Model-supplied start/end are
- * ignored. Ambiguous repeats without occurrence refuse reinforcement.
+ * Exact quote in the original source, no case/whitespace folding. The model
+ * names the evidence; runtime computes the UTF-16 span. Model-supplied
+ * start/end are ignored. Newline encoding is the only mechanical variant.
+ * A quote that exists only in the answer is omitted, not reinforced.
  */
 export function resolveAnalyzerSupport(
   raw: unknown,
   expectedSource: "message" | "source",
   sourceText: string,
+  extras: { readonly answer?: string; readonly proposition?: string } = {},
 ): SupportQuoteResolution | undefined {
   if (raw === undefined || raw === null) return undefined;
   if (typeof raw !== "object" || Array.isArray(raw)) {
@@ -86,9 +136,6 @@ export function resolveAnalyzerSupport(
   if (value.source !== expectedSource) {
     return { ok: false, reason: "invalid support source" };
   }
-  if (typeof value.quote !== "string" || value.quote.length === 0) {
-    return { ok: false, reason: "quote not found in source" };
-  }
   let occurrence: number | undefined;
   if (value.occurrence !== undefined) {
     if (!Number.isSafeInteger(value.occurrence) || Number(value.occurrence) < 1) {
@@ -96,39 +143,31 @@ export function resolveAnalyzerSupport(
     }
     occurrence = Number(value.occurrence);
   }
-  const quote = value.quote;
-  const positions: number[] = [];
-  let from = 0;
-  while (from + quote.length <= sourceText.length) {
-    const index = sourceText.indexOf(quote, from);
-    if (index < 0) break;
-    positions.push(index);
-    from = index + quote.length;
-  }
-  if (positions.length === 0) {
-    return { ok: false, reason: "quote not found in source" };
-  }
-  if (occurrence !== undefined) {
-    const start = positions[occurrence - 1];
-    if (start === undefined) {
-      return { ok: false, reason: "quote occurrence not found in source" };
+  const tryLocate = (quote: string): SupportQuoteResolution => {
+    const located = locateExactQuote(sourceText, quote, occurrence);
+    if (located.ok === true) {
+      return { ok: true, span: { source: expectedSource, start: located.span.start, end: located.span.end } };
     }
-    return {
-      ok: true,
-      span: { source: expectedSource, start, end: start + quote.length },
-    };
+    return located;
+  };
+  if (typeof value.quote === "string" && value.quote.length > 0) {
+    const fromQuote = tryLocate(value.quote);
+    if (fromQuote.ok === true) return fromQuote;
+    if (fromQuote.reason === "quote is ambiguous" || fromQuote.reason === "quote occurrence not found in source") {
+      return fromQuote;
+    }
   }
-  if (positions.length > 1) {
-    return { ok: false, reason: "quote is ambiguous" };
+  if (typeof extras.proposition === "string" && extras.proposition.length > 0) {
+    const fromProposition = tryLocate(extras.proposition);
+    if (fromProposition.ok === true) return fromProposition;
   }
-  const start = positions[0];
-  if (start === undefined) {
+  if (typeof value.quote === "string" && extras.answer !== undefined && extras.answer.includes(value.quote)) {
+    return undefined;
+  }
+  if (typeof value.quote !== "string" || value.quote.length === 0) {
     return { ok: false, reason: "quote not found in source" };
   }
-  return {
-    ok: true,
-    span: { source: expectedSource, start, end: start + quote.length },
-  };
+  return { ok: false, reason: "quote not found in source" };
 }
 
 export interface PostOutputKnowledgeAnalyzer {
@@ -553,14 +592,17 @@ export class PostOutputKnowledgeIntake {
       if (!isKnowledgeSeverity(raw.severity)) throw new MemoryError("policy", `proposal ${index + 1} requires severity critical, important or minor`);
       const sourceText = analyzerInput.kind === "source" ? analyzerInput.content : analyzerInput.message;
       const expectedSource = analyzerInput.kind === "source" ? "source" : "message";
-      const resolvedSupport = resolveAnalyzerSupport(raw.support, expectedSource, sourceText);
-      if (resolvedSupport?.ok === false) {
-        skipped.push(`proposal ${index + 1} reinforcement skipped: ${resolvedSupport.reason}`);
-      }
       const proposition = nonEmpty(
         raw.proposition,
         `proposal ${index + 1} proposition`,
       );
+      const resolvedSupport = resolveAnalyzerSupport(raw.support, expectedSource, sourceText, {
+        proposition,
+        ...(analyzerInput.kind === "dialogue" ? { answer: analyzerInput.answer } : {}),
+      });
+      if (resolvedSupport?.ok === false) {
+        skipped.push(`proposal ${index + 1} reinforcement skipped: ${resolvedSupport.reason}`);
+      }
       const kind = nonEmpty(raw.kind, `proposal ${index + 1} kind`);
       const semanticKey = `${kind.toLowerCase()}\u0000${proposition.toLowerCase()}`;
       if (seen.has(semanticKey)) {

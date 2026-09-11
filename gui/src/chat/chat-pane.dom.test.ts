@@ -252,6 +252,32 @@ test("DOM contract: rendered markup carries A008 copy and no OpenHands identity"
   assert.equal(/posthog/iu.test(html), false);
 });
 
+test("live tools attach only to the latest assistant turn", () => {
+  const html = renderToStaticMarkup(createElement(ChatPane, {
+    session: fakeSession({
+      details: {
+        model: "fixture",
+        parameters: { stream: true, temperature: null, topP: null, maxTokens: 16,
+          enableThinking: null, reasoningBudget: null, reasoningEffort: null, seed: null, stop: null },
+        messages: [
+          { role: "user", content: "first" },
+          { role: "assistant", content: "first answer" },
+          { role: "user", content: "second" },
+          { role: "assistant", content: "second answer" },
+        ],
+        runtime: { cwd: "C:\\code\\A008", projectId: null, memoryPath: null },
+      },
+      tools: [{ id: "edit-2", title: "edit_file", status: "completed", text: "ok" }],
+    }),
+  }));
+  const first = html.indexOf("first answer");
+  const second = html.indexOf("second answer");
+  const tool = html.indexOf("edit_file · completed");
+  assert.ok(first >= 0 && second >= 0 && tool >= 0);
+  assert.ok(tool > second, "current tools belong after the latest answer");
+  assert.equal(html.includes("read_file"), false);
+});
+
 test("tool activity renders inside the assistant turn, not as a page footer", () => {
   const html = renderToStaticMarkup(createElement(ChatPane, {
     session: fakeSession({
