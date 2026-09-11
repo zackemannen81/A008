@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { ToolPermissionDialog } from "./session/tool-permission-dialog.js";
-import { ToolActivity } from "./tools/repository-pane.js";
 import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
 import { ChatPane, type ChatGeneratedImage } from "./chat/chat-pane.js";
@@ -346,7 +345,6 @@ export function App() {
           images={images}
         />
         {imageError ? <p className="a008-chat-error" role="alert">{imageError}</p> : null}
-        <ToolActivity session={session} />
         <Composer
           session={session}
           onParameters={openParameters}

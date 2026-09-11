@@ -59,10 +59,10 @@ const exampleDraft: AnalyzedKnowledgeDraft = {
 const analysisExamples = [
   { input: { message: "Hello, good evening. How are you?", answer: "Good evening! Happy to help." }, output: [] },
   { input: { message: exampleMessage, answer: "Understood." }, output: [
-    { ...exampleDraft, support: { source: "message", start: exampleMessage.indexOf(exampleClaim), end: exampleMessage.length } },
+    { ...exampleDraft, support: { source: "message", quote: exampleClaim } },
   ] },
   { input: { kind: "source", locator: "fixture.txt", content: exampleClaim }, output: [
-    { ...exampleDraft, support: { source: "source", start: 0, end: exampleClaim.length } },
+    { ...exampleDraft, support: { source: "source", quote: exampleClaim } },
   ] },
 ];
 
@@ -79,7 +79,7 @@ export const POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION = [
   "Do not turn greetings, pleasantries, acknowledgements, offers to help, or the mere fact that someone asked a question into knowledge. Return [] when the dialogue contains only such social exchange. If a message mixes a greeting with a durable fact, extract the fact and omit the greeting.",
   "Each item requires proposition and kind as non-empty JSON strings. kind is a concise semantic label such as fact or preference. Optional tags, domains and entities are arrays of JSON strings; optional confidence is a number from 0 to 1.",
   'Every item requires severity: exactly "critical", "important" or "minor", representing initial importance, never truth or confidence. Do not choose numeric lifecycle parameters.',
-  'When the original message or ingested source independently supports a claim, include a support object with exactly three properties: "source" (the string "message" for dialogue or "source" for an ingested source), "start" (a zero-based UTF-16 integer offset), and "end" (the exclusive UTF-16 integer offset). These offsets address the original message/content only. Never cite the answer. Omit support for questions, quotations without endorsement, hypothetical content or answer-only claims.',
+  'When the original message or ingested source independently supports a claim, include a support object with "source" (the string "message" for dialogue or "source" for an ingested source) and "quote" (the exact substring from that original source). Optional "occurrence" is a 1-based index when the quote appears more than once. Copy the quote exactly; do not lowercase, trim or otherwise rewrite it. Never cite the answer. Never emit start or end offsets. Omit support for questions, quotations without endorsement, hypothetical content or answer-only claims.',
   "Completeness is more important than brevity for qualifying durable claims. This does not require a non-empty result.",
 
   "Each item should represent one semantic relation, property, state, classification, mechanism, event, or causal claim.",

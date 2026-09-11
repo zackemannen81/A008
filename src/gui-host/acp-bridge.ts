@@ -318,7 +318,10 @@ export function acpFailure(error: unknown, detail?: string): ChatError {
   const message = acpFailureMessage(error);
   const trimmed = detail?.trim();
   const combined =
-    trimmed === undefined || trimmed.length === 0 || message.includes(trimmed)
+    trimmed === undefined ||
+    trimmed.length === 0 ||
+    message.includes(trimmed) ||
+    trimmed.startsWith("memory>")
       ? message
       : `${message}: ${trimmed}`;
   return new ChatError("provider", combined, { cause: error });

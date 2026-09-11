@@ -11,6 +11,7 @@ import {
   CHAT_CHANNEL,
   emptyStateCopy,
   type ChatAssistantTurn,
+  type ChatToolActivity,
   type ChatUserTurn,
 } from "./chat-transcript.js";
 import { AsciiLogo } from "../brand/ascii-logo.js";
@@ -22,6 +23,7 @@ import {
   type HtmlArtifactCandidate,
 } from "../artifact/code-artifact.js";
 import { HighlightedCode } from "../highlight/highlighted-code.js";
+import { ToolActivity } from "../tools/repository-pane.js";
 import "./chat-pane.css";
 
 export interface ChatGeneratedImage {
@@ -70,9 +72,11 @@ function UserTurnView({ turn }: { readonly turn: ChatUserTurn }) {
 
 function AssistantTurnView(props: {
   readonly turn: ChatAssistantTurn;
+  readonly tools?: ChatAssistantTurn["tools"];
   readonly onArtifactOpen?: (artifact: HtmlArtifactCandidate) => void;
 }) {
   const { turn } = props;
+  const tools = props.tools ?? turn.tools;
   const segments = parseAssistantAnswer(turn.answer);
   return (
     <article
@@ -107,6 +111,7 @@ function AssistantTurnView(props: {
           ))}
         </div>
       ) : null}
+      <ToolActivity tools={tools} />
       {turn.live ? (
         <span className="a008-chat-live" aria-live="polite">
           {turn.answer === "" ? "Thinking…" : "Writing…"}
@@ -131,6 +136,7 @@ export function ChatPane(props: {
   sessionRef.current = session;
 
   const [history, dispatch] = useReducer(reduceChatHistory, initialChatHistory);
+  const [toolLog, setToolLog] = useState<Readonly<Record<string, readonly ChatToolActivity[]>>>({});
 
   useEffect(() => {
     if (session.details !== undefined) return;
@@ -186,6 +192,38 @@ export function ChatPane(props: {
   }, [latestArtifact, props.onArtifactCandidate]);
 
   useEffect(() => {
+    setToolLog({});
+  }, [session.sessionId]);
+
+  useEffect(() => {
+    if (transcript.empty) setToolLog({});
+  }, [transcript.empty]);
+
+  useEffect(() => {
+    if (!session.tools?.length) return;
+    const live = [...transcript.turns].reverse().find((turn) => turn.kind === "assistant");
+    if (live?.kind !== "assistant") return;
+    const next = session.tools;
+    setToolLog((current) => {
+      const existing = current[live.id];
+      if (
+        existing !== undefined &&
+        existing.length === next.length &&
+        existing.every((tool, index) => {
+          const incoming = next[index];
+          return incoming !== undefined &&
+            tool.id === incoming.id &&
+            tool.status === incoming.status &&
+            tool.text === incoming.text;
+        })
+      ) {
+        return current;
+      }
+      return { ...current, [live.id]: next };
+    });
+  }, [session.tools, transcript.turns]);
+
+  useEffect(() => {
     const root = scrollerRef.current;
     if (root === null || !stickToBottom.current) {
       return;
@@ -233,7 +271,12 @@ export function ChatPane(props: {
               turn.kind === "user" ? (
                 <UserTurnView key={turn.id} turn={turn} />
               ) : (
-                <AssistantTurnView key={turn.id} turn={turn} onArtifactOpen={props.onArtifactOpen} />
+                <AssistantTurnView
+                  key={turn.id}
+                  turn={turn}
+                  tools={toolLog[turn.id] ?? turn.tools}
+                  onArtifactOpen={props.onArtifactOpen}
+                />
               ),
             )}
             {(props.images ?? []).map((image) => (

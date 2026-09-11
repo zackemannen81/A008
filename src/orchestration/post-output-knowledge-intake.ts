@@ -45,15 +45,90 @@ export interface KnowledgeSupportSpan {
   readonly start: number;
   readonly end: number;
 }
+
+/** Analyzer-facing evidence. Runtime turns an exact quote into a span. */
+export interface AnalyzerSupportQuote {
+  readonly source: "message" | "source";
+  readonly quote: string;
+  readonly occurrence?: number;
+}
+
 export interface AnalyzedKnowledgeDraft {
   readonly severity?: string;
-  readonly support?: KnowledgeSupportSpan;
+  readonly support?: AnalyzerSupportQuote;
   readonly proposition: string;
   readonly kind: string;
   readonly tags?: readonly string[];
   readonly domains?: readonly string[];
   readonly entities?: readonly string[];
   readonly confidence?: number | string;
+}
+
+export type SupportQuoteResolution =
+  | { readonly ok: true; readonly span: KnowledgeSupportSpan }
+  | { readonly ok: false; readonly reason: string };
+
+/**
+ * Exact quote in the original source, no normalisation. The model names the
+ * evidence; runtime computes the UTF-16 span. Model-supplied start/end are
+ * ignored. Ambiguous repeats without occurrence refuse reinforcement.
+ */
+export function resolveAnalyzerSupport(
+  raw: unknown,
+  expectedSource: "message" | "source",
+  sourceText: string,
+): SupportQuoteResolution | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    return { ok: false, reason: "invalid support" };
+  }
+  const value = raw as Record<string, unknown>;
+  if (value.source !== expectedSource) {
+    return { ok: false, reason: "invalid support source" };
+  }
+  if (typeof value.quote !== "string" || value.quote.length === 0) {
+    return { ok: false, reason: "quote not found in source" };
+  }
+  let occurrence: number | undefined;
+  if (value.occurrence !== undefined) {
+    if (!Number.isSafeInteger(value.occurrence) || Number(value.occurrence) < 1) {
+      return { ok: false, reason: "invalid quote occurrence" };
+    }
+    occurrence = Number(value.occurrence);
+  }
+  const quote = value.quote;
+  const positions: number[] = [];
+  let from = 0;
+  while (from + quote.length <= sourceText.length) {
+    const index = sourceText.indexOf(quote, from);
+    if (index < 0) break;
+    positions.push(index);
+    from = index + quote.length;
+  }
+  if (positions.length === 0) {
+    return { ok: false, reason: "quote not found in source" };
+  }
+  if (occurrence !== undefined) {
+    const start = positions[occurrence - 1];
+    if (start === undefined) {
+      return { ok: false, reason: "quote occurrence not found in source" };
+    }
+    return {
+      ok: true,
+      span: { source: expectedSource, start, end: start + quote.length },
+    };
+  }
+  if (positions.length > 1) {
+    return { ok: false, reason: "quote is ambiguous" };
+  }
+  const start = positions[0];
+  if (start === undefined) {
+    return { ok: false, reason: "quote not found in source" };
+  }
+  return {
+    ok: true,
+    span: { source: expectedSource, start, end: start + quote.length },
+  };
 }
 
 export interface PostOutputKnowledgeAnalyzer {
@@ -476,11 +551,12 @@ export class PostOutputKnowledgeIntake {
       }
       const raw = value as Record<string, unknown>;
       if (!isKnowledgeSeverity(raw.severity)) throw new MemoryError("policy", `proposal ${index + 1} requires severity critical, important or minor`);
-      const support = raw.support as KnowledgeSupportSpan | undefined;
       const sourceText = analyzerInput.kind === "source" ? analyzerInput.content : analyzerInput.message;
       const expectedSource = analyzerInput.kind === "source" ? "source" : "message";
-      const validSupport = support !== null && support !== undefined && support.source === expectedSource && Number.isSafeInteger(support.start) && Number.isSafeInteger(support.end) && support.start >= 0 && support.end > support.start && support.end <= sourceText.length;
-      if (support !== undefined && !validSupport) skipped.push(`proposal ${index + 1} reinforcement skipped: invalid source span`);
+      const resolvedSupport = resolveAnalyzerSupport(raw.support, expectedSource, sourceText);
+      if (resolvedSupport?.ok === false) {
+        skipped.push(`proposal ${index + 1} reinforcement skipped: ${resolvedSupport.reason}`);
+      }
       const proposition = nonEmpty(
         raw.proposition,
         `proposal ${index + 1} proposition`,
@@ -520,7 +596,7 @@ export class PostOutputKnowledgeIntake {
       };
       return {
         severity: raw.severity,
-        ...(validSupport ? { support: { source: support.source, start: support.start, end: support.end } } : {}),
+        ...(resolvedSupport?.ok === true ? { support: resolvedSupport.span } : {}),
         proposal,
         domains: normalizedStrings(
           raw.domains,

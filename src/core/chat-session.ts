@@ -132,8 +132,17 @@ export class ChatSession {
         throw new ChatError("configuration", `Tool call budget exceeded (${tools.maximumCalls}). Change it under Global budgets.`);
       }
       for (const call of completion.toolCalls) {
-        if (usedIds.has(call.id) || !tools.definitions.some(def => def.name === call.name)) {
-          throw new ChatError("invalid_response", "Provider returned a duplicate or unavailable tool call.");
+        if (usedIds.has(call.id)) {
+          throw new ChatError(
+            "invalid_response",
+            `Provider returned a duplicate tool call id (${call.id}).`,
+          );
+        }
+        if (!tools.definitions.some(def => def.name === call.name)) {
+          throw new ChatError(
+            "invalid_response",
+            `Provider requested unavailable tool "${call.name}".`,
+          );
         }
         usedIds.add(call.id);
       }

@@ -252,6 +252,23 @@ test("DOM contract: rendered markup carries A008 copy and no OpenHands identity"
   assert.equal(/posthog/iu.test(html), false);
 });
 
+test("tool activity renders inside the assistant turn, not as a page footer", () => {
+  const html = renderToStaticMarkup(createElement(ChatPane, {
+    session: fakeSession({
+      answer: "Saving index.html",
+      tools: [
+        { id: "read", title: "read_file", status: "completed", text: "ok" },
+        { id: "edit", title: "edit_file", status: "completed", text: "ok" },
+      ],
+    }),
+  }));
+  assert.match(html, /a008-tool-activity/u);
+  assert.match(html, /read_file · completed/u);
+  assert.match(html, /edit_file · completed/u);
+  const assistant = /data-a008-role="assistant"[\s\S]*a008-tool-activity[\s\S]*<\/article>/u.exec(html);
+  assert.ok(assistant, "tool activity must sit inside the assistant article");
+});
+
 test("completed HTML code renders separately and exposes an explicit Canvas action", () => {
   const session = fakeSession({
     details: {

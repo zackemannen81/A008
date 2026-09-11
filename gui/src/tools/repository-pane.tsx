@@ -8,10 +8,14 @@ export const REPOSITORY_ACTIONS = [
   { label: "Review changes", tool: "git", prompt: "Granska ändringarna i arbetskopian med git status, git diff och git diff --cached. Läs berörda filer vid behov och sammanfatta fynden." },
 ] as const;
 
-export function ToolActivity({ session }: { session: GuiSession }) {
-  if (!session.tools?.length) return null;
+export function ToolActivity({
+  tools,
+}: {
+  readonly tools?: readonly { id: string; title: string; status: string; text: string }[];
+}) {
+  if (!tools?.length) return null;
   return <section className="a008-tool-activity" aria-label="Tool activity">
-    {session.tools.map(tool => <details key={tool.id}>
+    {tools.map(tool => <details key={tool.id}>
       <summary>{tool.title} · {tool.status}{tool.status === "pending" ? " — awaiting approval" : ""}</summary>
       <pre>{tool.text}</pre>
     </details>)}
@@ -48,6 +52,6 @@ export function RepositoryPane({ session, onChat }: { session: GuiSession; onCha
     </div>)}</dl> : <p>{session.status === "ready" ? "Tool metadata is unavailable. Restart the updated A008 host and reconnect." : "Connect to load the host's tool catalog."}</p>}
     <p>Ask the model to read, create or edit files, run tests, or use Git. Each tool call shows its arguments for approval here. Git uses your host installation; no separate add-on is needed.</p>
     <p>Tool limits are editable in Parameters → Budgets. Your persistent instructions stay in Parameters → Instructions.</p>
-    <ToolActivity session={session} />
+    <ToolActivity tools={session.tools} />
   </section>;
 }

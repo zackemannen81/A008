@@ -26,6 +26,7 @@ import {
   type ClaimDraft,
 } from "./evidence-types.js";
 import { asEntityId } from "./ids.js";
+import { entitySlug } from "./registry.js";
 import type { KnowledgeState } from "./state.js";
 import type { ReconcileDecision } from "./state-types.js";
 import { ingest } from "./ingest.js";
@@ -410,7 +411,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       }
     }
     const label = entityLabelOf(entities, proposition);
-    const existing = this.#context.entities.findByLabel(label)[0];
+    const existing = this.#context.entities.findByIdentity(label);
     const entity: Entity =
       existing ??
       ({
@@ -555,11 +556,7 @@ function entityLabelOf(entities: readonly string[], proposition: string): string
 }
 
 function slugEntityId(label: string): string {
-  const slug = label
-    .trim()
-    .toLocaleLowerCase("und")
-    .replace(/[^a-z0-9]+/gu, "_")
-    .replace(/^_+|_+$/gu, "");
+  const slug = entitySlug(label);
   return slug.length > 0 ? slug : `entity_${randomUUID()}`;
 }
 
