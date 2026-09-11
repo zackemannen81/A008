@@ -7,6 +7,7 @@ import type {
   RuntimeTaskId,
 } from "../identity/types.js";
 import { MemoryError } from "../memory/errors.js";
+import { parseClaimProposition } from "../memory/knowledge/claim-proposition.js";
 import type { KnowledgeProposal } from "../memory/types.js";
 import type { SemanticOperationContext } from "./semantic-operation.js";
 
@@ -58,6 +59,7 @@ export interface AnalyzedKnowledgeDraft {
   readonly support?: AnalyzerSupportQuote;
   readonly proposition: string;
   readonly kind: string;
+  readonly structuredProposition?: unknown;
   readonly tags?: readonly string[];
   readonly domains?: readonly string[];
   readonly entities?: readonly string[];
@@ -464,6 +466,9 @@ export function serializeStagedKnowledgeProposals(
       ...(entry.support === undefined ? {} : { support: entry.support }),
       proposition: entry.proposal.proposition,
       kind: entry.proposal.kind,
+      ...(entry.proposal.structuredProposition === undefined
+        ? {}
+        : { structuredProposition: entry.proposal.structuredProposition }),
       tags: [...(entry.proposal.tags ?? [])],
       scope: [...entry.proposal.scope],
       domains: [...entry.domains],
@@ -619,9 +624,23 @@ export class PostOutputKnowledgeIntake {
               raw.confidence,
               `proposal ${index + 1} confidence`,
             );
+      let structuredProposition: KnowledgeProposal["structuredProposition"];
+      if (raw.structuredProposition !== undefined) {
+        try {
+          structuredProposition = parseClaimProposition(raw.structuredProposition);
+        } catch (error) {
+          throw new MemoryError(
+            "policy",
+            error instanceof Error
+              ? `proposal ${index + 1} ${error.message}`
+              : `proposal ${index + 1} has invalid structuredProposition`,
+          );
+        }
+      }
       const proposal: KnowledgeProposal = {
         proposition,
         kind,
+        ...(structuredProposition === undefined ? {} : { structuredProposition }),
         tags: normalizedStrings(
           raw.tags,
           `proposal ${index + 1} tags`,
@@ -668,7 +687,6 @@ export class PostOutputKnowledgeIntake {
         throw error;
       }
     });
-
 
     const serialized = serializeStagedKnowledgeProposals(proposals);
     const measuredUnits = this.#budget.measurer.measure(serialized);
