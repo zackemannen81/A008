@@ -9,6 +9,8 @@ import {
 } from "../src/memory/knowledge/evidence.js";
 import { USER_ASSERTION_POLICY_ID } from "../src/memory/knowledge/evidence-types.js";
 import { ingest } from "../src/memory/knowledge/ingest.js";
+import { inspectKnowledge } from "../src/memory/knowledge/inspection.js";
+import { createKnowledgeContext } from "../src/memory/knowledge/index.js";
 import {
   certaintyFromConfidence,
   selectUtteranceDomains,
@@ -227,4 +229,63 @@ test("certainty follows confidence and statement fallback never uses proposition
   assert.match(label, /^statement_[0-9a-f]{12}$/u);
   assert.equal(label.includes(proposition), false);
   assert.equal(statementEntityLabel(["masken2.html"], proposition), "masken2.html");
+});
+
+test("inspection keeps provenance nodes but suppresses the duplicate direct claim-to-utterance edge", () => {
+  const context = createKnowledgeContext();
+  const nextId = idFactory();
+  const utterance = ingest(
+    {
+      content: "A008-0096 is ready for review.",
+      speaker: "user",
+      act: "assertion",
+      scope: { verified: true },
+    },
+    { store: context.evidence, idFactory: nextId },
+  ).utterances[0]!;
+  const claim = recordClaimsFromUtterance(
+    context.evidence,
+    utterance.id,
+    [
+      {
+        label: "A008-0096 is ready for review.",
+        proposition: {
+          kind: "predicate",
+          name: "ready_for_review",
+          arguments: ["A008-0096"],
+        },
+        certainty: "certain",
+        aboutInterval: { from: UNKNOWN_INSTANT, to: null },
+      },
+    ],
+    { idFactory: nextId },
+  )[0]!;
+
+  const inspected = inspectKnowledge(context, {
+    projectId: "A008-0096-inspection",
+    durable: false,
+  });
+  const claimNode = `claim:${claim.id}`;
+  const utteranceNode = `utterance:${utterance.id}`;
+
+  assert.equal(
+    inspected.graph.edges.filter(
+      (edge) =>
+        edge.from === claimNode &&
+        edge.to === utteranceNode &&
+        edge.relation === "derived_from",
+    ).length,
+    0,
+  );
+  assert.equal(inspected.summary.counts.provenance, 2);
+  assert.ok(
+    inspected.graph.edges.some(
+      (edge) => edge.relation === "from" && edge.to === claimNode,
+    ),
+  );
+  assert.ok(
+    inspected.graph.edges.some(
+      (edge) => edge.relation === "to" && edge.to === utteranceNode,
+    ),
+  );
 });
