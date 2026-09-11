@@ -35,6 +35,11 @@ import type { KnowledgeReadContext } from "./read-types.js";
 import { reconcile } from "./reconcile.js";
 import type { SlotClaim } from "./state-types.js";
 import { update } from "./update.js";
+import {
+  certaintyFromConfidence,
+  selectUtteranceDomains,
+  statementEntityLabel,
+} from "./write-policy.js";
 import type {
   Entity,
   KnowledgeIdFactory,
@@ -75,6 +80,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       );
     }
     if (!isKnowledgeSeverity(staged.severity)) throw new Error("Live claim requires validated severity");
+    const utteranceDomains = selectUtteranceDomains(input.batch.proposals);
     const at = this.#context.lifecycle.now();
     const candidateRecords = this.#context.evidence.listClaims();
     const targets = new Map(candidateRecords.map((claim, index) => [`candidate_${index + 1}`, claim]));
@@ -138,7 +144,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           (origin.kind === "source" || currentTarget.status === "accepted") &&
           !["contested", "retracted", "rejected"].includes(currentTarget.status) &&
           (targetBinding === undefined || !this.#context.state.isContested(targetBinding.slot))) {
-        this.#context.labels.attach({ recordId: utteranceId, recordKind: "utterance", tags: [...(staged.proposal.tags ?? [])], domains: [...staged.domains] });
+        this.#context.labels.attach({ recordId: utteranceId, recordKind: "utterance", tags: [...(staged.proposal.tags ?? [])], domains: [...utteranceDomains] });
         const committedSource = this.#context.evidence.listUtterances().find(u => u.id === utteranceId);
         reinforcement = !validSupport || classifierDecision.supportsTarget !== true || committedSource?.content !== source
           ? "skipped_unproven_source"
@@ -149,8 +155,15 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       const drafts: readonly ClaimDraft[] = [
         {
           label: staged.proposal.proposition,
-          proposition: { kind: "attribute_binding", entityLabel: entityLabelOf(staged.entities, staged.proposal.proposition), attribute: STATEMENT_SLOT, value: staged.proposal.proposition },
-          certainty: "probable",
+          proposition:
+            staged.proposal.structuredProposition ??
+            {
+              kind: "attribute_binding",
+              entityLabel: statementEntityLabel(staged.entities, staged.proposal.proposition),
+              attribute: STATEMENT_SLOT,
+              value: staged.proposal.proposition,
+            },
+          certainty: certaintyFromConfidence(staged.proposal.confidence),
           aboutInterval: { from: UNKNOWN_INSTANT, to: null },
         },
       ];
@@ -165,23 +178,23 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       // through staging and read by the relation classifier. Until A008-0060 this
       // is where they stopped: a claim, an entity and a binding were written and
       // both label sets were dropped, so nothing downstream could ever match on
-      // them. They are attached to the utterance as well as the claim because the
-      // utterance is what a source ingest already created and what the projection
-      // sends when no claim was accepted.
-      const labelInput = {
+      // them. Utterance domains are bounded at the write surface while each
+      // claim retains the domains that describe that proposal.
+      const claimLabelInput = {
         tags: [...(staged.proposal.tags ?? [])],
         domains: [...staged.domains],
       };
       this.#context.labels.attach({
         recordId: utteranceId,
         recordKind: "utterance",
-        ...labelInput,
+        tags: [...(staged.proposal.tags ?? [])],
+        domains: [...utteranceDomains],
       });
       if (evidenceClaim !== undefined) {
         this.#context.labels.attach({
           recordId: evidenceClaim.id,
           recordKind: "claim",
-          ...labelInput,
+          ...claimLabelInput,
         });
         this.#context.lifecycle.attach({
           evidenceId: evidenceClaim.id,
@@ -205,6 +218,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
               policy: ACCEPT_POLICY,
               authority: { verified: true, speakerRole: "user" },
               sourceMessage: input.batch.sourceMessage,
+              ...(validSupport
+                ? { sourceSpan: { start: span.start, end: span.end } }
+                : {}),
             },
             this.#context.evidence,
           );
@@ -405,7 +421,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         return existingSlot;
       }
     }
-    const label = entityLabelOf(entities, proposition);
+    const label = statementEntityLabel(entities, proposition);
     const existing = this.#context.entities.findByIdentity(label);
     const entity: Entity =
       existing ??
@@ -540,14 +556,6 @@ function asClassifierConflict(
     targetInterval: decision.proposal.aboutInterval,
     reason: "relation classifier judged the proposal to conflict",
   };
-}
-
-function entityLabelOf(entities: readonly string[], proposition: string): string {
-  const first = entities[0];
-  if (first !== undefined && first.trim().length > 0) {
-    return first.trim();
-  }
-  return proposition;
 }
 
 function slugEntityId(label: string): string {
