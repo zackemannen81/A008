@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { GuiSession } from "../session/types.js";
+import type { GuiSession, RuntimeToolCall } from "../session/types.js";
 import "./repository.css";
 
 export const REPOSITORY_ACTIONS = [
@@ -8,17 +8,79 @@ export const REPOSITORY_ACTIONS = [
   { label: "Review changes", tool: "git", prompt: "Granska ändringarna i arbetskopian med git status, git diff och git diff --cached. Läs berörda filer vid behov och sammanfatta fynden." },
 ] as const;
 
+export type ToolDisplayStatus = "running" | "ok" | "recovered" | "failed" | "blocking";
+
+export function displayStatus(tool: RuntimeToolCall): ToolDisplayStatus {
+  if (tool.status === "running" || tool.status === "pending") return "running";
+  if (tool.status === "ok" || tool.status === "completed") return "ok";
+  if (tool.recoveredBy) return "recovered";
+  return "failed";
+}
+
+function toolName(tool: RuntimeToolCall): string {
+  return tool.tool || tool.title || "tool";
+}
+
+function rawStatus(tool: RuntimeToolCall): string {
+  return tool.status === "completed" ? "completed" : tool.status === "pending" ? "pending" : displayStatus(tool);
+}
+
+function duration(tool: RuntimeToolCall): string {
+  if (tool.finishedAt === undefined || tool.startedAt === undefined) return "";
+  return `${Math.max(0, (tool.finishedAt - tool.startedAt) / 1000).toFixed(1)}s`;
+}
+
+function displayText(tool: RuntimeToolCall): string {
+  return tool.argsSummary ?? tool.text ?? tool.errorSummary ?? "";
+}
+
+function isBlocking(tool: RuntimeToolCall): boolean {
+  return displayStatus(tool) === "failed" && tool.recoveredBy === undefined;
+}
+
 export function ToolActivity({
   tools,
 }: {
-  readonly tools?: readonly { id: string; title: string; status: string; text: string }[];
+  readonly tools?: readonly RuntimeToolCall[];
 }) {
   if (!tools?.length) return null;
+  const grouped = new Map<string, RuntimeToolCall[]>();
+  for (const tool of tools) {
+    const name = toolName(tool);
+    const entries = grouped.get(name) ?? [];
+    entries.push(tool);
+    grouped.set(name, entries);
+  }
+  const counts = tools.reduce((result, tool) => {
+    const status = displayStatus(tool);
+    result[status] += 1;
+    return result;
+  }, { running: 0, ok: 0, recovered: 0, failed: 0, blocking: 0 });
+  const completed = counts.running === 0;
   return <section className="a008-tool-activity" aria-label="Tool activity">
-    {tools.map(tool => <details key={tool.id}>
-      <summary>{tool.title} · {tool.status}{tool.status === "pending" ? " — awaiting approval" : ""}</summary>
-      <pre>{tool.text}</pre>
-    </details>)}
+    <details className="a008-tool-summary" open={!completed}>
+      <summary>{completed ? "✓" : "⚙"} Tools · {tools.length} calls · {completed ? "completed" : "running"}</summary>
+      <div className="a008-tool-summary-counts">
+        {counts.ok} ok · {counts.recovered} recovered · {counts.failed} failed · {counts.running} running
+      </div>
+      <div className="a008-tool-groups">
+        {Array.from(grouped, ([name, entries]) => {
+          const recovered = entries.filter(tool => displayStatus(tool) === "recovered").length;
+          const failed = entries.filter(tool => isBlocking(tool)).length;
+          return <details key={name}>
+            <summary>{name} ×{entries.length} · ✓ {entries.length - recovered - failed} {recovered ? `· ↻ ${recovered}` : ""} {failed ? `· ✕ ${failed}` : ""}</summary>
+            {entries.map(tool => <div key={tool.id} className={`a008-tool-row a008-tool-${displayStatus(tool)}`}>
+              <span>{displayStatus(tool) === "recovered" ? "↻" : displayStatus(tool) === "ok" ? "✓" : displayStatus(tool) === "running" ? "⚙" : "✕"}</span>
+              <span>{displayText(tool) || name}</span>
+              <span>{rawStatus(tool)}{tool.status === "pending" ? " — awaiting approval" : ""}{duration(tool) ? ` · ${duration(tool)}` : ""}</span>
+              <span className="a008-tool-legacy-label">{name} · {rawStatus(tool)}</span>
+              {tool.errorSummary ? <small>{tool.errorSummary}</small> : null}
+            </div>)}
+          </details>;
+        })}
+      </div>
+      <details className="a008-tool-raw"><summary>Raw trace</summary><pre>{JSON.stringify(tools, null, 2)}</pre></details>
+    </details>
   </section>;
 }
 
