@@ -2308,3 +2308,14 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - No repository CI checks were configured. Accepted design is not yet runtime
   availability. Allocated A008-0107 for reusable project runtime ownership.
 - Signature: Codex
+
+## 2026-09-15 - A008-0107 runtime registry integration
+
+- Operator: Codex. Authorized PR #48 merged as
+  4cabca8ffb909ebebb65317d94b17becce3ca933 at 2026-09-14 22:04:00 UTC.
+- 746 tests, root/GUI builds, installed protocol and portable engine proofs pass.
+  Same-process ownership and exact existing attachment are verified. No live
+  provider calls or running-host restart; GUI warnings unchanged.
+- Journal/current docs updated after merge. Stage 2 remains In Progress.
+  Allocated A008-0108 for cross-process registry ownership before facade migration.
+- Signature: Codex
