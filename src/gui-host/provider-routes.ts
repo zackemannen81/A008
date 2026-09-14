@@ -1,3 +1,4 @@
+import type { NvidiaCatalog, KieCatalog, GeneratedImage, ProviderSettings, HostModel } from '../../packages/protocol/src/index.js';
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -36,7 +37,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function mergedModels(registry: ModelRegistry, catalogPath: string) {
+export function mergedModels(registry: ModelRegistry, catalogPath: string): HostModel[] {
   const extras = loadUserCatalog(catalogPath).chatModels.map(userModelProfile);
   const seen = new Set(registry.list().map((profile) => profile.id));
   return [
@@ -56,7 +57,7 @@ export async function handleNvidiaCatalogGet(input: {
   fetch: FetchLike;
   registry: ModelRegistry;
   catalogPath: string;
-}): Promise<unknown> {
+}): Promise<NvidiaCatalog> {
   if (!input.apiKey) {
     throw new ChatError(
       "configuration",
@@ -100,7 +101,7 @@ export function handleNvidiaCatalogRemove(catalogPath: string, id: string): void
   saveUserCatalog(catalogPath, removeUserChatModel(loadUserCatalog(catalogPath), id.trim()));
 }
 
-export function handleKieCatalogGet(catalogPath: string) {
+export function handleKieCatalogGet(catalogPath: string): KieCatalog {
   const catalog = loadUserCatalog(catalogPath);
   const added = new Set(catalog.chatModels.map((model) => model.id));
   return {
@@ -123,13 +124,7 @@ export async function handleImageGenerate(input: {
   catalogPath: string;
   storeRoot: string | undefined;
   body: unknown;
-}): Promise<{
-  locator: string;
-  sha256: string;
-  bytes: number;
-  mediaType: string;
-  filename: string;
-}> {
+}): Promise<GeneratedImage> {
   if (!input.storeRoot) {
     throw new ChatError("configuration", "A008_SOURCE_STORE_PATH is required to store generated images.");
   }
@@ -206,7 +201,7 @@ export function handleBlobGet(
   return true;
 }
 
-export function providerSettingsView(catalogPath: string, secretsPath: string, env: NodeJS.ProcessEnv) {
+export function providerSettingsView(catalogPath: string, secretsPath: string, env: NodeJS.ProcessEnv): ProviderSettings {
   const catalog = loadUserCatalog(catalogPath);
   const nvidia = resolveNvidiaApiKey(env, secretsPath);
   const kie = resolveKieApiKey(env, secretsPath);

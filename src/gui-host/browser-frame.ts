@@ -1,12 +1,9 @@
+import type { FrameCheck } from '../../packages/protocol/src/index.js';
 import { ChatError } from "../core/errors.js";
 import type { FetchLike } from "./provider-routes.js";
 import { framePolicyFromHeaders, type FrameBlockReason } from "./frame-policy.js";
 
-export interface BrowserFrameCheck {
-  readonly url: string;
-  readonly embeddable: boolean;
-  readonly reason?: FrameBlockReason;
-}
+export type BrowserFrameCheck = Omit<FrameCheck, 'reason'> & { readonly reason?: FrameBlockReason };
 
 const CHECK_TIMEOUT_MS = 8_000;
 

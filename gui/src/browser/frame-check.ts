@@ -1,10 +1,6 @@
+import { parseFrameCheck, type FrameCheck } from '../../../packages/protocol/src/index.js';
+export type { FrameCheck } from '../../../packages/protocol/src/index.js';
 import { engineHeaders } from "../session/engine-access.js";
-
-export interface FrameCheck {
-  readonly url: string;
-  readonly embeddable: boolean;
-  readonly reason?: string;
-}
 
 export async function checkFrame(
   url: string,
@@ -20,10 +16,5 @@ export async function checkFrame(
   if (!response.ok) {
     return { url, embeddable: true };
   }
-  const payload = (await response.json()) as FrameCheck;
-  return {
-    url: typeof payload.url === "string" ? payload.url : url,
-    embeddable: payload.embeddable !== false,
-    ...(typeof payload.reason === "string" ? { reason: payload.reason } : {}),
-  };
+  return parseFrameCheck(await response.json(), url);
 }

@@ -15,9 +15,14 @@ the shared semantic runtime-budget checks described in the package README.
 The root and portable engine ship `dist/packages/protocol/src`; the independent
 tarball ships its own `dist`. V1 message tolerance, errors, ACP sessions and
 permission behavior remain unchanged. The [HTTP/WS inventory](HOST_PROTOCOL_V1_INVENTORY.md)
-records current ownership; HTTP payloads outside the model/session surface still
-have their existing owners. A008-0103's accepted future boundary is not a current
-isolation, negotiation or recovery guarantee.
+records current ownership. A008-0105 adds shared HTTP request/response shapes,
+legacy upload/shell/frame/memory parsing and generated OpenAPI from the same
+owner. Existing core/host HTTP producer types and GUI consumers use these DTOs;
+normalization, runtime checks and previously non-validating GUI adapters remain.
+Binary responses are described as bytes, without wrappers. Memory graph edge
+membership requires the shared validator beyond structural JSON Schema.
+A008-0103's accepted future boundary is not a current isolation, negotiation or
+recovery guarantee.
 
 ## Implemented system
 

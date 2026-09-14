@@ -49,7 +49,7 @@ test("catalog browse marks already-added models and never returns the API key", 
   assert.equal(body.includes("nvapi-test"), false);
   assert.match(body, /Free Endpoint/u);
   assert.equal(
-    (listed as { models: { id: string; added: boolean }[] }).models[0]?.added,
+    listed.models[0]?.added,
     true,
   );
 });

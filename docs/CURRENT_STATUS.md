@@ -5,6 +5,17 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0105 completes the shared v1 HTTP transport contracts: 35 schema components,
+21 inventory rows / 22 HTTP methods and generated OpenAPI 3.1.1. Host/core/GUI
+types share the package; existing client parsing/tolerance and runtime policy
+are preserved. All operations pass real-host checks using synthetic providers,
+memory and temporary filesystem state. Tests: 576 core, 4 membership, 161 GUI,
+zero skips/failures; independent installed package and portable engine proof pass.
+GUI build/typecheck passes (532.56 kB main JS, 161.06 kB gzip), retaining size and
+dependency annotation warnings. HTTP/WS contract extraction is complete; the
+V2 decision proposal and subsequent ownership/auth implementation are next.
+A008-0105 is locally completed; it has not been pushed or deployed.
+
 A008-0103 freezes the seven-stage API program through ADR 0040. Its first child,
 A008-0104, consolidates v1 WS/session/model/runtime-preference contracts into
 `packages/protocol`, used by host/core wire adapters and GUI. Ninety captured
@@ -14,10 +25,11 @@ also passes discovery, ACP/panel history, tool approval, upload/memory and stop
 checks with synthetic data. Full tests: 573 core, 4 membership, 161 GUI pass.
 GUI production build passes with a 526.22 kB main chunk (159.20 kB gzip) and
 Rollup's size/annotation warnings after adding shared Zod validation to the GUI.
-The [operation inventory](HOST_PROTOCOL_V1_INVENTORY.md) identifies remaining HTTP
-payload extraction. Stage 1 and the program remain In Progress: V2/auth, explicit
-project ownership, SDK and Expo are not implemented. This build has not been
-pushed, merged remotely or used to restart the running host.
+The [operation inventory](HOST_PROTOCOL_V1_INVENTORY.md) identified HTTP payload
+extraction completed by A008-0105 above. Stage 1 and the program remain In Progress:
+V2/auth, explicit project ownership, SDK and Expo are not implemented.
+Integrated through PR #45 on remote main c3970d5; no running-host restart
+was performed for this build.
 
 A008-0101 replaces ordinary full-namespace SQLite writes with keyed row deltas.
 Evidence and association baselines, receipts, audit and derived indexes still

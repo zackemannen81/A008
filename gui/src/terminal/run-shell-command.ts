@@ -1,25 +1,12 @@
+import { ShellCommandError, parseShellHostResult, type ShellHostResult } from '../../../packages/protocol/src/index.js';
+export { ShellCommandError, type ShellHostResult } from '../../../packages/protocol/src/index.js';
 import { engineHeaders } from "../session/engine-access.js";
 /** Host protocol v1 shell endpoint (ADR 0019 D4). */
 export const SHELL_ENDPOINT = "/v1/shell";
 
-export interface ShellHostResult {
-  readonly stdout: string;
-  readonly stderr: string;
-  readonly exitCode: number | null;
-  readonly timedOut: boolean;
-  readonly truncated: boolean;
-}
-
 export interface RunShellCommandOptions {
   readonly fetch?: typeof globalThis.fetch;
   readonly endpoint?: string;
-}
-
-export class ShellCommandError extends Error {
-  constructor(message: string, options?: { readonly cause?: unknown }) {
-    super(message, options);
-    this.name = "ShellCommandError";
-  }
 }
 
 /**
@@ -110,19 +97,6 @@ export function formatShellHostResult(result: ShellHostResult): string {
   return `${lines.join("\n")}\n`;
 }
 
-function parseShellHostResult(payload: unknown): ShellHostResult {
-  if (!isRecord(payload)) {
-    throw new ShellCommandError("GUI host shell result must be a JSON object.");
-  }
-  return {
-    stdout: requiredString(payload.stdout, "stdout"),
-    stderr: requiredString(payload.stderr, "stderr"),
-    exitCode: parseExitCode(payload.exitCode),
-    timedOut: requiredBoolean(payload.timedOut, "timedOut"),
-    truncated: requiredBoolean(payload.truncated, "truncated"),
-  };
-}
-
 async function failureMessage(response: Response): Promise<string> {
   const prefix = `GUI host shell failed (${response.status})`;
   try {
@@ -140,36 +114,5 @@ async function failureMessage(response: Response): Promise<string> {
   return statusText.length > 0 ? `${prefix}: ${statusText}` : `${prefix}.`;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
-function requiredString(value: unknown, field: string): string {
-  if (typeof value !== "string") {
-    throw new ShellCommandError(
-      `GUI host shell result field '${field}' must be a string.`,
-    );
-  }
-  return value;
-}
-
-function requiredBoolean(value: unknown, field: string): boolean {
-  if (typeof value !== "boolean") {
-    throw new ShellCommandError(
-      `GUI host shell result field '${field}' must be a boolean.`,
-    );
-  }
-  return value;
-}
-
-function parseExitCode(value: unknown): number | null {
-  if (value === null) {
-    return null;
-  }
-  if (typeof value === "number" && Number.isSafeInteger(value)) {
-    return value;
-  }
-  throw new ShellCommandError(
-    "GUI host shell result field 'exitCode' must be an integer or null.",
-  );
-}
+function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }

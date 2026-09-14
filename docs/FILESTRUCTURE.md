@@ -2,6 +2,14 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+A008-0105 extends `packages/protocol/src` with `http-schemas.ts`, operation/schema
+mapping and OpenAPI derivation in `http-operations.ts`, and pure compatibility
+parsers in `http-parsers.ts`, `upload-parser.ts`, `shell-parser.ts`. Generated
+`schemas/http.openapi.json` and 52 pre-extraction cases in
+`fixtures/v1-http-compatibility.json` ship with the package. The existing schema
+generator/package proof now includes HTTP. `test/http-contract.test.ts` verifies
+baseline parity, artifact references/coverage and all real-host HTTP operations.
+
 A008-0103 records the frozen API program in `docs/tasks/` and ADR 0040. Its first
 child A008-0104 adds `packages/protocol/`: pure TypeScript schema/type/parser
 source, five generated JSON schemas, 90 legacy compatibility fixtures, package

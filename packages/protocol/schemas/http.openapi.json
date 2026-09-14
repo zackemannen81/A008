@@ -1,0 +1,2990 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "A008 existing host HTTP v1",
+    "version": "1.0.0",
+    "description": "Structural current-v1 contracts, not V2. Runtime policy, normalization, cross-field graph/budget rules, configured auth profiles and socket lifetimes are specified in HOST_PROTOCOL.md and the package README. No OpenAPI endpoint is added."
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "public health",
+        "x-a008-owner": "server",
+        "x-a008-auth-profile": "Public; login exists only with PIN enabled.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/health"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "standalone PIN exchange when enabled",
+        "x-a008-owner": "pin-auth",
+        "x-a008-auth-profile": "Public; login exists only with PIN enabled.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/loginInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/loginResult"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "a008_auth; HttpOnly; SameSite=Strict; Path=/; 24 hours; Secure on HTTPS."
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "summary": "host model catalog",
+        "x-a008-owner": "provider-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/models"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/memory": {
+      "get": {
+        "summary": "current bridge project / fixed panel session",
+        "x-a008-owner": "ACP inspection",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/memoryQuery/properties/query"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/memoryQuery/properties/kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "domain",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/memoryQuery/properties/domain"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/memoryQuery/properties/status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/memoryQuery/properties/offset"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/memoryQuery/properties/limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/memorySnapshot"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/browser/frame-check": {
+      "get": {
+        "summary": "host network probe",
+        "x-a008-owner": "browser-frame",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "url",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/frameQuery/properties/url"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/frameCheck"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/catalog/kie": {
+      "get": {
+        "summary": "host catalog",
+        "x-a008-owner": "provider-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/kieCatalog"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/catalog/nvidia": {
+      "get": {
+        "summary": "host upstream catalog",
+        "x-a008-owner": "provider-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/nvidiaCatalog"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "host catalog mutation",
+        "x-a008-owner": "provider-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/catalogAddInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/catalogAdded"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "host catalog mutation",
+        "x-a008-owner": "provider-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/catalogRemoveQuery/properties/id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/catalogRemoved"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/provider-settings": {
+      "get": {
+        "summary": "host configuration; no credential values",
+        "x-a008-owner": "provider-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/providerSettings"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "host credential/configuration mutation",
+        "x-a008-owner": "provider-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/providerSettingsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/providerSettings"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/images": {
+      "post": {
+        "summary": "host provider job and source store",
+        "x-a008-owner": "provider-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/imageInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/generatedImage"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/blobs/{sha256}/{name}": {
+      "get": {
+        "summary": "host source store",
+        "x-a008-owner": "source-store",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sha256",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/blobPath/properties/sha256"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/blobPath/properties/name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "image/png": {},
+              "image/jpeg": {}
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/projects": {
+      "get": {
+        "summary": "host project registry",
+        "x-a008-owner": "project-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/projects"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/browse": {
+      "get": {
+        "summary": "host absolute filesystem path",
+        "x-a008-owner": "project-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/directoryQuery/properties/path"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/directoryList"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/preview": {
+      "post": {
+        "summary": "host bootstrap preview",
+        "x-a008-owner": "project-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/projectBootstrapInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/projectPlan"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/bootstrap": {
+      "post": {
+        "summary": "host bootstrap + global workspace switch",
+        "x-a008-owner": "project-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/projectBootstrapInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/projectCreated"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/open": {
+      "post": {
+        "summary": "host global workspace switch",
+        "x-a008-owner": "project-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/projectOpen"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceBinding"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/shell": {
+      "post": {
+        "summary": "current host cwd; explicit user shell",
+        "x-a008-owner": "terminal",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/shellInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/shellResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/upload": {
+      "post": {
+        "summary": "host source store + current bridge ingest",
+        "x-a008-owner": "source-store / ACP",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "x-a008-filename",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/uploadHeaders/properties/x-a008-filename"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/octet-stream": {}
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/uploadedSource"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/{asset}": {
+      "get": {
+        "summary": "static assets; root PIN login page when enabled",
+        "x-a008-owner": "server",
+        "x-a008-auth-profile": "Public; login exists only with PIN enabled.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Descriptive asset placeholder; the host also serves / and nested static paths."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "*/*": {}
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      },
+      "head": {
+        "summary": "static assets; root PIN login page when enabled",
+        "x-a008-owner": "server",
+        "x-a008-auth-profile": "Public; login exists only with PIN enabled.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Descriptive asset placeholder; the host also serves / and nested static paths."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately."
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text."
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "memoryQuery": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "query": {
+            "maxLength": 300,
+            "$ref": "#/components/schemas/memoryQuery/$defs/__schema0"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "entity",
+              "state",
+              "history",
+              "claim",
+              "event",
+              "utterance",
+              "artifact",
+              "provenance"
+            ]
+          },
+          "domain": {
+            "maxLength": 300,
+            "$ref": "#/components/schemas/memoryQuery/$defs/__schema0"
+          },
+          "status": {
+            "maxLength": 300,
+            "$ref": "#/components/schemas/memoryQuery/$defs/__schema0"
+          },
+          "offset": {
+            "maximum": 1000000,
+            "$ref": "#/components/schemas/memoryQuery/$defs/__schema1"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "$ref": "#/components/schemas/memoryQuery/$defs/__schema1"
+          }
+        },
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          },
+          "__schema1": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "memorySnapshot": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "protocol": {
+            "$ref": "#/components/schemas/memorySnapshot/$defs/__schema0"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+          },
+          "durable": {
+            "$ref": "#/components/schemas/memorySnapshot/$defs/__schema2"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/memorySnapshot/$defs/__schema3"
+          },
+          "records": {
+            "$ref": "#/components/schemas/memorySnapshot/$defs/__schema6"
+          },
+          "matched": {
+            "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+          },
+          "offset": {
+            "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+          },
+          "limit": {
+            "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/memorySnapshot/$defs/__schema8"
+          }
+        },
+        "required": [
+          "protocol",
+          "projectId",
+          "durable",
+          "summary",
+          "records",
+          "matched",
+          "offset",
+          "limit",
+          "graph"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string",
+            "const": "A008_MEMORY_INSPECT_V1"
+          },
+          "__schema1": {
+            "type": "string"
+          },
+          "__schema2": {
+            "type": "boolean"
+          },
+          "__schema3": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+              },
+              "counts": {
+                "type": "object",
+                "properties": {
+                  "entity": {
+                    "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+                  },
+                  "state": {
+                    "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+                  },
+                  "history": {
+                    "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+                  },
+                  "claim": {
+                    "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+                  },
+                  "event": {
+                    "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+                  },
+                  "utterance": {
+                    "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+                  },
+                  "artifact": {
+                    "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+                  },
+                  "provenance": {
+                    "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+                  }
+                },
+                "required": [
+                  "entity",
+                  "state",
+                  "history",
+                  "claim",
+                  "event",
+                  "utterance",
+                  "artifact",
+                  "provenance"
+                ]
+              },
+              "active": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+              },
+              "dormant": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+              },
+              "contestedSlots": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+              },
+              "domains": {
+                "readOnly": true,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+                    },
+                    "count": {
+                      "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "count"
+                  ]
+                }
+              },
+              "statuses": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema5"
+              }
+            },
+            "required": [
+              "total",
+              "counts",
+              "active",
+              "dormant",
+              "contestedSlots",
+              "domains",
+              "statuses"
+            ]
+          },
+          "__schema4": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "__schema5": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+            }
+          },
+          "__schema6": {
+            "readOnly": true,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/memorySnapshot/$defs/__schema7"
+            }
+          },
+          "__schema7": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+              },
+              "sourceId": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "entity",
+                  "state",
+                  "history",
+                  "claim",
+                  "event",
+                  "utterance",
+                  "artifact",
+                  "provenance"
+                ]
+              },
+              "label": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+              },
+              "status": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+              },
+              "activation": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+              },
+              "tags": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema5"
+              },
+              "domains": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema5"
+              },
+              "detail": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+              },
+              "truncated": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "sourceId",
+              "kind",
+              "label",
+              "status",
+              "activation",
+              "tags",
+              "domains",
+              "detail",
+              "truncated"
+            ]
+          },
+          "__schema8": {
+            "type": "object",
+            "properties": {
+              "nodes": {
+                "readOnly": true,
+                "maxItems": 80,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/memorySnapshot/$defs/__schema7"
+                }
+              },
+              "edges": {
+                "readOnly": true,
+                "maxItems": 240,
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/memorySnapshot/$defs/__schema9"
+                }
+              },
+              "totalNodes": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+              },
+              "totalEdges": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
+              }
+            },
+            "required": [
+              "nodes",
+              "edges",
+              "totalNodes",
+              "totalEdges"
+            ]
+          },
+          "__schema9": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+              },
+              "to": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+              },
+              "relation": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+              }
+            },
+            "required": [
+              "from",
+              "to",
+              "relation"
+            ]
+          }
+        }
+      },
+      "projectBootstrapInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectName": {
+            "$ref": "#/components/schemas/projectBootstrapInput/$defs/__schema0"
+          },
+          "rootFolder": {
+            "$ref": "#/components/schemas/projectBootstrapInput/$defs/__schema0"
+          },
+          "repository": {},
+          "continuity": {},
+          "memory": {},
+          "projectId": {}
+        },
+        "required": [
+          "projectName",
+          "rootFolder"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "projectBootstrapConfig": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectName": {
+            "$ref": "#/components/schemas/projectBootstrapConfig/$defs/__schema0"
+          },
+          "rootFolder": {
+            "$ref": "#/components/schemas/projectBootstrapConfig/$defs/__schema0"
+          },
+          "repository": {
+            "type": "object",
+            "properties": {
+              "initialize": {
+                "type": "boolean"
+              },
+              "name": {
+                "$ref": "#/components/schemas/projectBootstrapConfig/$defs/__schema0"
+              }
+            },
+            "required": [
+              "initialize"
+            ]
+          },
+          "continuity": {
+            "type": "object",
+            "properties": {
+              "docsFirst": {
+                "type": "boolean"
+              },
+              "multiAgent": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  },
+                  "maxWorkers": {
+                    "type": "number"
+                  },
+                  "workerCloneRoot": {
+                    "$ref": "#/components/schemas/projectBootstrapConfig/$defs/__schema0"
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              }
+            },
+            "required": [
+              "docsFirst",
+              "multiAgent"
+            ]
+          },
+          "memory": {
+            "type": "object",
+            "properties": {
+              "useGlobalA008Memory": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "useGlobalA008Memory"
+            ]
+          }
+        },
+        "required": [
+          "projectName",
+          "rootFolder",
+          "repository",
+          "continuity",
+          "memory"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "projectPlan": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
+          },
+          "projectName": {
+            "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
+          },
+          "rootFolder": {
+            "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
+          },
+          "repositoryName": {
+            "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
+          },
+          "mutations": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "mkdir"
+                    },
+                    "path": {
+                      "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "path"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "write"
+                    },
+                    "path": {
+                      "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
+                    },
+                    "bytes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "path",
+                    "bytes"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "git-init"
+                    },
+                    "path": {
+                      "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "path"
+                  ]
+                }
+              ]
+            }
+          },
+          "memory": {
+            "type": "object",
+            "properties": {
+              "useGlobalStore": {
+                "type": "boolean"
+              },
+              "namespace": {
+                "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
+              }
+            },
+            "required": [
+              "useGlobalStore",
+              "namespace"
+            ]
+          },
+          "multiAgent": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "const": false
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "maxWorkers": {
+                    "type": "number"
+                  },
+                  "workerCloneRoot": {
+                    "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
+                  }
+                },
+                "required": [
+                  "enabled",
+                  "maxWorkers",
+                  "workerCloneRoot"
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "projectId",
+          "projectName",
+          "rootFolder",
+          "repositoryName",
+          "mutations",
+          "memory",
+          "multiAgent"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "registeredProject": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "$ref": "#/components/schemas/registeredProject/$defs/__schema0"
+          },
+          "name": {
+            "$ref": "#/components/schemas/registeredProject/$defs/__schema0"
+          },
+          "rootFolder": {
+            "$ref": "#/components/schemas/registeredProject/$defs/__schema0"
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/registeredProject/$defs/__schema0"
+          },
+          "repository": {
+            "type": "object",
+            "properties": {
+              "initialize": {
+                "type": "boolean"
+              },
+              "name": {
+                "$ref": "#/components/schemas/registeredProject/$defs/__schema0"
+              }
+            },
+            "required": [
+              "initialize",
+              "name"
+            ]
+          },
+          "continuity": {
+            "type": "object",
+            "properties": {
+              "docsFirst": {
+                "type": "boolean"
+              },
+              "multiAgent": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "const": false
+                      }
+                    },
+                    "required": [
+                      "enabled"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "const": true
+                      },
+                      "maxWorkers": {
+                        "type": "number"
+                      },
+                      "workerCloneRoot": {
+                        "$ref": "#/components/schemas/registeredProject/$defs/__schema0"
+                      }
+                    },
+                    "required": [
+                      "enabled",
+                      "maxWorkers",
+                      "workerCloneRoot"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "docsFirst",
+              "multiAgent"
+            ]
+          },
+          "memory": {
+            "type": "object",
+            "properties": {
+              "useGlobalA008Memory": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "useGlobalA008Memory"
+            ]
+          }
+        },
+        "required": [
+          "projectId",
+          "name",
+          "rootFolder",
+          "createdAt",
+          "repository",
+          "continuity",
+          "memory"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "projects": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "currentId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/projects/$defs/__schema0"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "projects": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "$ref": "#/components/schemas/projects/$defs/__schema0"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/projects/$defs/__schema0"
+                },
+                "rootFolder": {
+                  "$ref": "#/components/schemas/projects/$defs/__schema0"
+                },
+                "createdAt": {
+                  "$ref": "#/components/schemas/projects/$defs/__schema0"
+                },
+                "repository": {
+                  "type": "object",
+                  "properties": {
+                    "initialize": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "$ref": "#/components/schemas/projects/$defs/__schema0"
+                    }
+                  },
+                  "required": [
+                    "initialize",
+                    "name"
+                  ]
+                },
+                "continuity": {
+                  "type": "object",
+                  "properties": {
+                    "docsFirst": {
+                      "type": "boolean"
+                    },
+                    "multiAgent": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "const": false
+                            }
+                          },
+                          "required": [
+                            "enabled"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "const": true
+                            },
+                            "maxWorkers": {
+                              "type": "number"
+                            },
+                            "workerCloneRoot": {
+                              "$ref": "#/components/schemas/projects/$defs/__schema0"
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "maxWorkers",
+                            "workerCloneRoot"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "docsFirst",
+                    "multiAgent"
+                  ]
+                },
+                "memory": {
+                  "type": "object",
+                  "properties": {
+                    "useGlobalA008Memory": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "useGlobalA008Memory"
+                  ]
+                }
+              },
+              "required": [
+                "projectId",
+                "name",
+                "rootFolder",
+                "createdAt",
+                "repository",
+                "continuity",
+                "memory"
+              ]
+            }
+          }
+        },
+        "required": [
+          "currentId",
+          "projects"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "projectCreated": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "object",
+            "properties": {
+              "projectId": {
+                "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+              },
+              "projectName": {
+                "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+              },
+              "rootFolder": {
+                "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+              },
+              "repositoryName": {
+                "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+              },
+              "mutations": {
+                "readOnly": true,
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "mkdir"
+                        },
+                        "path": {
+                          "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "path"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "write"
+                        },
+                        "path": {
+                          "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+                        },
+                        "bytes": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "path",
+                        "bytes"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "const": "git-init"
+                        },
+                        "path": {
+                          "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "path"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "memory": {
+                "type": "object",
+                "properties": {
+                  "useGlobalStore": {
+                    "type": "boolean"
+                  },
+                  "namespace": {
+                    "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+                  }
+                },
+                "required": [
+                  "useGlobalStore",
+                  "namespace"
+                ]
+              },
+              "multiAgent": {
+                "$ref": "#/components/schemas/projectCreated/$defs/__schema1"
+              }
+            },
+            "required": [
+              "projectId",
+              "projectName",
+              "rootFolder",
+              "repositoryName",
+              "mutations",
+              "memory",
+              "multiAgent"
+            ]
+          },
+          "project": {
+            "type": "object",
+            "properties": {
+              "projectId": {
+                "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+              },
+              "name": {
+                "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+              },
+              "rootFolder": {
+                "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+              },
+              "createdAt": {
+                "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+              },
+              "repository": {
+                "type": "object",
+                "properties": {
+                  "initialize": {
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+                  }
+                },
+                "required": [
+                  "initialize",
+                  "name"
+                ]
+              },
+              "continuity": {
+                "type": "object",
+                "properties": {
+                  "docsFirst": {
+                    "type": "boolean"
+                  },
+                  "multiAgent": {
+                    "$ref": "#/components/schemas/projectCreated/$defs/__schema1"
+                  }
+                },
+                "required": [
+                  "docsFirst",
+                  "multiAgent"
+                ]
+              },
+              "memory": {
+                "type": "object",
+                "properties": {
+                  "useGlobalA008Memory": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "useGlobalA008Memory"
+                ]
+              }
+            },
+            "required": [
+              "projectId",
+              "name",
+              "rootFolder",
+              "createdAt",
+              "repository",
+              "continuity",
+              "memory"
+            ]
+          }
+        },
+        "required": [
+          "plan",
+          "project"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          },
+          "__schema1": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "const": false
+                  }
+                },
+                "required": [
+                  "enabled"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "type": "boolean",
+                    "const": true
+                  },
+                  "maxWorkers": {
+                    "type": "number"
+                  },
+                  "workerCloneRoot": {
+                    "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+                  }
+                },
+                "required": [
+                  "enabled",
+                  "maxWorkers",
+                  "workerCloneRoot"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "projectOpen": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "projectId"
+        ]
+      },
+      "workspaceBinding": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "cwd": {
+            "$ref": "#/components/schemas/workspaceBinding/$defs/__schema0"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/workspaceBinding/$defs/__schema0"
+          },
+          "useGlobalMemory": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "cwd",
+          "projectId",
+          "useGlobalMemory"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "directoryList": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "$ref": "#/components/schemas/directoryList/$defs/__schema0"
+          },
+          "entries": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/directoryList/$defs/__schema0"
+            }
+          }
+        },
+        "required": [
+          "path",
+          "entries"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "nvidiaCatalog": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/nvidiaCatalog/$defs/__schema0"
+          },
+          "browse": {
+            "$ref": "#/components/schemas/nvidiaCatalog/$defs/__schema0"
+          },
+          "note": {
+            "$ref": "#/components/schemas/nvidiaCatalog/$defs/__schema0"
+          },
+          "models": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/nvidiaCatalog/$defs/__schema0"
+                },
+                "ownedBy": {
+                  "$ref": "#/components/schemas/nvidiaCatalog/$defs/__schema0"
+                },
+                "added": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "ownedBy",
+                "added"
+              ]
+            }
+          }
+        },
+        "required": [
+          "source",
+          "browse",
+          "note",
+          "models"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "kieCatalog": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/kieCatalog/$defs/__schema0"
+          },
+          "browse": {
+            "$ref": "#/components/schemas/kieCatalog/$defs/__schema0"
+          },
+          "note": {
+            "$ref": "#/components/schemas/kieCatalog/$defs/__schema0"
+          },
+          "models": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/kieCatalog/$defs/__schema0"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/kieCatalog/$defs/__schema0"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "chat",
+                    "image",
+                    "video"
+                  ]
+                },
+                "added": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "kind",
+                "added"
+              ]
+            }
+          }
+        },
+        "required": [
+          "source",
+          "browse",
+          "note",
+          "models"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "providerSettings": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "nvidiaApiKeyConfigured": {
+            "type": "boolean"
+          },
+          "kieApiKeyConfigured": {
+            "type": "boolean"
+          },
+          "openAiApiKeyConfigured": {
+            "type": "boolean"
+          },
+          "imageModel": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          },
+          "imageEndpoint": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          },
+          "chatProvider": {
+            "type": "string",
+            "enum": [
+              "nvidia",
+              "kie",
+              "openai"
+            ]
+          },
+          "imageProvider": {
+            "type": "string",
+            "enum": [
+              "nvidia",
+              "kie"
+            ]
+          },
+          "kieChatModel": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          },
+          "kieChatEndpoint": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          },
+          "kieImageModel": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          },
+          "keySource": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          },
+          "kieKeySource": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          },
+          "openAiKeySource": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          }
+        },
+        "required": [
+          "nvidiaApiKeyConfigured",
+          "kieApiKeyConfigured",
+          "openAiApiKeyConfigured",
+          "imageModel",
+          "imageEndpoint",
+          "chatProvider",
+          "imageProvider",
+          "kieChatModel",
+          "kieChatEndpoint",
+          "kieImageModel",
+          "keySource",
+          "kieKeySource",
+          "openAiKeySource"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "providerSettingsUpdate": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "nvidiaApiKey": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          },
+          "kieApiKey": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          },
+          "openAiApiKey": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          },
+          "imageModel": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          },
+          "imageEndpoint": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          },
+          "chatProvider": {
+            "type": "string",
+            "enum": [
+              "nvidia",
+              "kie",
+              "openai"
+            ]
+          },
+          "imageProvider": {
+            "type": "string",
+            "enum": [
+              "nvidia",
+              "kie"
+            ]
+          },
+          "kieChatModel": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          },
+          "kieChatEndpoint": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          },
+          "kieImageModel": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          }
+        },
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "providerSettingsInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "nvidiaApiKey": {},
+          "kieApiKey": {},
+          "openAiApiKey": {},
+          "imageModel": {},
+          "imageEndpoint": {},
+          "chatProvider": {},
+          "imageProvider": {},
+          "kieChatModel": {},
+          "kieChatEndpoint": {},
+          "kieImageModel": {}
+        }
+      },
+      "catalogAddInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {},
+          "provider": {}
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "catalogAdded": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "added": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/catalogAdded/$defs/__schema0"
+              },
+              "name": {
+                "$ref": "#/components/schemas/catalogAdded/$defs/__schema0"
+              },
+              "provider": {
+                "$ref": "#/components/schemas/catalogAdded/$defs/__schema0"
+              },
+              "inputModalities": {
+                "readOnly": true,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "text",
+                    "image",
+                    "video",
+                    "audio"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "provider",
+              "inputModalities"
+            ]
+          }
+        },
+        "required": [
+          "added"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "catalogRemoved": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "removed": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "removed"
+        ]
+      },
+      "imageInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "prompt": {
+            "type": "string"
+          },
+          "width": {},
+          "height": {},
+          "seed": {}
+        },
+        "required": [
+          "prompt"
+        ]
+      },
+      "generatedImage": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "locator": {
+            "$ref": "#/components/schemas/generatedImage/$defs/__schema0"
+          },
+          "sha256": {
+            "$ref": "#/components/schemas/generatedImage/$defs/__schema0"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "mediaType": {
+            "$ref": "#/components/schemas/generatedImage/$defs/__schema0"
+          },
+          "filename": {
+            "$ref": "#/components/schemas/generatedImage/$defs/__schema0"
+          }
+        },
+        "required": [
+          "locator",
+          "sha256",
+          "bytes",
+          "mediaType",
+          "filename"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "uploadedSource": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "locator": {
+            "$ref": "#/components/schemas/uploadedSource/$defs/__schema0"
+          },
+          "sha256": {
+            "$ref": "#/components/schemas/uploadedSource/$defs/__schema0"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "mediaType": {
+            "$ref": "#/components/schemas/uploadedSource/$defs/__schema0"
+          },
+          "extracted": {
+            "type": "boolean"
+          },
+          "artifactId": {
+            "$ref": "#/components/schemas/uploadedSource/$defs/__schema0"
+          }
+        },
+        "required": [
+          "locator",
+          "sha256",
+          "bytes",
+          "mediaType",
+          "extracted"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "shellInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "command"
+        ]
+      },
+      "shellResult": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "stdout": {
+            "$ref": "#/components/schemas/shellResult/$defs/__schema0"
+          },
+          "stderr": {
+            "$ref": "#/components/schemas/shellResult/$defs/__schema0"
+          },
+          "exitCode": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timedOut": {
+            "type": "boolean"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "stdout",
+          "stderr",
+          "exitCode",
+          "timedOut",
+          "truncated"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "frameCheck": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "url": {
+            "$ref": "#/components/schemas/frameCheck/$defs/__schema0"
+          },
+          "embeddable": {
+            "type": "boolean"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/frameCheck/$defs/__schema0"
+          }
+        },
+        "required": [
+          "url",
+          "embeddable"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "httpError": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/httpError/$defs/__schema0"
+          },
+          "message": {
+            "$ref": "#/components/schemas/httpError/$defs/__schema0"
+          }
+        },
+        "required": [
+          "error",
+          "message"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "health": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "ok",
+          "name"
+        ]
+      },
+      "loginInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "pin": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "pin"
+        ]
+      },
+      "loginResult": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "models": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/models/$defs/__schema0"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/models/$defs/__schema0"
+                },
+                "defaults": {
+                  "type": "object",
+                  "properties": {
+                    "stream": {
+                      "type": "boolean"
+                    },
+                    "temperature": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/models/$defs/__schema1"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "topP": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/models/$defs/__schema1"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "maxTokens": {
+                      "$ref": "#/components/schemas/models/$defs/__schema1"
+                    },
+                    "enableThinking": {
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "reasoningBudget": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/models/$defs/__schema1"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "reasoningEffort": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/models/$defs/__schema0"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "seed": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/models/$defs/__schema1"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "stop": {
+                      "anyOf": [
+                        {
+                          "readOnly": true,
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/models/$defs/__schema0"
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "stream",
+                    "temperature",
+                    "topP",
+                    "maxTokens",
+                    "enableThinking",
+                    "reasoningBudget",
+                    "reasoningEffort",
+                    "seed",
+                    "stop"
+                  ]
+                },
+                "capabilities": {
+                  "type": "object",
+                  "properties": {
+                    "maxTokens": {
+                      "$ref": "#/components/schemas/models/$defs/__schema1"
+                    },
+                    "topP": {
+                      "type": "boolean"
+                    },
+                    "thinking": {
+                      "type": "boolean"
+                    },
+                    "reasoningBudget": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/models/$defs/__schema1"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "reasoningEfforts": {
+                      "readOnly": true,
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/models/$defs/__schema0"
+                      }
+                    },
+                    "seed": {
+                      "type": "boolean"
+                    },
+                    "stop": {
+                      "type": "boolean"
+                    },
+                    "verifiedOn": {
+                      "$ref": "#/components/schemas/models/$defs/__schema0"
+                    }
+                  },
+                  "required": [
+                    "maxTokens",
+                    "topP",
+                    "thinking",
+                    "reasoningBudget",
+                    "reasoningEfforts",
+                    "seed",
+                    "stop",
+                    "verifiedOn"
+                  ]
+                },
+                "added": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "defaults",
+                "capabilities",
+                "added"
+              ]
+            }
+          }
+        },
+        "required": [
+          "models"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          },
+          "__schema1": {
+            "type": "number"
+          }
+        }
+      },
+      "frameQuery": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "directoryQuery": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ]
+      },
+      "catalogRemoveQuery": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "blobPath": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "sha256",
+          "name"
+        ]
+      },
+      "uploadHeaders": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "x-a008-filename": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "pinCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "a008_auth"
+      },
+      "engineBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "engineAccessQuery": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "access"
+      }
+    }
+  }
+}

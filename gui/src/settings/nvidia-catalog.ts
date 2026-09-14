@@ -1,33 +1,6 @@
+import type { NvidiaCatalog, ProviderSettings, KieCatalog, ProviderSettingsUpdate } from '../../../packages/protocol/src/index.js';
+export type { NvidiaCatalogModel, NvidiaCatalog, ProviderSettings, KieCatalogModel, KieCatalog } from '../../../packages/protocol/src/index.js';
 import { engineHeaders } from "../session/engine-access.js";
-
-export interface NvidiaCatalogModel {
-  readonly id: string;
-  readonly ownedBy: string;
-  readonly added: boolean;
-}
-
-export interface NvidiaCatalog {
-  readonly source: string;
-  readonly browse: string;
-  readonly note: string;
-  readonly models: readonly NvidiaCatalogModel[];
-}
-
-export interface ProviderSettings {
-  readonly nvidiaApiKeyConfigured: boolean;
-  readonly kieApiKeyConfigured: boolean;
-  readonly openAiApiKeyConfigured: boolean;
-  readonly imageModel: string;
-  readonly imageEndpoint: string;
-  readonly chatProvider: "nvidia" | "kie" | "openai";
-  readonly imageProvider: "nvidia" | "kie";
-  readonly kieChatModel: string;
-  readonly kieChatEndpoint: string;
-  readonly kieImageModel: string;
-  readonly keySource: string;
-  readonly kieKeySource: string;
-  readonly openAiKeySource: string;
-}
 
 export async function loadNvidiaCatalog(
   signal?: AbortSignal,
@@ -78,20 +51,6 @@ export async function loadProviderSettings(
   return (await response.json()) as ProviderSettings;
 }
 
-export interface KieCatalogModel {
-  readonly id: string;
-  readonly name: string;
-  readonly kind: "chat" | "image" | "video";
-  readonly added: boolean;
-}
-
-export interface KieCatalog {
-  readonly source: string;
-  readonly browse: string;
-  readonly note: string;
-  readonly models: readonly KieCatalogModel[];
-}
-
 export async function loadKieCatalog(
   signal?: AbortSignal,
   fetchImpl: typeof fetch = fetch,
@@ -108,18 +67,7 @@ export async function loadKieCatalog(
 }
 
 export async function saveProviderSettings(
-  body: {
-    nvidiaApiKey?: string;
-    kieApiKey?: string;
-    openAiApiKey?: string;
-    imageModel?: string;
-    imageEndpoint?: string;
-    chatProvider?: "nvidia" | "kie" | "openai";
-    imageProvider?: "nvidia" | "kie";
-    kieChatModel?: string;
-    kieChatEndpoint?: string;
-    kieImageModel?: string;
-  },
+  body: ProviderSettingsUpdate,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ProviderSettings> {
   const response = await fetchImpl("/v1/provider-settings", {

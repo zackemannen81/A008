@@ -1,3 +1,5 @@
+import type { WorkspaceBinding, ProjectCreated, ProjectsResponse, DirectoryList } from '../../packages/protocol/src/index.js';
+export type { WorkspaceBinding } from '../../packages/protocol/src/index.js';
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import { ChatError } from "../core/errors.js";
@@ -14,12 +16,6 @@ import type {
   RegisteredProject,
 } from "../bootstrap/types.js";
 
-export interface WorkspaceBinding {
-  readonly cwd: string;
-  readonly projectId: string;
-  readonly useGlobalMemory: boolean;
-}
-
 export function handleProjectPreview(
   store: ProjectBootstrapStore,
   body: unknown,
@@ -30,7 +26,7 @@ export function handleProjectPreview(
 export function handleProjectBootstrap(
   store: ProjectBootstrapStore,
   body: unknown,
-): { plan: ProjectBootstrapPlan; project: RegisteredProject } {
+): ProjectCreated {
   const projectId =
     body !== null && typeof body === "object" && !Array.isArray(body) &&
     typeof (body as { projectId?: unknown }).projectId === "string"
@@ -39,10 +35,7 @@ export function handleProjectBootstrap(
   return executeProjectBootstrap(parseProjectBootstrapConfig(body), store, projectId);
 }
 
-export function handleProjectList(store: ProjectBootstrapStore): {
-  currentId: string | null;
-  projects: readonly RegisteredProject[];
-} {
+export function handleProjectList(store: ProjectBootstrapStore): ProjectsResponse {
   const registry = readProjectRegistry(store.registryPath);
   return { currentId: registry.currentId, projects: registry.projects };
 }
@@ -70,10 +63,7 @@ export function bindingFor(project: RegisteredProject): WorkspaceBinding {
   };
 }
 
-export function handleDirectoryList(pathValue: unknown): {
-  path: string;
-  entries: readonly string[];
-} {
+export function handleDirectoryList(pathValue: unknown): DirectoryList {
   if (typeof pathValue !== "string" || !isAbsolute(pathValue)) {
     throw new ChatError("configuration", "Browse path must be absolute.");
   }

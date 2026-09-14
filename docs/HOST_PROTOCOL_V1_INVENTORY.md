@@ -1,6 +1,6 @@
 # Existing host v1 surface inventory
 
-Status: Observed implementation — A008-0104, 2026-09-14
+Status: Observed implementation — A008-0104/A008-0105, 2026-09-14
 
 This inventories the current dispatch surface, including its implicit ownership.
 It does not promise the isolation or auth design planned by ADR 0040.
@@ -61,9 +61,12 @@ qualified; `server.ts` owns dispatch and response envelopes.
 | POST `/v1/upload` | Binary source, filename header, host source store plus current bridge ingest | `server.ts`, `source-store.ts`, ACP source ingest |
 | GET/HEAD static path | Host assets when configured; root/index login page if PIN needed | `server.ts` |
 
-Auth/shell/upload response shapes are not silently promoted into shared schemas
-by their inclusion in this inventory. Existing error/status behavior remains in
-the owning route tests and protocol documentation.
+A008-0105 maps all rows to shared request/response contracts in
+`packages/protocol/src/http-operations.ts`; generated
+[OpenAPI](../packages/protocol/schemas/http.openapi.json) describes their payloads.
+The table's owners retain runtime behavior and policy. Binary upload/blob/static
+boundaries have no invented JSON envelope. Existing v1 client tolerance remains
+in the shared compatibility parsers and current casting adapters.
 
 ## WebSocket operations
 
@@ -92,10 +95,8 @@ event sequence, durable replay or idempotency guarantee is added by A008-0104.
 
 ## Remaining stage-1 work
 
-The inventory confirms independent HTTP payload owners for memory, projects,
-provider configuration/catalog/jobs, uploads/blobs, shell, browser checks and
-health/login/errors. A subsequent bounded child must extract their transport
-schemas with golden compatibility cases and real HTTP response checks. Runtime
-policy stays with each owner. Stage 1 is incomplete until that closure is
-verified; the full program also requires ownership, V2/auth, recovery, SDK/web,
-independent Expo and release compatibility gates.
+A008-0105 completes the inventoried HTTP transport extraction, with 52 frozen
+legacy parser cases and a real-host test covering all operations, auth/error
+paths and binary responses. The package now describes both HTTP and WS. The
+stage-1 V2 decision proposal still precedes the ownership/auth implementations;
+the program also requires recovery, SDK/web, independent Expo and release gates.

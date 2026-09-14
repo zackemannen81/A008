@@ -1,12 +1,7 @@
+import type { GeneratedImage } from '../../../packages/protocol/src/index.js';
 import { engineHeaders } from "../session/engine-access.js";
 
-export interface GeneratedImage {
-  readonly locator: string;
-  readonly sha256: string;
-  readonly bytes: number;
-  readonly mediaType: string;
-  readonly filename: string;
-}
+export type { GeneratedImage } from '../../../packages/protocol/src/index.js';
 
 export function generatedImageSrc(image: GeneratedImage): string {
   return `/v1/blobs/${image.sha256}/${encodeURIComponent(image.filename)}`;

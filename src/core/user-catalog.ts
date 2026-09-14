@@ -1,3 +1,5 @@
+import type { UserChatModel } from '../../packages/protocol/src/index.js';
+export type { UserChatModel } from '../../packages/protocol/src/index.js';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
@@ -16,13 +18,6 @@ import {
 export const CATALOG_PATH_ENV = "A008_CATALOG_PATH";
 export const DEFAULT_USER_IMAGE_MODEL = DEFAULT_IMAGE_MODEL;
 export const DEFAULT_USER_IMAGE_ENDPOINT = NVIDIA_IMAGE_GENERATE_URL;
-
-export interface UserChatModel {
-  readonly id: string;
-  readonly name: string;
-  readonly provider: string;
-  readonly inputModalities: readonly ModelModality[];
-}
 
 export interface UserImageSettings {
   readonly model: string;

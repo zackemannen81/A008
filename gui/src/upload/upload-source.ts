@@ -1,3 +1,5 @@
+import { UploadError, parseUploadedSource, type UploadedSource } from '../../../packages/protocol/src/index.js';
+export { UploadError, type UploadedSource } from '../../../packages/protocol/src/index.js';
 import { engineHeaders } from "../session/engine-access.js";
 /** Host protocol v1 upload endpoint (ADR 0020 D3). */
 export const UPLOAD_ENDPOINT = "/v1/upload";
@@ -10,15 +12,6 @@ export const UPLOAD_ENDPOINT = "/v1/upload";
  * as a rejected promise carrying the host's named reason — see
  * `UploadError` and `failureMessage` below.
  */
-export interface UploadedSource {
-  readonly locator: string;
-  readonly sha256: string;
-  readonly bytes: number;
-  readonly mediaType: string;
-  readonly extracted: boolean;
-  readonly artifactId?: string;
-}
-
 /** Anything with a `File`-shaped name and body the client can read once. */
 export interface UploadableFile {
   readonly name: string;
@@ -28,13 +21,6 @@ export interface UploadableFile {
 export interface UploadSourceOptions {
   readonly fetch?: typeof globalThis.fetch;
   readonly endpoint?: string;
-}
-
-export class UploadError extends Error {
-  constructor(message: string, options?: { readonly cause?: unknown }) {
-    super(message, options);
-    this.name = "UploadError";
-  }
 }
 
 /**
@@ -134,63 +120,5 @@ async function failureMessage(response: Response): Promise<string> {
   return statusText.length > 0 ? `${prefix}: ${statusText}` : `${prefix}.`;
 }
 
-function parseUploadedSource(payload: unknown): UploadedSource {
-  if (!isRecord(payload)) {
-    throw new UploadError("A008 GUI host upload result must be a JSON object.");
-  }
-  return {
-    locator: requiredString(payload.locator, "locator"),
-    sha256: requiredString(payload.sha256, "sha256"),
-    bytes: requiredNonNegativeInteger(payload.bytes, "bytes"),
-    mediaType: requiredString(payload.mediaType, "mediaType"),
-    extracted: requiredBoolean(payload.extracted, "extracted"),
-    artifactId: optionalString(payload.artifactId, "artifactId"),
-  };
-}
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function requiredString(value: unknown, field: string): string {
-  if (typeof value !== "string" || value.length === 0) {
-    throw new UploadError(
-      `A008 GUI host upload result field '${field}' must be a non-empty string.`,
-    );
-  }
-  return value;
-}
-
-function optionalString(value: unknown, field: string): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (typeof value !== "string" || value.length === 0) {
-    throw new UploadError(
-      `A008 GUI host upload result field '${field}' must be a non-empty string when present.`,
-    );
-  }
-  return value;
-}
-
-function requiredBoolean(value: unknown, field: string): boolean {
-  if (typeof value !== "boolean") {
-    throw new UploadError(
-      `A008 GUI host upload result field '${field}' must be a boolean.`,
-    );
-  }
-  return value;
-}
-
-function requiredNonNegativeInteger(value: unknown, field: string): number {
-  if (
-    typeof value !== "number" ||
-    !Number.isSafeInteger(value) ||
-    value < 0
-  ) {
-    throw new UploadError(
-      `A008 GUI host upload result field '${field}' must be a non-negative integer.`,
-    );
-  }
-  return value;
-}
+function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
