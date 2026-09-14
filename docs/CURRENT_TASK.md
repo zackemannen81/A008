@@ -1,45 +1,111 @@
-# A008-0108 - Cross-process runtime registry ownership
+# Current Task
 
-Task ID: A008-0108
-Parent Task: A008-0103
-Status: Ready
-Owner: Codex (operator)
-Created: 2026-09-15
-Charter frozen at: 2026-09-15
+Task ID:
+Parent Task: None
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
 
-## Frozen charter
-Goal: prevent separate registry-backed engine processes from opening competing
-cached runtime owners, with safe release after normal exit or process death.
-Deliverable: filesystem-backed lifetime exclusion in ProjectRuntimeRegistry and
-real subprocess evidence preserving independent namespaces and existing data.
-Scope: canonical SQLite namespace ownership; short identity-initialization guard;
-normal close, failed initialization and crash cleanup; unchanged engine layout.
-Out of scope: standalone facade migration, direct legacy CLI/ACP composition,
-V2/auth/recovery, database migration and distributed/network filesystem locking.
-Those unconverted owners remain a documented deployment limitation until the
-facade task routes them through the guarded boundary before V2 publication.
+## Read First
 
-## Necessity Gate
-Contract: PROJECT_BRIEF at 158ab39; PC-01 shared engine, PC-04 durable knowledge,
-PC-05 execution boundary; ADR 0041 decisions 1-3. In-process maps cannot exclude
-a second engine process caching the same namespace. Omitting lifetime exclusion
-leaves competing owners and stale cached knowledge. Smallest sufficient approach:
-use existing SQLite OS-backed locking on separate local lock files, not a second
-state database or PID/stale-file heuristic. Serialize sidecar initialization,
-hold one namespace lease until runtime disposal, never delete a live lock path.
-Verify two actual processes, aliases, independent namespaces, abrupt termination,
-reopen, and failed-initialization release with synthetic temporary data.
+- `AGENTS.md`
+- `docs/TASK_WORKFLOW.md`
+- `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/SYSTEMDOC.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant records under `docs/adr/`
 
-## Definition of done / gates
-- Competing registry process fails before runtime factory/storage mutation.
-- Different namespaces remain usable in the same SQLite file; canonical aliases
-  cannot bypass ownership; initialization cannot race sidecar selection.
-- Closing or killing the owner permits a later opener without manual cleanup.
-- Full tests, root/GUI build, installed protocol and portable engine proof pass.
-- Necessity review, owning docs, archive/handoff, links/fences/diff/template pass.
-- Owner-authorized push, PR, merge and operator journal update.
+## Task Summary
 
-## Mutable progress
-- [ ] Implement guarded registry ownership and subprocess evidence.
-- [ ] Verify supported consumers and finish documentation.
-- [ ] Archive, restore template, push/PR/merge and journal.
+Describe why this bounded task is active now and its intended outcome.
+
+## Task Charter
+
+### Goal
+
+Define one primary outcome.
+
+### Primary Deliverable
+
+Name the concrete artifact or behavior.
+
+### In Scope
+
+- List work required for the deliverable.
+
+### Out of Scope
+
+- List adjacent work that must not be absorbed.
+
+### Definition of Done
+
+- State objective completion conditions.
+
+### Necessity Gate
+
+Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
+Contract revision: <Git commit containing the reviewed contract>
+
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
+
+| Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
+| --- | --- | --- | --- | --- |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
+
+### Minimum Verification Gates
+
+- [ ] Define checks that may be strengthened but not removed after Ready.
+
+## References
+
+- Add owned documents, source revisions, contracts, and decisions.
+
+## Checklist
+
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
+
+## Decisions and Notes
+
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+
+## Charter Amendment Log
+
+- none
+
+## Verification
+
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
+
+## Documentation Updates
+
+- [ ] `docs/CURRENT_STATUS.md`
+- [ ] `docs/SYSTEMDOC.md`
+- [ ] `docs/JOURNAL.md`
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
+
+## Handoff and Follow-ups
+
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.

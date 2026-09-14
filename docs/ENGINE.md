@@ -66,8 +66,13 @@ its sessions, while the caller disposes the registry after all borrowers stop.
 The registry also offers strict `attachExisting` for validated absolute SQLite
 and optional source paths plus an existing project namespace; it does not create
 a missing store. Same-process competing workspace/namespace owners are rejected.
-This API is internal composition, not a new public endpoint. It does not
-provide a cross-process ownership lock; run one owner for a given data directory.
+This API is internal composition, not a new public endpoint. Registry-backed
+engines also hold a cross-process SQLite namespace lease. Separate small
+`.a008-owner-<hash>.sqlite` files beside the store/identity sidecar carry OS locks,
+not knowledge. Do not delete these files while an owner runs. Normal close or
+process death releases locks automatically; persistent empty files are harmless.
+Direct legacy CLI/ACP and standalone composition do not yet acquire these leases;
+stop those owners before engine attachment until their facade migration lands.
 The companion client's file/editor/Git functions remain its own surfaces.
 MCP support currently covers approved stdio servers, not HTTP/SSE servers.
 
