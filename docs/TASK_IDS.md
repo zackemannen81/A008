@@ -113,3 +113,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0097 | A008 Agentic tool usage behaviour and display changes  | mrWhite, A008 (operator) | 2026-09-11 | Agentic Tools |
 | A008-0098 | recover expired standalone GUI PIN sessions | Codex (operator) | 2026-09-14 | central GUI auth recovery for expired PIN cookie |
 | A008-0099 | preserve standalone host authentication on shell and upload | Codex (operator) | 2026-09-14 | fix omitted PIN cookies causing connect/project reload loops |
+| A008-0100 | discard ended GUI session after close failure | Codex (operator) | 2026-09-14 | unblock project switching after host replaces the ACP process |
