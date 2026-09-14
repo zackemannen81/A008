@@ -2,6 +2,9 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+A008-0106 adds `docs/CLIENT_API_V2.md`, the accepted protocol/lifecycle target,
+and `docs/adr/0041-client-api-v2-and-ownership.md`, its decision/authority record.
+
 A008-0105 extends `packages/protocol/src` with `http-schemas.ts`, operation/schema
 mapping and OpenAPI derivation in `http-operations.ts`, and pure compatibility
 parsers in `http-parsers.ts`, `upload-parser.ts`, `shell-parser.ts`. Generated

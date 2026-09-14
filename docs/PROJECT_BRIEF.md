@@ -62,6 +62,10 @@ add-on model for capabilities such as semantic memory.
 
 ## Approved product direction
 
+- ADR 0041 resolves the frozen API program's V2, ownership, authentication and
+  recovery decisions. CLIENT_API_V2.md specifies the target; verified availability
+  remains in CURRENT_STATUS. Existing v1/ACP and knowledge bindings stay protected.
+
 - ADR 0040 adopts the frozen seven-stage client API program. Existing v1/ACP
   compatibility and project data remain obligations; implementation proceeds
   through bounded children. Acceptance does not claim V2 availability.

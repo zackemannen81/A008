@@ -1,36 +1,111 @@
-# A008-0106 - Client API decisions
+# Current Task
 
-Task ID: A008-0106
-Parent Task: A008-0103
-Status: Ready
-Owner: Codex (operator)
-Created: 2026-09-14
-Charter frozen at: 2026-09-14
+Task ID:
+Parent Task: None
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
 
-## Frozen charter
-Goal: resolve the V2, project/session ownership, auth and recovery decisions
-required before the next program implementations.
-Deliverable: accepted ADR and implementable protocol/lifecycle decision record.
-Scope: existing-data binding; shared runtime ownership; v1/ACP compatibility;
-identities, transport/DTO boundaries, auth profiles and scopes; turn/event,
-snapshot/idempotency limits; release/platform verification obligations.
-Out of scope: runtime implementation, database migration, durable conversation,
-background runs, multiple writers to one session, new native product features.
-Done: choices and failure outcomes are explicit, consistent with frozen program
-and current code; next implementation gates recorded; docs/hash/links/fences,
-archive/handoff/template pass. Owner authorized push/PR/merge for this task.
+## Read First
 
-## Necessity Gate
-Contract: PROJECT_BRIEF at 5ff163d, PC-01/04/05/06, ADR 0040 and A008-0103.
-Supported clients must share existing runtime/knowledge owners (PC-01/04), retain
-execution/credential controls (PC-05) and supported user surfaces (PC-06).
-The next code cannot safely choose project-data binding or invent auth/recovery
-semantics independently. Smallest sufficient approach: one accepted decision
-record over existing HTTP/WS and runtime boundaries. Verify each chosen behavior
-against engine host, standalone bridge, runtime config/identity and the frozen
-plan; record implementation obligations instead of claiming unbuilt guarantees.
+- `AGENTS.md`
+- `docs/TASK_WORKFLOW.md`
+- `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/SYSTEMDOC.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant records under `docs/adr/`
 
-## Mutable checklist / verification
-- [ ] Resolve and document decisions.
-- [ ] Check consistency, scope, links/fences and frozen plan hash.
-- [ ] Archive/handoff/template; push, PR and merge; operator journal.
+## Task Summary
+
+Describe why this bounded task is active now and its intended outcome.
+
+## Task Charter
+
+### Goal
+
+Define one primary outcome.
+
+### Primary Deliverable
+
+Name the concrete artifact or behavior.
+
+### In Scope
+
+- List work required for the deliverable.
+
+### Out of Scope
+
+- List adjacent work that must not be absorbed.
+
+### Definition of Done
+
+- State objective completion conditions.
+
+### Necessity Gate
+
+Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
+Contract revision: <Git commit containing the reviewed contract>
+
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
+
+| Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
+| --- | --- | --- | --- | --- |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
+
+### Minimum Verification Gates
+
+- [ ] Define checks that may be strengthened but not removed after Ready.
+
+## References
+
+- Add owned documents, source revisions, contracts, and decisions.
+
+## Checklist
+
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
+
+## Decisions and Notes
+
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+
+## Charter Amendment Log
+
+- none
+
+## Verification
+
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
+
+## Documentation Updates
+
+- [ ] `docs/CURRENT_STATUS.md`
+- [ ] `docs/SYSTEMDOC.md`
+- [ ] `docs/JOURNAL.md`
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
+
+## Handoff and Follow-ups
+
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.

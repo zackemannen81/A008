@@ -26,7 +26,7 @@ existing client silently breaks and no project silently receives empty memory.
 ## Stage checklist (mutable observed progress)
 | Stage | Status | Child / next gate |
 | --- | --- | --- |
-| 1. Current contract | In Progress | A008-0104 merged; A008-0105 HTTP closure complete locally. V2 decision proposal remains before ownership implementation |
+| 1. Current contract | Complete | A008-0104/0105 merged; A008-0106 accepts V2/ownership/auth/recovery decisions |
 | 2. Project/session ownership | Not started | Explicit existing-data attachment, compatible v1/ACP |
 | 3. V2 and auth | Not started | Precise accepted wire/security decision before code |
 | 4. Turns and recovery | Not started | Snapshot boundary, idempotency, cancellation/restart proof |
@@ -44,6 +44,10 @@ completed the session foundation: shared installed package, 90 compatibility
 cases, actual host frames/models, full tests and portable engine proof pass.
 A008-0105 completes the HTTP contract closure: 35 shared schema components,
 generated OpenAPI, 52 legacy cases and all HTTP operations verified on a real
-test host. Full tests and installed/portable package proofs pass. The remaining
-stage-1 gate is the V2 decision proposal. No V2/auth, ownership/recovery redesign,
+test host. Full tests and installed/portable package proofs pass. A008-0106 closes the
+stage-1 V2 decision gate. No V2/auth, ownership/recovery redesign,
 SDK migration or Expo proof has been delivered yet.
+
+A008-0106 closes the stage-1 decision gate through ADR 0041 and CLIENT_API_V2.md.
+The owner authorized autonomous remaining decisions/tasks and per-task push/PR/merge.
+No later implementation stage is complete merely because its design is decided.

@@ -5,6 +5,11 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0106 accepts ADR 0041 and CLIENT_API_V2.md for the next implementation stages.
+Stage 1 is complete: v1 contracts/inventory and the V2 decision gate are covered.
+V2 endpoints, shared project/session facade, device auth and recovery guarantees
+remain accepted targets, not implemented availability.
+
 A008-0105 completes the shared v1 HTTP transport contracts: 35 schema components,
 21 inventory rows / 22 HTTP methods and generated OpenAPI 3.1.1. Host/core/GUI
 types share the package; existing client parsing/tolerance and runtime policy
