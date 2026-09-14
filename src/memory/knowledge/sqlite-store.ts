@@ -1,4 +1,5 @@
-import { AssociationLifecycle, EMPTY_ASSOCIATIONS, type AssociationRecord, type AssociationReceipt, type AssociationTransition, type AssociationSnapshot } from "./association-lifecycle.js";
+import { insertKnowledgeSnapshot, updateKnowledgeSnapshot } from "./sqlite-rows.js";
+import { AssociationLifecycle, type AssociationRecord, type AssociationReceipt, type AssociationTransition, type AssociationSnapshot } from "./association-lifecycle.js";
 import { migrateLegacyLifecycle, operationalTime, validateLifecycle } from "./lifecycle.js";
 import type { ReinforcementReceipt } from "./lifecycle-types.js";
 import Database from "better-sqlite3";
@@ -8,7 +9,6 @@ import type { ProjectId } from "../../identity/types.js";
 import type { KnowledgeItem } from "../types.js";
 import {
   deserializeInstant,
-  serializeInstant,
   UNKNOWN_INSTANT,
 } from "./clocks.js";
 import { KnowledgeModelError } from "./errors.js";
@@ -20,7 +20,6 @@ import type {
   LifecycleTransition,
 } from "./lifecycle-types.js";
 import type { LabelRecord } from "./labels.js";
-import { slotKey } from "./registry.js";
 import type { RelationLink } from "./expand.js";
 import type {
   Binding,
@@ -111,10 +110,6 @@ function parseJson<T>(raw: string, field: string): T {
   }
 }
 
-function instantColumn(instant: Instant): string {
-  return serializeInstant(instant);
-}
-
 function readInstant(raw: string): Instant {
   return deserializeInstant(raw);
 }
@@ -138,6 +133,12 @@ export class SqliteKnowledgeStore {
   revision(): string {
     const local = this.database.prepare("SELECT total_changes() AS n").get() as { n: number };
     return `${this.database.pragma("data_version", { simple: true })}:${local.n}`;
+  }
+  revisionAfterCommit(lockedRevision: string): string {
+    const local = this.database.prepare("SELECT total_changes() AS n").get() as { n: number };
+    // Preserve the external version observed under the write lock. Reading a
+    // newer data_version after releasing it could hide another owner's commit.
+    return `${lockedRevision.split(":")[0]}:${local.n}`;
   }
   atomic<T>(operation: () => T): T { this.requireOpen(); return this.database.transaction(operation).immediate(); }
 
@@ -387,318 +388,15 @@ export class SqliteKnowledgeStore {
 
   replaceNamespace(snapshot: KnowledgeNamespaceSnapshot): void {
     this.requireOpen();
-    const persist = this.database.transaction(() => {
+    this.database.transaction(() => {
       this.clearNamespace();
-      this.database
-        .prepare(
-          `INSERT INTO A008_knowledge_meta(
-             namespace, state_next_transition, lifecycle_next_transition
-           ) VALUES (?, ?, ?)`,
-        )
-        .run(
-          this.namespace,
-          snapshot.stateNextTransition,
-          snapshot.lifecycleNextTransition,
-        );
-      const insertEntity = this.database.prepare(
-        `INSERT INTO A008_knowledge_entities(
-           namespace, id, type, labels_json, payload_json
-         ) VALUES (?, ?, ?, ?, ?)`,
-      );
-      const insertLabel = this.database.prepare(
-        `INSERT INTO A008_knowledge_entity_labels(namespace, entity_id, label)
-         VALUES (?, ?, ?)`,
-      );
-      for (const entity of snapshot.entities) {
-        insertEntity.run(
-          this.namespace,
-          entity.id,
-          entity.type,
-          JSON.stringify(entity.labels),
-          JSON.stringify(entity),
-        );
-        for (const label of entity.labels) {
-          insertLabel.run(this.namespace, entity.id, label);
-        }
-      }
-      const insertSlot = this.database.prepare(
-        `INSERT INTO A008_knowledge_slots(
-           namespace, slot_key, kind, cardinality, value_type, ref_json, payload_json
-         ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      );
-      for (const slot of snapshot.slots) {
-        insertSlot.run(
-          this.namespace,
-          slotKey(slot.ref),
-          slot.ref.kind,
-          slot.cardinality,
-          slot.valueType,
-          JSON.stringify(slot.ref),
-          JSON.stringify(slot),
-        );
-      }
-      const insertBinding = this.database.prepare(
-        `INSERT INTO A008_knowledge_bindings(
-           namespace, slot_key, claim_id, kind, label, value_json, object_id,
-           valid_from, valid_to, caused_by, payload_json
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      );
-      const insertSlotIndex = this.database.prepare(
-        `INSERT INTO A008_knowledge_slot_index(
-           namespace, slot_key, claim_id, valid_from, is_open
-         ) VALUES (?, ?, ?, ?, ?)`,
-      );
-      for (const binding of snapshot.state.bindings) {
-        const from = instantColumn(binding.interval.from);
-        const to =
-          binding.interval.to === null
-            ? null
-            : instantColumn(binding.interval.to);
-        const key = slotKey(binding.slot);
-        const value =
-          binding.kind === "attribute" ? binding.value : binding.object;
-        insertBinding.run(
-          this.namespace,
-          key,
-          binding.claimId,
-          binding.kind,
-          binding.label,
-          JSON.stringify(value),
-          binding.kind === "relationship" ? String(binding.object) : null,
-          from,
-          to,
-          binding.causedBy,
-          JSON.stringify(binding),
-        );
-        insertSlotIndex.run(
-          this.namespace,
-          key,
-          binding.claimId,
-          from,
-          to === null ? 1 : 0,
-        );
-      }
-      const insertTransition = this.database.prepare(
-        `INSERT INTO A008_knowledge_transitions(
-           namespace, id, slot_key, seq, at_json, payload_json
-         ) VALUES (?, ?, ?, ?, ?, ?)`,
-      );
-      snapshot.state.transitions.forEach((transition, index) => {
-        insertTransition.run(
-          this.namespace,
-          transition.id,
-          slotKey(transition.slot),
-          index + 1,
-          instantColumn(transition.at),
-          JSON.stringify(transition),
-        );
-      });
-      const insertCorrection = this.database.prepare(
-        `INSERT INTO A008_knowledge_corrections(
-           namespace, transition_id, slot_key, payload_json
-         ) VALUES (?, ?, ?, ?)`,
-      );
-      for (const correction of snapshot.state.corrections) {
-        insertCorrection.run(
-          this.namespace,
-          correction.transitionId,
-          slotKey(correction.slot),
-          JSON.stringify(correction),
-        );
-      }
-      const insertContested = this.database.prepare(
-        "INSERT INTO A008_knowledge_contested(namespace, slot_key) VALUES (?, ?)",
-      );
-      for (const key of snapshot.state.contestedSlotKeys) {
-        insertContested.run(this.namespace, key);
-      }
-      const insertSlotClaim = this.database.prepare(
-        `INSERT INTO A008_knowledge_slot_claims(
-           namespace, id, slot_key, payload_json
-         ) VALUES (?, ?, ?, ?)`,
-      );
-      for (const claim of snapshot.state.claims) {
-        insertSlotClaim.run(
-          this.namespace,
-          claim.id,
-          slotKey(claim.slot),
-          JSON.stringify(claim),
-        );
-      }
-      const insertEvent = this.database.prepare(
-        "INSERT INTO A008_knowledge_events(namespace, id, payload_json) VALUES (?, ?, ?)",
-      );
-      for (const event of snapshot.state.events) {
-        insertEvent.run(this.namespace, event.id, JSON.stringify(event));
-      }
-      const insertArtifact = this.database.prepare(
-        `INSERT INTO A008_knowledge_artifacts(
-           namespace, id, content_kind, locator, ingested_at, payload_json
-         ) VALUES (?, ?, ?, ?, ?, ?)`,
-      );
-      for (const artifact of snapshot.artifacts) {
-        insertArtifact.run(
-          this.namespace,
-          artifact.id,
-          artifact.contentKind,
-          artifact.locator,
-          instantColumn(artifact.ingestedAt),
-          JSON.stringify(artifact),
-        );
-      }
-      const insertUtterance = this.database.prepare(
-        `INSERT INTO A008_knowledge_utterances(
-           namespace, id, speaker, act, payload_json
-         ) VALUES (?, ?, ?, ?, ?)`,
-      );
-      for (const utterance of snapshot.utterances) {
-        insertUtterance.run(
-          this.namespace,
-          utterance.id,
-          utterance.speaker,
-          utterance.act,
-          JSON.stringify(utterance),
-        );
-      }
-      const insertClaim = this.database.prepare(
-        `INSERT INTO A008_knowledge_claims(
-           namespace, id, status, payload_json
-         ) VALUES (?, ?, ?, ?)`,
-      );
-      for (const claim of snapshot.claims) {
-        insertClaim.run(
-          this.namespace,
-          claim.id,
-          claim.status,
-          JSON.stringify(claim),
-        );
-      }
-      const insertProvenance = this.database.prepare(
-        `INSERT INTO A008_knowledge_provenance(
-           namespace, id, payload_json
-         ) VALUES (?, ?, ?)`,
-      );
-      for (const record of snapshot.provenance) {
-        insertProvenance.run(this.namespace, record.id, JSON.stringify(record));
-      }
-      const insertLabels = this.database.prepare(
-        `INSERT INTO A008_knowledge_labels(
-           namespace, record_id, record_kind, payload_json
-         ) VALUES (?, ?, ?, ?)`,
-      );
-      const insertLabelIndex = this.database.prepare(
-        `INSERT OR IGNORE INTO A008_knowledge_label_index(
-           namespace, record_id, axis, value
-         ) VALUES (?, ?, ?, ?)`,
-      );
-      for (const record of snapshot.labels) {
-        insertLabels.run(
-          this.namespace,
-          record.recordId,
-          record.recordKind,
-          JSON.stringify(record),
-        );
-        // The payload is the record; the index is what a lookup reads. Both are
-        // written from the same normalised values so they cannot disagree.
-        for (const tag of record.tags) {
-          insertLabelIndex.run(this.namespace, record.recordId, "tag", tag);
-        }
-        for (const domain of record.domains) {
-          insertLabelIndex.run(this.namespace, record.recordId, "domain", domain);
-        }
-      }
-      const insertLifecycle = this.database.prepare(
-        `INSERT INTO A008_knowledge_lifecycle(
-           namespace, evidence_id, evidence_kind, payload_json
-         ) VALUES (?, ?, ?, ?)`,
-      );
-      const insertReceipt = this.database.prepare("INSERT INTO A008_knowledge_reinforcement_receipts(namespace, occurrence_id, evidence_id, payload_json) VALUES (?, ?, ?, ?)");
-      for (const receipt of snapshot.lifecycle.receipts ?? []) insertReceipt.run(this.namespace, receipt.occurrenceId, receipt.evidenceId, JSON.stringify(receipt));
-      for (const record of snapshot.lifecycle.records) {
-        insertLifecycle.run(
-          this.namespace,
-          record.evidenceId,
-          record.evidenceKind,
-          JSON.stringify(record),
-        );
-      }
-      const insertLifeTransition = this.database.prepare(
-        `INSERT INTO A008_knowledge_lifecycle_transitions(
-           namespace, id, evidence_id, seq, payload_json
-         ) VALUES (?, ?, ?, ?, ?)`,
-      );
-      snapshot.lifecycle.transitions.forEach((transition, index) => {
-        insertLifeTransition.run(
-          this.namespace,
-          transition.id,
-          transition.evidenceId,
-          index + 1,
-          JSON.stringify(transition),
-        );
-      });
-      const insertRelation = this.database.prepare(
-        `INSERT INTO A008_knowledge_relations(
-           namespace, from_id, to_id, relation
-         ) VALUES (?, ?, ?, ?)`,
-      );
-      for (const link of snapshot.relations) {
-        insertRelation.run(
-          this.namespace,
-          link.from,
-          link.to,
-          link.relation,
-        );
-      }
-      const associations = snapshot.associations ?? EMPTY_ASSOCIATIONS;
-      new AssociationLifecycle().hydrate(associations);
-      const insertAssociation = this.database.prepare("INSERT INTO A008_knowledge_association_lifecycle(namespace, edge_key, payload_json) VALUES (?, ?, ?)");
-      for (const record of associations.records) insertAssociation.run(this.namespace, record.key, JSON.stringify(record));
-      const insertAssociationReceipt = this.database.prepare("INSERT INTO A008_knowledge_association_receipts(namespace, occurrence_id, edge_key, payload_json) VALUES (?, ?, ?, ?)");
-      for (const receipt of associations.receipts) insertAssociationReceipt.run(this.namespace, receipt.occurrenceId, receipt.edgeKey, JSON.stringify(receipt));
-      const insertAudit = this.database.prepare("INSERT INTO A008_knowledge_association_transitions(namespace, seq, payload_json) VALUES (?, ?, ?)");
-      associations.transitions.forEach((transition, index) => insertAudit.run(this.namespace, index + 1, JSON.stringify(transition)));
-      this.rebuildFts(snapshot);
-    });
-    persist();
+      insertKnowledgeSnapshot(this.database, this.namespace, snapshot);
+    })();
   }
 
-  private rebuildFts(snapshot: KnowledgeNamespaceSnapshot): void {
-    this.database
-      .prepare("DELETE FROM A008_knowledge_fts WHERE namespace = ?")
-      .run(this.namespace);
-    const insert = this.database.prepare(
-      `INSERT INTO A008_knowledge_fts(namespace, record_kind, record_id, labels)
-       VALUES (?, ?, ?, ?)`,
-    );
-    for (const entity of snapshot.entities) {
-      insert.run(
-        this.namespace,
-        "entity",
-        entity.id,
-        entity.labels.join(" "),
-      );
-    }
-    for (const slot of snapshot.slots) {
-      const name = slot.ref.kind === "attribute" ? slot.ref.name : slot.ref.name;
-      insert.run(this.namespace, "slot", slotKey(slot.ref), name);
-    }
-    for (const binding of snapshot.state.bindings) {
-      insert.run(
-        this.namespace,
-        "binding",
-        `${slotKey(binding.slot)}:${binding.claimId}`,
-        binding.label,
-      );
-    }
-    for (const utterance of snapshot.utterances) {
-      insert.run(this.namespace, "utterance", utterance.id, utterance.content);
-    }
-    for (const claim of snapshot.claims) {
-      insert.run(this.namespace, "claim", claim.id, claim.label);
-    }
-    for (const event of snapshot.state.events) {
-      insert.run(this.namespace, "event", event.id, event.label);
-    }
+  /** Caller captures before under atomic() after refreshing its revision. */
+  updateNamespace(before: KnowledgeNamespaceSnapshot, after: KnowledgeNamespaceSnapshot): void {
+    this.atomic(() => updateKnowledgeSnapshot(this.database, this.namespace, before, after));
   }
 
   private clearNamespace(): void {
