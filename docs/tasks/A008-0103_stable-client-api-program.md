@@ -26,7 +26,7 @@ existing client silently breaks and no project silently receives empty memory.
 ## Stage checklist (mutable observed progress)
 | Stage | Status | Child / next gate |
 | --- | --- | --- |
-| 1. Current contract | In Progress | A008-0104 transport/session foundation; full HTTP schema closure follows if needed |
+| 1. Current contract | In Progress | A008-0104 transport/session foundation complete locally; inventory confirms full HTTP schema closure is needed next |
 | 2. Project/session ownership | Not started | Explicit existing-data attachment, compatible v1/ACP |
 | 3. V2 and auth | Not started | Precise accepted wire/security decision before code |
 | 4. Turns and recovery | Not started | Snapshot boundary, idempotency, cancellation/restart proof |
@@ -39,4 +39,9 @@ Child completion does not imply program completion. Children archive evidence
 and restore CURRENT_TASK. The operator updates this progress table.
 
 ## Verification
-Plan frozen by ADR 0040 with normalized body hash. Implementation pending.
+Plan frozen by ADR 0040 with normalized body hash. First child A008-0104 has
+completed the session foundation: shared installed package, 90 compatibility
+cases, actual host frames/models, full tests and portable engine proof pass.
+The HTTP inventory confirms remaining independent payload owners. Complete those
+in a bounded next stage-1 child before marking this stage complete. No V2/auth,
+ownership/recovery redesign, SDK migration or Expo proof has been delivered yet.

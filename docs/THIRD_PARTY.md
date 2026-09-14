@@ -8,7 +8,7 @@ and must be reviewed before distribution.
 | Package/source | Pinned version/revision | License | Use |
 | --- | --- | --- | --- |
 | `@agentclientprotocol/sdk` | 1.4.0 | Apache-2.0 | Official stable ACP v1 types, validation, JSON-RPC, and stdio stream implementation. |
-| `zod` | 4.5.4 | MIT | Required runtime peer for ACP schema validation. |
+| `zod` | 4.5.4 | MIT | ACP schema validation and shared v1 protocol validation in host/client; portable builds include `licenses/zod.txt` for bundled GUI code. |
 | `better-sqlite3` | 13.0.3 | MIT | Synchronous SQLite runtime used by the explicitly configured local semantic-memory repository and retrieval index. |
 | `pdfjs-dist` | 6.3.289 | Apache-2.0 | Mozilla's PDF reference implementation. Used for text-layer extraction only, imported lazily by `src/ingest/pdf-extractor.ts` so no other code path loads it. Authorised by the owner and recorded in ADR 0020 D11. |
 | OpenHands Agent Canvas | `744e8652f254613045b779eb148bf4f741177975` | MIT | External integration evidence only; not copied and not an npm dependency. |

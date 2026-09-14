@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url";
 import { acpFailure, createSpawnedAcpBridge, type AcpBridge } from "../src/gui-host/acp-bridge.js";
 import { isAllowedOrigin, parseAllowedOrigins } from "../src/gui-host/origin.js";
 import { parseClientMessage } from "../src/gui-host/protocol.js";
+import { hostServerMessageSchema, modelsResponseSchema } from "../packages/protocol/src/index.js";
 import { redactWireText } from "../src/gui-host/redact.js";
 import { startGuiHost, type GuiHost, type GuiHostOptions } from "../src/gui-host/server.js";
 
@@ -131,6 +132,7 @@ class SessionClient {
       const raw = String(event.data);
       this.raw.push(raw);
       const parsed = JSON.parse(raw) as unknown;
+      assert.equal(hostServerMessageSchema.safeParse(parsed).success, true, `Host output violates shared v1 schema: ${raw}`);
       const waiter = this.#waiters.shift();
       if (waiter !== undefined) {
         waiter(parsed);
@@ -274,6 +276,7 @@ test("GET /health and /v1/models do not require a credential", async () => {
     assert.deepEqual(health.body, { ok: true, name: "A008-gui-host" });
     const models = await httpJson(host, "/v1/models");
     assert.equal(models.status, 200);
+    assert.equal(modelsResponseSchema.safeParse(models.body).success, true);
     // The route lists whatever the registry holds, so this asserts the shape
     // and the default's presence rather than a fixed list that grows with it.
     const listed = (models.body as { models: { id: string; name: string }[] }).models;

@@ -1,29 +1,8 @@
 import { ChatError } from "./errors.js";
 import type { ChatGenerationOptions, ModelProfile } from "./types.js";
 
-/** Complete replacement settings. Null means omit, even over runtime defaults. */
-export interface SessionParameters {
-  stream: boolean;
-  temperature: number | null;
-  topP: number | null;
-  maxTokens: number;
-  enableThinking: boolean | null;
-  reasoningBudget: number | null;
-  reasoningEffort: string | null;
-  seed: number | null;
-  stop: readonly string[] | null;
-}
-
-export interface GenerationCapabilities {
-  readonly maxTokens: number;
-  readonly topP: boolean;
-  readonly thinking: boolean;
-  readonly reasoningBudget: number | null;
-  readonly reasoningEfforts: readonly string[];
-  readonly seed: boolean;
-  readonly stop: boolean;
-  readonly verifiedOn: string;
-}
+import type { SessionParameters, GenerationCapabilities } from "../../packages/protocol/src/index.js";
+export type { SessionParameters, GenerationCapabilities } from "../../packages/protocol/src/index.js";
 
 // Hosted NVIDIA API schemas, checked 2026-09-06 (sources in ADR 0026).
 // This describes exposed controls, not every capability of model weights.

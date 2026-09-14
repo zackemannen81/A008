@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "name": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "defaults": {
+            "type": "object",
+            "properties": {
+              "stream": {
+                "type": "boolean"
+              },
+              "temperature": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema1"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "topP": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema1"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "maxTokens": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "enableThinking": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "reasoningBudget": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema1"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reasoningEffort": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema0"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "seed": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema1"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "stop": {
+                "anyOf": [
+                  {
+                    "readOnly": true,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/__schema0"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "stream",
+              "temperature",
+              "topP",
+              "maxTokens",
+              "enableThinking",
+              "reasoningBudget",
+              "reasoningEffort",
+              "seed",
+              "stop"
+            ]
+          },
+          "capabilities": {
+            "type": "object",
+            "properties": {
+              "maxTokens": {
+                "$ref": "#/$defs/__schema1"
+              },
+              "topP": {
+                "type": "boolean"
+              },
+              "thinking": {
+                "type": "boolean"
+              },
+              "reasoningBudget": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema1"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "reasoningEfforts": {
+                "readOnly": true,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              "seed": {
+                "type": "boolean"
+              },
+              "stop": {
+                "type": "boolean"
+              },
+              "verifiedOn": {
+                "$ref": "#/$defs/__schema0"
+              }
+            },
+            "required": [
+              "maxTokens",
+              "topP",
+              "thinking",
+              "reasoningBudget",
+              "reasoningEfforts",
+              "seed",
+              "stop",
+              "verifiedOn"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "defaults",
+          "capabilities"
+        ]
+      }
+    }
+  },
+  "required": [
+    "models"
+  ],
+  "$defs": {
+    "__schema0": {
+      "type": "string"
+    },
+    "__schema1": {
+      "type": "number"
+    }
+  }
+}

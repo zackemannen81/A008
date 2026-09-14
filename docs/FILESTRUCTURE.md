@@ -2,6 +2,17 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+A008-0103 records the frozen API program in `docs/tasks/` and ADR 0040. Its first
+child A008-0104 adds `packages/protocol/`: pure TypeScript schema/type/parser
+source, five generated JSON schemas, 90 legacy compatibility fixtures, package
+README/license and an independent build. Existing host/core/GUI wire modules
+adapt that shared source. `test/protocol-contract.test.ts` checks fixtures,
+schema drift, source boundaries and route inventory; existing host tests check
+real output against the schemas. `scripts/generate-protocol-schemas.mjs` derives
+artifacts; `scripts/verify-protocol-package.mjs` verifies an independently installed
+consumer. `docs/HOST_PROTOCOL_V1_INVENTORY.md` maps every HTTP/WS operation to its
+current auth/context/owner. The engine bundler includes the compiled protocol.
+
 A008-0101 adds `src/memory/knowledge/sqlite-rows.ts`, the shared schema-4 row
 serialization and keyed delta writer used by the existing SQLite store/context.
 `scripts/benchmark-knowledge-persistence.mjs` compares bulk and incremental

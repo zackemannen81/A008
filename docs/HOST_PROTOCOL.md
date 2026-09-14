@@ -1,5 +1,12 @@
 # A008 GUI host protocol v1
 
+A008-0104 gives the existing WebSocket/session/model/runtime-preference wire
+shapes one [shared package](../packages/protocol/README.md), including schemas,
+compatibility parsers and fixtures. The [complete current operation inventory](HOST_PROTOCOL_V1_INVENTORY.md)
+records HTTP/WS auth, context and remaining payload owners. V1 tolerance and
+runtime policy are unchanged; this extraction does not make the planned V2 API
+available or remove the standalone global workspace.
+
 A008-0068 (ADR 0029) adds optional `state.runtime.tools` to session snapshots:
 an array of `{ name: string, description: string }` for the runtime's native
 model tools. It is informational; calls and permissions use the existing tool

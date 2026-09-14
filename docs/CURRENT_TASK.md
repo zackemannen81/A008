@@ -1,56 +1,111 @@
-# A008-0104 — Shared v1 protocol foundation
+# Current Task
 
-Task ID: A008-0104
-Parent Task: A008-0103
-Status: Ready
-Owner: Codex (operator)
-Created: 2026-09-14
-Charter frozen at: 2026-09-14
+Task ID:
+Parent Task: None
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
 
-## Goal
-Give existing host/client session wire structures one independently usable owner
-and characterize the complete HTTP/WS surface without changing v1 behavior.
+## Read First
 
-## Primary deliverable
-Pure protocol package used by host and GUI, schemas/fixtures, full route inventory
-and real-consumer verification.
+- `AGENTS.md`
+- `docs/TASK_WORKFLOW.md`
+- `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/SYSTEMDOC.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant records under `docs/adr/`
 
-## In scope
-WS envelopes, session/control/model/runtime-preference wire contracts; shared
-validators/serialization and schema artifacts; old acceptance compatibility;
-all HTTP route ownership/auth/context inventory; necessary build/package wiring.
+## Task Summary
 
-## Out of scope
-V2 behavior, workspace redesign, new auth, durable/replayed conversations, new
-endpoints, full HTTP-payload/SDK migration, Expo/Tauri, provider calls, restart
-or publication. HTTP contracts beyond session/model/settings are a subsequent
-stage-1 child if inventory shows independent existing owners.
+Describe why this bounded task is active now and its intended outcome.
 
-## Definition of done and minimum gates
-- Host/GUI use one session/message DTO owner; old acceptance asymmetries tested.
-- Package has no runtime, filesystem, React or provider imports.
-- Every HTTP/WS operation inventoried with auth/context/owner.
-- Actual host frames/session-related HTTP responses satisfy shared contracts;
-  malformed/old/unknown-addition fixtures and PIN/panel behavior still pass.
-- Independent package install/import and engine package inclusion verified.
-- Root build, full npm test and production GUI build pass.
-- Owning docs, archive/handoff, links/fences/diff and template identity pass.
+## Task Charter
 
-## Necessity Gate
-Contract revision f4dffcd; PC-01/05/06; ADR 0040 and existing
-ADR 0019/0026/0027/0028/0037 v1 compatibility constraints.
+### Goal
 
-| Change | Need and omission | Smallest approach | Verification |
-| --- | --- | --- | --- |
-| Shared wire owner | Separate server/GUI declarations can drift; independent clients lack a single contract | Pure package and thin existing-path adapters, preserve tolerance/errors | Fixture parity, real host frames, independent consumer |
-| Route inventory | Global/session/admin scopes are implicit | Describe every operation without adding endpoints | Dispatcher/inventory and host tests |
-| Packaging | Moved contracts must not break shipped consumers | Include compiled contracts in existing build/package | Root/GUI build, package import and engine proof |
+Define one primary outcome.
+
+### Primary Deliverable
+
+Name the concrete artifact or behavior.
+
+### In Scope
+
+- List work required for the deliverable.
+
+### Out of Scope
+
+- List adjacent work that must not be absorbed.
+
+### Definition of Done
+
+- State objective completion conditions.
+
+### Necessity Gate
+
+Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
+Contract revision: <Git commit containing the reviewed contract>
+
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
+
+| Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
+| --- | --- | --- | --- | --- |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
+
+### Minimum Verification Gates
+
+- [ ] Define checks that may be strengthened but not removed after Ready.
+
+## References
+
+- Add owned documents, source revisions, contracts, and decisions.
 
 ## Checklist
-- [ ] Characterize parsers and routes.
-- [ ] Extract contracts/schemas preserving compatibility.
-- [ ] Wire consumers and package; verify real boundaries.
-- [ ] Archive, handoff and restore current-task template.
+
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
+
+## Decisions and Notes
+
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+
+## Charter Amendment Log
+
+- none
 
 ## Verification
-Pending.
+
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
+
+## Documentation Updates
+
+- [ ] `docs/CURRENT_STATUS.md`
+- [ ] `docs/SYSTEMDOC.md`
+- [ ] `docs/JOURNAL.md`
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
+
+## Handoff and Follow-ups
+
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.

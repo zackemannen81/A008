@@ -8,7 +8,7 @@ replacement.
 
 ## Records
 
-- [0040-stable-client-api-program.md](0040-stable-client-api-program.md) — Accepted; frozen client API target and sequential implementation.
+- [0040-stable-client-api-program.md](0040-stable-client-api-program.md) â€” Accepted; frozen client API target and sequential implementation.
 
 
 - [0039-project-bootstrap.md](0039-project-bootstrap.md)

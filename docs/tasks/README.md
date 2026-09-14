@@ -11,8 +11,8 @@ the template before push.
 
 ## Records
 
-- [A008-0103_stable-client-api-program.md](A008-0103_stable-client-api-program.md) — Active frozen program.
-- [A008-0104_shared-v1-contract.md](A008-0104_shared-v1-contract.md) — First frozen child.
+- [A008-0103_stable-client-api-program.md](A008-0103_stable-client-api-program.md) â€” Active frozen program.
+- [A008-0104_shared-v1-contract.md](A008-0104_shared-v1-contract.md) â€” First frozen child.
 
 
 - [A008-0094_project-bootstrap.md](A008-0094_project-bootstrap.md)
