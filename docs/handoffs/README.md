@@ -11,6 +11,9 @@ authority. Workers do not append `docs/JOURNAL.md`.
 
 ## Required fields
 
+Latest persistence handoff: [A008-0101](A008-0101.md) — incremental SQLite
+knowledge writes; verified locally, pending integration.
+
 Latest local handoffs: [A008-0093](A008-0093.md) — global Neutral/Deep Space
 theme system;
 [A008-0071](A008-0071.md) — NVIDIA catalog and images;

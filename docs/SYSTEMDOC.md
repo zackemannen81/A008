@@ -551,6 +551,27 @@ the existing runtime owner; existing-client saves preserve it.
 
 The v0 compatibility engine retains its old contract.
 
+## SQLite persistence boundary (A008-0101)
+
+The context refreshes a stale revision under the existing immediate write lock,
+captures a before snapshot, runs the complete synchronous operation and persists
+the before/after row differences. Nested mutations share that transaction.
+`sqlite-rows.ts` owns one row serialization for incremental writes and explicit
+bulk replacement; the schema and knowledge semantics are unchanged. Rows use
+their existing composite keys. Removed rows are deleted, changed rows upserted,
+and unchanged rows execute no mutation SQL. Derived entity-label, semantic-label,
+slot and FTS indexes commit with their owning records. FTS preserves repeated
+historical binding entries and replaces only changed record groups.
+
+Failure rolls back SQLite and reloads the context. Revision tracking incorporates
+local FTS writes completed at commit while retaining the external data version
+observed under the lock, so a concurrent post-commit write cannot be masked.
+Explicit persist still rejects stale context. Bulk namespace replacement remains
+available for migration/import callers; ordinary context writes never clear it.
+Snapshot capture, serialization and comparison remain proportional to project
+size. This change reduces SQL write volume, not in-memory working-set size or
+all processing to constant time. Reads and lazy L2/L3 decay remain write-free.
+
 ## Independent association lifecycle (L3)
 
 A008-0082 implements ADR 0035 P6 alongside RelationIndex. Its

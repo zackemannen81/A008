@@ -5,6 +5,16 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0101 replaces ordinary full-namespace SQLite writes with keyed row deltas.
+Evidence and association baselines, receipts, audit and derived indexes still
+commit atomically; unchanged rows and no-op writes are untouched. Lazy decay,
+active/dormant evaluation, retrieval and schema 4 are unchanged. The bulk writer
+remains for explicit replacement/migration. Snapshot capture and comparison still
+scale with project size; this is not engine-wide dirty tracking. Offline tests
+and synthetic measurements are recorded in
+[the evidence](evidence/A008-0101_incremental-persistence.md). The running host
+and existing user databases were not restarted or migrated during verification.
+
 A008-0099 fixes the standalone Connect/project-open reload loop. Shell workspace
 reads and source uploads retain same-origin PIN cookies. Their previous explicit
 cookie omission caused PIN 401 responses after a successful session handshake;
