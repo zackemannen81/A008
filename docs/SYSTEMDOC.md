@@ -273,6 +273,14 @@ legitimately discussing those names is shown redacted. The host may call
 NVIDIA catalog/image endpoints and kie.ai job endpoints; chat completions still
 run in the ACP subprocess.
 
+The bundled renderer installs one standalone-auth recovery guard before React mounts. For same-origin `/v1/*` fetches only, an exact host PIN-gate `401 Authentication required.` response sends the browser back to `/`, where the existing login page owns re-authentication. The guard reads a cloned response, does not consume the caller body, and is disabled when a valid native `#engine=` capability is present. Other 401 responses keep their existing semantics.
+
+Shell and source-upload fetches use `credentials: "same-origin"` so the browser
+sends its existing HttpOnly PIN cookie to the GUI host. The renderer does not
+read that cookie. Native engine headers remain supported. Omitting cookies from
+these requests would falsely trigger PIN recovery after workspace observations
+run on successful Connect (A008-0099).
+
 Three boundaries protect the shell surface. Any request carrying an `Origin`
 that is neither same-origin nor loopback is refused with 403 on every route and
 on the WebSocket upgrade. Standalone hosts may additionally set the exact
@@ -359,6 +367,14 @@ written for one; document text through it would be a dialogue-shaped judgement
 recorded as fact.
 
 ## A008 GUI client
+
+Explicit GUI `endSession` always runs local teardown after its host close attempt,
+including a rejected close. The promise still reports that failure. This matters
+when project opening has already replaced the host ACP process: the existing
+project callback catches the stale close, then Connect opens a fresh session
+instead of retaining the previous ready state (A008-0100). Teardown discards the
+old socket and resume capability and rejects pending local work; it does not
+claim that a failed remote close succeeded.
 
 `gui/` is an A008-owned Vite + React + TypeScript application. ADR 0030
 introduces a neutral workspace inspired by the owner's Codex screenshot. It

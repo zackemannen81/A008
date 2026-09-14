@@ -690,6 +690,33 @@ test("model changes synchronize the client and exit closes the socket and active
   next.deliver({ type: "session/new/ok", sessionId: "sess-2", requestId: "req-5", state }); await connected;
 });
 
+test("project switch can reconnect after the old host session rejects close", async () => {
+  const client = createClient();
+  const socket = await becomeReady(client);
+  const ended = client.endSession!();
+  const rejection = assert.rejects(ended, /Unknown A008 ACP session/);
+  socket.deliver({ type: "error", requestId: "req-2", message: "Unknown A008 ACP session: sess-1" });
+  await rejection;
+  assert.equal(client.status, "idle");
+  assert.equal(client.sessionId, undefined);
+  assert.equal(client.busy, false);
+  assert.equal(socket.readyState, 3);
+  socket.deliver({ type: "answer", sessionId: "sess-1", text: "Late answer" });
+  assert.equal(client.answer, "");
+
+  const connecting = client.connect();
+  const next = fakeSockets.at(-1)!;
+  assert.notEqual(next, socket);
+  next.open();
+  assert.equal(parsedFrames(next)[0]?.type, "session/new");
+  next.deliver({ type: "session/new/ok", sessionId: "sess-2", requestId: "req-3", state: controlledState });
+  await connecting;
+  assert.equal(client.status, "ready");
+  assert.equal(client.sessionId, "sess-2");
+  assert.equal(client.error, undefined);
+  client.dispose();
+});
+
 test("malformed snapshots cannot introduce a system message into GUI history", () => {
   assert.throws(() => parseServerMessage({ type: "session/control/ok", requestId: "r", sessionId: "s", state: { ...controlledState, messages: [{ role: "system", content: "private" }] } }), /invalid session snapshot/);
 });

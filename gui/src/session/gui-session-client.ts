@@ -144,24 +144,29 @@ class GuiSessionClientImpl implements GuiSessionClient {
   };
 
   endSession = async (): Promise<void> => {
-    if (this.#snapshot.status === "ready" && this.#snapshot.sessionId !== undefined) {
-      await this.controlSession({ action: "close" });
+    try {
+      if (this.#snapshot.status === "ready" && this.#snapshot.sessionId !== undefined) {
+        await this.controlSession({ action: "close" });
+      }
+    } finally {
+      // Project opening may already have replaced the host's ACP session.
+      // Release local ownership even when that old session cannot acknowledge close.
+      this.#generation += 1;
+      this.#allowAllTools = false;
+      this.#resumeToken = undefined;
+      this.#clearReconnectTimer();
+      const failure = new Error("Session ended.");
+      this.#pendingConnect?.reject(failure);
+      this.#pendingPrompt?.reject(failure);
+      this.#pendingControl?.reject(failure);
+      this.#pendingConnect = undefined;
+      this.#pendingPrompt = undefined;
+      this.#pendingControl = undefined;
+      this.#connectWork = undefined;
+      this.#detachSocket();
+      this.#replaceSnapshot({ status: "idle", sessionId: undefined, details: undefined,
+        thought: "", answer: "", pendingText: undefined, busy: false, error: undefined });
     }
-    this.#generation += 1;
-    this.#allowAllTools = false;
-    this.#resumeToken = undefined;
-    this.#clearReconnectTimer();
-    const failure = new Error("Session ended.");
-    this.#pendingConnect?.reject(failure);
-    this.#pendingPrompt?.reject(failure);
-    this.#pendingControl?.reject(failure);
-    this.#pendingConnect = undefined;
-    this.#pendingPrompt = undefined;
-    this.#pendingControl = undefined;
-    this.#connectWork = undefined;
-    this.#detachSocket();
-    this.#replaceSnapshot({ status: "idle", sessionId: undefined, details: undefined,
-      thought: "", answer: "", pendingText: undefined, busy: false, error: undefined });
   };
 
   subscribe = (listener: () => void): (() => void) => {

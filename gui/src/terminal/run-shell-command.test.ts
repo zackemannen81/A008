@@ -138,7 +138,7 @@ export async function runTerminalModuleTests(): Promise<void> {
     assert(call !== undefined, "recorded call");
     assertEqual(call.input, SHELL_ENDPOINT, "endpoint");
     assertEqual(call.method, "POST", "method");
-    assertEqual(call.credentials, "omit", "credentials omitted");
+    assertEqual(call.credentials, "same-origin", "same-origin PIN cookie retained");
     assertEqual(call.headers["content-type"], "application/json", "json content-type");
     assertEqual(call.headers["accept"], "application/json", "json accept");
     assertEqual(call.headers["authorization"], undefined, "no authorization header");

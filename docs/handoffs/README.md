@@ -33,7 +33,8 @@ theme system;
   views with real runtime data and browser verification. Not pushed.
 
 - [`A008-0024.md`](A008-0024.md) — M3 semantic addressing. Merged 2026-09-02.
-- A008-0023 — no worker handoff file; PR #2 code is the handoff. Merged 2026-09-02.
+- [A008-0023](A008-0023.md) — implementation already integrated; PR #2 closed.
+  Late historical worker handoff incorporated during 2026-09-14 integration.
 - [`A008-0025.md`](A008-0025.md) — M4 state/history split. Merged 2026-09-02 (PR #4).
 - [`A008-0026.md`](A008-0026.md) — M5 evidence and ACCEPT. Merged 2026-09-02 (PR #3).
 - [`A008-0027.md`](A008-0027.md) — M6 lifecycle and retrieval intents. Merged 2026-09-02 (PR #5).

@@ -5,6 +5,20 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0099 fixes the standalone Connect/project-open reload loop. Shell workspace
+reads and source uploads retain same-origin PIN cookies. Their previous explicit
+cookie omission caused PIN 401 responses after a successful session handshake;
+A008-0098 then reloaded the still-authenticated app. GUI tests: 160 passed; PIN
+host tests: 3 passed; production GUI build passed. Authenticated browser Connect
+and opening an existing project from idle were verified without provider calls.
+A008-0100 also fixes switching projects while already connected: a rejected close
+of the replaced ACP session still tears down the old local socket/state so the
+existing project callback can start a fresh session. The rejection remains
+observable to callers. GUI tests: 161 passed; production build/typecheck passed;
+authenticated browser switching between existing projects passed.
+
+A008-0098 recovers expired standalone GUI PIN sessions at the existing auth boundary. Before React mounts, the bundled renderer wraps same-origin fetch responses and redirects to `/` only when a `/v1/*` request returns the host PIN gate's exact `401 Authentication required.` body. The response is inspected through `clone()`, so callers retain it unchanged. Native `#engine=` capability mode, cross-origin responses and unrelated 401s are not redirected. The six-digit PIN contract, 24-hour cookie lifetime and process-lifetime auth token are unchanged. Verification: 564 core, 4 membership and 159 GUI tests pass; GUI production build passes.
+
 A008-0094 adds host-owned project bootstrap. Projects in the sidebar can create
 a named local folder with optional Git, Docs-First starter files, multi-agent
 policy (max workers and worker-clone root, no clones) and project-scoped global

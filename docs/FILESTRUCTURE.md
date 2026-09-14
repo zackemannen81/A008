@@ -1,4 +1,4 @@
-Standalone GUI authentication remains inside the existing host boundary: `src/gui-host/pin-auth.ts` adds an optional six-digit browser gate, random cookie session and failed-attempt throttle without adding a renderer dependency or second credential owner.
+Standalone GUI authentication remains inside the existing host boundary: `src/gui-host/pin-auth.ts` adds an optional six-digit browser gate, random cookie session and failed-attempt throttle without adding a renderer dependency or second credential owner. `gui/src/session/engine-access.ts` also owns the bundled renderer's exact-match recovery from an expired standalone PIN cookie back to the existing login gate; native engine capability auth remains separate.
 
 # File Structure
 
