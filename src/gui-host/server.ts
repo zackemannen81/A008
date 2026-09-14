@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import type { HttpError, UploadedSource, ShellHostResult } from '../../packages/protocol/src/index.js';
 
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, realpathSync, statSync } from "node:fs";
@@ -720,7 +721,7 @@ async function handleHttp(input: {
         exitCode: result.exitCode,
         timedOut: result.timedOut,
         truncated: result.truncated,
-      });
+      } satisfies ShellHostResult);
       return;
     }
     if (method === "POST" && pathname === "/v1/upload") {
@@ -810,7 +811,7 @@ async function handleUpload(input: {
     mediaType,
     extracted,
     ...(artifactId === undefined ? {} : { artifactId }),
-  });
+  } satisfies UploadedSource);
 }
 
 function isOctetStreamContentType(request: IncomingMessage): boolean {
@@ -866,10 +867,7 @@ async function readUploadBody(
  * (`gui/src/terminal/run-shell-command.ts`); `error` is kept for curl and log
  * readers.
  */
-function errorBody(message: string): {
-  readonly error: string;
-  readonly message: string;
-} {
+function errorBody(message: string): HttpError {
   return { error: message, message };
 }
 

@@ -1,73 +1,13 @@
+import { MEMORY_KINDS as INSPECTION_KINDS } from '../../../packages/protocol/src/index.js';
+import type { MemoryKind as InspectionKind, MemoryInspectionQuery, MemoryRecord as MemoryInspectionRecord, MemoryEdge as MemoryInspectionEdge, MemorySnapshot as MemoryInspection } from '../../../packages/protocol/src/index.js';
+export { MEMORY_KINDS as INSPECTION_KINDS } from '../../../packages/protocol/src/index.js';
+export type { MemoryKind as InspectionKind, MemoryInspectionQuery, MemoryRecord as MemoryInspectionRecord, MemoryEdge as MemoryInspectionEdge, MemorySnapshot as MemoryInspection } from '../../../packages/protocol/src/index.js';
 import { evaluateAssociation } from "./association-lifecycle.js";
 import { evaluateLifecycle } from "./lifecycle.js";
 import { MemoryError } from "../errors.js";
 import { normalizeLabel } from "./labels.js";
 import { slotKey } from "./registry.js";
 import type { KnowledgeReadContext } from "./read-types.js";
-
-export const INSPECTION_KINDS = [
-  "entity",
-  "state",
-  "history",
-  "claim",
-  "event",
-  "utterance",
-  "artifact",
-  "provenance",
-] as const;
-export type InspectionKind = (typeof INSPECTION_KINDS)[number];
-export interface MemoryInspectionQuery {
-  readonly query?: string;
-  readonly kind?: InspectionKind;
-  readonly domain?: string;
-  readonly status?: string;
-  readonly offset?: number;
-  readonly limit?: number;
-}
-export interface MemoryInspectionRecord {
-  readonly id: string;
-  readonly sourceId: string;
-  readonly kind: InspectionKind;
-  readonly label: string;
-  readonly status: string;
-  readonly activation: string;
-  readonly tags: readonly string[];
-  readonly domains: readonly string[];
-  readonly detail: string;
-  readonly truncated: boolean;
-}
-export interface MemoryInspectionEdge {
-  readonly from: string;
-  readonly to: string;
-  readonly relation: string;
-}
-export interface MemoryInspection {
-  readonly protocol: "A008_MEMORY_INSPECT_V1";
-  readonly projectId: string;
-  readonly durable: boolean;
-  readonly summary: {
-    readonly total: number;
-    readonly counts: Readonly<Record<InspectionKind, number>>;
-    readonly active: number;
-    readonly dormant: number;
-    readonly contestedSlots: number;
-    readonly domains: readonly {
-      readonly name: string;
-      readonly count: number;
-    }[];
-    readonly statuses: readonly string[];
-  };
-  readonly records: readonly MemoryInspectionRecord[];
-  readonly matched: number;
-  readonly offset: number;
-  readonly limit: number;
-  readonly graph: {
-    readonly nodes: readonly MemoryInspectionRecord[];
-    readonly edges: readonly MemoryInspectionEdge[];
-    readonly totalNodes: number;
-    readonly totalEdges: number;
-  };
-}
 
 /** Both HTTP and ACP validate before touching the runtime. No coercion at ACP. */
 export function parseMemoryInspectionQuery(

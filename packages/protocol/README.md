@@ -1,6 +1,6 @@
 # @a008/protocol
 
-Shared A008 **v1** WebSocket/session wire contract. Host, core wire adapters and
+Shared A008 **v1** HTTP and WebSocket/session wire contract. Host, core wire adapters and
 web client consume this owner. It has no runtime, filesystem, provider, React or
 browser-global imports. Zod 4.5.4 is its only runtime dependency.
 
@@ -67,14 +67,56 @@ Tests additionally validate real host WebSocket frames and `/v1/models` response
 `npm run verify:protocol` packs the package and its dependency, installs both offline
 outside A008, compiles a separate TypeScript consumer and executes it.
 
+## HTTP contract (A008-0105)
+
+`src/http-schemas.ts` owns the HTTP DTOs and schemas. `src/http-operations.ts`
+binds all 21 inventory rows (22 methods including static GET/HEAD) to bodies,
+queries, path/header parameters and responses. Its pure `v1OpenApiDocument()`
+derives `schemas/http.openapi.json` from the same schemas; regenerate with
+`npm run protocol:schemas`. This artifact uses
+[OpenAPI 3.1.1](https://spec.openapis.org/oas/v3.1.1.html); it adds no served endpoint.
+
+The installed package exports `httpContractSchemas`, `v1HttpOperations` and
+`validateV1HttpResponse(method, canonicalPath, status, payload)`. The last helper
+validates JSON responses using an inventory path without query parameters;
+binary/static content must be checked as bytes/headers. The OpenAPI asset path is
+descriptive: the router also serves root and nested assets. Upload input is raw
+octet-stream, and image blobs are bytes. HEAD has no body even on errors.
+
+Request schemas describe transport envelopes, not guaranteed successful
+execution. Bootstrap defaults, path checks, project ID checks, provider limits
+and credential/storage validation stay with their existing owners. V1 bootstrap
+accepts omitted optional groups; provider settings ignore wrongly typed optional
+fields. Raw input schemas describe that tolerance separately from typed writer
+DTOs (`ProjectBootstrapConfig`, `ProviderSettingsUpdate`). Memory HTTP integers
+are decoded from digit strings by the host, duplicate/unknown query keys fail,
+and its existing owner normalizes labels and supplies defaults.
+
+`parseMemorySnapshot`, `parseUploadedSource`, `parseShellHostResult` and
+`parseFrameCheck` preserve the old client behavior, with 52 captured synthetic
+baseline cases. Memory returns the original object; upload/shell construct their
+normalized results. Frame checks retain their optimistic fallback. Project,
+catalog, provider and image clients that previously cast responses still do so;
+this extraction does not start rejecting their previously tolerated input.
+The shared strict output schemas describe supported producer output, including
+the current model list's `added` flag; the older model reader retains its tolerance. Graph edge
+membership additionally requires the shared memory validator; structural JSON
+Schema cannot express membership in the returned node set.
+
+Every HTTP operation is exercised against a real loopback host with fake provider
+responses and temporary files. Successes and representative auth/origin, content,
+input and ingestion-failure paths are checked. Provider policy and original error
+messages remain covered by existing tests. No provider credentials enter fixtures.
+
 ## Scope beyond this package
 
 `src/routes.ts` inventories every current HTTP operation with its context/owner.
 It does not route requests or advertise authorization capabilities. The complete
 auth/context inventory is in `docs/HOST_PROTOCOL_V1_INVENTORY.md` in the A008
-repository; `docs/HOST_PROTOCOL.md` specifies v1 behavior. Full HTTP payload
-schemas for memory, projects, providers, uploads, shell and browser checks remain
-with their existing owners pending the next stage-1 child of A008-0103.
+repository; `docs/HOST_PROTOCOL.md` specifies v1 behavior. HTTP payload contracts
+now live here; their runtime behavior remains with the existing owners. Auth
+profiles depend on host configuration, so the OpenAPI alternatives include both
+unauthenticated standalone mode and configured cookie/engine-token access.
 
 No V2, new auth, project isolation, event ordering, replay, idempotency or native
 platform support guarantee is introduced by this extraction.

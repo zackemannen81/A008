@@ -7,6 +7,13 @@ records HTTP/WS auth, context and remaining payload owners. V1 tolerance and
 runtime policy are unchanged; this extraction does not make the planned V2 API
 available or remove the standalone global workspace.
 
+A008-0105 completes the shared HTTP payload schemas and generates
+[the OpenAPI artifact](../packages/protocol/schemas/http.openapi.json). Binary
+uploads/blobs and static GET/HEAD stay explicit. Existing HTTP client parsers
+move into the shared package; previously non-validating adapters retain their
+tolerance. Structural input acceptance is not runtime approval: normalization,
+provider/filesystem policy and configured host auth remain authoritative.
+
 A008-0068 (ADR 0029) adds optional `state.runtime.tools` to session snapshots:
 an array of `{ name: string, description: string }` for the runtime's native
 model tools. It is informational; calls and permissions use the existing tool

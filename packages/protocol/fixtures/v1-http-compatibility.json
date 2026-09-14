@@ -1,0 +1,857 @@
+{
+  "source": "c3970d5 before A008-0105 extraction; synthetic data only",
+  "cases": [
+    {
+      "kind": "memory",
+      "raw": null,
+      "error": "The host returned an incompatible memory response. Restart the host with the current A008 build.",
+      "name": "Error"
+    },
+    {
+      "kind": "memory",
+      "raw": [],
+      "error": "The host returned an incompatible memory response. Restart the host with the current A008 build.",
+      "name": "Error"
+    },
+    {
+      "kind": "memory",
+      "raw": {},
+      "error": "The host returned an incompatible memory response. Restart the host with the current A008 build.",
+      "name": "Error"
+    },
+    {
+      "kind": "memory",
+      "raw": true,
+      "error": "The host returned an incompatible memory response. Restart the host with the current A008 build.",
+      "name": "Error"
+    },
+    {
+      "kind": "memory",
+      "raw": 7,
+      "error": "The host returned an incompatible memory response. Restart the host with the current A008 build.",
+      "name": "Error"
+    },
+    {
+      "kind": "memory",
+      "raw": "text",
+      "error": "The host returned an incompatible memory response. Restart the host with the current A008 build.",
+      "name": "Error"
+    },
+    {
+      "kind": "memory",
+      "raw": {
+        "protocol": "A008_MEMORY_INSPECT_V1",
+        "projectId": "synthetic-project",
+        "durable": true,
+        "summary": {
+          "total": 0,
+          "counts": {
+            "entity": 0,
+            "state": 0,
+            "history": 0,
+            "claim": 0,
+            "event": 0,
+            "utterance": 0,
+            "artifact": 0,
+            "provenance": 0
+          },
+          "active": 0,
+          "dormant": 0,
+          "contestedSlots": 0,
+          "domains": [],
+          "statuses": []
+        },
+        "records": [],
+        "matched": 0,
+        "offset": 0,
+        "limit": 40,
+        "graph": {
+          "nodes": [],
+          "edges": [],
+          "totalNodes": 0,
+          "totalEdges": 0
+        }
+      },
+      "value": {
+        "protocol": "A008_MEMORY_INSPECT_V1",
+        "projectId": "synthetic-project",
+        "durable": true,
+        "summary": {
+          "total": 0,
+          "counts": {
+            "entity": 0,
+            "state": 0,
+            "history": 0,
+            "claim": 0,
+            "event": 0,
+            "utterance": 0,
+            "artifact": 0,
+            "provenance": 0
+          },
+          "active": 0,
+          "dormant": 0,
+          "contestedSlots": 0,
+          "domains": [],
+          "statuses": []
+        },
+        "records": [],
+        "matched": 0,
+        "offset": 0,
+        "limit": 40,
+        "graph": {
+          "nodes": [],
+          "edges": [],
+          "totalNodes": 0,
+          "totalEdges": 0
+        }
+      }
+    },
+    {
+      "kind": "memory",
+      "raw": {
+        "protocol": "A008_MEMORY_INSPECT_V1",
+        "projectId": "synthetic-project",
+        "durable": true,
+        "summary": {
+          "total": 0,
+          "counts": {
+            "entity": 0,
+            "state": 0,
+            "history": 0,
+            "claim": 0,
+            "event": 0,
+            "utterance": 0,
+            "artifact": 0,
+            "provenance": 0
+          },
+          "active": 0,
+          "dormant": 0,
+          "contestedSlots": 0,
+          "domains": [],
+          "statuses": []
+        },
+        "records": [],
+        "matched": 0,
+        "offset": 0,
+        "limit": 40,
+        "graph": {
+          "nodes": [],
+          "edges": [],
+          "totalNodes": 0,
+          "totalEdges": 0
+        },
+        "future": true
+      },
+      "value": {
+        "protocol": "A008_MEMORY_INSPECT_V1",
+        "projectId": "synthetic-project",
+        "durable": true,
+        "summary": {
+          "total": 0,
+          "counts": {
+            "entity": 0,
+            "state": 0,
+            "history": 0,
+            "claim": 0,
+            "event": 0,
+            "utterance": 0,
+            "artifact": 0,
+            "provenance": 0
+          },
+          "active": 0,
+          "dormant": 0,
+          "contestedSlots": 0,
+          "domains": [],
+          "statuses": []
+        },
+        "records": [],
+        "matched": 0,
+        "offset": 0,
+        "limit": 40,
+        "graph": {
+          "nodes": [],
+          "edges": [],
+          "totalNodes": 0,
+          "totalEdges": 0
+        },
+        "future": true
+      }
+    },
+    {
+      "kind": "memory",
+      "raw": {
+        "protocol": "A008_MEMORY_INSPECT_V1",
+        "projectId": "synthetic-project",
+        "durable": true,
+        "summary": {
+          "total": 0,
+          "counts": {
+            "entity": 0,
+            "state": 0,
+            "history": 0,
+            "claim": 0,
+            "event": 0,
+            "utterance": 0,
+            "artifact": 0,
+            "provenance": 0
+          },
+          "active": 0,
+          "dormant": 0,
+          "contestedSlots": 0,
+          "domains": [],
+          "statuses": []
+        },
+        "records": [],
+        "matched": 0,
+        "offset": 0,
+        "limit": -1,
+        "graph": {
+          "nodes": [],
+          "edges": [],
+          "totalNodes": 0,
+          "totalEdges": 0
+        }
+      },
+      "error": "The host returned an incompatible memory response. Restart the host with the current A008 build.",
+      "name": "Error"
+    },
+    {
+      "kind": "memory",
+      "raw": {
+        "protocol": "A008_MEMORY_INSPECT_V1",
+        "projectId": "synthetic-project",
+        "durable": true,
+        "summary": {
+          "total": 0,
+          "counts": {
+            "entity": 0,
+            "state": 0,
+            "history": 0,
+            "claim": 0,
+            "event": 0,
+            "utterance": 0,
+            "artifact": 0,
+            "provenance": 0
+          },
+          "active": 0,
+          "dormant": 0,
+          "contestedSlots": 0,
+          "domains": [],
+          "statuses": []
+        },
+        "records": [],
+        "matched": 0,
+        "offset": 0,
+        "limit": 1.5,
+        "graph": {
+          "nodes": [],
+          "edges": [],
+          "totalNodes": 0,
+          "totalEdges": 0
+        }
+      },
+      "error": "The host returned an incompatible memory response. Restart the host with the current A008 build.",
+      "name": "Error"
+    },
+    {
+      "kind": "memory",
+      "raw": {
+        "protocol": "A008_MEMORY_INSPECT_V1",
+        "projectId": "synthetic-project",
+        "durable": true,
+        "summary": {
+          "total": 0,
+          "counts": {
+            "entity": 0,
+            "state": 0,
+            "history": 0,
+            "claim": 0,
+            "event": 0,
+            "utterance": 0,
+            "artifact": 0,
+            "provenance": 0
+          },
+          "active": 0,
+          "dormant": 0,
+          "contestedSlots": 0,
+          "domains": [],
+          "statuses": []
+        },
+        "records": [
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {},
+          {}
+        ],
+        "matched": 0,
+        "offset": 0,
+        "limit": 40,
+        "graph": {
+          "nodes": [],
+          "edges": [],
+          "totalNodes": 0,
+          "totalEdges": 0
+        }
+      },
+      "error": "The host returned an incompatible memory response. Restart the host with the current A008 build.",
+      "name": "Error"
+    },
+    {
+      "kind": "memory",
+      "raw": {
+        "protocol": "A008_MEMORY_INSPECT_V1",
+        "projectId": "synthetic-project",
+        "durable": true,
+        "summary": {
+          "total": 0,
+          "counts": {
+            "entity": 0,
+            "state": 0,
+            "history": 0,
+            "claim": 0,
+            "event": 0,
+            "utterance": 0,
+            "artifact": 0,
+            "provenance": 0
+          },
+          "active": 0,
+          "dormant": 0,
+          "contestedSlots": 0,
+          "domains": [],
+          "statuses": []
+        },
+        "records": [],
+        "matched": 0,
+        "offset": 0,
+        "limit": 40,
+        "graph": {
+          "nodes": [],
+          "edges": [
+            {
+              "from": "missing",
+              "to": "missing",
+              "relation": "x"
+            }
+          ],
+          "totalNodes": 0,
+          "totalEdges": 0
+        }
+      },
+      "error": "The host returned an incompatible memory response. Restart the host with the current A008 build.",
+      "name": "Error"
+    },
+    {
+      "kind": "upload",
+      "raw": null,
+      "error": "A008 GUI host upload result must be a JSON object.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": [],
+      "error": "A008 GUI host upload result must be a JSON object.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": {},
+      "error": "A008 GUI host upload result field 'locator' must be a non-empty string.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": true,
+      "error": "A008 GUI host upload result must be a JSON object.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": 7,
+      "error": "A008 GUI host upload result must be a JSON object.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": "text",
+      "error": "A008 GUI host upload result must be a JSON object.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": 0,
+        "mediaType": "text/plain",
+        "extracted": false
+      },
+      "value": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": 0,
+        "mediaType": "text/plain",
+        "extracted": false
+      }
+    },
+    {
+      "kind": "upload",
+      "raw": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": 0,
+        "mediaType": "text/plain",
+        "extracted": false,
+        "extra": "allowed"
+      },
+      "value": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": 0,
+        "mediaType": "text/plain",
+        "extracted": false
+      }
+    },
+    {
+      "kind": "upload",
+      "raw": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": 0,
+        "mediaType": "text/plain",
+        "extracted": false,
+        "artifactId": "id"
+      },
+      "value": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": 0,
+        "mediaType": "text/plain",
+        "extracted": false,
+        "artifactId": "id"
+      }
+    },
+    {
+      "kind": "upload",
+      "raw": {
+        "locator": "",
+        "sha256": "legacy-nonempty",
+        "bytes": 0,
+        "mediaType": "text/plain",
+        "extracted": false
+      },
+      "error": "A008 GUI host upload result field 'locator' must be a non-empty string.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "",
+        "bytes": 0,
+        "mediaType": "text/plain",
+        "extracted": false
+      },
+      "error": "A008 GUI host upload result field 'sha256' must be a non-empty string.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": 0,
+        "mediaType": "",
+        "extracted": false
+      },
+      "error": "A008 GUI host upload result field 'mediaType' must be a non-empty string.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": 0,
+        "mediaType": "text/plain",
+        "extracted": false,
+        "artifactId": ""
+      },
+      "error": "A008 GUI host upload result field 'artifactId' must be a non-empty string when present.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": -1,
+        "mediaType": "text/plain",
+        "extracted": false
+      },
+      "error": "A008 GUI host upload result field 'bytes' must be a non-negative integer.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": 1.5,
+        "mediaType": "text/plain",
+        "extracted": false
+      },
+      "error": "A008 GUI host upload result field 'bytes' must be a non-negative integer.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": 9007199254740992,
+        "mediaType": "text/plain",
+        "extracted": false
+      },
+      "error": "A008 GUI host upload result field 'bytes' must be a non-negative integer.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "upload",
+      "raw": {
+        "locator": "source:synthetic/file.txt",
+        "sha256": "legacy-nonempty",
+        "bytes": 0,
+        "mediaType": "text/plain",
+        "extracted": "false"
+      },
+      "error": "A008 GUI host upload result field 'extracted' must be a boolean.",
+      "name": "UploadError"
+    },
+    {
+      "kind": "shell",
+      "raw": null,
+      "error": "GUI host shell result must be a JSON object.",
+      "name": "ShellCommandError"
+    },
+    {
+      "kind": "shell",
+      "raw": [],
+      "error": "GUI host shell result must be a JSON object.",
+      "name": "ShellCommandError"
+    },
+    {
+      "kind": "shell",
+      "raw": {},
+      "error": "GUI host shell result field 'stdout' must be a string.",
+      "name": "ShellCommandError"
+    },
+    {
+      "kind": "shell",
+      "raw": true,
+      "error": "GUI host shell result must be a JSON object.",
+      "name": "ShellCommandError"
+    },
+    {
+      "kind": "shell",
+      "raw": 7,
+      "error": "GUI host shell result must be a JSON object.",
+      "name": "ShellCommandError"
+    },
+    {
+      "kind": "shell",
+      "raw": "text",
+      "error": "GUI host shell result must be a JSON object.",
+      "name": "ShellCommandError"
+    },
+    {
+      "kind": "shell",
+      "raw": {
+        "stdout": "",
+        "stderr": "",
+        "exitCode": null,
+        "timedOut": false,
+        "truncated": false
+      },
+      "value": {
+        "stdout": "",
+        "stderr": "",
+        "exitCode": null,
+        "timedOut": false,
+        "truncated": false
+      }
+    },
+    {
+      "kind": "shell",
+      "raw": {
+        "stdout": "",
+        "stderr": "",
+        "exitCode": null,
+        "timedOut": false,
+        "truncated": false,
+        "extra": true
+      },
+      "value": {
+        "stdout": "",
+        "stderr": "",
+        "exitCode": null,
+        "timedOut": false,
+        "truncated": false
+      }
+    },
+    {
+      "kind": "shell",
+      "raw": {
+        "stdout": "",
+        "stderr": "",
+        "exitCode": -1,
+        "timedOut": false,
+        "truncated": false
+      },
+      "value": {
+        "stdout": "",
+        "stderr": "",
+        "exitCode": -1,
+        "timedOut": false,
+        "truncated": false
+      }
+    },
+    {
+      "kind": "shell",
+      "raw": {
+        "stdout": "",
+        "stderr": "",
+        "exitCode": 1.5,
+        "timedOut": false,
+        "truncated": false
+      },
+      "error": "GUI host shell result field 'exitCode' must be an integer or null.",
+      "name": "ShellCommandError"
+    },
+    {
+      "kind": "shell",
+      "raw": {
+        "stdout": null,
+        "stderr": "",
+        "exitCode": null,
+        "timedOut": false,
+        "truncated": false
+      },
+      "error": "GUI host shell result field 'stdout' must be a string.",
+      "name": "ShellCommandError"
+    },
+    {
+      "kind": "shell",
+      "raw": {
+        "stdout": "",
+        "stderr": null,
+        "exitCode": null,
+        "timedOut": false,
+        "truncated": false
+      },
+      "error": "GUI host shell result field 'stderr' must be a string.",
+      "name": "ShellCommandError"
+    },
+    {
+      "kind": "shell",
+      "raw": {
+        "stdout": "",
+        "stderr": "",
+        "exitCode": null,
+        "timedOut": null,
+        "truncated": false
+      },
+      "error": "GUI host shell result field 'timedOut' must be a boolean.",
+      "name": "ShellCommandError"
+    },
+    {
+      "kind": "shell",
+      "raw": {
+        "stdout": "",
+        "stderr": "",
+        "exitCode": null,
+        "timedOut": false,
+        "truncated": null
+      },
+      "error": "GUI host shell result field 'truncated' must be a boolean.",
+      "name": "ShellCommandError"
+    },
+    {
+      "kind": "frame",
+      "raw": null,
+      "error": "Cannot read properties of null (reading 'url')",
+      "name": "TypeError"
+    },
+    {
+      "kind": "frame",
+      "raw": [],
+      "value": {
+        "url": "https://example.test/fallback",
+        "embeddable": true
+      }
+    },
+    {
+      "kind": "frame",
+      "raw": {},
+      "value": {
+        "url": "https://example.test/fallback",
+        "embeddable": true
+      }
+    },
+    {
+      "kind": "frame",
+      "raw": true,
+      "value": {
+        "url": "https://example.test/fallback",
+        "embeddable": true
+      }
+    },
+    {
+      "kind": "frame",
+      "raw": 7,
+      "value": {
+        "url": "https://example.test/fallback",
+        "embeddable": true
+      }
+    },
+    {
+      "kind": "frame",
+      "raw": "text",
+      "value": {
+        "url": "https://example.test/fallback",
+        "embeddable": true
+      }
+    },
+    {
+      "kind": "frame",
+      "raw": {
+        "url": "https://example.test",
+        "embeddable": false,
+        "reason": "X-Frame-Options"
+      },
+      "value": {
+        "url": "https://example.test",
+        "embeddable": false,
+        "reason": "X-Frame-Options"
+      }
+    },
+    {
+      "kind": "frame",
+      "raw": {
+        "embeddable": 0
+      },
+      "value": {
+        "url": "https://example.test/fallback",
+        "embeddable": true
+      }
+    },
+    {
+      "kind": "frame",
+      "raw": {
+        "reason": "custom",
+        "future": true
+      },
+      "value": {
+        "url": "https://example.test/fallback",
+        "embeddable": true,
+        "reason": "custom"
+      }
+    }
+  ]
+}

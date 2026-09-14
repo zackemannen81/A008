@@ -1,36 +1,6 @@
+import type { ProjectBootstrapConfig, ProjectBootstrapPlan, RegisteredProject, ProjectsResponse, ProjectCreated, WorkspaceBinding } from '../../../packages/protocol/src/index.js';
+export type { ProjectBootstrapConfig, ProjectBootstrapPlan, RegisteredProject } from '../../../packages/protocol/src/index.js';
 import { engineHeaders } from "../session/engine-access.js";
-
-export interface ProjectBootstrapConfig {
-  readonly projectName: string;
-  readonly rootFolder: string;
-  readonly repository: { readonly initialize: boolean; readonly name?: string };
-  readonly continuity: {
-    readonly docsFirst: boolean;
-    readonly multiAgent: {
-      readonly enabled: boolean;
-      readonly maxWorkers?: number;
-      readonly workerCloneRoot?: string;
-    };
-  };
-  readonly memory: { readonly useGlobalA008Memory: boolean };
-}
-
-export interface ProjectBootstrapPlan {
-  readonly projectId: string;
-  readonly projectName: string;
-  readonly rootFolder: string;
-  readonly mutations: readonly { readonly kind: string; readonly path: string }[];
-  readonly memory: { readonly useGlobalStore: boolean; readonly namespace: string };
-  readonly multiAgent:
-    | { readonly enabled: false }
-    | { readonly enabled: true; readonly maxWorkers: number; readonly workerCloneRoot: string };
-}
-
-export interface RegisteredProject {
-  readonly projectId: string;
-  readonly name: string;
-  readonly rootFolder: string;
-}
 
 async function readJson(response: Response): Promise<unknown> {
   const body: unknown = await response.json();
@@ -60,36 +30,33 @@ export async function createProject(
   config: ProjectBootstrapConfig,
   projectId?: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<{ plan: ProjectBootstrapPlan }> {
+): Promise<ProjectCreated> {
   const response = await fetchImpl("/v1/projects/bootstrap", {
     method: "POST",
     headers: { ...engineHeaders(), "content-type": "application/json" },
     body: JSON.stringify({ ...config, ...(projectId ? { projectId } : {}) }),
   });
-  return (await readJson(response)) as { plan: ProjectBootstrapPlan };
+  return (await readJson(response)) as ProjectCreated;
 }
 
 export async function listProjects(
   fetchImpl: typeof fetch = fetch,
-): Promise<{ currentId: string | null; projects: readonly RegisteredProject[] }> {
+): Promise<ProjectsResponse> {
   const response = await fetchImpl("/v1/projects", {
     headers: { ...engineHeaders(), accept: "application/json" },
     cache: "no-store",
   });
-  return (await readJson(response)) as {
-    currentId: string | null;
-    projects: readonly RegisteredProject[];
-  };
+  return (await readJson(response)) as ProjectsResponse;
 }
 
 export async function openProject(
   projectId: string,
   fetchImpl: typeof fetch = fetch,
-): Promise<{ cwd: string; projectId: string }> {
+): Promise<WorkspaceBinding> {
   const response = await fetchImpl("/v1/projects/open", {
     method: "POST",
     headers: { ...engineHeaders(), "content-type": "application/json" },
     body: JSON.stringify({ projectId }),
   });
-  return (await readJson(response)) as { cwd: string; projectId: string };
+  return (await readJson(response)) as WorkspaceBinding;
 }

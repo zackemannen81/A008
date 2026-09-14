@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0105_shared-v1-http-contracts.md](A008-0105_shared-v1-http-contracts.md) — Complete locally; HTTP contract closure.
+
 - [A008-0103_stable-client-api-program.md](A008-0103_stable-client-api-program.md) — Active frozen program.
 - [A008-0104_shared-v1-contract.md](A008-0104_shared-v1-contract.md) — First frozen child.
 

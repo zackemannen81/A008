@@ -1,3 +1,4 @@
+import type { ShellHostResult } from '../../packages/protocol/src/index.js';
 import { spawn } from "node:child_process";
 import { ChatError } from "../core/errors.js";
 
@@ -16,15 +17,10 @@ export interface TerminalRunInput {
   readonly shell?: "powershell";
 }
 
-export interface TerminalRunResult {
+export interface TerminalRunResult extends ShellHostResult {
   readonly command: string;
   readonly cwd: string;
-  readonly exitCode: number | null;
   readonly signal: string | null;
-  readonly stdout: string;
-  readonly stderr: string;
-  readonly timedOut: boolean;
-  readonly truncated: boolean;
 }
 
 export type TerminalRunner = (
