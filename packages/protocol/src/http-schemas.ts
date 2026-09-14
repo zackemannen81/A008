@@ -51,6 +51,11 @@ export const projectBootstrapConfigSchema = z.object({
   memory: z.object({ useGlobalA008Memory: z.boolean() }),
 });
 export type ProjectBootstrapConfig = z.infer<typeof projectBootstrapConfigSchema>;
+export const existingProjectRegistrationSchema = z.object({
+  projectName: nonempty, rootFolder: nonempty,
+  memory: z.object({ useGlobalA008Memory: z.boolean() }),
+});
+export type ExistingProjectRegistration = z.infer<typeof existingProjectRegistrationSchema>;
 export const plannedMutationSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("mkdir"), path: text }),
   z.object({ kind: z.literal("write"), path: text, bytes: count }),
@@ -137,6 +142,7 @@ export const loginResultSchema = z.object({ ok: z.literal(true) });
 export const v1HttpSchemas = {
   memoryQuery: memoryQuerySchema, memorySnapshot: memorySnapshotSchema,
   projectBootstrapInput: projectBootstrapInputSchema, projectBootstrapConfig: projectBootstrapConfigSchema,
+  existingProjectRegistration: existingProjectRegistrationSchema,
   projectPlan: projectPlanSchema, registeredProject: registeredProjectSchema, projects: projectsResponseSchema,
   projectCreated: projectCreatedSchema, projectOpen: projectOpenSchema, workspaceBinding: workspaceBindingSchema,
   directoryList: directoryListSchema, nvidiaCatalog: nvidiaCatalogSchema, kieCatalog: kieCatalogSchema,

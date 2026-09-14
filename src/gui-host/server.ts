@@ -64,6 +64,7 @@ import { handleBrowserFrameCheck } from "./browser-frame.js";
 import {
   bindingFor,
   handleDirectoryList,
+  handleExistingProjectRegister,
   handleProjectBootstrap,
   handleProjectList,
   handleProjectOpen,
@@ -693,6 +694,19 @@ async function handleHttp(input: {
       );
       await input.applyWorkspace(bindingFor(created.project));
       sendJson(response, 200, created);
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/projects/register") {
+      if (!isJsonContentType(request)) {
+        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        return;
+      }
+      const project = handleExistingProjectRegister(
+        { registryPath: input.projectsPath },
+        await readJsonBody(request),
+      );
+      await input.applyWorkspace(bindingFor(project));
+      sendJson(response, 200, project);
       return;
     }
     if (method === "POST" && pathname === "/v1/projects/open") {

@@ -3,9 +3,11 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  realpathSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { ChatError } from "../core/errors.js";
 import { parseRuntimeId, RuntimeIdentityFactory } from "../identity/runtime-id.js";
 import { planProjectBootstrap } from "./plan.js";
@@ -18,6 +20,7 @@ import {
   writeProjectRegistry,
 } from "./registry.js";
 import type {
+  ExistingProjectRegistration,
   ProjectBootstrapConfig,
   ProjectBootstrapPlan,
   RegisteredProject,
@@ -129,6 +132,45 @@ export function executeProjectBootstrap(
   );
   writeProjectRegistry(store.registryPath, registry);
   return { plan, project };
+}
+
+export function registerExistingProject(
+  config: ExistingProjectRegistration,
+  store: ProjectBootstrapStore,
+): RegisteredProject {
+  let rootFolder: string;
+  try {
+    rootFolder = realpathSync(config.rootFolder);
+    if (!statSync(rootFolder).isDirectory()) throw new Error("not a directory");
+  } catch {
+    throw new ChatError("configuration", "Project root folder must be an existing directory.");
+  }
+  const registry = readProjectRegistry(store.registryPath);
+  const existing = findProjectByRoot(registry, rootFolder);
+  if (existing !== undefined) {
+    throw new ChatError(
+      "configuration",
+      `Project root is already registered as "${existing.name}". Open it from Recent.`,
+    );
+  }
+  const projectId = new RuntimeIdentityFactory(store.createId).create("project");
+  const docsFirst =
+    existsSync(join(rootFolder, "AGENTS.md")) &&
+    existsSync(join(rootFolder, "docs", "TASK_WORKFLOW.md"));
+  const project: RegisteredProject = {
+    projectId,
+    name: config.projectName,
+    rootFolder,
+    createdAt: new Date().toISOString(),
+    repository: { initialize: false, name: basename(rootFolder) || config.projectName },
+    continuity: { docsFirst, multiAgent: { enabled: false } },
+    memory: { useGlobalA008Memory: config.memory.useGlobalA008Memory },
+  };
+  writeProjectRegistry(
+    store.registryPath,
+    upsertRegisteredProject(registry, project, true),
+  );
+  return project;
 }
 
 export function openRegisteredProject(

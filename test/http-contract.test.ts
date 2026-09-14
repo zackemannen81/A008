@@ -30,7 +30,7 @@ test("HTTP compatibility parsers preserve all 52 pre-extraction cases", () => {
 test("OpenAPI derives every operation/schema and all generated references resolve", () => {
   const spec = v1OpenApiDocument();
   assert.deepEqual(spec, JSON.parse(readFileSync("packages/protocol/schemas/http.openapi.json", "utf8")));
-  assert.equal(Object.values(spec.paths).reduce((n, methods) => n + Object.keys(methods).length, 0), 22);
+  assert.equal(Object.values(spec.paths).reduce((n, methods) => n + Object.keys(methods).length, 0), 23);
   for (const operation of v1HttpOperations) for (const method of operation.method.split("/")) {
     assert.ok(spec.paths[operation.path]?.[method.toLowerCase()]);
   }
@@ -136,6 +136,16 @@ test("real host HTTP surface preserves auth, runtime validation, payloads and bi
     covered.add("GET /v1/blobs/{sha256}/{name}");
     await request("GET", "/v1/projects");
     await request("GET", "/v1/projects/browse?path=" + encodeURIComponent(directory));
+    const existingRoot = join(directory, "existing-project");
+    mkdirSync(existingRoot);
+    writeFileSync(join(existingRoot, "keep.txt"), "unchanged", "utf8");
+    const registered = await request("POST", "/v1/projects/register", {
+      projectName: "Existing contract fixture",
+      rootFolder: existingRoot,
+      memory: { useGlobalA008Memory: false },
+    });
+    assert.equal((registered.value as { rootFolder: string }).rootFolder, resolve(existingRoot));
+    assert.equal(readFileSync(join(existingRoot, "keep.txt"), "utf8"), "unchanged");
     const config = { projectName: "Contract fixture", rootFolder: join(directory, "project") };
     await request("POST", "/v1/projects/preview", config);
     const created = (await request("POST", "/v1/projects/bootstrap", config)).value as ProjectCreated;

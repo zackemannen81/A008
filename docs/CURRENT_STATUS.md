@@ -5,6 +5,8 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0111 adds host-owned registration of already-existing project directories. Projects now separates `New project` from `Add existing`: the latter accepts a display name, an existing absolute root and an explicit global-memory choice, generates a canonical project identity, records it in the existing registry and switches through the same shared workspace/runtime owner. Registration does not write inside the selected project: no Git init, Docs-First creation, multi-agent policy, worker roots or content rewrite. Duplicate, missing, file and relative roots fail closed. Existing Docs-First markers may be observed read-only. Global memory uses the newly registered project namespace; legacy/unregistered memory is deliberately not guessed, merged or migrated. V1 adds typed `POST /v1/projects/register`, bringing the shared inventory to 22 rows / 23 HTTP methods. Verification: 593 core, 4 membership and 162 GUI tests pass; the independent installed protocol consumer and production GUI build pass; no provider call or running-host restart. See ADR 0042.
+
 A008-0110 adds V2 authentication foundation: public discovery, authenticated scoped
 one-use tickets, local device grant/list/revoke and hashed expiring credentials.
 PIN-disabled V1 hosts do not grant anonymous V2 access. Real host/CLI checks cover

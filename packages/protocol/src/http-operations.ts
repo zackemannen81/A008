@@ -34,6 +34,7 @@ const payloads: Readonly<Record<string, Payloads>> = {
   "GET /v1/projects/browse": { query: "directoryQuery", response: "directoryList" },
   "POST /v1/projects/preview": { body: "projectBootstrapInput", response: "projectPlan" },
   "POST /v1/projects/bootstrap": { body: "projectBootstrapInput", response: "projectCreated" },
+  "POST /v1/projects/register": { body: "existingProjectRegistration", response: "registeredProject" },
   "POST /v1/projects/open": { body: "projectOpen", response: "workspaceBinding" },
   "POST /v1/shell": { body: "shellInput", response: "shellResult" },
   "POST /v1/upload": { body: "binary", headers: "uploadHeaders", response: "uploadedSource" },

@@ -467,11 +467,16 @@ boundary. There is no direct Save-to-repository path in A008-0091.
 ### Focused workspace (A008-0069, amended by A008-0070)
 
 Left navigation selects Chat, Memory, Tools, Help or Projects.
-Projects create or open a local workspace through host `POST /v1/projects/*`
-preview/bootstrap/open routes. Docs-First starter files are A008-owned. The
-multi-agent add-on records max workers and a worker-clone root outside the
-project tree and does not create clones. Global memory uses the existing store
-with a generated project namespace. Runtime details are collapsed.
+Projects create, register or open a local workspace through host `POST /v1/projects/*`
+preview/bootstrap/register/open routes. New-project bootstrap may write the A008-owned
+Docs-First starter and optional policy after preview/confirmation. `Add existing`
+is separate: it requires an already-existing directory, writes only the external
+project registry, never initializes Git or changes project contents, and refuses a
+root already registered under another entry. Global memory uses the registered
+project identity as its namespace; existing unregistered/legacy memory is not
+heuristically attached or migrated. The multi-agent bootstrap still records max
+workers and an external worker-clone root without creating clones. Runtime details
+are collapsed.
 Chat has a centred transcript, collapsed thought blocks, and a rounded composer
 with the existing commands plus a shortcut to model parameters. Closing the
 parameter dialog restores focus to its opener. Navigation keeps chat mounted,

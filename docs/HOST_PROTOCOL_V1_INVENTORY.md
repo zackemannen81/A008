@@ -25,8 +25,10 @@ the PIN gate is enabled. Other method/path combinations follow the existing
 405/404 behavior. WS upgrade uses `/v1/session`; ordinary HTTP GET does not open
 a session.
 
-Standalone project open/bootstrap replaces the host's global workspace and
+Standalone project open/bootstrap/register replaces the host's global workspace and
 closes its bridge; it does not select a project scoped to the requesting device.
+Existing-project registration validates an already-existing root and mutates only
+the external A008 project registry; it does not bootstrap that project tree.
 An engine panel normally borrows one fixed ACP session, as specified in
 [ENGINE.md](ENGINE.md). The shared router also exposes its host operations there;
 their presence does not make them isolated project/session operations. This is a
@@ -56,6 +58,7 @@ qualified; `server.ts` owns dispatch and response envelopes.
 | GET `/v1/projects/browse` | List absolute host filesystem `path` | `project-routes.ts` |
 | POST `/v1/projects/preview` | Preview project creation | `project-routes.ts` |
 | POST `/v1/projects/bootstrap` | Create/register project, then global workspace switch | `project-routes.ts`, `server.ts` |
+| POST `/v1/projects/register` | Register an existing project root without project-tree writes, then global workspace switch | `project-routes.ts`, `server.ts` |
 | POST `/v1/projects/open` | Open registered project, global workspace switch | `project-routes.ts`, `server.ts` |
 | POST `/v1/shell` | Explicit user command at current host cwd | `server.ts`, `src/tools/terminal.ts` |
 | POST `/v1/upload` | Binary source, filename header, host source store plus current bridge ingest | `server.ts`, `source-store.ts`, ACP source ingest |

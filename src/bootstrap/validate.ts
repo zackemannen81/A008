@@ -3,6 +3,7 @@ import { ChatError } from "../core/errors.js";
 import {
   DEFAULT_MAX_WORKERS,
   MAX_WORKERS_CEILING,
+  type ExistingProjectRegistration,
   type ProjectBootstrapConfig,
 } from "./types.js";
 
@@ -33,6 +34,24 @@ function flag(value: unknown, label: string): boolean {
     throw new ChatError("configuration", `${label} must be true or false.`);
   }
   return value;
+}
+
+export function parseExistingProjectRegistration(raw: unknown): ExistingProjectRegistration {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    throw new ChatError("configuration", "Existing project registration must be an object.");
+  }
+  const body = raw as Record<string, unknown>;
+  const projectName = requiredString(body.projectName, "Project name");
+  const rootFolder = requiredString(body.rootFolder, "Project root folder");
+  if (!isAbsolute(rootFolder)) {
+    throw new ChatError("configuration", "Project root folder must be an absolute path.");
+  }
+  const memoryRaw =
+    body.memory !== null && typeof body.memory === "object" && !Array.isArray(body.memory)
+      ? (body.memory as Record<string, unknown>)
+      : {};
+  const useGlobalA008Memory = flag(memoryRaw.useGlobalA008Memory, "Use global A008 memory");
+  return { projectName, rootFolder: resolve(rootFolder), memory: { useGlobalA008Memory } };
 }
 
 export function parseProjectBootstrapConfig(raw: unknown): ProjectBootstrapConfig {

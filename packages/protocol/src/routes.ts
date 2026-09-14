@@ -17,6 +17,7 @@ export const v1HttpRoutes = [
   ["GET", "/v1/projects/browse", "host absolute filesystem path", "project-routes"],
   ["POST", "/v1/projects/preview", "host bootstrap preview", "project-routes"],
   ["POST", "/v1/projects/bootstrap", "host bootstrap + global workspace switch", "project-routes"],
+  ["POST", "/v1/projects/register", "host existing-project registration + global workspace switch", "project-routes"],
   ["POST", "/v1/projects/open", "host global workspace switch", "project-routes"],
   ["POST", "/v1/shell", "current host cwd; explicit user shell", "terminal"],
   ["POST", "/v1/upload", "host source store + current bridge ingest", "source-store / ACP"],

@@ -70,3 +70,5 @@ operations and live-socket revocation are not delivered. The owner requested
 stopping at this completed-task boundary; do not allocate another child in this
 run. Resume by reviewing ADR 0041/CLIENT_API_V2 and freezing the next stage-3
 child on main. Later stages 4 through 7 remain unstarted.
+
+A008-0111 is a separate owner-requested prerequisite after the A008-0110 stop: Projects can now register/open an already-existing root without project-tree mutation or heuristic legacy-memory migration. It does not advance the stage-3 checklist; resume A008-0103 from the same next V2/auth step after this prerequisite is integrated.

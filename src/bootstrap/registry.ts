@@ -2,6 +2,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
@@ -76,12 +77,18 @@ export function upsertRegisteredProject(
   };
 }
 
+function projectRootKey(rootFolder: string): string {
+  const absolute = resolve(rootFolder);
+  const canonical = existsSync(absolute) ? realpathSync(absolute) : absolute;
+  return process.platform === "win32" ? canonical.toLowerCase() : canonical;
+}
+
 export function findProjectByRoot(
   document: ProjectRegistryDocument,
   rootFolder: string,
 ): RegisteredProject | undefined {
-  const target = resolve(rootFolder);
-  return document.projects.find((entry) => resolve(entry.rootFolder) === target);
+  const target = projectRootKey(rootFolder);
+  return document.projects.find((entry) => projectRootKey(entry.rootFolder) === target);
 }
 
 export function findProjectById(
