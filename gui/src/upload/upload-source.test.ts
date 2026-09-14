@@ -129,7 +129,7 @@ test("posts raw bytes with the octet-stream content type and filename header", a
   assert.ok(call);
   assert.equal(call.input, UPLOAD_ENDPOINT);
   assert.equal(call.method, "POST");
-  assert.equal(call.credentials, "omit");
+  assert.equal(call.credentials, "same-origin");
   assert.equal(call.headers["content-type"], "application/octet-stream");
   assert.equal(call.headers["x-a008-filename"], encodeURIComponent("report.txt"));
   assert.ok(call.bodyBytes);

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { executeShellCommand } from "../terminal/run-shell-command.js";
+import { uploadSource } from "../upload/upload-source.js";
 import {
   fetchWithAuthRecovery,
   type AuthRecoveryLocation,
@@ -9,6 +11,31 @@ const AUTH_BODY = {
   error: "Authentication required.",
   message: "Authentication required.",
 };
+
+test("authenticated shell and upload keep PIN recovery from reloading a valid session", async () => {
+  let redirects = 0;
+  let authenticated = true;
+  const browserFetch: typeof fetch = async (input, init) => {
+    const url = new URL(String(input), location().href);
+    const cookieSent = init?.credentials === "same-origin" && url.origin === location().origin;
+    if (!authenticated || !cookieSent) return jsonResponse(AUTH_BODY);
+    return jsonResponse(url.pathname === "/v1/shell"
+      ? { stdout: "## main\n", stderr: "", exitCode: 0, timedOut: false, truncated: false }
+      : { locator: "source:test/test.txt", sha256: "test", bytes: 4, mediaType: "text/plain", extracted: true }, 200);
+  };
+  const recoveringFetch: typeof fetch = (input, init) => fetchWithAuthRecovery(
+    input, init, browserFetch, location(), () => { redirects += 1; },
+  );
+  const source = { name: "test.txt", async arrayBuffer() { return new TextEncoder().encode("test").buffer; } };
+  await executeShellCommand("git status -sb", { fetch: recoveringFetch });
+  await uploadSource(source, { fetch: recoveringFetch });
+  assert.equal(redirects, 0, "valid PIN session remains on the connected page");
+
+  authenticated = false;
+  await assert.rejects(() => executeShellCommand("git status -sb", { fetch: recoveringFetch }), /401/);
+  await assert.rejects(() => uploadSource(source, { fetch: recoveringFetch }), /401/);
+  assert.equal(redirects, 2, "actual auth expiry still enters recovery");
+});
 
 function location(hash = ""): AuthRecoveryLocation {
   return {

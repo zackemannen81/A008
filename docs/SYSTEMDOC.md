@@ -275,6 +275,12 @@ run in the ACP subprocess.
 
 The bundled renderer installs one standalone-auth recovery guard before React mounts. For same-origin `/v1/*` fetches only, an exact host PIN-gate `401 Authentication required.` response sends the browser back to `/`, where the existing login page owns re-authentication. The guard reads a cloned response, does not consume the caller body, and is disabled when a valid native `#engine=` capability is present. Other 401 responses keep their existing semantics.
 
+Shell and source-upload fetches use `credentials: "same-origin"` so the browser
+sends its existing HttpOnly PIN cookie to the GUI host. The renderer does not
+read that cookie. Native engine headers remain supported. Omitting cookies from
+these requests would falsely trigger PIN recovery after workspace observations
+run on successful Connect (A008-0099).
+
 Three boundaries protect the shell surface. Any request carrying an `Origin`
 that is neither same-origin nor loopback is refused with 403 on every route and
 on the WebSocket upgrade. Standalone hosts may additionally set the exact

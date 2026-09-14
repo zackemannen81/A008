@@ -78,7 +78,7 @@ export async function uploadSource(
   try {
     response = await fetchImpl(endpoint, {
       method: "POST",
-      credentials: "omit",
+      credentials: "same-origin",
       headers: {
         ...engineHeaders(),
         accept: "application/json",
