@@ -1,0 +1,299 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "runtimePreferences": {
+      "type": "object",
+      "properties": {
+        "revision": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "settings": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "defaults": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "fields": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "storagePath": {
+          "$ref": "#/$defs/__schema5"
+        }
+      },
+      "required": [
+        "revision",
+        "settings",
+        "defaults",
+        "fields",
+        "storagePath"
+      ]
+    },
+    "model": {
+      "$ref": "#/$defs/__schema0"
+    },
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "stream": {
+          "type": "boolean"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "topP": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "maxTokens": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "enableThinking": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reasoningBudget": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reasoningEffort": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema0"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema2"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stop": {
+          "anyOf": [
+            {
+              "readOnly": true,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema0"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "stream",
+        "temperature",
+        "topP",
+        "maxTokens",
+        "enableThinking",
+        "reasoningBudget",
+        "reasoningEffort",
+        "seed",
+        "stop"
+      ]
+    },
+    "messages": {
+      "readOnly": true,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ]
+          },
+          "content": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ]
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "cwd": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "projectId": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema0"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "memoryPath": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema0"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tools": {
+          "readOnly": true,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "$ref": "#/$defs/__schema0"
+              },
+              "description": {
+                "$ref": "#/$defs/__schema0"
+              }
+            },
+            "required": [
+              "name",
+              "description"
+            ]
+          }
+        }
+      },
+      "required": [
+        "cwd",
+        "projectId",
+        "memoryPath"
+      ]
+    },
+    "undone": {
+      "type": "boolean"
+    },
+    "closed": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "model",
+    "parameters",
+    "messages",
+    "runtime"
+  ],
+  "$defs": {
+    "__schema0": {
+      "type": "string"
+    },
+    "__schema1": {
+      "type": "object",
+      "properties": {
+        "instructions": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "budgets": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema2"
+          }
+        }
+      },
+      "required": [
+        "instructions",
+        "budgets"
+      ]
+    },
+    "__schema2": {
+      "type": "number"
+    },
+    "__schema3": {
+      "readOnly": true,
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema4"
+      }
+    },
+    "__schema4": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "label": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "unit": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "description": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "minimum": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "$ref": "#/$defs/__schema2"
+        },
+        "maximum": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "unit",
+        "description",
+        "minimum",
+        "maximum"
+      ]
+    },
+    "__schema5": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema0"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

@@ -3,6 +3,22 @@
 This document describes durable behavior that exists now. Intended product
 architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
+## Shared v1 wire contract
+
+`packages/protocol/src` owns the existing WS/session/model/runtime-preference
+wire types, Zod schemas, serialization and compatibility parsing. Core and GUI
+modules retain thin adapters; runtime policy and platform transport/auth stay
+outside the package. Shared snapshot guards preserve additive fields, while
+direct Zod parsing can normalize them. Generated structural JSON schemas require
+the shared semantic runtime-budget checks described in the package README.
+
+The root and portable engine ship `dist/packages/protocol/src`; the independent
+tarball ships its own `dist`. V1 message tolerance, errors, ACP sessions and
+permission behavior remain unchanged. The [HTTP/WS inventory](HOST_PROTOCOL_V1_INVENTORY.md)
+records current ownership; HTTP payloads outside the model/session surface still
+have their existing owners. A008-0103's accepted future boundary is not a current
+isolation, negotiation or recovery guarantee.
+
 ## Implemented system
 
 A008 implements a repository control plane and its first bounded application

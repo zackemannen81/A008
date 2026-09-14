@@ -1,0 +1,1680 @@
+{
+  "source": "pre-extraction 31c7875 / unchanged v1 runtime",
+  "client": [
+    {
+      "raw": "invalid JSON",
+      "value": {
+        "error": "WebSocket frame is not valid JSON."
+      }
+    },
+    {
+      "raw": "null",
+      "value": {
+        "error": "WebSocket frame must be a JSON object."
+      }
+    },
+    {
+      "raw": "[]",
+      "value": {
+        "error": "WebSocket frame must be a JSON object."
+      }
+    },
+    {
+      "raw": "{}",
+      "value": {
+        "error": "Unknown WebSocket message type."
+      }
+    },
+    {
+      "raw": "{\"type\":\"future\",\"requestId\":\"r\",\"sessionId\":\"s\"}",
+      "value": {
+        "error": "Unknown WebSocket message type.",
+        "requestId": "r",
+        "sessionId": "s"
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/new\"}",
+      "value": {
+        "error": "session/new requires requestId."
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/new\",\"requestId\":\"r\",\"sessionId\":\"s\",\"resumeToken\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"text\":\"\",\"permissionId\":\"\",\"allow\":false,\"control\":{\"action\":\"inspect\"}}",
+      "value": {
+        "type": "session/new",
+        "requestId": "r"
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/new\",\"requestId\":\" \",\"sessionId\":\"s\"}",
+      "value": {
+        "error": "session/new requires requestId."
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/new\",\"requestId\":\"r\",\"sessionId\":\" \"}",
+      "value": {
+        "type": "session/new",
+        "requestId": "r"
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/new\",\"requestId\":\"r\",\"sessionId\":\"s\",\"text\":17,\"resumeToken\":\"bad\",\"control\":{\"action\":\"future\"}}",
+      "value": {
+        "type": "session/new",
+        "requestId": "r"
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/resume\"}",
+      "value": {
+        "error": "session/resume requires requestId and sessionId."
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/resume\",\"requestId\":\"r\",\"sessionId\":\"s\",\"resumeToken\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"text\":\"\",\"permissionId\":\"\",\"allow\":false,\"control\":{\"action\":\"inspect\"}}",
+      "value": {
+        "type": "session/resume",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/resume\",\"requestId\":\" \",\"sessionId\":\"s\"}",
+      "value": {
+        "error": "session/resume requires requestId and sessionId.",
+        "sessionId": "s"
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/resume\",\"requestId\":\"r\",\"sessionId\":\" \"}",
+      "value": {
+        "error": "session/resume requires requestId and sessionId.",
+        "requestId": "r"
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/resume\",\"requestId\":\"r\",\"sessionId\":\"s\",\"text\":17,\"resumeToken\":\"bad\",\"control\":{\"action\":\"future\"}}",
+      "value": {
+        "error": "session/resume requires a valid resume capability.",
+        "requestId": "r",
+        "sessionId": "s"
+      }
+    },
+    {
+      "raw": "{\"type\":\"prompt\"}",
+      "value": {
+        "error": "prompt requires requestId and sessionId."
+      }
+    },
+    {
+      "raw": "{\"type\":\"prompt\",\"requestId\":\"r\",\"sessionId\":\"s\",\"resumeToken\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"text\":\"\",\"permissionId\":\"\",\"allow\":false,\"control\":{\"action\":\"inspect\"}}",
+      "value": {
+        "type": "prompt",
+        "requestId": "r",
+        "sessionId": "s",
+        "text": ""
+      }
+    },
+    {
+      "raw": "{\"type\":\"prompt\",\"requestId\":\" \",\"sessionId\":\"s\"}",
+      "value": {
+        "error": "prompt requires requestId and sessionId.",
+        "sessionId": "s"
+      }
+    },
+    {
+      "raw": "{\"type\":\"prompt\",\"requestId\":\"r\",\"sessionId\":\" \"}",
+      "value": {
+        "error": "prompt requires requestId and sessionId.",
+        "requestId": "r"
+      }
+    },
+    {
+      "raw": "{\"type\":\"prompt\",\"requestId\":\"r\",\"sessionId\":\"s\",\"text\":17,\"resumeToken\":\"bad\",\"control\":{\"action\":\"future\"}}",
+      "value": {
+        "error": "prompt text must be a string.",
+        "requestId": "r",
+        "sessionId": "s"
+      }
+    },
+    {
+      "raw": "{\"type\":\"cancel\"}",
+      "value": {
+        "error": "cancel requires requestId and sessionId."
+      }
+    },
+    {
+      "raw": "{\"type\":\"cancel\",\"requestId\":\"r\",\"sessionId\":\"s\",\"resumeToken\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"text\":\"\",\"permissionId\":\"\",\"allow\":false,\"control\":{\"action\":\"inspect\"}}",
+      "value": {
+        "type": "cancel",
+        "requestId": "r",
+        "sessionId": "s"
+      }
+    },
+    {
+      "raw": "{\"type\":\"cancel\",\"requestId\":\" \",\"sessionId\":\"s\"}",
+      "value": {
+        "error": "cancel requires requestId and sessionId.",
+        "sessionId": "s"
+      }
+    },
+    {
+      "raw": "{\"type\":\"cancel\",\"requestId\":\"r\",\"sessionId\":\" \"}",
+      "value": {
+        "error": "cancel requires requestId and sessionId.",
+        "requestId": "r"
+      }
+    },
+    {
+      "raw": "{\"type\":\"cancel\",\"requestId\":\"r\",\"sessionId\":\"s\",\"text\":17,\"resumeToken\":\"bad\",\"control\":{\"action\":\"future\"}}",
+      "value": {
+        "type": "cancel",
+        "requestId": "r",
+        "sessionId": "s"
+      }
+    },
+    {
+      "raw": "{\"type\":\"tool/permission\"}",
+      "value": {
+        "error": "Invalid tool permission response."
+      }
+    },
+    {
+      "raw": "{\"type\":\"tool/permission\",\"requestId\":\"r\",\"sessionId\":\"s\",\"resumeToken\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"text\":\"\",\"permissionId\":\"\",\"allow\":false,\"control\":{\"action\":\"inspect\"}}",
+      "value": {
+        "type": "tool/permission",
+        "requestId": "r",
+        "sessionId": "s",
+        "permissionId": "",
+        "allow": false
+      }
+    },
+    {
+      "raw": "{\"type\":\"tool/permission\",\"requestId\":\" \",\"sessionId\":\"s\"}",
+      "value": {
+        "error": "Invalid tool permission response."
+      }
+    },
+    {
+      "raw": "{\"type\":\"tool/permission\",\"requestId\":\"r\",\"sessionId\":\" \"}",
+      "value": {
+        "error": "Invalid tool permission response."
+      }
+    },
+    {
+      "raw": "{\"type\":\"tool/permission\",\"requestId\":\"r\",\"sessionId\":\"s\",\"text\":17,\"resumeToken\":\"bad\",\"control\":{\"action\":\"future\"}}",
+      "value": {
+        "error": "Invalid tool permission response."
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\"}",
+      "value": {
+        "error": "session/control requires requestId and sessionId."
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\",\"requestId\":\"r\",\"sessionId\":\"s\",\"resumeToken\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"text\":\"\",\"permissionId\":\"\",\"allow\":false,\"control\":{\"action\":\"inspect\"}}",
+      "value": {
+        "type": "session/control",
+        "requestId": "r",
+        "sessionId": "s",
+        "control": {
+          "action": "inspect"
+        }
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\",\"requestId\":\" \",\"sessionId\":\"s\"}",
+      "value": {
+        "error": "session/control requires requestId and sessionId."
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\",\"requestId\":\"r\",\"sessionId\":\" \"}",
+      "value": {
+        "error": "session/control requires requestId and sessionId."
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\",\"requestId\":\"r\",\"sessionId\":\"s\",\"text\":17,\"resumeToken\":\"bad\",\"control\":{\"action\":\"future\"}}",
+      "value": {
+        "error": "Invalid session control action or parameters.",
+        "requestId": "r",
+        "sessionId": "s"
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\",\"requestId\":\"r\",\"sessionId\":\"s\",\"control\":{\"action\":\"inspect\",\"model\":\" fixture \",\"parameters\":{\"stream\":true,\"temperature\":null,\"topP\":null,\"maxTokens\":128,\"enableThinking\":null,\"reasoningBudget\":null,\"reasoningEffort\":null,\"seed\":null,\"stop\":null},\"settings\":{\"instructions\":\"\",\"budgets\":{}},\"revision\":\"r\"}}",
+      "value": {
+        "type": "session/control",
+        "requestId": "r",
+        "sessionId": "s",
+        "control": {
+          "action": "inspect"
+        }
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\",\"requestId\":\"r\",\"sessionId\":\"s\",\"control\":{\"action\":\"reset\",\"model\":\" fixture \",\"parameters\":{\"stream\":true,\"temperature\":null,\"topP\":null,\"maxTokens\":128,\"enableThinking\":null,\"reasoningBudget\":null,\"reasoningEffort\":null,\"seed\":null,\"stop\":null},\"settings\":{\"instructions\":\"\",\"budgets\":{}},\"revision\":\"r\"}}",
+      "value": {
+        "type": "session/control",
+        "requestId": "r",
+        "sessionId": "s",
+        "control": {
+          "action": "reset"
+        }
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\",\"requestId\":\"r\",\"sessionId\":\"s\",\"control\":{\"action\":\"undo\",\"model\":\" fixture \",\"parameters\":{\"stream\":true,\"temperature\":null,\"topP\":null,\"maxTokens\":128,\"enableThinking\":null,\"reasoningBudget\":null,\"reasoningEffort\":null,\"seed\":null,\"stop\":null},\"settings\":{\"instructions\":\"\",\"budgets\":{}},\"revision\":\"r\"}}",
+      "value": {
+        "type": "session/control",
+        "requestId": "r",
+        "sessionId": "s",
+        "control": {
+          "action": "undo"
+        }
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\",\"requestId\":\"r\",\"sessionId\":\"s\",\"control\":{\"action\":\"close\",\"model\":\" fixture \",\"parameters\":{\"stream\":true,\"temperature\":null,\"topP\":null,\"maxTokens\":128,\"enableThinking\":null,\"reasoningBudget\":null,\"reasoningEffort\":null,\"seed\":null,\"stop\":null},\"settings\":{\"instructions\":\"\",\"budgets\":{}},\"revision\":\"r\"}}",
+      "value": {
+        "type": "session/control",
+        "requestId": "r",
+        "sessionId": "s",
+        "control": {
+          "action": "close"
+        }
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\",\"requestId\":\"r\",\"sessionId\":\"s\",\"control\":{\"action\":\"model\",\"model\":\" fixture \",\"parameters\":{\"stream\":true,\"temperature\":null,\"topP\":null,\"maxTokens\":128,\"enableThinking\":null,\"reasoningBudget\":null,\"reasoningEffort\":null,\"seed\":null,\"stop\":null},\"settings\":{\"instructions\":\"\",\"budgets\":{}},\"revision\":\"r\"}}",
+      "value": {
+        "type": "session/control",
+        "requestId": "r",
+        "sessionId": "s",
+        "control": {
+          "action": "model",
+          "model": " fixture "
+        }
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\",\"requestId\":\"r\",\"sessionId\":\"s\",\"control\":{\"action\":\"configure\",\"model\":\" fixture \",\"parameters\":{\"stream\":true,\"temperature\":null,\"topP\":null,\"maxTokens\":128,\"enableThinking\":null,\"reasoningBudget\":null,\"reasoningEffort\":null,\"seed\":null,\"stop\":null},\"settings\":{\"instructions\":\"\",\"budgets\":{}},\"revision\":\"r\"}}",
+      "value": {
+        "type": "session/control",
+        "requestId": "r",
+        "sessionId": "s",
+        "control": {
+          "action": "configure",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          }
+        }
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/control\",\"requestId\":\"r\",\"sessionId\":\"s\",\"control\":{\"action\":\"configureRuntime\",\"model\":\" fixture \",\"parameters\":{\"stream\":true,\"temperature\":null,\"topP\":null,\"maxTokens\":128,\"enableThinking\":null,\"reasoningBudget\":null,\"reasoningEffort\":null,\"seed\":null,\"stop\":null},\"settings\":{\"instructions\":\"\",\"budgets\":{}},\"revision\":\"r\"}}",
+      "value": {
+        "type": "session/control",
+        "requestId": "r",
+        "sessionId": "s",
+        "control": {
+          "action": "configureRuntime",
+          "settings": {
+            "instructions": "",
+            "budgets": {}
+          },
+          "revision": "r"
+        }
+      }
+    },
+    {
+      "raw": "{\"type\":\"session/new\",\"requestId\":\" r \",\"model\":\" m \",\"extra\":1}",
+      "value": {
+        "type": "session/new",
+        "requestId": " r ",
+        "model": " m "
+      }
+    }
+  ],
+  "server": [
+    {
+      "raw": null,
+      "error": "Host message is malformed.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": [],
+      "error": "Host message is malformed.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {},
+      "error": "Host message is malformed.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "future"
+      },
+      "value": null
+    },
+    {
+      "raw": {
+        "type": "session/new/ok"
+      },
+      "error": "session/new/ok is missing identifiers.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "session/new/ok",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "text": "",
+        "message": "fixture",
+        "id": "",
+        "title": "",
+        "status": "unknown",
+        "active": false,
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        },
+        "extra": true
+      },
+      "value": {
+        "type": "session/new/ok",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      }
+    },
+    {
+      "raw": {
+        "type": "session/new/ok",
+        "requestId": " ",
+        "sessionId": " ",
+        "text": "",
+        "message": "",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      },
+      "value": {
+        "type": "session/new/ok",
+        "requestId": " ",
+        "sessionId": " ",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      }
+    },
+    {
+      "raw": {
+        "type": "session/new/ok",
+        "requestId": 17,
+        "sessionId": "s",
+        "text": 17,
+        "resumeToken": "bad"
+      },
+      "error": "Invalid resume capability.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "session/resume/ok"
+      },
+      "error": "session/resume/ok is missing valid identifiers or resume capability.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "session/resume/ok",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "text": "",
+        "message": "fixture",
+        "id": "",
+        "title": "",
+        "status": "unknown",
+        "active": false,
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        },
+        "extra": true
+      },
+      "value": {
+        "type": "session/resume/ok",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      }
+    },
+    {
+      "raw": {
+        "type": "session/resume/ok",
+        "requestId": " ",
+        "sessionId": " ",
+        "text": "",
+        "message": "",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      },
+      "error": "session/resume/ok is missing valid identifiers or resume capability.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "session/resume/ok",
+        "requestId": 17,
+        "sessionId": "s",
+        "text": 17,
+        "resumeToken": "bad"
+      },
+      "error": "Invalid resume capability.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "prompt/ok"
+      },
+      "error": "prompt/ok is missing requestId or sessionId.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "prompt/ok",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "text": "",
+        "message": "fixture",
+        "id": "",
+        "title": "",
+        "status": "unknown",
+        "active": false,
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        },
+        "extra": true
+      },
+      "value": {
+        "type": "prompt/ok",
+        "requestId": "r",
+        "sessionId": "s",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      }
+    },
+    {
+      "raw": {
+        "type": "prompt/ok",
+        "requestId": " ",
+        "sessionId": " ",
+        "text": "",
+        "message": "",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      },
+      "value": {
+        "type": "prompt/ok",
+        "requestId": " ",
+        "sessionId": " ",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      }
+    },
+    {
+      "raw": {
+        "type": "prompt/ok",
+        "requestId": 17,
+        "sessionId": "s",
+        "text": 17,
+        "resumeToken": "bad"
+      },
+      "error": "prompt/ok is missing requestId or sessionId.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "thought"
+      },
+      "error": "thought is missing sessionId or text.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "thought",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "text": "",
+        "message": "fixture",
+        "id": "",
+        "title": "",
+        "status": "unknown",
+        "active": false,
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        },
+        "extra": true
+      },
+      "value": {
+        "type": "thought",
+        "sessionId": "s",
+        "text": ""
+      }
+    },
+    {
+      "raw": {
+        "type": "thought",
+        "requestId": " ",
+        "sessionId": " ",
+        "text": "",
+        "message": "",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      },
+      "value": {
+        "type": "thought",
+        "sessionId": " ",
+        "text": ""
+      }
+    },
+    {
+      "raw": {
+        "type": "thought",
+        "requestId": 17,
+        "sessionId": "s",
+        "text": 17,
+        "resumeToken": "bad"
+      },
+      "error": "thought is missing sessionId or text.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "answer"
+      },
+      "error": "answer is missing sessionId or text.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "answer",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "text": "",
+        "message": "fixture",
+        "id": "",
+        "title": "",
+        "status": "unknown",
+        "active": false,
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        },
+        "extra": true
+      },
+      "value": {
+        "type": "answer",
+        "sessionId": "s",
+        "text": ""
+      }
+    },
+    {
+      "raw": {
+        "type": "answer",
+        "requestId": " ",
+        "sessionId": " ",
+        "text": "",
+        "message": "",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      },
+      "value": {
+        "type": "answer",
+        "sessionId": " ",
+        "text": ""
+      }
+    },
+    {
+      "raw": {
+        "type": "answer",
+        "requestId": 17,
+        "sessionId": "s",
+        "text": 17,
+        "resumeToken": "bad"
+      },
+      "error": "answer is missing sessionId or text.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "error"
+      },
+      "error": "error is missing message.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "error",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "text": "",
+        "message": "fixture",
+        "id": "",
+        "title": "",
+        "status": "unknown",
+        "active": false,
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        },
+        "extra": true
+      },
+      "value": {
+        "type": "error",
+        "message": "fixture",
+        "requestId": "r",
+        "sessionId": "s"
+      }
+    },
+    {
+      "raw": {
+        "type": "error",
+        "requestId": " ",
+        "sessionId": " ",
+        "text": "",
+        "message": "",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      },
+      "value": {
+        "type": "error",
+        "message": "",
+        "requestId": " ",
+        "sessionId": " "
+      }
+    },
+    {
+      "raw": {
+        "type": "error",
+        "requestId": 17,
+        "sessionId": "s",
+        "text": 17,
+        "resumeToken": "bad"
+      },
+      "error": "error is missing message.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "tool"
+      },
+      "error": "Invalid tool activity.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "tool",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "text": "",
+        "message": "fixture",
+        "id": "",
+        "title": "",
+        "status": "unknown",
+        "active": false,
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        },
+        "extra": true
+      },
+      "value": {
+        "type": "tool",
+        "sessionId": "s",
+        "id": "",
+        "title": "",
+        "status": "unknown",
+        "text": ""
+      }
+    },
+    {
+      "raw": {
+        "type": "tool",
+        "requestId": " ",
+        "sessionId": " ",
+        "text": "",
+        "message": "",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      },
+      "error": "Invalid tool activity.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "tool",
+        "requestId": 17,
+        "sessionId": "s",
+        "text": 17,
+        "resumeToken": "bad"
+      },
+      "error": "Invalid tool activity.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "tool/permission"
+      },
+      "error": "Invalid tool permission.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "tool/permission",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "text": "",
+        "message": "fixture",
+        "id": "",
+        "title": "",
+        "status": "unknown",
+        "active": false,
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        },
+        "extra": true
+      },
+      "value": {
+        "type": "tool/permission",
+        "sessionId": "s",
+        "id": "",
+        "title": "",
+        "text": ""
+      }
+    },
+    {
+      "raw": {
+        "type": "tool/permission",
+        "requestId": " ",
+        "sessionId": " ",
+        "text": "",
+        "message": "",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      },
+      "error": "Invalid tool permission.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "tool/permission",
+        "requestId": 17,
+        "sessionId": "s",
+        "text": 17,
+        "resumeToken": "bad"
+      },
+      "error": "Invalid tool permission.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "session/activity"
+      },
+      "error": "Invalid session activity.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "session/activity",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "text": "",
+        "message": "fixture",
+        "id": "",
+        "title": "",
+        "status": "unknown",
+        "active": false,
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        },
+        "extra": true
+      },
+      "value": {
+        "type": "session/activity",
+        "sessionId": "s",
+        "active": false,
+        "text": "",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      }
+    },
+    {
+      "raw": {
+        "type": "session/activity",
+        "requestId": " ",
+        "sessionId": " ",
+        "text": "",
+        "message": "",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      },
+      "error": "Invalid session activity.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "session/activity",
+        "requestId": 17,
+        "sessionId": "s",
+        "text": 17,
+        "resumeToken": "bad"
+      },
+      "error": "Invalid session activity.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "session/control/ok"
+      },
+      "error": "session/control/ok is missing identifiers.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "session/control/ok",
+        "requestId": "r",
+        "sessionId": "s",
+        "resumeToken": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "text": "",
+        "message": "fixture",
+        "id": "",
+        "title": "",
+        "status": "unknown",
+        "active": false,
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        },
+        "extra": true
+      },
+      "value": {
+        "type": "session/control/ok",
+        "requestId": "r",
+        "sessionId": "s",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      }
+    },
+    {
+      "raw": {
+        "type": "session/control/ok",
+        "requestId": " ",
+        "sessionId": " ",
+        "text": "",
+        "message": "",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      },
+      "value": {
+        "type": "session/control/ok",
+        "requestId": " ",
+        "sessionId": " ",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": null,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      }
+    },
+    {
+      "raw": {
+        "type": "session/control/ok",
+        "requestId": 17,
+        "sessionId": "s",
+        "text": 17,
+        "resumeToken": "bad"
+      },
+      "error": "session/control/ok is missing identifiers.",
+      "name": "GuiHostProtocolError"
+    },
+    {
+      "raw": {
+        "type": "session/new/ok",
+        "requestId": "r",
+        "sessionId": "s"
+      },
+      "value": {
+        "type": "session/new/ok",
+        "requestId": "r",
+        "sessionId": "s"
+      }
+    },
+    {
+      "raw": {
+        "type": "error",
+        "requestId": 42,
+        "sessionId": "",
+        "message": "fixture"
+      },
+      "value": {
+        "type": "error",
+        "message": "fixture"
+      }
+    },
+    {
+      "raw": {
+        "type": "prompt/ok",
+        "requestId": "r",
+        "sessionId": "s",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": 999,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      },
+      "value": {
+        "type": "prompt/ok",
+        "requestId": "r",
+        "sessionId": "s",
+        "state": {
+          "model": "fixture",
+          "parameters": {
+            "stream": true,
+            "temperature": 999,
+            "topP": null,
+            "maxTokens": 128,
+            "enableThinking": null,
+            "reasoningBudget": null,
+            "reasoningEffort": null,
+            "seed": null,
+            "stop": null
+          },
+          "messages": [
+            {
+              "role": "user",
+              "content": "fixture"
+            }
+          ],
+          "runtime": {
+            "cwd": "fixture",
+            "projectId": null,
+            "memoryPath": null
+          }
+        }
+      }
+    }
+  ]
+}

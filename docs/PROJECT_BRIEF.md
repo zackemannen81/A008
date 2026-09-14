@@ -62,6 +62,10 @@ add-on model for capabilities such as semantic memory.
 
 ## Approved product direction
 
+- ADR 0040 adopts the frozen seven-stage client API program. Existing v1/ACP
+  compatibility and project data remain obligations; implementation proceeds
+  through bounded children. Acceptance does not claim V2 availability.
+
 - ADR 0035 freezes the owner-reviewed instruction/memory target, including
   P1–P6, at its recorded body hash. Its exact amendments refine PC-01/02/04/05/06;
   L1, L2 and L3 remain separately bounded implementation slices. Acceptance

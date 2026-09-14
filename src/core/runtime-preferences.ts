@@ -1,3 +1,5 @@
+import type { RuntimePreferences as WireRuntimePreferences, RuntimeBudgetField as WireRuntimeBudgetField,
+  RuntimePreferencesSnapshot as WireRuntimePreferencesSnapshot } from "../../packages/protocol/src/index.js";
 import { DEFAULT_MEMORY_LIFECYCLE_POLICY, parseMemoryLifecyclePolicy, type MemoryLifecyclePolicy } from "./memory-lifecycle-policy.js";
 import { ChatError } from "./errors.js";
 
@@ -28,19 +30,11 @@ export const DEFAULT_RUNTIME_BUDGETS = Object.freeze({
 });
 export type RuntimeBudgetKey = keyof typeof DEFAULT_RUNTIME_BUDGETS;
 export type RuntimeBudgets = { readonly [K in RuntimeBudgetKey]: number };
-export interface RuntimePreferences {
+export type RuntimePreferences = WireRuntimePreferences & {
   readonly memoryLifecycle?: MemoryLifecyclePolicy;
-  readonly instructions: string;
   readonly budgets: RuntimeBudgets;
-}
-export interface RuntimeBudgetField {
-  readonly key: RuntimeBudgetKey;
-  readonly label: string;
-  readonly unit: string;
-  readonly description: string;
-  readonly minimum: number;
-  readonly maximum: number;
-}
+};
+export type RuntimeBudgetField = Omit<WireRuntimeBudgetField, "key"> & { readonly key: RuntimeBudgetKey };
 const field = (key: RuntimeBudgetKey, label: string, unit: string, description: string,
   minimum = 1, maximum = Number.MAX_SAFE_INTEGER): RuntimeBudgetField =>
   ({ key, label, unit, description, minimum, maximum });
@@ -70,13 +64,11 @@ export const RUNTIME_BUDGET_FIELDS: readonly RuntimeBudgetField[] = Object.freez
   field("toolTimeoutMs", "Tool execution timeout", "milliseconds", "Time for each shell command or MCP request, excluding user approval.", 1, 2_147_483_647),
 ]);
 
-export interface RuntimePreferencesSnapshot {
-  readonly revision: string;
+export type RuntimePreferencesSnapshot = Omit<WireRuntimePreferencesSnapshot, "settings" | "defaults" | "fields"> & {
   readonly settings: RuntimePreferences;
   readonly defaults: RuntimePreferences;
   readonly fields: readonly RuntimeBudgetField[];
-  readonly storagePath: string | null;
-}
+};
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -1,0 +1,11 @@
+{
+  "name": "@a008/protocol",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist", "schemas", "fixtures", "README.md", "LICENSE"],
+  "scripts": { "build": "tsc -p tsconfig.json" },
+  "dependencies": { "zod": "4.5.4" }
+}

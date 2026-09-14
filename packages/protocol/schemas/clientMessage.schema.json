@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "session/new"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "model": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "type",
+        "requestId"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "session/resume"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "resumeToken": {
+          "pattern": "^[a-f0-9]{64}$",
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "sessionId",
+        "resumeToken"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "prompt"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "text": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "sessionId",
+        "text"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "cancel"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "sessionId"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "tool/permission"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "permissionId": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "allow": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "sessionId",
+        "permissionId",
+        "allow"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "session/control"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "control": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "inspect",
+                    "reset",
+                    "undo",
+                    "close"
+                  ]
+                }
+              },
+              "required": [
+                "action"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "const": "model"
+                },
+                "model": {
+                  "$ref": "#/$defs/__schema0"
+                }
+              },
+              "required": [
+                "action",
+                "model"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "const": "configure"
+                },
+                "parameters": {}
+              },
+              "required": [
+                "action",
+                "parameters"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "action": {
+                  "type": "string",
+                  "const": "configureRuntime"
+                },
+                "settings": {},
+                "revision": {
+                  "$ref": "#/$defs/__schema1"
+                }
+              },
+              "required": [
+                "action",
+                "settings",
+                "revision"
+              ]
+            }
+          ]
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "sessionId",
+        "control"
+      ]
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "pattern": "\\S",
+      "$ref": "#/$defs/__schema1"
+    },
+    "__schema1": {
+      "type": "string"
+    }
+  }
+}

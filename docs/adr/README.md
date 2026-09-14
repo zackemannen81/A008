@@ -8,6 +8,9 @@ replacement.
 
 ## Records
 
+- [0040-stable-client-api-program.md](0040-stable-client-api-program.md) — Accepted; frozen client API target and sequential implementation.
+
+
 - [0039-project-bootstrap.md](0039-project-bootstrap.md)
   — Accepted; host-owned project create/open registry, docs-first starter,
   lazy multi-agent policy, global memory with project namespace.

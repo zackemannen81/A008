@@ -1,0 +1,560 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "session/new/ok"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "resumeToken": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "state": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "sessionId",
+        "resumeToken"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "session/resume/ok"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "resumeToken": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "state": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "sessionId",
+        "resumeToken"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "prompt/ok"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "state": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "sessionId"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "session/control/ok"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "state": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "sessionId",
+        "state"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "thought"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "text": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "type",
+        "sessionId",
+        "text"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "answer"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "text": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "type",
+        "sessionId",
+        "text"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "error"
+        },
+        "message": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "type",
+        "message"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "tool"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "title": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "status": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "text": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "type",
+        "sessionId",
+        "id",
+        "title",
+        "status",
+        "text"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "tool/permission"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "id": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "title": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "text": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "type",
+        "sessionId",
+        "id",
+        "title",
+        "text"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "session/activity"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "text": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "state": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": [
+        "type",
+        "sessionId",
+        "active"
+      ]
+    }
+  ],
+  "$defs": {
+    "__schema0": {
+      "minLength": 1,
+      "$ref": "#/$defs/__schema1"
+    },
+    "__schema1": {
+      "type": "string"
+    },
+    "__schema2": {
+      "pattern": "^[a-f0-9]{64}$",
+      "$ref": "#/$defs/__schema1"
+    },
+    "__schema3": {
+      "type": "object",
+      "properties": {
+        "runtimePreferences": {
+          "type": "object",
+          "properties": {
+            "revision": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "settings": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "defaults": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "fields": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "storagePath": {
+              "$ref": "#/$defs/__schema8"
+            }
+          },
+          "required": [
+            "revision",
+            "settings",
+            "defaults",
+            "fields",
+            "storagePath"
+          ]
+        },
+        "model": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "stream": {
+              "type": "boolean"
+            },
+            "temperature": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema5"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "topP": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema5"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "maxTokens": {
+              "$ref": "#/$defs/__schema5"
+            },
+            "enableThinking": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "reasoningBudget": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema5"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "reasoningEffort": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema1"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "seed": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema5"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "stop": {
+              "anyOf": [
+                {
+                  "readOnly": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema1"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "stream",
+            "temperature",
+            "topP",
+            "maxTokens",
+            "enableThinking",
+            "reasoningBudget",
+            "reasoningEffort",
+            "seed",
+            "stop"
+          ]
+        },
+        "messages": {
+          "readOnly": true,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "assistant"
+                ]
+              },
+              "content": {
+                "$ref": "#/$defs/__schema1"
+              }
+            },
+            "required": [
+              "role",
+              "content"
+            ]
+          }
+        },
+        "runtime": {
+          "type": "object",
+          "properties": {
+            "cwd": {
+              "$ref": "#/$defs/__schema1"
+            },
+            "projectId": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema1"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "memoryPath": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema1"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tools": {
+              "readOnly": true,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "$ref": "#/$defs/__schema1"
+                  },
+                  "description": {
+                    "$ref": "#/$defs/__schema1"
+                  }
+                },
+                "required": [
+                  "name",
+                  "description"
+                ]
+              }
+            }
+          },
+          "required": [
+            "cwd",
+            "projectId",
+            "memoryPath"
+          ]
+        },
+        "undone": {
+          "type": "boolean"
+        },
+        "closed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "model",
+        "parameters",
+        "messages",
+        "runtime"
+      ]
+    },
+    "__schema4": {
+      "type": "object",
+      "properties": {
+        "instructions": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "budgets": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/__schema1"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema5"
+          }
+        }
+      },
+      "required": [
+        "instructions",
+        "budgets"
+      ]
+    },
+    "__schema5": {
+      "type": "number"
+    },
+    "__schema6": {
+      "readOnly": true,
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema7"
+      }
+    },
+    "__schema7": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "label": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "unit": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "description": {
+          "$ref": "#/$defs/__schema1"
+        },
+        "minimum": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991,
+          "$ref": "#/$defs/__schema5"
+        },
+        "maximum": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991,
+          "$ref": "#/$defs/__schema5"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "unit",
+        "description",
+        "minimum",
+        "maximum"
+      ]
+    },
+    "__schema8": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema1"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}
