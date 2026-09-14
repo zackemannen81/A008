@@ -124,3 +124,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0108 | cross-process runtime registry ownership | Codex (operator) | 2026-09-15 | exclude competing registry processes and release ownership after exit/crash |
 | A008-0109 | shared standalone session facade | Codex (operator) | 2026-09-15 | route standalone sessions through shared runtime ownership and cover legacy runtime process claims |
 | A008-0110 | V2 authentication foundation | Codex (operator) | 2026-09-15 | shared auth schemas, owner-local device grants, scoped expiring credentials and one-use tickets |
+| A008-0111 | register and open existing projects | Codex (operator) | 2026-09-15 | host-owned existing-project adoption without project-tree mutation |
