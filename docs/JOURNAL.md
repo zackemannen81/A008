@@ -2273,3 +2273,16 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Allocated A008-0102 on main for the owner's next request: a bounded written plan
   for the existing host protocol as a stable client API, not implementation.
 - Signature: Codex
+
+## 2026-09-14 - A008-0102 through A008-0104 integration
+
+- Operator: Codex. Owner reported pushing and merging PR #45; verified remote main
+  c3970d563c08398ca6f5728d018659d64f8f1d0e, merged 2026-09-14T21:12:27Z.
+- Local main fast-forwarded. Plan/ADR 0040, program A008-0103 and the shared v1
+  session foundation are integrated. The reviewed implementation tree is unchanged.
+- Existing evidence: 573 core, 4 membership, 161 GUI tests; independent package
+  and portable engine proof pass. No new live provider call or restart.
+- Revalidated PC-01/05/06 and the frozen program. Allocated A008-0105 on main
+  for the remaining HTTP contract closure identified by the completed inventory.
+- Archives remain immutable; program remains In Progress.
+- Signature: Codex

@@ -16,8 +16,8 @@ GUI production build passes with a 526.22 kB main chunk (159.20 kB gzip) and
 Rollup's size/annotation warnings after adding shared Zod validation to the GUI.
 The [operation inventory](HOST_PROTOCOL_V1_INVENTORY.md) identifies remaining HTTP
 payload extraction. Stage 1 and the program remain In Progress: V2/auth, explicit
-project ownership, SDK and Expo are not implemented. This build has not been
-pushed, merged remotely or used to restart the running host.
+project ownership, SDK and Expo are not implemented. Integrated through PR #45 on remote main c3970d5; no running-host restart
+was performed for this build.
 
 A008-0101 replaces ordinary full-namespace SQLite writes with keyed row deltas.
 Evidence and association baselines, receipts, audit and derived indexes still
