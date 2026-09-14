@@ -5,6 +5,8 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0098 recovers expired standalone GUI PIN sessions at the existing auth boundary. Before React mounts, the bundled renderer wraps same-origin fetch responses and redirects to `/` only when a `/v1/*` request returns the host PIN gate's exact `401 Authentication required.` body. The response is inspected through `clone()`, so callers retain it unchanged. Native `#engine=` capability mode, cross-origin responses and unrelated 401s are not redirected. The six-digit PIN contract, 24-hour cookie lifetime and process-lifetime auth token are unchanged. Verification: 564 core, 4 membership and 159 GUI tests pass; GUI production build passes.
+
 A008-0094 adds host-owned project bootstrap. Projects in the sidebar can create
 a named local folder with optional Git, Docs-First starter files, multi-agent
 policy (max workers and worker-clone root, no clones) and project-scoped global

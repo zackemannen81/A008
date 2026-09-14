@@ -273,6 +273,8 @@ legitimately discussing those names is shown redacted. The host may call
 NVIDIA catalog/image endpoints and kie.ai job endpoints; chat completions still
 run in the ACP subprocess.
 
+The bundled renderer installs one standalone-auth recovery guard before React mounts. For same-origin `/v1/*` fetches only, an exact host PIN-gate `401 Authentication required.` response sends the browser back to `/`, where the existing login page owns re-authentication. The guard reads a cloned response, does not consume the caller body, and is disabled when a valid native `#engine=` capability is present. Other 401 responses keep their existing semantics.
+
 Three boundaries protect the shell surface. Any request carrying an `Origin`
 that is neither same-origin nor loopback is refused with 403 on every route and
 on the WebSocket upgrade. Standalone hosts may additionally set the exact
