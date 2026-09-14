@@ -1,52 +1,111 @@
-# A008-0109 - Shared standalone session facade
+# Current Task
 
-Task ID: A008-0109
-Parent Task: A008-0103
-Status: Ready
-Owner: Codex (operator)
-Created: 2026-09-15
-Charter frozen at: 2026-09-15
+Task ID:
+Parent Task: None
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
 
-## Frozen charter
-Goal: standalone and engine clients use one project runtime/session composition,
-with fixed session bindings and exclusion of competing legacy runtime owners.
-Deliverable: standalone in-process bridge over the shared session owner, exact
-legacy data/configuration binding and process guards covering CLI/direct ACP.
-Scope: reuse EngineHost session/tool/control/cancellation behavior without panels;
-registry resolution for explicit standalone configuration; borrowed registry
-injection; v1 workspace switching closes its bridge sessions only; shared-runtime
-sessions are independent; all local runtime factory paths honor process leases.
-Out of scope: V2 endpoints/auth, durable chat, new reconnect semantics, SDK/native,
-storage migration and changing v1 lazy namespace initialization. Strict existing
-V2 attachment keeps its separate no-create API; missing V2 data must fail later.
+## Read First
 
-## Necessity Gate
-Contract: PROJECT_BRIEF at 5dea080; PC-01 shared engine, PC-04 durable knowledge,
-PC-05 tool/credential boundaries, PC-06 controls; ADR 0041 decisions 1-5.
-Standalone currently spawns a separate runtime on workspace selection, preventing
-shared ownership and leaving direct legacy processes able to bypass registry
-leases. Omitting migration permits competing cached writers and global selection
-to escape a session binding. Smallest approach: use the existing EngineHost
-session implementation as a reusable facade, optional panel creation, a fixed
-project bridge adapter and guarded factory composition. Preserve registered IDs,
-global SQLite namespace choice, disabled-memory mode and source root in place.
-Verify two bridges/projects, wrong-session rejection, shared memory after close,
-seed/reopen, existing v1 real-host behavior and CLI/ACP process conflicts.
+- `AGENTS.md`
+- `docs/TASK_WORKFLOW.md`
+- `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/SYSTEMDOC.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant records under `docs/adr/`
 
-## Definition of done / gates
-- Default standalone host uses shared owner without a per-workspace subprocess;
-  custom/borrowed ACP panels keep their compatibility and permission ownership.
-- Sessions cannot be used through another project bridge; closing one bridge
-  releases its sessions/tools and leaves other borrowers and project memory alive.
-- Legacy registered/default SQLite/source configuration and memory-off behavior
-  are preserved; no copying, empty replacement or heuristic project-ID change.
-- Runtime acquisition/release covers direct CLI/ACP and registry engines, including
-  failures; existing seeded data and synthetic actual process conflict checks pass.
-- Full npm test, root/GUI build, installed protocol, portable engine proof pass.
-- Owning docs, final necessity review, archive/handoff, links/fences/hash/template
-  and diff pass; authorized push/PR/merge followed by operator journal.
+## Task Summary
 
-## Mutable progress
-- [ ] Implement shared session adapter and standalone binding.
-- [ ] Cover legacy runtime ownership and verify compatibility.
-- [ ] Finish docs/archive/template, publish and journal integration.
+Describe why this bounded task is active now and its intended outcome.
+
+## Task Charter
+
+### Goal
+
+Define one primary outcome.
+
+### Primary Deliverable
+
+Name the concrete artifact or behavior.
+
+### In Scope
+
+- List work required for the deliverable.
+
+### Out of Scope
+
+- List adjacent work that must not be absorbed.
+
+### Definition of Done
+
+- State objective completion conditions.
+
+### Necessity Gate
+
+Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
+Contract revision: <Git commit containing the reviewed contract>
+
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
+
+| Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
+| --- | --- | --- | --- | --- |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
+
+### Minimum Verification Gates
+
+- [ ] Define checks that may be strengthened but not removed after Ready.
+
+## References
+
+- Add owned documents, source revisions, contracts, and decisions.
+
+## Checklist
+
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
+
+## Decisions and Notes
+
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+
+## Charter Amendment Log
+
+- none
+
+## Verification
+
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
+
+## Documentation Updates
+
+- [ ] `docs/CURRENT_STATUS.md`
+- [ ] `docs/SYSTEMDOC.md`
+- [ ] `docs/JOURNAL.md`
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
+
+## Handoff and Follow-ups
+
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.

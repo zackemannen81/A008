@@ -27,6 +27,9 @@ interface EngineSession {
 }
 
 export interface EngineHostOptions {
+  /** Internal standalone facade: bind sessions to this resolver without panels. */
+  resolveProject?: (cwd: string) => ProjectRuntime;
+  createPanels?: boolean;
   /** Borrowed registry; the caller disposes it after all hosts/sessions close. */
   registry?: ProjectRuntimeRegistry;
   env: NodeJS.ProcessEnv;
@@ -70,12 +73,14 @@ export class EngineHost {
     const project = this.#project(params.cwd), cwd = project.cwd;
     const tools = new ModelToolSession({ cwd, env: this.#options.env, mcpServers: params.mcpServers });
     const created = project.agent.newSession(params);
-    // Enable controls before either client uses the session.
-    project.agent.controlSession({ sessionId: created.sessionId, action: "inspect" });
     const token = randomBytes(32).toString("hex");
     const session: EngineSession = { project, ...client, tools, listeners: new Set(), activities: new Map(), thought: "", answer: "" };
     this.#sessions.set(created.sessionId, session);
     try {
+      // Enable controls before either client uses the session; a configuration
+      // failure must still pass through the session/tool cleanup below.
+      project.agent.controlSession({ sessionId: created.sessionId, action: "inspect" });
+      if (this.#options.createPanels === false) return { ...created, _meta: { "engine.panels": [] } };
       session.panel = await startGuiHost({ host: "127.0.0.1", port: 0, accessToken: token,
         env: this.#options.env, cwd, sourceStorePath: project.runtime.sourceStoreRoot!,
         staticDir: this.#options.staticDir ?? fileURLToPath(new URL("../../../gui/dist", import.meta.url)),
@@ -97,7 +102,7 @@ export class EngineHost {
 
   #project(directory: string): Project {
     if (this.#closed) throw new Error("Engine is stopping.");
-    const project = this.#registry.openEngine(directory);
+    const project = this.#options.resolveProject?.(directory) ?? this.#registry.openEngine(directory);
     this.#projects.set(project.cwd, project);
     return project;
   }

@@ -423,6 +423,7 @@ test("real host/ACP controls save, repair overflow, enforce ownership and timeou
     client = await WireClient.open(host.port);
     client.send({ type: "session/new", requestId: "restart", model: "meta/muse-glimmer-30b" });
     const restarted = await client.until("session/new/ok");
+    assert.equal(restarted.type, "session/new/ok", restarted.message);
     assert.equal(restarted.state.runtimePreferences.settings.instructions, identity);
     assert.equal(restarted.state.runtimePreferences.settings.budgets.chatInputBytes, 65536);
     assert.equal(restarted.state.messages.length, 0);

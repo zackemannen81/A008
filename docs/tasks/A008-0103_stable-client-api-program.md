@@ -27,7 +27,7 @@ existing client silently breaks and no project silently receives empty memory.
 | Stage | Status | Child / next gate |
 | --- | --- | --- |
 | 1. Current contract | Complete | A008-0104/0105 merged; A008-0106 accepts V2/ownership/auth/recovery decisions |
-| 2. Project/session ownership | In Progress | A008-0107/0108 guarded registry; standalone/session facade and legacy-owner coverage remain |
+| 2. Project/session ownership | Complete | A008-0107/0108/0109 shared registry, facade, exact binding and process ownership proof |
 | 3. V2 and auth | Not started | Precise accepted wire/security decision before code |
 | 4. Turns and recovery | Not started | Snapshot boundary, idempotency, cancellation/restart proof |
 | 5. SDK and web migration | Not started | Independent package and complete web coverage |
@@ -53,9 +53,13 @@ The owner authorized autonomous remaining decisions/tasks and per-task push/PR/m
 No later implementation stage is complete merely because its design is decided.
 
 A008-0107 supplies the reusable runtime registry, strict existing-data attachment
-and same-process ownership checks. It preserves engine/panel behavior. Stage 2
-still requires the standalone/session facade and cross-process exclusion.
+and same-process ownership checks. It preserves engine/panel behavior. At that child's completion, stage 2 still required the facade and cross-process exclusion.
 
 A008-0108 guards registry-backed engine processes, including first-open races
-and crash release. Direct legacy runtime owners still require migration or
-explicit exclusion before combined deployment/V2. Stage 2 remains In Progress.
+and crash release. At that child's completion, direct legacy runtime owners still required migration
+or explicit exclusion. A008-0109 below completes that work.
+
+A008-0109 completes stage 2: standalone uses the shared session facade, fixed
+project bridges reject foreign sessions, borrowers retain independent sessions,
+and direct CLI/ACP factories honor process leases. V1 lazy initialization remains
+separate from strict existing attachment. V2 HTTP/WS/auth is the next stage.

@@ -8,6 +8,7 @@ import { A008AcpAgent, sessionNotifier } from "./A008-acp-agent.js";
 import { ModelToolSession } from "../tools/model-tools.js";
 import { prepareAcpTools } from "../tools/acp-tools.js";
 import { nativeToolCatalog } from "../tools/repository-tools.js";
+import { defaultCatalogPath, loadUserCatalog, userModelProfile } from "../core/user-catalog.js";
 
 export interface AcpServerOptions {
   readonly env?: NodeJS.ProcessEnv;
@@ -16,15 +17,20 @@ export interface AcpServerOptions {
   readonly stderr?: NodeJS.WritableStream;
 }
 
-export function createAcpRuntime(options: { env: NodeJS.ProcessEnv; cwd?: string; stderr: NodeJS.WritableStream }) {
+export function createAcpRuntime(options: { env: NodeJS.ProcessEnv; cwd?: string; stderr: NodeJS.WritableStream; ownershipAlreadyHeld?: boolean }) {
   const { env, stderr } = options;
   const runtime = createLocalMemoryRuntime({
     env,
     surface: "acp",
     stderr,
+    ...(options.ownershipAlreadyHeld ? { ownershipAlreadyHeld: true } : {}),
   });
   const agent = new A008AcpAgent({
     sessionControls: true,
+    extraProfiles: () => {
+      try { return loadUserCatalog(defaultCatalogPath(env)).chatModels.map(userModelProfile); }
+      catch { return []; }
+    },
     runtimeInfo: () => ({ cwd: options.cwd ?? process.cwd(), projectId: runtime.projectId, memoryPath: runtime.sqlitePath, tools: nativeToolCatalog() }),
     inspectMemory: (query) => runtime.inspectMemory(query),
     createSession: (model) => runtime.openSession({ model }),

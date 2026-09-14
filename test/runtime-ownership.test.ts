@@ -13,9 +13,9 @@ function processOwner() {
   // Attach immediately so a fast exit can never be missed by cleanup.
   const exited = once(child, "exit");
   return {
-    async open(env: NodeJS.ProcessEnv, cwd: string, existing?: { projectId: string; sqlitePath: string }) {
+    async open(env: NodeJS.ProcessEnv, cwd: string, existing?: { projectId: string; sqlitePath: string }, direct?: "cli" | "acp") {
       const result = once(child, "message", { signal: AbortSignal.timeout(10_000) });
-      child.send({ action: "open", env, cwd, existing });
+      child.send({ action: "open", env, cwd, existing, direct });
       return (await result)[0] as { ok: boolean; projectId: string; error?: string };
     },
     async close(crash = false) {
@@ -80,4 +80,23 @@ test("simultaneous first opens select one sidecar identity and one process owner
     try { assert.equal(registry.openEngine(cwd).runtime.projectId, results.find(result => result.ok)!.projectId); }
     finally { registry.close(); }
   } finally { await Promise.all([a.close(true), b.close(true)]); rmSync(f.directory, { recursive: true, force: true }); }
+});
+
+test("direct CLI and ACP runtime factories respect registry process leases and release them", async () => {
+  const f = isolatedMemoryEnv(), cwd = join(f.directory, "project"); mkdirSync(cwd);
+  try {
+    for (const surface of ["cli", "acp"] as const) {
+      const registry = new ProjectRuntimeRegistry({ env: f.env }), child = processOwner();
+      try {
+        registry.openConfigured(cwd, f.env);
+        const denied = await child.open(f.env, cwd, undefined, surface);
+        assert.equal(denied.ok, false); assert.match(denied.error!, /process owner/u);
+        registry.close();
+        const allowed = await child.open(f.env, cwd, undefined, surface); assert.equal(allowed.ok, true, allowed.error);
+        const contender = new ProjectRuntimeRegistry({ env: f.env });
+        try { assert.throws(() => contender.openConfigured(cwd, f.env), /process owner/u); }
+        finally { contender.close(); }
+      } finally { registry.close(); await child.close(true); }
+    }
+  } finally { rmSync(f.directory, { recursive: true, force: true }); }
 });
