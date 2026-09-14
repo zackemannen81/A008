@@ -368,6 +368,14 @@ recorded as fact.
 
 ## A008 GUI client
 
+Explicit GUI `endSession` always runs local teardown after its host close attempt,
+including a rejected close. The promise still reports that failure. This matters
+when project opening has already replaced the host ACP process: the existing
+project callback catches the stale close, then Connect opens a fresh session
+instead of retaining the previous ready state (A008-0100). Teardown discards the
+old socket and resume capability and rejects pending local work; it does not
+claim that a failed remote close succeeded.
+
 `gui/` is an A008-owned Vite + React + TypeScript application. ADR 0030
 introduces a neutral workspace inspired by the owner's Codex screenshot. It
 imports no third-party client UI code, Canvas route or telemetry. `gui/src/app.tsx` is the shell; each feature module owns only its own
