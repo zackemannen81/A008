@@ -2329,3 +2329,14 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Legacy owner coverage and shared standalone/session facade remain stage-2 work.
   Allocated A008-0109 for that migration and compatibility evidence.
 - No live provider call or running-host restart. Signature: Codex
+
+## 2026-09-15 - A008-0109 shared facade integration
+
+- Operator: Codex. Authorized PR #50 merged as
+  474284a32995b65c717f58e3e331a39c09926474 at 2026-09-14 22:21:59 UTC.
+- Stage 2 complete: shared runtime/session facade, fixed project bridges and
+  process leases covering standalone, engine and direct CLI/ACP factories.
+- 752 tests plus final focused ACP/engine checks, root/GUI builds, installed
+  protocol and portable engine proof pass. No live call, migration or restart.
+- Allocated A008-0110 for V2 authentication foundation and local device grants.
+- Signature: Codex
