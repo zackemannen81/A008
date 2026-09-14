@@ -1079,3 +1079,14 @@ This is a repository working rule, with no runtime enforcement or semantic
 scoring engine. It preserves existing product exceptions and the operator's
 allocation/integration responsibilities. Main's current-task file remains an
 empty copy of the updated template.
+
+## Shared project runtime owner (A008-0107)
+
+`src/engine/project-runtime-registry.ts` owns canonical project runtime reuse and
+disposal. EngineHost retains session/panel/tool lifetime and can borrow an
+explicit registry. Strict existing-store attachment recognizes persisted
+namespace metadata, artifacts or initialization records (and empty-store sidecar
+identity), preserving existing SQLite/source bindings. Incremental evidence
+writes need not create transition-counter metadata. Same-process claims exclude
+competing owners; distinct namespaces can share a database. Cross-process locks
+and standalone host migration remain unimplemented stage-2 obligations.

@@ -60,7 +60,13 @@ when deliberately reusing an existing store. Conversation turns and model
 parameters are session state; durable knowledge and global settings survive a
 process restart. A new process starts new conversations.
 
-The engine shares one runtime per workspace within its process. It does not
+The engine uses `ProjectRuntimeRegistry` to share one runtime per canonical
+workspace. A supplied registry is borrowed: closing an EngineHost closes only
+its sessions, while the caller disposes the registry after all borrowers stop.
+The registry also offers strict `attachExisting` for validated absolute SQLite
+and optional source paths plus an existing project namespace; it does not create
+a missing store. Same-process competing workspace/namespace owners are rejected.
+This API is internal composition, not a new public endpoint. It does not
 provide a cross-process ownership lock; run one owner for a given data directory.
 The companion client's file/editor/Git functions remain its own surfaces.
 MCP support currently covers approved stdio servers, not HTTP/SSE servers.

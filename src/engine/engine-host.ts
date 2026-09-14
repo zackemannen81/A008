@@ -1,11 +1,8 @@
-import { createHash, randomBytes } from "node:crypto";
-import { realpathSync, statSync } from "node:fs";
-import { homedir } from "node:os";
-import { isAbsolute, join, resolve } from "node:path";
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import type { InitializeRequest, NewSessionRequest, PromptRequest, SessionNotification } from "@agentclientprotocol/sdk";
 import { A008AcpAgent, parseSharedMemoryCapabilitiesParams } from "../acp/A008-acp-agent.js";
-import { createAcpRuntime } from "../acp/server.js";
+import { ProjectRuntimeRegistry, type ProjectRuntime } from "./project-runtime-registry.js";
 import type { SessionControl } from "../core/session-control.js";
 import { startGuiHost, type GuiHost } from "../gui-host/server.js";
 import type { AcpBridge } from "../gui-host/acp-bridge.js";
@@ -13,7 +10,7 @@ import type { GuiHostServerMessage } from "../gui-host/protocol.js";
 import { ModelToolSession } from "../tools/model-tools.js";
 import { prepareAcpTools, type RequestToolPermission, type ToolNotifier } from "../tools/acp-tools.js";
 
-type Project = ReturnType<typeof createAcpRuntime> & { cwd: string };
+type Project = ProjectRuntime;
 type Listener = (message: GuiHostServerMessage) => void;
 interface EngineSession {
   project: Project;
@@ -30,6 +27,8 @@ interface EngineSession {
 }
 
 export interface EngineHostOptions {
+  /** Borrowed registry; the caller disposes it after all hosts/sessions close. */
+  registry?: ProjectRuntimeRegistry;
   env: NodeJS.ProcessEnv;
   cwd?: string;
   stderr?: NodeJS.WritableStream;
@@ -39,12 +38,18 @@ export interface EngineHostOptions {
 /** ACP and web panels share these exact runtime/session objects. */
 export class EngineHost {
   readonly #options: EngineHostOptions;
+  readonly #registry: ProjectRuntimeRegistry;
+  readonly #ownsRegistry: boolean;
   readonly #projects = new Map<string, Project>();
   readonly #sessions = new Map<string, EngineSession>();
   readonly #initializing = new Set<Promise<unknown>>();
   #closed = false;
 
-  constructor(options: EngineHostOptions) { this.#options = options; }
+  constructor(options: EngineHostOptions) {
+    this.#options = options;
+    this.#ownsRegistry = options.registry === undefined;
+    this.#registry = options.registry ?? new ProjectRuntimeRegistry({ env: options.env, ...(options.stderr ? { stderr: options.stderr } : {}) });
+  }
 
   initialize(params: InitializeRequest) {
     const agent = new A008AcpAgent({ sessionControls: true, createSession() { throw new Error("Create a project session first."); } });
@@ -92,23 +97,8 @@ export class EngineHost {
 
   #project(directory: string): Project {
     if (this.#closed) throw new Error("Engine is stopping.");
-    if (!isAbsolute(directory)) throw new Error("Engine session cwd must be an absolute project directory.");
-    const cwd = realpathSync(directory);
-    if (!statSync(cwd).isDirectory()) throw new Error("Engine project is not a directory.");
-    const keyOf = (path: string) => process.platform === "win32" ? path.toLowerCase() : path;
-    const key = keyOf(cwd);
-    let project = this.#projects.get(key);
-    if (!project) {
-      const configured = this.#options.env;
-      const root = resolve(configured.A008_ENGINE_DATA_PATH || join(homedir(), ".a008", "engine"));
-      const data = join(root, "projects", createHash("sha256").update(key).digest("hex"));
-      const legacy = configured.A008_ENGINE_LEGACY_CWD && keyOf(realpathSync(configured.A008_ENGINE_LEGACY_CWD)) === key;
-      if (legacy && (!configured.A008_MEMORY_SQLITE_PATH || !configured.A008_SOURCE_STORE_PATH)) throw new Error("Legacy attachment requires explicit memory and source-store paths.");
-      const env = legacy ? { ...configured } : { ...configured, A008_PROJECT_ID: undefined,
-        A008_MEMORY_SQLITE_PATH: join(data, "memory.sqlite"), A008_SOURCE_STORE_PATH: join(data, "sources") };
-      project = { cwd, ...createAcpRuntime({ env, cwd, stderr: this.#options.stderr ?? process.stderr }) };
-      this.#projects.set(key, project);
-    }
+    const project = this.#registry.openEngine(directory);
+    this.#projects.set(project.cwd, project);
     return project;
   }
 
@@ -206,7 +196,7 @@ export class EngineHost {
     this.#closed = true;
     await Promise.allSettled([...this.#initializing]);
     await Promise.allSettled([...this.#sessions.keys()].map(id => this.closeSession(id)));
-    for (const project of this.#projects.values()) project.runtime.close();
+    if (this.#ownsRegistry) this.#registry.close();
     this.#projects.clear();
   }
 

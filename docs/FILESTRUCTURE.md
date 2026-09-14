@@ -473,3 +473,8 @@ modules those tests import — and `npm --prefix gui run test` discovers every
 
 Compiled `dist/` (root and `gui/`), dependencies,
 `.env.local`, and raw legacy input are ignored and are not repository structure.
+
+A008-0107 adds `src/engine/project-runtime-registry.ts` for canonical runtime
+ownership and explicit existing-data attachment, with regression evidence in
+`test/project-runtime-registry.test.ts`. EngineHost supports caller-owned registry
+borrowing. The charter is `docs/tasks/A008-0107_shared-project-runtime-registry.md`.
