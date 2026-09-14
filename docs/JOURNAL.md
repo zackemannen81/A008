@@ -2229,3 +2229,29 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Verification: 543 core, 4 membership and 129 GUI tests passed; focused host suite 38/38; production GUI build passed. No live provider call.
 - Handoff: `docs/handoffs/A008-0092.md`.
 - Signature: Codex
+
+## 2026-09-14 - A008-0098 through A008-0100 GUI connection integration
+
+- Author/operator: Codex; owner explicitly authorized push, PR creation and merge.
+- [PR #43](https://github.com/zackemannen81/A008/pull/43) merged into remote main
+  at 2026-09-14 19:23:49 UTC; merge commit 2ee3105a254fc3d96a2baef073ea84213f44d35f.
+- A008-0098 recovers exact standalone PIN-expiry responses through the existing gate.
+  A008-0099 retains same-origin cookies on shell/upload, removing the successful
+  Connect -> workspace 401 -> reload loop. A008-0100 releases local session state
+  after a stale host close so connected project switching starts a fresh session.
+- Necessity revalidated against unchanged PC-05/PC-06 and the frozen task constraints
+  at origin/main 659dc7a. Integration preserves the previously verified runtime tree
+  at 80e4669. No provider, host permission or authentication policy was broadened.
+- Full npm test passed: 564 core, 4 membership, 161 GUI; no failures/skips. Production
+  GUI build/typecheck, current-task template identity, changed-document links/fences,
+  outgoing credential-pattern review and git diff --check passed. No remote CI checks
+  were configured on the PR. Authenticated browser Connect/project switching was
+  verified in the implementation session; no live provider calls were made.
+- Local main task-ID allocations were merged without rewriting history. The old
+  A008-0071 shortcut commit is patch-equivalent to existing code; conflict resolution
+  keeps current GUI files unchanged. A008-0023 implementation 095f0cb was already
+  in main; its two late documentation commits are now included, the handoff is marked
+  historical, and the current-task template/current handoff index are retained.
+- All local and fetched remote branch tips are ancestors of the integrated main.
+  Task archives remain immutable. Handoffs 0098-0100 record final merge status.
+- Signature: Codex
