@@ -70,7 +70,7 @@ outside A008, compiles a separate TypeScript consumer and executes it.
 ## HTTP contract (A008-0105)
 
 `src/http-schemas.ts` owns the HTTP DTOs and schemas. `src/http-operations.ts`
-binds all 21 inventory rows (22 methods including static GET/HEAD) to bodies,
+binds all 22 inventory rows (23 methods including static GET/HEAD) to bodies,
 queries, path/header parameters and responses. Its pure `v1OpenApiDocument()`
 derives `schemas/http.openapi.json` from the same schemas; regenerate with
 `npm run protocol:schemas`. This artifact uses

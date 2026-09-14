@@ -7,9 +7,10 @@ import {
   executeProjectBootstrap,
   openRegisteredProject,
   previewProjectBootstrap,
+  registerExistingProject,
   type ProjectBootstrapStore,
 } from "../bootstrap/service.js";
-import { parseProjectBootstrapConfig } from "../bootstrap/validate.js";
+import { parseExistingProjectRegistration, parseProjectBootstrapConfig } from "../bootstrap/validate.js";
 import { readProjectRegistry } from "../bootstrap/registry.js";
 import type {
   ProjectBootstrapPlan,
@@ -33,6 +34,13 @@ export function handleProjectBootstrap(
       ? (body as { projectId: string }).projectId
       : undefined;
   return executeProjectBootstrap(parseProjectBootstrapConfig(body), store, projectId);
+}
+
+export function handleExistingProjectRegister(
+  store: ProjectBootstrapStore,
+  body: unknown,
+): RegisteredProject {
+  return registerExistingProject(parseExistingProjectRegistration(body), store);
 }
 
 export function handleProjectList(store: ProjectBootstrapStore): ProjectsResponse {

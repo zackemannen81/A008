@@ -850,6 +850,58 @@
         ]
       }
     },
+    "/v1/projects/register": {
+      "post": {
+        "summary": "host existing-project registration + global workspace switch",
+        "x-a008-owner": "project-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/existingProjectRegistration"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/registeredProject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
     "/v1/projects/open": {
       "post": {
         "summary": "host global workspace switch",
@@ -1501,6 +1553,40 @@
         "$defs": {
           "__schema0": {
             "type": "string"
+          }
+        }
+      },
+      "existingProjectRegistration": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectName": {
+            "$ref": "#/components/schemas/existingProjectRegistration/$defs/__schema0"
+          },
+          "rootFolder": {
+            "$ref": "#/components/schemas/existingProjectRegistration/$defs/__schema0"
+          },
+          "memory": {
+            "type": "object",
+            "properties": {
+              "useGlobalA008Memory": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "useGlobalA008Memory"
+            ]
+          }
+        },
+        "required": [
+          "projectName",
+          "rootFolder",
+          "memory"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string",
+            "minLength": 1
           }
         }
       },

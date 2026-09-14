@@ -1,6 +1,9 @@
 .a008-projects { min-height: 0; overflow: auto; padding: 1.25rem 1.5rem; }
 .a008-projects h1 { margin: .2rem 0 1rem; font-size: 1.35rem; }
 .a008-projects > header p { margin: 0; color: var(--a008-muted); font-size: .68rem; letter-spacing: .12em; }
+.a008-project-modes { display: flex; gap: .5rem; margin: 0 0 1rem; }
+.a008-project-modes button { padding: .45rem .75rem; border: 1px solid var(--a008-border); border-radius: .5rem; background: var(--a008-panel); color: inherit; font: inherit; cursor: pointer; }
+.a008-project-modes button[aria-pressed="true"] { background: var(--a008-surface-1, var(--a008-panel-quiet)); border-color: var(--a008-fg-soft); }
 .a008-projects-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(16rem, .8fr); gap: 1.5rem; }
 .a008-project-form, .a008-projects aside { display: grid; gap: .7rem; align-content: start; }
 .a008-project-form label { display: grid; gap: .3rem; font-size: .8rem; }
@@ -9,6 +12,7 @@
   background: var(--a008-surface-1, var(--a008-panel-quiet)); color: inherit; font: inherit;
 }
 .a008-project-check { display: flex; align-items: center; gap: .55rem; }
+.a008-project-note { margin: 0; color: var(--a008-muted); font-size: .74rem; line-height: 1.45; }
 .a008-project-preview {
   margin: 0; padding: .75rem; border: 1px solid var(--a008-border); border-radius: .6rem;
   background: var(--a008-surface-1, var(--a008-bg)); color: var(--a008-fg-soft);

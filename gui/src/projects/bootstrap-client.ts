@@ -1,5 +1,5 @@
-import type { ProjectBootstrapConfig, ProjectBootstrapPlan, RegisteredProject, ProjectsResponse, ProjectCreated, WorkspaceBinding } from '../../../packages/protocol/src/index.js';
-export type { ProjectBootstrapConfig, ProjectBootstrapPlan, RegisteredProject } from '../../../packages/protocol/src/index.js';
+import type { ExistingProjectRegistration, ProjectBootstrapConfig, ProjectBootstrapPlan, RegisteredProject, ProjectsResponse, ProjectCreated, WorkspaceBinding } from '../../../packages/protocol/src/index.js';
+export type { ExistingProjectRegistration, ProjectBootstrapConfig, ProjectBootstrapPlan, RegisteredProject } from '../../../packages/protocol/src/index.js';
 import { engineHeaders } from "../session/engine-access.js";
 
 async function readJson(response: Response): Promise<unknown> {
@@ -37,6 +37,18 @@ export async function createProject(
     body: JSON.stringify({ ...config, ...(projectId ? { projectId } : {}) }),
   });
   return (await readJson(response)) as ProjectCreated;
+}
+
+export async function registerExistingProject(
+  config: ExistingProjectRegistration,
+  fetchImpl: typeof fetch = fetch,
+): Promise<RegisteredProject> {
+  const response = await fetchImpl("/v1/projects/register", {
+    method: "POST",
+    headers: { ...engineHeaders(), "content-type": "application/json" },
+    body: JSON.stringify(config),
+  });
+  return (await readJson(response)) as RegisteredProject;
 }
 
 export async function listProjects(

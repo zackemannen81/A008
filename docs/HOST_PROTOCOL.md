@@ -24,10 +24,15 @@ option adds no HTTP mutation route and does not change memory-store ownership.
 A008-0094 adds host-owned project bootstrap (ADR 0039). `GET /v1/projects` lists
 the registry. `POST /v1/projects/preview` returns planned mutations without
 writing. `POST /v1/projects/bootstrap` executes one confirmed create and switches
-workspace. `POST /v1/projects/open` opens a registered project. Workspace change
-closes the current v1 bridge sessions; the previous conversation is not kept.
-The project runtime remains owned until host shutdown. The renderer
-does not create directories or run Git.
+workspace. A008-0111 / ADR 0042 adds `POST /v1/projects/register` for an already
+existing absolute directory: the host validates/canonicalizes it, generates the
+registered project identity, writes only the external A008 registry and switches
+workspace. It never initializes Git or creates/repairs project files. The route
+does not guess, merge or migrate legacy/unregistered memory; selected global
+memory starts under the new registered project namespace. `POST /v1/projects/open`
+opens a registered project. Workspace change closes the current v1 bridge sessions;
+the previous conversation is not kept. The project runtime remains owned until
+host shutdown. The renderer does not create directories or run Git.
 
 Discoverability: index. This is the complete surface an external client speaks
 to. It is written so a client can be implemented without reading this

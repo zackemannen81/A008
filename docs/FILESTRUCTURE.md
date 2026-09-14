@@ -2,6 +2,8 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+A008-0111 extends the existing `src/bootstrap/` registry/service/validator and `src/gui-host/project-routes.ts` with read-only adoption of an already-existing root. `packages/protocol/src/{routes,http-schemas,http-operations}.ts` owns the additive `POST /v1/projects/register` contract and regenerated OpenAPI. `gui/src/projects/` owns the separate New/Add existing modes. No new persistence owner or project-tree metadata file is introduced; registration writes only the existing external projects registry.
+
 A008-0106 adds `docs/CLIENT_API_V2.md`, the accepted protocol/lifecycle target,
 and `docs/adr/0041-client-api-v2-and-ownership.md`, its decision/authority record.
 
@@ -136,7 +138,7 @@ A008/
 |  |- src/
 |  |  |- main.tsx                    renderer bootstrap
 |  |  |- app.tsx                     shell layout (operator-owned)
-|  |  |- projects/                   A008-0094 New/Open/Recent project wizard
+|  |  |- projects/                   New/Add existing/Open/Recent project UI (A008-0094/A008-0111)
 |  |  |- highlight/                  highlight.js wrapper for chat/Canvas code
 |  |  |- memory/                     A008-0064 read-only memory diagnostics
 |  |  |  |- memory-page.tsx          three views, filters, refresh and pagination
@@ -191,7 +193,7 @@ A008/
 |     `- node-test-env.d.ts          the one ambient Node declaration for tests
 |- src/
 |  |- index.ts                       public core/provider exports
-|  |- bootstrap/                     A008-0094 project create/open registry
+|  |- bootstrap/                     project create/register/open registry (A008-0094/A008-0111)
 |  |- gui-host/                      A008-0032 HTTP/WS ACP bridge (product GUI)
 |  |  |- server.ts                   HTTP routes, static GUI, upgrade handling
 |  |  |- acp-bridge.ts               A008-acp stdio subprocess bridge
