@@ -817,3 +817,7 @@ A008-0110 verification: 591 core, 4 membership and 161 GUI tests pass; builds,
 installed protocol and portable engine proof pass. GUI: 533.97 kB main chunk,
 161.63 kB gzip, with existing warnings. Work stops at this completed task at the
 owner's request; next implementation is recorded in handoffs/A008-0110.md.
+
+Integration: A008-0106 through A008-0110 are merged via PRs #47 through #51.
+Latest implementation merge: 138bf30. Execution stopped at owner request after
+A008-0110; CURRENT_TASK is restored and no subsequent child is active.

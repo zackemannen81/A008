@@ -2340,3 +2340,18 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   protocol and portable engine proof pass. No live call, migration or restart.
 - Allocated A008-0110 for V2 authentication foundation and local device grants.
 - Signature: Codex
+
+## 2026-09-15 - A008-0110 authentication integration and owner stop
+
+- Operator: Codex. Authorized PR #51 merged as
+  138bf307e0d24566707a1859e28bd0e9c7dfed99 at 2026-09-14 22:34:16 UTC.
+- 756 tests, root/GUI builds, installed protocol and portable engine proof pass.
+  GUI main JS 533.97 kB / 161.63 kB gzip; size/annotation warnings remain.
+- Auth foundation only: local hashed device grants, scope/expiry/revocation,
+  discovery and one-use tickets. No V2 session/business dispatch or live-socket
+  revocation is claimed. No actual owner credential, paid call or host restart.
+- Owner requested stopping at the next suitable boundary. Stopped after merge;
+  no next task ID allocated. CURRENT_TASK is the empty template. Handoff 0110
+  records remaining stages and the next stage-3 charter prerequisites.
+- Program stages 1/2 complete; stage 3 partial, stages 4-7 unstarted.
+- Signature: Codex
