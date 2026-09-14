@@ -1,9 +1,12 @@
 # A008:s stabila API-gräns mot klienter
 
-Status: Proposed — plan framtagen; implementation inte aktiverad
+Status: Accepted and frozen — A008-0103; implementation tracked per child task
 Planning task: A008-0102
 Date: 2026-09-14
 Source revision: bbd4372 (efter integration av A008-0101)
+Frozen body SHA-256 (UTF-8 LF, from first heading): 0a7edce0560e781a5dba6ec89be28e7e75f3b0eeeca6a062b72d9e525c3d8f2c
+Authority: ADR 0040; owner approved freeze and sequential implementation 2026-09-14.
+The body retains its proposal-time wording; the program records activation.
 
 ## Rekommenderad riktning
 
