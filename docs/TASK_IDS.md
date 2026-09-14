@@ -122,3 +122,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0106 | client API decisions | Codex (operator) | 2026-09-14 | decide V2, runtime/session ownership, auth and recovery within the frozen program |
 | A008-0107 | shared project runtime registry | Codex (operator) | 2026-09-14 | extract engine owner, explicit existing-data attachment and alias/lifetime tests |
 | A008-0108 | cross-process runtime registry ownership | Codex (operator) | 2026-09-15 | exclude competing registry processes and release ownership after exit/crash |
+| A008-0109 | shared standalone session facade | Codex (operator) | 2026-09-15 | route standalone sessions through shared runtime ownership and cover legacy runtime process claims |

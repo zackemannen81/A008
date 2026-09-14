@@ -2319,3 +2319,13 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Journal/current docs updated after merge. Stage 2 remains In Progress.
   Allocated A008-0108 for cross-process registry ownership before facade migration.
 - Signature: Codex
+
+## 2026-09-15 - A008-0108 process ownership integration
+
+- Operator: Codex. Authorized PR #49 merged as
+  45b5daf11548d5fe46070635b8f26e2dc8257fe7 at 2026-09-14 22:09:39 UTC.
+- 749 tests, root/GUI builds, installed protocol and portable engine proofs pass.
+  Actual processes verify lifetime exclusion, identity races and crash release.
+- Legacy owner coverage and shared standalone/session facade remain stage-2 work.
+  Allocated A008-0109 for that migration and compatibility evidence.
+- No live provider call or running-host restart. Signature: Codex
