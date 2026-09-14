@@ -2298,3 +2298,13 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   and operator journal. This does not authorize unrelated product expansion.
 - Allocated A008-0106 on main for accepted V2/ownership/auth/recovery decisions.
 - Signature: Codex
+
+## 2026-09-14 - A008-0106 decision integration
+
+- Operator: Codex. Authorized PR #47 merged at 21:50:51 UTC as
+  c1ba4c6c4ee830cd1c5261e615354561ba242157; verified MERGED and main fast-forward.
+- ADR 0041/CLIENT_API_V2.md close the stage-1 decision gate. Docs links/fences,
+  frozen plan hash, archive/template and diff pass; runtime code is unchanged.
+- No repository CI checks were configured. Accepted design is not yet runtime
+  availability. Allocated A008-0107 for reusable project runtime ownership.
+- Signature: Codex
