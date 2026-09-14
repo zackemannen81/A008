@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "protocol": {
+      "type": "string",
+      "const": "a008.v2"
+    },
+    "serverInstanceId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "serverVersion": {
+      "type": "string"
+    },
+    "authProfiles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "device",
+          "browser-pin"
+        ]
+      }
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "ticketLifetimeMs": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "preauthFrameBytes": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "authenticationDeadlineMs": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "inputFrameBytes": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "outputFrameBytes": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "promptBytes": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "ticketLifetimeMs",
+        "preauthFrameBytes",
+        "authenticationDeadlineMs",
+        "inputFrameBytes",
+        "outputFrameBytes",
+        "promptBytes"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "protocol",
+    "serverInstanceId",
+    "serverVersion",
+    "authProfiles",
+    "features",
+    "limits"
+  ],
+  "additionalProperties": false
+}

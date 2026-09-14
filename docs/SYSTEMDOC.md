@@ -1093,3 +1093,13 @@ held without application state and never unlinked; OS locks release on process
 death. A008-0109 extends leases to direct local runtime factories used by CLI/ACP,
 and moves standalone to the shared session facade. Internal registry construction
 passes its already-held lease explicitly to avoid recursively acquiring it.
+
+## V2 authentication foundation (A008-0110)
+
+`src/gui-host/v2-auth.ts` owns discovery, principal/capability checks and scoped
+30-second one-use tickets. DeviceRegistry reads current hashed credentials from
+its separate local SQLite registry on each operation. Owner-local device-cli
+grant/list/revoke has no HTTP equivalent. V1/PIN/panel routing is unchanged.
+Only discovery and ticket issuance are exposed; socket admission, per-command
+authorization and live-socket revocation await the V2 session task. See
+[CLIENT_AUTH.md](CLIENT_AUTH.md) for implemented behavior and limits.

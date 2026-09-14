@@ -22,7 +22,7 @@ if (!response.ok) throw new Error(`Cannot obtain matching Node license: HTTP ${r
 const nodeLicense = await response.text();
 if (!nodeLicense.includes("Copyright Node.js contributors")) throw new Error("Unexpected Node license content.");
 mkdirSync(output, { recursive: true });
-for (const name of ["dist/src", "dist/packages/protocol/src", "gui/dist", "LICENSE", "agent007.brain.json", "docs/ENGINE.md", "docs/RUNTIME_SETTINGS.md", "docs/adr/0027-runtime-preferences-and-instructions.md", "docs/adr/0028-engine-package-and-panels.md"]) cpSync(join(root, name), join(output, name), { recursive: true });
+for (const name of ["dist/src", "dist/packages/protocol/src", "gui/dist", "LICENSE", "agent007.brain.json", "docs/ENGINE.md", "docs/CLIENT_AUTH.md", "docs/RUNTIME_SETTINGS.md", "docs/adr/0027-runtime-preferences-and-instructions.md", "docs/adr/0028-engine-package-and-panels.md"]) cpSync(join(root, name), join(output, name), { recursive: true });
 cpSync(join(root, "docs/ENGINE.md"), join(output, "ENGINE.md"));
 writeFileSync(join(output, "README.md"), "# A008 Engine\n\nThis portable engine includes the shared runtime, CLI, ACP and A008 web panels.\n\nRead [setup and integration](docs/ENGINE.md) and [runtime settings](docs/RUNTIME_SETTINGS.md).\nThe companion client discovers agent007.brain.json and launches the bundled Node executable.\nProvide provider credentials in the launching process environment; user data is stored outside this package.\n\nENGINE_BUILD.json records the source revision, platform, runtime and dependencies.\nLICENSE covers A008-owned code. Dependencies and runtime retain their own notices; compiled GUI notices are in licenses/.\n");
 mkdirSync(join(output, "licenses"));

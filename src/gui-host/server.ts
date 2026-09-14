@@ -25,6 +25,8 @@ import {
 import { type AcpBridge } from "./acp-bridge.js";
 import { createLocalAcpBridge } from "./local-acp-bridge.js";
 import { ProjectRuntimeRegistry } from "../engine/project-runtime-registry.js";
+import { DeviceRegistry } from "./device-registry.js";
+import { V2Auth, handleV2AuthHttp } from "./v2-auth.js";
 import {
   ALLOWED_ORIGINS_ENV,
   firstHeaderValue,
@@ -67,7 +69,7 @@ import {
   handleProjectOpen,
   handleProjectPreview,
 } from "./project-routes.js";
-import { resolveProjectsPath } from "../bootstrap/registry.js";
+import { readProjectRegistry, resolveProjectsPath } from "../bootstrap/registry.js";
 import { defaultSqlitePath, PROJECT_ID_ENV, SQLITE_PATH_ENV } from "../runtime/local-runtime-config.js";
 import {
   handleBlobGet,
@@ -202,6 +204,8 @@ export async function startGuiHost(
   let bridge: AcpBridge | undefined;
   let bridgePending: Promise<AcpBridge> | undefined;
   const projectRegistry = options.projectRegistry ?? new ProjectRuntimeRegistry({ env, ...(options.stderr ? { stderr: options.stderr } : {}) });
+  const v2Auth = options.accessToken ? undefined : new V2Auth({ devices: new DeviceRegistry(env), pin: pinAuth,
+    projectExists: id => readProjectRegistry(projectsPath).projects.some(project => project.projectId === id) });
 
   const acpEnv = (): NodeJS.ProcessEnv => ({
     ...env,
@@ -353,6 +357,10 @@ export async function startGuiHost(
   };
   const server = createServer((request, response) => {
     const pathname = requestPath(request);
+    if (v2Auth && pathname.startsWith("/v2/")) {
+      void handleV2AuthHttp({ auth: v2Auth, request, response, originAllowed: requestOriginAllowed(request), readJson: readJsonBody, sendJson });
+      return;
+    }
     if (pinAuth.enabled && pathname === GUI_PIN_LOGIN_PATH) {
       void handlePinLogin(request, response);
       return;
@@ -457,6 +465,7 @@ export async function startGuiHost(
     host: address.address,
     port: address.port,
     async close() {
+      v2Auth?.clear();
       for (const socket of sockets) {
         socket.close();
       }

@@ -5,13 +5,20 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0110 adds V2 authentication foundation: public discovery, authenticated scoped
+one-use tickets, local device grant/list/revoke and hashed expiring credentials.
+PIN-disabled V1 hosts do not grant anonymous V2 access. Real host/CLI checks cover
+scope, Origin, expiry/revocation and ticket reuse/capacity. Only auth.tickets is
+advertised; V2 sockets/business operations/live-socket revocation remain pending.
+See [CLIENT_AUTH.md](CLIENT_AUTH.md). No owner credentials or live grants were used.
+
 A008-0109 moves the default standalone host to a fixed-project in-process adapter
 over EngineHost session/tools/permissions and ProjectRuntimeRegistry. Bridges
 close only their sessions; injected registry borrowers retain other sessions and
 project memory. V1 workspace switching still closes its prior conversations.
 Registered IDs, configured SQLite/source paths, lazy v1 initialization and
 memory-off behavior are preserved. CLI/direct ACP factories now honor the same
-process leases. V2/auth/recovery remain future implementation.
+process leases. V2 session/business/auth integration and recovery remain future implementation.
 
 A008-0108 adds cross-process namespace leases for registry-backed engines, with
 serialized sidecar initialization and automatic OS release after exit/crash.
@@ -805,3 +812,8 @@ installed protocol and portable engine proof pass. No running-host restart.
 A008-0109 verification: 587 core, 4 membership and 161 GUI tests pass; final
 ACP/engine/bridge checks, builds, installed protocol and portable engine proof
 pass. No running-host restart; the active service may still run the earlier build.
+
+A008-0110 verification: 591 core, 4 membership and 161 GUI tests pass; builds,
+installed protocol and portable engine proof pass. GUI: 533.97 kB main chunk,
+161.63 kB gzip, with existing warnings. Work stops at this completed task at the
+owner's request; next implementation is recorded in handoffs/A008-0110.md.

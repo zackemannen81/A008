@@ -28,7 +28,7 @@ existing client silently breaks and no project silently receives empty memory.
 | --- | --- | --- |
 | 1. Current contract | Complete | A008-0104/0105 merged; A008-0106 accepts V2/ownership/auth/recovery decisions |
 | 2. Project/session ownership | Complete | A008-0107/0108/0109 shared registry, facade, exact binding and process ownership proof |
-| 3. V2 and auth | Not started | Precise accepted wire/security decision before code |
+| 3. V2 and auth | In Progress | A008-0110 auth foundation; WS/business dispatch and live revocation remain |
 | 4. Turns and recovery | Not started | Snapshot boundary, idempotency, cancellation/restart proof |
 | 5. SDK and web migration | Not started | Independent package and complete web coverage |
 | 6. Independent Expo proof | Not started | Real platform/remote auth and background-return checks |
@@ -63,3 +63,10 @@ A008-0109 completes stage 2: standalone uses the shared session facade, fixed
 project bridges reject foreign sessions, borrowers retain independent sessions,
 and direct CLI/ACP factories honor process leases. V1 lazy initialization remains
 separate from strict existing attachment. V2 HTTP/WS/auth is the next stage.
+
+A008-0110 supplies local hashed device credentials, scope/expiry/revocation,
+shared schemas, public discovery and one-use tickets. V2 session/HTTP business
+operations and live-socket revocation are not delivered. The owner requested
+stopping at this completed-task boundary; do not allocate another child in this
+run. Resume by reviewing ADR 0041/CLIENT_API_V2 and freezing the next stage-3
+child on main. Later stages 4 through 7 remain unstarted.

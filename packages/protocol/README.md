@@ -125,3 +125,7 @@ platform support guarantee is introduced by this extraction.
 
 A008-owned package content is Apache-2.0 (included `LICENSE`). Zod retains its MIT
 license. Portable engine builds include its notice for the bundled web client.
+
+A008-0110 exports V2 authentication/discovery/error schemas and their generated
+JSON Schema/OpenAPI files (`schemas/v2-auth.openapi.json`). This foundation does
+not imply V2 chat/session availability. Existing v1 exports remain compatible.
