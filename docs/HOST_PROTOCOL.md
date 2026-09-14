@@ -25,7 +25,8 @@ A008-0094 adds host-owned project bootstrap (ADR 0039). `GET /v1/projects` lists
 the registry. `POST /v1/projects/preview` returns planned mutations without
 writing. `POST /v1/projects/bootstrap` executes one confirmed create and switches
 workspace. `POST /v1/projects/open` opens a registered project. Workspace change
-restarts the ACP subprocess; the previous conversation is not kept. The renderer
+closes the current v1 bridge sessions; the previous conversation is not kept.
+The project runtime remains owned until host shutdown. The renderer
 does not create directories or run Git.
 
 Discoverability: index. This is the complete surface an external client speaks
@@ -47,8 +48,8 @@ document has a bug.
 Engine mode (ADR 0028) serves this same GUI/API from a session-bound loopback
 listener and an in-process ACP bridge. It borrows the external client's existing
 session instead of spawning a second one. [ENGINE.md](ENGINE.md) defines discovery,
-authentication, close metadata and project selection. Standalone mode below still
-spawns ACP. Panel URLs contain an ephemeral fragment capability; `/v1/*` and the
+authentication, close metadata and project selection. A008-0109 standalone mode
+uses the same session facade through an in-process project-bound adapter. Panel URLs contain an ephemeral fragment capability; `/v1/*` and the
 WebSocket require it. Static assets and health contain no session data.
 
 Additive frames: `session/activity` carries `sessionId`, `active`, optional `text`
@@ -74,15 +75,18 @@ Writing that content to the workspace remains an ordinary approved repository-to
 action; clients must not infer a host-side artifact API from the Canvas UI.
 
 `src/gui-host/` is a Node process. It serves static files, exposes HTTP
-routes and one WebSocket, and bridges that WebSocket to an `A008-acp` stdio
-subprocess it owns.
+routes and one WebSocket, and adapts that WebSocket to EngineHost session
+operations backed by ProjectRuntimeRegistry. Each bridge binds one project and
+can only control its own sessions. A supplied project registry is borrowed; the
+caller disposes it after all hosts stop. The optional spawned ACP adapter remains
+available for explicit compatibility integrations.
 
 ```text
-client ──HTTP/WS──> A008 GUI host ──stdio ACP──> A008-acp ──> memory runtime
-                                                            └─> provider
+client -> HTTP/WS host -> fixed-project adapter -> shared session/runtime owner
+                                                    -> memory and providers
 ```
 
-Chat completions still run in the ACP subprocess. ADR 0032 lets the host call
+Chat completions run through the shared runtime/provider boundary. ADR 0032 lets the host call
 NVIDIA's catalog (`GET /v1/models` upstream) and image-generation endpoints with
 the process or secrets-file key. ADR 0033 adds kie.ai: curated catalog, OpenAI-compatible chat in ACP, and async
 Market image jobs on the host. ADR 0036 adds OpenAI GPT-5.6 Luna chat through

@@ -71,8 +71,12 @@ engines also hold a cross-process SQLite namespace lease. Separate small
 `.a008-owner-<hash>.sqlite` files beside the store/identity sidecar carry OS locks,
 not knowledge. Do not delete these files while an owner runs. Normal close or
 process death releases locks automatically; persistent empty files are harmless.
-Direct legacy CLI/ACP and standalone composition do not yet acquire these leases;
-stop those owners before engine attachment until their facade migration lands.
+CLI/direct ACP runtime factories and the standalone host also honor these leases
+as of A008-0109. Separate processes cannot share one namespace concurrently;
+multiple in-process clients share it through an injected ProjectRuntimeRegistry.
+`openConfigured` preserves v1/CLI lazy initialization of explicitly configured
+stores, including memory-off mode. `attachExisting` remains the strict no-create
+path for existing-data attachment. No automatic storage migration is performed.
 The companion client's file/editor/Git functions remain its own surfaces.
 MCP support currently covers approved stdio servers, not HTTP/SSE servers.
 

@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import Database from "better-sqlite3";
 import { createAcpRuntime } from "../acp/server.js";
 import { parseRuntimeId } from "../identity/runtime-id.js";
-import { projectIdSidecarPath } from "../runtime/local-runtime-config.js";
-import { acquireRuntimeLease } from "./runtime-ownership.js";
+import { parseLocalRuntimeConfig, projectIdSidecarPath } from "../runtime/local-runtime-config.js";
+import { acquireRuntimeLease, canonicalStoragePath as storagePath } from "../runtime/runtime-ownership.js";
 
 export interface ExistingProjectAttachment {
   readonly cwd: string;
@@ -40,15 +40,6 @@ export function canonicalProjectDirectory(directory: string): string {
   if (!statSync(cwd).isDirectory()) throw new Error("Engine project is not a directory.");
   return cwd;
 }
-// Resolve existing ancestors too: prospective file names below a junction must
-// collide with the same future file through the real parent path.
-function storagePath(path: string): string {
-  const absolute = resolve(path);
-  if (existsSync(absolute)) return realpathSync(absolute);
-  const parent = dirname(absolute);
-  if (parent === absolute) throw new ProjectBindingError("Storage path has no accessible filesystem root.");
-  return join(storagePath(parent), basename(absolute));
-}
 interface Claim { readonly owner: ProjectRuntimeRegistry; namespace: string | undefined }
 // In-process binding claims complement the registry process leases below.
 const storageClaims = new Map<string, Set<Claim>>();
@@ -65,6 +56,25 @@ export class ProjectRuntimeRegistry {
   constructor(options: ProjectRuntimeRegistryOptions) {
     this.#options = options;
     this.#env = { ...options.env };
+  }
+
+  /** V1/CLI compatibility initialization, distinct from strict existing attachment. */
+  openConfigured(directory: string, configured: NodeJS.ProcessEnv): ProjectRuntime {
+    this.#requireOpen();
+    const cwd = canonicalProjectDirectory(directory);
+    const config = parseLocalRuntimeConfig(configured, { surface: "acp" });
+    const sqlitePath = config.sqliteIsMemory ? ":memory:" : storagePath(config.sqlitePath);
+    const source = config.sourceStorePath && storagePath(config.sourceStorePath);
+    const current = this.#projects.get(pathKey(cwd))?.project;
+    if (current) {
+      if ((config.projectId && config.projectId !== current.binding.projectId) ||
+        pathKey(sqlitePath) !== pathKey(current.binding.sqlitePath) ||
+        (source && pathKey(source)) !== (current.binding.sourceStorePath && pathKey(current.binding.sourceStorePath))) {
+        throw new ProjectBindingError("Project already has a different runtime binding.");
+      }
+      return current;
+    }
+    return this.#open(cwd, { ...configured, A008_MEMORY_SQLITE_PATH: sqlitePath, A008_SOURCE_STORE_PATH: source });
   }
 
   /** Preserve existing ACP engine data layout and explicit legacy compatibility. */
@@ -156,7 +166,7 @@ export class ProjectRuntimeRegistry {
       };
       let opened: ReturnType<typeof createAcpRuntime> | undefined;
       try {
-        opened = (this.#options.createRuntime ?? createAcpRuntime)({ env, cwd, stderr: this.#options.stderr ?? process.stderr });
+        opened = (this.#options.createRuntime ?? createAcpRuntime)({ env, cwd, stderr: this.#options.stderr ?? process.stderr, ownershipAlreadyHeld: true });
         this.#requireOpen();
         if (sqlitePath !== ":memory:" && !namespace) releaseOwnership = acquireRuntimeLease(sqlitePath, opened.runtime.projectId);
         claim.namespace = opened.runtime.projectId;

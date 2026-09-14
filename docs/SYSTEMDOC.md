@@ -275,8 +275,8 @@ POST   /v1/shell
 one implementation and one working directory. The renderer never executes a
 command itself.
 
-`WS /v1/session` is bridged to an `A008-acp` stdio subprocess that the host
-owns. Frames follow ADR 0019 D4 with the additive ADR 0026 controls: the client sends `session/new`,
+`WS /v1/session` uses the in-process fixed-project bridge and shared EngineHost
+session facade (A008-0109); the registry owns its runtime. Frames follow ADR 0019 D4 with the additive ADR 0026 controls: the client sends `session/new`,
 `prompt`, and `cancel`; the host answers `session/new/ok`, `thought`, `answer`,
 `prompt/ok`, and `error`. Reasoning arrives as `thought` frames and is never
 concatenated into an `answer` frame. No Agent Server schema and no OpenHands
@@ -292,7 +292,7 @@ credential value, the literal tokens `NVIDIA_API_KEY`, `KIE_API_KEY` and
 `OPENAI_API_KEY`, nor the string `authorization` reaches the renderer; the trade is that an answer
 legitimately discussing those names is shown redacted. The host may call
 NVIDIA catalog/image endpoints and kie.ai job endpoints; chat completions still
-run in the ACP subprocess.
+run through the shared local runtime.
 
 The bundled renderer installs one standalone-auth recovery guard before React mounts. For same-origin `/v1/*` fetches only, an exact host PIN-gate `401 Authentication required.` response sends the browser back to `/`, where the existing login page owns re-authentication. The guard reads a cloned response, does not consume the caller body, and is disabled when a valid native `#engine=` capability is present. Other 401 responses keep their existing semantics.
 
@@ -313,10 +313,8 @@ that cookie. Five failed attempts from one client cause a 60-second lockout;
 `application/json`. The PIN gate is deliberately lightweight and does not
 replace identity-aware edge protection for an Internet-exposed host.
 
-An ACP failure is reported with its real reason recovered from the SDK error
-details, and a host that cannot start `A008-acp` appends the subprocess stderr
-tail, so an unset credential or a malformed runtime ID is diagnosable from the
-GUI instead of surfacing as a generic internal error.
+Runtime failures retain their reason through host wire redaction. Explicit
+spawned-ACP integrations retain SDK detail and subprocess stderr-tail recovery.
 
 A008-0092 / ADR 0037 makes standalone session ownership recoverable across a
 brief transport interruption. Every `session/new` receives a random 32-byte
@@ -332,7 +330,7 @@ the new socket then owns the same ACP session and receives its current snapshot.
 Invalid, already-attached or expired capabilities fail closed. Expiry performs
 ACP `session/close`; explicit close and host shutdown invalidate the lease too.
 `A008AcpAgent` remains the session-state owner and close implementation. A socket
-that never opened a session still cannot create an ACP process during cleanup.
+that never opened a session still cannot create a runtime during cleanup.
 The resume token never enters model/provider/memory context and is not persisted,
 so reload, another device and host restart do not resume a session. Still-connected
 sessions have no new idle timeout or total-session cap.
@@ -344,9 +342,9 @@ subprocess, the real local memory runtime, and a loopback fake endpoint. See
 ## Source upload ingest
 
 `POST /v1/upload` is how a document or an image becomes evidence. The path is
-split across two processes for a reason recorded in ADR 0020 D1: the memory
-runtime lives in the `A008-acp` subprocess and the SQLite adapter is
-single-process, so the GUI host must not gain a runtime of its own.
+split across host intake and runtime ingest. ADR 0041/A008-0109 now routes the
+in-process bridge through the shared registry owner; it never creates a competing
+SQLite runtime. The locator-only boundary from ADR 0020 D1 remains.
 
 ```text
 browser -> POST /v1/upload (raw bytes, x-a008-filename)
@@ -364,7 +362,7 @@ without the user re-uploading anything. The declared filename is advisory: it is
 sanitised to a single path segment and never decides the media type.
 
 The host reads no file content and makes no provider call. It sends the
-locator; the ACP process resolves it, and rejects anything that escapes the
+locator; the runtime resolves it, and rejects anything that escapes the
 store root twice over — lexically on the locator's shape before the filesystem
 is touched, then through `realpath`, which is the only check that catches a link
 inside the store pointing out of it.
@@ -391,7 +389,7 @@ recorded as fact.
 
 Explicit GUI `endSession` always runs local teardown after its host close attempt,
 including a rejected close. The promise still reports that failure. This matters
-when project opening has already replaced the host ACP process: the existing
+when project opening has already closed the previous v1 bridge: the existing
 project callback catches the stale close, then Connect opens a fresh session
 instead of retaining the previous ready state (A008-0100). Teardown discards the
 old socket and resume capability and rejects pending local work; it does not
@@ -1092,5 +1090,6 @@ competing owners; distinct namespaces can share a database. A008-0108 adds cross
 SQLite namespace leases to this registry. Short sidecar-initialization leases
 serialize identity selection. Lifetime leases use separate SQLite lock files,
 held without application state and never unlinked; OS locks release on process
-death. Legacy direct CLI/ACP and standalone owners are not yet guarded. Their
-facade migration and combined-owner proof remain stage-2 obligations.
+death. A008-0109 extends leases to direct local runtime factories used by CLI/ACP,
+and moves standalone to the shared session facade. Internal registry construction
+passes its already-held lease explicitly to avoid recursively acquiring it.

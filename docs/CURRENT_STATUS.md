@@ -5,12 +5,19 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0109 moves the default standalone host to a fixed-project in-process adapter
+over EngineHost session/tools/permissions and ProjectRuntimeRegistry. Bridges
+close only their sessions; injected registry borrowers retain other sessions and
+project memory. V1 workspace switching still closes its prior conversations.
+Registered IDs, configured SQLite/source paths, lazy v1 initialization and
+memory-off behavior are preserved. CLI/direct ACP factories now honor the same
+process leases. V2/auth/recovery remain future implementation.
+
 A008-0108 adds cross-process namespace leases for registry-backed engines, with
 serialized sidecar initialization and automatic OS release after exit/crash.
 Real child-process checks verify conflict-before-factory, canonical aliases,
-simultaneous first open and independent namespaces in one SQLite file. Legacy
-standalone/direct CLI/ACP composition remains outside this guard until migrated;
-the combined deployment and V2 gate remain open.
+simultaneous first open and independent namespaces in one SQLite file. A008-0109 extends this guard to standalone/direct CLI/ACP composition.
+The V2 gate remains open until its transport/auth implementation is verified.
 
 A008-0107 extracts ProjectRuntimeRegistry and makes EngineHost borrow or own it.
 Canonical workspace aliases reuse one runtime; explicit existing attachments
@@ -18,13 +25,13 @@ validate project identity, SQLite namespace and source paths. Same-process
 competing workspace/namespace owners fail before runtime creation. Multiple
 project namespaces can still share one SQLite file. Borrowers close their own
 sessions; the registry refuses disposal while sessions remain. Engine layout and
-v1/ACP panels are unchanged. Standalone facade migration and cross-process
-coverage of legacy owners remain stage-2 work; no V2 availability is implied.
+v1/ACP panels are unchanged. Standalone facade migration and legacy process
+coverage are delivered by A008-0109; no V2 availability is implied.
 
 A008-0106 accepts ADR 0041 and CLIENT_API_V2.md for the next implementation stages.
 Stage 1 is complete: v1 contracts/inventory and the V2 decision gate are covered.
-V2 endpoints, shared project/session facade, device auth and recovery guarantees
-remain accepted targets, not implemented availability.
+The shared project/session facade is implemented by A008-0107 through A008-0109.
+V2 endpoints, device auth and recovery guarantees remain accepted targets.
 
 A008-0105 completes the shared v1 HTTP transport contracts: 35 schema components,
 21 inventory rows / 22 HTTP methods and generated OpenAPI 3.1.1. Host/core/GUI
@@ -794,3 +801,7 @@ GUI size/annotation warnings are unchanged. No running-host restart performed.
 
 A008-0108 verification: 584 core, 4 membership, 161 GUI tests; root/GUI builds,
 installed protocol and portable engine proof pass. No running-host restart.
+
+A008-0109 verification: 587 core, 4 membership and 161 GUI tests pass; final
+ACP/engine/bridge checks, builds, installed protocol and portable engine proof
+pass. No running-host restart; the active service may still run the earlier build.

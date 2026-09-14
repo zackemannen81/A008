@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { acquireRuntimeLease, canonicalStoragePath } from "./runtime-ownership.js";
 import {
   existsSync,
   mkdirSync,
@@ -160,6 +161,8 @@ export interface SourceIngestOutcome {
 }
 
 export interface LocalMemoryRuntimeOptions {
+  /** Internal composition only: the project registry already holds both leases. */
+  readonly ownershipAlreadyHeld?: boolean;
   readonly env: NodeJS.ProcessEnv;
   readonly surface: DebugTraceSurface;
   readonly registry?: ModelRegistry;
@@ -1102,6 +1105,31 @@ export class LocalMemoryRuntime {
 export function createLocalMemoryRuntime(
   options: LocalMemoryRuntimeOptions,
 ): LocalMemoryRuntime {
+  if (options.ownershipAlreadyHeld) return createRuntime(options);
+  const config = parseLocalRuntimeConfig(options.env, {
+    surface: options.surface === "acp" ? "acp" : "cli", ...(options.cli ? { cli: options.cli } : {}),
+  });
+  if (config.sqliteIsMemory) return createRuntime(options);
+  const sqlitePath = canonicalStoragePath(config.sqlitePath);
+  const sidecar = projectIdSidecarPath(sqlitePath);
+  const releaseInitialization = acquireRuntimeLease(sidecar, "identity-initialization", 5000);
+  let releaseOwnership = () => {};
+  let runtime: LocalMemoryRuntime | undefined;
+  try {
+    const namespace = config.projectId ?? (existsSync(sidecar) ? readFileSync(sidecar, "utf8").trim() : undefined);
+    if (namespace) releaseOwnership = acquireRuntimeLease(sqlitePath, namespace);
+    runtime = createRuntime({ ...options, env: { ...options.env, A008_MEMORY_SQLITE_PATH: sqlitePath } });
+    if (!namespace) releaseOwnership = acquireRuntimeLease(sqlitePath, runtime.projectId);
+    const dispose = runtime.close.bind(runtime);
+    runtime.close = () => { dispose(); releaseOwnership(); };
+    return runtime;
+  } catch (error) {
+    try { runtime?.close(); } finally { releaseOwnership(); }
+    throw error;
+  } finally { releaseInitialization(); }
+}
+
+function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
   const surface = options.surface;
   const nvidiaOptions = options.env.NVIDIA_API_KEY?.trim()
     ? createNvidiaTransportOptions({ env: options.env })

@@ -22,10 +22,9 @@ import {
   runTerminalCommand,
   type TerminalRunner,
 } from "../tools/terminal.js";
-import {
-  createSpawnedAcpBridge,
-  type AcpBridge,
-} from "./acp-bridge.js";
+import { type AcpBridge } from "./acp-bridge.js";
+import { createLocalAcpBridge } from "./local-acp-bridge.js";
+import { ProjectRuntimeRegistry } from "../engine/project-runtime-registry.js";
 import {
   ALLOWED_ORIGINS_ENV,
   firstHeaderValue,
@@ -107,6 +106,8 @@ const MIME_TYPES: Readonly<Record<string, string>> = {
 };
 
 export interface GuiHostOptions {
+  /** Borrowed shared runtime owner; caller disposes it after all hosts close. */
+  readonly projectRegistry?: ProjectRuntimeRegistry;
   /** Engine-only bearer capability; standalone host remains unchanged. */
   readonly accessToken?: string;
   /** Optional standalone six-digit browser PIN. */
@@ -200,6 +201,7 @@ export async function startGuiHost(
   const sessionLeases = new Map<string, SessionLease>();
   let bridge: AcpBridge | undefined;
   let bridgePending: Promise<AcpBridge> | undefined;
+  const projectRegistry = options.projectRegistry ?? new ProjectRuntimeRegistry({ env, ...(options.stderr ? { stderr: options.stderr } : {}) });
 
   const acpEnv = (): NodeJS.ProcessEnv => ({
     ...env,
@@ -225,12 +227,12 @@ export async function startGuiHost(
       return bridge;
     }
     if (bridgePending === undefined) {
-      bridgePending = Promise.resolve(
+      bridgePending = Promise.resolve().then(() =>
         options.createAcpBridge?.() ??
-          createSpawnedAcpBridge({
+          createLocalAcpBridge({
+            registry: projectRegistry,
             env: acpEnv(),
             cwd: workspace.cwd,
-            ...(options.stderr === undefined ? {} : { stderr: options.stderr }),
           }),
       ).then((created) => {
         bridge = created;
@@ -468,6 +470,7 @@ export async function startGuiHost(
         await started?.close();
       }
       bridge = undefined;
+      if (!options.projectRegistry) projectRegistry.close();
       await new Promise<void>((resolve, reject) => {
         server.close((error) => {
           if (error !== null && error !== undefined) {
