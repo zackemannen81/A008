@@ -1,0 +1,447 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "A008 V2 authentication",
+    "version": "2.0.0"
+  },
+  "paths": {
+    "/v2/info": {
+      "get": {
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Public protocol discovery",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-info"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v2/auth/ticket": {
+      "post": {
+        "security": [
+          {
+            "device": []
+          },
+          {
+            "browserPin": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/v2-ticket-request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "One-use scoped ticket",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-ticket-response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "v2-info": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "protocol": {
+            "type": "string",
+            "const": "a008.v2"
+          },
+          "serverInstanceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "serverVersion": {
+            "type": "string"
+          },
+          "authProfiles": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "device",
+                "browser-pin"
+              ]
+            }
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "ticketLifetimeMs": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "preauthFrameBytes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "authenticationDeadlineMs": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "inputFrameBytes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "outputFrameBytes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "promptBytes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "ticketLifetimeMs",
+              "preauthFrameBytes",
+              "authenticationDeadlineMs",
+              "inputFrameBytes",
+              "outputFrameBytes",
+              "promptBytes"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "protocol",
+          "serverInstanceId",
+          "serverVersion",
+          "authProfiles",
+          "features",
+          "limits"
+        ],
+        "additionalProperties": false
+      },
+      "v2-error": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "error"
+          },
+          "serverInstanceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "INVALID_REQUEST",
+              "UNAUTHENTICATED",
+              "FORBIDDEN",
+              "PROJECT_NOT_FOUND",
+              "SESSION_EXPIRED",
+              "SESSION_BUSY",
+              "REVISION_CONFLICT",
+              "UNSUPPORTED_CAPABILITY",
+              "PROJECT_BINDING_CONFLICT",
+              "COMMAND_CONFLICT",
+              "COMMAND_UNKNOWN",
+              "CAPACITY_EXCEEDED",
+              "SNAPSHOT_TOO_LARGE",
+              "RUNTIME_FAILED"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "projectId": {
+            "type": "string",
+            "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          }
+        },
+        "required": [
+          "type",
+          "serverInstanceId",
+          "code",
+          "message",
+          "retryable"
+        ],
+        "additionalProperties": false
+      },
+      "v2-ticket-request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false
+      },
+      "v2-ticket-response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "serverInstanceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "ticket": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 128
+          },
+          "expiresAt": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "projectId": {
+            "type": "string",
+            "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          }
+        },
+        "required": [
+          "serverInstanceId",
+          "ticket",
+          "expiresAt",
+          "projectId"
+        ],
+        "additionalProperties": false
+      },
+      "v2-authenticate": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "authenticate"
+          },
+          "ticket": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "type",
+          "ticket"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "device": {
+        "type": "http",
+        "scheme": "bearer"
+      },
+      "browserPin": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "a008_auth"
+      }
+    }
+  }
+}

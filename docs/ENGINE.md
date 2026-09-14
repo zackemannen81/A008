@@ -89,6 +89,10 @@ not copy, delete or convert the owner's knowledge.
 
 ## Tools and permissions
 
+A008-0110 standalone mode also exposes V2 discovery and ticket issuance, with
+owner-local device credentials. See [CLIENT_AUTH.md](CLIENT_AUTH.md). V2 chat
+and WebSocket commands are not available yet; engine panels remain on v1.
+
 The engine offers `exec_command` and tools from approved stdio MCP server
 descriptors supplied by the client at `session/new`. Windows commands use
 PowerShell without profiles; Unix uses the platform shell. Native file/editor

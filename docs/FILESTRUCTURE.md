@@ -486,3 +486,8 @@ A008-0109 adds `src/gui-host/local-acp-bridge.ts` and
 `test/local-acp-bridge.test.ts`. EngineHost supports panel-free sessions over a
 fixed project resolver. The shared runtime lease lives under `src/runtime/` and
 also covers direct local runtime factories used by CLI/ACP.
+
+A008-0110 adds `packages/protocol/src/v2-auth.ts` and generated V2 auth schemas/
+OpenAPI; `src/gui-host/{device-registry,device-cli,v2-auth}.ts` implements local
+credentials and ticket/discovery routes. `test/v2-auth.test.ts` verifies actual
+CLI and HTTP boundaries. `docs/CLIENT_AUTH.md` documents available behavior.
