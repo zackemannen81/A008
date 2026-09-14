@@ -11,6 +11,7 @@ when its status changes.
 
 | Proposal | Status | Outcome |
 | --- | --- | --- |
+| [host-client-api-boundary.md](host-client-api-boundary.md) | Proposed | A008-0102: source-grounded plan for a versioned client API, explicit project/session ownership, SDK and independent Expo proof; implementation not activated. |
 | [instruction-plane-and-memory-lifecycle.md](instruction-plane-and-memory-lifecycle.md) | Accepted | Frozen by ADR 0035, including P1–P6. A008-0080 completes L1; A008-0081 completes L2; A008-0082 completes L3 with its own charter and acceptance evidence. |
 | [runtime-proof-reference-repair.md](runtime-proof-reference-repair.md) | Open | Resolve three pre-existing runtime-proof references after checking original evidence and stable paths. |
 | [`legacy-credential-remediation.md`](legacy-credential-remediation.md) | Completed | Credential revoked/rotated; secure provider-neutral intake delivered by A008-0003. |
