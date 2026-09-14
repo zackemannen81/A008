@@ -5,6 +5,13 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0108 adds cross-process namespace leases for registry-backed engines, with
+serialized sidecar initialization and automatic OS release after exit/crash.
+Real child-process checks verify conflict-before-factory, canonical aliases,
+simultaneous first open and independent namespaces in one SQLite file. Legacy
+standalone/direct CLI/ACP composition remains outside this guard until migrated;
+the combined deployment and V2 gate remain open.
+
 A008-0107 extracts ProjectRuntimeRegistry and makes EngineHost borrow or own it.
 Canonical workspace aliases reuse one runtime; explicit existing attachments
 validate project identity, SQLite namespace and source paths. Same-process
@@ -12,7 +19,7 @@ competing workspace/namespace owners fail before runtime creation. Multiple
 project namespaces can still share one SQLite file. Borrowers close their own
 sessions; the registry refuses disposal while sessions remain. Engine layout and
 v1/ACP panels are unchanged. Standalone facade migration and cross-process
-exclusion remain stage-2 work; no V2 availability is implied.
+coverage of legacy owners remain stage-2 work; no V2 availability is implied.
 
 A008-0106 accepts ADR 0041 and CLIENT_API_V2.md for the next implementation stages.
 Stage 1 is complete: v1 contracts/inventory and the V2 decision gate are covered.
@@ -784,3 +791,6 @@ unexecuted. The replacement exists only in ignored `.env.local` as
 A008-0107 verification: 581 core, 4 membership and 161 GUI tests pass, with
 root/GUI builds, independently installed protocol and portable engine proof.
 GUI size/annotation warnings are unchanged. No running-host restart performed.
+
+A008-0108 verification: 584 core, 4 membership, 161 GUI tests; root/GUI builds,
+installed protocol and portable engine proof pass. No running-host restart.

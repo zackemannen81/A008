@@ -6,6 +6,7 @@ import Database from "better-sqlite3";
 import { createAcpRuntime } from "../acp/server.js";
 import { parseRuntimeId } from "../identity/runtime-id.js";
 import { projectIdSidecarPath } from "../runtime/local-runtime-config.js";
+import { acquireRuntimeLease } from "./runtime-ownership.js";
 
 export interface ExistingProjectAttachment {
   readonly cwd: string;
@@ -49,7 +50,7 @@ function storagePath(path: string): string {
   return join(storagePath(parent), basename(absolute));
 }
 interface Claim { readonly owner: ProjectRuntimeRegistry; namespace: string | undefined }
-// Same-process ownership only. Cross-process exclusion is a later stage-2 gate.
+// In-process binding claims complement the registry process leases below.
 const storageClaims = new Map<string, Set<Claim>>();
 const projectClaims = new Map<string, ProjectRuntimeRegistry>();
 
@@ -134,36 +135,43 @@ export class ProjectRuntimeRegistry {
     if (projectClaims.has(projectKey)) throw new ProjectBindingError("Project directory already has a runtime owner.");
     const sqlitePath = env.A008_MEMORY_SQLITE_PATH === ":memory:" ? ":memory:" : storagePath(env.A008_MEMORY_SQLITE_PATH!);
     const sidecar = sqlitePath === ":memory:" ? undefined : projectIdSidecarPath(sqlitePath);
-    const namespace = env.A008_PROJECT_ID?.trim() || (sidecar && existsSync(sidecar) ? readFileSync(sidecar, "utf8").trim() : undefined);
-    const storageKey = pathKey(sqlitePath);
-    const claims = storageClaims.get(storageKey) ?? new Set<Claim>();
-    if (sqlitePath !== ":memory:" && [...claims].some(claim => !namespace || !claim.namespace || claim.namespace === namespace)) {
-      throw new ProjectBindingError("The project memory namespace already has a runtime owner.");
-    }
-    const claim: Claim = { owner: this, namespace };
-    projectClaims.set(projectKey, this);
-    if (sqlitePath !== ":memory:") { claims.add(claim); storageClaims.set(storageKey, claims); }
-    const release = () => {
-      if (projectClaims.get(projectKey) === this) projectClaims.delete(projectKey);
-      claims.delete(claim);
-      if (!claims.size && storageClaims.get(storageKey) === claims) storageClaims.delete(storageKey);
-    };
-    let opened: ReturnType<typeof createAcpRuntime> | undefined;
+    const releaseInitialization = sidecar ? acquireRuntimeLease(sidecar, "identity-initialization", 5000) : () => {};
+    let releaseOwnership = () => {};
     try {
-      opened = (this.#options.createRuntime ?? createAcpRuntime)({ env, cwd, stderr: this.#options.stderr ?? process.stderr });
-      this.#requireOpen();
-      claim.namespace = opened.runtime.projectId;
-      const source = opened.runtime.sourceStoreRoot;
-      const project: ProjectRuntime = { ...opened, cwd, binding: {
-        cwd, projectId: opened.runtime.projectId, sqlitePath,
-        ...(source === undefined ? {} : { sourceStorePath: storagePath(source) }),
-      } };
-      this.#projects.set(pathKey(cwd), { project, release });
-      return project;
-    } catch (error) {
-      try { opened?.runtime.close(); } finally { release(); }
-      throw error;
-    }
+      const namespace = env.A008_PROJECT_ID?.trim() || (sidecar && existsSync(sidecar) ? readFileSync(sidecar, "utf8").trim() : undefined);
+      const storageKey = pathKey(sqlitePath);
+      const claims = storageClaims.get(storageKey) ?? new Set<Claim>();
+      if (sqlitePath !== ":memory:" && [...claims].some(claim => !namespace || !claim.namespace || claim.namespace === namespace)) {
+        throw new ProjectBindingError("The project memory namespace already has a runtime owner.");
+      }
+      if (sqlitePath !== ":memory:" && namespace) releaseOwnership = acquireRuntimeLease(sqlitePath, namespace);
+      const claim: Claim = { owner: this, namespace };
+      projectClaims.set(projectKey, this);
+      if (sqlitePath !== ":memory:") { claims.add(claim); storageClaims.set(storageKey, claims); }
+      const release = () => {
+        releaseOwnership();
+        if (projectClaims.get(projectKey) === this) projectClaims.delete(projectKey);
+        claims.delete(claim);
+        if (!claims.size && storageClaims.get(storageKey) === claims) storageClaims.delete(storageKey);
+      };
+      let opened: ReturnType<typeof createAcpRuntime> | undefined;
+      try {
+        opened = (this.#options.createRuntime ?? createAcpRuntime)({ env, cwd, stderr: this.#options.stderr ?? process.stderr });
+        this.#requireOpen();
+        if (sqlitePath !== ":memory:" && !namespace) releaseOwnership = acquireRuntimeLease(sqlitePath, opened.runtime.projectId);
+        claim.namespace = opened.runtime.projectId;
+        const source = opened.runtime.sourceStoreRoot;
+        const project: ProjectRuntime = { ...opened, cwd, binding: {
+          cwd, projectId: opened.runtime.projectId, sqlitePath,
+          ...(source === undefined ? {} : { sourceStorePath: storagePath(source) }),
+        } };
+        this.#projects.set(pathKey(cwd), { project, release });
+        return project;
+      } catch (error) {
+        try { opened?.runtime.close(); } finally { release(); }
+        throw error;
+      }
+    } finally { releaseInitialization(); }
   }
 
   close(): void {

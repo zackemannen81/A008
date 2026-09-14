@@ -27,7 +27,7 @@ existing client silently breaks and no project silently receives empty memory.
 | Stage | Status | Child / next gate |
 | --- | --- | --- |
 | 1. Current contract | Complete | A008-0104/0105 merged; A008-0106 accepts V2/ownership/auth/recovery decisions |
-| 2. Project/session ownership | In Progress | A008-0107 registry; standalone/session facade and cross-process exclusion remain |
+| 2. Project/session ownership | In Progress | A008-0107/0108 guarded registry; standalone/session facade and legacy-owner coverage remain |
 | 3. V2 and auth | Not started | Precise accepted wire/security decision before code |
 | 4. Turns and recovery | Not started | Snapshot boundary, idempotency, cancellation/restart proof |
 | 5. SDK and web migration | Not started | Independent package and complete web coverage |
@@ -55,3 +55,7 @@ No later implementation stage is complete merely because its design is decided.
 A008-0107 supplies the reusable runtime registry, strict existing-data attachment
 and same-process ownership checks. It preserves engine/panel behavior. Stage 2
 still requires the standalone/session facade and cross-process exclusion.
+
+A008-0108 guards registry-backed engine processes, including first-open races
+and crash release. Direct legacy runtime owners still require migration or
+explicit exclusion before combined deployment/V2. Stage 2 remains In Progress.

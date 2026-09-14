@@ -478,3 +478,6 @@ A008-0107 adds `src/engine/project-runtime-registry.ts` for canonical runtime
 ownership and explicit existing-data attachment, with regression evidence in
 `test/project-runtime-registry.test.ts`. EngineHost supports caller-owned registry
 borrowing. The charter is `docs/tasks/A008-0107_shared-project-runtime-registry.md`.
+
+A008-0108 adds `src/engine/runtime-ownership.ts`, with actual subprocess checks
+in `test/runtime-ownership.test.ts` and `test/fixtures/runtime-owner-process.ts`.

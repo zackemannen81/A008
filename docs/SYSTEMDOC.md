@@ -1088,5 +1088,9 @@ explicit registry. Strict existing-store attachment recognizes persisted
 namespace metadata, artifacts or initialization records (and empty-store sidecar
 identity), preserving existing SQLite/source bindings. Incremental evidence
 writes need not create transition-counter metadata. Same-process claims exclude
-competing owners; distinct namespaces can share a database. Cross-process locks
-and standalone host migration remain unimplemented stage-2 obligations.
+competing owners; distinct namespaces can share a database. A008-0108 adds cross-process
+SQLite namespace leases to this registry. Short sidecar-initialization leases
+serialize identity selection. Lifetime leases use separate SQLite lock files,
+held without application state and never unlinked; OS locks release on process
+death. Legacy direct CLI/ACP and standalone owners are not yet guarded. Their
+facade migration and combined-owner proof remain stage-2 obligations.
