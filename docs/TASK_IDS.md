@@ -119,3 +119,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0103 | stable client API program | Codex (operator) | 2026-09-14 | owner-approved frozen seven-stage host/client boundary program |
 | A008-0104 | shared v1 protocol contract | Codex (operator) | 2026-09-14 | inventory current HTTP/WS, consolidate wire contract and verify existing consumers without behavior changes |
 | A008-0105 | shared v1 HTTP contracts | Codex (operator) | 2026-09-14 | consolidate remaining HTTP payload contracts, preserve v1 compatibility and verify real responses |
+| A008-0106 | client API decisions | Codex (operator) | 2026-09-14 | decide V2, runtime/session ownership, auth and recovery within the frozen program |

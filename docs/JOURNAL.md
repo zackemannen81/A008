@@ -2286,3 +2286,15 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   for the remaining HTTP contract closure identified by the completed inventory.
 - Archives remain immutable; program remains In Progress.
 - Signature: Codex
+
+## 2026-09-14 - A008-0105 integration and autonomous continuation
+
+- Operator: Codex. Verified owner merge PR #46 at 21:40:55 UTC, remote main
+  5ff163d6d60fb26789d553c4d1e83a73eb04b9e4. Local main fast-forwarded.
+- HTTP closure evidence: 576 core, 4 membership, 161 GUI; installed protocol
+  and portable engine proofs pass. No runtime tree changes on integration.
+- Owner now explicitly authorizes autonomous remaining program decisions/tasks,
+  and push, PR creation and merge after each completed task, with current docs
+  and operator journal. This does not authorize unrelated product expansion.
+- Allocated A008-0106 on main for accepted V2/ownership/auth/recovery decisions.
+- Signature: Codex

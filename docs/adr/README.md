@@ -164,3 +164,5 @@ replacement.
 - [0027 — Runtime preferences and instructions](0027-runtime-preferences-and-instructions.md)
 - [0028 — Engine package and panels](0028-engine-package-and-panels.md)
 - [0029 — Standalone GUI repository tools](0029-standalone-gui-repository-tools.md)
+
+- [0041-client-api-v2-and-ownership.md](0041-client-api-v2-and-ownership.md) - Accepted; V2/ownership/auth/recovery implementation decisions.

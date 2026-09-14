@@ -112,3 +112,5 @@ the template before push.
 - [A008-0068_gui-repository-tools.md](A008-0068_gui-repository-tools.md) — Complete; standalone GUI file and Git tools.
 - [A008-0081_evidence-lifecycle.md](A008-0081_evidence-lifecycle.md) — Complete; verified L2 evidence lifecycle.
 - [A008-0082_association-lifecycle.md](A008-0082_association-lifecycle.md) — Complete; independent L3 associations and one-hop eligibility.
+
+- [A008-0106_client-api-decisions.md](A008-0106_client-api-decisions.md) - Complete; accepted next-stage decisions.
