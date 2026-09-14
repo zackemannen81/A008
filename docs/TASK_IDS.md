@@ -116,3 +116,5 @@ never whether work is active or complete. Task state belongs in
 | A008-0100 | discard ended GUI session after close failure | Codex (operator) | 2026-09-14 | unblock project switching after host replaces the ACP process |
 | A008-0101 | incremental SQLite knowledge persistence | Codex (operator) | 2026-09-14 | write only changed knowledge rows while preserving atomic L2/L3 lifecycle semantics |
 | A008-0102 | host-client API boundary plan | Codex (operator) | 2026-09-14 | inspect current HTTP/WS and propose staged contract, SDK and client-boundary migration |
+| A008-0103 | stable client API program | Codex (operator) | 2026-09-14 | owner-approved frozen seven-stage host/client boundary program |
+| A008-0104 | shared v1 protocol contract | Codex (operator) | 2026-09-14 | inventory current HTTP/WS, consolidate wire contract and verify existing consumers without behavior changes |
