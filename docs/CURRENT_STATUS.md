@@ -14,7 +14,8 @@ zero skips/failures; independent installed package and portable engine proof pas
 GUI build/typecheck passes (532.56 kB main JS, 161.06 kB gzip), retaining size and
 dependency annotation warnings. HTTP/WS contract extraction is complete; the
 V2 decision proposal and subsequent ownership/auth implementation are next.
-A008-0105 is locally completed; it has not been pushed or deployed.
+A008-0105 is merged through PR #46 at 5ff163d; no running-host restart
+was performed for this build.
 
 A008-0103 freezes the seven-stage API program through ADR 0040. Its first child,
 A008-0104, consolidates v1 WS/session/model/runtime-preference contracts into
