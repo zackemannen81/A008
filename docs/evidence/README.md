@@ -9,6 +9,9 @@ credentials, and private source material do not belong in this collection.
 
 ## Records
 
+- [A008-0101_incremental-persistence.md](A008-0101_incremental-persistence.md) —
+  incremental SQLite row writes, rollback/lifecycle parity and synthetic timings.
+
 - [A008-0093_app-theme.md](A008-0093_app-theme.md) — Neutral/Deep Space semantic
   theme system; production-GUI and Memory-preview screenshots; no provider call.
 

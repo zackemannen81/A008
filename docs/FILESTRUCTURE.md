@@ -2,6 +2,13 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+A008-0101 adds `src/memory/knowledge/sqlite-rows.ts`, the shared schema-4 row
+serialization and keyed delta writer used by the existing SQLite store/context.
+`scripts/benchmark-knowledge-persistence.mjs` compares bulk and incremental
+reinforcement on temporary synthetic WAL databases after a root build. It uses
+no provider or user data. Regression coverage stays in the existing
+`test/knowledge-model/sqlite-store.test.ts`; evidence is indexed under `docs/evidence/`.
+
 A008-0085 adds `scripts/check-semantic-extraction.mjs`: a dry-run-by-default
 synthetic extraction check through the existing built generator/transport/stager.
 Live mode requires an explicit flag, selected model and separate task authority;

@@ -73,28 +73,36 @@ export function createSqliteKnowledgeContext(
     if (!persistEnabled) {
       return;
     }
+    let lockedRevision = loadedRevision;
     store.atomic(() => {
       if (loadedRevision !== store.revision()) throw new Error("Knowledge changed before explicit persist; reload before retrying");
-      store.replaceNamespace(captureSnapshot(inner));
-      loadedRevision = store.revision();
+      store.updateNamespace(store.load(), captureSnapshot(inner));
+      lockedRevision = store.revision();
     });
+    loadedRevision = store.revisionAfterCommit(lockedRevision);
   };
 
   const atomic = <T>(operation: () => T): T => {
     if (!persistEnabled) return operation();
-    return store.atomic(() => {
+    let lockedRevision = loadedRevision;
+    const result = store.atomic(() => {
       persistEnabled = false;
       try {
         if (loadedRevision !== store.revision()) hydrate();
+        const before = captureSnapshot(inner);
         const result = operation();
-        store.replaceNamespace(captureSnapshot(inner));
-        loadedRevision = store.revision();
+        store.updateNamespace(before, captureSnapshot(inner));
+        lockedRevision = store.revision();
         return result;
       } catch (error) {
         // Reload after SQLite has rolled back (the outer catch below).
         throw error;
       } finally { persistEnabled = true; }
     });
+    // FTS can flush shadow-table writes at COMMIT. Record our revision only
+    // after those writes, so the next operation does not reload its own state.
+    loadedRevision = store.revisionAfterCommit(lockedRevision);
+    return result;
   };
   const safeAtomic = <T>(operation: () => T): T => {
     if (!persistEnabled) return operation();
