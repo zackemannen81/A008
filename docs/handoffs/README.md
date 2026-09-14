@@ -12,7 +12,7 @@ authority. Workers do not append `docs/JOURNAL.md`.
 ## Required fields
 
 Latest persistence handoff: [A008-0101](A008-0101.md) — incremental SQLite
-knowledge writes; verified locally, pending integration.
+knowledge writes; merged through PR #44, host restarted and health/auth verified.
 
 Latest local handoffs: [A008-0093](A008-0093.md) — global Neutral/Deep Space
 theme system;

@@ -2255,3 +2255,21 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - All local and fetched remote branch tips are ancestors of the integrated main.
   Task archives remain immutable. Handoffs 0098-0100 record final merge status.
 - Signature: Codex
+
+## 2026-09-14 - A008-0101 incremental persistence integration
+
+- Operator: Codex; owner explicitly authorized push, PR creation, merge and restart.
+- PR #44 merged into remote main at 20:25:23 UTC as
+  02b578a577cbe25a7c684fa0a4a3e4eea3c3ea62; local main fast-forwarded.
+- Revalidated PC-04 and ADR 0018/0035 scope against unchanged remote main.
+  Verified implementation: 569 core, 4 membership, 161 GUI tests; no failures/skips.
+- The merged root build passed. Restarted the verified standalone host and its
+  children on the same 0.0.0.0:8787 listener using the existing environment file.
+  Local and external health returned 200, anonymous projects 401, configured-PIN
+  authenticated projects 200. No live provider call or artificial conversation.
+- Handoff: docs/handoffs/A008-0101.md. Archive remains immutable. No CI checks
+  were configured on PR #44. Runtime knowledge/lifecycle policy and schema remain
+  unchanged; snapshot comparison remains proportional to project size.
+- Allocated A008-0102 on main for the owner's next request: a bounded written plan
+  for the existing host protocol as a stable client API, not implementation.
+- Signature: Codex
