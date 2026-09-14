@@ -1,9 +1,18 @@
 # Current Status
 
-Reality as of 2026-09-14. This document records observed state; intended design
+Reality as of 2026-09-15. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
+
+A008-0107 extracts ProjectRuntimeRegistry and makes EngineHost borrow or own it.
+Canonical workspace aliases reuse one runtime; explicit existing attachments
+validate project identity, SQLite namespace and source paths. Same-process
+competing workspace/namespace owners fail before runtime creation. Multiple
+project namespaces can still share one SQLite file. Borrowers close their own
+sessions; the registry refuses disposal while sessions remain. Engine layout and
+v1/ACP panels are unchanged. Standalone facade migration and cross-process
+exclusion remain stage-2 work; no V2 availability is implied.
 
 A008-0106 accepts ADR 0041 and CLIENT_API_V2.md for the next implementation stages.
 Stage 1 is complete: v1 contracts/inventory and the V2 decision gate are covered.
@@ -18,7 +27,7 @@ memory and temporary filesystem state. Tests: 576 core, 4 membership, 161 GUI,
 zero skips/failures; independent installed package and portable engine proof pass.
 GUI build/typecheck passes (532.56 kB main JS, 161.06 kB gzip), retaining size and
 dependency annotation warnings. HTTP/WS contract extraction is complete; the
-V2 decision proposal and subsequent ownership/auth implementation are next.
+V2 decisions are accepted; ownership/auth implementation continues.
 A008-0105 is merged through PR #46 at 5ff163d; no running-host restart
 was performed for this build.
 
@@ -32,7 +41,7 @@ checks with synthetic data. Full tests: 573 core, 4 membership, 161 GUI pass.
 GUI production build passes with a 526.22 kB main chunk (159.20 kB gzip) and
 Rollup's size/annotation warnings after adding shared Zod validation to the GUI.
 The [operation inventory](HOST_PROTOCOL_V1_INVENTORY.md) identified HTTP payload
-extraction completed by A008-0105 above. Stage 1 and the program remain In Progress:
+extraction completed by A008-0105 above. Stage 1 is now complete; the program remains In Progress:
 V2/auth, explicit project ownership, SDK and Expo are not implemented.
 Integrated through PR #45 on remote main c3970d5; no running-host restart
 was performed for this build.
@@ -771,3 +780,7 @@ unexecuted. The replacement exists only in ignored `.env.local` as
 - Unknown `create`, missing type, and conflicting `type`/`relation` fail before
   reconcile or index and name the returned value.
 - No live NVIDIA call was required for automated completion.
+
+A008-0107 verification: 581 core, 4 membership and 161 GUI tests pass, with
+root/GUI builds, independently installed protocol and portable engine proof.
+GUI size/annotation warnings are unchanged. No running-host restart performed.
