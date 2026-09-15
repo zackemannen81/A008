@@ -23,6 +23,19 @@ export const CHAT_TOP_P_ENV = "A008_CHAT_TOP_P";
 export const CHAT_MAX_TOKENS_ENV = "A008_CHAT_MAX_TOKENS";
 export const CHAT_REASONING_BUDGET_ENV = "A008_CHAT_REASONING_BUDGET";
 export const CHAT_THINKING_ENV = "A008_CHAT_THINKING";
+export const CHAT_TRANSPORT_ENV = "A008_CHAT_TRANSPORT";
+export const ACME_MODEL_RUNTIME_URL_ENV = "A008_ACME_MODEL_RUNTIME_URL";
+export const ACME_MODEL_RUNTIME_TOKEN_ENV = "A008_ACME_MODEL_RUNTIME_TOKEN";
+export const ACME_ENGINE_BUILD_ENV = "A008_ACME_ENGINE_BUILD";
+
+export type ChatTransportMode = "direct" | "acme";
+
+export interface AcmeRuntimeSelection {
+  readonly mode: ChatTransportMode;
+  readonly baseUrl?: string;
+  readonly token?: string;
+  readonly engineBuild?: string;
+}
 
 /**
  * Default per-request ceiling for a provider call.
@@ -61,6 +74,7 @@ export interface LocalRuntimeConfig {
    * against the model card". Empty unless an operator sets one.
    */
   readonly chatGeneration: ChatGenerationOverrides;
+  readonly chatTransport: AcmeRuntimeSelection;
 }
 
 export interface ChatGenerationOverrides {
@@ -322,7 +336,62 @@ export function parseLocalRuntimeConfig(
       optionalText(env, PROVIDER_TIMEOUT_ENV),
     ),
     chatGeneration: resolvedChatGeneration(env),
+    chatTransport: resolvedChatTransport(env),
   };
+}
+
+function resolvedChatTransport(env: NodeJS.ProcessEnv): AcmeRuntimeSelection {
+  const modeRaw = optionalText(env, CHAT_TRANSPORT_ENV);
+  const mode = (modeRaw ?? "direct").toLowerCase();
+  if (mode !== "direct" && mode !== "acme") {
+    throw new ChatError(
+      "configuration",
+      `${CHAT_TRANSPORT_ENV} must be direct or acme.`,
+    );
+  }
+  if (mode === "direct") {
+    return { mode: "direct" };
+  }
+  const baseUrlRaw = optionalText(env, ACME_MODEL_RUNTIME_URL_ENV);
+  if (baseUrlRaw === undefined) {
+    throw new ChatError(
+      "configuration",
+      `${ACME_MODEL_RUNTIME_URL_ENV} is required when ${CHAT_TRANSPORT_ENV}=acme.`,
+    );
+  }
+  const token = optionalText(env, ACME_MODEL_RUNTIME_TOKEN_ENV);
+  const engineBuild = optionalText(env, ACME_ENGINE_BUILD_ENV);
+  return {
+    mode: "acme",
+    baseUrl: resolvedAcmeBaseUrl(baseUrlRaw),
+    ...(token === undefined ? {} : { token }),
+    ...(engineBuild === undefined ? {} : { engineBuild }),
+  };
+}
+
+function resolvedAcmeBaseUrl(raw: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new ChatError(
+      "configuration",
+      `${ACME_MODEL_RUNTIME_URL_ENV} must be an absolute http(s) URL.`,
+    );
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new ChatError(
+      "configuration",
+      `${ACME_MODEL_RUNTIME_URL_ENV} must be an absolute http(s) URL.`,
+    );
+  }
+  if (parsed.username !== "" || parsed.password !== "") {
+    throw new ChatError(
+      "configuration",
+      `${ACME_MODEL_RUNTIME_URL_ENV} must not contain credentials.`,
+    );
+  }
+  return parsed.toString().replace(/\/+$/u, "");
 }
 
 export function projectIdSidecarPath(sqlitePath: string): string {

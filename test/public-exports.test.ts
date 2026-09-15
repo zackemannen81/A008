@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  AcmeChatTransport,
   CodingAgentMemoryPolicy,
   ChatTransportSemanticJsonGenerator,
   createLocalMemoryRuntime,
@@ -34,6 +35,7 @@ import {
 } from "../src/index.js";
 
 test("memory and orchestration surfaces are exported from the package root", () => {
+  assert.equal(typeof AcmeChatTransport, "function");
   const repository = new InMemoryMemoryRepository();
   const memory = new SemanticMemory({
     repository,

@@ -99,7 +99,7 @@ import {
   createNvidiaChatTransport,
   createNvidiaTransportOptions,
 } from "./nvidia-session.js";
-import { createDispatchingChatTransport } from "./chat-dispatch.js";
+import { createConfiguredChatTransport } from "./chat-dispatch.js";
 import { defaultCatalogPath } from "../core/user-catalog.js";
 
 
@@ -172,6 +172,7 @@ export interface LocalMemoryRuntimeOptions {
   readonly createTransport?: (
     options: NvidiaChatTransportOptions,
   ) => ChatTransport;
+  readonly fetch?: NvidiaChatTransportOptions["fetch"];
   readonly readerDecorator?: (reader: MemoryReadPort) => MemoryReadPort;
   readonly committerDecorator?: (
     committer: StagedProposalCommitter,
@@ -1151,13 +1152,24 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
   const agentId = resolveAgentId(config, identityFactory);
   const kieKey = options.env.KIE_API_KEY?.trim() ?? "";
   const openAiKey = options.env.OPENAI_API_KEY?.trim() ?? "";
-  if (!nvidiaOptions && !kieKey && !openAiKey && options.createTransport === undefined) {
+  if (
+    !nvidiaOptions &&
+    !kieKey &&
+    !openAiKey &&
+    options.createTransport === undefined &&
+    config.chatTransport.mode !== "acme"
+  ) {
     throw new ChatError(
       "configuration",
       "NVIDIA_API_KEY, KIE_API_KEY, or OPENAI_API_KEY is required for chat.",
     );
   }
-  const secrets = [nvidiaOptions?.apiKey, kieKey, openAiKey].filter(
+  const secrets = [
+    nvidiaOptions?.apiKey,
+    kieKey,
+    openAiKey,
+    config.chatTransport.token,
+  ].filter(
     (value): value is string => typeof value === "string" && value.length >= 8,
   );
   const tracer = createDebugTracer({
@@ -1179,11 +1191,16 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
         createTransport: options.createTransport,
       });
     }
-    return createDispatchingChatTransport({
+    return createConfiguredChatTransport({
       env: options.env,
       catalogPath: defaultCatalogPath(options.env),
       timeoutMs,
-      fetch: tracedFetch(globalThis.fetch.bind(globalThis), tracer, surface),
+      acme: config.chatTransport,
+      fetch: tracedFetch(
+        options.fetch ?? globalThis.fetch.bind(globalThis),
+        tracer,
+        surface,
+      ),
     });
   };
   let transportTimeout = preferences.current.budgets.providerTimeoutMs;

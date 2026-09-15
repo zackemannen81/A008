@@ -100,12 +100,22 @@ CLI / A008-acp -> createLocalMemoryRuntime
                  |
                  v
           ChatTransport
-            -> provider dispatch
+            -> provider dispatch (default)
                |- NvidiaChatTransport
                |- KieChatTransport
                `- OpenAiChatTransport
                   -> traced fetch -> selected provider endpoint
+            -> optional explicit AcmeChatTransport (A008_CHAT_TRANSPORT=acme)
+               -> acme-model-runtime/1 GET /v1/model/compatibility
+               -> POST /v1/model/execute SSE
 ```
+
+A008-0114 added `AcmeChatTransport` as an explicit, non-default execution adapter.
+It is not the live composition default. Direct NVIDIA/kie/OpenAI transports remain
+current system behavior. The adapter never calls ACME `/v1/execute`. After an ACME
+dispatch it does not fall back to a direct provider. Stage 3.5 recorded **NO-GO**
+for making ACME the normal route: frozen `ModelRequest` cannot carry A008
+`topP` / `reasoningBudget` / `enableThinking` / `reasoningEffort` / `seed`.
 
 `ChatSession` owns in-memory conversation history. It constructs a pending turn,
 calls the transport, and commits user plus assistant messages only after a valid
@@ -138,8 +148,9 @@ and constructs `NvidiaChatTransport`. `createNvidiaChatSession` still returns a
 bare `ChatSession` for tests and direct callers.
 
 Live CLI and ACP chat without an injected transport use
-`createDispatchingChatTransport` (A008-0073, amended by A008-0087/A008-0088).
-Explicit model identity owns routing: NVIDIA registry models use
+`createConfiguredChatTransport` (A008-0114 over A008-0073/0087/0088).
+The default remains `createDispatchingChatTransport`. Explicit model identity
+owns routing: NVIDIA registry models use
 `NvidiaChatTransport`, kie.ai models use `KieChatTransport`, and built-in
 `gpt-5.6-luna` uses `OpenAiChatTransport`; a saved OpenAI provider preference
 does not override a selected non-OpenAI model. Luna Chat Completions omits
@@ -148,7 +159,9 @@ effective `reasoning_effort: none` because OpenAI rejects non-none reasoning
 with Luna tools on `/v1/chat/completions`. Streaming SSE events may report
 `usage: null` before final usage; the adapter treats this as absent usage until
 a later non-null usage object arrives. Any one of `NVIDIA_API_KEY`,
-`KIE_API_KEY`, or `OPENAI_API_KEY` is enough to start the runtime. Image generation on the host
+`KIE_API_KEY`, or `OPENAI_API_KEY` is enough to start the runtime. Explicit
+`A008_CHAT_TRANSPORT=acme` is the Stage-3.5 opt-in and is not the default.
+Image generation on the host
 follows `imageProvider`: NVIDIA NIMs or kie Market jobs
 (`POST /api/v1/jobs/createTask` then poll `GET /api/v1/jobs/recordInfo`).
 
@@ -924,9 +937,11 @@ guarantees.
 
 ## Local CLI and ACP memory composition
 
-`createLocalMemoryRuntime` is the live local composition root. It requires at
-least one configured NVIDIA, kie.ai, or OpenAI chat credential (unless a test
-injects a transport), then opens a SQLite file outside the repository,
+`createLocalMemoryRuntime` is the live local composition root. Direct composition
+requires at least one configured NVIDIA, kie.ai, or OpenAI chat credential
+(unless a test injects a transport). Explicit `A008_CHAT_TRANSPORT=acme` instead
+requires `A008_ACME_MODEL_RUNTIME_URL` and does not send those provider keys to
+ACME. It then opens a SQLite file outside the repository,
 resolves a stable project ID, migrates any v0 supersede chains into intervals
 with unknown boundaries, and wraps one transport for both chat and stateless
 semantic calls.

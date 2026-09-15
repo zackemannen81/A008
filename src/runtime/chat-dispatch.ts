@@ -1,10 +1,15 @@
 import { ChatError } from "../core/errors.js";
 import type { ChatCallbacks, ChatCompletion, ChatRequest, ChatTransport } from "../core/types.js";
 import { loadUserCatalog, type UserCatalog } from "../core/user-catalog.js";
+import {
+  AcmeChatTransport,
+  type AcmeChatTransportOptions,
+} from "../providers/acme/acme-chat-transport.js";
 import { KieChatTransport, type FetchLike } from "../providers/kie/kie-chat-transport.js";
 import { isKieChatModelId } from "../providers/kie/kie-models.js";
 import { NvidiaChatTransport } from "../providers/nvidia/nvidia-chat-transport.js";
 import { OpenAiChatTransport } from "../providers/openai/openai-chat-transport.js";
+import type { AcmeRuntimeSelection } from "./local-runtime-config.js";
 import { NVIDIA_ENDPOINT_ENV } from "./nvidia-session.js";
 
 export function usesKieChat(model: string, catalogPath: string): boolean {
@@ -33,6 +38,58 @@ function isKnownOpenAiChatModel(model: string, catalog: UserCatalog): boolean {
 export function usesOpenAiChat(model: string, catalogPath: string): boolean {
   const catalog = loadUserCatalog(catalogPath);
   return isKnownOpenAiChatModel(model, catalog);
+}
+
+export function usesAcmeChat(selection: AcmeRuntimeSelection): boolean {
+  return selection.mode === "acme";
+}
+
+export function createAcmeRuntimeChatTransport(options: {
+  readonly selection: AcmeRuntimeSelection;
+  readonly timeoutMs: number;
+  readonly fetch?: FetchLike;
+  readonly requestKey?: AcmeChatTransportOptions["requestKey"];
+  readonly correlationId?: AcmeChatTransportOptions["correlationId"];
+}): ChatTransport {
+  if (options.selection.mode !== "acme" || options.selection.baseUrl === undefined) {
+    throw new ChatError(
+      "configuration",
+      "ACME chat transport requires A008_CHAT_TRANSPORT=acme and A008_ACME_MODEL_RUNTIME_URL.",
+    );
+  }
+  return new AcmeChatTransport({
+    baseUrl: options.selection.baseUrl,
+    timeoutMs: options.timeoutMs,
+    ...(options.selection.token === undefined ? {} : { token: options.selection.token }),
+    ...(options.selection.engineBuild === undefined
+      ? {}
+      : { engineBuild: options.selection.engineBuild }),
+    ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+    ...(options.requestKey === undefined ? {} : { requestKey: options.requestKey }),
+    ...(options.correlationId === undefined ? {} : { correlationId: options.correlationId }),
+  });
+}
+
+export function createConfiguredChatTransport(options: {
+  readonly env: NodeJS.ProcessEnv;
+  readonly catalogPath: string;
+  readonly timeoutMs: number;
+  readonly fetch?: FetchLike;
+  readonly acme: AcmeRuntimeSelection;
+}): ChatTransport {
+  if (usesAcmeChat(options.acme)) {
+    return createAcmeRuntimeChatTransport({
+      selection: options.acme,
+      timeoutMs: options.timeoutMs,
+      ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+    });
+  }
+  return createDispatchingChatTransport({
+    env: options.env,
+    catalogPath: options.catalogPath,
+    timeoutMs: options.timeoutMs,
+    ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+  });
 }
 
 export function createDispatchingChatTransport(options: {
