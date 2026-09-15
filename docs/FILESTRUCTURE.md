@@ -1,4 +1,4 @@
-A008-0114 adds `src/providers/acme/` (`acme-model-runtime.ts`, `acme-sse.ts`, `acme-chat-transport.ts`) as an explicit opt-in `ChatTransport` against frozen `acme-model-runtime/1`. `src/runtime/chat-dispatch.ts` and `local-runtime-config.ts` select it only when `A008_CHAT_TRANSPORT=acme`. Direct NVIDIA/kie/OpenAI transports remain the default. No memory/knowledge/orchestration module imports ACME types.
+A008-0118 keeps `src/providers/acme/` as an explicit opt-in `ChatTransport` against `acme-model-runtime/2`. `src/core/execution-provider.ts` owns `executionProvider` resolution and the ACME `providerHint`. `src/runtime/chat-dispatch.ts` and `local-runtime-config.ts` select ACME only when `A008_CHAT_TRANSPORT=acme`. Direct NVIDIA/kie/OpenAI transports remain the default. No memory/knowledge/orchestration module imports ACME types.
 
 Standalone GUI authentication remains inside the existing host boundary: `src/gui-host/pin-auth.ts` adds an optional six-digit browser gate, random cookie session and failed-attempt throttle without adding a renderer dependency or second credential owner. `gui/src/session/engine-access.ts` also owns the bundled renderer's exact-match recovery from an expired standalone PIN cookie back to the existing login gate; native engine capability auth remains separate.
 
@@ -234,6 +234,7 @@ A008/
 |  |  |- types.ts                    provider-neutral chat contracts
 |  |  |- errors.ts                   typed error taxonomy
 |  |  |- model-registry.ts           verified model profiles and lookup
+|  |  |- execution-provider.ts       openai/nvidia/kie execution route vs vendor provider
 |  |  |- generation-controls.ts     capabilities, complete parameter sets and validation
 |  |  |- session-control.ts         shared control/snapshot contract
 |  |  |- user-catalog.ts            ~/.a008/catalog.json chat/image provider settings
@@ -318,7 +319,7 @@ A008/
 |  |  |- openai/
 |  |  |  `- openai-chat-transport.ts  GPT-5.6 Luna Chat Completions + tools/SSE
 |  |  `- acme/
-|  |     |- acme-model-runtime.ts     acme-model-runtime/1 constants, mapping, evidence errors
+|  |     |- acme-model-runtime.ts     acme-model-runtime/2 constants, mapping, evidence errors
 |  |     |- acme-sse.ts               SSE event-name + data parser
 |  |     `- acme-chat-transport.ts    opt-in ChatTransport against ACME model-only runtime
 |  `- runtime/

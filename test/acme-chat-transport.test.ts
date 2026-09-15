@@ -148,7 +148,7 @@ test("compatibility is checked before execute and unexpected versions fail close
       urls,
       onCompatibility: () =>
         jsonResponse({
-          protocolVersion: "acme-model-runtime/2",
+          protocolVersion: "acme-model-runtime/1",
           engineBuild: ENGINE_BUILD,
           executePath: ACME_MODEL_RUNTIME_EXECUTE_PATH,
         }),
@@ -159,7 +159,7 @@ test("compatibility is checked before execute and unexpected versions fail close
     (error: unknown) =>
       error instanceof AcmeChatError &&
       error.code === "configuration" &&
-      error.message.includes("acme-model-runtime/2"),
+      error.message.includes("acme-model-runtime/1"),
   );
   assert.deepEqual(urls, [`${BASE}${ACME_MODEL_RUNTIME_COMPATIBILITY_PATH}`]);
 });
@@ -186,7 +186,7 @@ test("pinned engineBuild is checked before a provider call", async () => {
   assert.equal(urls.some((url) => url.endsWith(ACME_MODEL_RUNTIME_EXECUTE_PATH)), false);
 });
 
-test("maps prepared A008 text, tools and generation subset onto acme-model-runtime/1", async () => {
+test("maps prepared A008 text, tools and Luna controls onto acme-model-runtime/2", async () => {
   let body = "";
   let protocolHeader = "";
   const adapter = transport(
@@ -211,10 +211,7 @@ test("maps prepared A008 text, tools and generation subset onto acme-model-runti
       stream: true,
       maxTokens: 128,
       temperature: 0.2,
-      topP: 0.9,
-      reasoningBudget: 64,
-      enableThinking: true,
-      seed: 7,
+      reasoningEffort: "medium",
     },
   });
   assert.equal(protocolHeader, PROTOCOL);
@@ -230,6 +227,7 @@ test("maps prepared A008 text, tools and generation subset onto acme-model-runti
   assert.deepEqual(acmeRequest.output, { mode: "text" });
   assert.equal(acmeRequest.maxOutputTokens, 128);
   assert.equal(acmeRequest.temperature, 0.2);
+  assert.equal(acmeRequest.reasoningEffort, "medium");
   assert.equal(Object.hasOwn(acmeRequest, "topP"), false);
   assert.equal(Object.hasOwn(acmeRequest, "reasoningBudget"), false);
   assert.equal(Object.hasOwn(acmeRequest, "enableThinking"), false);
@@ -620,6 +618,221 @@ test("buildAcmeExecuteBody omits empty tools and maps NVIDIA model identity", ()
     providerHint: "nvidia",
   });
   assert.deepEqual(request.stop, ["END"]);
+});
+
+function acmeRequestOf(
+  model: string,
+  options: ChatRequest["options"] = {},
+): Record<string, unknown> {
+  return buildAcmeExecuteBody(
+    { model, messages: [{ role: "user", content: "hi" }], options },
+    { requestKey: "k", timeoutMs: 1_000 },
+  );
+}
+
+function assertControlSet(
+  request: Record<string, unknown>,
+  present: Record<string, unknown>,
+  absent: readonly string[],
+): void {
+  for (const [key, value] of Object.entries(present)) {
+    assert.deepEqual(request[key], value, key);
+  }
+  for (const key of absent) {
+    assert.equal(Object.hasOwn(request, key), false, `${key} must be absent`);
+  }
+}
+
+test("v2 mapping sends the full supported control set and the execution provider hint", () => {
+  const luna = acmeRequestOf("gpt-5.6-luna", {
+    temperature: 0.2,
+    maxTokens: 128,
+    reasoningEffort: "medium",
+  });
+  assert.deepEqual(luna.model, {
+    profile: "gpt-5.6-luna",
+    modelHint: "gpt-5.6-luna",
+    providerHint: "openai",
+  });
+  assertControlSet(
+    luna.request as Record<string, unknown>,
+    { temperature: 0.2, maxOutputTokens: 128, reasoningEffort: "medium" },
+    ["topP", "reasoningBudget", "enableThinking", "seed", "stop"],
+  );
+
+  const nemotron = acmeRequestOf("nvidia/nemotron-3.5-lightning-30b-a3b", {
+    temperature: 1,
+    topP: 0.95,
+    maxTokens: 256,
+    reasoningBudget: 64,
+    enableThinking: true,
+    seed: 11,
+    stop: ["END"],
+  });
+  assert.equal(
+    (nemotron.model as { providerHint: string }).providerHint,
+    "nvidia",
+  );
+  assertControlSet(
+    nemotron.request as Record<string, unknown>,
+    {
+      temperature: 1,
+      topP: 0.95,
+      maxOutputTokens: 256,
+      reasoningBudget: 64,
+      enableThinking: true,
+      seed: 11,
+      stop: ["END"],
+    },
+    ["reasoningEffort"],
+  );
+
+  const omni = acmeRequestOf("nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", {
+    temperature: 0.6,
+    topP: 0.95,
+    maxTokens: 256,
+    reasoningBudget: 64,
+    enableThinking: true,
+    seed: 3,
+  });
+  assertControlSet(
+    omni.request as Record<string, unknown>,
+    {
+      temperature: 0.6,
+      topP: 0.95,
+      maxOutputTokens: 256,
+      reasoningBudget: 64,
+      enableThinking: true,
+      seed: 3,
+    },
+    ["reasoningEffort", "stop"],
+  );
+
+  const kimi = acmeRequestOf("moonshotai/kimi-k3", {
+    temperature: 1,
+    maxTokens: 128,
+    reasoningEffort: "max",
+    seed: 11,
+  });
+  assert.deepEqual(kimi.model, {
+    profile: "moonshotai/kimi-k3",
+    modelHint: "moonshotai/kimi-k3",
+    providerHint: "nvidia",
+  });
+  assertControlSet(
+    kimi.request as Record<string, unknown>,
+    {
+      temperature: 1,
+      maxOutputTokens: 128,
+      reasoningEffort: "max",
+      seed: 11,
+    },
+    ["topP", "reasoningBudget", "enableThinking", "stop"],
+  );
+
+  const deepseek = acmeRequestOf("deepseek-ai/deepseek-v4-pro-0813", {
+    temperature: 1,
+    topP: 0.95,
+    maxTokens: 128,
+    reasoningEffort: "none",
+    seed: 2,
+  });
+  assert.equal(
+    (deepseek.model as { providerHint: string }).providerHint,
+    "nvidia",
+  );
+  assertControlSet(
+    deepseek.request as Record<string, unknown>,
+    {
+      temperature: 1,
+      topP: 0.95,
+      maxOutputTokens: 128,
+      reasoningEffort: "none",
+      seed: 2,
+    },
+    ["enableThinking", "reasoningBudget", "stop"],
+  );
+
+  const muse = acmeRequestOf("meta/muse-glimmer-30b", {
+    temperature: 1,
+    topP: 0.95,
+    maxTokens: 128,
+    reasoningEffort: "high",
+    stop: ["END"],
+  });
+  assertControlSet(
+    muse.request as Record<string, unknown>,
+    {
+      temperature: 1,
+      topP: 0.95,
+      maxOutputTokens: 128,
+      reasoningEffort: "high",
+      stop: ["END"],
+    },
+    ["enableThinking", "reasoningBudget"],
+  );
+
+  const laguna = acmeRequestOf("poolside/laguna-xs-2.1", {
+    temperature: 1,
+    topP: 0.95,
+    maxTokens: 128,
+  });
+  assertControlSet(
+    laguna.request as Record<string, unknown>,
+    { temperature: 1, topP: 0.95, maxOutputTokens: 128 },
+    ["enableThinking", "reasoningBudget", "reasoningEffort", "seed", "stop"],
+  );
+
+  const gemini = acmeRequestOf("gemini-3-flash", {
+    temperature: 1,
+    topP: 0.95,
+    maxTokens: 128,
+    seed: 4,
+  });
+  assert.deepEqual(gemini.model, {
+    profile: "gemini-3-flash",
+    modelHint: "gemini-3-flash",
+    providerHint: "kie:gemini-3-flash",
+  });
+  assertControlSet(
+    gemini.request as Record<string, unknown>,
+    { temperature: 1, topP: 0.95, maxOutputTokens: 128, seed: 4 },
+    ["enableThinking", "reasoningBudget", "reasoningEffort", "stop"],
+  );
+});
+
+test("unsupported supplied ACME controls fail before execute", () => {
+  const cases: Array<{ model: string; options: ChatRequest["options"]; field: string }> = [
+    { model: "gpt-5.6-luna", options: { topP: 0.9 }, field: "topP" },
+    { model: "gpt-5.6-luna", options: { enableThinking: true }, field: "enableThinking" },
+    { model: "gpt-5.6-luna", options: { seed: 7 }, field: "seed" },
+    { model: "gpt-5.6-luna", options: { reasoningBudget: 64 }, field: "reasoningBudget" },
+    { model: "gpt-5.6-luna", options: { stop: ["END"] }, field: "stop" },
+    { model: "moonshotai/kimi-k3", options: { enableThinking: true }, field: "enableThinking" },
+    { model: "moonshotai/kimi-k3", options: { topP: 0.5 }, field: "topP" },
+    { model: "meta/muse-glimmer-30b", options: { enableThinking: false }, field: "enableThinking" },
+    { model: "poolside/laguna-xs-2.1", options: { enableThinking: false }, field: "enableThinking" },
+    { model: "poolside/laguna-xs-2.1", options: { seed: 1 }, field: "seed" },
+    { model: "deepseek-ai/deepseek-v4-pro-0813", options: { enableThinking: false }, field: "enableThinking" },
+    { model: "gemini-3-flash", options: { enableThinking: false }, field: "enableThinking" },
+  ];
+  for (const row of cases) {
+    assert.throws(
+      () => acmeRequestOf(row.model, row.options),
+      (error: unknown) =>
+        error instanceof ChatError &&
+        error.code === "configuration" &&
+        error.message.includes(row.field),
+      `${row.model} ${row.field}`,
+    );
+  }
+  assert.throws(
+    () => acmeRequestOf("unknown/model", { maxTokens: 16 }),
+    (error: unknown) =>
+      error instanceof ChatError &&
+      error.code === "configuration" &&
+      error.message.includes("executionProvider"),
+  );
 });
 
 test("ACME mapping stays out of memory, knowledge and orchestration modules", () => {

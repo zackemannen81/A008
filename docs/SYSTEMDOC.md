@@ -106,16 +106,19 @@ CLI / A008-acp -> createLocalMemoryRuntime
                `- OpenAiChatTransport
                   -> traced fetch -> selected provider endpoint
             -> optional explicit AcmeChatTransport (A008_CHAT_TRANSPORT=acme)
-               -> acme-model-runtime/1 GET /v1/model/compatibility
+               -> acme-model-runtime/2 GET /v1/model/compatibility
                -> POST /v1/model/execute SSE
 ```
 
-A008-0114 added `AcmeChatTransport` as an explicit, non-default execution adapter.
-It is not the live composition default. Direct NVIDIA/kie/OpenAI transports remain
-current system behavior. The adapter never calls ACME `/v1/execute`. After an ACME
-dispatch it does not fall back to a direct provider. Stage 3.5 recorded **NO-GO**
-for making ACME the normal route: frozen `ModelRequest` cannot carry A008
-`topP` / `reasoningBudget` / `enableThinking` / `reasoningEffort` / `seed`.
+A008-0118 upgraded `AcmeChatTransport` to `acme-model-runtime/2`. Stage 3.5 is
+**GO**. Selection remains explicit (`A008_CHAT_TRANSPORT=acme` plus runtime URL).
+Direct NVIDIA/kie/OpenAI chat transports remain available as reference
+composition. The adapter never calls ACME `/v1/execute`. After an ACME dispatch
+it does not fall back to a direct provider. Present supported generation
+controls are mapped; unsupported supplied controls fail before execute; absent
+controls are omitted. `ModelProfile.executionProvider` is the only source of
+ACME `providerHint`. KIE chat uses `kie:<model-id>`. Image/audio/video stay on
+the direct transports and were owner-verified still working.
 
 `ChatSession` owns in-memory conversation history. It constructs a pending turn,
 calls the transport, and commits user plus assistant messages only after a valid
@@ -951,7 +954,16 @@ guarantees.
 requires at least one configured NVIDIA, kie.ai, or OpenAI chat credential
 (unless a test injects a transport). Explicit `A008_CHAT_TRANSPORT=acme` instead
 requires `A008_ACME_MODEL_RUNTIME_URL` and does not send those provider keys to
-ACME. It then opens a SQLite file outside the repository,
+ACME. Optional `A008_ACME_MODEL_RUNTIME_TOKEN` and `A008_ACME_ENGINE_BUILD` pin
+the local runtime. The ACME process itself is configured separately with
+`OPENAI_API_KEY` / `NVIDIA_API_KEY` / KIE keys, listen host `127.0.0.1`, port
+`8790`, a local bearer token, `ACME_MODEL_RUNTIME_ENGINE_BUILD`, and profile
+arrays (`ACME_MODEL_RUNTIME_OPENAI_PROFILES`,
+`ACME_MODEL_RUNTIME_NVIDIA_PROFILES`, `ACME_MODEL_RUNTIME_COMPATIBLE_ROUTES`).
+NVIDIA-hosted families share one NVIDIA gateway; each profile has exact
+selection + model + controls. KIE chat is one compatible route per model
+because the KIE URL is `https://api.kie.ai/<MODEL>/v1/chat/completions`.
+The A008 runtime then opens a SQLite file outside the repository,
 resolves a stable project ID, migrates any v0 supersede chains into intervals
 with unknown boundaries, and wraps one transport for both chat and stateless
 semantic calls.

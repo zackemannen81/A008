@@ -24,8 +24,14 @@ export type {
   ChatRole,
   ChatTransport,
   ChatUsage,
+  ExecutionProvider,
   ModelProfile,
 } from "./core/types.js";
+export {
+  acmeProviderHint,
+  catalogExecutionProvider,
+  resolveExecutionProvider,
+} from "./core/execution-provider.js";
 export {
   composeChatInvocation,
   serializeChatMessages,

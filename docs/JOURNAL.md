@@ -2,6 +2,16 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-15 — A008-0118: ACME runtime/2 consumer and Stage 3.5 GO
+
+- Task: A008-0118; operator: Grok; branch: `grok/A008-0118-acme-runtime-v2-consumer`.
+- `AcmeChatTransport` now speaks `acme-model-runtime/2` with full generation controls and explicit `executionProvider` (`openai` / `nvidia` / `kie:<model>`). Kimi vendor `provider` remains `moonshotai`. Image/audio/video stay on direct transports.
+- Live chat through ACME v2 (`acme-0180-local-a008`) PASS: Luna, Nemotron 3.5, Kimi K3, DeepSeek, Muse, Laguna, KIE/Gemini. Owner client loop PASS on two models. Image generation still works on the existing image path.
+- Offline verification: 636 core, 4 membership, 162 GUI; typecheck; `verify:protocol`; production GUI build; `git diff --check`.
+- Stage 3.5 adoption decision: **GO**. Direct chat transports remain explicit reference composition. Stage 4 may start; keep application identities distinct from ACME `modelExecutionId`.
+- [Handoff](handoffs/A008-0118.md). [Archive](finished/A008-0118_acme-runtime-v2-consumer.md). [ADR 0043](adr/0043-acme-execution-boundary.md).
+- Signature: Grok
+
 ## 2026-09-15 — A008-0114: ACME execution substrate evaluation (Stage 3.5)
 
 - Task: A008-0114; operator: Grok; branch: `grok/A008-0114-acme-execution-evaluation`.

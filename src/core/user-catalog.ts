@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { ChatError } from "./errors.js";
+import { catalogExecutionProvider } from "./execution-provider.js";
 import type { ChatGenerationOptions, ModelModality, ModelProfile } from "./types.js";
 import {
   DEFAULT_IMAGE_MODEL,
@@ -141,13 +142,13 @@ export function userModelProfile(model: UserChatModel): ModelProfile {
     temperature: 1,
     topP: 0.95,
     maxTokens: 16_384,
-    enableThinking: false,
     stream: true,
   };
   return {
     id: model.id,
     name: model.name,
     provider: model.provider,
+    executionProvider: catalogExecutionProvider(model.provider),
     defaults,
     inputModalities: model.inputModalities,
   };

@@ -333,6 +333,13 @@ test("stateless semantic JSON matches through direct and ACME transports", async
       transport,
       model: "gpt-5.6-luna",
       budget: { maximum: 10_000, measurer: new Utf8ByteChatMessageMeasurer() },
+      generation: {
+        temperature: null,
+        topP: null,
+        maxTokens: 16_384,
+        enableThinking: null,
+        reasoningEffort: "none",
+      },
     });
   const input = {
     operation: "knowledge_analysis" as const,
@@ -577,6 +584,9 @@ test("Luna semantic retrieval and extraction omit unsupported temperature throug
     assert.deepEqual(semanticOperations, ["retrieval_scope", "knowledge_analysis"]);
     assert.equal(semanticRequests.length, 2);
     assert.equal(semanticRequests.every(request => !Object.hasOwn(request, "temperature")), true);
+    assert.equal(semanticRequests.every(request => !Object.hasOwn(request, "topP")), true);
+    assert.equal(semanticRequests.every(request => !Object.hasOwn(request, "enableThinking")), true);
+    assert.equal(semanticRequests.every(request => request.reasoningEffort === "none"), true);
   } finally {
     runtime.close();
   }

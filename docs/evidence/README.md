@@ -9,6 +9,14 @@ credentials, and private source material do not belong in this collection.
 
 ## Records
 
+- [A008-0118_acme-runtime-v2-go.md](A008-0118_acme-runtime-v2-go.md), with
+  [Muse/`oldschool` retrieval](A008-0118_muse-oldschool-retrieval.png),
+  [Luna image](A008-0118_luna-image.png),
+  [DeepSeek image](A008-0118_deepseek-image.png) and
+  [Code Canvas preview](A008-0118_canvas-preview.png) — owner GUI proof that
+  ACME v2 chat, retrieval, Canvas and the existing image path all live together.
+  Stage 3.5 GO.
+
 - [A008-0101_incremental-persistence.md](A008-0101_incremental-persistence.md) —
   incremental SQLite row writes, rollback/lifecycle parity and synthetic timings.
 

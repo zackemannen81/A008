@@ -55,6 +55,7 @@ test("help works without credentials", async () => {
 
 test("chat without a credential exits before creating a transport", async () => {
   const fixture = io();
+  const isolated = isolatedMemoryEnv({ NVIDIA_API_KEY: "" });
   let transportCreations = 0;
   const unusedTransport: ChatTransport = {
     async complete() {
@@ -62,18 +63,22 @@ test("chat without a credential exits before creating a transport", async () => 
     },
   };
 
-  const code = await runCli(["chat"], {
-    ...fixture.deps,
-    env: {},
-    createTransport: () => {
-      transportCreations += 1;
-      return unusedTransport;
-    },
-  });
+  try {
+    const code = await runCli(["chat"], {
+      ...fixture.deps,
+      env: isolated.env,
+      createTransport: () => {
+        transportCreations += 1;
+        return unusedTransport;
+      },
+    });
 
-  assert.equal(code, 2);
-  assert.equal(transportCreations, 0);
-  assert.match(fixture.stderr.text(), /NVIDIA_API_KEY is required/u);
+    assert.equal(code, 2);
+    assert.equal(transportCreations, 0);
+    assert.match(fixture.stderr.text(), /NVIDIA_API_KEY is required/u);
+  } finally {
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
 });
 
 test("interactive chat uses the injected shared transport", async () => {

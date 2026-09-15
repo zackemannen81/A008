@@ -98,10 +98,18 @@ export interface ChatTransport {
  */
 export type ModelModality = "text" | "image" | "video" | "audio";
 
+/** Who executes a prepared chat call. Distinct from vendor `provider`. */
+export type ExecutionProvider = "openai" | "nvidia" | "kie";
+
 export interface ModelProfile {
   readonly id: string;
   readonly name: string;
   readonly provider: string;
+  /**
+   * A008-owned execution route. ACME receives this as `providerHint`.
+   * Vendor identity stays in `provider` (Kimi is `moonshotai`, executed by NVIDIA).
+   */
+  readonly executionProvider?: ExecutionProvider;
   readonly defaults: ChatGenerationOptions;
   /**
    * What the model accepts as input.
