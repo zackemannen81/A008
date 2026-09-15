@@ -128,3 +128,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0112 | V2 session transport and authority | Codex (operator) | 2026-09-15 | first-frame WS auth, project/session business dispatch, capability and live-revocation gates |
 | A008-0113 | README current-state refresh | Codex (operator) | 2026-09-15 | align public README with implemented Stage 1-3 API, current runtime/memory/providers and verified usage |
 | A008-0114 | ACME execution substrate evaluation (Stage 3.5) | Grok (delegated) | 2026-09-15 | execution-adapter parity, failure-evidence proof and go/no-go before Stage 4 |
+| A008-0115 | Luna semantic control compatibility | Codex (operator) | 2026-09-15 | omit unsupported Luna temperature on semantic retrieval and memory extraction |
