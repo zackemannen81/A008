@@ -29,7 +29,7 @@ existing client silently breaks and no project silently receives empty memory.
 | 1. Current contract | Complete | A008-0104/0105 merged; A008-0106 accepts V2/ownership/auth/recovery decisions |
 | 2. Project/session ownership | Complete | A008-0107/0108/0109 shared registry, facade, exact binding and process ownership proof |
 | 3. V2 and auth | Complete | A008-0110/0112: scoped device auth, tickets, authenticated WS dispatch and live revoke/expiry |
-| 3.5 ACME execution evaluation | Complete; NO-GO | A008-0114: opt-in `AcmeChatTransport` against frozen `acme-model-runtime/1`; default-route adoption declined; Stage 4 proceeds without ACME |
+| 3.5 ACME execution evaluation | A008-0118 in progress | 0114 NO-GO on v1; 0118 consumes `acme-model-runtime/2` with full controls and `executionProvider`. GO pending live matrix and owner client loop |
 | 4. Turns and recovery | Not started | Stage 3.5 go/no-go recorded (NO-GO). Snapshot boundary, idempotency, cancellation/restart proof remain Stage 4 and do not use ACME execution identity |
 | 5. SDK and web migration | Not started | Independent package and complete web coverage |
 | 6. Independent Expo proof | Not started | Real platform/remote auth and background-return checks |

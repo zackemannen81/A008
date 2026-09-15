@@ -79,17 +79,7 @@ export function defaultSessionParameters(
   const options = { ...profile.defaults, ...overrides };
   const caps = generationCapabilities(profile.id);
   const effort =
-    profile.id === "gpt-5.6-luna"
-      ? (options.reasoningEffort ?? "medium")
-      : profile.id === "moonshotai/kimi-k3"
-        ? "max"
-      : profile.id === "meta/muse-glimmer-30b"
-        ? "high"
-        : profile.id === "deepseek-ai/deepseek-v4-pro-0813"
-          ? options.enableThinking
-            ? "high"
-            : "none"
-          : null;
+    caps.reasoningEfforts.length === 0 ? null : (options.reasoningEffort ?? null);
   return {
     stream: options.stream ?? true,
     temperature: options.temperature ?? null,

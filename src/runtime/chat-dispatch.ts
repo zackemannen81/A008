@@ -50,6 +50,7 @@ export function createAcmeRuntimeChatTransport(options: {
   readonly fetch?: FetchLike;
   readonly requestKey?: AcmeChatTransportOptions["requestKey"];
   readonly correlationId?: AcmeChatTransportOptions["correlationId"];
+  readonly catalogPath?: string;
 }): ChatTransport {
   if (options.selection.mode !== "acme" || options.selection.baseUrl === undefined) {
     throw new ChatError(
@@ -67,6 +68,7 @@ export function createAcmeRuntimeChatTransport(options: {
     ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     ...(options.requestKey === undefined ? {} : { requestKey: options.requestKey }),
     ...(options.correlationId === undefined ? {} : { correlationId: options.correlationId }),
+    ...(options.catalogPath === undefined ? {} : { catalogPath: options.catalogPath }),
   });
 }
 
@@ -81,6 +83,7 @@ export function createConfiguredChatTransport(options: {
     return createAcmeRuntimeChatTransport({
       selection: options.acme,
       timeoutMs: options.timeoutMs,
+      catalogPath: options.catalogPath,
       ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
     });
   }

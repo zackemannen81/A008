@@ -107,6 +107,34 @@ test("semantic JSON generator owns one exact stateless non-streaming request", a
   );
 });
 
+test("semantic JSON generator omits enableThinking when the runtime passes null", async () => {
+  const requests: ChatRequest[] = [];
+  const transport: ChatTransport = {
+    async complete(request) {
+      requests.push(request);
+      return completion("[]");
+    },
+  };
+  await new ChatTransportSemanticJsonGenerator({
+    transport,
+    model: "moonshotai/kimi-k3",
+    budget: {
+      maximum: 4096,
+      measurer: new Utf8ByteChatMessageMeasurer(),
+    },
+    generation: {
+      temperature: 0,
+      topP: null,
+      maxTokens: 512,
+      enableThinking: null,
+      reasoningEffort: "none",
+    },
+  }).generate(semanticInput);
+  assert.equal(Object.hasOwn(requests[0]?.options ?? {}, "enableThinking"), false);
+  assert.equal(Object.hasOwn(requests[0]?.options ?? {}, "topP"), false);
+  assert.equal(requests[0]?.options?.reasoningEffort, "none");
+});
+
 test("semantic JSON generator applies the exact multibyte message budget before transport", async () => {
   let calls = 0;
   const transport: ChatTransport = {

@@ -1,13 +1,19 @@
 import { ChatError } from "../../core/errors.js";
+import {
+  acmeProviderHint,
+  resolveExecutionProvider,
+} from "../../core/execution-provider.js";
+import { generationCapabilities } from "../../core/generation-controls.js";
 import type {
   ChatCompletion,
+  ChatGenerationOptions,
   ChatRequest,
   ChatToolCall,
   ChatUsage,
   ChatWireMessage,
 } from "../../core/types.js";
 
-export const ACME_MODEL_RUNTIME_PROTOCOL = "acme-model-runtime/1" as const;
+export const ACME_MODEL_RUNTIME_PROTOCOL = "acme-model-runtime/2" as const;
 export const ACME_MODEL_RUNTIME_ERROR_PROTOCOL =
   "acme-model-runtime-error/1" as const;
 export const ACME_MODEL_RUNTIME_HEADER = "x-acme-model-runtime-protocol";
@@ -92,16 +98,6 @@ export function acmeRuntimeUrl(baseUrl: string, path: string): string {
   return new URL(path, `${baseUrl.replace(/\/+$/u, "")}/`).toString();
 }
 
-export function inferAcmeProviderHint(model: string): string | undefined {
-  if (model === "gpt-5.6-luna" || model.startsWith("gpt-")) {
-    return "openai";
-  }
-  if (model.startsWith("nvidia/")) {
-    return "nvidia";
-  }
-  return undefined;
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -159,12 +155,94 @@ function messageContent(message: ChatWireMessage): unknown[] {
   return [{ type: "text", text: message.content }];
 }
 
+function isPresent<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
+}
+
+function assignSupportedControl(
+  target: Record<string, unknown>,
+  field: string,
+  value: unknown,
+  supported: boolean,
+  model: string,
+): void {
+  if (!isPresent(value)) {
+    return;
+  }
+  if (!supported) {
+    throw new ChatError(
+      "configuration",
+      `${field} is not supported for ${model} on the ACME runtime.`,
+    );
+  }
+  target[field] = value;
+}
+
+function assignAcmeGeneration(
+  target: Record<string, unknown>,
+  generation: ChatGenerationOptions,
+  model: string,
+): void {
+  const caps = generationCapabilities(model);
+  if (
+    isPresent(generation.temperature) &&
+    Number.isFinite(generation.temperature) &&
+    generation.temperature >= 0
+  ) {
+    target.temperature = generation.temperature;
+  }
+  if (
+    isPresent(generation.maxTokens) &&
+    Number.isSafeInteger(generation.maxTokens) &&
+    generation.maxTokens > 0
+  ) {
+    target.maxOutputTokens = generation.maxTokens;
+  }
+  assignSupportedControl(target, "topP", generation.topP, caps.topP, model);
+  assignSupportedControl(
+    target,
+    "reasoningBudget",
+    generation.reasoningBudget,
+    caps.reasoningBudget !== null,
+    model,
+  );
+  assignSupportedControl(
+    target,
+    "enableThinking",
+    generation.enableThinking,
+    caps.thinking,
+    model,
+  );
+  assignSupportedControl(
+    target,
+    "reasoningEffort",
+    generation.reasoningEffort,
+    caps.reasoningEfforts.length > 0,
+    model,
+  );
+  assignSupportedControl(target, "seed", generation.seed, caps.seed, model);
+  if (isPresent(generation.stop)) {
+    if (!caps.stop) {
+      throw new ChatError(
+        "configuration",
+        `stop is not supported for ${model} on the ACME runtime.`,
+      );
+    }
+    if (generation.stop.length > 0) {
+      target.stop = [...generation.stop];
+    }
+  }
+}
+
 export function buildAcmeExecuteBody(
   request: ChatRequest,
   options: {
     readonly requestKey: string;
     readonly timeoutMs: number;
     readonly correlationId?: string;
+    readonly catalog?: {
+      readonly chatModels: readonly { readonly id: string; readonly provider: string }[];
+    };
   },
 ): Record<string, unknown> {
   const messages = request.messages.map((message) => ({
@@ -187,28 +265,12 @@ export function buildAcmeExecuteBody(
       parameters: tool.parameters,
     }));
   }
-  if (
-    generation.temperature != null &&
-    Number.isFinite(generation.temperature) &&
-    generation.temperature >= 0
-  ) {
-    acmeRequest.temperature = generation.temperature;
-  }
-  if (
-    generation.maxTokens != null &&
-    Number.isSafeInteger(generation.maxTokens) &&
-    generation.maxTokens > 0
-  ) {
-    acmeRequest.maxOutputTokens = generation.maxTokens;
-  }
-  if (generation.stop != null && generation.stop.length > 0) {
-    acmeRequest.stop = [...generation.stop];
-  }
-  const providerHint = inferAcmeProviderHint(request.model);
+  assignAcmeGeneration(acmeRequest, generation, request.model);
+  const executionProvider = resolveExecutionProvider(request.model, options.catalog);
   const model: Record<string, unknown> = {
     profile: request.model,
     modelHint: request.model,
-    ...(providerHint === undefined ? {} : { providerHint }),
+    providerHint: acmeProviderHint(executionProvider, request.model),
   };
   const body: Record<string, unknown> = {
     protocolVersion: ACME_MODEL_RUNTIME_PROTOCOL,

@@ -139,7 +139,7 @@ test("configured ACME transport never posts to a direct provider", async () => {
       if (url.endsWith("/v1/model/compatibility")) {
         return new Response(
           JSON.stringify({
-            protocolVersion: "acme-model-runtime/1",
+            protocolVersion: "acme-model-runtime/2",
             engineBuild: "dispatch",
             executePath: "/v1/model/execute",
           }),
@@ -147,7 +147,7 @@ test("configured ACME transport never posts to a direct provider", async () => {
       }
       return new Response(
         `event: completed\ndata: ${JSON.stringify({
-          protocolVersion: "acme-model-runtime/1",
+          protocolVersion: "acme-model-runtime/2",
           type: "completed",
           sequence: 0,
           response: {
@@ -171,7 +171,7 @@ test("configured ACME transport never posts to a direct provider", async () => {
         {
           headers: {
             "content-type": "text/event-stream; charset=utf-8",
-            "x-acme-model-runtime-protocol": "acme-model-runtime/1",
+            "x-acme-model-runtime-protocol": "acme-model-runtime/2",
           },
         },
       );

@@ -33,7 +33,9 @@ test("user catalog round-trips added chat models and image settings", () => {
   });
   const profile = userModelProfile(catalog.chatModels[0]!);
   assert.equal(profile.id, "nvidia/example-preview");
+  assert.equal(profile.executionProvider, "nvidia");
   assert.equal(profile.defaults.maxTokens, 16384);
+  assert.equal(Object.hasOwn(profile.defaults, "enableThinking"), false);
   const dir = mkdtempSync(join(tmpdir(), "a008-catalog-"));
   const path = join(dir, "catalog.json");
   saveUserCatalog(path, addUserChatModel(catalog, {

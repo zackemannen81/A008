@@ -80,8 +80,41 @@ test("the omni profile is selectable and declares image input", () => {
 test("OpenAI GPT-5.6 Luna is a verified selectable profile", () => {
   const luna = defaultModelRegistry.require("gpt-5.6-luna");
   assert.equal(luna.provider, "openai");
+  assert.equal(luna.executionProvider, "openai");
   assert.equal(luna.defaults.reasoningEffort, "medium");
   assert.equal(acceptsModality(luna, "image"), true);
+});
+
+test("shipped profiles declare executionProvider separately from vendor provider", () => {
+  const expected: Record<string, { provider: string; execution: string }> = {
+    "gpt-5.6-luna": { provider: "openai", execution: "openai" },
+    "nvidia/nemotron-3.5-lightning-30b-a3b": { provider: "nvidia", execution: "nvidia" },
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning": { provider: "nvidia", execution: "nvidia" },
+    "moonshotai/kimi-k3": { provider: "moonshotai", execution: "nvidia" },
+    "deepseek-ai/deepseek-v4-pro-0813": { provider: "deepseek-ai", execution: "nvidia" },
+    "meta/muse-glimmer-30b": { provider: "meta", execution: "nvidia" },
+    "poolside/laguna-xs-2.1": { provider: "poolside", execution: "nvidia" },
+  };
+  for (const profile of defaultModelRegistry.list()) {
+    const row = expected[profile.id];
+    assert.ok(row, `${profile.id} is missing from the execution matrix`);
+    assert.equal(profile.provider, row.provider);
+    assert.equal(profile.executionProvider, row.execution);
+  }
+  const kimi = defaultModelRegistry.require("moonshotai/kimi-k3");
+  assert.equal(Object.hasOwn(kimi.defaults, "enableThinking"), false);
+  assert.equal(kimi.defaults.reasoningEffort, "max");
+  for (const id of [
+    "deepseek-ai/deepseek-v4-pro-0813",
+    "meta/muse-glimmer-30b",
+    "poolside/laguna-xs-2.1",
+  ]) {
+    assert.equal(
+      Object.hasOwn(defaultModelRegistry.require(id).defaults, "enableThinking"),
+      false,
+      `${id} must omit enableThinking rather than send false`,
+    );
+  }
 });
 
 test("the model id is matched exactly", () => {

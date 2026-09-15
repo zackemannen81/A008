@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { ChatError, isChatError } from "../../core/errors.js";
+import { loadUserCatalog, type UserCatalog } from "../../core/user-catalog.js";
 import type {
   ChatCallbacks,
   ChatCompletion,
@@ -38,6 +39,8 @@ export interface AcmeChatTransportOptions {
   readonly timeoutMs?: number;
   readonly requestKey?: () => string;
   readonly correlationId?: () => string | undefined;
+  readonly catalogPath?: string;
+  readonly catalog?: UserCatalog;
 }
 
 function isAbortError(value: unknown): boolean {
@@ -70,6 +73,7 @@ export class AcmeChatTransport implements ChatTransport {
   readonly #timeoutMs: number;
   readonly #requestKey: () => string;
   readonly #correlationId: (() => string | undefined) | undefined;
+  readonly #catalog: UserCatalog | undefined;
 
   constructor(options: AcmeChatTransportOptions) {
     const baseUrl = options.baseUrl.trim();
@@ -89,6 +93,9 @@ export class AcmeChatTransport implements ChatTransport {
     this.#timeoutMs = options.timeoutMs ?? 180_000;
     this.#requestKey = options.requestKey ?? randomUUID;
     this.#correlationId = options.correlationId;
+    this.#catalog =
+      options.catalog ??
+      (options.catalogPath === undefined ? undefined : loadUserCatalog(options.catalogPath));
   }
 
   async complete(
@@ -116,6 +123,7 @@ export class AcmeChatTransport implements ChatTransport {
         requestKey: this.#requestKey(),
         timeoutMs: this.#timeoutMs,
         ...(correlationId === undefined ? {} : { correlationId }),
+        ...(this.#catalog === undefined ? {} : { catalog: this.#catalog }),
       });
       const encoded = JSON.stringify(body);
       dispatched = true;

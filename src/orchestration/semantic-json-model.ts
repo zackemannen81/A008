@@ -223,12 +223,18 @@ function generationOptions(
     raw.reasoningEffort === null || raw.reasoningEffort === undefined
       ? undefined
       : nonEmpty(raw.reasoningEffort, "reasoningEffort");
+  const enableThinking =
+    raw.enableThinking === null
+      ? undefined
+      : typeof raw.enableThinking === "boolean"
+        ? raw.enableThinking
+        : SEMANTIC_JSON_GENERATION.enableThinking;
   return {
     ...(temperature === undefined ? {} : { temperature }),
     ...(topP === undefined ? {} : { topP }),
     ...(maxTokens === undefined ? {} : { maxTokens }),
     ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
-    enableThinking: false,
+    ...(enableThinking === undefined ? {} : { enableThinking }),
     stream: false,
   };
 }

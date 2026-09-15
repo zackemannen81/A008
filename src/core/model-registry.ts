@@ -7,6 +7,7 @@ export const NVIDIA_NEMOTRON_35_LIGHTNING: ModelProfile = Object.freeze({
   id: DEFAULT_MODEL_ID,
   name: "NVIDIA Nemotron 3.5 Lightning 30B A3B",
   provider: "nvidia",
+  executionProvider: "nvidia",
   defaults: Object.freeze({
     temperature: 1,
     topP: 0.95,
@@ -36,6 +37,7 @@ export const NVIDIA_NEMOTRON_3_NANO_OMNI: ModelProfile = Object.freeze({
   id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
   name: "NVIDIA Nemotron 3 Nano Omni 30B A3B Reasoning",
   provider: "nvidia",
+  executionProvider: "nvidia",
   defaults: Object.freeze({
     temperature: 0.6,
     topP: 0.95,
@@ -53,16 +55,17 @@ export const NVIDIA_NEMOTRON_3_NANO_OMNI: ModelProfile = Object.freeze({
  *
  * Its sample carries `reasoning_effort: "max"` and `seed`. ADR 0026 adds those
  * controls separately from this original profile: GUI sessions use the actual
- * effort enum and omit the older, unsupported enableThinking template toggle.
+ * effort enum. K3 does not honor `enableThinking`; absence means absence.
  */
 export const MOONSHOT_KIMI_K3: ModelProfile = Object.freeze({
   id: "moonshotai/kimi-k3",
   name: "Moonshot Kimi K3",
   provider: "moonshotai",
+  executionProvider: "nvidia",
   defaults: Object.freeze({
     temperature: 1,
     maxTokens: 16_384,
-    enableThinking: true,
+    reasoningEffort: "max",
     stream: true,
   }),
   inputModalities: Object.freeze(["text", "image"] as const),
@@ -74,11 +77,12 @@ export const DEEPSEEK_V4_PRO: ModelProfile = Object.freeze({
   id: "deepseek-ai/deepseek-v4-pro-0813",
   name: "DeepSeek V4 Pro (0813)",
   provider: "deepseek-ai",
+  executionProvider: "nvidia",
   defaults: Object.freeze({
     temperature: 1,
     topP: 0.95,
     maxTokens: 16_384,
-    enableThinking: false,
+    reasoningEffort: "none",
     stream: true,
   }),
   inputModalities: Object.freeze(["text"] as const),
@@ -90,11 +94,12 @@ export const META_MUSE_GLIMMER_30B: ModelProfile = Object.freeze({
   id: "meta/muse-glimmer-30b",
   name: "Meta Muse Glimmer 30B",
   provider: "meta",
+  executionProvider: "nvidia",
   defaults: Object.freeze({
     temperature: 1,
     topP: 0.95,
     maxTokens: 8_192,
-    enableThinking: false,
+    reasoningEffort: "high",
     stream: true,
   }),
   inputModalities: Object.freeze(["text"] as const),
@@ -106,11 +111,11 @@ export const POOLSIDE_LAGUNA_XS: ModelProfile = Object.freeze({
   id: "poolside/laguna-xs-2.1",
   name: "Poolside Laguna XS 2.1",
   provider: "poolside",
+  executionProvider: "nvidia",
   defaults: Object.freeze({
     temperature: 1,
     topP: 0.95,
     maxTokens: 8_192,
-    enableThinking: false,
     stream: true,
   }),
   inputModalities: Object.freeze(["text"] as const),
@@ -122,6 +127,7 @@ export const OPENAI_GPT_56_LUNA: ModelProfile = Object.freeze({
   id: "gpt-5.6-luna",
   name: "OpenAI GPT-5.6 Luna",
   provider: "openai",
+  executionProvider: "openai",
   defaults: Object.freeze({
     maxTokens: 16_384,
     reasoningEffort: "medium",
