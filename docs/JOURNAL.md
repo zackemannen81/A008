@@ -2364,3 +2364,12 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Full root gate: 602 core + 4 membership + 162 GUI = 768 passed before final docs-only closure. Installed protocol proof, generated schemas, production GUI build and portable-engine `/v2/info` proof pass. No live provider call, real device grant, deployment or running-host restart.
 - A008-0103 Stage 3 is Complete. Stage 4 owns turn/event ordering, authoritative snapshot boundary, terminal outcomes, reconnect/resume and command idempotency.
 - [Handoff](handoffs/A008-0112.md). Signature: Codex
+
+## 2026-09-15 — A008-0113 README current-state refresh
+
+- Operator: Codex; documentation-only repair requested by the owner after A008-0112 Stage-3 completion.
+- Rewrote the root README from an early-project snapshot into a current entry point covering shared runtime ownership, GUI/CLI/ACP/portable engine, providers, semantic memory, Projects and the implemented V2 native-client session surface.
+- README now records A008-0103 Stages 1–3 Complete and keeps Stage-4 reconnect/event/snapshot/idempotency semantics explicitly unimplemented.
+- Verification: 26 local links resolve, stale early-project phrases are absent and `git diff --check` passes. Runtime tests/build were not repeated because no product source, schema or generated protocol artifact changed.
+- No provider call, credential operation, deployment, publication or host restart. [Handoff](handoffs/A008-0113.md).
+- Signature: Codex

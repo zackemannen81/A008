@@ -1,66 +1,111 @@
-# A008-0113 — README current-state refresh
+# Current Task
 
-Task ID: A008-0113
+Task ID:
 Parent Task: None
-Status: Ready
-Owner: Codex (operator)
-Created: 2026-09-15
-Last updated: 2026-09-15
-Charter frozen at: 2026-09-15; contract revision `28aec83`
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
+
+## Read First
+
+- `AGENTS.md`
+- `docs/TASK_WORKFLOW.md`
+- `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/SYSTEMDOC.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant records under `docs/adr/`
 
 ## Task Summary
 
-Refresh the repository README so a new contributor or client implementer sees the system that actually exists after A008-0112 instead of an early-project snapshot.
+Describe why this bounded task is active now and its intended outcome.
 
 ## Task Charter
 
 ### Goal
 
-Make `README.md` an accurate, concise entry point to A008's current implemented capabilities, setup, client API status and known next boundary.
+Define one primary outcome.
 
 ### Primary Deliverable
 
-A rewritten `README.md` grounded in current owning docs, with no product-code or runtime-semantic changes.
+Name the concrete artifact or behavior.
 
 ### In Scope
 
-- Current engine, GUI, CLI, ACP, provider, project and semantic-memory capabilities.
-- Stage 1–3 client API status, V2 auth/session quick start and explicit Stage-4 limitations.
-- Current install/test commands and provider-key requirements.
-- Links to owning docs instead of duplicating deep implementation history.
+- List work required for the deliverable.
+
 ### Out of Scope
 
-- Product code, API behavior, provider calls, deployment, publication or service restart.
-- Implementing Stage 4 recovery/idempotency or claiming later stages are complete.
-- Rewriting deep technical authority already owned by SYSTEMDOC/CURRENT_STATUS/CLIENT_API_V2.
+- List adjacent work that must not be absorbed.
 
 ### Definition of Done
 
-- README no longer contains known stale early-project claims.
-- Setup, V1/V2 availability, project adoption, providers, memory and current limitations match owning docs.
-- Local README links resolve and `git diff --check` passes.
+- State objective completion conditions.
 
 ### Necessity Gate
 
 Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
-Contract revision: `28aec83`
+Contract revision: <Git commit containing the reviewed contract>
+
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
 
 | Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
 | --- | --- | --- | --- | --- |
-| README current-state repair | PC-01/04/05/06; A008-0103 observed progress; README is repository entry point | New contributors/native-client work would be guided by obsolete provider, runtime and V2 claims. | Rewrite README only, referencing existing authority for detail. | Compare claims against CURRENT_STATUS, CLIENT_AUTH, A008-0103 and package scripts; check local links/diff. |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
 
 ### Minimum Verification Gates
 
-- [ ] README factual review against current owning docs.
-- [ ] Local Markdown file links resolve.
-- [ ] `git diff --check` passes.
-- [ ] No product source or generated protocol artifact changes.
+- [ ] Define checks that may be strengthened but not removed after Ready.
 
 ## References
 
-- `docs/CURRENT_STATUS.md`
-- `docs/SYSTEMDOC.md`
-- `docs/CLIENT_AUTH.md`
-- `docs/CLIENT_API_V2.md`
-- `docs/tasks/A008-0103_stable-client-api-program.md`
-- `package.json`
+- Add owned documents, source revisions, contracts, and decisions.
+
+## Checklist
+
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
+
+## Decisions and Notes
+
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+
+## Charter Amendment Log
+
+- none
+
+## Verification
+
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
+
+## Documentation Updates
+
+- [ ] `docs/CURRENT_STATUS.md`
+- [ ] `docs/SYSTEMDOC.md`
+- [ ] `docs/JOURNAL.md`
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
+
+## Handoff and Follow-ups
+
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.
