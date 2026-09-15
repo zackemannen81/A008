@@ -78,13 +78,15 @@ export class KnowledgeMemoryReader {
     vocabulary: { readonly tags: readonly string[]; readonly domains: readonly string[] },
     options: { readonly signal?: AbortSignal },
   ): Promise<{
+    readonly retrieve: boolean;
+    readonly semanticRetrieval: "used" | "skipped" | "degraded" | "not_configured";
     readonly domains: readonly string[];
     readonly relatedDomains: readonly string[];
     readonly tags: readonly string[];
     readonly relatedTags: readonly string[];
   }> {
     if (this.#scopeClassifier === undefined) {
-      return EMPTY_CLASSIFICATION;
+      return { ...EMPTY_CLASSIFICATION, retrieve: true, semanticRetrieval: "not_configured" };
     }
     try {
       const draft = await this.#scopeClassifier.classify({
@@ -92,14 +94,20 @@ export class KnowledgeMemoryReader {
         knownDomains: vocabulary.domains,
         knownTags: vocabulary.tags,
       }, options);
+      const retrieve = draft.retrieve !== false;
       return {
-        domains: labelArray(draft.domains),
-        relatedDomains: labelArray(draft.relatedDomains),
-        tags: labelArray(draft.tags),
-        relatedTags: labelArray(draft.relatedTags),
+        retrieve,
+        semanticRetrieval: retrieve ? "used" : "skipped",
+        domains: retrieve ? labelArray(draft.domains, 2) : [],
+        relatedDomains: retrieve ? labelArray(draft.relatedDomains, 2) : [],
+        tags: retrieve ? labelArray(draft.tags, 4) : [],
+        relatedTags: retrieve ? labelArray(draft.relatedTags, 4) : [],
       };
-    } catch {
-      return EMPTY_CLASSIFICATION;
+    } catch (error) {
+      if (options.signal?.aborted) {
+        throw error;
+      }
+      return { ...EMPTY_CLASSIFICATION, retrieve: true, semanticRetrieval: "degraded" };
     }
   }
 
@@ -119,6 +127,15 @@ export class KnowledgeMemoryReader {
     // alone, weaker but never broken.
     const mentioned = mentionedLabels(request.message, vocabulary);
     const classified = await this.#classifyScope(request, vocabulary, options);
+    if (!classified.retrieve) {
+      return emptyReadResult(
+        request,
+        plan,
+        this.#context,
+        this.#measurer,
+        classified.semanticRetrieval,
+      );
+    }
     const scope = this.#scopes.advance(request.conversationId, {
       domains: classified.domains,
       relatedDomains: classified.relatedDomains,
@@ -219,8 +236,7 @@ export class KnowledgeMemoryReader {
         // "used" means a semantic step ran for this read. Scope classification
         // is that step: it is the only part of retrieval that asks a model
         // where the message belongs.
-        semanticRetrieval:
-          this.#scopeClassifier === undefined ? "not_configured" : "used",
+        semanticRetrieval: classified.semanticRetrieval,
       },
     };
   }
@@ -234,6 +250,32 @@ export class KnowledgeMemoryReader {
  * every label containing it. A label of one or two characters is ignored: it
  * would match half the store and is the `heter` failure in another costume.
  */
+
+function emptyReadResult(
+  request: MemoryReadRequest,
+  plan: ReturnType<RetrievalPlanner["plan"]>,
+  context: KnowledgeReadContext,
+  measurer: SerializedContextMeasurer,
+  semanticRetrieval: "skipped" | "used" | "degraded" | "not_configured",
+): HybridMemoryReadResult {
+  const projection = { taskId: request.taskId, items: [] };
+  const serialized = serializeContextProjection(projection);
+  const measuredUnits = measurer.measure(serialized);
+  return {
+    plan,
+    projection: { projection, serialized, measuredUnits, measurementUnit: measurer.unit },
+    evidence: {
+      persistentCurrentCount: context.state.snapshot().bindings.filter((binding) => binding.interval.to === null).length,
+      channelCounts: { exact: 0, lexical: 0, tag: 0, domain: 0, semantic: 0 },
+      uniqueCandidateCount: 0, admittedCandidateCount: 0, rankedCandidates: [],
+      dormantCandidateIds: [], selectedKnowledgeIds: [], omittedKnowledgeIds: [],
+      candidateThreshold: 0, projectionThreshold: 0, projectionMaximum: 0,
+      projectionMeasuredUnits: measuredUnits, projectionMeasurementUnit: measurer.unit,
+      semanticRetrieval,
+    },
+  };
+}
+
 function mentionedLabels(
   message: string,
   vocabulary: { readonly tags: readonly string[]; readonly domains: readonly string[] },
@@ -277,9 +319,17 @@ const EMPTY_CLASSIFICATION = Object.freeze({
  * a store query, because a retrieval hint is not worth failing a turn over and
  * is certainly not worth trusting unchecked.
  */
-function labelArray(value: unknown): readonly string[] {
+function labelArray(value: unknown, maximum: number): readonly string[] {
   if (!Array.isArray(value)) {
     return [];
   }
-  return value.filter((entry): entry is string => typeof entry === "string");
+  const result: string[] = [];
+  for (const entry of value) {
+    if (typeof entry !== "string") continue;
+    const trimmed = entry.trim();
+    if (trimmed.length === 0 || result.includes(trimmed)) continue;
+    result.push(trimmed);
+    if (result.length >= maximum) break;
+  }
+  return result;
 }

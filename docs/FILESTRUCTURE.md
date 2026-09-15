@@ -1,3 +1,5 @@
+A008-0114 adds `src/providers/acme/` (`acme-model-runtime.ts`, `acme-sse.ts`, `acme-chat-transport.ts`) as an explicit opt-in `ChatTransport` against frozen `acme-model-runtime/1`. `src/runtime/chat-dispatch.ts` and `local-runtime-config.ts` select it only when `A008_CHAT_TRANSPORT=acme`. Direct NVIDIA/kie/OpenAI transports remain the default. No memory/knowledge/orchestration module imports ACME types.
+
 Standalone GUI authentication remains inside the existing host boundary: `src/gui-host/pin-auth.ts` adds an optional six-digit browser gate, random cookie session and failed-attempt throttle without adding a renderer dependency or second credential owner. `gui/src/session/engine-access.ts` also owns the bundled renderer's exact-match recovery from an expired standalone PIN cookie back to the existing login gate; native engine capability auth remains separate.
 
 # File Structure
@@ -313,17 +315,23 @@ A008/
 |  |  |  |- kie-models.ts             curated market ids and chat URL helper
 |  |  |  |- kie-chat-transport.ts     OpenAI-compatible kie chat
 |  |  |  `- kie-jobs.ts               createTask + recordInfo image poll
-|  |  `- openai/
-|  |     `- openai-chat-transport.ts  GPT-5.6 Luna Chat Completions + tools/SSE
+|  |  |- openai/
+|  |  |  `- openai-chat-transport.ts  GPT-5.6 Luna Chat Completions + tools/SSE
+|  |  `- acme/
+|  |     |- acme-model-runtime.ts     acme-model-runtime/1 constants, mapping, evidence errors
+|  |     |- acme-sse.ts               SSE event-name + data parser
+|  |     `- acme-chat-transport.ts    opt-in ChatTransport against ACME model-only runtime
 |  `- runtime/
 |     |- nvidia-session.ts            NVIDIA credential and transport owner
-|     |- chat-dispatch.ts            NVIDIA vs kie vs OpenAI chat transport selection
+|     |- chat-dispatch.ts            NVIDIA/kie/OpenAI dispatch plus explicit ACME selection
 |     |- local-runtime-config.ts      SQLite, identity, and debug settings
 |     |- debug-trace.ts               opt-in secret-safe JSONL observer
 |     |- user-assertion-gate.ts       runtime-owned new-memory activation
 |     `- local-memory-runtime.ts      CLI/ACP memory composition root
 |- test/                              fake/local chat, ACP, memory, retrieval, identity, and orchestration tests
-|  |- chat-dispatch.test.ts           NVIDIA vs kie vs OpenAI chat routing
+|  |- chat-dispatch.test.ts           NVIDIA vs kie vs OpenAI chat routing plus ACME opt-in
+|  |- acme-chat-transport.test.ts    ACME protocol, failure evidence, no-fallback, boundary
+|  |- acme-execution-parity.test.ts  direct-vs-ACME chat, tools, semantic JSON and knowledge
 |  |- openai-chat-transport.test.ts  OpenAI payload, SSE, tool calls and errors
 |  |- kie-chat-transport.test.ts      kie OpenAI-compatible chat JSON/SSE
 |  |- kie-jobs.test.ts                Market createTask/recordInfo image poll

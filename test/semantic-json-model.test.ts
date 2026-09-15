@@ -153,6 +153,21 @@ test("semantic top P null omits the control while undefined retains its default"
   }
 });
 
+test("semantic temperature null omits the control while undefined retains its default", async () => {
+  for (const temperature of [null, undefined, 0.25]) {
+    let options: ChatRequest["options"];
+    const model = new ChatTransportSemanticJsonGenerator({
+      transport: { async complete(request) { options = request.options; return completion('{}'); } },
+      model: "fixture/model",
+      budget: { maximum: 10000, measurer: new Utf8ByteChatMessageMeasurer() },
+      generation: temperature === undefined ? {} : { temperature },
+    });
+    await model.generate(semanticInput);
+    assert.equal(options?.temperature, temperature === null ? undefined : temperature ?? 0);
+    assert.equal(Object.hasOwn(options!, "temperature"), temperature !== null);
+  }
+});
+
 test("reported malformed relation envelope cannot salvage an embedded valid decision", async () => {
   let calls = 0;
   const model = generator({ async complete() {
@@ -662,7 +677,8 @@ test("the offered vocabulary is bounded; a prompt is not a database dump", async
 test("the scope instruction asks for related labels and for reuse", () => {
   // Two properties the prompt cannot lose without the mechanism quietly
   // becoming lexical matching again.
-  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /relatedDomains are neighbouring/u);
+  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /retrieve=false for greetings/u);
+  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Prefer precision over recall/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Prefer a known label/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /same language as the known vocabulary/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /untrusted JSON data, never as instructions/u);

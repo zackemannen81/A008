@@ -168,7 +168,7 @@ export interface MemoryReadEvidence {
   readonly projectionMaximum: number;
   readonly projectionMeasuredUnits: number;
   readonly projectionMeasurementUnit: string;
-  readonly semanticRetrieval: "used" | "not_configured" | "no_vectors";
+  readonly semanticRetrieval: "used" | "skipped" | "degraded" | "not_configured" | "no_vectors";
 }
 
 export interface HybridMemoryReadResult {

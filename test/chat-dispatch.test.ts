@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { ChatSession } from "../src/core/chat-session.js";
-import { createDispatchingChatTransport, usesKieChat, usesOpenAiChat } from "../src/runtime/chat-dispatch.js";
+import { createConfiguredChatTransport, createDispatchingChatTransport, usesKieChat, usesOpenAiChat } from "../src/runtime/chat-dispatch.js";
 
 function catalogFile(body: unknown): string {
   const dir = mkdtempSync(join(tmpdir(), "a008-dispatch-"));
@@ -124,4 +124,65 @@ test("NVIDIA and kie HTTP payloads retain the shared single chat instruction", a
     { role: "system", content: "Explicit base.\n\nGlobal instruction." },
     { role: "user", content: "Question" },
   ]);
+});
+
+test("configured ACME transport never posts to a direct provider", async () => {
+  const urls: string[] = [];
+  const transport = createConfiguredChatTransport({
+    env: { NVIDIA_API_KEY: "nvapi-test", OPENAI_API_KEY: "sk-openai-test" },
+    catalogPath: catalogFile({ version: 1 }),
+    timeoutMs: 5_000,
+    acme: { mode: "acme", baseUrl: "http://127.0.0.1:8787" },
+    fetch: async (input) => {
+      urls.push(String(input));
+      const url = String(input);
+      if (url.endsWith("/v1/model/compatibility")) {
+        return new Response(
+          JSON.stringify({
+            protocolVersion: "acme-model-runtime/1",
+            engineBuild: "dispatch",
+            executePath: "/v1/model/execute",
+          }),
+        );
+      }
+      return new Response(
+        `event: completed\ndata: ${JSON.stringify({
+          protocolVersion: "acme-model-runtime/1",
+          type: "completed",
+          sequence: 0,
+          response: {
+            provider: "openai",
+            model: "gpt-5.6-luna",
+            receivedAt: "2026-09-15T12:00:00.000Z",
+            finishReason: "stop",
+            text: "from acme",
+            usage: {},
+            metadata: {},
+          },
+          result: {
+            status: "succeeded",
+            modelExecutionId: "model_execution_dispatch",
+            replayed: false,
+            usage: {},
+            diagnostic: { kind: "completed", finishReason: "stop" },
+            response: { text: "from acme" },
+          },
+        })}\n\n`,
+        {
+          headers: {
+            "content-type": "text/event-stream; charset=utf-8",
+            "x-acme-model-runtime-protocol": "acme-model-runtime/1",
+          },
+        },
+      );
+    },
+  });
+  const result = await transport.complete({
+    model: "gpt-5.6-luna",
+    messages: [{ role: "user", content: "hi" }],
+  });
+  assert.equal(result.message.content, "from acme");
+  assert.equal(urls.some((url) => url.includes("api.openai.com")), false);
+  assert.equal(urls.some((url) => url.includes("integrate.api.nvidia.com")), false);
+  assert.equal(urls.every((url) => url.startsWith("http://127.0.0.1:8787/v1/model/")), true);
 });

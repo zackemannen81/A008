@@ -399,6 +399,47 @@ test("the classifier is offered the vocabulary the store actually holds", async 
   assert.deepEqual(offered?.knownTags, ["minne"]);
 });
 
+test("semantic necessity skips a greeting instead of matching an old greeting utterance", async () => {
+  const context = storeWith([
+    { content: "Hej, kan du bygga en bitmap font och textscroller?", tags: ["local"], domains: [] },
+  ]);
+  const reader = new KnowledgeMemoryReader({
+    context,
+    scopeClassifier: {
+      async classify() {
+        return { retrieve: false, domains: [], relatedDomains: [], tags: [], relatedTags: [] };
+      },
+    },
+  });
+
+  const result = await reader.read(request("hej"));
+  assert.equal(result.evidence.semanticRetrieval, "skipped");
+  assert.equal(result.evidence.uniqueCandidateCount, 0);
+  assert.deepEqual(result.projection.projection.items, []);
+});
+
+test("longer lexical questions require more than one generic shared word", async () => {
+  const context = storeWith([
+    { content: "The demo uses a tracker module for music", tags: [], domains: [] },
+    { content: "The demo includes neon text and neon glow", tags: [], domains: [] },
+  ]);
+  const reader = new KnowledgeMemoryReader({
+    context,
+    scopeClassifier: {
+      async classify() {
+        return { retrieve: true, domains: [], relatedDomains: [], tags: [], relatedTags: [] };
+      },
+    },
+  });
+
+  const result = await reader.read(request("does the demo have any neon text?"));
+  assert.equal(result.evidence.semanticRetrieval, "used");
+  assert.deepEqual(
+    result.projection.projection.items.map((item) => item.proposition),
+    ["The demo includes neon text and neon glow"],
+  );
+});
+
 test("a classifier failure narrows the read instead of failing the turn", async () => {
   // Scope classification improves what can be found; it is not a precondition
   // for answering. Turning a provider hiccup into a dead conversation would be
@@ -420,6 +461,7 @@ test("a classifier failure narrows the read instead of failing the turn", async 
   });
 
   const result = await reader.read(request("Vad vet du om hippocampus?"));
+  assert.equal(result.evidence.semanticRetrieval, "degraded");
   // The lexical half still works, so the tag match survives the failure.
   assert.ok(
     result.projection.projection.items.some((item) =>

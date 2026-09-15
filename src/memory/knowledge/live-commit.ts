@@ -7,14 +7,21 @@ import { Utf8ByteKnowledgeIntakeMeasurer } from "../../orchestration/post-output
 import type {
   RelationClassifierDecision,
   RelationClassifierCandidate,
+  RelationClassifierBatchInput,
+  RelationClassifierBatchDecision,
   RelationCommitInput,
   RelationGatedCommitResult,
   KnowledgeRelationClassifier,
   PendingRelationIndexRepair,
   UpdatedRelationIndex,
 } from "../../orchestration/relation-gated-memory-commit.js";
-import type { StagedProposalCommitter } from "../../orchestration/post-output-memory-coordinator.js";
+import type {
+  RelationBatchCommitInput,
+  RelationBatchCommitStep,
+  StagedProposalCommitter,
+} from "../../orchestration/post-output-memory-coordinator.js";
 import {
+  serializeRelationClassifierBatchInput,
   serializeRelationClassifierInput,
 } from "../../orchestration/relation-gated-memory-commit.js";
 import type { ReconciliationDecision, ReconciliationRelation } from "../types.js";
@@ -56,6 +63,19 @@ export interface KnowledgeEngineCommitOptions {
 const STATEMENT_SLOT = "statement";
 const ACCEPT_POLICY = { id: USER_ASSERTION_POLICY_ID };
 
+const DETERMINISTIC_BATCH_COMMIT_CODES = new Set([
+  "invalid_input",
+  "invalid_proposal",
+  "policy",
+  "illegal_state",
+]);
+
+function isDeterministicBatchCommitFailure(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const code = (error as { readonly code?: unknown }).code;
+  return typeof code === "string" && DETERMINISTIC_BATCH_COMMIT_CODES.has(code);
+}
+
 export class KnowledgeEngineCommit implements StagedProposalCommitter {
   readonly #context: KnowledgeReadContext;
   readonly #classifier: KnowledgeRelationClassifier;
@@ -70,7 +90,18 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     this.#idFactory = options.idFactory ?? randomUUID;
   }
 
-  async commit(input: RelationCommitInput, operation: SemanticOperationContext = {}): Promise<RelationGatedCommitResult> {
+  async commit(
+    input: RelationCommitInput,
+    operation: SemanticOperationContext = {},
+  ): Promise<RelationGatedCommitResult> {
+    return this.#commitInternal(input, operation);
+  }
+
+  async #commitInternal(
+    input: RelationCommitInput,
+    operation: SemanticOperationContext = {},
+    preclassifiedDecision?: RelationClassifierDecision,
+  ): Promise<RelationGatedCommitResult> {
     operation.signal?.throwIfAborted();
     input = structuredClone(input);
     const staged = input.batch.proposals[input.proposalIndex];
@@ -118,7 +149,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       candidates,
     };
     const serialized = serializeRelationClassifierInput(classifierInput);
-    const classifierDecision = await this.#classifier.classify(structuredClone(classifierInput), operation);
+    const classifierDecision =
+      preclassifiedDecision ??
+      (await this.#classifier.classify(structuredClone(classifierInput), operation));
     operation.signal?.throwIfAborted();
     if (!classifierDecision || !["new", "restatement", "extend", "supersede", "conflict"].includes(classifierDecision.type)) throw new Error("Invalid live relation decision");
     return atomicKnowledge(this.#context, () => {
@@ -323,6 +356,271 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         index: { status: "not_required" },
       };
     });
+  }
+
+  async commitBatch(
+    input: RelationBatchCommitInput,
+    operation: SemanticOperationContext = {},
+  ): Promise<readonly RelationBatchCommitStep[]> {
+    operation.signal?.throwIfAborted();
+    const batch = structuredClone(input.batch);
+    const start = input.startProposalIndex;
+    if (!Number.isSafeInteger(start) || start < 0 || start > batch.proposals.length) {
+      throw new Error("batch startProposalIndex is out of range");
+    }
+    if (start === batch.proposals.length) return [];
+
+    if (this.#classifier.classifyBatch === undefined) {
+      const fallback: RelationBatchCommitStep[] = [];
+      for (let proposalIndex = start; proposalIndex < batch.proposals.length; proposalIndex += 1) {
+        try {
+          fallback.push({
+            proposalIndex,
+            result: await this.#commitInternal({ batch, proposalIndex }, operation),
+          });
+        } catch (error) {
+          fallback.push({ proposalIndex, error });
+          if (!isDeterministicBatchCommitFailure(error)) break;
+        }
+      }
+      return fallback;
+    }
+
+    const at = this.#context.lifecycle.now();    const initialClaims = this.#context.evidence.listClaims();
+    const initialTargets = new Map(
+      initialClaims.map((claim, index) => [`candidate_${index + 1}`, claim]),
+    );
+    const candidates = this.#classifierCandidates(initialClaims, at);
+    const origin = batch.origin;
+    const sourceUtterance =
+      origin.kind === "source"
+        ? this.#context.evidence.listUtterances().find((entry) => entry.id === origin.utteranceId)
+        : undefined;
+    const sourceArtifact =
+      sourceUtterance === undefined
+        ? undefined
+        : this.#context.evidence.listArtifacts().find((entry) => entry.id === sourceUtterance.artifactId);
+    const source = origin.kind === "source" ? sourceUtterance?.content : batch.sourceMessage;
+    const sourceIsUsable =
+      source !== undefined &&
+      (origin.kind !== "source" || sourceArtifact?.locator === batch.sourceMessage);
+    const occurrenceId =
+      origin.kind === "source"
+        ? "source:" +
+          createHash("sha256")
+            .update(JSON.stringify([batch.sourceMessage, source]))
+            .digest("hex")
+        : `turn:${batch.conversationId}:${batch.taskId}`;
+    const associationContext = prepareAssociations(
+      this.#context,
+      initialTargets,
+      sourceIsUsable
+        ? { origin: origin.kind === "source" ? "source" : "message", content: source }
+        : undefined,
+      origin.kind === "source" ? batch.sourceMessage : occurrenceId,
+      batch.proposals[start]?.proposal.scope ?? [],
+    ).associationContext;
+    const items = batch.proposals.slice(start).map((staged, offset) => {
+      if (!isKnowledgeSeverity(staged.severity)) {
+        throw new Error("Live claim requires validated severity");
+      }
+      const span = staged.support;
+      const validSupport =
+        span !== undefined &&
+        sourceIsUsable &&
+        span.source === (origin.kind === "source" ? "source" : "message") &&
+        Number.isSafeInteger(span.start) &&
+        Number.isSafeInteger(span.end) &&
+        span.start >= 0 &&
+        span.end > span.start &&
+        span.end <= source.length;
+      return {
+        proposalHandle: `proposal_${start + offset + 1}`,
+        ...(validSupport
+          ? {
+              sourceSupport: {
+                origin: span.source,
+                content: source,
+                start: span.start,
+                end: span.end,
+              },
+            }
+          : {}),
+        proposal: {
+          proposition: staged.proposal.proposition,
+          kind: staged.proposal.kind,
+          tags: [...(staged.proposal.tags ?? [])],
+          scope: [...staged.proposal.scope],
+          domains: [...staged.domains],
+          entities: [...staged.entities],
+          confidence: staged.proposal.confidence ?? 0.5,
+        },
+      };
+    });
+    const classifierInput: RelationClassifierBatchInput = {
+      ...(associationContext === undefined ? {} : { associationContext }),
+      candidates,
+      items,
+    };    const serializedBatchInput = serializeRelationClassifierBatchInput(classifierInput);
+    const rawDecisions = await this.#classifier.classifyBatch(
+      structuredClone(classifierInput),
+      operation,
+    );
+    operation.signal?.throwIfAborted();
+    if (!Array.isArray(rawDecisions) || rawDecisions.length !== items.length) {
+      throw new Error("Invalid live batch relation decision count");
+    }
+
+    const candidateHandles = new Set(candidates.map((candidate) => candidate.handle));
+    const entityHandles = new Set(
+      associationContext?.entities.map((entity) => entity.handle) ?? [],
+    );
+    const proposalHandles = items.map((item) => item.proposalHandle);
+    const validated: RelationClassifierBatchDecision[] = rawDecisions.map((raw, index) => {
+      const expectedHandle = proposalHandles[index]!;
+      if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+        throw new Error(`Invalid live batch relation decision for ${expectedHandle}`);
+      }
+      const value = raw as RelationClassifierBatchDecision;
+      if (value.proposalHandle !== expectedHandle) {
+        throw new Error(`Invalid live batch proposal handle for ${expectedHandle}`);
+      }
+      if (!["new", "restatement", "extend", "supersede", "conflict"].includes(value.type)) {
+        throw new Error(`Invalid live batch relation type for ${expectedHandle}`);
+      }
+      const allowedTargets = new Set([
+        ...candidateHandles,
+        ...proposalHandles.slice(0, index),
+      ]);
+      if (value.type === "restatement" || value.type === "extend" || value.type === "supersede") {
+        if (!allowedTargets.has(value.targetHandle)) {
+          throw new Error(`Invalid live batch target for ${expectedHandle}`);
+        }
+      }
+      if (value.type === "conflict") {
+        if (!Array.isArray(value.targetHandles) || value.targetHandles.length === 0) {
+          throw new Error(`Invalid live batch conflict targets for ${expectedHandle}`);
+        }
+        if (new Set(value.targetHandles).size !== value.targetHandles.length ||
+            value.targetHandles.some((handle) => !allowedTargets.has(handle))) {
+          throw new Error(`Invalid live batch conflict targets for ${expectedHandle}`);
+        }
+      }
+      if (value.associations !== undefined) {
+        if (!Array.isArray(value.associations)) {
+          throw new Error(`Invalid live batch associations for ${expectedHandle}`);
+        }
+        for (const association of value.associations) {
+          const endpoints = [association?.fromHandle, association?.toHandle];
+          if (endpoints.some((handle) =>
+            typeof handle !== "string" ||
+            (handle !== "proposal" && !candidateHandles.has(handle) && !entityHandles.has(handle)))) {
+            throw new Error(`Invalid live batch association handle for ${expectedHandle}`);
+          }
+        }
+      }
+      return structuredClone(value);
+    });
+    const initialClaimIds = new Map(
+      [...initialTargets].map(([handle, claim]) => [handle, claim.id]),
+    );
+    const proposalClaimIds = new Map<string, (typeof initialClaims)[number]["id"]>();
+    const currentHandleForClaim = (claimId: string): string => {
+      const currentClaims = this.#context.evidence.listClaims();
+      const index = currentClaims.findIndex((claim) => claim.id === claimId);
+      if (index < 0) throw new Error(`Live batch target is no longer present: ${claimId}`);
+      return `candidate_${index + 1}`;
+    };
+    const resolveTargetHandle = (handle: string): string => {
+      const claimId = initialClaimIds.get(handle) ?? proposalClaimIds.get(handle);
+      if (claimId === undefined) {
+        throw new Error(`Unresolved live batch target handle: ${handle}`);
+      }
+      return currentHandleForClaim(claimId);
+    };
+    const translateAssociationEndpoint = (handle: string): string => {
+      if (handle === "proposal" || entityHandles.has(handle)) return handle;
+      const claimId = initialClaimIds.get(handle);
+      return claimId === undefined ? handle : currentHandleForClaim(claimId);
+    };
+    const translateDecision = (
+      batchDecision: RelationClassifierBatchDecision,
+    ): RelationClassifierDecision => {
+      const associations = batchDecision.associations?.map((association) => ({
+        ...association,
+        fromHandle: translateAssociationEndpoint(association.fromHandle),
+        toHandle: translateAssociationEndpoint(association.toHandle),
+      }));
+      if (batchDecision.type === "new") {
+        return {
+          type: "new",
+          ...(associations === undefined ? {} : { associations }),
+        };
+      }
+      if (batchDecision.type === "conflict") {
+        return {
+          type: "conflict",
+          targetHandles: batchDecision.targetHandles.map(resolveTargetHandle),
+          ...(associations === undefined ? {} : { associations }),
+        };
+      }
+      return {
+        type: batchDecision.type,
+        targetHandle: resolveTargetHandle(batchDecision.targetHandle),
+        ...(batchDecision.supportsTarget === undefined
+          ? {}
+          : { supportsTarget: batchDecision.supportsTarget }),
+        ...(associations === undefined ? {} : { associations }),
+      };
+    };
+    const steps: RelationBatchCommitStep[] = [];
+    const batchMeasuredUnits = this.#measurer.measure(serializedBatchInput);
+    for (let offset = 0; offset < validated.length; offset += 1) {
+      const proposalIndex = start + offset;
+      const batchDecision = validated[offset]!;
+      const beforeIds = new Set(this.#context.evidence.listClaims().map((claim) => claim.id));
+      try {
+        const translated = translateDecision(batchDecision);
+        const result = await this.#commitInternal(
+          { batch, proposalIndex },
+          operation,
+          translated,
+        );
+        const decorated: RelationGatedCommitResult = {
+          ...result,
+          evidence: {
+            ...result.evidence,
+            classifierInputSerialized: serializedBatchInput,
+            classifierInputMeasuredUnits: batchMeasuredUnits,
+            classifierInputMeasurementUnit: this.#measurer.unit,
+          },
+        };
+        steps.push({ proposalIndex, result: decorated });
+
+        const afterClaims = this.#context.evidence.listClaims();
+        const created = afterClaims.filter((claim) => !beforeIds.has(claim.id));
+        let claimId = created.length === 1 ? created[0]!.id : undefined;
+        if (claimId === undefined && "targetId" in result.reconciliationDecision) {
+          const targetId = result.reconciliationDecision.targetId;
+          claimId = afterClaims.find((claim) => claim.id === targetId)?.id;
+        }
+        if (claimId === undefined) {
+          const staged = batch.proposals[proposalIndex]!;
+          claimId = afterClaims.find(
+            (claim) =>
+              claim.label === staged.proposal.proposition &&
+              this.#context.lifecycle.get(claim.id)?.lifecycle.creationOccurrenceId === occurrenceId,
+          )?.id;
+        }
+        if (claimId !== undefined) {
+          proposalClaimIds.set(batchDecision.proposalHandle, claimId);
+        }
+      } catch (error) {
+        steps.push({ proposalIndex, error });
+        if (!isDeterministicBatchCommitFailure(error)) break;
+      }
+    }
+    return steps;
   }
 
   #reusedClaimResult(

@@ -65,12 +65,20 @@ export interface ChatUsage {
   readonly totalTokens?: number;
 }
 
+export interface ChatExecutionEvidence {
+  readonly id?: string;
+  readonly replayed?: boolean;
+  readonly diagnosticKind?: string;
+}
+
 export interface ChatCompletion {
   readonly message: ChatMessage;
   readonly reasoning?: string;
   readonly finishReason?: string | null;
   readonly usage?: ChatUsage;
   readonly toolCalls?: readonly ChatToolCall[];
+  /** Execution-level identity/diagnostics; never semantic memory or chat content. */
+  readonly execution?: ChatExecutionEvidence;
 }
 
 export interface ChatCallbacks {

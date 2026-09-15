@@ -5,10 +5,12 @@ import { join } from "node:path";
 import test from "node:test";
 import { ChatError } from "../src/core/errors.js";
 import {
+  ACME_MODEL_RUNTIME_URL_ENV,
   CHAT_MAX_TOKENS_ENV,
   CHAT_REASONING_BUDGET_ENV,
   CHAT_THINKING_ENV,
   CHAT_TOP_P_ENV,
+  CHAT_TRANSPORT_ENV,
   DEFAULT_PROVIDER_TIMEOUT_MS,
   PROVIDER_TIMEOUT_ENV,
   parseDebugTraceMode,
@@ -123,4 +125,32 @@ test("chat generation options are overridable without editing the model profile"
   assert.throws(() => config({ [CHAT_TOP_P_ENV]: "2" }), ChatError);
   assert.throws(() => config({ [CHAT_MAX_TOKENS_ENV]: "0" }), ChatError);
   assert.throws(() => config({ [CHAT_THINKING_ENV]: "maybe" }), ChatError);
+});
+
+test("ACME transport is explicit and requires an http(s) runtime URL", () => {
+  assert.equal(config().chatTransport.mode, "direct");
+  assert.throws(
+    () => config({ [CHAT_TRANSPORT_ENV]: "fallback" }),
+    ChatError,
+  );
+  assert.throws(
+    () => config({ [CHAT_TRANSPORT_ENV]: "acme" }),
+    (error: unknown) =>
+      error instanceof ChatError &&
+      error.message.includes(ACME_MODEL_RUNTIME_URL_ENV),
+  );
+  assert.throws(
+    () =>
+      config({
+        [CHAT_TRANSPORT_ENV]: "acme",
+        [ACME_MODEL_RUNTIME_URL_ENV]: "file:///tmp/acme",
+      }),
+    ChatError,
+  );
+  const parsed = config({
+    [CHAT_TRANSPORT_ENV]: "acme",
+    [ACME_MODEL_RUNTIME_URL_ENV]: "http://127.0.0.1:8787/",
+  });
+  assert.equal(parsed.chatTransport.mode, "acme");
+  assert.equal(parsed.chatTransport.baseUrl, "http://127.0.0.1:8787");
 });

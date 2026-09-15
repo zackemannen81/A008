@@ -44,7 +44,7 @@ never whether work is active or complete. Task state belongs in
 | A008-0025 | split state from history | unassigned | 2026-09-02 | M4 bindings, intervals, RECONCILE, UPDATE |
 | A008-0026 | first-class evidence and acceptance | unassigned | 2026-09-02 | M5 utterance, claim, ACCEPT, typed payload |
 | A008-0027 | evidence lifecycle and retrieval intents | unassigned | 2026-09-02 | M6 lifecycle on evidence; history surface |
-| A008-0028 | knowledge storage redesign | unassigned | 2026-09-02 | M7 SQLite after in-memory S1–S10 |
+| A008-0028 | knowledge storage redesign | unassigned | 2026-09-02 | M7 SQLite after in-memory S1â€“S10 |
 | A008-0029 | CLI slash commands and native terminal tool | Grok (operator) | 2026-09-02 | interactive /commands and /shell; reject LangChain community |
 | A008-0030 | A008-owned GUI program | Grok (operator / boss) | 2026-09-02 | parent; sole main merger |
 | A008-0031 | adopt A008 GUI boundary | Grok (operator / boss) | 2026-09-02 | ADR 0019 and gui stub shell |
@@ -103,7 +103,7 @@ never whether work is active or complete. Task state belongs in
 | A008-0085 | extraction JSON contract and live regression | Codex (operator) | 2026-09-08 | remove prompt pseudocode, distinguish durable facts from greetings and identify failing model/operation |
 | A008-0086 | standalone GUI allow-all tool approval | Codex (operator) | 2026-09-08 | session-scoped third permission choice; no protocol expansion |
 | A008-0087 | OpenAI GPT-5.6 Luna provider | Codex (operator) | 2026-09-09 | OpenAI chat-completions transport, secure key handling, model controls and provider-isolated semantic calls |
-| A008-0090 | A008-integrerad kod-canvas | Rickard (operator) | 2026-09-09 | chat-driven lokal HTML/Canvas-rendering över befintlig GUI/session/approval-gräns |
+| A008-0090 | A008-integrerad kod-canvas | Rickard (operator) | 2026-09-09 | chat-driven lokal HTML/Canvas-rendering Ã¶ver befintlig GUI/session/approval-grÃ¤ns |
 | A008-0091 | session code artifact and isolated HTML/Canvas preview | Codex (operator) | 2026-09-09 | transient in-chat code content, local editor/preview, repository writes remain explicit approved tools |
 | A008-0092 | mobile WebSocket recovery | Codex (operator) | 2026-09-09 | host heartbeat, bounded reconnect and short authenticated ACP-session resume grace |
 | A008-0093 | global app theme system | Grok (operator) | 2026-09-11 | persistent semantic Neutral and Deep Space GUI themes |
@@ -130,3 +130,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0114 | ACME execution substrate evaluation (Stage 3.5) | Grok (delegated) | 2026-09-15 | execution-adapter parity, failure-evidence proof and go/no-go before Stage 4 |
 | A008-0115 | Luna semantic control compatibility | Codex (operator) | 2026-09-15 | omit unsupported Luna temperature on semantic retrieval and memory extraction |
 | A008-0116 | batch relation classification | Codex (operator) | 2026-09-15 | replace per-proposal semantic relation calls with one bounded batch classification |
+| A008-0117 | retrieval precision and necessity gate | Codex (operator) | 2026-09-15 | semantic retrieval necessity, narrow labels and ACME route evidence |

@@ -17,6 +17,7 @@ export type {
   ChatCompletion,
   ChatDelta,
   ChatDeltaType,
+  ChatExecutionEvidence,
   ChatGenerationOptions,
   ChatMessage,
   ChatRequest,
@@ -44,6 +45,22 @@ export type {
   FetchLike,
   NvidiaChatTransportOptions,
 } from "./providers/nvidia/nvidia-chat-transport.js";
+export {
+  AcmeChatTransport,
+  createAcmeChatTransport,
+} from "./providers/acme/acme-chat-transport.js";
+export type {
+  AcmeChatTransportOptions,
+  AcmeFetchLike,
+} from "./providers/acme/acme-chat-transport.js";
+export {
+  ACME_MODEL_RUNTIME_COMPATIBILITY_PATH,
+  ACME_MODEL_RUNTIME_EXECUTE_PATH,
+  ACME_MODEL_RUNTIME_HEADER,
+  ACME_MODEL_RUNTIME_PROTOCOL,
+  AcmeChatError,
+  isAcmeChatError,
+} from "./providers/acme/acme-model-runtime.js";
 export {
   OPENAI_CHAT_COMPLETIONS_URL,
   OpenAiChatTransport,
@@ -82,7 +99,11 @@ export type {
   LocalMemoryTurnResult,
 } from "./runtime/local-memory-runtime.js";
 export {
+  ACME_ENGINE_BUILD_ENV,
+  ACME_MODEL_RUNTIME_TOKEN_ENV,
+  ACME_MODEL_RUNTIME_URL_ENV,
   AGENT_ID_ENV,
+  CHAT_TRANSPORT_ENV,
   DEBUG_TRACE_ENV,
   DEBUG_TRACE_FILE_ENV,
   defaultSqlitePath,
@@ -93,9 +114,17 @@ export {
   SQLITE_PATH_ENV,
 } from "./runtime/local-runtime-config.js";
 export type {
+  AcmeRuntimeSelection,
+  ChatTransportMode,
   LocalRuntimeCliTraceOptions,
   LocalRuntimeConfig,
 } from "./runtime/local-runtime-config.js";
+export {
+  createAcmeRuntimeChatTransport,
+  createConfiguredChatTransport,
+  createDispatchingChatTransport,
+  usesAcmeChat,
+} from "./runtime/chat-dispatch.js";
 export {
   applyUserAssertionActivation,
   isExplicitUserAssertion,

@@ -2,6 +2,15 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-15 — A008-0114: ACME execution substrate evaluation (Stage 3.5)
+
+- Task: A008-0114; operator: Grok; branch: `grok/A008-0114-acme-execution-evaluation`.
+- Implemented opt-in `AcmeChatTransport` against frozen `acme-model-runtime/1`. Direct NVIDIA/kie/OpenAI transports remain the default. No call to ACME `/v1/execute`. No Stage 4 work.
+- Parity and failure-evidence fixtures pass. Recorded adoption decision: **NO-GO** for ACME as the normal execution substrate (ACME `ModelRequest` cannot carry A008 thinking/reasoning/topP/seed controls).
+- Verification: 626 core, 4 membership, 162 GUI; `verify:protocol`; production GUI build; portable engine proof; `git diff --check`. No live provider call.
+- [Handoff](handoffs/A008-0114.md). [Archive](finished/A008-0114_acme-execution-evaluation.md). [ADR 0043](adr/0043-acme-execution-boundary.md).
+- Signature: Grok
+
 ## 2026-09-11 — A008-0094: project bootstrap
 
 - Task: A008-0094; operator: Grok; branch: `main`.
@@ -2373,3 +2382,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Verification: 26 local links resolve, stale early-project phrases are absent and `git diff --check` passes. Runtime tests/build were not repeated because no product source, schema or generated protocol artifact changed.
 - No provider call, credential operation, deployment, publication or host restart. [Handoff](handoffs/A008-0113.md).
 - Signature: Codex
+
+## 2026-09-15 — A008-0117 retrieval precision
+
+Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, explicit `skipped`/`degraded` evidence, and stronger multi-token lexical admission. Greetings no longer retrieve old greeting utterances when semantic classification says memory is unnecessary; classifier failure still degrades to deterministic retrieval. Verification: 632/632 core, typecheck and diff-check.

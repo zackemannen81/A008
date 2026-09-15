@@ -30,11 +30,24 @@ export interface PostOutputKnowledgeStager {
   ): Promise<StagedKnowledgeBatch>;
 }
 
+export interface RelationBatchCommitInput {
+  readonly batch: StagedKnowledgeBatch;
+  readonly startProposalIndex: number;
+}
+
+export type RelationBatchCommitStep =
+  | { readonly proposalIndex: number; readonly result: RelationGatedCommitResult }
+  | { readonly proposalIndex: number; readonly error: unknown };
+
 export interface StagedProposalCommitter {
   commit(
     input: RelationCommitInput,
     context?: SemanticOperationContext,
   ): Promise<RelationGatedCommitResult>;
+  commitBatch?(
+    input: RelationBatchCommitInput,
+    context?: SemanticOperationContext,
+  ): Promise<readonly RelationBatchCommitStep[]>;
   repairIndex(
     pending: PendingRelationIndexRepair,
   ): Promise<UpdatedRelationIndex>;
@@ -650,6 +663,91 @@ export class PostOutputMemoryCoordinator {
   ): Promise<PostOutputMemoryResult> {
     const records = priorRecords.map(copyRecord);
     const skipped: SkippedPostOutputProposal[] = [];
+    if (this.#committer.commitBatch !== undefined && startIndex < batch.proposals.length) {
+      let steps: readonly RelationBatchCommitStep[];
+      try {
+        steps = await this.#committer.commitBatch(
+          { batch: validatedBatch(batch), startProposalIndex: startIndex },
+          context.signal === undefined ? {} : { signal: context.signal },
+        );
+      } catch (error) {
+        return {
+          status: "commit_failed",
+          failedProposalIndex: startIndex,
+          checkpoint: {
+            batch: validatedBatch(batch),
+            nextProposalIndex: startIndex,
+            records: records.map(copyRecord),
+          },
+          error,
+        };
+      }
+      let expectedIndex = startIndex;
+      for (const step of steps) {
+        if (step.proposalIndex !== expectedIndex) {
+          throw new MemoryError(
+            "illegal_state",
+            "batch committer returned non-contiguous proposal indexes",
+          );
+        }
+        if ("error" in step) {
+          if (!isDeterministicCommitFailure(step.error)) {
+            return {
+              status: "commit_failed",
+              failedProposalIndex: step.proposalIndex,
+              checkpoint: {
+                batch: validatedBatch(batch),
+                nextProposalIndex: step.proposalIndex,
+                records: records.map(copyRecord),
+              },
+              error: step.error,
+            };
+          }
+          skipped.push({
+            proposalIndex: step.proposalIndex,
+            reason: describeCommitRefusal(step.error),
+          });
+          expectedIndex += 1;
+          continue;
+        }
+        const record = {
+          proposalIndex: step.proposalIndex,
+          result: copyCommitResult(step.result),
+        } satisfies PostOutputMemoryCommitRecord;
+        records.push(record);
+        expectedIndex += 1;
+        if (record.result.index.status === "pending_repair") {
+          const pending = record.result.index;
+          return {
+            status: "index_repair_required",
+            checkpoint: {
+              batch: validatedBatch(batch),
+              nextProposalIndex: step.proposalIndex + 1,
+              records: records.map(copyRecord),
+              pendingProposalIndex: step.proposalIndex,
+              pending: {
+                status: "pending_repair",
+                document: copyDocument(pending.document),
+                error: pending.error,
+              },
+            },
+            error: pending.error,
+          };
+        }
+      }
+      if (expectedIndex !== batch.proposals.length) {
+        throw new MemoryError(
+          "illegal_state",
+          "batch committer ended before every proposal was processed",
+        );
+      }
+      return {
+        status: "completed",
+        batch: validatedBatch(batch),
+        records: records.map(copyRecord),
+        skippedProposals: [...skipped],
+      };
+    }
     for (
       let proposalIndex = startIndex;
       proposalIndex < batch.proposals.length;

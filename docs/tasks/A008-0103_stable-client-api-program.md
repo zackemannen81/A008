@@ -29,7 +29,8 @@ existing client silently breaks and no project silently receives empty memory.
 | 1. Current contract | Complete | A008-0104/0105 merged; A008-0106 accepts V2/ownership/auth/recovery decisions |
 | 2. Project/session ownership | Complete | A008-0107/0108/0109 shared registry, facade, exact binding and process ownership proof |
 | 3. V2 and auth | Complete | A008-0110/0112: scoped device auth, tickets, authenticated WS dispatch and live revoke/expiry |
-| 4. Turns and recovery | Not started | Snapshot boundary, idempotency, cancellation/restart proof |
+| 3.5 ACME execution evaluation | Complete; NO-GO | A008-0114: opt-in `AcmeChatTransport` against frozen `acme-model-runtime/1`; default-route adoption declined; Stage 4 proceeds without ACME |
+| 4. Turns and recovery | Not started | Stage 3.5 go/no-go recorded (NO-GO). Snapshot boundary, idempotency, cancellation/restart proof remain Stage 4 and do not use ACME execution identity |
 | 5. SDK and web migration | Not started | Independent package and complete web coverage |
 | 6. Independent Expo proof | Not started | Real platform/remote auth and background-return checks |
 | 7. Compatibility release | Not started | Frozen client vs compatible future server gate |
@@ -74,3 +75,4 @@ child on main. Later stages 4 through 7 remain unstarted.
 A008-0111 is a separate owner-requested prerequisite after the A008-0110 stop: Projects can now register/open an already-existing root without project-tree mutation or heuristic legacy-memory migration. It does not advance the stage-3 checklist.
 
 A008-0112 completes stage 3: `/v2/session` authenticates one-use tickets on first frame, binds principal/project/session authority, dispatches session and tool-permission operations through the shared runtime owner, rechecks capability/expiry per operation and closes/cancels/denies on revoke or expiry. Stage 4 now owns sequence/snapshot boundaries, terminal turn outcomes, reconnect/resume and mutation idempotency.
+A008-0114 completed Stage 3.5. The adapter exists as explicit local composition (`A008_CHAT_TRANSPORT=acme`) and does not call ACME `/v1/execute`. Direct-vs-ACME fixtures showed equivalent A008 chat/tool/semantic/knowledge outcomes from equivalent normalized model output, plus typed failure evidence and no post-dispatch fallback. The recorded adoption decision is **NO-GO**: frozen ACME `ModelRequest` cannot carry A008 thinking/reasoning/topP/seed controls, so ACME is not the normal execution substrate. Stage 4 starts without ACME and must keep application `commandId`/`turnId`/event sequence distinct from any later ACME execution identity.
