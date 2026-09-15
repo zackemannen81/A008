@@ -110,15 +110,15 @@ CLI / A008-acp -> createLocalMemoryRuntime
                -> POST /v1/model/execute SSE
 ```
 
-A008-0118 upgraded `AcmeChatTransport` to `acme-model-runtime/2`. It remains an
-explicit, non-default execution adapter. Direct NVIDIA/kie/OpenAI transports
-remain current system behavior. The adapter never calls ACME `/v1/execute`.
-After an ACME dispatch it does not fall back to a direct provider. Present
-supported generation controls are mapped; unsupported supplied controls fail
-before execute; absent controls are omitted. `ModelProfile.executionProvider`
-is the only source of ACME `providerHint`. KIE chat uses `kie:<model-id>`.
-Image/audio/video stay on the direct transports. Stage 3.5 GO still requires
-the live chat matrix and owner client loop.
+A008-0118 upgraded `AcmeChatTransport` to `acme-model-runtime/2`. Stage 3.5 is
+**GO**. Selection remains explicit (`A008_CHAT_TRANSPORT=acme` plus runtime URL).
+Direct NVIDIA/kie/OpenAI chat transports remain available as reference
+composition. The adapter never calls ACME `/v1/execute`. After an ACME dispatch
+it does not fall back to a direct provider. Present supported generation
+controls are mapped; unsupported supplied controls fail before execute; absent
+controls are omitted. `ModelProfile.executionProvider` is the only source of
+ACME `providerHint`. KIE chat uses `kie:<model-id>`. Image/audio/video stay on
+the direct transports and were owner-verified still working.
 
 `ChatSession` owns in-memory conversation history. It constructs a pending turn,
 calls the transport, and commits user plus assistant messages only after a valid
