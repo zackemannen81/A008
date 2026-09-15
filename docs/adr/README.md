@@ -8,6 +8,8 @@ replacement.
 
 ## Records
 
+- [0043-acme-execution-boundary.md](0043-acme-execution-boundary.md) — Accepted; immutable non-cognitive ACME execution boundary plus Stage-3.5 evidence gate before default adoption.
+
 - [0042-existing-project-registration.md](0042-existing-project-registration.md) — Accepted; host-owned registration/open of existing roots with no project-tree mutation or heuristic legacy-memory migration.
 
 - [0040-stable-client-api-program.md](0040-stable-client-api-program.md) — Accepted; frozen client API target and sequential implementation.

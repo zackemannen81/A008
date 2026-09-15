@@ -62,6 +62,8 @@ add-on model for capabilities such as semantic memory.
 
 ## Approved product direction
 
+- ADR 0043 accepts ACME as a Stage-3.5 execution-substrate candidate under one immutable boundary: **the ACME integration replaces A008's provider execution path, not any part of the A008 cognitive or memory architecture.** A008 owns why, what and when to execute; ACME may own how an already-authorized execution is carried out. Default adoption requires Stage-3.5 parity/reliability evidence and is not pre-decided.
+
 - ADR 0041 resolves the frozen API program's V2, ownership, authentication and
   recovery decisions. CLIENT_API_V2.md specifies the target; verified availability
   remains in CURRENT_STATUS. Existing v1/ACP and knowledge bindings stay protected.
