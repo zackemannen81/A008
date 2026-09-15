@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "projectId": {
+      "type": "string",
+      "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "sessionId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "model": {
+      "type": "string"
+    },
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "stream": {
+          "type": "boolean"
+        },
+        "temperature": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "topP": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "maxTokens": {
+          "type": "number"
+        },
+        "enableThinking": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reasoningBudget": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "reasoningEffort": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "seed": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "stop": {
+          "anyOf": [
+            {
+              "readOnly": true,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "stream",
+        "temperature",
+        "topP",
+        "maxTokens",
+        "enableThinking",
+        "reasoningBudget",
+        "reasoningEffort",
+        "seed",
+        "stop"
+      ],
+      "additionalProperties": false
+    },
+    "messages": {
+      "readOnly": true,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "assistant"
+            ]
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "active": {
+      "type": "boolean"
+    },
+    "tools": {
+      "readOnly": true,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "description"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "undone": {
+      "type": "boolean"
+    },
+    "closed": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "projectId",
+    "sessionId",
+    "model",
+    "parameters",
+    "messages",
+    "active"
+  ],
+  "additionalProperties": false
+}

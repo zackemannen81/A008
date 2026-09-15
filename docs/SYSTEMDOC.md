@@ -1099,12 +1099,10 @@ death. A008-0109 extends leases to direct local runtime factories used by CLI/AC
 and moves standalone to the shared session facade. Internal registry construction
 passes its already-held lease explicitly to avoid recursively acquiring it.
 
-## V2 authentication foundation (A008-0110)
+## V2 authentication and session transport (A008-0110/A008-0112)
 
-`src/gui-host/v2-auth.ts` owns discovery, principal/capability checks and scoped
-30-second one-use tickets. DeviceRegistry reads current hashed credentials from
-its separate local SQLite registry on each operation. Owner-local device-cli
-grant/list/revoke has no HTTP equivalent. V1/PIN/panel routing is unchanged.
-Only discovery and ticket issuance are exposed; socket admission, per-command
-authorization and live-socket revocation await the V2 session task. See
-[CLIENT_AUTH.md](CLIENT_AUTH.md) for implemented behavior and limits.
+`src/gui-host/v2-auth.ts` owns discovery, principal/capability checks and scoped 30-second one-use tickets. DeviceRegistry reads current hashed credentials from its separate local SQLite registry on each operation. Owner-local device-cli grant/list/revoke has no HTTP equivalent. V1/PIN/panel routing is unchanged.
+
+`WS /v2/session` uses subprotocol `a008.v2`. `src/gui-host/v2-websocket.ts` owns first-frame ticket admission, five-second authentication timeout, the 4-KiB pre-auth/1-MiB authenticated frame limits, socket authority checks and structured V2 errors. `src/gui-host/v2-session.ts` owns V2 session attachment over the existing `ProjectRuntimeRegistry`/`EngineHost`; it does not create another runtime owner. One connection binds to one principal/project and at most one attached session. Session new/inspect/prompt/cancel/control and tool permission commands recheck current device/project/session capability before runtime work.
+
+Device revoke or expiry discovered by the live authority check closes the socket, cancels its owned work and resolves pending permissions denied. Tool permission IDs are one-use and bound to the owning connection/session. Outgoing V2 frames pass the existing credential-redaction boundary. A008-0112 deliberately does not implement Stage-4 sequence numbers, snapshot subscription boundaries, terminal turn outcomes, reconnect/resume or command-idempotency receipts. See [CLIENT_AUTH.md](CLIENT_AUTH.md) and [CLIENT_API_V2.md](CLIENT_API_V2.md).

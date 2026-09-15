@@ -493,3 +493,5 @@ A008-0110 adds `packages/protocol/src/v2-auth.ts` and generated V2 auth schemas/
 OpenAPI; `src/gui-host/{device-registry,device-cli,v2-auth}.ts` implements local
 credentials and ticket/discovery routes. `test/v2-auth.test.ts` verifies actual
 CLI and HTTP boundaries. `docs/CLIENT_AUTH.md` documents available behavior.
+
+A008-0112 adds `packages/protocol/src/v2-session.ts` plus generated V2 session schemas, and `src/gui-host/{v2-session,v2-websocket}.ts` for authenticated `a008.v2` session admission/dispatch over the existing runtime registry/EngineHost. The dependency-free `websocket.ts` accepts a dynamic message bound so pre-auth and authenticated limits can differ. `test/v2-auth.test.ts` owns real-host V2 admission, authority, revoke/expiry, tool permission and control regressions.

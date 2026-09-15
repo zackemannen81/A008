@@ -82,7 +82,7 @@ export class V2Auth {
   clear() { this.#tickets.clear(); }
   info() {
     return { protocol: "a008.v2" as const, serverInstanceId: this.serverInstanceId, serverVersion: "0.0.0",
-      authProfiles: ["device", ...(this.options.pin.enabled ? ["browser-pin"] : [])], features: ["auth.tickets"], limits: V2_LIMITS };
+      authProfiles: ["device", ...(this.options.pin.enabled ? ["browser-pin"] : [])], features: ["auth.tickets", "session.websocket"], limits: V2_LIMITS };
   }
 }
 

@@ -5,14 +5,14 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0112 completes A008-0103 Stage 3. `/v2/session` now accepts the `a008.v2` WebSocket subprotocol and requires a scoped one-use ticket in the first frame within five seconds. Pre-auth messages are capped at 4 KiB and authenticated input at 1 MiB. Each socket is bound to one authenticated principal/project and at most one attached session; `session/new`, `session/inspect`, `session/prompt`, `session/cancel`, `session/control` and `tool/permission` dispatch through the existing shared `ProjectRuntimeRegistry`/`EngineHost` owner. Device existence, project scope, `session` capability and expiry are rechecked per operation. Revocation or expiry closes the live socket, cancels owned work and denies pending approvals. Shared V2 session schemas ship in `@a008/protocol`; configured provider credentials remain redacted from V2 output. Real-host tests cover admission bounds, ticket reuse, project/principal/session isolation, second-writer/concurrent-new fencing, tool approval, cancel/control, revoke and expiry. Final verification: 602 core + 4 membership + 162 GUI tests passed before closure hardening; focused V2/host tests pass after the final wire-schema/redaction hardening; installed protocol and portable-engine V2 discovery proofs pass. Stage 4 remains unimplemented: no sequence/snapshot race guarantee, terminal turn outcomes, reconnect/resume lease or command idempotency is claimed.
+
 A008-0111 adds host-owned registration of already-existing project directories. Projects now separates `New project` from `Add existing`: the latter accepts a display name, an existing absolute root and an explicit global-memory choice, generates a canonical project identity, records it in the existing registry and switches through the same shared workspace/runtime owner. Registration does not write inside the selected project: no Git init, Docs-First creation, multi-agent policy, worker roots or content rewrite. Duplicate, missing, file and relative roots fail closed. Existing Docs-First markers may be observed read-only. Global memory uses the newly registered project namespace; legacy/unregistered memory is deliberately not guessed, merged or migrated. V1 adds typed `POST /v1/projects/register`, bringing the shared inventory to 22 rows / 23 HTTP methods. Verification: 593 core, 4 membership and 162 GUI tests pass; the independent installed protocol consumer and production GUI build pass; no provider call or running-host restart. See ADR 0042.
 
 A008-0110 adds V2 authentication foundation: public discovery, authenticated scoped
 one-use tickets, local device grant/list/revoke and hashed expiring credentials.
 PIN-disabled V1 hosts do not grant anonymous V2 access. Real host/CLI checks cover
-scope, Origin, expiry/revocation and ticket reuse/capacity. Only auth.tickets is
-advertised; V2 sockets/business operations/live-socket revocation remain pending.
-See [CLIENT_AUTH.md](CLIENT_AUTH.md). No owner credentials or live grants were used.
+scope, Origin, expiry/revocation and ticket reuse/capacity. `auth.tickets` is joined by `session.websocket`; A008-0112 supplies authenticated session dispatch and live-socket revoke/expiry enforcement. See [CLIENT_AUTH.md](CLIENT_AUTH.md). No owner credentials or live grants were used.
 
 A008-0109 moves the default standalone host to a fixed-project in-process adapter
 over EngineHost session/tools/permissions and ProjectRuntimeRegistry. Bridges

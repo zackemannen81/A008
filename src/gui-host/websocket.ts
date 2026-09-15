@@ -10,6 +10,11 @@ const OPCODE_CLOSE = 0x8;
 const OPCODE_PING = 0x9;
 const OPCODE_PONG = 0xa;
 
+export interface WebSocketAcceptOptions {
+  readonly protocol?: string;
+  readonly maxMessageBytes?: number | (() => number);
+}
+
 export interface GuiWebSocket {
   send(text: string): void;
   /** Send one heartbeat ping; false means the previous ping is still unanswered. */
@@ -42,10 +47,12 @@ export function acceptWebSocket(
   socket: Duplex,
   head: Buffer,
   onMessage: (text: string) => void,
+  options: WebSocketAcceptOptions = {},
 ): GuiWebSocket | undefined {
   const key = headerValue(request.headers["sec-websocket-key"]);
   const version = headerValue(request.headers["sec-websocket-version"]);
-  if (key === undefined || version !== "13") {
+  const requestedProtocols = headerValue(request.headers["sec-websocket-protocol"])?.split(",").map(value => value.trim()) ?? [];
+  if (key === undefined || version !== "13" || (options.protocol !== undefined && !requestedProtocols.includes(options.protocol))) {
     socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
     return undefined;
   }
@@ -54,9 +61,11 @@ export function acceptWebSocket(
     .digest("base64");
   socket.write(
     "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n" +
-      `Sec-WebSocket-Accept: ${accept}\r\n\r\n`,
+      `Sec-WebSocket-Accept: ${accept}\r\n` +
+      (options.protocol ? `Sec-WebSocket-Protocol: ${options.protocol}\r\n` : "") +
+      "\r\n",
   );
-  return new OpenGuiWebSocket(socket, head, onMessage);
+  return new OpenGuiWebSocket(socket, head, onMessage, options);
 }
 
 function headerValue(value: string | string[] | undefined): string | undefined {
@@ -76,13 +85,17 @@ class OpenGuiWebSocket implements GuiWebSocket {
   #buffer = Buffer.alloc(0);
   #fragmentOpcode: number | undefined;
   #fragments: Buffer[] = [];
+  #fragmentBytes = 0;
+  readonly #maxMessageBytes: () => number;
   #closed = false;
   #awaitingPong = false;
   #resolveClosed: () => void = () => undefined;
 
-  constructor(socket: Duplex, head: Buffer, onMessage: (text: string) => void) {
+  constructor(socket: Duplex, head: Buffer, onMessage: (text: string) => void, options: WebSocketAcceptOptions) {
     this.#socket = socket;
     this.#onMessage = onMessage;
+    const messageLimit = options.maxMessageBytes;
+    this.#maxMessageBytes = typeof messageLimit === "function" ? messageLimit : () => messageLimit ?? MAX_PAYLOAD_BYTES;
     this.closed = new Promise((resolve) => {
       this.#resolveClosed = resolve;
     });
@@ -141,7 +154,7 @@ class OpenGuiWebSocket implements GuiWebSocket {
 
   #drain(): void {
     while (!this.#closed) {
-      const frame = readFrame(this.#buffer);
+      const frame = readFrame(this.#buffer, this.#maxMessageBytes());
       if (frame === undefined) {
         return;
       }
@@ -178,11 +191,14 @@ class OpenGuiWebSocket implements GuiWebSocket {
     if (frame.opcode === OPCODE_TEXT) {
       this.#fragmentOpcode = OPCODE_TEXT;
       this.#fragments = [frame.payload];
+      this.#fragmentBytes = frame.payload.length;
     } else if (frame.opcode === OPCODE_CONTINUATION) {
       if (this.#fragmentOpcode !== OPCODE_TEXT) {
         this.close(1002, "unexpected continuation");
         return;
       }
+      this.#fragmentBytes += frame.payload.length;
+      if (this.#fragmentBytes > this.#maxMessageBytes()) throw new Error("message too large");
       this.#fragments.push(frame.payload);
     }
     if (!frame.fin) {
@@ -190,6 +206,7 @@ class OpenGuiWebSocket implements GuiWebSocket {
     }
     const payload = Buffer.concat(this.#fragments);
     this.#fragments = [];
+    this.#fragmentBytes = 0;
     this.#fragmentOpcode = undefined;
     this.#onMessage(payload.toString("utf8"));
   }
@@ -203,7 +220,7 @@ class OpenGuiWebSocket implements GuiWebSocket {
   }
 }
 
-function readFrame(buffer: Buffer): ParsedFrame | undefined {
+function readFrame(buffer: Buffer, maxPayloadBytes = MAX_PAYLOAD_BYTES): ParsedFrame | undefined {
   if (buffer.length < 2) {
     return undefined;
   }
@@ -234,13 +251,13 @@ function readFrame(buffer: Buffer): ParsedFrame | undefined {
       return undefined;
     }
     const length = buffer.readBigUInt64BE(offset);
-    if (length > BigInt(MAX_PAYLOAD_BYTES)) {
+    if (length > BigInt(maxPayloadBytes)) {
       throw new Error("payload too large");
     }
     payloadLength = Number(length);
     offset += 8;
   }
-  if (payloadLength > MAX_PAYLOAD_BYTES) {
+  if (payloadLength > maxPayloadBytes) {
     throw new Error("payload too large");
   }
   if (buffer.length < offset + 4 + payloadLength) {

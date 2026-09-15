@@ -27,6 +27,8 @@ import { createLocalAcpBridge } from "./local-acp-bridge.js";
 import { ProjectRuntimeRegistry } from "../engine/project-runtime-registry.js";
 import { DeviceRegistry } from "./device-registry.js";
 import { V2Auth, handleV2AuthHttp } from "./v2-auth.js";
+import { V2SessionService } from "./v2-session.js";
+import { openV2SessionSocket } from "./v2-websocket.js";
 import {
   ALLOWED_ORIGINS_ENV,
   firstHeaderValue,
@@ -205,20 +207,15 @@ export async function startGuiHost(
   let bridge: AcpBridge | undefined;
   let bridgePending: Promise<AcpBridge> | undefined;
   const projectRegistry = options.projectRegistry ?? new ProjectRuntimeRegistry({ env, ...(options.stderr ? { stderr: options.stderr } : {}) });
-  const v2Auth = options.accessToken ? undefined : new V2Auth({ devices: new DeviceRegistry(env), pin: pinAuth,
-    projectExists: id => readProjectRegistry(projectsPath).projects.some(project => project.projectId === id) });
 
-  const acpEnv = (): NodeJS.ProcessEnv => ({
+  const runtimeBaseEnv = (): NodeJS.ProcessEnv => ({
     ...env,
-    ...(resolveNvidiaApiKey(env, secretsPath)
-      ? { NVIDIA_API_KEY: resolveNvidiaApiKey(env, secretsPath) }
-      : {}),
-    ...(resolveKieApiKey(env, secretsPath)
-      ? { KIE_API_KEY: resolveKieApiKey(env, secretsPath) }
-      : {}),
-    ...(resolveOpenAiApiKey(env, secretsPath)
-      ? { OPENAI_API_KEY: resolveOpenAiApiKey(env, secretsPath) }
-      : {}),
+    ...(resolveNvidiaApiKey(env, secretsPath) ? { NVIDIA_API_KEY: resolveNvidiaApiKey(env, secretsPath) } : {}),
+    ...(resolveKieApiKey(env, secretsPath) ? { KIE_API_KEY: resolveKieApiKey(env, secretsPath) } : {}),
+    ...(resolveOpenAiApiKey(env, secretsPath) ? { OPENAI_API_KEY: resolveOpenAiApiKey(env, secretsPath) } : {}),
+  });
+  const acpEnv = (): NodeJS.ProcessEnv => ({
+    ...runtimeBaseEnv(),
     ...(workspace.projectId ? { [PROJECT_ID_ENV]: workspace.projectId } : {}),
     ...(workspace.useGlobalMemory
       ? {}
@@ -227,6 +224,12 @@ export async function startGuiHost(
       ? { [SQLITE_PATH_ENV]: defaultSqlitePath() }
       : {}),
   });
+  const v2Sessions = options.accessToken ? undefined : new V2SessionService({ env: runtimeBaseEnv(), projectsPath, registry: projectRegistry,
+    ...(options.stderr ? { stderr: options.stderr } : {}) });
+  const v2Auth = options.accessToken ? undefined : new V2Auth({ devices: new DeviceRegistry(env), pin: pinAuth,
+    projectExists: id => readProjectRegistry(projectsPath).projects.some(project => project.projectId === id),
+    sessionAuthorized: (principal, projectId, sessionId) => v2Sessions?.sessionAuthorized(principal, projectId, sessionId) === true });
+
   const getBridge = async (): Promise<AcpBridge> => {
     if (bridge !== undefined) {
       return bridge;
@@ -399,6 +402,24 @@ export async function startGuiHost(
 
   server.on("upgrade", (request, socket, head) => {
     const pathname = requestPath(request);
+    if (pathname === "/v2/session") {
+      if (!v2Auth || !v2Sessions || !isWebSocketUpgrade(request)) {
+        socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
+        return;
+      }
+      if (!requestOriginAllowed(request)) {
+        socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+        return;
+      }
+      const ws = openV2SessionSocket({ request, socket, head, auth: v2Auth, sessions: v2Sessions,
+        redact: text => redactWireText(text, secrets) });
+      if (!ws) return;
+      sockets.add(ws);
+      const heartbeat = setInterval(() => { if (!ws.ping()) ws.close(1001, "heartbeat timeout"); }, webSocketHeartbeatMs);
+      heartbeat.unref?.();
+      void ws.closed.then(() => { clearInterval(heartbeat); sockets.delete(ws); });
+      return;
+    }
     if (pathname !== "/v1/session" || !isWebSocketUpgrade(request)) {
       socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
       return;
@@ -467,6 +488,7 @@ export async function startGuiHost(
     port: address.port,
     async close() {
       v2Auth?.clear();
+      await v2Sessions?.close();
       for (const socket of sockets) {
         socket.close();
       }

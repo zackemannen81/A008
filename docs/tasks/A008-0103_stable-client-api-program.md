@@ -28,7 +28,7 @@ existing client silently breaks and no project silently receives empty memory.
 | --- | --- | --- |
 | 1. Current contract | Complete | A008-0104/0105 merged; A008-0106 accepts V2/ownership/auth/recovery decisions |
 | 2. Project/session ownership | Complete | A008-0107/0108/0109 shared registry, facade, exact binding and process ownership proof |
-| 3. V2 and auth | In Progress | A008-0110 auth foundation; WS/business dispatch and live revocation remain |
+| 3. V2 and auth | Complete | A008-0110/0112: scoped device auth, tickets, authenticated WS dispatch and live revoke/expiry |
 | 4. Turns and recovery | Not started | Snapshot boundary, idempotency, cancellation/restart proof |
 | 5. SDK and web migration | Not started | Independent package and complete web coverage |
 | 6. Independent Expo proof | Not started | Real platform/remote auth and background-return checks |
@@ -71,4 +71,6 @@ stopping at this completed-task boundary; do not allocate another child in this
 run. Resume by reviewing ADR 0041/CLIENT_API_V2 and freezing the next stage-3
 child on main. Later stages 4 through 7 remain unstarted.
 
-A008-0111 is a separate owner-requested prerequisite after the A008-0110 stop: Projects can now register/open an already-existing root without project-tree mutation or heuristic legacy-memory migration. It does not advance the stage-3 checklist; resume A008-0103 from the same next V2/auth step after this prerequisite is integrated.
+A008-0111 is a separate owner-requested prerequisite after the A008-0110 stop: Projects can now register/open an already-existing root without project-tree mutation or heuristic legacy-memory migration. It does not advance the stage-3 checklist.
+
+A008-0112 completes stage 3: `/v2/session` authenticates one-use tickets on first frame, binds principal/project/session authority, dispatches session and tool-permission operations through the shared runtime owner, rechecks capability/expiry per operation and closes/cancels/denies on revoke or expiry. Stage 4 now owns sequence/snapshot boundaries, terminal turn outcomes, reconnect/resume and mutation idempotency.

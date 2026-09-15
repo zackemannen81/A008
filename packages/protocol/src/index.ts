@@ -22,3 +22,4 @@ export * from './upload-parser.js';
 export * from './shell-parser.js';
 export * from './http-operations.js';
 export * from './v2-auth.js';
+export * from './v2-session.js';
