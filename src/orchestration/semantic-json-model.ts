@@ -513,6 +513,18 @@ export class ModelBackedKnowledgeRelationClassifier
       serializedInput: serializeRelationClassifierBatchInput(input),
       ...(context.signal === undefined ? {} : { signal: context.signal }),
     });
+    if (Array.isArray(untrusted)) {
+      return untrusted as readonly RelationClassifierBatchDecision[];
+    }
+    // Backward-compatible one-item adapter for existing semantic fixtures and
+    // embedders. A real multi-proposal batch must still return the batch array;
+    // we never fan it back out into N provider calls.
+    if (input.items.length === 1 && typeof untrusted === "object" && untrusted !== null) {
+      return [{
+        ...(untrusted as RelationClassifierDecision),
+        proposalHandle: input.items[0]!.proposalHandle,
+      }];
+    }
     return untrusted as readonly RelationClassifierBatchDecision[];
   }
 }

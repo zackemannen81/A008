@@ -431,6 +431,113 @@ test("direct and ACME local runtimes commit equivalent chat and knowledge", asyn
   assert.match(direct.secondContent, /alpha-seven/u);
 });
 
+test("multi-proposal memory write uses one extraction and one batch relation call through ACME", async () => {
+  const operations: string[] = [];
+  const complete = (request: ChatRequest): Normalized => {
+    const operation = semanticOperation(request);
+    if (operation !== undefined) operations.push(operation);
+    if (operation === "retrieval_scope") {
+      return { content: '{"domains":["fixtures"],"relatedDomains":[],"tags":[],"relatedTags":[]}' };
+    }
+    if (operation === "knowledge_analysis") {
+      return { content: JSON.stringify([
+        { severity: "important", proposition: "The fixture is blue.", kind: "fact", tags: ["fixture"], domains: ["fixtures"], entities: ["fixture"], confidence: 0.9 },
+        { severity: "important", proposition: "The fixture is round.", kind: "fact", tags: ["fixture"], domains: ["fixtures"], entities: ["fixture"], confidence: 0.9 },
+        { severity: "minor", proposition: "The fixture is portable.", kind: "fact", tags: ["fixture"], domains: ["fixtures"], entities: ["fixture"], confidence: 0.8 },
+      ]) };
+    }
+    if (operation === "relation_classification") {
+      const envelope = JSON.parse(request.messages.at(-1)!.content) as {
+        readonly input: { readonly items: readonly { readonly proposalHandle: string }[] };
+      };
+      return { content: JSON.stringify(envelope.input.items.map((item) => ({
+        proposalHandle: item.proposalHandle,
+        type: "new",
+      }))) };
+    }
+    return { content: "Noted." };
+  };
+  const isolated = isolatedMemoryEnv({
+    NVIDIA_API_KEY: "",
+    OPENAI_API_KEY: "sk-openai-fixture",
+    A008_CHAT_TRANSPORT: "acme",
+    A008_ACME_MODEL_RUNTIME_URL: BASE,
+  });
+  const runtime = createLocalMemoryRuntime({ env: isolated.env, surface: "test", fetch: acmeFetch(complete) });
+  try {
+    const result = await runtime.openSession({ model: "gpt-5.6-luna" }).turn("The fixture is blue, round, and portable.");
+    assert.equal(result.postOutput.status, "completed");
+    assert.equal("records" in result.postOutput ? result.postOutput.records.length : 0, 3);
+    assert.equal(operations.filter((entry) => entry === "knowledge_analysis").length, 1);
+    assert.equal(operations.filter((entry) => entry === "relation_classification").length, 1);
+    assert.deepEqual(operations, ["retrieval_scope", "knowledge_analysis", "relation_classification"]);
+  } finally {
+    runtime.close();
+  }
+});
+
+test("batch relation handles resolve earlier proposals and reject future targets", async () => {
+  async function run(mode: "earlier" | "future") {
+    let relationCalls = 0;
+    const complete = (request: ChatRequest): Normalized => {
+      const operation = semanticOperation(request);
+      if (operation === "retrieval_scope") {
+        return { content: '{"domains":[],"relatedDomains":[],"tags":[],"relatedTags":[]}' };
+      }
+      if (operation === "knowledge_analysis") {
+        return { content: JSON.stringify([
+          { severity: "important", proposition: "The fixture colour is blue.", kind: "fact", tags: ["fixture"], domains: ["fixtures"], entities: ["fixture"], confidence: 0.9 },
+          { severity: "important", proposition: "The fixture has a blue colour.", kind: "fact", tags: ["fixture"], domains: ["fixtures"], entities: ["fixture"], confidence: 0.9 },
+        ]) };
+      }
+      if (operation === "relation_classification") {
+        relationCalls += 1;
+        const envelope = JSON.parse(request.messages.at(-1)!.content) as {
+          readonly input: { readonly items: readonly { readonly proposalHandle: string }[] };
+        };
+        const [first, second] = envelope.input.items;
+        assert.ok(first && second);
+        return { content: JSON.stringify(mode === "earlier"
+          ? [
+              { proposalHandle: first.proposalHandle, type: "new" },
+              { proposalHandle: second.proposalHandle, type: "restatement", targetHandle: first.proposalHandle, supportsTarget: false },
+            ]
+          : [
+              { proposalHandle: first.proposalHandle, type: "restatement", targetHandle: second.proposalHandle, supportsTarget: false },
+              { proposalHandle: second.proposalHandle, type: "new" },
+            ]) };
+      }
+      return { content: "Noted." };
+    };
+    const isolated = isolatedMemoryEnv({
+      NVIDIA_API_KEY: "",
+      A008_CHAT_TRANSPORT: "acme",
+      A008_ACME_MODEL_RUNTIME_URL: BASE,
+    });
+    const runtime = createLocalMemoryRuntime({ env: isolated.env, surface: "test", fetch: acmeFetch(complete) });
+    try {
+      const result = await runtime.openSession({ model: "gpt-5.6-luna" }).turn("The fixture colour is blue.");
+      return { result, relationCalls, inspection: runtime.inspectMemory() };
+    } finally {
+      runtime.close();
+    }
+  }
+
+  const valid = await run("earlier");
+  assert.equal(valid.result.postOutput.status, "completed");
+  assert.equal(valid.relationCalls, 1);
+  if (valid.result.postOutput.status === "completed") {
+    assert.equal(valid.result.postOutput.records.length, 2);
+    assert.equal(valid.result.postOutput.records[1]!.result.classifierDecision.type, "restatement");
+  }
+
+  const invalid = await run("future");
+  assert.equal(invalid.result.postOutput.status, "commit_failed");
+  assert.equal(invalid.relationCalls, 1);
+  assert.match(invalid.result.memoryDiagnostic ?? "", /Invalid live batch target/u);
+  assert.equal(invalid.inspection.summary.counts.claim, 0);
+});
+
 test("Luna semantic retrieval and extraction omit unsupported temperature through ACME", async () => {
   const semanticRequests: Array<Record<string, unknown>> = [];
   const semanticOperations: string[] = [];

@@ -91,9 +91,27 @@ export function memoryAwareFakeTransport(options: {
         return { message: { role: "assistant", content } };
       }
       if (operation === "relation_classification") {
-        const content = JSON.stringify(
-          options.classify?.(semanticInput(request)) ?? { type: "new" },
-        );
+        const input = semanticInput(request) as {
+          readonly associationContext?: unknown;
+          readonly candidates?: readonly unknown[];
+          readonly items?: readonly {
+            readonly proposalHandle?: unknown;
+            readonly sourceSupport?: unknown;
+            readonly proposal?: unknown;
+          }[];
+        };
+        const classified = Array.isArray(input.items)
+          ? input.items.map((item) => ({
+              ...((options.classify?.({
+                ...(input.associationContext === undefined ? {} : { associationContext: input.associationContext }),
+                ...(item.sourceSupport === undefined ? {} : { sourceSupport: item.sourceSupport }),
+                proposal: item.proposal,
+                candidates: input.candidates ?? [],
+              }) ?? { type: "new" }) as Record<string, unknown>),
+              proposalHandle: item.proposalHandle,
+            }))
+          : options.classify?.(input) ?? { type: "new" };
+        const content = JSON.stringify(classified);
         return { message: { role: "assistant", content } };
       }
       chatTurn += 1;

@@ -699,9 +699,9 @@ local CLI/ACP composition
   |- write -> PostOutputMemoryCoordinator
   |          |- PostOutputKnowledgeIntake (once)
   |          |  `- model-backed analyzer ----.
-  |          `- KnowledgeEngineCommit (sequential per proposal)
-  |             |- model-backed ID-free classifier as comparator ----.
-  |             `- INGEST + ACCEPT + RECONCILE/UPDATE
+  |          `- KnowledgeEngineCommit
+  |             |- model-backed ID-free batch classifier (once) ----.
+  |             `- validated sequential INGEST + ACCEPT + RECONCILE/UPDATE
   |                                                |
   |                      shared stateless generator <--'
   |                              `- existing ChatTransport
@@ -899,15 +899,25 @@ classifier or reconcile call. One service instance rejects overlapping commit
 and repair operations.
 
 The boundary is constructed by the local CLI/ACP composition root over the
-shared stateless generator. It processes one proposal per call and does not
-solve concurrent semantic-duplicate `new` decisions.
+shared stateless generator. Model-backed relation classification receives the
+staged proposals as one bounded batch. It compares them with the pre-existing
+claim surface and permits a later proposal to target only an earlier proposal
+handle from the same batch. The returned decisions remain untrusted until A008
+validates every handle and applies them sequentially through the existing
+knowledge commit path. Injected legacy classifiers without a batch method keep
+the old per-proposal path; a real multi-item model batch never silently fans
+back out into N provider calls.
 
 ## Sequential post-output coordination
 
 `PostOutputMemoryCoordinator` allocates one exact staging input from task ID,
 original message, final answer, and verified scopes, then calls staging once.
-It revalidates and copies the returned batch and invokes the relation commit
-sequentially by proposal index.
+For a batch-capable live committer it requests one relation-classification batch
+and consumes contiguous proposal-indexed results. Each validated decision is
+then applied sequentially through the same acceptance, provenance,
+reinforcement, reconciliation and persistence code used by single commits.
+Thus N extracted proposals use one extraction model call plus one relation model
+call, while canonical mutation remains ordered and A008-owned.
 
 The coordinator returns `completed`, `staging_failed`, `commit_failed`, or
 `index_repair_required`. A commit failure checkpoint identifies the same
@@ -929,7 +939,7 @@ actual in-memory SQLite and one shared fake transport. It performs chat,
 knowledge analysis, relation classification, guarded `extend` plus index
 update, then a second chat read. The first turn projects active revision-one
 meaning and the second projects revision two under the same canonical ID.
-Structural assertions cover exact four-call order, bounded two-message dialogue,
+Structural assertions cover bounded two-message dialogue,
 separate reasoning/content, stateless semantic requests, canonical/audit state,
 and reasoning/control-ID exclusion. It deliberately does not prove automatic
 activation of a brand-new dormant draft. Reported timings are observations, not

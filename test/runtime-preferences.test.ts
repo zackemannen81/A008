@@ -46,8 +46,23 @@ function fakeTransport(analyze: () => unknown = () => []) {
   const transport: ChatTransport = { async complete(request) {
     requests.push(request);
     const op = operation(request);
+    const semantic = (() => {
+      try {
+        return JSON.parse(request.messages.at(-1)!.content) as {
+          readonly input?: { readonly items?: readonly { readonly proposalHandle?: unknown }[] };
+        };
+      } catch {
+        return undefined;
+      }
+    })();
+    const relation = Array.isArray(semantic?.input?.items)
+      ? JSON.stringify(semantic.input.items.map((item) => ({
+          proposalHandle: item.proposalHandle,
+          type: "new",
+        })))
+      : '{"type":"new"}';
     const content = op === "knowledge_analysis" ? JSON.stringify(analyze()) :
-      op === "relation_classification" ? '{"type":"new"}' :
+      op === "relation_classification" ? relation :
       op === "retrieval_scope" ? '{"domains":[],"relatedDomains":[]}' : "Synthetic answer.";
     return { message: { role: "assistant", content } };
   } };
