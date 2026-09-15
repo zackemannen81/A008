@@ -284,7 +284,7 @@ function semanticGeneration(model: string, limits: RuntimeBudgets) {
   const capabilities = generationCapabilities(model);
   return { ...SEMANTIC_JSON_GENERATION,
     ...(capabilities.topP ? {} : { topP: null }),
-    ...(model === "gpt-5.6-luna" ? { reasoningEffort: "none" } : {}),
+    ...(model === "gpt-5.6-luna" ? { temperature: null, reasoningEffort: "none" } : {}),
     maxTokens: Math.min(limits.semanticOutputTokens, capabilities.maxTokens) };
 }
 

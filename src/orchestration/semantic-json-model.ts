@@ -189,10 +189,11 @@ function generationOptions(
   value: Omit<ChatGenerationOptions, "stream"> | undefined,
 ): ChatGenerationOptions {
   const raw = (value ?? {}) as Record<string, unknown>;
-  const temperature = optionalFiniteNumber(
-    raw.temperature,
-    "temperature",
-  ) ?? SEMANTIC_JSON_GENERATION.temperature;
+  const temperature = raw.temperature === null ? undefined :
+    optionalFiniteNumber(
+      raw.temperature,
+      "temperature",
+    ) ?? SEMANTIC_JSON_GENERATION.temperature;
   // Null deliberately omits an unsupported control; undefined keeps the default.
   // Capability selection belongs to the runtime, not this provider-neutral owner.
   const topP = raw.topP === null ? undefined :

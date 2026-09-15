@@ -431,6 +431,50 @@ test("direct and ACME local runtimes commit equivalent chat and knowledge", asyn
   assert.match(direct.secondContent, /alpha-seven/u);
 });
 
+test("Luna semantic retrieval and extraction omit unsupported temperature through ACME", async () => {
+  const semanticRequests: Array<Record<string, unknown>> = [];
+  const semanticOperations: string[] = [];
+  const baseFetch = acmeFetch((request) => {
+    const operation = semanticOperation(request);
+    if (operation) semanticOperations.push(operation);
+    return {
+      content: operation === "retrieval_scope"
+        ? '{"domains":[],"relatedDomains":[],"tags":[],"relatedTags":[]}'
+        : operation === "knowledge_analysis" ? "[]" : "Luna answer.",
+    };
+  });
+  const fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+    const url = String(input);
+    if (url.endsWith(ACME_MODEL_RUNTIME_EXECUTE_PATH)) {
+      const body = JSON.parse(String(init?.body ?? "{}")) as { request?: Record<string, unknown> };
+      const request = body.request ?? {};
+      const serialized = JSON.stringify(request);
+      if (serialized.includes("retrieval_scope") ||
+          serialized.includes("knowledge_analysis")) {
+        semanticRequests.push(request);
+      }
+    }
+    return baseFetch(input, init);
+  };
+  const isolated = isolatedMemoryEnv({
+    NVIDIA_API_KEY: "",
+    OPENAI_API_KEY: "sk-openai-fixture",
+    A008_CHAT_TRANSPORT: "acme",
+    A008_ACME_MODEL_RUNTIME_URL: BASE,
+  });
+  const runtime = createLocalMemoryRuntime({ env: isolated.env, surface: "test", fetch });
+  try {
+    const result = await runtime.openSession({ model: "gpt-5.6-luna" }).turn("hello");
+    assert.equal(result.completion.message.content, "Luna answer.");
+    assert.equal(result.postOutput.status, "completed");
+    assert.deepEqual(semanticOperations, ["retrieval_scope", "knowledge_analysis"]);
+    assert.equal(semanticRequests.length, 2);
+    assert.equal(semanticRequests.every(request => !Object.hasOwn(request, "temperature")), true);
+  } finally {
+    runtime.close();
+  }
+});
+
 test("explicit ACME composition does not require provider keys and does not default on", () => {
   const direct = parseLocalRuntimeConfig(
     { A008_PROJECT_ID: TEST_PROJECT_ID },
