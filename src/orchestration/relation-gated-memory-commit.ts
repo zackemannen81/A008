@@ -62,6 +62,22 @@ export interface RelationClassifierInput {
   readonly candidates: readonly RelationClassifierCandidate[];
 }
 
+export interface RelationClassifierBatchItem {
+  readonly proposalHandle: string;
+  readonly sourceSupport?: { readonly origin: "message" | "source"; readonly content: string; readonly start: number; readonly end: number };
+  readonly proposal: RelationClassifierProposal;
+}
+
+export interface RelationClassifierBatchInput {
+  readonly associationContext?: AssociationClassifierContext;
+  readonly candidates: readonly RelationClassifierCandidate[];
+  readonly items: readonly RelationClassifierBatchItem[];
+}
+
+export type RelationClassifierBatchDecision = RelationClassifierDecision & {
+  readonly proposalHandle: string;
+};
+
 export type RelationClassifierDecision = { readonly associations?: readonly SemanticAssociationDecision[] } & (
   | { readonly type: "new" }
   | {
@@ -79,6 +95,10 @@ export interface KnowledgeRelationClassifier {
     input: RelationClassifierInput,
     context?: SemanticOperationContext,
   ): Promise<RelationClassifierDecision>;
+  classifyBatch?(
+    input: RelationClassifierBatchInput,
+    context?: SemanticOperationContext,
+  ): Promise<readonly RelationClassifierBatchDecision[]>;
 }
 
 export interface RelationClassifierBudget {
@@ -337,6 +357,45 @@ export function serializeRelationClassifierInput(
       authority: candidate.authority,
       confidence: candidate.confidence,
       activationStatus: candidate.activationStatus,
+    })),
+  });
+}
+
+export function serializeRelationClassifierBatchInput(
+  input: RelationClassifierBatchInput,
+): string {
+  return JSON.stringify({
+    ...(input.associationContext === undefined ? {} : { associationContext: {
+      source: { origin: input.associationContext.source.origin, content: input.associationContext.source.content },
+      entities: input.associationContext.entities.map((entity) => ({
+        handle: entity.handle, labels: [...entity.labels], type: entity.type,
+      })),
+      existing: input.associationContext.existing.map((edge) => ({
+        fromHandle: edge.fromHandle, toHandle: edge.toHandle, relation: edge.relation, scope: [...edge.scope],
+      })),
+    } }),
+    candidates: input.candidates.map((candidate) => ({
+      handle: candidate.handle,
+      proposition: candidate.proposition,
+      kind: candidate.kind,
+      tags: [...candidate.tags],
+      scope: [...candidate.scope],
+      authority: candidate.authority,
+      confidence: candidate.confidence,
+      activationStatus: candidate.activationStatus,
+    })),
+    items: input.items.map((item) => ({
+      proposalHandle: item.proposalHandle,
+      ...(item.sourceSupport === undefined ? {} : { sourceSupport: item.sourceSupport }),
+      proposal: {
+        proposition: item.proposal.proposition,
+        kind: item.proposal.kind,
+        tags: [...item.proposal.tags],
+        scope: [...item.proposal.scope],
+        domains: [...item.proposal.domains],
+        entities: [...item.proposal.entities],
+        confidence: item.proposal.confidence,
+      },
     })),
   });
 }
