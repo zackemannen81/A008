@@ -1,310 +1,409 @@
-![alt text](https://github.com/zackemannen81/A008/blob/main/A008hero.jpg?raw=true)
+![A008](https://github.com/zackemannen81/A008/blob/main/A008hero.jpg?raw=true)
+
 # A008
 
-A008 is an early AI-client implementation built around one provider-neutral
-chat core shared by terminal and GUI-facing surfaces. The current product slice
-contains a tested CLI, NVIDIA adapter, custom ACP bridge for OpenHands Agent
-Canvas, provider-neutral semantic-memory reference core, and typed runtime
-identity/binding primitives. Semantic memory now also has a durable local
-project-namespaced SQLite adapter and bounded hybrid read path. A real local
-Canvas/Agent Server browser turn is verified against a loopback fake provider;
-an exported memory-aware application session now composes verified identity,
-bounded memory/dialogue, and one existing chat call. Provider reasoning is an
-explicit display-only channel, and an exported post-output service can stage
-bounded semantic proposals from only the user message and final answer. An
-exported relation gate now compares one proposal with bounded materialized
-current candidates, maps an ID-free five-way decision, and performs guarded
-reconciliation plus explicit index repair. A provider-neutral coordinator now
-stages once and processes multi-proposal results sequentially with explicit
-partial-failure and repair checkpoints. Local CLI and A008 ACP now share that
-memory-aware runtime, a narrow user-assertion activation gate, and opt-in
-secret-safe debug tracing. Agent Server conversation binding and resume remain
-deferred.
+A008 is a provider-neutral AI client and local engine with one shared runtime for
+chat, tools, projects and persistent semantic memory. It currently ships a CLI,
+an A008-owned web GUI/host, an ACP compatibility bridge, a portable engine
+bundle, shared protocol contracts and an authenticated V2 WebSocket surface for
+independent/native clients.
+
+The repository is the canonical successor to A007. A007 is retired; A008 is the
+current Single Source of Truth.
+
+## Current state
+
+| Area | Implemented state |
+| --- | --- |
+| Shared engine | Project-bound `ProjectRuntimeRegistry` / `EngineHost`, shared sessions, process ownership fencing and portable engine packaging |
+| Web client | A008-owned Vite/React GUI using the compatible V1 host surface |
+| Native/external API | V2 discovery, scoped device auth, one-use tickets and authenticated `WS /v2/session` |
+| Semantic memory | Project-namespaced SQLite, semantic scope retrieval, additive projection, post-output extraction/reconciliation and L2/L3 lifecycle |
+| Providers | NVIDIA Build, kie.ai and OpenAI chat dispatch; NVIDIA/kie image generation |
+| Projects | Create new projects or register/open an existing root without mutating its files |
+| Tools | Approved repository/file/Git/shell tools plus approved stdio MCP tools |
+| Compatibility | Stable V1 web/ACP paths remain covered while V2 is built out |
+
+The stable-client API programme has completed Stages 1–3. Stage 4 — authoritative
+turn/event recovery and idempotency semantics — is the next backend boundary.
+See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_stable-client-api-program.md).
 
 ## What works now
 
-- A portable **A008 Engine** with bundled Node/runtime dependencies and all current
-  A008 views, opened in a session-bound panel by the companion Felix client.
-  See [engine setup and packaging](docs/ENGINE.md).
-- Structured model tools: an approved shell command or approved stdio MCP tool
-  executes on the host and returns its result to the model. Instructions remain
-  user-owned; no coding prompt is hardcoded or automatically loaded.
-- Global editable budgets and persistent instructions across projects/models;
-  see [runtime settings](docs/RUNTIME_SETTINGS.md).
+- Transactional chat sessions with streamed thought/content separation, rollback
+  on failed turns and model-aware generation controls.
+- One runtime/provider/memory ownership model shared by CLI, ACP, standalone GUI,
+  portable engine and V2 session transport.
+- Seven built-in chat profiles plus a user catalog. Live dispatch selects NVIDIA
+  Build, kie.ai or OpenAI from the selected model/provider configuration.
+- Persistent semantic memory with exact/entity/lexical/tag/domain retrieval,
+  accumulated semantic discussion scope, bounded provider context, current/history
+  separation and durable provenance.
+- Post-output knowledge intake from the original user/source content and final
+  answer only. Model proposals are validated, relation-classified and reconciled
+  through runtime-owned canonical state; reasoning never becomes memory.
+- Independent evidence and association lifecycle with reinforcement, dormant
+  state, decay policy, receipts and audit in knowledge schema 4.
+- Read-only memory diagnostics: overview, relationship map and knowledge manager.
+- Structured model tools with explicit approval: repository read/create/edit,
+  literal Git operations, shell execution and stdio MCP.
+- Source intake with content-addressed storage and extraction for UTF-8 text,
+  Markdown, PDF text layers and Word documents.
+- Sandboxed renderer-local Code Canvas for completed HTML artifacts.
+- Standalone PIN gate, same-origin enforcement, secret redaction and write-only
+  provider-key settings.
+- Short-loss V1 web-session recovery with heartbeat and a 45-second in-memory
+  resume capability. This is a V1 GUI behavior, not the V2 Stage-4 contract.
 
-- Transactional in-memory `ChatSession` with successful-turn commit and failed-
-  turn rollback.
-- Provider-neutral message, request, stream-delta, result, error, model, and
-  transport contracts.
-- NVIDIA's OpenAI-compatible chat-completions adapter using native fetch.
-- Streaming SSE reasoning/content assembly and non-streaming JSON responses.
-- Typed authentication, rate-limit, provider, server, timeout, cancellation,
-  network, configuration, unknown-model, and invalid-response errors.
-- One verified model profile: `nvidia/nemotron-3.5-lightning-30b-a3b`.
-- Thin CLI for model listing and interactive memory-aware chat.
-- A008-owned product GUI: a Vite/React client in `gui/` served by an A008 GUI
-  host in `src/gui-host/` that bridges a documented WebSocket to `A008-acp`.
-  Chat, streaming thought as a separate channel, slash composer, host-side
-  `/shell`, settings, and A008 branding. No credential reaches the renderer.
-- Document upload: `POST /v1/upload` stores the original outside the repository
-  under a content-addressed locator, and the ACP process extracts its text and
-  records it as evidence with honest provenance. UTF-8 text, PDF and Word
-  documents are read; anything else — images, spreadsheets, presentations, a
-  PDF that is a scan — is stored and reported as not extracted, with the media
-  type named, so the same blob can be re-extracted later.
-- Stable-v1 `A008-acp` stdio bridge that Agent Server can launch as a Custom
-  Agent Canvas agent.
-- Visible Agent Canvas round trip through that bridge and the same provider
-  adapter using a deterministic loopback endpoint.
-- Atomic in-memory semantic-state reference engine with explicit reconciliation,
-  active/dormant discovery, current/history separation, and hard bounded context
-  projection.
-- Project-namespaced SQLite semantic-memory persistence plus a deterministic
-  exact/entity, lexical, tag, domain, and optional-vector candidate funnel.
-- Read-only selected projection with separate candidate/projection/activation
-  thresholds and bounded debug evidence outside execution context.
-- Provider-neutral `MemoryAwareChatSession` that strips routing/control fields,
-  bounds provider-visible dialogue to at most two prior messages, enforces an
-  exact serialized-message budget, and preserves one transport call.
-- Provider-neutral `PostOutputKnowledgeIntake` that excludes reasoning and
-  control data, assigns conservative runtime-owned fields, and stages bounded
-  untrusted proposals without reconciling or persisting them.
-- Provider-neutral `RelationGatedMemoryCommit` that performs one bounded
-  current-candidate search, exposes only local handles and semantic fields to a
-  relation classifier, guards every materialized revision, and reports index
-  completion or a retryable repair document explicitly.
-- Provider-neutral `PostOutputMemoryCoordinator` that stages once, commits
-  proposals in order, stops on incomplete indexing, and resumes from explicit
-  checkpoints without replaying earlier canonical work.
-- Runnable fake-provider/actual-SQLite two-turn benchmark for repeated memory
-  selection, reasoning isolation, bounded dialogue, and control-ID exclusion.
-- Local CLI/ACP composition that streams answers first, then awaits post-output
-  settlement against project-namespaced SQLite.
-- Opt-in `off` / `safe` / `raw` JSONL debug traces that never record API keys
-  or authorization headers.
-- Versioned typed project/conversation/task/agent/ACP-session IDs plus an atomic
-  in-memory ACP binding repository; default ACP sessions use the canonical ID.
-- Fake-only automated coverage; tests make no live provider calls.
+For the detailed observed state, use
+[`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md) and
+[`docs/SYSTEMDOC.md`](docs/SYSTEMDOC.md).
 
 ## Requirements
 
-- Node.js 22.12 or newer.
-- npm.
-- `NVIDIA_API_KEY` only when using interactive NVIDIA chat.
+- Node.js `>=22.13.0`
+- npm
+- At least one provider credential for live chat: `NVIDIA_API_KEY`, `KIE_API_KEY`
+  or `OPENAI_API_KEY`
+
+Model listing, help, contract verification and most automated tests do not need a
+provider credential. Automated tests do not load `.env.local` or make live
+provider calls.
 
 ## Install and verify
 
 ```powershell
 npm ci
+npm --prefix gui ci
 npm run typecheck
-npm run build
 npm test
-npm run benchmark:memory-loop
+npm run verify:protocol
+npm --prefix gui run build
 ```
 
-`npm test` is the full gate: it runs the core suite against compiled output and
-then the GUI module tests. `npm run test:core` and `npm run test:gui` address
-the halves. The GUI tests need `gui/` dependencies installed
-(`npm --prefix gui ci`).
+The latest Stage-3 closure passed **602 core + 4 membership + 162 GUI = 768
+tests** with zero failures/skips. The independently packed `@a008/protocol`
+consumer and portable-engine V2 discovery proof also passed.
 
-## CLI
+Useful additional checks:
 
-List models without loading a credential:
+```powershell
+npm run benchmark:memory-loop
+npm run package:engine
+```
+
+## CLI quick start
+
+List available models without loading a credential:
 
 ```powershell
 npm run build
 node .\dist\src\cli.js models
 ```
 
-For local chat, copy `.env.example` to `.env.local`, set
-`NVIDIA_API_KEY`, then run:
+For local chat, copy `.env.example` to `.env.local`, configure one supported
+provider key, then run:
 
 ```powershell
 npm run cli -- chat
 ```
 
-Inside chat, `/help` lists interactive commands. `/reset` and `/clear` clear
-conversation turns while preserving the system message and SQLite namespace.
-`/exit` ends the session. `/shell <command>` (alias `/!`) runs a local
-terminal command in the process working directory through A008's native
-runner — not LangChain. See
-`docs/LOCAL_MEMORY_SURFACES.md` and `docs/DEBUG_TRACE.md` for SQLite path,
-identity, activation, and tracing settings. Default memory state is
-`~/.A008/memory.sqlite`.
+Interactive commands include `/help`, `/model`, `/status`, `/history`, `/undo`,
+`/reset`, `/cwd`, `/tools`, `/shell` (or `/!`) and `/exit`.
 
-## A008 GUI
+The CLI uses the same project-scoped memory-aware runtime as ACP. Provider
+reasoning is display-only; committed chat and semantic intake receive the final
+answer, not private reasoning.
 
-The product GUI is A008-owned. It does not require Agent Server.
+See [`docs/LOCAL_MEMORY_SURFACES.md`](docs/LOCAL_MEMORY_SURFACES.md),
+[`docs/RUNTIME_SETTINGS.md`](docs/RUNTIME_SETTINGS.md) and
+[`docs/DEBUG_TRACE.md`](docs/DEBUG_TRACE.md).
 
-```bash
+## Standalone A008 GUI
+
+```powershell
 npm run gui
 ```
+That builds `gui/` and starts the A008 GUI host. By default the single-origin
+application is served at `http://127.0.0.1:8787`.
 
-That builds `gui/` and starts the A008 GUI host, which serves the built client
-and the API from one origin at `http://127.0.0.1:8787`. `NVIDIA_API_KEY` and
-memory settings are read from the host process environment; nothing is sent to
-the browser.
+For hot-reload renderer development, run host and Vite separately:
 
-For renderer development with hot reload, run the host and Vite separately:
-
-```bash
+```powershell
 npm run gui-host
-```
-
-```bash
 npm --prefix gui run dev
 ```
 
-Vite serves the client on `http://127.0.0.1:5173` and proxies `/health` and
-`/v1`, including the `/v1/session` WebSocket upgrade, to the host.
+The bundled web GUI intentionally remains on the compatible V1 surface while the
+new independent-client API is developed. It includes Chat, Memory, Tools, Help,
+Projects, provider/model parameters, appearance themes, source upload, repository
+work and Code Canvas.
 
-The host exposes `GET /health`, `GET /v1/models`, `POST /v1/shell`,
-`POST /v1/upload`, and `WS /v1/session`. Session frames are `session/new`, `prompt`, and `cancel` in,
-and `session/new/ok`, `thought`, `answer`, `prompt/ok`, and `error` out.
-Reasoning arrives as `thought` and is never merged into `answer`. `POST
-/v1/shell` runs in the host process working directory through the same terminal
-runner as the CLI `/shell` command, and refuses any cross-origin request that
-is not loopback. See `docs/adr/0019-a008-owned-gui.md` for the boundary and
-`docs/evidence/A008-0030_gui-runtime-proof.md` for the end-to-end proof.
+Standalone mode can use `A008_GUI_PIN` with exactly six digits. Provider keys stay
+in the host process and are never returned to the renderer. Shell and upload
+requests use the same authenticated host boundary.
 
-An external client speaks to this host: see
-[`docs/HOST_PROTOCOL.md`](docs/HOST_PROTOCOL.md) for the complete surface. The
-bundled `gui/` is a live-test surface rather than the product interface
-(ADR 0022); the product client is maintained separately.
+See [`docs/HOST_PROTOCOL.md`](docs/HOST_PROTOCOL.md) for V1 behavior and
+[`docs/GUI_REPOSITORY_TOOLS.md`](docs/GUI_REPOSITORY_TOOLS.md) for repository
+work from the GUI.
 
-If your client presents an `Origin` header the host does not recognise — a
-desktop renderer loading from `file://` sends `null` — name it with
-`A008_GUI_HOST_ALLOWED_ORIGINS`. A client that sends no `Origin` at all needs no
-configuration.
+## Projects
 
-`A008_PROVIDER_TIMEOUT_MS` caps a single provider request; the default is
-180000. The provider adapter's own fallback is 60 seconds, which a
-completeness-oriented knowledge extraction now routinely exceeds.
+Projects supports two distinct creation paths:
 
-The verified model profile's generation defaults can be overridden per
-deployment without editing the profile, which means "checked against the model
-card": `A008_CHAT_TEMPERATURE`, `A008_CHAT_TOP_P`, `A008_CHAT_MAX_TOKENS`,
-`A008_CHAT_REASONING_BUDGET`, and `A008_CHAT_THINKING` (`on`/`off`). The profile
-ships `reasoningBudget` equal to `maxTokens`, so reasoning can consume the whole
-output budget and truncate the answer; capping the budget is the usual reason to
-set these. They apply to chat turns. Semantic JSON calls keep their own
-deterministic profile — temperature 0, thinking off, non-streaming — because
-they must return strict parseable JSON.
+- **New project** — preview and create a root, optional Git, Docs-First starter
+  and multi-agent policy.
+- **Add existing** — register an already-existing absolute directory and open it
+  through the shared runtime owner without modifying files inside that project.
 
-`A008_GUI_HOST_PORT` overrides the host port. `A008_SOURCE_STORE_PATH` enables
-uploads and must point outside the repository; without it `POST /v1/upload` is
-refused rather than the host failing to start.
+Existing-project registration generates the A008 project identity and writes only
+the external project registry. It does not guess, merge or migrate legacy memory.
 
-`POST /v1/upload` takes raw bytes with `content-type: application/octet-stream`
-and an `x-a008-filename` header. The filename is advisory: the media type is
-decided by the file's magic bytes, so a PDF named `.txt` is treated as a PDF and
-a Word document is told apart from a spreadsheet by the parts inside it.
-The host writes the blob and sends only the locator to the ACP process, which
-resolves it, refuses anything escaping the store root, extracts the text, and
-ingests it. See `docs/adr/0020-source-upload-ingest.md` and
-`docs/evidence/A008-0041_upload-ingest-proof.md`.
+## V2 API for native and independent clients
 
-## Agent Canvas bridge
+Stage 3 provides a usable authenticated session transport for clients such as
+Tauri or Expo.
 
-Agent Canvas is an operator compatibility path, not the product GUI.
+Discovery is public:
 
-After building, configure Agent Canvas's Custom ACP command as:
+```text
+GET /v2/info
+```
+
+Owner-local device credentials are created after a build:
+
+```powershell
+npm run build
+npm run device -- grant --name MyClient --project PROJECT_ID --capability session
+npm run device -- list
+npm run device -- revoke DEVICE_ID
+```
+
+The raw device credential is printed once. Only its SHA-256 hash and bounded
+metadata are stored in A008. Keep the raw credential in the platform secure
+store; never place it in a URL, repository or provider prompt.
+
+A device obtains a short-lived one-use ticket with authenticated
+`POST /v2/auth/ticket`, then opens:
+
+```text
+WS /v2/session
+Sec-WebSocket-Protocol: a008.v2
+```
+
+The first frame must authenticate within five seconds:
+```json
+{ "type": "authenticate", "ticket": "..." }
+```
+
+Implemented Stage-3 actions are:
+
+```text
+session/new
+session/inspect
+session/prompt
+session/cancel
+session/control
+tool/permission
+```
+
+Each connection is bound to one authenticated principal/project and at most one
+attached session. Device existence, project scope, capability and expiry are
+rechecked on every operation. Revocation or expiry closes the live socket,
+cancels owned work and denies pending tool approvals.
+
+Current limits include 4 KiB pre-auth frames, 1 MiB authenticated input, 8 MiB
+output and 64 KiB prompt text. The shared wire schemas live in
+`packages/protocol/src/v2-auth.ts` and `packages/protocol/src/v2-session.ts`.
+
+See [`docs/CLIENT_AUTH.md`](docs/CLIENT_AUTH.md) for the implemented contract and
+[`docs/CLIENT_API_V2.md`](docs/CLIENT_API_V2.md) for the accepted complete V2
+target.
+
+### Important Stage-4 boundary
+
+V2 does **not yet** promise reconnect/resume, event sequencing plus authoritative
+snapshot boundaries, stable terminal turn outcomes or command-idempotency
+receipts. Native clients should not invent those semantics independently; they
+belong to Stage 4 of A008-0103.
+
+## Providers and models
+
+A008 dispatches chat through the existing shared provider boundary:
+
+- NVIDIA Build through `NvidiaChatTransport`
+- kie.ai through `KieChatTransport`
+- OpenAI through `OpenAiChatTransport`
+
+The built-in registry currently contains seven verified profiles. User-added chat
+models and provider/image settings live in the A008 user catalog rather than in
+project source. Explicit model identity owns routing, so a saved provider
+preference cannot silently hijack a selected model from another provider.
+
+Provider keys may be supplied by environment or the reviewed local secret store.
+The GUI receives only configured/source metadata, never key values.
+
+Image generation is available through NVIDIA NIMs or kie Market jobs. Listed
+video/music/native-provider endpoints that are marked unwired remain unsupported.
+
+## Semantic memory
+
+The live local runtime uses project-namespaced SQLite knowledge storage. A turn
+can retrieve through exact/entity, lexical, stored tag/domain and classified
+semantic-scope signals, then project matching state/history/events/utterances/
+claims/artifacts/provenance additively under a hard context budget.
+
+After a delivered answer, A008 can analyze durable claims, compare each proposal
+to bounded current candidates, apply one of `new`, `restatement`, `extend`,
+`supersede` or `conflict`, update indexes and persist canonical knowledge.
+User/source attribution and exact support spans gate reinforcement and acceptance.
+
+Evidence and semantic associations have independent lifecycle metadata,
+reinforcement receipts, decay policy and audit. Reads and inspection do not
+strengthen memory merely by observing it.
+See [`docs/KNOWLEDGE_MEMORY_MODEL.md`](docs/KNOWLEDGE_MEMORY_MODEL.md) for the
+accepted knowledge model and [`docs/SEMANTIC_MEMORY.md`](docs/SEMANTIC_MEMORY.md)
+for the lower-level memory contract.
+
+## Portable engine
+
+A008 can be packaged with its own Node runtime and production dependencies:
+
+```powershell
+npm run package:engine
+```
+
+The extracted engine carries the compiled core, host, GUI, ACP surface and shared
+protocol contract. Runtime data remains outside the installation. The package is
+verified from an extracted copy rather than only from the source checkout.
+
+See [`docs/ENGINE.md`](docs/ENGINE.md).
+
+## Agent Canvas / ACP compatibility
+
+Agent Canvas remains a supported operator compatibility path, not the primary
+A008 product GUI. After building, its Custom ACP command can point to:
 
 ```text
 node C:/code/A008/dist/src/acp/server.js
 ```
 
-Select `nvidia/nemotron-3.5-lightning-30b-a3b` and provide `NVIDIA_API_KEY`
-through Agent Server's secret boundary. The bridge is protocol-tested and has a
-visible local Canvas/browser result against a loopback fake endpoint. See
-`docs/AGENT_CANVAS_INTEGRATION.md` for the exact boundary, Windows notes, and
-limitations, and `docs/evidence/A008-0005_agent-canvas-runtime-proof.md` for the
-safe proof record.
+`A008-acp` uses the official ACP SDK, shares the same local runtime/memory
+composition, streams thought and answer separately, supports session controls and
+structured tool approvals, and has been exercised through a real local Agent
+Canvas / Agent Server browser path against a deterministic loopback provider.
+
+See [`docs/AGENT_CANVAS_INTEGRATION.md`](docs/AGENT_CANVAS_INTEGRATION.md).
 
 ## Architecture boundary
 
 ```text
-CLI ------------------------.
-                             |
-browser -> A008 GUI host ----|   (product path, ADR 0019)
-                             v
-Agent Canvas -> Agent Server -> A008-acp -> createLocalMemoryRuntime
-                                         -> one NVIDIA ChatTransport
-                                         -> MemoryAwareChatSession
-                                         -> post-output coordinator
-                                         -> NvidiaChatTransport
-                                         -> POST /v1/chat/completions
+CLI --------------------------.
+A008 web GUI -> V1 host ------|----> shared ProjectRuntimeRegistry / EngineHost
+native client -> V2 host -----'                 |
+                                                v
+                                      project-bound session
+                                                |
+                      .-------------------------+----------------------.
+                      |                         |                      |
+                      v                         v                      v
+                 ChatSession              approved tools       semantic memory
+                      |                                            read + write
+                      v
+              provider dispatch
+          .-----------+-----------.
+          |           |           |
+          v           v           v
+       NVIDIA       kie.ai      OpenAI
 
-verified application context -> MemoryAwareChatSession
-                             -> HybridMemoryReader -> SemanticMemory
-                             -> bounded prompt envelope
-                             -> ChatSession -> existing provider transport
-
-original message + final answer -> PostOutputKnowledgeIntake
-                                -> bounded staged proposals
-                                -> PostOutputMemoryCoordinator
-                                   -> RelationGatedMemoryCommit per proposal
-                                   |- indexed current candidates
-                                   |- ID-free five-way relation
-                                   |- guarded SemanticMemory.reconcile
-                                   `- updated / not_required / pending_repair
-
-MemoryRepository -> SQLite local adapter / in-memory test adapter
-
-future application context -> AcpIdentityBindingRepository
-                           -> in-memory reference adapter
+Agent Canvas -> Agent Server -> A008-acp -------^
 ```
 
-Core imports do not read environment variables or depend on terminal code. The
-NVIDIA adapter receives the credential and an injectable fetch function at its
-boundary. CLI and ACP share the same composition factory. See
-`docs/SYSTEMDOC.md`, `docs/adr/0003-initial-runtime-and-provider-boundary.md`,
-and `docs/adr/0004-agent-canvas-acp-boundary.md`.
+The core does not read provider credentials itself. Composition roots own
+environment/storage concerns and inject provider transports, project identity,
+SQLite and tool boundaries. Supported clients converge on the same runtime owner
+instead of implementing independent chat or memory engines.
 
-The exported orchestration path now connects read-only memory to the existing
-chat owner when its caller supplies complete verified identity. It sends one
-deterministic user-level context envelope, never commits that envelope to chat
-history. Reasoning remains display-only. The separate staging boundary accepts
-only message and final answer and creates no provider call. The relation gate
-processes one staged proposal through an injected classifier and explicit
-runtime-owned write/index boundary; no live application constructs either
-service or the coordinator yet. See
-`docs/MEMORY_AWARE_CHAT_ORCHESTRATION.md`, `docs/SEMANTIC_MEMORY.md`,
-`docs/HYBRID_MEMORY_READ_PATH.md`, `docs/POST_OUTPUT_KNOWLEDGE_INTAKE.md`,
-`docs/RELATION_GATED_MEMORY_COMMIT.md`,
-`docs/POST_OUTPUT_MEMORY_COORDINATOR.md`,
-`docs/adr/0008-memory-aware-chat-orchestration.md`,
-`docs/adr/0009-reasoning-and-post-output-intake.md`,
-`docs/adr/0010-relation-gated-memory-commit.md`, and
-`docs/adr/0011-post-output-memory-coordinator.md`.
+The public contract package is `packages/protocol/`. It has no provider,
+filesystem, runtime or React dependency and is independently packed/installed as
+part of verification.
 
-Runtime IDs and ACP binding records are control-plane handles, not model
-knowledge. The current ACP request cannot supply a complete cross-component
-binding, so only its session ID uses the new contract today. See
-`docs/RUNTIME_IDENTITY.md` and `docs/adr/0006-runtime-identity-v0.md`.
+## Stable client API programme
 
-## Provider references
+| Stage | Status |
+| --- | --- |
+| 1. Current contract | Complete |
+| 2. Project/session ownership | Complete |
+| 3. V2 and authentication | Complete |
+| 4. Turns and recovery | Next |
+| 5. SDK and web migration | Not started |
+| 6. Independent Expo proof | Not started |
+| 7. Compatibility release | Not started |
 
-- [NVIDIA NIM LLM API reference](https://docs.api.nvidia.com/nim/reference/llm-apis)
-- [Nemotron 3.5 Lightning model page](https://build.nvidia.com/nvidia/nemotron-3.5-lightning-30b-a3b)
+The current V2 transport is deliberately useful before Stage 4, but Stage 4 is
+where reconnect uncertainty, snapshot/event ordering and mutation replay become
+stable shared semantics. Stage 5 then moves those contracts into an independent
+SDK and migrates the bundled web client.
 
-## Security
+## Security boundaries
 
-The exposed legacy credential was revoked and rotated by the owner on
-2026-09-01. Raw legacy source remains ignored and must not be executed or
-committed. The replacement credential belongs only in ignored `.env.local` or a
-reviewed secret provider. Automated tests never load it.
+- Provider credentials never belong in browser/native source, project files,
+  URLs or model prompts.
+- Native V2 devices use scoped expiring credentials and short-lived one-use WS
+  tickets; owner grant/revoke remains local administration.
+- Tool execution requires structured calls and explicit approval. Retrieved text
+  or command-shaped assistant prose cannot grant execution authority.
+- Source paths and project bindings are host-owned; ordinary V2 clients select
+  registered project IDs, not arbitrary storage paths.
+- The HTML Code Canvas preview is a unique-origin sandbox with network-denying
+  policy and no host credential/tool handles.
+- Raw legacy A007 material is provenance only and must not be executed or
+  recommitted. Its historical exposed credential has been revoked.
 
-## Project workflow
+For the complete current constraints and known gaps, read
+[`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md).
 
-For file editing, commands and Git directly in the A008 GUI, see
-[Repository work in the GUI](docs/GUI_REPOSITORY_TOOLS.md). Run `npm run gui`,
-connect, then open Tools → Repository. No external frontend is required.
+## Configuration highlights
 
-Read `AGENTS.md`, then `docs/CURRENT_TASK.md` and the reading order it names.
+- `A008_GUI_HOST_PORT` — standalone host port.
+- `A008_GUI_PIN` — optional six-digit standalone browser gate.
+- `A008_GUI_HOST_ALLOWED_ORIGINS` — additional reviewed browser origins.
+- `A008_SOURCE_STORE_PATH` — source/image blob store; must be outside the repo.
+- `A008_PROVIDER_TIMEOUT_MS` — single provider-request timeout.
+Chat generation controls also have deployment overrides such as
+`A008_CHAT_TEMPERATURE`, `A008_CHAT_TOP_P`, `A008_CHAT_MAX_TOKENS`,
+`A008_CHAT_REASONING_BUDGET` and `A008_CHAT_THINKING`. Runtime/global settings are
+revision-guarded and documented in
+[`docs/RUNTIME_SETTINGS.md`](docs/RUNTIME_SETTINGS.md).
+
+## Docs-first workflow
+
+Repository authority lives in the repository, not in chat history or agent
+memory. Start with [`AGENTS.md`](AGENTS.md), then follow the reading order in
+`docs/CURRENT_TASK.md`.
+
+The key truth surfaces are:
+
+- [`docs/PROJECT_BRIEF.md`](docs/PROJECT_BRIEF.md) — approved product contract.
+- [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md) — observed current reality.
+- [`docs/SYSTEMDOC.md`](docs/SYSTEMDOC.md) — durable implemented behavior.
+- [`docs/JOURNAL.md`](docs/JOURNAL.md) — append-only work history.
+- [`docs/FILESTRUCTURE.md`](docs/FILESTRUCTURE.md) — repository map.
+- [`docs/adr/`](docs/adr/) — accepted architecture decisions.
+- [`docs/tasks/`](docs/tasks/) — active/frozen programme and task records.
+- [`docs/finished/`](docs/finished/) — immutable completed-task archives.
+
+## Project lineage
+
+```text
+A007  original project — retired
+  |
+  `-- A008  active canonical repository / SSOT
+```
+
+Downstream A007-derived frontends are not upstream authority for A008.
 
 ## License
 
-A008-owned repository contents are licensed under Apache License 2.0. Reused
-third-party code retains its original license and notice requirements.
-# A008
+A008-owned repository contents are licensed under the Apache License 2.0.
+Third-party code and dependencies retain their own licenses and notices.
