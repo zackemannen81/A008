@@ -1,0 +1,422 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "authenticated"
+        },
+        "serverInstanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "type",
+        "serverInstanceId",
+        "projectId"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "result"
+        },
+        "serverInstanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "session/new",
+            "session/inspect",
+            "session/prompt",
+            "session/cancel",
+            "session/control",
+            "tool/permission"
+          ]
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "state": {
+          "type": "object",
+          "properties": {
+            "projectId": {
+              "type": "string",
+              "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "model": {
+              "type": "string"
+            },
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "stream": {
+                  "type": "boolean"
+                },
+                "temperature": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "topP": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "maxTokens": {
+                  "type": "number"
+                },
+                "enableThinking": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "reasoningBudget": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "reasoningEffort": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "seed": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "stop": {
+                  "anyOf": [
+                    {
+                      "readOnly": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "stream",
+                "temperature",
+                "topP",
+                "maxTokens",
+                "enableThinking",
+                "reasoningBudget",
+                "reasoningEffort",
+                "seed",
+                "stop"
+              ],
+              "additionalProperties": false
+            },
+            "messages": {
+              "readOnly": true,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "user",
+                      "assistant"
+                    ]
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "role",
+                  "content"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "active": {
+              "type": "boolean"
+            },
+            "tools": {
+              "readOnly": true,
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "description"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "undone": {
+              "type": "boolean"
+            },
+            "closed": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "projectId",
+            "sessionId",
+            "model",
+            "parameters",
+            "messages",
+            "active"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "type",
+        "serverInstanceId",
+        "requestId",
+        "action",
+        "projectId"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "signal"
+            },
+            "signal": {
+              "type": "string",
+              "enum": [
+                "thought",
+                "answer"
+              ]
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "signal",
+            "sessionId",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "signal"
+            },
+            "signal": {
+              "type": "string",
+              "const": "tool"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "title": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "signal",
+            "sessionId",
+            "id",
+            "title",
+            "status",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "signal"
+            },
+            "signal": {
+              "type": "string",
+              "const": "tool/permission"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "permissionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "title": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "signal",
+            "sessionId",
+            "permissionId",
+            "title",
+            "text"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "error"
+        },
+        "serverInstanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "requestId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "code": {
+          "type": "string",
+          "enum": [
+            "INVALID_REQUEST",
+            "UNAUTHENTICATED",
+            "FORBIDDEN",
+            "PROJECT_NOT_FOUND",
+            "SESSION_EXPIRED",
+            "SESSION_BUSY",
+            "REVISION_CONFLICT",
+            "UNSUPPORTED_CAPABILITY",
+            "PROJECT_BINDING_CONFLICT",
+            "COMMAND_CONFLICT",
+            "COMMAND_UNKNOWN",
+            "CAPACITY_EXCEEDED",
+            "SNAPSHOT_TOO_LARGE",
+            "RUNTIME_FAILED"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        },
+        "sessionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "type",
+        "serverInstanceId",
+        "code",
+        "message",
+        "retryable"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

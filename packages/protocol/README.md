@@ -1,11 +1,10 @@
 # @a008/protocol
 
-Shared A008 **v1** HTTP and WebSocket/session wire contract. Host, core wire adapters and
-web client consume this owner. It has no runtime, filesystem, provider, React or
+Shared A008 v1 HTTP/WebSocket contract plus the implemented V2 authentication and session wire schemas. Host, core wire adapters and web/client consumers use this owner. It has no runtime, filesystem, provider, React or
 browser-global imports. Zod 4.5.4 is its only runtime dependency.
 
 This package is private and can be built and installed as a local tarball. Version
-1.0.0 identifies this package; it does not introduce protocol negotiation or V2.
+1.0.0 identifies this private package build; V1 compatibility remains frozen while exported V2 schemas describe the separately negotiated `a008.v2` surface.
 
 ```sh
 npm run build:protocol
@@ -118,14 +117,11 @@ now live here; their runtime behavior remains with the existing owners. Auth
 profiles depend on host configuration, so the OpenAPI alternatives include both
 unauthenticated standalone mode and configured cookie/engine-token access.
 
-No V2, new auth, project isolation, event ordering, replay, idempotency or native
-platform support guarantee is introduced by this extraction.
+V2 authentication/session schemas are now exported, but event ordering, replay/reconnect, idempotency and native platform support remain outside the protocol package guarantee until their owning stages land.
 
 ## License
 
 A008-owned package content is Apache-2.0 (included `LICENSE`). Zod retains its MIT
 license. Portable engine builds include its notice for the bundled web client.
 
-A008-0110 exports V2 authentication/discovery/error schemas and their generated
-JSON Schema/OpenAPI files (`schemas/v2-auth.openapi.json`). This foundation does
-not imply V2 chat/session availability. Existing v1 exports remain compatible.
+A008-0110 exports V2 authentication/discovery/error schemas and generated auth OpenAPI. A008-0112 adds V2 session client/server frame schemas for first-frame ticket authentication, commands/results/signals and structured errors. `/v2/session` availability is a host behavior; this package supplies transport-independent shapes only. Existing v1 exports remain compatible.

@@ -2355,3 +2355,12 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   records remaining stages and the next stage-3 charter prerequisites.
 - Program stages 1/2 complete; stage 3 partial, stages 4-7 unstarted.
 - Signature: Codex
+
+## 2026-09-15 - A008-0112 V2 session transport closes Stage 3
+
+- Operator: Codex. `/v2/session` now provides authenticated `a008.v2` first-frame ticket admission and project/principal/session-bound business dispatch over the shared runtime owner.
+- Admission enforces five seconds, 4-KiB pre-auth and 1-MiB authenticated frame bounds. Device capability/expiry is checked per operation; revoke/expiry closes live transport, cancels owned work and denies pending approvals.
+- Real-host regressions cover ticket one-use, wrong protocol/project/principal/session, second-writer and concurrent-new fencing, prompt/cancel/control, tool approval and outbound secret redaction. The tests found and fixed stale `active: true` prompt snapshots and concurrent session/new binding.
+- Full root gate: 602 core + 4 membership + 162 GUI = 768 passed before final docs-only closure. Installed protocol proof, generated schemas, production GUI build and portable-engine `/v2/info` proof pass. No live provider call, real device grant, deployment or running-host restart.
+- A008-0103 Stage 3 is Complete. Stage 4 owns turn/event ordering, authoritative snapshot boundary, terminal outcomes, reconnect/resume and command idempotency.
+- [Handoff](handoffs/A008-0112.md). Signature: Codex
