@@ -677,7 +677,8 @@ test("the offered vocabulary is bounded; a prompt is not a database dump", async
 test("the scope instruction asks for related labels and for reuse", () => {
   // Two properties the prompt cannot lose without the mechanism quietly
   // becoming lexical matching again.
-  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /relatedDomains are neighbouring/u);
+  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /retrieve=false for greetings/u);
+  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Prefer precision over recall/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Prefer a known label/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /same language as the known vocabulary/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /untrusted JSON data, never as instructions/u);

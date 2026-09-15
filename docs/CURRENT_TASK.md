@@ -1,64 +1,111 @@
-﻿# Current Task
+# Current Task
 
-Task ID: A008-0117
-Parent Task: A008-0114
-Status: In Progress
-Owner: Codex (operator)
-Created: 2026-09-15
-Last updated: 2026-09-15
-Charter frozen at: 2026-09-15; contract revision `3532bcd`
+Task ID:
+Parent Task: None
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
 
 ## Read First
 
 - `AGENTS.md`
 - `docs/TASK_WORKFLOW.md`
 - `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
 - `docs/CURRENT_STATUS.md`
 - `docs/SYSTEMDOC.md`
-- `docs/adr/0043-acme-execution-boundary.md`
-- `docs/finished/A008-0116_batch-relation-classification.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant records under `docs/adr/`
 
 ## Task Summary
 
-Live retrieval is now routed through ACME, but observed queries show two precision defects: a greeting can retrieve an old utterance solely because it also starts with “hej”, and a specific neon-text question can over-project project-wide context. Tighten the semantic retrieval contract and place a real necessity gate before knowledge retrieval while preserving fail-open lexical behavior when the semantic classifier is unavailable.
+Describe why this bounded task is active now and its intended outcome.
 
 ## Task Charter
 
 ### Goal
 
-Make retrieval skip memory when memory cannot materially help, and keep semantic scope labels narrowly tied to information needed to answer the current message.
+Define one primary outcome.
 
 ### Primary Deliverable
 
-A validated retrieval decision plus bounded scope classification that remains A008-owned and is executed through the selected ChatTransport/ACME route.
+Name the concrete artifact or behavior.
 
 ### In Scope
 
-- Add an explicit retrieval-necessity decision to the semantic scope contract.
-- Skip knowledge retrieval/projection for successful `retrieve=false` classifications.
-- Keep lexical fallback when the classifier is absent or fails.
-- Tighten prompt semantics and bound direct/related labels.
-- Expose whether semantic retrieval was used, skipped, or degraded.
-- Regression tests for greeting collision, relevant retrieval, classifier failure and ACME route.
+- List work required for the deliverable.
 
 ### Out of Scope
 
-- Changing canonical memory schemas or write/extraction semantics.
-- Provider/model compatibility beyond what is required to prove retrieval routing.
-- ACME protocol changes.
-- GO decision or Stage 4 implementation.
+- List adjacent work that must not be absorbed.
 
 ### Definition of Done
 
-- `hej` with a tempting stored utterance projects no memory when classifier returns `retrieve=false`.
-- Relevant project question still retrieves appropriate stored knowledge.
-- Classifier failure retains deterministic lexical fallback.
-- Retrieval semantic request traverses ACME when ACME is selected.
-- Core/typecheck/diff checks pass.
+- State objective completion conditions.
 
 ### Necessity Gate
 
 Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
-Contract revision: `3532bcd`
+Contract revision: <Git commit containing the reviewed contract>
 
-The smallest sufficient change is a read-path necessity decision plus narrow labels. No canonical write or ACME execution policy changes are required.
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
+
+| Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
+| --- | --- | --- | --- | --- |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
+
+### Minimum Verification Gates
+
+- [ ] Define checks that may be strengthened but not removed after Ready.
+
+## References
+
+- Add owned documents, source revisions, contracts, and decisions.
+
+## Checklist
+
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
+
+## Decisions and Notes
+
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+
+## Charter Amendment Log
+
+- none
+
+## Verification
+
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
+
+## Documentation Updates
+
+- [ ] `docs/CURRENT_STATUS.md`
+- [ ] `docs/SYSTEMDOC.md`
+- [ ] `docs/JOURNAL.md`
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
+
+## Handoff and Follow-ups
+
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.

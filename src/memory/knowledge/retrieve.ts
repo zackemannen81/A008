@@ -644,10 +644,23 @@ function claimMatchesQuery(
   return false;
 }
 
+const LEXICAL_STOPWORDS = new Set([
+  "and", "any", "are", "can", "does", "for", "from", "have", "how", "the", "this", "what", "when", "where", "which", "who", "why", "with",
+  "att", "det", "den", "du", "ett", "har", "hur", "kan", "med", "och", "som", "vad", "var", "vem", "vilken", "vilket", "varför",
+]);
+
 function lexicalOverlap(left: string, right: string): boolean {
-  const leftTokens = tokenize(left);
-  const rightTokens = tokenize(right);
-  return leftTokens.some((token) => token.length >= 3 && rightTokens.includes(token));
+  const leftTokens = contentTokens(left);
+  const rightTokens = new Set(contentTokens(right));
+  const matches = leftTokens.filter((token) => rightTokens.has(token)).length;
+  // One shared content word is useful for a genuinely short query. Longer
+  // queries need two independent lexical signals so a generic project word
+  // such as "demo" cannot pull an entire project history into context.
+  return matches >= (leftTokens.length >= 3 ? 2 : 1);
+}
+
+function contentTokens(value: string): readonly string[] {
+  return [...new Set(tokenize(value).filter((token) => token.length >= 3 && !LEXICAL_STOPWORDS.has(token)))];
 }
 
 function tokenize(value: string): readonly string[] {

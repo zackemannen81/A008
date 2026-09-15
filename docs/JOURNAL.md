@@ -2382,3 +2382,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Verification: 26 local links resolve, stale early-project phrases are absent and `git diff --check` passes. Runtime tests/build were not repeated because no product source, schema or generated protocol artifact changed.
 - No provider call, credential operation, deployment, publication or host restart. [Handoff](handoffs/A008-0113.md).
 - Signature: Codex
+
+## 2026-09-15 — A008-0117 retrieval precision
+
+Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, explicit `skipped`/`degraded` evidence, and stronger multi-token lexical admission. Greetings no longer retrieve old greeting utterances when semantic classification says memory is unnecessary; classifier failure still degrades to deterministic retrieval. Verification: 632/632 core, typecheck and diff-check.

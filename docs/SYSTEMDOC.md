@@ -744,7 +744,7 @@ record threshold or `keepAlive`. Scope misses do not decay. Policies control
 relevance, boost, and rank order but cannot rewrite canonical contents.
 
 The hybrid reader accepts verified runtime IDs, the current message, task
-scopes, and at most two bounded recent raw turns. Its deterministic planner
+scopes, and at most two bounded recent raw turns. A model-backed scope classifier first returns an explicit retrieval-necessity decision plus bounded direct/related domains and tags. A successful `retrieve=false` decision produces an empty projection without touching the knowledge store. Classifier failure is fail-open and falls back to the deterministic lexical path. Longer lexical queries require two independent content-token overlaps, while short queries may still match one strong term. Its deterministic planner
 derives retrieval labels and queries but never selects knowledge IDs. Candidate
 channels are bounded independently, merged by canonical ID, and scored once.
 Candidate admission, projection eligibility, and persistent activation remain
