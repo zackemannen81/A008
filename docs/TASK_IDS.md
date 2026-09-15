@@ -126,3 +126,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0110 | V2 authentication foundation | Codex (operator) | 2026-09-15 | shared auth schemas, owner-local device grants, scoped expiring credentials and one-use tickets |
 | A008-0111 | register and open existing projects | Codex (operator) | 2026-09-15 | host-owned existing-project adoption without project-tree mutation |
 | A008-0112 | V2 session transport and authority | Codex (operator) | 2026-09-15 | first-frame WS auth, project/session business dispatch, capability and live-revocation gates |
+| A008-0113 | README current-state refresh | Codex (operator) | 2026-09-15 | align public README with implemented Stage 1-3 API, current runtime/memory/providers and verified usage |
