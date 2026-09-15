@@ -130,3 +130,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0114 | ACME execution substrate evaluation (Stage 3.5) | Grok (delegated) | 2026-09-15 | execution-adapter parity, failure-evidence proof and go/no-go before Stage 4 |
 | A008-0115 | Luna semantic control compatibility | Codex (operator) | 2026-09-15 | omit unsupported Luna temperature on semantic retrieval and memory extraction |
 | A008-0116 | batch relation classification | Codex (operator) | 2026-09-15 | replace per-proposal semantic relation calls with one bounded batch classification |
+| A008-0117 | retrieval precision and necessity gate | Codex (operator) | 2026-09-15 | semantic retrieval necessity, narrow labels and ACME route evidence |
