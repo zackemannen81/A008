@@ -1,4 +1,5 @@
 import { useId, useMemo, useRef, useState } from "react";
+import { NodeShape } from "./memory-graph-shape.jsx";
 import {
   KIND_LABEL,
   MEMORY_KINDS,
@@ -273,6 +274,7 @@ export function MemoryGraph({
                     }}
                   >
                     <title>{node.label}</title>
+                    <NodeShape kind={node.kind} size={isHub ? 23 : 16} />
                     <circle className="memory-node-hit" r="20" />
                     <circle className="memory-node-ring" r={isHub ? 23 : 16} />
                     <circle
