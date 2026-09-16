@@ -134,3 +134,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0118 | ACME runtime/2 consumer and control-parity GO | Grok (operator) | 2026-09-15 | consume acme-model-runtime/2, explicit executionProvider, aligned control contracts, Stage 3.5 GO |
 | A008-0119 | preserve valid final answers and V2 runtime diagnostics | ChatGPT (operator hotfix) | 2026-09-16 | reasoning-normalizer false positive and safe V2 error detail |
 | A008-0120 | re-factoring prompts | mrwhite81 (operator) | 2026-09-16 | prompts in /src/prompt-contracts |
+| A008-0121 | harden post-output knowledge extraction eligibility | ChatGPT (operator) | 2026-09-16 | durable-claim filtering, entity hygiene and prompt regressions |
