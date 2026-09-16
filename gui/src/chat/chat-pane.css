@@ -94,16 +94,16 @@
 
   background: linear-gradient(
     to bottom,
-    #3fbf6f 0%,
-    #3fbf6f 16.66%,
-    #d9d64a 16.66%,
-    #d9d64a 33.33%,
-    #e48b3c 33.33%,
-    #e48b3c 50%,
-    #d94a4a 50%,
-    #d94a4a 66.66%,
-    #8d3f78 66.66%,
-    #8d3f78 83.33%,
+    #47ed87 0%,
+    #47ed87 16.66%,
+    #fffb00 16.66%,
+    #fffb00 33.33%,
+    #f77f16 33.33%,
+    #f77f16 50%,
+    #f42c2c 50%,
+    #f42c2c 66.66%,
+    #b82691 66.66%,
+    #b82691 83.33%,
     #3d7fc4 83.33%,
     #3d7fc4 100%
   );
@@ -113,7 +113,7 @@
   color: transparent;
   -webkit-text-fill-color: transparent;
 
-  opacity: 0.92;
+  opacity: 1.0;
 
   font-family: var(--a008-mono, ui-monospace, monospace);
   font-size: 4.5px;

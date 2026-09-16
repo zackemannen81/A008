@@ -254,7 +254,16 @@ export function App() {
           <summary>Runtime details</summary>
           <SettingsPane session={session} />
         </details>
-        <p className="a008-sidebar-footer">A008 · Local engine</p>
+        <div className="a008-sidebar-footer">
+          <img
+            className="a008-certified"
+            src="/acme-engine-certified.png"
+            alt="Running ACME-engine certified"
+            width={1280}
+            height={1164}
+          />
+          <p>A008 · Local-engine</p>
+        </div>
       </aside>
       <header className="a008-header">
         <div className="a008-header-title">

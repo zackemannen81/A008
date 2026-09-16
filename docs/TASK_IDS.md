@@ -132,4 +132,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0116 | batch relation classification | Codex (operator) | 2026-09-15 | replace per-proposal semantic relation calls with one bounded batch classification |
 | A008-0117 | retrieval precision and necessity gate | Codex (operator) | 2026-09-15 | semantic retrieval necessity, narrow labels and ACME route evidence |
 | A008-0118 | ACME runtime/2 consumer and control-parity GO | Grok (operator) | 2026-09-15 | consume acme-model-runtime/2, explicit executionProvider, aligned control contracts, Stage 3.5 GO |
-| A008-0119 | Isolation of prompts | mrWhite81 (operator) | 2026-09-16 | prompt-contracts |
+| A008-0119 | preserve valid final answers and V2 runtime diagnostics | ChatGPT (operator hotfix) | 2026-09-16 | reasoning-normalizer false positive and safe V2 error detail |
