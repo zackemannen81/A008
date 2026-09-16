@@ -858,10 +858,15 @@ substring of the original source. A quote that exists only in the answer is
 omitted, not treated as malformed. Missing or ambiguous quotes skip
 reinforcement and keep the proposal. The instruction describes types in prose
 instead of displaying JSON-like pseudocode.
-Completeness applies to qualifying durable claims; no runtime greeting blacklist
-is added. Invalid-response diagnostics identify the model and semantic operation,
-retaining strict failure and the bounded response excerpt. Provider/cancellation
-failures retain their original error identity.
+Completeness applies only after a durability eligibility gate. Routine execution
+narration, transient workflow state, immediate requests and one-off occurrences are
+not promoted into durable preferences, habits or standing goals unless the source
+explicitly establishes persistence. Assistant-answer-only discoveries require a
+higher durability threshold. Extracted entities are instructed to name stable,
+independently identifiable referents; generic concepts belong in tags/domains.
+No runtime greeting blacklist is added. Invalid-response diagnostics identify the
+model and semantic operation, retaining strict failure and the bounded response
+excerpt. Provider/cancellation failures retain their original error identity.
 
 Only non-empty strict JSON assistant content is returned. A single whole-content
 Markdown fence may be unwrapped (ADR 0012 D6); prose, fragments and malformed JSON

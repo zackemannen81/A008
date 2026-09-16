@@ -499,9 +499,24 @@ test("the analyzer instruction keeps its two structural guarantees", () => {
   assert.match(instruction, /\[\]/u);
 
   // The field allow-list the staging validator enforces.
-  for (const field of ["proposition", "kind", "tags", "domains", "entities", "confidence"]) {
+  for (const field of ["proposition", "kind", "tags", "domains", "entities", "confidence", "severity", "support"]) {
     assert.match(instruction, new RegExp(field, "u"));
   }
+
+  // Eligibility is decided before completeness, so immediate workflow state
+  // and a one-off request cannot be promoted into durable user preference.
+  assert.match(instruction, /Precision at this eligibility boundary is more important than recall/iu);
+  assert.match(instruction, /request, command or immediate work intention/iu);
+  assert.match(instruction, /not by itself a durable preference/iu);
+
+  // Entity output names independently identifiable referents, never a bag of
+  // generic concepts that only make sense inside the sentence that produced it.
+  assert.match(instruction, /stable, independently identifiable referents/iu);
+  assert.match(instruction, /Concepts belong in tags or domains, not entities/iu);
+  assert.match(instruction, /When in doubt, do not emit the entity/iu);
+
+  // A single observation must not become a persistent trait or pattern.
+  assert.match(instruction, /Do not infer a preference, habit, trend, recurring behavior/iu);
 
   // It is one joined string, not an array leaked into the request.
   assert.equal(typeof instruction, "string");

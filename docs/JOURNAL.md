@@ -2403,3 +2403,11 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 ## 2026-09-15 — A008-0117 retrieval precision
 
 Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, explicit `skipped`/`degraded` evidence, and stronger multi-token lexical admission. Greetings no longer retrieve old greeting utterances when semantic classification says memory is unnecessary; classifier failure still degrades to deterministic retrieval. Verification: 632/632 core, typecheck and diff-check.
+
+## 2026-09-17 — A008-0121 extractor hardening
+
+- Operator: ChatGPT. Hardened post-output extraction so durability eligibility is decided before completeness; immediate requests/workflow narration no longer qualify as persistent preference/state without explicit persistence.
+- Entity guidance now requires stable independently identifiable referents, while concepts stay in tags/domains; structured proposition, severity, confidence and exact source-support contracts remain unchanged.
+- Verification: 637/637 core tests, typecheck, build and `git diff --check` pass. No completion-time live provider call was required.
+- Owner-run live comparison exposed separate follow-ups: `entities[]` write-path alias collapse, missing structural claim↔entity links/current-batch entity handles, non-self-contained batch relation prompt, effective-domain projection and assistant-answer provenance. These were intentionally not absorbed into frozen A008-0121.
+- Signature: ChatGPT
