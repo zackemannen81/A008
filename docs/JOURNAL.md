@@ -2,6 +2,13 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-16 — A008-0119: Prompts refactoring
+
+- Task: A008-0118; operator: mrwhite81; branch: `mrwhite81/A008-0119_prompts-refactoring`
+- Moved prompts for extraction and classification aso. to src/prompt-contracts
+- [Handoff](). [Archive](finished/A008-0119_refactoring-prompts.md). []().
+- Signature: mrWhite
+
 ## 2026-09-15 — A008-0118: ACME runtime/2 consumer and Stage 3.5 GO
 
 - Task: A008-0118; operator: Grok; branch: `grok/A008-0118-acme-runtime-v2-consumer`.
