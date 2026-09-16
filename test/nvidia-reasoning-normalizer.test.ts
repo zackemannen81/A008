@@ -66,3 +66,21 @@ test("verifiedFinalAnswer never returns leaked reasoning", () => {
   assert.equal(answer, live.expectedAnswer);
   assert.equal(answer.includes(live.reasoning), false);
 });
+
+test("numbered Markdown with bold headings is a valid final answer", () => {
+  const content = [
+    "1. **Finjustera scenerna**",
+    "- rotozoom: zoom och rotation",
+    "",
+    "2. **Snyggare scenövergångar**",
+    "- Låt övergången styras av musikens beat.",
+    "",
+    "3. **Intro och outro**",
+    "- Avsluta med END OF TRANSMISSION.",
+  ].join("\n");
+  assert.equal(looksLikeChainOfThought(content), false);
+  assert.equal(
+    verifiedFinalAnswer({ message: { role: "assistant", content } }),
+    content,
+  );
+});

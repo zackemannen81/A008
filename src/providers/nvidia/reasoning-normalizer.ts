@@ -14,11 +14,7 @@ const RESPONSE_MARKER =
 const HOLD_AFTER_REASONING_CHARS = 80;
 
 export function looksLikeChainOfThought(text: string): boolean {
-  return (
-    /thinking process/iu.test(text) ||
-    RESPONSE_MARKER.test(text) ||
-    (/\*\*[A-Z][^*]+\*\*/u.test(text) && /^\s*\d+\.\s/mu.test(text))
-  );
+  return /thinking process/iu.test(text) || RESPONSE_MARKER.test(text);
 }
 
 export function splitLeakedContent(content: string): {
