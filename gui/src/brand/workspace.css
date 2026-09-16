@@ -35,6 +35,12 @@
 .a008-settings-title { display: none; }
 .a008-settings-row dt { letter-spacing: normal; text-transform: none; }
 .a008-sidebar-footer { margin-top: auto; padding: .65rem; font-size: .75rem; color: var(--a008-muted); }
+.a008-certified {
+  width: 8.25rem;
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
 .a008-header { grid-column: 2 / -1; grid-row: 1; display: flex; justify-content: space-between; gap: .75rem; padding: .65rem 1.5rem; background: var(--a008-bg); border: 0; }
 .a008-header-title { display: flex; align-items: center; gap: .75rem; min-width: 0; font-weight: 600; }
 .a008-header-workspace { color: var(--a008-muted); font-size: .8rem; font-weight: 400; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
