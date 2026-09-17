@@ -14,8 +14,7 @@ import {
   semanticOperation,
 } from "./helpers.js";
 
-const ASSERTION =
-  "Durable fact: the local memory project code is alpha-seven.";
+const ASSERTION = "Durable fact: the local memory project code is alpha-seven.";
 const PROPOSITION = "the local memory project code is alpha-seven";
 
 test("CLI two-turn chat commits a user assertion and projects it next turn", async () => {
@@ -34,7 +33,8 @@ test("CLI two-turn chat commits a user assertion and projects it next turn", asy
       const raw = input as { readonly message?: unknown };
       return raw.message === ASSERTION
         ? [
-            { severity: "important",
+            {
+              severity: "important",
               proposition: PROPOSITION,
               kind: "fact",
               tags: ["memory"],
@@ -69,7 +69,10 @@ test("CLI two-turn chat commits a user assertion and projects it next turn", asy
     );
     assert.equal(code, 0);
     assert.equal(chatRequests.length, 2);
-    assert.match(chatRequests[1]?.messages.at(-1)?.content ?? "", new RegExp(PROPOSITION, "u"));
+    assert.match(
+      chatRequests[1]?.messages.at(-1)?.content ?? "",
+      new RegExp(PROPOSITION, "u"),
+    );
     assert.equal(
       JSON.stringify(chatRequests[1]?.messages).includes("PRIVATE_CLI_MEMORY"),
       false,
@@ -89,30 +92,58 @@ test("CLI keeps explicit --system distinct from fallback across model changes", 
     const isolated = isolatedMemoryEnv();
     const preferences = new RuntimePreferencesStore(isolated.env, 180000);
     const before = preferences.snapshot();
-    preferences.save({ ...before.settings, instructions: "Global CLI instruction." }, before.revision);
-    const transport = memoryAwareFakeTransport({ chat: () => ({ content: "ok" }) });
-    const stdin = Readable.from((async function* () {
-      yield "first question\n"; await waitForImmediate();
-      yield "/model meta/muse-glimmer-30b\n"; await waitForImmediate();
-      yield "second question\n"; await waitForImmediate();
-      yield "/exit\n";
-    })());
+    preferences.save(
+      { ...before.settings, instructions: "Global CLI instruction." },
+      before.revision,
+    );
+    const transport = memoryAwareFakeTransport({
+      chat: () => ({ content: "ok" }),
+    });
+    const stdin = Readable.from(
+      (async function* () {
+        yield "first question\n";
+        await waitForImmediate();
+        yield "/model meta/muse-glimmer-30b\n";
+        await waitForImmediate();
+        yield "second question\n";
+        await waitForImmediate();
+        yield "/exit\n";
+      })(),
+    );
     try {
       const stderr = captureStream();
-      const code = await runCli(["chat", ...(explicit === undefined ? [] : ["--system", explicit])], {
-        stdin, stdout: captureStream().stream, stderr: stderr.stream,
-        env: isolated.env, createTransport: () => transport,
-      });
+      const code = await runCli(
+        ["chat", ...(explicit === undefined ? [] : ["--system", explicit])],
+        {
+          stdin,
+          stdout: captureStream().stream,
+          stderr: stderr.stream,
+          env: isolated.env,
+          createTransport: () => transport,
+        },
+      );
       assert.equal(code, 0, stderr.text());
-      const chat = transport.requests.filter(r => semanticOperation(r) === undefined);
+      const chat = transport.requests.filter(
+        (r) => semanticOperation(r) === undefined,
+      );
       assert.equal(chat.length, 2, stderr.text());
       assert.notEqual(chat[0]!.model, chat[1]!.model);
-      for (const request of chat) assert.deepEqual(request.messages.filter(m => m.role === "system"), [{
-        role: "system", content: [
-          ...(explicit === undefined ? [] : [explicit]),
-          "Global CLI instruction.", MEMORY_CONTEXT_SYSTEM_INSTRUCTION,
-        ].join("\n\n"),
-      }]);
-    } finally { rmSync(isolated.directory, { recursive: true, force: true }); }
+      for (const request of chat)
+        assert.deepEqual(
+          request.messages.filter((m) => m.role === "system"),
+          [
+            {
+              role: "system",
+              content: [
+                ...(explicit === undefined ? [] : [explicit]),
+                "Global CLI instruction.",
+                MEMORY_CONTEXT_SYSTEM_INSTRUCTION,
+              ].join("\n\n"),
+            },
+          ],
+        );
+    } finally {
+      rmSync(isolated.directory, { recursive: true, force: true });
+    }
   }
 });

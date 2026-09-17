@@ -1,9 +1,5 @@
 import { once } from "node:events";
-import {
-  createServer,
-  type IncomingMessage,
-  type Server,
-} from "node:http";
+import { createServer, type IncomingMessage, type Server } from "node:http";
 import { pathToFileURL } from "node:url";
 
 export const FAKE_NVIDIA_REPLY_TOKEN = "A008-CANVAS-LOOPBACK-OK";
@@ -35,7 +31,10 @@ export interface RunningFakeNvidiaServer {
 }
 
 interface ChatPayload {
-  readonly messages?: Array<{ readonly content?: unknown; readonly role?: unknown }>;
+  readonly messages?: Array<{
+    readonly content?: unknown;
+    readonly role?: unknown;
+  }>;
   readonly model?: unknown;
   readonly stream?: unknown;
 }
@@ -77,10 +76,17 @@ function semanticEnvelope(
   }
   try {
     const parsed = JSON.parse(content) as unknown;
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
       return undefined;
     }
-    const raw = parsed as { readonly operation?: unknown; readonly input?: unknown };
+    const raw = parsed as {
+      readonly operation?: unknown;
+      readonly input?: unknown;
+    };
     if (typeof raw.operation === "string") {
       return { operation: raw.operation, input: raw.input };
     }
@@ -110,7 +116,10 @@ function writeJson(
   );
 }
 
-function writeSse(response: import("node:http").ServerResponse, token: string): void {
+function writeSse(
+  response: import("node:http").ServerResponse,
+  token: string,
+): void {
   response.writeHead(200, {
     "cache-control": "no-cache",
     "content-type": "text/event-stream",
@@ -130,10 +139,7 @@ export async function startFakeNvidiaServer(
   const host = options.host ?? "127.0.0.1";
   const server: Server = createServer(async (request, response) => {
     try {
-      if (
-        request.method !== "POST" ||
-        request.url !== "/v1/chat/completions"
-      ) {
+      if (request.method !== "POST" || request.url !== "/v1/chat/completions") {
         response.writeHead(404).end();
         return;
       }
@@ -168,7 +174,10 @@ export async function startFakeNvidiaServer(
           return;
         }
         if (envelope?.operation === "relation_classification") {
-          writeJson(response, options.classify?.(envelope.input) ?? { type: "new" });
+          writeJson(
+            response,
+            options.classify?.(envelope.input) ?? { type: "new" },
+          );
           return;
         }
         writeJson(response, []);

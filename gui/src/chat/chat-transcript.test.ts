@@ -95,7 +95,10 @@ test("overlay never concatenates thought into answer", () => {
   assert.equal(live.thought, THOUGHT_TOKEN);
   assert.notEqual(live.answer, `${THOUGHT_TOKEN}${ANSWER_TEXT}`);
   assert.notEqual(live.answer, `${ANSWER_TEXT}${THOUGHT_TOKEN}`);
-  assert.equal(channelTexts(transcript.turns).answer.join("").includes(THOUGHT_TOKEN), false);
+  assert.equal(
+    channelTexts(transcript.turns).answer.join("").includes(THOUGHT_TOKEN),
+    false,
+  );
 });
 
 test("streaming answer extends the same assistant turn", () => {
@@ -147,9 +150,7 @@ test("a new live turn does not rewrite a completed answer", () => {
 test("captured history keeps user text off the answer channel", () => {
   const transcript = buildChatTranscript({
     session: fakeSession({ thought: THOUGHT_TOKEN, answer: ANSWER_TEXT }),
-    history: [
-      { kind: "user", id: "u1", text: "What is A008?" },
-    ],
+    history: [{ kind: "user", id: "u1", text: "What is A008?" }],
   });
   const channels = channelTexts(transcript.turns);
   assert.deepEqual(channels.user, ["What is A008?"]);
@@ -196,7 +197,10 @@ test("error stays off thought and answer channels", () => {
     }),
   });
   assert.equal(transcript.error, "host unavailable");
-  assert.equal(channelTexts(transcript.turns).answer.join("").includes("host unavailable"), false);
+  assert.equal(
+    channelTexts(transcript.turns).answer.join("").includes("host unavailable"),
+    false,
+  );
   assert.equal(
     channelTexts(transcript.turns).answer.join("").includes(THOUGHT_TOKEN),
     false,
@@ -204,7 +208,10 @@ test("error stays off thought and answer channels", () => {
 });
 
 test("empty-state copy survives a widened session status", () => {
-  assert.equal(emptyStateCopy("idle"), "Connect to start a conversation with A008.");
+  assert.equal(
+    emptyStateCopy("idle"),
+    "Connect to start a conversation with A008.",
+  );
   // A008-0033 may add a status member; the pane must still render copy.
   const widened: string = "cancelled";
   assert.equal(

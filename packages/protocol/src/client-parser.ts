@@ -1,15 +1,30 @@
-import { parseSessionSnapshot, type ClientMessage, type ServerMessage } from "./schemas.js";
+import {
+  parseSessionSnapshot,
+  type ClientMessage,
+  type ServerMessage,
+} from "./schemas.js";
 export class GuiHostProtocolError extends Error {
   override readonly name = "GuiHostProtocolError";
 }
 
 export function encodeClientMessage(message: ClientMessage): string {
   switch (message.type) {
-    case "tool/permission": return JSON.stringify(message);
+    case "tool/permission":
+      return JSON.stringify(message);
     case "session/control":
-      return JSON.stringify({ type: message.type, requestId: message.requestId, sessionId: message.sessionId, control: message.control });
+      return JSON.stringify({
+        type: message.type,
+        requestId: message.requestId,
+        sessionId: message.sessionId,
+        control: message.control,
+      });
     case "session/resume":
-      return JSON.stringify({ type: message.type, requestId: message.requestId, sessionId: message.sessionId, resumeToken: message.resumeToken });
+      return JSON.stringify({
+        type: message.type,
+        requestId: message.requestId,
+        sessionId: message.sessionId,
+        resumeToken: message.resumeToken,
+      });
     case "session/new": {
       const body: Record<string, string> = {
         type: "session/new",
@@ -26,7 +41,9 @@ export function encodeClientMessage(message: ClientMessage): string {
         requestId: message.requestId,
         sessionId: message.sessionId,
         text: message.text,
-        ...(message.attachment === undefined ? {} : { attachment: message.attachment }),
+        ...(message.attachment === undefined
+          ? {}
+          : { attachment: message.attachment }),
       });
     case "cancel":
       return JSON.stringify({
@@ -44,37 +61,101 @@ export function parseServerMessage(value: unknown): ServerMessage | undefined {
 
   switch (value.type) {
     case "tool/permission": {
-      for (const key of ["sessionId", "id", "title", "text"]) if (typeof value[key] !== "string") throw new GuiHostProtocolError("Invalid tool permission.");
-      return { type: "tool/permission", sessionId: value.sessionId as string, id: value.id as string, title: value.title as string, text: value.text as string };
+      for (const key of ["sessionId", "id", "title", "text"])
+        if (typeof value[key] !== "string")
+          throw new GuiHostProtocolError("Invalid tool permission.");
+      return {
+        type: "tool/permission",
+        sessionId: value.sessionId as string,
+        id: value.id as string,
+        title: value.title as string,
+        text: value.text as string,
+      };
     }
     case "tool": {
-      for (const key of ["sessionId", "id", "title", "status", "text"]) if (typeof value[key] !== "string") throw new GuiHostProtocolError("Invalid tool activity.");
-      return { type: "tool", sessionId: value.sessionId as string, id: value.id as string, title: value.title as string, status: value.status as string, text: value.text as string };
+      for (const key of ["sessionId", "id", "title", "status", "text"])
+        if (typeof value[key] !== "string")
+          throw new GuiHostProtocolError("Invalid tool activity.");
+      return {
+        type: "tool",
+        sessionId: value.sessionId as string,
+        id: value.id as string,
+        title: value.title as string,
+        status: value.status as string,
+        text: value.text as string,
+      };
     }
     case "session/activity": {
       const sessionId = requiredString(value, "sessionId");
-      if (!sessionId || typeof value.active !== "boolean" || value.text !== undefined && typeof value.text !== "string") throw new GuiHostProtocolError("Invalid session activity.");
-      return { type: value.type, sessionId, active: value.active, ...(value.text === undefined ? {} : { text: value.text }), ...(value.state === undefined ? {} : { state: parseSessionSnapshot(value.state) }) };
+      if (
+        !sessionId ||
+        typeof value.active !== "boolean" ||
+        (value.text !== undefined && typeof value.text !== "string")
+      )
+        throw new GuiHostProtocolError("Invalid session activity.");
+      return {
+        type: value.type,
+        sessionId,
+        active: value.active,
+        ...(value.text === undefined ? {} : { text: value.text }),
+        ...(value.state === undefined
+          ? {}
+          : { state: parseSessionSnapshot(value.state) }),
+      };
     }
     case "session/control/ok": {
       const requestId = requiredString(value, "requestId");
       const sessionId = requiredString(value, "sessionId");
-      if (requestId === undefined || sessionId === undefined) throw new GuiHostProtocolError("session/control/ok is missing identifiers.");
-      return { type: value.type, requestId, sessionId, state: parseSessionSnapshot(value.state) };
+      if (requestId === undefined || sessionId === undefined)
+        throw new GuiHostProtocolError(
+          "session/control/ok is missing identifiers.",
+        );
+      return {
+        type: value.type,
+        requestId,
+        sessionId,
+        state: parseSessionSnapshot(value.state),
+      };
     }
     case "session/new/ok": {
       const requestId = requiredString(value, "requestId");
       const sessionId = requiredString(value, "sessionId");
       const resumeToken = optionalResumeToken(value);
-      if (requestId === undefined || sessionId === undefined) throw new GuiHostProtocolError("session/new/ok is missing identifiers.");
-      return { type: value.type, requestId, sessionId, ...(resumeToken === undefined ? {} : { resumeToken }), ...(value.state === undefined ? {} : { state: parseSessionSnapshot(value.state) }) };
+      if (requestId === undefined || sessionId === undefined)
+        throw new GuiHostProtocolError(
+          "session/new/ok is missing identifiers.",
+        );
+      return {
+        type: value.type,
+        requestId,
+        sessionId,
+        ...(resumeToken === undefined ? {} : { resumeToken }),
+        ...(value.state === undefined
+          ? {}
+          : { state: parseSessionSnapshot(value.state) }),
+      };
     }
     case "session/resume/ok": {
       const requestId = requiredString(value, "requestId");
       const sessionId = requiredString(value, "sessionId");
       const resumeToken = optionalResumeToken(value);
-      if (requestId === undefined || sessionId === undefined || resumeToken === undefined) throw new GuiHostProtocolError("session/resume/ok is missing valid identifiers or resume capability.");
-      return { type: value.type, requestId, sessionId, resumeToken, ...(value.state === undefined ? {} : { state: parseSessionSnapshot(value.state) }) };
+      if (
+        requestId === undefined ||
+        sessionId === undefined ||
+        resumeToken === undefined
+      )
+        throw new GuiHostProtocolError(
+          "session/resume/ok is missing valid identifiers or resume capability.",
+        );
+      return {
+        type: value.type,
+        requestId,
+        sessionId,
+        resumeToken,
+        ...(value.state === undefined
+          ? {}
+          : { state: parseSessionSnapshot(value.state) }),
+      };
     }
     case "thought":
     case "answer": {
@@ -94,7 +175,14 @@ export function parseServerMessage(value: unknown): ServerMessage | undefined {
           "prompt/ok is missing requestId or sessionId.",
         );
       }
-      return { type: "prompt/ok", requestId, sessionId, ...(value.state === undefined ? {} : { state: parseSessionSnapshot(value.state) }) };
+      return {
+        type: "prompt/ok",
+        requestId,
+        sessionId,
+        ...(value.state === undefined
+          ? {}
+          : { state: parseSessionSnapshot(value.state) }),
+      };
     }
     case "error": {
       if (typeof value.message !== "string") {
@@ -138,9 +226,12 @@ function optionalString(
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-function optionalResumeToken(record: Record<string, unknown>): string | undefined {
+function optionalResumeToken(
+  record: Record<string, unknown>,
+): string | undefined {
   if (!("resumeToken" in record)) return undefined;
   const value = record.resumeToken;
-  if (typeof value !== "string" || !/^[a-f0-9]{64}$/u.test(value)) throw new GuiHostProtocolError("Invalid resume capability.");
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/u.test(value))
+    throw new GuiHostProtocolError("Invalid resume capability.");
   return value;
 }

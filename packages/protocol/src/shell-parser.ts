@@ -1,4 +1,4 @@
-import type { ShellHostResult } from './http-schemas.js';
+import type { ShellHostResult } from "./http-schemas.js";
 export class ShellCommandError extends Error {
   constructor(message: string, options?: { readonly cause?: unknown }) {
     super(message, options);

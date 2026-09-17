@@ -1,11 +1,15 @@
-import type { UserChatModel } from '../../packages/protocol/src/index.js';
-export type { UserChatModel } from '../../packages/protocol/src/index.js';
+import type { UserChatModel } from "../../packages/protocol/src/index.js";
+export type { UserChatModel } from "../../packages/protocol/src/index.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { ChatError } from "./errors.js";
 import { catalogExecutionProvider } from "./execution-provider.js";
-import type { ChatGenerationOptions, ModelModality, ModelProfile } from "./types.js";
+import type {
+  ChatGenerationOptions,
+  ModelModality,
+  ModelProfile,
+} from "./types.js";
 import {
   DEFAULT_IMAGE_MODEL,
   NVIDIA_IMAGE_GENERATE_URL,
@@ -52,7 +56,10 @@ const DEFAULT_KIE: KieCatalogSettings = {
 const EMPTY: UserCatalog = {
   version: 1,
   chatModels: [],
-  image: { model: DEFAULT_USER_IMAGE_MODEL, endpoint: DEFAULT_USER_IMAGE_ENDPOINT },
+  image: {
+    model: DEFAULT_USER_IMAGE_MODEL,
+    endpoint: DEFAULT_USER_IMAGE_ENDPOINT,
+  },
   chatProvider: "nvidia",
   imageProvider: "nvidia",
   kie: DEFAULT_KIE,
@@ -63,12 +70,20 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function modality(value: unknown): value is ModelModality {
-  return value === "text" || value === "image" || value === "video" || value === "audio";
+  return (
+    value === "text" ||
+    value === "image" ||
+    value === "video" ||
+    value === "audio"
+  );
 }
 
 export function parseUserCatalog(value: unknown): UserCatalog {
   if (!isRecord(value) || value.version !== 1) {
-    throw new ChatError("configuration", "User catalog must be a version 1 document.");
+    throw new ChatError(
+      "configuration",
+      "User catalog must be a version 1 document.",
+    );
   }
   const image = isRecord(value.image)
     ? {
@@ -77,7 +92,8 @@ export function parseUserCatalog(value: unknown): UserCatalog {
             ? value.image.model.trim()
             : DEFAULT_USER_IMAGE_MODEL,
         endpoint:
-          typeof value.image.endpoint === "string" && value.image.endpoint.trim()
+          typeof value.image.endpoint === "string" &&
+          value.image.endpoint.trim()
             ? value.image.endpoint.trim()
             : DEFAULT_USER_IMAGE_ENDPOINT,
       }
@@ -85,7 +101,10 @@ export function parseUserCatalog(value: unknown): UserCatalog {
   const chatModels: UserChatModel[] = [];
   if (value.chatModels !== undefined) {
     if (!Array.isArray(value.chatModels)) {
-      throw new ChatError("configuration", "User catalog chatModels must be an array.");
+      throw new ChatError(
+        "configuration",
+        "User catalog chatModels must be an array.",
+      );
     }
     for (const item of value.chatModels) {
       if (
@@ -95,7 +114,10 @@ export function parseUserCatalog(value: unknown): UserCatalog {
         typeof item.name !== "string" ||
         typeof item.provider !== "string"
       ) {
-        throw new ChatError("configuration", "User catalog chat model is malformed.");
+        throw new ChatError(
+          "configuration",
+          "User catalog chat model is malformed.",
+        );
       }
       const modalities = Array.isArray(item.inputModalities)
         ? item.inputModalities.filter(modality)
@@ -154,15 +176,24 @@ export function userModelProfile(model: UserChatModel): ModelProfile {
   };
 }
 
-export function defaultCatalogPath(env: NodeJS.ProcessEnv = process.env): string {
+export function defaultCatalogPath(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
   const configured = env[CATALOG_PATH_ENV]?.trim();
   return resolve(configured || join(homedir(), ".a008", "catalog.json"));
 }
 
-export function assertPathOutsideRepo(path: string, repoRoot: string, label: string): void {
+export function assertPathOutsideRepo(
+  path: string,
+  repoRoot: string,
+  label: string,
+): void {
   const within = relative(repoRoot, path);
   if (within === "" || (!within.startsWith("..") && !isAbsolute(within))) {
-    throw new ChatError("configuration", `${label} must be outside the A008 repository.`);
+    throw new ChatError(
+      "configuration",
+      `${label} must be outside the A008 repository.`,
+    );
   }
 }
 
@@ -178,14 +209,26 @@ export function loadUserCatalog(path: string): UserCatalog {
 
 export function saveUserCatalog(path: string, catalog: UserCatalog): void {
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(catalog, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+  writeFileSync(path, `${JSON.stringify(catalog, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
 }
 
-export function addUserChatModel(catalog: UserCatalog, model: UserChatModel): UserCatalog {
+export function addUserChatModel(
+  catalog: UserCatalog,
+  model: UserChatModel,
+): UserCatalog {
   const rest = catalog.chatModels.filter((entry) => entry.id !== model.id);
   return { ...catalog, chatModels: [...rest, model] };
 }
 
-export function removeUserChatModel(catalog: UserCatalog, id: string): UserCatalog {
-  return { ...catalog, chatModels: catalog.chatModels.filter((entry) => entry.id !== id) };
+export function removeUserChatModel(
+  catalog: UserCatalog,
+  id: string,
+): UserCatalog {
+  return {
+    ...catalog,
+    chatModels: catalog.chatModels.filter((entry) => entry.id !== id),
+  };
 }

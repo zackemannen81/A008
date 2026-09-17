@@ -1,11 +1,7 @@
 import { performance } from "node:perf_hooks";
 import { ChatSession } from "../core/chat-session.js";
 import { Utf8ByteChatMessageMeasurer } from "../core/chat-invocation.js";
-import type {
-  ChatDelta,
-  ChatRequest,
-  ChatTransport,
-} from "../core/types.js";
+import type { ChatDelta, ChatRequest, ChatTransport } from "../core/types.js";
 import { parseRuntimeId } from "../identity/runtime-id.js";
 import { CodingAgentMemoryPolicy } from "../memory/coding-agent-policy.js";
 import { DeterministicRetrievalPlanner } from "../memory/deterministic-retrieval-planner.js";
@@ -59,9 +55,7 @@ const SECOND_ANSWER =
   "It stays outside conversation history, semantic knowledge, and future prompts.";
 
 type ProviderCallKind =
-  | "chat"
-  | "knowledge_analysis"
-  | "relation_classification";
+  "chat" | "knowledge_analysis" | "relation_classification";
 
 function assertProof(condition: boolean, message: string): asserts condition {
   if (!condition) {
@@ -102,7 +96,11 @@ function operationEnvelope(request: ChatRequest):
   }
   try {
     const parsed = JSON.parse(content) as unknown;
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
       return undefined;
     }
     const raw = parsed as Record<string, unknown>;
@@ -205,7 +203,8 @@ try {
             message: {
               role: "assistant",
               content: JSON.stringify([
-                { severity: "important",
+                {
+                  severity: "important",
                   proposition: EXTENDED_PROPOSITION,
                   kind: "architecture-decision",
                   tags: ["memory", "reasoning"],
@@ -226,8 +225,7 @@ try {
           "classification must follow analysis",
         );
         const proposal = envelope.input.proposal as
-          | { readonly proposition?: unknown }
-          | undefined;
+          { readonly proposition?: unknown } | undefined;
         const candidates = envelope.input.candidates as
           | readonly {
               readonly handle?: unknown;
@@ -359,7 +357,10 @@ try {
     answer: first.completion.message.content,
     applicabilityScopes: ["runtime"],
   });
-  assertProof(commit.status === "completed", "post-output commit must complete");
+  assertProof(
+    commit.status === "completed",
+    "post-output commit must complete",
+  );
   const afterCommit = await memory.getKnowledge(KNOWLEDGE_ID);
   assertProof(afterCommit !== undefined, "extended knowledge must exist");
 
@@ -384,14 +385,13 @@ try {
     firstProjection.map((item) => item.proposition),
     secondProjection.map((item) => item.proposition),
   ];
-  const priorDialogueCounts = chatRequests.map(
-    (request) =>
-      Math.max(
-        0,
-        request.messages.filter(
-          (message) => message.role === "user" || message.role === "assistant",
-        ).length - 1,
-      ),
+  const priorDialogueCounts = chatRequests.map((request) =>
+    Math.max(
+      0,
+      request.messages.filter(
+        (message) => message.role === "user" || message.role === "assistant",
+      ).length - 1,
+    ),
   );
   const committedDialogue = chat.messages.filter(
     (message) => message.role === "user" || message.role === "assistant",

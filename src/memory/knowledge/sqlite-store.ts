@@ -1,16 +1,26 @@
-import { insertKnowledgeSnapshot, updateKnowledgeSnapshot } from "./sqlite-rows.js";
-import { AssociationLifecycle, type AssociationRecord, type AssociationReceipt, type AssociationTransition, type AssociationSnapshot } from "./association-lifecycle.js";
-import { migrateLegacyLifecycle, operationalTime, validateLifecycle } from "./lifecycle.js";
+import {
+  insertKnowledgeSnapshot,
+  updateKnowledgeSnapshot,
+} from "./sqlite-rows.js";
+import {
+  AssociationLifecycle,
+  type AssociationRecord,
+  type AssociationReceipt,
+  type AssociationTransition,
+  type AssociationSnapshot,
+} from "./association-lifecycle.js";
+import {
+  migrateLegacyLifecycle,
+  operationalTime,
+  validateLifecycle,
+} from "./lifecycle.js";
 import type { ReinforcementReceipt } from "./lifecycle-types.js";
 import Database from "better-sqlite3";
 import type { Database as BetterSqliteDatabase } from "better-sqlite3";
 import { parseRuntimeId } from "../../identity/runtime-id.js";
 import type { ProjectId } from "../../identity/types.js";
 import type { KnowledgeItem } from "../types.js";
-import {
-  deserializeInstant,
-  UNKNOWN_INSTANT,
-} from "./clocks.js";
+import { deserializeInstant, UNKNOWN_INSTANT } from "./clocks.js";
 import { KnowledgeModelError } from "./errors.js";
 import type { Claim, ProvenanceRecord, Utterance } from "./evidence-types.js";
 import type { ClaimEntityReference } from "./entity-references.js";
@@ -96,7 +106,10 @@ interface KnowledgeItemRow {
 function requireNonEmpty(value: string, field: string): string {
   const normalized = value.trim();
   if (normalized.length === 0) {
-    throw new KnowledgeModelError("invalid_input", `${field} must not be empty`);
+    throw new KnowledgeModelError(
+      "invalid_input",
+      `${field} must not be empty`,
+    );
   }
   return normalized;
 }
@@ -134,16 +147,23 @@ export class SqliteKnowledgeStore {
   private closed = false;
   private readonly clock: () => string;
   revision(): string {
-    const local = this.database.prepare("SELECT total_changes() AS n").get() as { n: number };
+    const local = this.database
+      .prepare("SELECT total_changes() AS n")
+      .get() as { n: number };
     return `${this.database.pragma("data_version", { simple: true })}:${local.n}`;
   }
   revisionAfterCommit(lockedRevision: string): string {
-    const local = this.database.prepare("SELECT total_changes() AS n").get() as { n: number };
+    const local = this.database
+      .prepare("SELECT total_changes() AS n")
+      .get() as { n: number };
     // Preserve the external version observed under the write lock. Reading a
     // newer data_version after releasing it could hide another owner's commit.
     return `${lockedRevision.split(":")[0]}:${local.n}`;
   }
-  atomic<T>(operation: () => T): T { this.requireOpen(); return this.database.transaction(operation).immediate(); }
+  atomic<T>(operation: () => T): T {
+    this.requireOpen();
+    return this.database.transaction(operation).immediate();
+  }
 
   constructor(options: SqliteKnowledgeStoreOptions) {
     this.clock = options.clock ?? (() => new Date().toISOString());
@@ -152,18 +172,19 @@ export class SqliteKnowledgeStore {
     this.namespace = this.projectId;
     this.ownsDatabase = options.database === undefined;
     this.database =
-      options.database ??
-      new Database(this.filename, { timeout: 5_000 });
+      options.database ?? new Database(this.filename, { timeout: 5_000 });
     try {
       this.database.pragma("foreign_keys = ON");
       if (this.filename !== ":memory:") {
         this.database.pragma("journal_mode = WAL");
       }
-      this.database.transaction(() => {
-        this.database.exec(KNOWLEDGE_SQLITE_SCHEMA);
-        this.migrateSchemaVersion();
-        this.assertSchemaVersion();
-      }).immediate();
+      this.database
+        .transaction(() => {
+          this.database.exec(KNOWLEDGE_SQLITE_SCHEMA);
+          this.migrateSchemaVersion();
+          this.assertSchemaVersion();
+        })
+        .immediate();
     } catch (error) {
       if (this.ownsDatabase) {
         this.database.close();
@@ -210,7 +231,15 @@ export class SqliteKnowledgeStore {
     const snapshot = this.load();
     const migrated = migrateV0Items(this.loadV0Items(), snapshot);
     const migrationAt = this.clock();
-    this.replaceNamespace({ ...migrated.snapshot, lifecycle: { ...migrated.snapshot.lifecycle, records: migrated.snapshot.lifecycle.records.map(r => migrateLegacyLifecycle(r, migrationAt)) } });
+    this.replaceNamespace({
+      ...migrated.snapshot,
+      lifecycle: {
+        ...migrated.snapshot.lifecycle,
+        records: migrated.snapshot.lifecycle.records.map((r) =>
+          migrateLegacyLifecycle(r, migrationAt),
+        ),
+      },
+    });
     this.database
       .prepare(
         `INSERT INTO A008_knowledge_migration(namespace, from_schema, status, chains_migrated)
@@ -299,7 +328,10 @@ export class SqliteKnowledgeStore {
       .prepare(
         "SELECT claim_id, entity_id FROM A008_knowledge_claim_entities WHERE namespace = ? ORDER BY claim_id, entity_id",
       )
-      .all(this.namespace) as { readonly claim_id: string; readonly entity_id: string }[];
+      .all(this.namespace) as {
+      readonly claim_id: string;
+      readonly entity_id: string;
+    }[];
     const labelRows = this.database
       .prepare(
         "SELECT payload_json FROM A008_knowledge_labels WHERE namespace = ? ORDER BY record_id",
@@ -324,7 +356,9 @@ export class SqliteKnowledgeStore {
       .all(this.namespace) as RelationRow[];
 
     return {
-      entities: entities.map((row) => parseJson<Entity>(row.payload_json, "entity")),
+      entities: entities.map((row) =>
+        parseJson<Entity>(row.payload_json, "entity"),
+      ),
       slots: slots.map((row) =>
         parseJson<SlotDefinition>(row.payload_json, "slot"),
       ),
@@ -365,14 +399,30 @@ export class SqliteKnowledgeStore {
               entityId: asEntityId(row.entity_id),
             })),
           }),
-      labels: labelRows.map((row) => parseJson<LabelRecord>(row.payload_json, "labels")),
+      labels: labelRows.map((row) =>
+        parseJson<LabelRecord>(row.payload_json, "labels"),
+      ),
       lifecycle: {
-        receipts: (this.database.prepare("SELECT payload_json FROM A008_knowledge_reinforcement_receipts WHERE namespace = ? ORDER BY occurrence_id, evidence_id").all(this.namespace) as PayloadRow[]).map(r => parseJson<ReinforcementReceipt>(r.payload_json, "reinforcement receipt")),
+        receipts: (
+          this.database
+            .prepare(
+              "SELECT payload_json FROM A008_knowledge_reinforcement_receipts WHERE namespace = ? ORDER BY occurrence_id, evidence_id",
+            )
+            .all(this.namespace) as PayloadRow[]
+        ).map((r) =>
+          parseJson<ReinforcementReceipt>(
+            r.payload_json,
+            "reinforcement receipt",
+          ),
+        ),
         records: lifecycleRecords.map((row) =>
           parseJson<LifecycleRecord>(row.payload_json, "lifecycle"),
         ),
         transitions: lifecycleTransitions.map((row) =>
-          parseJson<LifecycleTransition>(row.payload_json, "lifecycle transition"),
+          parseJson<LifecycleTransition>(
+            row.payload_json,
+            "lifecycle transition",
+          ),
         ),
       },
       lifecycleNextTransition: meta?.lifecycle_next_transition ?? 0,
@@ -386,17 +436,51 @@ export class SqliteKnowledgeStore {
   }
 
   private loadAssociations(): AssociationSnapshot {
-    const records = (this.database.prepare("SELECT edge_key, payload_json FROM A008_knowledge_association_lifecycle WHERE namespace = ? ORDER BY edge_key").all(this.namespace) as (PayloadRow & { edge_key: string })[]).map(row => {
-      const record = parseJson<AssociationRecord>(row.payload_json, "association");
-      if (record.key !== row.edge_key) throw new Error("Corrupt association storage key");
+    const records = (
+      this.database
+        .prepare(
+          "SELECT edge_key, payload_json FROM A008_knowledge_association_lifecycle WHERE namespace = ? ORDER BY edge_key",
+        )
+        .all(this.namespace) as (PayloadRow & { edge_key: string })[]
+    ).map((row) => {
+      const record = parseJson<AssociationRecord>(
+        row.payload_json,
+        "association",
+      );
+      if (record.key !== row.edge_key)
+        throw new Error("Corrupt association storage key");
       return record;
     });
-    const receipts = (this.database.prepare("SELECT occurrence_id, edge_key, payload_json FROM A008_knowledge_association_receipts WHERE namespace = ? ORDER BY occurrence_id, edge_key").all(this.namespace) as (PayloadRow & { edge_key: string; occurrence_id: string })[]).map(row => {
-      const receipt = parseJson<AssociationReceipt>(row.payload_json, "association receipt");
-      if (receipt.edgeKey !== row.edge_key || receipt.occurrenceId !== row.occurrence_id) throw new Error("Corrupt association receipt key");
+    const receipts = (
+      this.database
+        .prepare(
+          "SELECT occurrence_id, edge_key, payload_json FROM A008_knowledge_association_receipts WHERE namespace = ? ORDER BY occurrence_id, edge_key",
+        )
+        .all(this.namespace) as (PayloadRow & {
+        edge_key: string;
+        occurrence_id: string;
+      })[]
+    ).map((row) => {
+      const receipt = parseJson<AssociationReceipt>(
+        row.payload_json,
+        "association receipt",
+      );
+      if (
+        receipt.edgeKey !== row.edge_key ||
+        receipt.occurrenceId !== row.occurrence_id
+      )
+        throw new Error("Corrupt association receipt key");
       return receipt;
     });
-    const transitions = (this.database.prepare("SELECT payload_json FROM A008_knowledge_association_transitions WHERE namespace = ? ORDER BY seq").all(this.namespace) as PayloadRow[]).map(row => parseJson<AssociationTransition>(row.payload_json, "association audit"));
+    const transitions = (
+      this.database
+        .prepare(
+          "SELECT payload_json FROM A008_knowledge_association_transitions WHERE namespace = ? ORDER BY seq",
+        )
+        .all(this.namespace) as PayloadRow[]
+    ).map((row) =>
+      parseJson<AssociationTransition>(row.payload_json, "association audit"),
+    );
     const owner = new AssociationLifecycle();
     owner.hydrate({ records, receipts, transitions });
     return owner.snapshot();
@@ -411,8 +495,13 @@ export class SqliteKnowledgeStore {
   }
 
   /** Caller captures before under atomic() after refreshing its revision. */
-  updateNamespace(before: KnowledgeNamespaceSnapshot, after: KnowledgeNamespaceSnapshot): void {
-    this.atomic(() => updateKnowledgeSnapshot(this.database, this.namespace, before, after));
+  updateNamespace(
+    before: KnowledgeNamespaceSnapshot,
+    after: KnowledgeNamespaceSnapshot,
+  ): void {
+    this.atomic(() =>
+      updateKnowledgeSnapshot(this.database, this.namespace, before, after),
+    );
   }
 
   private clearNamespace(): void {
@@ -468,7 +557,9 @@ export class SqliteKnowledgeStore {
          WHERE namespace = ? ORDER BY id`,
       )
       .all(this.namespace) as KnowledgeItemRow[];
-    return rows.map((row) => parseJson<KnowledgeItem>(row.payload_json, "v0 knowledge"));
+    return rows.map((row) =>
+      parseJson<KnowledgeItem>(row.payload_json, "v0 knowledge"),
+    );
   }
 
   /** Schema 1/2 gets L2's baseline conversion; schema 3+ baselines are validated
@@ -477,21 +568,59 @@ export class SqliteKnowledgeStore {
    * The constructor encloses DDL and this version update in one transaction.
    */
   private migrateSchemaVersion(): void {
-    this.database.transaction(() => {
-      const row = this.database.prepare("SELECT version FROM A008_knowledge_schema WHERE singleton = 1").get() as { version: number } | undefined;
-      if (row?.version !== 1 && row?.version !== 2 && row?.version !== 3 && row?.version !== 4) return;
-      const baselineAlreadyMigrated = row.version >= 3;
-      const at = operationalTime(this.clock());
-      const records = this.database.prepare("SELECT namespace, evidence_id, payload_json FROM A008_knowledge_lifecycle").all() as { namespace: string; evidence_id: string; payload_json: string }[];
-      const save = this.database.prepare("UPDATE A008_knowledge_lifecycle SET payload_json = ? WHERE namespace = ? AND evidence_id = ?");
-      for (const row of records) {
-        const record = parseJson<LifecycleRecord>(row.payload_json, "legacy lifecycle");
-        if (record.evidenceId !== row.evidence_id) throw new KnowledgeModelError("invalid_input", "Corrupt lifecycle identity");
-        if (baselineAlreadyMigrated) validateLifecycle(record.lifecycle);
-        else save.run(JSON.stringify(migrateLegacyLifecycle(record, at)), row.namespace, row.evidence_id);
-      }
-      this.database.prepare("UPDATE A008_knowledge_schema SET version = ? WHERE singleton = 1").run(KNOWLEDGE_SQLITE_SCHEMA_VERSION);
-    }).immediate();
+    this.database
+      .transaction(() => {
+        const row = this.database
+          .prepare(
+            "SELECT version FROM A008_knowledge_schema WHERE singleton = 1",
+          )
+          .get() as { version: number } | undefined;
+        if (
+          row?.version !== 1 &&
+          row?.version !== 2 &&
+          row?.version !== 3 &&
+          row?.version !== 4
+        )
+          return;
+        const baselineAlreadyMigrated = row.version >= 3;
+        const at = operationalTime(this.clock());
+        const records = this.database
+          .prepare(
+            "SELECT namespace, evidence_id, payload_json FROM A008_knowledge_lifecycle",
+          )
+          .all() as {
+          namespace: string;
+          evidence_id: string;
+          payload_json: string;
+        }[];
+        const save = this.database.prepare(
+          "UPDATE A008_knowledge_lifecycle SET payload_json = ? WHERE namespace = ? AND evidence_id = ?",
+        );
+        for (const row of records) {
+          const record = parseJson<LifecycleRecord>(
+            row.payload_json,
+            "legacy lifecycle",
+          );
+          if (record.evidenceId !== row.evidence_id)
+            throw new KnowledgeModelError(
+              "invalid_input",
+              "Corrupt lifecycle identity",
+            );
+          if (baselineAlreadyMigrated) validateLifecycle(record.lifecycle);
+          else
+            save.run(
+              JSON.stringify(migrateLegacyLifecycle(record, at)),
+              row.namespace,
+              row.evidence_id,
+            );
+        }
+        this.database
+          .prepare(
+            "UPDATE A008_knowledge_schema SET version = ? WHERE singleton = 1",
+          )
+          .run(KNOWLEDGE_SQLITE_SCHEMA_VERSION);
+      })
+      .immediate();
   }
 
   private assertSchemaVersion(): void {
@@ -654,7 +783,10 @@ function migrateV0Items(
       const strength =
         item.activationStatus === "active"
           ? Math.max(item.relevanceScore, item.activationThreshold)
-          : Math.min(item.relevanceScore, Math.max(0, item.activationThreshold - 0.01));
+          : Math.min(
+              item.relevanceScore,
+              Math.max(0, item.activationThreshold - 0.01),
+            );
       const state = item.activationStatus === "active" ? "active" : "dormant";
       lifecycleRecords.push({
         evidenceId: utteranceId,
@@ -694,7 +826,9 @@ function migrateV0Items(
       claims,
       provenance,
       relations: existing.relations,
-      ...(existing.associations === undefined ? {} : { associations: existing.associations }),
+      ...(existing.associations === undefined
+        ? {}
+        : { associations: existing.associations }),
       state: {
         ...existing.state,
         bindings,

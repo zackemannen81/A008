@@ -42,7 +42,8 @@ async function batchWith(count: number): Promise<StagedKnowledgeBatch> {
   return new PostOutputKnowledgeIntake({
     analyzer: {
       async analyze() {
-        return Array.from({ length: count }, (_, index) => ({ severity: "important",
+        return Array.from({ length: count }, (_, index) => ({
+          severity: "important",
           proposition: `Knowledge proposal ${index + 1}`,
           kind: "architecture-decision",
           tags: ["memory", `proposal-${index + 1}`],
@@ -187,15 +188,11 @@ test("fresh processing stages once, strips extras, orders commits, and copies co
   if (result.status !== "completed") {
     throw new Error("expected completed result");
   }
-  assert.deepEqual(result.records.map((record) => record.proposalIndex), [
-    0,
-    1,
-    2,
-  ]);
-  assert.equal(
-    JSON.stringify(result).includes("display only"),
-    false,
+  assert.deepEqual(
+    result.records.map((record) => record.proposalIndex),
+    [0, 1, 2],
   );
+  assert.equal(JSON.stringify(result).includes("display only"), false);
   (result.batch.proposals[0]!.proposal.tags as string[]).push("mutation");
   (result.records as Array<unknown>).pop();
   assert.equal(
@@ -208,7 +205,11 @@ test("fresh processing stages once, strips extras, orders commits, and copies co
 test("zero proposals complete without a relation call", async () => {
   let commitCalls = 0;
   const coordinator = new PostOutputMemoryCoordinator({
-    stager: { async stage() { return batchWith(0); } },
+    stager: {
+      async stage() {
+        return batchWith(0);
+      },
+    },
     committer: {
       async commit() {
         commitCalls += 1;
@@ -236,7 +237,11 @@ test("staging failure is explicit and makes zero commit calls", async () => {
   const failure = new Error("analyzer unavailable");
   let commitCalls = 0;
   const coordinator = new PostOutputMemoryCoordinator({
-    stager: { async stage() { throw failure; } },
+    stager: {
+      async stage() {
+        throw failure;
+      },
+    },
     committer: {
       async commit() {
         commitCalls += 1;
@@ -295,18 +300,20 @@ test("commit failure checkpoints the exact index and resume never restages or re
   }
   assert.equal(first.failedProposalIndex, 1);
   assert.equal(first.checkpoint.nextProposalIndex, 1);
-  assert.deepEqual(first.checkpoint.records.map((record) => record.proposalIndex), [0]);
+  assert.deepEqual(
+    first.checkpoint.records.map((record) => record.proposalIndex),
+    [0],
+  );
 
   const resumed = await coordinator.resume(first.checkpoint);
   assert.equal(resumed.status, "completed");
   assert.equal(stagingCalls, 1);
   assert.deepEqual(commitCalls, [0, 1, 1, 2]);
   if (resumed.status === "completed") {
-    assert.deepEqual(resumed.records.map((record) => record.proposalIndex), [
-      0,
-      1,
-      2,
-    ]);
+    assert.deepEqual(
+      resumed.records.map((record) => record.proposalIndex),
+      [0, 1, 2],
+    );
   }
 });
 
@@ -343,7 +350,11 @@ test("pending index repair blocks later commits and repair resumes without recon
     },
   };
   const coordinator = new PostOutputMemoryCoordinator({
-    stager: { async stage() { return batch; } },
+    stager: {
+      async stage() {
+        return batch;
+      },
+    },
     committer,
   });
   const first = await coordinator.process({
@@ -379,7 +390,11 @@ test("malformed retry checkpoints fail before commit or repair", async () => {
   let commitCalls = 0;
   let repairCalls = 0;
   const coordinator = new PostOutputMemoryCoordinator({
-    stager: { async stage() { return batch; } },
+    stager: {
+      async stage() {
+        return batch;
+      },
+    },
     committer: {
       async commit() {
         commitCalls += 1;

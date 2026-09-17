@@ -66,12 +66,17 @@ export function parseSlash(input: string): ParsedSlash | undefined {
   if (RESET_NAMES.has(raw)) {
     return { name: "reset", argument };
   }
-  if (raw === "undo" || raw === "history" || raw === "model" || raw === "status" || raw === "cwd" || raw === "tools" || raw === "shell") {
+  if (
+    raw === "undo" ||
+    raw === "history" ||
+    raw === "model" ||
+    raw === "status" ||
+    raw === "cwd" ||
+    raw === "tools" ||
+    raw === "shell"
+  ) {
     return { name: raw, argument };
   }
 
-  throw new ChatError(
-    "configuration",
-    `Unknown command: /${raw}. Type /help.`,
-  );
+  throw new ChatError("configuration", `Unknown command: /${raw}. Type /help.`);
 }

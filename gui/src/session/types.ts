@@ -5,7 +5,8 @@ export const DEFAULT_GUI_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b";
 
 export type GuiSessionStatus = "idle" | "connecting" | "ready" | "error";
 
-export type RuntimeToolStatus = "running" | "ok" | "failed" | "completed" | "pending";
+export type RuntimeToolStatus =
+  "running" | "ok" | "failed" | "completed" | "pending";
 
 export interface RuntimeToolCall {
   readonly id: string;

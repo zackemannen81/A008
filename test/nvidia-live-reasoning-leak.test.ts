@@ -8,7 +8,10 @@ import { byteStream } from "./helpers.js";
 const live = JSON.parse(
   readFileSync(
     fileURLToPath(
-      new URL("../../test/fixtures/nvidia-live-reasoning-leak.json", import.meta.url),
+      new URL(
+        "../../test/fixtures/nvidia-live-reasoning-leak.json",
+        import.meta.url,
+      ),
     ),
     "utf8",
   ),
@@ -30,7 +33,10 @@ function liveSse(): string {
 
 test("live NVIDIA SSE channel transitions are reasoning_content then leaked content", () => {
   assert.deepEqual(live.transitions, ["reasoning_content", "content"]);
-  assert.match(live.characterization, /reasoning_content carries only a short CoT prefix/u);
+  assert.match(
+    live.characterization,
+    /reasoning_content carries only a short CoT prefix/u,
+  );
   assert.equal(live.reasoning.length, 146);
   assert.equal(live.leakedContent.includes(live.expectedAnswer), true);
   assert.equal(live.reasoning.includes(live.expectedAnswer), false);
@@ -53,7 +59,8 @@ test("NVIDIA transport normalizes the live leak so only the user-visible answer 
       options: { stream: true, enableThinking: true },
     },
     {
-      onDelta: (delta) => deltas.push(`${delta.type}:${delta.text.slice(0, 24)}`),
+      onDelta: (delta) =>
+        deltas.push(`${delta.type}:${delta.text.slice(0, 24)}`),
     },
   );
 
@@ -62,7 +69,10 @@ test("NVIDIA transport normalizes the live leak so only the user-visible answer 
   assert.match(result.reasoning ?? "", /thinking process/u);
   assert.match(result.reasoning ?? "", /I'll generate the response/u);
   assert.equal(
-    deltas.some((delta) => delta.startsWith("content:") && delta.includes("thinking process")),
+    deltas.some(
+      (delta) =>
+        delta.startsWith("content:") && delta.includes("thinking process"),
+    ),
     false,
   );
   assert.equal(

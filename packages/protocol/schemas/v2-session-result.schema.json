@@ -62,43 +62,25 @@
               "type": "boolean"
             },
             "temperature": {
-              "type": [
-                "number",
-                "null"
-              ]
+              "type": ["number", "null"]
             },
             "topP": {
-              "type": [
-                "number",
-                "null"
-              ]
+              "type": ["number", "null"]
             },
             "maxTokens": {
               "type": "number"
             },
             "enableThinking": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": ["boolean", "null"]
             },
             "reasoningBudget": {
-              "type": [
-                "number",
-                "null"
-              ]
+              "type": ["number", "null"]
             },
             "reasoningEffort": {
-              "type": [
-                "string",
-                "null"
-              ]
+              "type": ["string", "null"]
             },
             "seed": {
-              "type": [
-                "number",
-                "null"
-              ]
+              "type": ["number", "null"]
             },
             "stop": {
               "anyOf": [
@@ -136,19 +118,13 @@
             "properties": {
               "role": {
                 "type": "string",
-                "enum": [
-                  "user",
-                  "assistant"
-                ]
+                "enum": ["user", "assistant"]
               },
               "content": {
                 "type": "string"
               }
             },
-            "required": [
-              "role",
-              "content"
-            ],
+            "required": ["role", "content"],
             "additionalProperties": false
           }
         },
@@ -168,10 +144,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "name",
-              "description"
-            ],
+            "required": ["name", "description"],
             "additionalProperties": false
           }
         },
@@ -193,12 +166,6 @@
       "additionalProperties": false
     }
   },
-  "required": [
-    "type",
-    "serverInstanceId",
-    "requestId",
-    "action",
-    "projectId"
-  ],
+  "required": ["type", "serverInstanceId", "requestId", "action", "projectId"],
   "additionalProperties": false
 }

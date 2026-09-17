@@ -19,12 +19,23 @@ import {
 import type { SendMessageOptions } from "../core/chat-session.js";
 import type { ChatCompletion, ChatImageAttachment } from "../core/types.js";
 import type { ChatMessage } from "../core/types.js";
-import { defaultSessionParameters, parseSessionParameters, type SessionParameters } from "../core/generation-controls.js";
-import { parseSessionControl, type SessionSnapshot } from "../core/session-control.js";
+import {
+  defaultSessionParameters,
+  parseSessionParameters,
+  type SessionParameters,
+} from "../core/generation-controls.js";
+import {
+  parseSessionControl,
+  type SessionSnapshot,
+} from "../core/session-control.js";
 import { isChatError } from "../core/errors.js";
 import { IdentityError, isIdentityError } from "../identity/errors.js";
 import { isMemoryError } from "../memory/errors.js";
-import { parseMemoryInspectionQuery, type MemoryInspection, type MemoryInspectionQuery } from "../memory/knowledge/inspection.js";
+import {
+  parseMemoryInspectionQuery,
+  type MemoryInspection,
+  type MemoryInspectionQuery,
+} from "../memory/knowledge/inspection.js";
 import { isSourceIngestError } from "../ingest/index.js";
 import {
   DEFAULT_MODEL_ID,
@@ -53,10 +64,7 @@ export interface AcpTurnSession {
   undoLastTurn?(): boolean;
   configureParameters?(value: unknown): void;
   enableSessionControls?(): void;
-  send(
-    content: string,
-    options?: SendMessageOptions,
-  ): Promise<ChatCompletion>;
+  send(content: string, options?: SendMessageOptions): Promise<ChatCompletion>;
   consumeMemoryDiagnostic?(): string | undefined;
 }
 
@@ -152,9 +160,14 @@ export interface SharedMemoryWriteResult {
   readonly semantics: "evidence";
 }
 
-export type GetSharedMemoryCapabilities = () => SharedMemoryCapabilitiesResult | Promise<SharedMemoryCapabilitiesResult>;
-export type RecallSharedMemory = (params: SharedMemoryRecallParams) => Promise<SharedMemoryRecallResult>;
-export type WriteSharedMemory = (params: SharedMemoryWriteParams) => SharedMemoryWriteResult | Promise<SharedMemoryWriteResult>;
+export type GetSharedMemoryCapabilities = () =>
+  SharedMemoryCapabilitiesResult | Promise<SharedMemoryCapabilitiesResult>;
+export type RecallSharedMemory = (
+  params: SharedMemoryRecallParams,
+) => Promise<SharedMemoryRecallResult>;
+export type WriteSharedMemory = (
+  params: SharedMemoryWriteParams,
+) => SharedMemoryWriteResult | Promise<SharedMemoryWriteResult>;
 
 /**
  * Validates raw JSON-RPC params for `_a008/source/ingest`.
@@ -171,8 +184,10 @@ export function parseSourceIngestParams(params: unknown): SourceIngestParams {
       "_a008/source/ingest requires an object with a locator.",
     );
   }
-  const { locator, mediaType, filename, extractKnowledge } =
-    params as Record<string, unknown>;
+  const { locator, mediaType, filename, extractKnowledge } = params as Record<
+    string,
+    unknown
+  >;
   if (typeof locator !== "string" || locator.trim().length === 0) {
     throw RequestError.invalidParams(
       params,
@@ -205,35 +220,69 @@ export function parseSourceIngestParams(params: unknown): SourceIngestParams {
   };
 }
 
-function parseScopes(value: unknown, params: unknown, method: string): readonly string[] | undefined {
+function parseScopes(
+  value: unknown,
+  params: unknown,
+  method: string,
+): readonly string[] | undefined {
   if (value === undefined) return undefined;
-  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string" || entry.trim().length === 0)) {
-    throw RequestError.invalidParams(params, `${method} scopes must be an array of non-empty strings when present.`);
+  if (
+    !Array.isArray(value) ||
+    value.some(
+      (entry) => typeof entry !== "string" || entry.trim().length === 0,
+    )
+  ) {
+    throw RequestError.invalidParams(
+      params,
+      `${method} scopes must be an array of non-empty strings when present.`,
+    );
   }
   return value.map((entry) => entry.trim());
 }
 
-export function parseSharedMemoryCapabilitiesParams(params: unknown): SharedMemoryCapabilitiesParams {
+export function parseSharedMemoryCapabilitiesParams(
+  params: unknown,
+): SharedMemoryCapabilitiesParams {
   if (typeof params !== "object" || params === null) {
-    throw RequestError.invalidParams(params, "memory/capabilities requires an A007_MEMORY_V1 handshake object.");
+    throw RequestError.invalidParams(
+      params,
+      "memory/capabilities requires an A007_MEMORY_V1 handshake object.",
+    );
   }
   const { protocol, version } = params as Record<string, unknown>;
   if (protocol !== "A007_MEMORY_V1" || version !== 1) {
-    throw RequestError.invalidParams(params, "memory/capabilities supports only A007_MEMORY_V1 version 1.");
+    throw RequestError.invalidParams(
+      params,
+      "memory/capabilities supports only A007_MEMORY_V1 version 1.",
+    );
   }
   return { protocol, version };
 }
 
-export function parseSharedMemoryRecallParams(params: unknown): SharedMemoryRecallParams {
+export function parseSharedMemoryRecallParams(
+  params: unknown,
+): SharedMemoryRecallParams {
   if (typeof params !== "object" || params === null) {
-    throw RequestError.invalidParams(params, "memory/recall requires an object with a query.");
+    throw RequestError.invalidParams(
+      params,
+      "memory/recall requires an object with a query.",
+    );
   }
   const { query, limit, scopes } = params as Record<string, unknown>;
   if (typeof query !== "string" || query.trim().length === 0) {
-    throw RequestError.invalidParams(params, "memory/recall requires a non-empty query string.");
+    throw RequestError.invalidParams(
+      params,
+      "memory/recall requires a non-empty query string.",
+    );
   }
-  if (limit !== undefined && (!Number.isInteger(limit) || Number(limit) < 1 || Number(limit) > 20)) {
-    throw RequestError.invalidParams(params, "memory/recall limit must be an integer from 1 to 20.");
+  if (
+    limit !== undefined &&
+    (!Number.isInteger(limit) || Number(limit) < 1 || Number(limit) > 20)
+  ) {
+    throw RequestError.invalidParams(
+      params,
+      "memory/recall limit must be an integer from 1 to 20.",
+    );
   }
   const parsedScopes = parseScopes(scopes, params, "memory/recall");
   return {
@@ -243,13 +292,21 @@ export function parseSharedMemoryRecallParams(params: unknown): SharedMemoryReca
   };
 }
 
-export function parseSharedMemoryWriteParams(params: unknown): SharedMemoryWriteParams {
+export function parseSharedMemoryWriteParams(
+  params: unknown,
+): SharedMemoryWriteParams {
   if (typeof params !== "object" || params === null) {
-    throw RequestError.invalidParams(params, "memory/write requires an object with content.");
+    throw RequestError.invalidParams(
+      params,
+      "memory/write requires an object with content.",
+    );
   }
   const { content, scopes } = params as Record<string, unknown>;
   if (typeof content !== "string" || content.trim().length === 0) {
-    throw RequestError.invalidParams(params, "memory/write requires non-empty content.");
+    throw RequestError.invalidParams(
+      params,
+      "memory/write requires non-empty content.",
+    );
   }
   const parsedScopes = parseScopes(scopes, params, "memory/write");
   return {
@@ -277,7 +334,9 @@ export interface A008AcpAgentOptions {
    */
   readonly ingestSource?: IngestSource;
   readonly sharedMemoryCapabilities?: GetSharedMemoryCapabilities;
-  readonly inspectMemory?: (query: MemoryInspectionQuery) => MemoryInspection | Promise<MemoryInspection>;
+  readonly inspectMemory?: (
+    query: MemoryInspectionQuery,
+  ) => MemoryInspection | Promise<MemoryInspection>;
   readonly recallSharedMemory?: RecallSharedMemory;
   readonly writeSharedMemory?: WriteSharedMemory;
 }
@@ -302,7 +361,9 @@ export class A008AcpAgent {
 
   constructor(options: A008AcpAgentOptions) {
     this.#sessionControls = options.sessionControls === true;
-    this.#runtimeInfo = options.runtimeInfo ?? (() => ({ cwd: process.cwd(), projectId: null, memoryPath: null }));
+    this.#runtimeInfo =
+      options.runtimeInfo ??
+      (() => ({ cwd: process.cwd(), projectId: null, memoryPath: null }));
     this.#createSession = options.createSession;
     this.#resolveImageAttachment = options.resolveImageAttachment;
     this.#registry = options.registry ?? defaultModelRegistry;
@@ -310,7 +371,9 @@ export class A008AcpAgent {
       options.extraProfiles ??
       (() => {
         try {
-          return loadUserCatalog(defaultCatalogPath()).chatModels.map(userModelProfile);
+          return loadUserCatalog(defaultCatalogPath()).chatModels.map(
+            userModelProfile,
+          );
         } catch {
           return [];
         }
@@ -323,15 +386,16 @@ export class A008AcpAgent {
     this.#writeSharedMemory = options.writeSharedMemory;
     const identityFactory = new RuntimeIdentityFactory();
     this.#createSessionId =
-      options.createSessionId ??
-      (() => identityFactory.create("acp_session"));
+      options.createSessionId ?? (() => identityFactory.create("acp_session"));
   }
 
   initialize(_params: InitializeRequest): InitializeResponse {
     return {
       protocolVersion: PROTOCOL_VERSION,
       agentCapabilities: {
-        ...(this.#sessionControls ? { _meta: { "a008.sessionControl": 1 } } : {}),
+        ...(this.#sessionControls
+          ? { _meta: { "a008.sessionControl": 1 } }
+          : {}),
         loadSession: false,
         promptCapabilities: {
           image: false,
@@ -413,7 +477,10 @@ export class A008AcpAgent {
   async prompt(
     params: PromptRequest,
     notify: NotifySession,
-    prepareTools?: (signal: AbortSignal, budgets: import("../core/runtime-preferences.js").RuntimeBudgets) => Promise<import("../core/types.js").ChatTools>,
+    prepareTools?: (
+      signal: AbortSignal,
+      budgets: import("../core/runtime-preferences.js").RuntimeBudgets,
+    ) => Promise<import("../core/types.js").ChatTools>,
   ): Promise<PromptResponse> {
     const state = this.#requireSession(params.sessionId);
     if (state.activeTurn !== undefined) {
@@ -434,7 +501,10 @@ export class A008AcpAgent {
         );
       }
       if (this.#resolveImageAttachment === undefined) {
-        throw RequestError.invalidParams(undefined, "Native vision requires the configured A008 source store.");
+        throw RequestError.invalidParams(
+          undefined,
+          "Native vision requires the configured A008 source store.",
+        );
       }
       imageAttachment = this.#resolveImageAttachment(input.image.locator);
     }
@@ -467,7 +537,9 @@ export class A008AcpAgent {
 
     try {
       const completion = await state.chat.send(content, {
-        ...(imageAttachment === undefined ? {} : { imageAttachments: [imageAttachment] }),
+        ...(imageAttachment === undefined
+          ? {}
+          : { imageAttachments: [imageAttachment] }),
         ...(prepareTools ? { prepareTools } : {}),
         signal: controller.signal,
         onDelta: (delta) => queueDelta(delta.type, delta.text),
@@ -529,8 +601,16 @@ export class A008AcpAgent {
   }
 
   controlSession(params: unknown): SessionSnapshot {
-    if (typeof params !== "object" || params === null || !("sessionId" in params) || typeof params.sessionId !== "string") {
-      throw RequestError.invalidParams(params, "Session control requires sessionId.");
+    if (
+      typeof params !== "object" ||
+      params === null ||
+      !("sessionId" in params) ||
+      typeof params.sessionId !== "string"
+    ) {
+      throw RequestError.invalidParams(
+        params,
+        "Session control requires sessionId.",
+      );
     }
     const control = parseSessionControl(params);
     const state = this.#requireSession(params.sessionId);
@@ -539,7 +619,8 @@ export class A008AcpAgent {
       this.closeSession({ sessionId: params.sessionId });
       return { ...snapshot, closed: true };
     }
-    if (state.activeTurn !== undefined && control.action !== "inspect") throw new RequestError(-32000, "Session already has an active turn.");
+    if (state.activeTurn !== undefined && control.action !== "inspect")
+      throw new RequestError(-32000, "Session already has an active turn.");
     if (control.action === "model") {
       const profile = this.#resolveProfile(control.model);
       // Construct first: configuration failure must preserve the old conversation.
@@ -554,23 +635,33 @@ export class A008AcpAgent {
     }
     if (control.action === "configure") {
       const parsed = parseSessionParameters(control.parameters, state.model);
-      if (state.chat.configureParameters === undefined) throw RequestError.methodNotFound("session parameters");
+      if (state.chat.configureParameters === undefined)
+        throw RequestError.methodNotFound("session parameters");
       state.chat.configureParameters(parsed);
     }
     if (control.action === "configureRuntime") {
-      if (state.chat.configureRuntimePreferences === undefined) throw RequestError.methodNotFound("runtime settings");
-      state.chat.configureRuntimePreferences(control.settings, control.revision);
+      if (state.chat.configureRuntimePreferences === undefined)
+        throw RequestError.methodNotFound("runtime settings");
+      state.chat.configureRuntimePreferences(
+        control.settings,
+        control.revision,
+      );
     }
     if (control.action === "reset") {
-      if (state.chat.reset === undefined) throw RequestError.methodNotFound("session reset");
+      if (state.chat.reset === undefined)
+        throw RequestError.methodNotFound("session reset");
       state.chat.reset();
     }
     let undone: boolean | undefined;
     if (control.action === "undo") {
-      if (state.chat.undoLastTurn === undefined) throw RequestError.methodNotFound("session undo");
+      if (state.chat.undoLastTurn === undefined)
+        throw RequestError.methodNotFound("session undo");
       undone = state.chat.undoLastTurn();
     }
-    return { ...this.#sessionSnapshot(state), ...(undone === undefined ? {} : { undone }) };
+    return {
+      ...this.#sessionSnapshot(state),
+      ...(undone === undefined ? {} : { undone }),
+    };
   }
 
   #sessionSnapshot(state: AcpSessionState): SessionSnapshot {
@@ -578,8 +669,14 @@ export class A008AcpAgent {
     return {
       ...(runtimePreferences === undefined ? {} : { runtimePreferences }),
       model: state.model,
-      parameters: state.chat?.parameters ?? defaultSessionParameters(this.#resolveProfile(state.model)),
-      messages: (state.chat?.messages ?? []).flatMap(message => message.role === "system" ? [] : [{ role: message.role, content: message.content }]),
+      parameters:
+        state.chat?.parameters ??
+        defaultSessionParameters(this.#resolveProfile(state.model)),
+      messages: (state.chat?.messages ?? []).flatMap((message) =>
+        message.role === "system"
+          ? []
+          : [{ role: message.role, content: message.content }],
+      ),
       runtime: this.#runtimeInfo(),
     };
   }
@@ -631,7 +728,9 @@ export class A008AcpAgent {
     return [...this.#sessions.keys()];
   }
 
-  sessionConfigOptions(sessionId: string) { return this.#modelOptions(this.#requireSession(sessionId).model); }
+  sessionConfigOptions(sessionId: string) {
+    return this.#modelOptions(this.#requireSession(sessionId).model);
+  }
 
   /**
    * ACP `_a008/source/ingest` (ADR 0020 D4).
@@ -653,7 +752,9 @@ export class A008AcpAgent {
     return await ingest(parseSourceIngestParams(params));
   }
 
-  async sharedMemoryCapabilities(params: unknown): Promise<SharedMemoryCapabilitiesResult> {
+  async sharedMemoryCapabilities(
+    params: unknown,
+  ): Promise<SharedMemoryCapabilitiesResult> {
     parseSharedMemoryCapabilitiesParams(params);
     if (this.#sharedMemoryCapabilities === undefined) {
       throw RequestError.methodNotFound("memory/capabilities");
@@ -663,15 +764,23 @@ export class A008AcpAgent {
 
   async inspectMemory(params: unknown): Promise<MemoryInspection> {
     let query: MemoryInspectionQuery;
-    try { query = parseMemoryInspectionQuery(params); }
-    catch (error) { throw RequestError.invalidParams(params, error instanceof Error ? error.message : "Invalid memory query."); }
-    if (this.#inspectMemory === undefined) throw RequestError.methodNotFound("memory/inspect");
+    try {
+      query = parseMemoryInspectionQuery(params);
+    } catch (error) {
+      throw RequestError.invalidParams(
+        params,
+        error instanceof Error ? error.message : "Invalid memory query.",
+      );
+    }
+    if (this.#inspectMemory === undefined)
+      throw RequestError.methodNotFound("memory/inspect");
     return await this.#inspectMemory(query);
   }
 
   async recallMemory(params: unknown): Promise<SharedMemoryRecallResult> {
     const recall = this.#recallSharedMemory;
-    if (recall === undefined) throw RequestError.methodNotFound("memory/recall");
+    if (recall === undefined)
+      throw RequestError.methodNotFound("memory/recall");
     return await recall(parseSharedMemoryRecallParams(params));
   }
 

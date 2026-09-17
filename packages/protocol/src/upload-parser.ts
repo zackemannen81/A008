@@ -1,4 +1,4 @@
-import type { UploadedSource } from './http-schemas.js';
+import type { UploadedSource } from "./http-schemas.js";
 export class UploadError extends Error {
   constructor(message: string, options?: { readonly cause?: unknown }) {
     super(message, options);
@@ -55,11 +55,7 @@ function requiredBoolean(value: unknown, field: string): boolean {
 }
 
 function requiredNonNegativeInteger(value: unknown, field: string): number {
-  if (
-    typeof value !== "number" ||
-    !Number.isSafeInteger(value) ||
-    value < 0
-  ) {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
     throw new UploadError(
       `A008 GUI host upload result field '${field}' must be a non-negative integer.`,
     );

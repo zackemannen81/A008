@@ -48,7 +48,9 @@ export function createPinAuthGate(
       if (state !== undefined && state.blockedUntil > currentTime) {
         return {
           ok: false,
-          retryAfterSeconds: Math.ceil((state.blockedUntil - currentTime) / 1_000),
+          retryAfterSeconds: Math.ceil(
+            (state.blockedUntil - currentTime) / 1_000,
+          ),
         };
       }
       if (safeEqual(candidate, pin)) {
@@ -90,7 +92,10 @@ function safeEqual(left: string, right: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-function cookieValue(request: IncomingMessage, name: string): string | undefined {
+function cookieValue(
+  request: IncomingMessage,
+  name: string,
+): string | undefined {
   const header = request.headers.cookie;
   if (header === undefined) return undefined;
   for (const part of header.split(";")) {
@@ -106,7 +111,10 @@ function clientKey(request: IncomingMessage): string {
   return `socket:${request.socket.remoteAddress ?? "unknown"}`;
 }
 function forwardedProtocol(request: IncomingMessage): string | undefined {
-  return headerValue(request.headers["x-forwarded-proto"])?.split(",")[0]?.trim().toLowerCase();
+  return headerValue(request.headers["x-forwarded-proto"])
+    ?.split(",")[0]
+    ?.trim()
+    .toLowerCase();
 }
 
 function headerValue(value: string | string[] | undefined): string | undefined {
@@ -115,8 +123,11 @@ function headerValue(value: string | string[] | undefined): string | undefined {
 }
 
 function renderLoginPage(message: string): string {
-  const status = message ? `<p id="status">${escapeHtml(message)}</p>` : '<p id="status"></p>';
-  return `<!doctype html>
+  const status = message
+    ? `<p id="status">${escapeHtml(message)}</p>`
+    : '<p id="status"></p>';
+  return (
+    `<!doctype html>
 <html lang="sv">
 <head>
 <meta charset="utf-8">
@@ -129,7 +140,8 @@ h1{font:600 28px ui-monospace,monospace;margin:0 0 8px}p{color:#999;min-height:2
 input{box-sizing:border-box;width:100%;font:28px ui-monospace,monospace;letter-spacing:.35em;text-align:center;padding:14px;border:1px solid #34363b;border-radius:10px;background:#15171a;color:#fff}
 button{width:100%;margin-top:12px;padding:13px;border:0;border-radius:10px;background:#eee;color:#111;font-weight:700}
 </style>
-</head>` + renderLoginBody(status);
+</head>` + renderLoginBody(status)
+  );
 }
 function renderLoginBody(status: string): string {
   return `<body><main class="gate"><h1>A008</h1><p>Enter six-digit PIN</p>

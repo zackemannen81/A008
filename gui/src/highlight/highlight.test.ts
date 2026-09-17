@@ -19,7 +19,10 @@ test("javascript highlighting marks keywords and escapes markup", () => {
 });
 
 test("html fences keep tags escaped", () => {
-  const result = highlightCode('<canvas id="demo"></canvas><script>alert(1)</script>', "html");
+  const result = highlightCode(
+    '<canvas id="demo"></canvas><script>alert(1)</script>',
+    "html",
+  );
   assert.equal(result.language, "xml");
   assert.equal(result.html.includes("<canvas"), false);
   assert.equal(result.html.includes("<script>alert"), false);
@@ -29,7 +32,10 @@ test("html fences keep tags escaped", () => {
 
 test("unknown or unlabeled fences stay escaped plaintext", () => {
   assert.equal(resolveHighlightLanguage("not-a-lang"), undefined);
-  assert.equal(highlightCode("<b>plain</b>", "not-a-lang").html, escapeHtml("<b>plain</b>"));
+  assert.equal(
+    highlightCode("<b>plain</b>", "not-a-lang").html,
+    escapeHtml("<b>plain</b>"),
+  );
   assert.equal(highlightCode("const x = 1;").html, escapeHtml("const x = 1;"));
 });
 
@@ -50,7 +56,7 @@ test("highlighted editor overlays escaped source", () => {
   const html = renderToStaticMarkup(
     createElement(HighlightedEditor, {
       language: "html",
-      value: '<script>alert(1)</script>',
+      value: "<script>alert(1)</script>",
       onChange() {},
       "aria-label": "HTML artifact source",
     }),

@@ -92,8 +92,7 @@ export type ProposedRelationshipBinding = {
 };
 
 export type ProposedBinding =
-  | ProposedAttributeBinding
-  | ProposedRelationshipBinding;
+  ProposedAttributeBinding | ProposedRelationshipBinding;
 
 export interface ProposedEvent {
   readonly type: string;

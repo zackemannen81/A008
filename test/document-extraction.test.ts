@@ -51,7 +51,9 @@ function input(
   };
 }
 
-async function rejection(promise: Promise<unknown>): Promise<SourceIngestError> {
+async function rejection(
+  promise: Promise<unknown>,
+): Promise<SourceIngestError> {
   try {
     await promise;
   } catch (error) {
@@ -114,8 +116,14 @@ test("the local header decides where entry data starts, not the central one", ()
   // The two headers are allowed to disagree about the extra-field length, and
   // the data follows the local one. Reading the central directory's value here
   // would land four bytes into the payload and inflate garbage.
-  const archive = buildZip([{ name: "a.txt", content: "payload", stored: true }]);
-  const source = Buffer.from(archive.buffer, archive.byteOffset, archive.byteLength);
+  const archive = buildZip([
+    { name: "a.txt", content: "payload", stored: true },
+  ]);
+  const source = Buffer.from(
+    archive.buffer,
+    archive.byteOffset,
+    archive.byteLength,
+  );
   const nameLength = source.readUInt16LE(26);
   const insertAt = 30 + nameLength;
 
@@ -137,7 +145,8 @@ test("the local header decides where entry data starts, not the central one", ()
 test("a truncated archive is refused rather than half-read", () => {
   const archive = buildZip([{ name: "a.txt", content: "x" }]);
   assert.match(
-    thrown(() => readZipDirectory(archive.subarray(0, archive.length - 8))).message,
+    thrown(() => readZipDirectory(archive.subarray(0, archive.length - 8)))
+      .message,
     /end-of-central-directory/,
   );
   assert.equal(
@@ -169,7 +178,8 @@ test("an unsupported compression method names the method", () => {
   const archive = buildZip([{ name: "a.txt", content: "x" }]);
   const entry = onlyEntry(archive);
   assert.match(
-    thrown(() => readZipEntry(archive, { ...entry, compressionMethod: 14 })).message,
+    thrown(() => readZipEntry(archive, { ...entry, compressionMethod: 14 }))
+      .message,
     /compression method 14/,
   );
 });
@@ -179,7 +189,9 @@ test("a stored entry larger than the ceiling is refused before it is copied", ()
   // zlib at all, so it needs its own check or a large upload is copied into
   // memory whole.
   const oversized = new Uint8Array(MAX_ZIP_ENTRY_BYTES + 1);
-  const archive = buildZip([{ name: "big.bin", content: oversized, stored: true }]);
+  const archive = buildZip([
+    { name: "big.bin", content: oversized, stored: true },
+  ]);
   assert.match(
     thrown(() => readZipEntry(archive, onlyEntry(archive))).message,
     new RegExp(`larger than ${MAX_ZIP_ENTRY_BYTES} bytes`),
@@ -192,7 +204,10 @@ test("a compression bomb is stopped during inflation, not after", () => {
   // force: 96 MiB of zeros deflates to a few hundred bytes.
   const bomb = new Uint8Array(MAX_ZIP_ENTRY_BYTES + 32 * 1024 * 1024);
   const archive = buildZip([{ name: "bomb.bin", content: bomb }]);
-  assert.ok(archive.length < 200_000, `bomb fixture was not small: ${archive.length}`);
+  assert.ok(
+    archive.length < 200_000,
+    `bomb fixture was not small: ${archive.length}`,
+  );
   assert.match(
     thrown(() => readZipEntry(archive, onlyEntry(archive))).message,
     /could not be decompressed/,
@@ -278,11 +293,15 @@ test("the office document part is read from the relationships", () => {
 test("the OOXML formats are told apart instead of all reported as Word", () => {
   assert.equal(sniffSourceMediaType(buildDocx()), APPLICATION_DOCX);
   assert.equal(
-    sniffSourceMediaType(buildZip([{ name: "xl/workbook.xml", content: "<x/>" }])),
+    sniffSourceMediaType(
+      buildZip([{ name: "xl/workbook.xml", content: "<x/>" }]),
+    ),
     APPLICATION_XLSX,
   );
   assert.equal(
-    sniffSourceMediaType(buildZip([{ name: "ppt/presentation.xml", content: "<x/>" }])),
+    sniffSourceMediaType(
+      buildZip([{ name: "ppt/presentation.xml", content: "<x/>" }]),
+    ),
     APPLICATION_PPTX,
   );
   assert.equal(
@@ -343,7 +362,10 @@ test("a package with no relationships falls back to the conventional part", asyn
 test("a Word package with no text is a failure, not an empty success", async () => {
   const empty = await rejection(
     new DocxExtractor().extract(
-      input(buildDocx({ documentXml: wordDocument("<w:p/>") }), APPLICATION_DOCX),
+      input(
+        buildDocx({ documentXml: wordDocument("<w:p/>") }),
+        APPLICATION_DOCX,
+      ),
     ),
   );
   assert.equal(empty.code, "invalid_source");
@@ -351,7 +373,10 @@ test("a Word package with no text is a failure, not an empty success", async () 
 
   const missing = await rejection(
     new DocxExtractor().extract(
-      input(buildZip([{ name: "word/styles.xml", content: "<x/>" }]), APPLICATION_DOCX),
+      input(
+        buildZip([{ name: "word/styles.xml", content: "<x/>" }]),
+        APPLICATION_DOCX,
+      ),
     ),
   );
   assert.equal(missing.code, "invalid_source");
@@ -452,7 +477,9 @@ test("the same words in two container formats extract to the same text", async (
   const fromDocx = await new DocxExtractor().extract(
     input(
       buildDocx({
-        documentXml: wordDocument(lines.map((line) => paragraph(line)).join("")),
+        documentXml: wordDocument(
+          lines.map((line) => paragraph(line)).join(""),
+        ),
       }),
       APPLICATION_DOCX,
     ),
@@ -493,6 +520,7 @@ test("a registry routes each sniffed type to its own extractor", async () => {
 test("the fixture builder produces a package the reader accepts", () => {
   assert.ok(deflateRawSync(Buffer.from("x")).length > 0);
   assert.ok(
-    findZipEntry(readZipDirectory(buildDocx()), "word/document.xml") !== undefined,
+    findZipEntry(readZipDirectory(buildDocx()), "word/document.xml") !==
+      undefined,
   );
 });

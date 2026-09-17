@@ -6,15 +6,17 @@ export {
   serializeInterval,
   UNKNOWN_INSTANT,
 } from "./clocks.js";
-export {
-  isKnowledgeModelError,
-  KnowledgeModelError,
-} from "./errors.js";
+export { isKnowledgeModelError, KnowledgeModelError } from "./errors.js";
 export type { KnowledgeModelErrorCode } from "./errors.js";
 export { asArtifactId, asEntityId, isArtifactId, isEntityId } from "./ids.js";
 export { interpret } from "./interpret.js";
 export type { InterpretOptions } from "./interpret.js";
-export { EntityRegistry, SlotRegistry, entitySlug, slotKey } from "./registry.js";
+export {
+  EntityRegistry,
+  SlotRegistry,
+  entitySlug,
+  slotKey,
+} from "./registry.js";
 export {
   EvidenceLifecycleStore,
   decay,
@@ -61,11 +63,7 @@ export type {
   SqliteKnowledgeContextHandle,
   SqliteKnowledgeContextOptions,
 } from "./sqlite-context.js";
-export {
-  EMPTY_LABELS,
-  KnowledgeLabelStore,
-  normalizeLabel,
-} from "./labels.js";
+export { EMPTY_LABELS, KnowledgeLabelStore, normalizeLabel } from "./labels.js";
 export type {
   AttachLabelsInput,
   KnowledgeLabels,

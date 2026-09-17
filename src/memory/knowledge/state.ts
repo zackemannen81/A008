@@ -52,17 +52,16 @@ export function instantsEqual(
 }
 
 export function intervalsEqual(left: Interval, right: Interval): boolean {
-  return instantsEqual(left.from, right.from) && instantsEqual(left.to, right.to);
+  return (
+    instantsEqual(left.from, right.from) && instantsEqual(left.to, right.to)
+  );
 }
 
 export function isKnownInstant(value: Instant): value is string {
   return typeof value === "string";
 }
 
-export function instantLessThan(
-  left: Instant,
-  right: Instant | null,
-): boolean {
+export function instantLessThan(left: Instant, right: Instant | null): boolean {
   if (right === null) {
     return true;
   }
@@ -109,7 +108,9 @@ export class KnowledgeState {
   #nextTransition = 0;
 
   current(slot: SlotRef): readonly Binding[] {
-    return this.history(slot).filter((binding) => isOpenInterval(binding.interval));
+    return this.history(slot).filter((binding) =>
+      isOpenInterval(binding.interval),
+    );
   }
 
   history(slot: SlotRef): readonly Binding[] {
@@ -118,7 +119,9 @@ export class KnowledgeState {
   }
 
   closedHistory(slot: SlotRef): readonly Binding[] {
-    return this.history(slot).filter((binding) => !isOpenInterval(binding.interval));
+    return this.history(slot).filter(
+      (binding) => !isOpenInterval(binding.interval),
+    );
   }
 
   currentValue(slot: SlotRef): unknown | undefined {
@@ -314,9 +317,7 @@ export class KnowledgeState {
     const key = slotKey(decision.slot);
     const existing = [...(this.#bindings.get(key) ?? [])];
     const openIndexes = existing
-      .map((binding, index) =>
-        isOpenInterval(binding.interval) ? index : -1,
-      )
+      .map((binding, index) => (isOpenInterval(binding.interval) ? index : -1))
       .filter((index) => index >= 0);
 
     let closed: Binding | null = null;
@@ -336,7 +337,9 @@ export class KnowledgeState {
             "current binding is missing",
           );
         }
-        if (!canSequenceAfter(current.interval, decision.proposal.aboutInterval)) {
+        if (
+          !canSequenceAfter(current.interval, decision.proposal.aboutInterval)
+        ) {
           throw new KnowledgeModelError(
             "invalid_input",
             "CHANGE cannot sequence over an overlapping current interval",
@@ -368,7 +371,9 @@ export class KnowledgeState {
 
     const opened = bindingFromProposal(decision.proposal);
     const next = [...existing, opened];
-    const openAfter = next.filter((binding) => isOpenInterval(binding.interval));
+    const openAfter = next.filter((binding) =>
+      isOpenInterval(binding.interval),
+    );
     if (decision.cardinality === "single" && openAfter.length !== 1) {
       throw new KnowledgeModelError(
         "invalid_input",
@@ -404,7 +409,10 @@ export class KnowledgeState {
       decision.targetInterval ?? decision.proposal.targetInterval ?? null;
     const targetIndex = existing.findIndex((binding) =>
       targetInterval === null
-        ? instantsEqual(binding.interval.from, decision.proposal.aboutInterval.from)
+        ? instantsEqual(
+            binding.interval.from,
+            decision.proposal.aboutInterval.from,
+          )
         : intervalsEqual(binding.interval, targetInterval) ||
           instantsEqual(binding.interval.from, targetInterval.from),
     );
@@ -465,7 +473,8 @@ export class KnowledgeState {
     decision: ReconcileDecision,
     decidedBy: string,
   ): UpdateResult {
-    const retractedId = decision.proposal.retractsClaimId ?? decision.proposal.id;
+    const retractedId =
+      decision.proposal.retractsClaimId ?? decision.proposal.id;
     const retracted = this.#claims.get(retractedId);
     if (retracted === undefined) {
       throw new KnowledgeModelError(
@@ -535,9 +544,7 @@ export class KnowledgeState {
     };
   }
 
-  #writeTransition(
-    input: Omit<StateTransition, "id">,
-  ): StateTransition {
+  #writeTransition(input: Omit<StateTransition, "id">): StateTransition {
     this.#nextTransition += 1;
     const transition: StateTransition = {
       id: `A008_knowledge_transition_${String(this.#nextTransition).padStart(4, "0")}`,
@@ -574,7 +581,10 @@ function bindingFromProposal(proposal: SlotClaim): Binding {
       claimId: proposal.id,
     };
   }
-  if (typeof proposal.value !== "string" || proposal.value.trim().length === 0) {
+  if (
+    typeof proposal.value !== "string" ||
+    proposal.value.trim().length === 0
+  ) {
     throw new KnowledgeModelError(
       "invalid_input",
       "relationship binding value must be a referent id",

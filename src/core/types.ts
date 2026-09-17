@@ -16,16 +16,19 @@ export interface ChatToolCall {
   readonly arguments: string;
 }
 /** Tool observations are invocation data, never committed conversation history. */
-export type ChatWireMessage = ChatMessage | {
-  readonly role: "assistant";
-  readonly content: string;
-  readonly toolCalls: readonly ChatToolCall[];
-  readonly reasoning?: string;
-} | {
-  readonly role: "tool";
-  readonly toolCallId: string;
-  readonly content: string;
-};
+export type ChatWireMessage =
+  | ChatMessage
+  | {
+      readonly role: "assistant";
+      readonly content: string;
+      readonly toolCalls: readonly ChatToolCall[];
+      readonly reasoning?: string;
+    }
+  | {
+      readonly role: "tool";
+      readonly toolCallId: string;
+      readonly content: string;
+    };
 export interface ChatTools {
   readonly definitions: readonly ChatToolDefinition[];
   readonly maximumCalls: number;

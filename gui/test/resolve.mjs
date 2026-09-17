@@ -30,7 +30,10 @@ export async function resolve(specifier, context, nextResolve) {
     };
   }
 
-  if (specifier.startsWith(".") && (specifier.endsWith(".js") || specifier.endsWith(".jsx"))) {
+  if (
+    specifier.startsWith(".") &&
+    (specifier.endsWith(".js") || specifier.endsWith(".jsx"))
+  ) {
     const extensions = specifier.endsWith(".jsx") ? [".tsx"] : TS_CANDIDATES;
     for (const extension of extensions) {
       const candidate = specifier.replace(/\.jsx?$/u, extension);
@@ -46,7 +49,11 @@ export async function resolve(specifier, context, nextResolve) {
 
 export async function load(url, context, nextLoad) {
   if (url.endsWith(".css")) {
-    return { format: "module", source: "export default {};", shortCircuit: true };
+    return {
+      format: "module",
+      source: "export default {};",
+      shortCircuit: true,
+    };
   }
 
   if (url.endsWith(".tsx")) {

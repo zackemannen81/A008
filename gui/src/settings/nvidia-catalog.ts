@@ -1,5 +1,16 @@
-import type { NvidiaCatalog, ProviderSettings, KieCatalog, ProviderSettingsUpdate } from '../../../packages/protocol/src/index.js';
-export type { NvidiaCatalogModel, NvidiaCatalog, ProviderSettings, KieCatalogModel, KieCatalog } from '../../../packages/protocol/src/index.js';
+import type {
+  NvidiaCatalog,
+  ProviderSettings,
+  KieCatalog,
+  ProviderSettingsUpdate,
+} from "../../../packages/protocol/src/index.js";
+export type {
+  NvidiaCatalogModel,
+  NvidiaCatalog,
+  ProviderSettings,
+  KieCatalogModel,
+  KieCatalog,
+} from "../../../packages/protocol/src/index.js";
 import { engineHeaders } from "../session/engine-access.js";
 
 export async function loadNvidiaCatalog(
@@ -12,7 +23,9 @@ export async function loadNvidiaCatalog(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await errorMessage(response, "Could not load the NVIDIA catalog."));
+    throw new Error(
+      await errorMessage(response, "Could not load the NVIDIA catalog."),
+    );
   }
   return (await response.json()) as NvidiaCatalog;
 }
@@ -46,7 +59,9 @@ export async function loadProviderSettings(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await errorMessage(response, "Could not load provider settings."));
+    throw new Error(
+      await errorMessage(response, "Could not load provider settings."),
+    );
   }
   return (await response.json()) as ProviderSettings;
 }
@@ -61,7 +76,9 @@ export async function loadKieCatalog(
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error(await errorMessage(response, "Could not load the kie.ai catalog."));
+    throw new Error(
+      await errorMessage(response, "Could not load the kie.ai catalog."),
+    );
   }
   return (await response.json()) as KieCatalog;
 }
@@ -80,12 +97,17 @@ export async function saveProviderSettings(
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    throw new Error(await errorMessage(response, "Could not save provider settings."));
+    throw new Error(
+      await errorMessage(response, "Could not save provider settings."),
+    );
   }
   return (await response.json()) as ProviderSettings;
 }
 
-async function errorMessage(response: Response, fallback: string): Promise<string> {
+async function errorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
   try {
     const payload: unknown = await response.json();
     if (

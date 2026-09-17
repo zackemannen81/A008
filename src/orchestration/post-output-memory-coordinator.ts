@@ -36,7 +36,10 @@ export interface RelationBatchCommitInput {
 }
 
 export type RelationBatchCommitStep =
-  | { readonly proposalIndex: number; readonly result: RelationGatedCommitResult }
+  | {
+      readonly proposalIndex: number;
+      readonly result: RelationGatedCommitResult;
+    }
   | { readonly proposalIndex: number; readonly error: unknown };
 
 export interface StagedProposalCommitter {
@@ -69,8 +72,7 @@ export interface PostOutputMemoryCommitCheckpoint {
   readonly records: readonly PostOutputMemoryCommitRecord[];
 }
 
-export interface PostOutputMemoryIndexRepairCheckpoint
-  extends PostOutputMemoryCommitCheckpoint {
+export interface PostOutputMemoryIndexRepairCheckpoint extends PostOutputMemoryCommitCheckpoint {
   readonly pendingProposalIndex: number;
   readonly pending: PendingRelationIndexRepair;
 }
@@ -228,7 +230,13 @@ function copyClassifierDecision(
   if (decision.type === "conflict") {
     return { type: "conflict", targetHandles: [...decision.targetHandles] };
   }
-  return { type: decision.type, targetHandle: decision.targetHandle, ...(decision.supportsTarget === undefined ? {} : { supportsTarget: decision.supportsTarget }) };
+  return {
+    type: decision.type,
+    targetHandle: decision.targetHandle,
+    ...(decision.supportsTarget === undefined
+      ? {}
+      : { supportsTarget: decision.supportsTarget }),
+  };
 }
 
 function copyReconciliationDecision(
@@ -257,18 +265,19 @@ function copyReconciliation(
 function copyCommitResult(
   result: RelationGatedCommitResult,
 ): RelationGatedCommitResult {
-  const index = result.index.status === "not_required"
-    ? { status: "not_required" as const }
-    : result.index.status === "updated"
-      ? {
-          status: "updated" as const,
-          document: copyDocument(result.index.document),
-        }
-      : {
-          status: "pending_repair" as const,
-          document: copyDocument(result.index.document),
-          error: result.index.error,
-        };
+  const index =
+    result.index.status === "not_required"
+      ? { status: "not_required" as const }
+      : result.index.status === "updated"
+        ? {
+            status: "updated" as const,
+            document: copyDocument(result.index.document),
+          }
+        : {
+            status: "pending_repair" as const,
+            document: copyDocument(result.index.document),
+            error: result.index.error,
+          };
   return {
     classifierDecision: copyClassifierDecision(result.classifierDecision),
     reconciliationDecision: copyReconciliationDecision(
@@ -276,7 +285,9 @@ function copyCommitResult(
     ),
     reconciliation: copyReconciliation(result.reconciliation),
     evidence: {
-      ...(result.evidence.reinforcement === undefined ? {} : { reinforcement: result.evidence.reinforcement }),
+      ...(result.evidence.reinforcement === undefined
+        ? {}
+        : { reinforcement: result.evidence.reinforcement }),
       materializedCandidateIds: [...result.evidence.materializedCandidateIds],
       classifierCandidateIds: [...result.evidence.classifierCandidateIds],
       classifierInputSerialized: result.evidence.classifierInputSerialized,
@@ -365,7 +376,9 @@ function validatedBatch(batch: StagedKnowledgeBatch): StagedKnowledgeBatch {
         )
       : [],
     sourceMessage,
-    ...(origin.kind === "dialogue" && typeof batch.answerMessage === "string" && batch.answerMessage.trim().length > 0
+    ...(origin.kind === "dialogue" &&
+    typeof batch.answerMessage === "string" &&
+    batch.answerMessage.trim().length > 0
       ? { answerMessage: nonEmpty(batch.answerMessage, "staged answerMessage") }
       : {}),
     proposals,
@@ -390,7 +403,10 @@ function validatedRecords(
   nextProposalIndex: number,
 ): PostOutputMemoryCommitRecord[] {
   if (!Array.isArray(records)) {
-    throw new MemoryError("invalid_input", "checkpoint records must be an array");
+    throw new MemoryError(
+      "invalid_input",
+      "checkpoint records must be an array",
+    );
   }
   if (records.length !== nextProposalIndex) {
     throw new MemoryError(
@@ -440,7 +456,9 @@ function validatedCommitCheckpoint(
     batch,
     nextProposalIndex,
   );
-  if (records.some((record) => record.result.index.status === "pending_repair")) {
+  if (
+    records.some((record) => record.result.index.status === "pending_repair")
+  ) {
     throw new MemoryError(
       "invalid_input",
       "commit checkpoint cannot contain pending index repair",
@@ -453,7 +471,9 @@ function sameDocument(
   left: RetrievalDocument,
   right: RetrievalDocument,
 ): boolean {
-  return JSON.stringify(copyDocument(left)) === JSON.stringify(copyDocument(right));
+  return (
+    JSON.stringify(copyDocument(left)) === JSON.stringify(copyDocument(right))
+  );
 }
 
 function validatedIndexCheckpoint(
@@ -504,9 +524,9 @@ function validatedIndexCheckpoint(
     );
   }
   if (
-    records.slice(0, -1).some(
-      (record) => record.result.index.status === "pending_repair",
-    )
+    records
+      .slice(0, -1)
+      .some((record) => record.result.index.status === "pending_repair")
   ) {
     throw new MemoryError(
       "invalid_input",
@@ -530,7 +550,10 @@ function stagingInput(
   input: StagePostOutputKnowledgeInput,
 ): StagePostOutputKnowledgeInput {
   if (typeof input !== "object" || input === null || Array.isArray(input)) {
-    throw new MemoryError("invalid_input", "post-output input must be an object");
+    throw new MemoryError(
+      "invalid_input",
+      "post-output input must be an object",
+    );
   }
   if (!Array.isArray(input.applicabilityScopes)) {
     throw new MemoryError(
@@ -666,7 +689,10 @@ export class PostOutputMemoryCoordinator {
   ): Promise<PostOutputMemoryResult> {
     const records = priorRecords.map(copyRecord);
     const skipped: SkippedPostOutputProposal[] = [];
-    if (this.#committer.commitBatch !== undefined && startIndex < batch.proposals.length) {
+    if (
+      this.#committer.commitBatch !== undefined &&
+      startIndex < batch.proposals.length
+    ) {
       let steps: readonly RelationBatchCommitStep[];
       try {
         steps = await this.#committer.commitBatch(

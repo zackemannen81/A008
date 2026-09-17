@@ -51,7 +51,11 @@ async function stage(
   draft: AnalyzedKnowledgeDraft,
 ): Promise<StagedKnowledgeBatch> {
   return new PostOutputKnowledgeIntake({
-    analyzer: { async analyze() { return [draft]; } },
+    analyzer: {
+      async analyze() {
+        return [draft];
+      },
+    },
     context: {
       projectId: PROJECT,
       conversationId: CONVERSATION,
@@ -114,7 +118,8 @@ function seedProposal(): KnowledgeProposal {
 }
 
 const relationDrafts: Readonly<Record<string, AnalyzedKnowledgeDraft>> = {
-  new: { severity: "important",
+  new: {
+    severity: "important",
     proposition: "SQLite is the local memory baseline.",
     kind: "architecture-decision",
     tags: ["memory", "sqlite"],
@@ -122,7 +127,8 @@ const relationDrafts: Readonly<Record<string, AnalyzedKnowledgeDraft>> = {
     entities: ["sqlite"],
     confidence: 0.9,
   },
-  restatement: { severity: "important",
+  restatement: {
+    severity: "important",
     proposition: "SQLite is the local memory baseline.",
     kind: "architecture-decision",
     tags: ["memory", "sqlite"],
@@ -130,7 +136,8 @@ const relationDrafts: Readonly<Record<string, AnalyzedKnowledgeDraft>> = {
     entities: ["sqlite"],
     confidence: 0.95,
   },
-  extend: { severity: "important",
+  extend: {
+    severity: "important",
     proposition: "SQLite memory also stores relation decisions.",
     kind: "architecture-decision",
     tags: ["memory", "relations", "sqlite"],
@@ -138,7 +145,8 @@ const relationDrafts: Readonly<Record<string, AnalyzedKnowledgeDraft>> = {
     entities: ["relation-gate", "sqlite"],
     confidence: 0.92,
   },
-  supersede: { severity: "important",
+  supersede: {
+    severity: "important",
     proposition: "PostgreSQL becomes the memory baseline.",
     kind: "architecture-decision",
     tags: ["memory", "postgresql"],
@@ -146,7 +154,8 @@ const relationDrafts: Readonly<Record<string, AnalyzedKnowledgeDraft>> = {
     entities: ["postgresql"],
     confidence: 0.91,
   },
-  conflict: { severity: "important",
+  conflict: {
+    severity: "important",
     proposition: "SQLite must not be used for local memory.",
     kind: "architecture-decision",
     tags: ["memory", "sqlite"],
@@ -178,9 +187,10 @@ test("relation-gated commit proves all five relations against actual SQLite", as
         projectId: PROJECT,
       });
       try {
-        const generatedIds = relation === "new"
-          ? ["created-current"]
-          : ["seed-current", "replacement-current"];
+        const generatedIds =
+          relation === "new"
+            ? ["created-current"]
+            : ["seed-current", "replacement-current"];
         const memory = new SemanticMemory({
           repository,
           policy: new CodingAgentMemoryPolicy({
@@ -197,7 +207,9 @@ test("relation-gated commit proves all five relations against actual SQLite", as
           },
         });
         if (relation !== "new") {
-          const seeded = await memory.reconcile(seedProposal(), { type: "new" });
+          const seeded = await memory.reconcile(seedProposal(), {
+            type: "new",
+          });
           assert.equal(seeded.item?.activationStatus, "dormant");
           await repository.upsertRetrievalDocument({
             knowledgeId: "seed-current",
@@ -208,7 +220,8 @@ test("relation-gated commit proves all five relations against actual SQLite", as
 
         const draft = relationDrafts[relation]!;
         const batch = await stage(draft);
-        let classifierInput: Parameters<KnowledgeRelationClassifier["classify"]>[0] | undefined;
+        let classifierInput:
+          Parameters<KnowledgeRelationClassifier["classify"]>[0] | undefined;
         const classifier: KnowledgeRelationClassifier = {
           async classify(input) {
             classifierInput = input;
@@ -256,7 +269,9 @@ test("relation-gated commit proves all five relations against actual SQLite", as
         const audit = await memory.getAudit();
         assert.equal(audit.at(-1)?.type, expectedAudit[relation]);
         const all = await repository.read((view) => view.listAll());
-        const current = all.filter((item) => item.canonicalStatus === "current");
+        const current = all.filter(
+          (item) => item.canonicalStatus === "current",
+        );
         assert.equal(current.length, 1);
         assert.equal(current[0]?.activationStatus, "dormant");
 
@@ -288,11 +303,12 @@ test("relation-gated commit proves all five relations against actual SQLite", as
           LIMITS,
         );
         assert.equal(retrieval.persistentCurrentCount, 1);
-        const expectedCurrentId = relation === "supersede"
-          ? "replacement-current"
-          : relation === "new"
-            ? "created-current"
-            : "seed-current";
+        const expectedCurrentId =
+          relation === "supersede"
+            ? "replacement-current"
+            : relation === "new"
+              ? "created-current"
+              : "seed-current";
         assert.ok(retrieval.hits.length > 0);
         assert.ok(
           retrieval.hits.every((hit) => hit.knowledgeId === expectedCurrentId),

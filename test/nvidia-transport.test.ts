@@ -54,7 +54,10 @@ test("streaming transport sends the expected payload and assembles deltas", asyn
     new Headers(capturedInit?.headers).get("authorization"),
     "Bearer test-token",
   );
-  const payload = JSON.parse(String(capturedInit?.body)) as Record<string, unknown>;
+  const payload = JSON.parse(String(capturedInit?.body)) as Record<
+    string,
+    unknown
+  >;
   assert.equal(payload.model, request.model);
   assert.equal(payload.top_p, 0.95);
   assert.equal(payload.reasoning_budget, 64);
@@ -131,9 +134,7 @@ test("network failures become retryable network errors", async () => {
   await assert.rejects(
     () => transport.complete(request),
     (error: unknown) =>
-      error instanceof ChatError &&
-      error.code === "network" &&
-      error.retryable,
+      error instanceof ChatError && error.code === "network" && error.retryable,
   );
 });
 
@@ -154,8 +155,7 @@ test("timeout aborts the fake request and becomes a timeout error", async () => 
 
   await assert.rejects(
     () => transport.complete(request),
-    (error: unknown) =>
-      error instanceof ChatError && error.code === "timeout",
+    (error: unknown) => error instanceof ChatError && error.code === "timeout",
   );
 });
 
@@ -223,10 +223,15 @@ test("NVIDIA native vision maps only the active user message to image_url conten
     apiKey: "test-token",
     fetch: async (_input, init) => {
       payload = JSON.parse(String(init?.body));
-      return new Response(JSON.stringify({ choices: [{ message: { content: "seen" }, finish_reason: "stop" }] }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { content: "seen" }, finish_reason: "stop" }],
+        }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      );
     },
   });
   await transport.complete({
@@ -236,7 +241,9 @@ test("NVIDIA native vision maps only the active user message to image_url conten
       { role: "assistant", content: "old answer" },
       { role: "user", content: "describe this" },
     ],
-    imageAttachments: [{ mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" }],
+    imageAttachments: [
+      { mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" },
+    ],
     options: { stream: false },
   });
   assert.equal(payload.messages[0].content, "old text turn");

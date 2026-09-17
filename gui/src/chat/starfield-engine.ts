@@ -12,7 +12,12 @@ const EXTENT = 900;
 const DIST4 = 700;
 const DIST3 = 600;
 
-export function rotate4(point: Vec4, i: 0 | 1 | 2 | 3, j: 0 | 1 | 2 | 3, angle: number): void {
+export function rotate4(
+  point: Vec4,
+  i: 0 | 1 | 2 | 3,
+  j: 0 | 1 | 2 | 3,
+  angle: number,
+): void {
   const cosine = Math.cos(angle);
   const sine = Math.sin(angle);
   const a = point[i];
@@ -21,7 +26,10 @@ export function rotate4(point: Vec4, i: 0 | 1 | 2 | 3, j: 0 | 1 | 2 | 3, angle: 
   point[j] = a * sine + b * cosine;
 }
 
-export function createStars(count = STARFIELD_COUNT, random: () => number = Math.random): Star[] {
+export function createStars(
+  count = STARFIELD_COUNT,
+  random: () => number = Math.random,
+): Star[] {
   const stars: Star[] = [];
   for (let n = 0; n < count; n += 1) {
     stars.push({
@@ -100,7 +108,13 @@ export function startStarfield(
       const scale = DIST3 / (DIST3 - z3);
       const x = cx + x3 * scale;
       const y = cy + y3 * scale;
-      if (scale <= 0 || x < -20 || x > width + 20 || y < -20 || y > height + 20) {
+      if (
+        scale <= 0 ||
+        x < -20 ||
+        x > width + 20 ||
+        y < -20 ||
+        y > height + 20
+      ) {
         continue;
       }
       const size = Math.max(0.35, 1.8 * scale * wScale * 0.5);

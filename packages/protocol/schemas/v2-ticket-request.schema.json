@@ -13,8 +13,6 @@
       "pattern": "^[A-Za-z0-9_-]+$"
     }
   },
-  "required": [
-    "projectId"
-  ],
+  "required": ["projectId"],
   "additionalProperties": false
 }

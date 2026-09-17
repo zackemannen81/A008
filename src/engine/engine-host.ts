@@ -1,14 +1,29 @@
 import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import type { InitializeRequest, NewSessionRequest, PromptRequest, SessionNotification } from "@agentclientprotocol/sdk";
-import { A008AcpAgent, parseSharedMemoryCapabilitiesParams } from "../acp/A008-acp-agent.js";
-import { ProjectRuntimeRegistry, type ProjectRuntime } from "./project-runtime-registry.js";
+import type {
+  InitializeRequest,
+  NewSessionRequest,
+  PromptRequest,
+  SessionNotification,
+} from "@agentclientprotocol/sdk";
+import {
+  A008AcpAgent,
+  parseSharedMemoryCapabilitiesParams,
+} from "../acp/A008-acp-agent.js";
+import {
+  ProjectRuntimeRegistry,
+  type ProjectRuntime,
+} from "./project-runtime-registry.js";
 import type { SessionControl } from "../core/session-control.js";
 import { startGuiHost, type GuiHost } from "../gui-host/server.js";
 import type { AcpBridge } from "../gui-host/acp-bridge.js";
 import type { GuiHostServerMessage } from "../gui-host/protocol.js";
 import { ModelToolSession } from "../tools/model-tools.js";
-import { prepareAcpTools, type RequestToolPermission, type ToolNotifier } from "../tools/acp-tools.js";
+import {
+  prepareAcpTools,
+  type RequestToolPermission,
+  type ToolNotifier,
+} from "../tools/acp-tools.js";
 
 type Project = ProjectRuntime;
 type Listener = (message: GuiHostServerMessage) => void;
@@ -51,44 +66,115 @@ export class EngineHost {
   constructor(options: EngineHostOptions) {
     this.#options = options;
     this.#ownsRegistry = options.registry === undefined;
-    this.#registry = options.registry ?? new ProjectRuntimeRegistry({ env: options.env, ...(options.stderr ? { stderr: options.stderr } : {}) });
+    this.#registry =
+      options.registry ??
+      new ProjectRuntimeRegistry({
+        env: options.env,
+        ...(options.stderr ? { stderr: options.stderr } : {}),
+      });
   }
 
   initialize(params: InitializeRequest) {
-    const agent = new A008AcpAgent({ sessionControls: true, createSession() { throw new Error("Create a project session first."); } });
+    const agent = new A008AcpAgent({
+      sessionControls: true,
+      createSession() {
+        throw new Error("Create a project session first.");
+      },
+    });
     const response = agent.initialize(params);
-    return { ...response, agentInfo: { ...response.agentInfo, name: "A008", title: "A008 Engine", version: "0.0.0" },
-      agentCapabilities: { ...response.agentCapabilities, _meta: { ...response.agentCapabilities?._meta, "engine.panels": 1 } } };
+    return {
+      ...response,
+      agentInfo: {
+        ...response.agentInfo,
+        name: "A008",
+        title: "A008 Engine",
+        version: "0.0.0",
+      },
+      agentCapabilities: {
+        ...response.agentCapabilities,
+        _meta: { ...response.agentCapabilities?._meta, "engine.panels": 1 },
+      },
+    };
   }
 
-  newSession(params: NewSessionRequest, client: { requestPermission?: RequestToolPermission; notify?: ToolNotifier } = {}) {
+  newSession(
+    params: NewSessionRequest,
+    client: {
+      requestPermission?: RequestToolPermission;
+      notify?: ToolNotifier;
+    } = {},
+  ) {
     const work = this.#newSession(params, client);
     this.#initializing.add(work);
-    void work.finally(() => this.#initializing.delete(work)).catch(() => undefined);
+    void work
+      .finally(() => this.#initializing.delete(work))
+      .catch(() => undefined);
     return work;
   }
 
-  async #newSession(params: NewSessionRequest, client: { requestPermission?: RequestToolPermission; notify?: ToolNotifier }) {
+  async #newSession(
+    params: NewSessionRequest,
+    client: {
+      requestPermission?: RequestToolPermission;
+      notify?: ToolNotifier;
+    },
+  ) {
     if (this.#closed) throw new Error("Engine is stopping.");
-    const project = this.#project(params.cwd), cwd = project.cwd;
-    const tools = new ModelToolSession({ cwd, env: this.#options.env, mcpServers: params.mcpServers });
+    const project = this.#project(params.cwd),
+      cwd = project.cwd;
+    const tools = new ModelToolSession({
+      cwd,
+      env: this.#options.env,
+      mcpServers: params.mcpServers,
+    });
     const created = project.agent.newSession(params);
     const token = randomBytes(32).toString("hex");
-    const session: EngineSession = { project, ...client, tools, listeners: new Set(), activities: new Map(), thought: "", answer: "" };
+    const session: EngineSession = {
+      project,
+      ...client,
+      tools,
+      listeners: new Set(),
+      activities: new Map(),
+      thought: "",
+      answer: "",
+    };
     this.#sessions.set(created.sessionId, session);
     try {
       // Enable controls before either client uses the session; a configuration
       // failure must still pass through the session/tool cleanup below.
-      project.agent.controlSession({ sessionId: created.sessionId, action: "inspect" });
-      if (this.#options.createPanels === false) return { ...created, _meta: { "engine.panels": [] } };
-      session.panel = await startGuiHost({ host: "127.0.0.1", port: 0, accessToken: token,
-        env: this.#options.env, cwd, sourceStorePath: project.runtime.sourceStoreRoot!,
-        staticDir: this.#options.staticDir ?? fileURLToPath(new URL("../../../gui/dist", import.meta.url)),
+      project.agent.controlSession({
+        sessionId: created.sessionId,
+        action: "inspect",
+      });
+      if (this.#options.createPanels === false)
+        return { ...created, _meta: { "engine.panels": [] } };
+      session.panel = await startGuiHost({
+        host: "127.0.0.1",
+        port: 0,
+        accessToken: token,
+        env: this.#options.env,
+        cwd,
+        sourceStorePath: project.runtime.sourceStoreRoot!,
+        staticDir:
+          this.#options.staticDir ??
+          fileURLToPath(new URL("../../../gui/dist", import.meta.url)),
         createAcpBridge: () => this.#panelBridge(created.sessionId, session),
       });
-      if (this.#closed) throw new Error("Engine stopped during session creation.");
-      return { ...created, _meta: { "engine.panels": [{ id: "a008", title: "A008", sessionId: created.sessionId,
-        url: `http://127.0.0.1:${session.panel.port}/#engine=${token}` }] } };
+      if (this.#closed)
+        throw new Error("Engine stopped during session creation.");
+      return {
+        ...created,
+        _meta: {
+          "engine.panels": [
+            {
+              id: "a008",
+              title: "A008",
+              sessionId: created.sessionId,
+              url: `http://127.0.0.1:${session.panel.port}/#engine=${token}`,
+            },
+          ],
+        },
+      };
     } catch (error) {
       this.#sessions.delete(created.sessionId);
       project.agent.closeSession({ sessionId: created.sessionId });
@@ -98,81 +184,191 @@ export class EngineHost {
     }
   }
 
-  sessionAgent(sessionId: string) { return this.#require(sessionId).project.agent; }
+  sessionAgent(sessionId: string) {
+    return this.#require(sessionId).project.agent;
+  }
 
   #project(directory: string): Project {
     if (this.#closed) throw new Error("Engine is stopping.");
-    const project = this.#options.resolveProject?.(directory) ?? this.#registry.openEngine(directory);
+    const project =
+      this.#options.resolveProject?.(directory) ??
+      this.#registry.openEngine(directory);
     this.#projects.set(project.cwd, project);
     return project;
   }
 
   sharedMemoryCapabilities(params: unknown) {
     parseSharedMemoryCapabilitiesParams(params);
-    return { protocol: "A007_MEMORY_V1", version: 1, capabilities: ["recall", "write", "provenance", "lexical", "deterministic", "project-scoped", "durable"],
-      projectId: null, projectSelection: "session-or-absolute-cwd", durable: true, writeSemantics: "evidence" };
+    return {
+      protocol: "A007_MEMORY_V1",
+      version: 1,
+      capabilities: [
+        "recall",
+        "write",
+        "provenance",
+        "lexical",
+        "deterministic",
+        "project-scoped",
+        "durable",
+      ],
+      projectId: null,
+      projectSelection: "session-or-absolute-cwd",
+      durable: true,
+      writeSemantics: "evidence",
+    };
   }
 
   projectAgent(params: unknown) {
-    const input = params && typeof params === "object" ? params as Record<string, unknown> : {};
-    if (typeof input.sessionId === "string") return this.sessionAgent(input.sessionId);
+    const input =
+      params && typeof params === "object"
+        ? (params as Record<string, unknown>)
+        : {};
+    if (typeof input.sessionId === "string")
+      return this.sessionAgent(input.sessionId);
     if (typeof input.cwd === "string") return this.#project(input.cwd).agent;
     // Felix's existing local project identifier carries the absolute workspace.
-    if (typeof input.projectId === "string" && input.projectId.startsWith("local:")) return this.#project(input.projectId.slice(6)).agent;
+    if (
+      typeof input.projectId === "string" &&
+      input.projectId.startsWith("local:")
+    )
+      return this.#project(input.projectId.slice(6)).agent;
     const projects = [...this.#projects.values()];
-    const project = typeof input.projectId === "string" ? projects.find(p => p.runtime.projectId === input.projectId) : projects.length === 1 ? projects[0] : undefined;
-    if (!project) throw new Error("Select a project session before using engine memory.");
+    const project =
+      typeof input.projectId === "string"
+        ? projects.find((p) => p.runtime.projectId === input.projectId)
+        : projects.length === 1
+          ? projects[0]
+          : undefined;
+    if (!project)
+      throw new Error("Select a project session before using engine memory.");
     return project.agent;
   }
 
-  async prompt(params: PromptRequest, notify: (message: SessionNotification) => Promise<void>) {
+  async prompt(
+    params: PromptRequest,
+    notify: (message: SessionNotification) => Promise<void>,
+  ) {
     const session = this.#require(params.sessionId);
     if (session.active) throw new Error("Session already has an active turn.");
-    session.input = params.prompt.flatMap(block => block.type === "text" ? [block.text] : []).join("\n");
-    session.thought = ""; session.answer = "";
+    session.input = params.prompt
+      .flatMap((block) => (block.type === "text" ? [block.text] : []))
+      .join("\n");
+    session.thought = "";
+    session.answer = "";
     session.activities.clear();
-    this.#emit(session, { type: "session/activity", sessionId: params.sessionId, active: true, text: session.input });
-    const publish: ToolNotifier = async message => {
+    this.#emit(session, {
+      type: "session/activity",
+      sessionId: params.sessionId,
+      active: true,
+      text: session.input,
+    });
+    const publish: ToolNotifier = async (message) => {
       const update = message.update;
-      if (update.sessionUpdate === "tool_call" || update.sessionUpdate === "tool_call_update") {
+      if (
+        update.sessionUpdate === "tool_call" ||
+        update.sessionUpdate === "tool_call_update"
+      ) {
         const previous = session.activities.get(update.toolCallId);
-        const activity = { type: "tool" as const, sessionId: params.sessionId, id: update.toolCallId,
-          title: update.title ?? previous?.title ?? "Tool", status: update.status ?? previous?.status ?? "pending",
-          text: update.content?.flatMap(c => c.type === "content" && c.content.type === "text" ? [c.content.text] : []).join("\n") ?? previous?.text ?? "" };
+        const activity = {
+          type: "tool" as const,
+          sessionId: params.sessionId,
+          id: update.toolCallId,
+          title: update.title ?? previous?.title ?? "Tool",
+          status: update.status ?? previous?.status ?? "pending",
+          text:
+            update.content
+              ?.flatMap((c) =>
+                c.type === "content" && c.content.type === "text"
+                  ? [c.content.text]
+                  : [],
+              )
+              .join("\n") ??
+            previous?.text ??
+            "",
+        };
         session.activities.set(activity.id, activity);
         this.#emit(session, activity);
       }
-      if ((update.sessionUpdate === "agent_message_chunk" || update.sessionUpdate === "agent_thought_chunk") && update.content.type === "text") {
-        const type = update.sessionUpdate === "agent_message_chunk" ? "answer" : "thought";
+      if (
+        (update.sessionUpdate === "agent_message_chunk" ||
+          update.sessionUpdate === "agent_thought_chunk") &&
+        update.content.type === "text"
+      ) {
+        const type =
+          update.sessionUpdate === "agent_message_chunk" ? "answer" : "thought";
         session[type] += update.content.text;
-        this.#emit(session, { type, sessionId: params.sessionId, text: update.content.text });
+        this.#emit(session, {
+          type,
+          sessionId: params.sessionId,
+          text: update.content.text,
+        });
       }
       await notify(message);
     };
-    const work = session.project.agent.prompt(params, publish,
-      (signal, budgets) => prepareAcpTools(session.tools, params.sessionId, budgets, signal, publish, session.requestPermission));
+    const work = session.project.agent.prompt(
+      params,
+      publish,
+      (signal, budgets) =>
+        prepareAcpTools(
+          session.tools,
+          params.sessionId,
+          budgets,
+          signal,
+          publish,
+          session.requestPermission,
+        ),
+    );
     session.active = work;
-    try { return await work; }
-    catch (error) {
-      this.#emit(session, { type: "error", sessionId: params.sessionId, message: "The engine turn failed or was cancelled. See the client response for details." });
+    try {
+      return await work;
+    } catch (error) {
+      this.#emit(session, {
+        type: "error",
+        sessionId: params.sessionId,
+        message:
+          "The engine turn failed or was cancelled. See the client response for details.",
+      });
       throw error;
-    }
-    finally {
-      delete session.active; delete session.input;
-      if (this.#sessions.has(params.sessionId) && session.project.agent.openSessionIds().includes(params.sessionId)) this.#snapshot(params.sessionId, session);
+    } finally {
+      delete session.active;
+      delete session.input;
+      if (
+        this.#sessions.has(params.sessionId) &&
+        session.project.agent.openSessionIds().includes(params.sessionId)
+      )
+        this.#snapshot(params.sessionId, session);
     }
   }
 
   control(sessionId: string, control: SessionControl) {
     const session = this.#require(sessionId);
-    const state = session.project.agent.controlSession({ sessionId, ...control });
-    this.#emit(session, { type: "session/activity", sessionId, active: !!session.active, state });
+    const state = session.project.agent.controlSession({
+      sessionId,
+      ...control,
+    });
+    this.#emit(session, {
+      type: "session/activity",
+      sessionId,
+      active: !!session.active,
+      state,
+    });
     if (control.action === "close") {
       // Let the current control reply flush before closing borrowed panel sockets.
-      setImmediate(() => { if (this.#sessions.has(sessionId)) void this.closeSession(sessionId).catch(() => undefined); });
+      setImmediate(() => {
+        if (this.#sessions.has(sessionId))
+          void this.closeSession(sessionId).catch(() => undefined);
+      });
     } else if (control.action === "model") {
-      void session.notify?.({ sessionId, update: { sessionUpdate: "config_option_update",
-        configOptions: session.project.agent.sessionConfigOptions(sessionId) } }).catch(() => undefined);
+      void session
+        .notify?.({
+          sessionId,
+          update: {
+            sessionUpdate: "config_option_update",
+            configOptions:
+              session.project.agent.sessionConfigOptions(sessionId),
+          },
+        })
+        .catch(() => undefined);
     }
     return state;
   }
@@ -181,16 +377,27 @@ export class EngineHost {
     const session = this.#require(sessionId);
     session.project.agent.cancel({ sessionId });
     await session.active?.catch(() => undefined);
-    if (session.project.agent.openSessionIds().includes(sessionId)) session.project.agent.closeSession({ sessionId });
+    if (session.project.agent.openSessionIds().includes(sessionId))
+      session.project.agent.closeSession({ sessionId });
     this.#sessions.delete(sessionId);
-    await session.notify?.({ sessionId, update: { sessionUpdate: "session_info_update", _meta: { "engine.closed": true } } }).catch(() => undefined);
+    await session
+      .notify?.({
+        sessionId,
+        update: {
+          sessionUpdate: "session_info_update",
+          _meta: { "engine.closed": true },
+        },
+      })
+      .catch(() => undefined);
     session.listeners.clear();
     await session.tools.close();
     await session.panel?.close();
     return {};
   }
 
-  setConfigOption(params: import("@agentclientprotocol/sdk").SetSessionConfigOptionRequest) {
+  setConfigOption(
+    params: import("@agentclientprotocol/sdk").SetSessionConfigOptionRequest,
+  ) {
     const session = this.#require(params.sessionId);
     const result = session.project.agent.setSessionConfigOption(params);
     this.#snapshot(params.sessionId, session);
@@ -200,7 +407,9 @@ export class EngineHost {
   async close() {
     this.#closed = true;
     await Promise.allSettled([...this.#initializing]);
-    await Promise.allSettled([...this.#sessions.keys()].map(id => this.closeSession(id)));
+    await Promise.allSettled(
+      [...this.#sessions.keys()].map((id) => this.closeSession(id)),
+    );
     if (this.#ownsRegistry) this.#registry.close();
     this.#projects.clear();
   }
@@ -210,39 +419,71 @@ export class EngineHost {
     if (!session) throw new Error("Unknown engine session.");
     return session;
   }
-  #emit(session: EngineSession, message: GuiHostServerMessage) { for (const listener of session.listeners) listener(message); }
+  #emit(session: EngineSession, message: GuiHostServerMessage) {
+    for (const listener of session.listeners) listener(message);
+  }
   #snapshot(sessionId: string, session: EngineSession) {
-    const state = session.project.agent.controlSession({ sessionId, action: "inspect" });
-    this.#emit(session, { type: "session/activity", sessionId, active: !!session.active, state });
+    const state = session.project.agent.controlSession({
+      sessionId,
+      action: "inspect",
+    });
+    this.#emit(session, {
+      type: "session/activity",
+      sessionId,
+      active: !!session.active,
+      state,
+    });
   }
 
   #panelBridge(sessionId: string, session: EngineSession): AcpBridge {
     const agent = session.project.agent;
     return {
-      newSession: async () => { this.#require(sessionId); return { sessionId }; },
-      controlSession: async (id, control) => { if (id !== sessionId) throw new Error("Wrong panel session."); return this.control(id, control); },
+      newSession: async () => {
+        this.#require(sessionId);
+        return { sessionId };
+      },
+      controlSession: async (id, control) => {
+        if (id !== sessionId) throw new Error("Wrong panel session.");
+        return this.control(id, control);
+      },
       prompt: async (id, text, _handlers, signal) => {
         if (id !== sessionId) throw new Error("Wrong panel session.");
         signal.throwIfAborted();
         const abort = () => agent.cancel({ sessionId });
         signal.addEventListener("abort", abort, { once: true });
-        try { await this.prompt({ sessionId, prompt: [{ type: "text", text }] }, session.notify ?? (async () => undefined)); }
-        finally { signal.removeEventListener("abort", abort); }
+        try {
+          await this.prompt(
+            { sessionId, prompt: [{ type: "text", text }] },
+            session.notify ?? (async () => undefined),
+          );
+        } finally {
+          signal.removeEventListener("abort", abort);
+        }
       },
-      cancel: id => { if (id === sessionId) agent.cancel({ sessionId }); },
+      cancel: (id) => {
+        if (id === sessionId) agent.cancel({ sessionId });
+      },
       // Panel sockets borrow the client's session. Only an explicit Close ends it.
       closeSession: async () => undefined,
       close: async () => undefined,
-      inspectMemory: async query => session.project.runtime.inspectMemory(query),
-      ingestSource: async input => agent.ingestSource(input),
+      inspectMemory: async (query) =>
+        session.project.runtime.inspectMemory(query),
+      ingestSource: async (input) => agent.ingestSource(input),
       subscribeSession: (id, listener) => {
         if (id !== sessionId) throw new Error("Wrong panel session.");
         session.listeners.add(listener);
-        listener({ type: "session/activity", sessionId, active: !!session.active,
-          ...(session.input ? { text: session.input } : {}), state: agent.controlSession({ sessionId, action: "inspect" }) });
+        listener({
+          type: "session/activity",
+          sessionId,
+          active: !!session.active,
+          ...(session.input ? { text: session.input } : {}),
+          state: agent.controlSession({ sessionId, action: "inspect" }),
+        });
         if (session.active) {
-          if (session.thought) listener({ type: "thought", sessionId, text: session.thought });
-          if (session.answer) listener({ type: "answer", sessionId, text: session.answer });
+          if (session.thought)
+            listener({ type: "thought", sessionId, text: session.thought });
+          if (session.answer)
+            listener({ type: "answer", sessionId, text: session.answer });
         }
         for (const activity of session.activities.values()) listener(activity);
         return () => session.listeners.delete(listener);

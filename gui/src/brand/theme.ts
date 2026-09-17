@@ -18,7 +18,8 @@ export const APP_THEMES: readonly AppTheme[] = [
   {
     id: "deep-space",
     name: "Deep Space",
-    description: "Blue-black navy surfaces with restrained electric-blue interaction.",
+    description:
+      "Blue-black navy surfaces with restrained electric-blue interaction.",
   },
 ];
 

@@ -98,7 +98,10 @@ export class NeutralHybridMemoryReadPolicy implements HybridMemoryReadPolicy {
       0,
     );
     if (Math.abs(weightSum - 1) > 1e-9) {
-      throw new MemoryError("invalid_input", "hybrid retrieval weights must sum to 1");
+      throw new MemoryError(
+        "invalid_input",
+        "hybrid retrieval weights must sum to 1",
+      );
     }
   }
 }

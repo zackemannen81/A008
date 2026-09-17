@@ -5,13 +5,29 @@ import { fileURLToPath } from "node:url";
 import * as acp from "@agentclientprotocol/sdk";
 import { ChatError } from "../core/errors.js";
 import { randomUUID } from "node:crypto";
-import type { SessionControl, SessionSnapshot } from "../core/session-control.js";
+import type {
+  SessionControl,
+  SessionSnapshot,
+} from "../core/session-control.js";
 import type { PromptImageAttachment } from "../../packages/protocol/src/index.js";
-import type { MemoryInspection, MemoryInspectionQuery } from "../memory/knowledge/inspection.js";
+import type {
+  MemoryInspection,
+  MemoryInspectionQuery,
+} from "../memory/knowledge/inspection.js";
 
 export interface AcpPromptHandlers {
-  readonly onTool?: (update: Extract<import("./protocol.js").GuiHostServerMessage, { type: "tool" }>) => void;
-  readonly onPermission?: (update: Extract<import("./protocol.js").GuiHostServerMessage, { type: "tool/permission" }>) => void;
+  readonly onTool?: (
+    update: Extract<
+      import("./protocol.js").GuiHostServerMessage,
+      { type: "tool" }
+    >,
+  ) => void;
+  readonly onPermission?: (
+    update: Extract<
+      import("./protocol.js").GuiHostServerMessage,
+      { type: "tool/permission" }
+    >,
+  ) => void;
   readonly onThought: (text: string) => void;
   readonly onAnswer: (text: string) => void;
 }
@@ -37,10 +53,20 @@ export interface AcpSourceIngestResult {
 }
 
 export interface AcpBridge {
-  resolveToolPermission?(sessionId: string, permissionId: string, allow: boolean): void;
+  resolveToolPermission?(
+    sessionId: string,
+    permissionId: string,
+    allow: boolean,
+  ): void;
   /** Engine panels observe an externally owned session without owning its lifetime. */
-  subscribeSession?(sessionId: string, listener: (message: import("./protocol.js").GuiHostServerMessage) => void): () => void;
-  controlSession?(sessionId: string, control: SessionControl): Promise<SessionSnapshot>;
+  subscribeSession?(
+    sessionId: string,
+    listener: (message: import("./protocol.js").GuiHostServerMessage) => void,
+  ): () => void;
+  controlSession?(
+    sessionId: string,
+    control: SessionControl,
+  ): Promise<SessionSnapshot>;
   /** Optional for hosts connected to an older ACP implementation. */
   inspectMemory?(query: MemoryInspectionQuery): Promise<MemoryInspection>;
   newSession(model?: string): Promise<{ sessionId: string }>;
@@ -98,11 +124,19 @@ export async function createSpawnedAcpBridge(
   });
 
   const handlers = new Map<string, AcpPromptHandlers>();
-  const permissions = new Map<string, { sessionId: string; resolve: (response: acp.RequestPermissionResponse) => void }>();
-  const cancelPermissions = (sessionId: string) => {
-    for (const [id, pending] of permissions) if (pending.sessionId === sessionId) {
-      permissions.delete(id); pending.resolve({ outcome: { outcome: "cancelled" } });
+  const permissions = new Map<
+    string,
+    {
+      sessionId: string;
+      resolve: (response: acp.RequestPermissionResponse) => void;
     }
+  >();
+  const cancelPermissions = (sessionId: string) => {
+    for (const [id, pending] of permissions)
+      if (pending.sessionId === sessionId) {
+        permissions.delete(id);
+        pending.resolve({ outcome: { outcome: "cancelled" } });
+      }
   };
   const stream = acp.ndJsonStream(
     Writable.toWeb(child.stdin),
@@ -110,18 +144,32 @@ export async function createSpawnedAcpBridge(
   );
   const connection = acp
     .client({ name: "A008-gui-host" })
-    .onRequest("session/request_permission", context => {
+    .onRequest("session/request_permission", (context) => {
       const current = handlers.get(context.params.sessionId);
-      if (!current?.onPermission) return { outcome: { outcome: "cancelled" as const } };
-      if (!context.params.options.some(option => option.optionId === "allow-once" && option.kind === "allow_once") ||
-          !context.params.options.some(option => option.optionId === "reject-once" && option.kind === "reject_once")) {
+      if (!current?.onPermission)
+        return { outcome: { outcome: "cancelled" as const } };
+      if (
+        !context.params.options.some(
+          (option) =>
+            option.optionId === "allow-once" && option.kind === "allow_once",
+        ) ||
+        !context.params.options.some(
+          (option) =>
+            option.optionId === "reject-once" && option.kind === "reject_once",
+        )
+      ) {
         return { outcome: { outcome: "cancelled" as const } };
       }
       const id = randomUUID();
-      return new Promise<acp.RequestPermissionResponse>(resolve => {
+      return new Promise<acp.RequestPermissionResponse>((resolve) => {
         permissions.set(id, { sessionId: context.params.sessionId, resolve });
-        current.onPermission?.({ type: "tool/permission", sessionId: context.params.sessionId, id,
-          title: context.params.toolCall.title ?? "Tool execution", text: JSON.stringify(context.params.toolCall.rawInput ?? {}, null, 2) });
+        current.onPermission?.({
+          type: "tool/permission",
+          sessionId: context.params.sessionId,
+          id,
+          title: context.params.toolCall.title ?? "Tool execution",
+          text: JSON.stringify(context.params.toolCall.rawInput ?? {}, null, 2),
+        });
       });
     })
     .onNotification("session/update", (context) => {
@@ -130,10 +178,25 @@ export async function createSpawnedAcpBridge(
         return;
       }
       const update = context.params.update;
-      if (update.sessionUpdate === "tool_call" || update.sessionUpdate === "tool_call_update") {
-        current.onTool?.({ type: "tool", sessionId: context.params.sessionId, id: update.toolCallId,
-          title: update.title ?? "Tool", status: update.status ?? "pending",
-          text: update.content?.flatMap(c => c.type === "content" && c.content.type === "text" ? [c.content.text] : []).join("\n") ?? "" });
+      if (
+        update.sessionUpdate === "tool_call" ||
+        update.sessionUpdate === "tool_call_update"
+      ) {
+        current.onTool?.({
+          type: "tool",
+          sessionId: context.params.sessionId,
+          id: update.toolCallId,
+          title: update.title ?? "Tool",
+          status: update.status ?? "pending",
+          text:
+            update.content
+              ?.flatMap((c) =>
+                c.type === "content" && c.content.type === "text"
+                  ? [c.content.text]
+                  : [],
+              )
+              .join("\n") ?? "",
+        });
       }
       const thought = textFromUpdate(
         context.params.update,
@@ -164,7 +227,8 @@ export async function createSpawnedAcpBridge(
       protocolVersion: acp.PROTOCOL_VERSION,
       clientCapabilities: { session: { configOptions: {} } },
     });
-    sessionControlSupported = initialized.agentCapabilities?._meta?.["a008.sessionControl"] === 1;
+    sessionControlSupported =
+      initialized.agentCapabilities?._meta?.["a008.sessionControl"] === 1;
   } catch (error) {
     connection.close();
     child.kill();
@@ -177,19 +241,39 @@ export async function createSpawnedAcpBridge(
   return {
     resolveToolPermission(sessionId, permissionId, allow) {
       const pending = permissions.get(permissionId);
-      if (!pending || pending.sessionId !== sessionId) throw new Error("Permission is no longer pending.");
+      if (!pending || pending.sessionId !== sessionId)
+        throw new Error("Permission is no longer pending.");
       permissions.delete(permissionId);
-      pending.resolve({ outcome: { outcome: "selected", optionId: allow ? "allow-once" : "reject-once" } });
+      pending.resolve({
+        outcome: {
+          outcome: "selected",
+          optionId: allow ? "allow-once" : "reject-once",
+        },
+      });
     },
-    ...(sessionControlSupported ? { async controlSession(sessionId: string, control: SessionControl) {
-      try {
-        return await connection.agent.request<SessionSnapshot, SessionControl & {sessionId: string}>("_a008/session/control", { sessionId, ...control });
-      } catch (error) { throw acpFailure(error, stderrTail.lastLine()); }
-    } } : {}),
+    ...(sessionControlSupported
+      ? {
+          async controlSession(sessionId: string, control: SessionControl) {
+            try {
+              return await connection.agent.request<
+                SessionSnapshot,
+                SessionControl & { sessionId: string }
+              >("_a008/session/control", { sessionId, ...control });
+            } catch (error) {
+              throw acpFailure(error, stderrTail.lastLine());
+            }
+          },
+        }
+      : {}),
     async inspectMemory(query) {
       try {
-        return await connection.agent.request<MemoryInspection, MemoryInspectionQuery>("memory/inspect", query);
-      } catch (error) { throw acpFailure(error, stderrTail.lastLine()); }
+        return await connection.agent.request<
+          MemoryInspection,
+          MemoryInspectionQuery
+        >("memory/inspect", query);
+      } catch (error) {
+        throw acpFailure(error, stderrTail.lastLine());
+      }
     },
     async newSession(model) {
       let createdId: string | undefined;
@@ -208,7 +292,10 @@ export async function createSpawnedAcpBridge(
         }
         return { sessionId: created.sessionId };
       } catch (error) {
-        if (createdId !== undefined) await connection.agent.request("session/close", { sessionId: createdId }).catch(() => undefined);
+        if (createdId !== undefined)
+          await connection.agent
+            .request("session/close", { sessionId: createdId })
+            .catch(() => undefined);
         throw acpFailure(error, stderrTail.lastLine());
       }
     },
@@ -230,12 +317,16 @@ export async function createSpawnedAcpBridge(
           sessionId,
           prompt: [
             { type: "text", text },
-            ...(attachment === undefined ? [] : [{
-              type: "resource_link" as const,
-              uri: attachment.locator,
-              name: "chat-image",
-              mimeType: attachment.mediaType,
-            }]),
+            ...(attachment === undefined
+              ? []
+              : [
+                  {
+                    type: "resource_link" as const,
+                    uri: attachment.locator,
+                    name: "chat-image",
+                    mimeType: attachment.mediaType,
+                  },
+                ]),
           ],
         });
       } catch (error) {
@@ -263,10 +354,10 @@ export async function createSpawnedAcpBridge(
     },
     async ingestSource(input) {
       try {
-        return await connection.agent.request<AcpSourceIngestResult, AcpSourceIngestInput>(
-          "_a008/source/ingest",
-          input,
-        );
+        return await connection.agent.request<
+          AcpSourceIngestResult,
+          AcpSourceIngestInput
+        >("_a008/source/ingest", input);
       } catch (error) {
         throw acpFailure(error, stderrTail.lastLine());
       }

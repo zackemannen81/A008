@@ -65,7 +65,10 @@ test("media type comes from the bytes, never from the name", () => {
   assert.equal(sniffSourceMediaType(text("%PDF-1.7\n%stuff")), APPLICATION_PDF);
   // A ZIP signature alone no longer decides: A008-0056 reads the archive to see
   // which OOXML family it is, and a stub too short to have a directory is a ZIP.
-  assert.equal(sniffSourceMediaType(bytes(0x50, 0x4b, 0x03, 0x04, 0x14)), APPLICATION_ZIP);
+  assert.equal(
+    sniffSourceMediaType(bytes(0x50, 0x4b, 0x03, 0x04, 0x14)),
+    APPLICATION_ZIP,
+  );
   assert.equal(sniffSourceMediaType(text("plain prose")), TEXT_PLAIN);
 
   const webp = new Uint8Array(16);
@@ -86,17 +89,29 @@ test("a PDF named .txt is still a PDF", () => {
 });
 
 test("binary that is not a known signature is not mistaken for text", () => {
-  assert.equal(sniffSourceMediaType(bytes(0x00, 0x01, 0x02, 0x03)), APPLICATION_OCTET_STREAM);
-  assert.equal(sniffSourceMediaType(bytes(0xc3, 0x28, 0xa0, 0xa1)), APPLICATION_OCTET_STREAM);
+  assert.equal(
+    sniffSourceMediaType(bytes(0x00, 0x01, 0x02, 0x03)),
+    APPLICATION_OCTET_STREAM,
+  );
+  assert.equal(
+    sniffSourceMediaType(bytes(0xc3, 0x28, 0xa0, 0xa1)),
+    APPLICATION_OCTET_STREAM,
+  );
 });
 
 test("multi-byte UTF-8 survives sniffing", () => {
-  assert.equal(sniffSourceMediaType(text("Fakturan är på 4 500 kr — höjd.")), TEXT_PLAIN);
+  assert.equal(
+    sniffSourceMediaType(text("Fakturan är på 4 500 kr — höjd.")),
+    TEXT_PLAIN,
+  );
 });
 
 test("text extraction records appears_in and the uploading speaker", async () => {
   const extracted = await new Utf8TextExtractor().extract(
-    extraction({ bytes: text("The invoice total is 4500 SEK."), uploadedBy: "user" }),
+    extraction({
+      bytes: text("The invoice total is 4500 SEK."),
+      uploadedBy: "user",
+    }),
   );
 
   assert.equal(extracted.content, "The invoice total is 4500 SEK.");
@@ -114,14 +129,20 @@ test("invalid UTF-8 fails rather than becoming replacement characters", () => {
 
 test("image extraction records derived_from and the describing model", async () => {
   const extracted = await new DescribedImageExtractor(
-    fakeDescriber("The image shows an invoice totalling 4500 SEK.", "nvidia/vision-1"),
+    fakeDescriber(
+      "The image shows an invoice totalling 4500 SEK.",
+      "nvidia/vision-1",
+    ),
   ).extract(extraction({ mediaType: IMAGE_PNG, bytes: bytes(0x89, 0x50) }));
 
   // No text appeared in the image, and the account is the model's, not the
   // uploader's. Both facts have to reach the evidence store.
   assert.equal(extracted.relation, "derived_from");
   assert.equal(extracted.speaker, "nvidia/vision-1");
-  assert.equal(extracted.content, "The image shows an invoice totalling 4500 SEK.");
+  assert.equal(
+    extracted.content,
+    "The image shows an invoice totalling 4500 SEK.",
+  );
 });
 
 test("an unattributable or empty description is refused", async () => {
@@ -132,7 +153,9 @@ test("an unattributable or empty description is refused", async () => {
       isSourceIngestError(error) && error.code === "description_failed",
   );
 
-  const anonymous = new DescribedImageExtractor(fakeDescriber("something", "  "));
+  const anonymous = new DescribedImageExtractor(
+    fakeDescriber("something", "  "),
+  );
   await assert.rejects(
     () => anonymous.extract(extraction({ mediaType: IMAGE_PNG })),
     (error: unknown) =>
@@ -149,7 +172,11 @@ test("a type nothing claims raises a named unsupported error and never falls thr
     new DescribedImageExtractor(fakeDescriber("unused")),
   ]);
 
-  for (const mediaType of [APPLICATION_PDF, APPLICATION_DOCX, APPLICATION_ZIP]) {
+  for (const mediaType of [
+    APPLICATION_PDF,
+    APPLICATION_DOCX,
+    APPLICATION_ZIP,
+  ]) {
     assert.equal(registry.supports(mediaType), false);
     await assert.rejects(
       () => registry.extract(extraction({ mediaType })),
@@ -171,7 +198,9 @@ test("the registry picks the first extractor that claims the type", async () => 
   assert.equal(registry.extractorFor(TEXT_PLAIN)?.id, "utf8-text");
   assert.equal(registry.extractorFor(IMAGE_PNG)?.id, "image-description");
 
-  const described = await registry.extract(extraction({ mediaType: IMAGE_PNG }));
+  const described = await registry.extract(
+    extraction({ mediaType: IMAGE_PNG }),
+  );
   assert.equal(described.content, "described");
 });
 
@@ -188,7 +217,9 @@ test("the NVIDIA describer sends the credential and keeps it out of the result",
       sentBody = String(init?.body ?? "");
       return new Response(
         JSON.stringify({
-          choices: [{ message: { content: "A whiteboard with three columns." } }],
+          choices: [
+            { message: { content: "A whiteboard with three columns." } },
+          ],
         }),
         { status: 200, headers: { "content-type": "application/json" } },
       );
@@ -223,7 +254,10 @@ test("the NVIDIA describer reports a failed call without leaking the credential"
 
   await assert.rejects(
     () =>
-      describer.describe({ bytes: bytes(0xff, 0xd8, 0xff), mediaType: IMAGE_JPEG }),
+      describer.describe({
+        bytes: bytes(0xff, 0xd8, 0xff),
+        mediaType: IMAGE_JPEG,
+      }),
     (error: unknown) => {
       if (!(error instanceof SourceIngestError)) {
         return false;
@@ -239,7 +273,8 @@ test("the NVIDIA describer reports a failed call without leaking the credential"
 
 test("the NVIDIA describer refuses to start without a credential or model", () => {
   assert.throws(
-    () => new NvidiaImageDescriber({ apiKey: "  ", model: "nvidia/vision-test" }),
+    () =>
+      new NvidiaImageDescriber({ apiKey: "  ", model: "nvidia/vision-test" }),
   );
   assert.throws(
     () => new NvidiaImageDescriber({ apiKey: SECRET, model: "   " }),

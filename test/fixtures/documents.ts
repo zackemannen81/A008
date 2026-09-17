@@ -79,7 +79,9 @@ export function buildPdf(options: PdfFixtureOptions = {}): Uint8Array {
       `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents ${id + 1} 0 R ` +
         `/Resources << /Font << /F1 ${3 + pageCount * 2} 0 R >> >> >>`,
     );
-    objects.push(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+    objects.push(
+      `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
+    );
     void id;
   }
   objects.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");

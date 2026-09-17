@@ -9,7 +9,10 @@ import {
 } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { ChatError } from "../core/errors.js";
-import { parseRuntimeId, RuntimeIdentityFactory } from "../identity/runtime-id.js";
+import {
+  parseRuntimeId,
+  RuntimeIdentityFactory,
+} from "../identity/runtime-id.js";
 import { planProjectBootstrap } from "./plan.js";
 import { plannedFiles } from "./plan.js";
 import {
@@ -35,7 +38,10 @@ function listNonDot(path: string): readonly string[] {
   return readdirSync(path).filter((name) => name !== "." && name !== "..");
 }
 
-function assertWritableRoot(rootFolder: string, files: Readonly<Record<string, string>>): void {
+function assertWritableRoot(
+  rootFolder: string,
+  files: Readonly<Record<string, string>>,
+): void {
   if (!existsSync(rootFolder)) return;
   const existing = listNonDot(rootFolder);
   if (existing.length === 0) return;
@@ -66,10 +72,7 @@ function gitInit(path: string): void {
     windowsHide: true,
   });
   if (result.status !== 0) {
-    throw new ChatError(
-      "server",
-      result.stderr?.trim() || "git init failed.",
-    );
+    throw new ChatError("server", result.stderr?.trim() || "git init failed.");
   }
 }
 
@@ -79,11 +82,14 @@ export function previewProjectBootstrap(
   projectId?: string,
 ): ProjectBootstrapPlan {
   const factory = new RuntimeIdentityFactory(store.createId);
-  const existing = findProjectByRoot(readProjectRegistry(store.registryPath), config.rootFolder);
+  const existing = findProjectByRoot(
+    readProjectRegistry(store.registryPath),
+    config.rootFolder,
+  );
   const id =
     projectId !== undefined
       ? parseRuntimeId(projectId, "project")
-      : existing?.projectId ?? factory.create("project");
+      : (existing?.projectId ?? factory.create("project"));
   return planProjectBootstrap(config, id);
 }
 
@@ -91,7 +97,10 @@ export function executeProjectBootstrap(
   config: ProjectBootstrapConfig,
   store: ProjectBootstrapStore,
   projectId?: string,
-): { readonly plan: ProjectBootstrapPlan; readonly project: RegisteredProject } {
+): {
+  readonly plan: ProjectBootstrapPlan;
+  readonly project: RegisteredProject;
+} {
   const plan = previewProjectBootstrap(config, store, projectId);
   const files = plannedFiles(config);
   assertWritableRoot(config.rootFolder, files);
@@ -100,7 +109,10 @@ export function executeProjectBootstrap(
     const path = join(config.rootFolder, relativePath);
     mkdirSync(dirname(path), { recursive: true });
     if (existsSync(path)) {
-      throw new ChatError("configuration", `Refusing to overwrite ${relativePath}.`);
+      throw new ChatError(
+        "configuration",
+        `Refusing to overwrite ${relativePath}.`,
+      );
     }
     writeFileSync(path, body, "utf8");
   }
@@ -143,7 +155,10 @@ export function registerExistingProject(
     rootFolder = realpathSync(config.rootFolder);
     if (!statSync(rootFolder).isDirectory()) throw new Error("not a directory");
   } catch {
-    throw new ChatError("configuration", "Project root folder must be an existing directory.");
+    throw new ChatError(
+      "configuration",
+      "Project root folder must be an existing directory.",
+    );
   }
   const registry = readProjectRegistry(store.registryPath);
   const existing = findProjectByRoot(registry, rootFolder);
@@ -153,7 +168,9 @@ export function registerExistingProject(
       `Project root is already registered as "${existing.name}". Open it from Recent.`,
     );
   }
-  const projectId = new RuntimeIdentityFactory(store.createId).create("project");
+  const projectId = new RuntimeIdentityFactory(store.createId).create(
+    "project",
+  );
   const docsFirst =
     existsSync(join(rootFolder, "AGENTS.md")) &&
     existsSync(join(rootFolder, "docs", "TASK_WORKFLOW.md"));
@@ -162,7 +179,10 @@ export function registerExistingProject(
     name: config.projectName,
     rootFolder,
     createdAt: new Date().toISOString(),
-    repository: { initialize: false, name: basename(rootFolder) || config.projectName },
+    repository: {
+      initialize: false,
+      name: basename(rootFolder) || config.projectName,
+    },
     continuity: { docsFirst, multiAgent: { enabled: false } },
     memory: { useGlobalA008Memory: config.memory.useGlobalA008Memory },
   };

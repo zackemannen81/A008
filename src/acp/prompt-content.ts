@@ -9,7 +9,9 @@ export interface PromptTurnInput {
   readonly image?: PromptImageLocator;
 }
 
-function resourceLinkText(block: Extract<ContentBlock, { type: "resource_link" }>): string {
+function resourceLinkText(
+  block: Extract<ContentBlock, { type: "resource_link" }>,
+): string {
   const label = block.title?.trim() || block.name.trim() || "linked resource";
   const description = block.description?.trim();
   return description === undefined || description.length === 0
@@ -17,7 +19,9 @@ function resourceLinkText(block: Extract<ContentBlock, { type: "resource_link" }
     : `[${label}](${block.uri})\n${description}`;
 }
 
-export function promptToTurnInput(blocks: readonly ContentBlock[]): PromptTurnInput {
+export function promptToTurnInput(
+  blocks: readonly ContentBlock[],
+): PromptTurnInput {
   const parts: string[] = [];
   let image: PromptImageLocator | undefined;
   for (const block of blocks) {
@@ -29,7 +33,10 @@ export function promptToTurnInput(blocks: readonly ContentBlock[]): PromptTurnIn
       const mediaType = block.mimeType?.trim();
       if (block.uri.startsWith("source:") && mediaType?.startsWith("image/")) {
         if (image !== undefined) {
-          throw RequestError.invalidParams(undefined, "A008 accepts one native image attachment per turn.");
+          throw RequestError.invalidParams(
+            undefined,
+            "A008 accepts one native image attachment per turn.",
+          );
         }
         image = { locator: block.uri, declaredMediaType: mediaType };
         continue;
@@ -44,7 +51,10 @@ export function promptToTurnInput(blocks: readonly ContentBlock[]): PromptTurnIn
   }
   const text = parts.join("\n\n").trim();
   if (text.length === 0) {
-    throw RequestError.invalidParams(undefined, "ACP prompt must contain text.");
+    throw RequestError.invalidParams(
+      undefined,
+      "ACP prompt must contain text.",
+    );
   }
   return { text, ...(image === undefined ? {} : { image }) };
 }

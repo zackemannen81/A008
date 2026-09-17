@@ -34,7 +34,10 @@ const AGENT = parseRuntimeId(
   "agent",
 );
 
-function item(id: string, overrides: Partial<KnowledgeItem> = {}): KnowledgeItem {
+function item(
+  id: string,
+  overrides: Partial<KnowledgeItem> = {},
+): KnowledgeItem {
   return {
     id,
     proposition: `proposition ${id}`,
@@ -128,7 +131,8 @@ test("SQLite repository persists canon, audit, and retrieval index across reopen
     });
     assert.equal(reopened.schemaVersion, 1);
     assert.equal(
-      (await reopened.read((view) => view.get("knowledge-sqlite")))?.proposition,
+      (await reopened.read((view) => view.get("knowledge-sqlite")))
+        ?.proposition,
       "SQLite provides durable local memory.",
     );
     assert.equal((await reopened.readAudit()).length, 1);
@@ -137,9 +141,9 @@ test("SQLite repository persists canon, audit, and retrieval index across reopen
     );
     (defensiveItem!.tags as string[]).push("caller-mutation");
     assert.equal(
-      (await reopened.read((view) => view.get("knowledge-sqlite")))?.tags.includes(
-        "caller-mutation",
-      ),
+      (
+        await reopened.read((view) => view.get("knowledge-sqlite"))
+      )?.tags.includes("caller-mutation"),
       false,
     );
     const defensiveAudit = await reopened.readAudit();
@@ -155,7 +159,9 @@ test("SQLite repository persists canon, audit, and retrieval index across reopen
       new Set(candidates.hits.map((hit) => hit.channel)),
       new Set(["exact", "lexical", "tag", "domain", "semantic"]),
     );
-    assert.ok(candidates.hits.every((hit) => hit.knowledgeId === "knowledge-sqlite"));
+    assert.ok(
+      candidates.hits.every((hit) => hit.knowledgeId === "knowledge-sqlite"),
+    );
     const weightedPlan: RetrievalPlan = {
       ...plan(),
       entities: [],
@@ -164,7 +170,11 @@ test("SQLite repository persists canon, audit, and retrieval index across reopen
       tags: [{ value: "memory", weight: 0.3 }],
       domains: [{ value: "architecture", weight: 0.4 }],
     };
-    const weighted = await reopened.retrieveCandidates(weightedPlan, [], limits);
+    const weighted = await reopened.retrieveCandidates(
+      weightedPlan,
+      [],
+      limits,
+    );
     assert.equal(
       weighted.hits.find((hit) => hit.channel === "tag")?.score,
       0.3,
@@ -231,8 +241,14 @@ test("one SQLite file isolates identical knowledge IDs by validated project name
   const directory = await mkdtemp(join(tmpdir(), "A008-sqlite-namespace-"));
   const filename = join(directory, "memory.sqlite");
   try {
-    const first = new SqliteMemoryRepository({ filename, projectId: PROJECT_A });
-    const second = new SqliteMemoryRepository({ filename, projectId: PROJECT_B });
+    const first = new SqliteMemoryRepository({
+      filename,
+      projectId: PROJECT_A,
+    });
+    const second = new SqliteMemoryRepository({
+      filename,
+      projectId: PROJECT_B,
+    });
     await first.transact((transaction) =>
       transaction.insert(item("same", { proposition: "Project A memory" })),
     );
@@ -256,8 +272,15 @@ test("one SQLite file isolates identical knowledge IDs by validated project name
       (await second.read((view) => view.get("same")))?.proposition,
       "Project B memory",
     );
-    const firstHits = await first.retrieveCandidates(plan(PROJECT_A), [], limits);
-    assert.equal(firstHits.hits.some((hit) => hit.channel === "exact"), true);
+    const firstHits = await first.retrieveCandidates(
+      plan(PROJECT_A),
+      [],
+      limits,
+    );
+    assert.equal(
+      firstHits.hits.some((hit) => hit.channel === "exact"),
+      true,
+    );
     await assert.rejects(
       () => first.retrieveCandidates(plan(PROJECT_B), [], limits),
       (error: unknown) =>
@@ -351,7 +374,9 @@ test("unsupported SQLite schema version fails closed", async () => {
     });
     repository.close();
     const raw = new Database(filename);
-    raw.prepare("UPDATE A008_memory_schema SET version = 2 WHERE singleton = 1").run();
+    raw
+      .prepare("UPDATE A008_memory_schema SET version = 2 WHERE singleton = 1")
+      .run();
     raw.close();
     assert.throws(
       () => new SqliteMemoryRepository({ filename, projectId: PROJECT_A }),

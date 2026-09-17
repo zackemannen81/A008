@@ -56,26 +56,57 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
   const options = request.options ?? {};
   let attachmentUserIndex = -1;
   if (request.imageAttachments?.length) {
-    request.messages.forEach((message, index) => { if (message.role === "user") attachmentUserIndex = index; });
-    if (attachmentUserIndex < 0) throw new ChatError("configuration", "Native vision requires a user message.");
+    request.messages.forEach((message, index) => {
+      if (message.role === "user") attachmentUserIndex = index;
+    });
+    if (attachmentUserIndex < 0)
+      throw new ChatError(
+        "configuration",
+        "Native vision requires a user message.",
+      );
   }
   const payload: Record<string, unknown> = {
     model: request.model,
-    messages: request.messages.map((message, index) => message.role === "tool"
-      ? { role: "tool", tool_call_id: message.toolCallId, content: message.content }
-      : "toolCalls" in message ? { role: "assistant", content: message.content || null,
-        ...(message.reasoning ? { reasoning_content: message.reasoning } : {}),
-        tool_calls: message.toolCalls.map(call => ({ id: call.id, type: "function", function: { name: call.name, arguments: call.arguments } })) }
-      : index === attachmentUserIndex && message.role === "user"
-        ? { role: "user", content: [
-            { type: "text", text: message.content },
-            ...request.imageAttachments!.map(image => ({ type: "image_url", image_url: { url: image.dataRef } })),
-          ] }
-        : { ...message }),
+    messages: request.messages.map((message, index) =>
+      message.role === "tool"
+        ? {
+            role: "tool",
+            tool_call_id: message.toolCallId,
+            content: message.content,
+          }
+        : "toolCalls" in message
+          ? {
+              role: "assistant",
+              content: message.content || null,
+              ...(message.reasoning
+                ? { reasoning_content: message.reasoning }
+                : {}),
+              tool_calls: message.toolCalls.map((call) => ({
+                id: call.id,
+                type: "function",
+                function: { name: call.name, arguments: call.arguments },
+              })),
+            }
+          : index === attachmentUserIndex && message.role === "user"
+            ? {
+                role: "user",
+                content: [
+                  { type: "text", text: message.content },
+                  ...request.imageAttachments!.map((image) => ({
+                    type: "image_url",
+                    image_url: { url: image.dataRef },
+                  })),
+                ],
+              }
+            : { ...message },
+    ),
     stream: options.stream ?? true,
   };
   if (request.tools?.length) {
-    payload.tools = request.tools.map(tool => ({ type: "function", function: tool }));
+    payload.tools = request.tools.map((tool) => ({
+      type: "function",
+      function: tool,
+    }));
     payload.tool_choice = "auto";
   }
 
@@ -85,13 +116,20 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
   assignOption(payload, "reasoning_budget", options.reasoningBudget);
   assignOption(payload, "seed", options.seed);
   if (options.stop != null) payload.stop = [...options.stop];
-  if (options.reasoningEffort != null) payload.reasoning_effort = options.reasoningEffort;
+  if (options.reasoningEffort != null)
+    payload.reasoning_effort = options.reasoningEffort;
 
   if (options.enableThinking != null) {
     if (request.model === "deepseek-ai/deepseek-v4-pro-0813") {
       payload.chat_template_kwargs = { thinking: options.enableThinking };
-    } else if (request.model !== "moonshotai/kimi-k3" && request.model !== "meta/muse-glimmer-30b" && request.model !== "poolside/laguna-xs-2.1") {
-      payload.chat_template_kwargs = { enable_thinking: options.enableThinking };
+    } else if (
+      request.model !== "moonshotai/kimi-k3" &&
+      request.model !== "meta/muse-glimmer-30b" &&
+      request.model !== "poolside/laguna-xs-2.1"
+    ) {
+      payload.chat_template_kwargs = {
+        enable_thinking: options.enableThinking,
+      };
     }
   }
 
@@ -99,18 +137,34 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
 }
 
 function record(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new ChatError("invalid_response", "Invalid provider tool call.");
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    throw new ChatError("invalid_response", "Invalid provider tool call.");
   return value as Record<string, unknown>;
 }
 function toolCalls(value: unknown): ChatToolCall[] {
   if (value == null) return [];
-  if (!Array.isArray(value)) throw new ChatError("invalid_response", "Provider tool calls must be an array.");
+  if (!Array.isArray(value))
+    throw new ChatError(
+      "invalid_response",
+      "Provider tool calls must be an array.",
+    );
   const ids = new Set<string>();
-  return value.map(item => {
-    const call = record(item), fn = record(call.function);
-    if (call.type !== "function" || typeof call.id !== "string" || !call.id || ids.has(call.id) ||
-      typeof fn.name !== "string" || !fn.name || typeof fn.arguments !== "string") {
-      throw new ChatError("invalid_response", "Invalid or duplicate provider tool call.");
+  return value.map((item) => {
+    const call = record(item),
+      fn = record(call.function);
+    if (
+      call.type !== "function" ||
+      typeof call.id !== "string" ||
+      !call.id ||
+      ids.has(call.id) ||
+      typeof fn.name !== "string" ||
+      !fn.name ||
+      typeof fn.arguments !== "string"
+    ) {
+      throw new ChatError(
+        "invalid_response",
+        "Invalid or duplicate provider tool call.",
+      );
     }
     ids.add(call.id);
     return { id: call.id, name: fn.name, arguments: fn.arguments };
@@ -119,31 +173,53 @@ function toolCalls(value: unknown): ChatToolCall[] {
 
 /** SSE fragments are structured protocol fields; prose is never executable. */
 class ToolCallStream {
-  readonly calls = new Map<number, { id: string; type: string; function: { name: string; arguments: string } }>();
+  readonly calls = new Map<
+    number,
+    { id: string; type: string; function: { name: string; arguments: string } }
+  >();
   push(value: unknown) {
     if (value == null) return;
-    if (!Array.isArray(value)) throw new ChatError("invalid_response", "Invalid tool call stream.");
+    if (!Array.isArray(value))
+      throw new ChatError("invalid_response", "Invalid tool call stream.");
     for (const item of value) {
       const delta = record(item);
-      if (!Number.isSafeInteger(delta.index) || Number(delta.index) < 0) throw new ChatError("invalid_response", "Invalid tool call index.");
+      if (!Number.isSafeInteger(delta.index) || Number(delta.index) < 0)
+        throw new ChatError("invalid_response", "Invalid tool call index.");
       const index = Number(delta.index);
-      const call = this.calls.get(index) ?? { id: "", type: "function", function: { name: "", arguments: "" } };
-      if (delta.type !== undefined && delta.type !== "function") throw new ChatError("invalid_response", "Unsupported tool type.");
+      const call = this.calls.get(index) ?? {
+        id: "",
+        type: "function",
+        function: { name: "", arguments: "" },
+      };
+      if (delta.type !== undefined && delta.type !== "function")
+        throw new ChatError("invalid_response", "Unsupported tool type.");
       if (delta.id !== undefined) {
-        if (typeof delta.id !== "string") throw new ChatError("invalid_response", "Invalid tool call id.");
+        if (typeof delta.id !== "string")
+          throw new ChatError("invalid_response", "Invalid tool call id.");
         call.id += delta.id;
       }
       if (delta.function !== undefined) {
         const fn = record(delta.function);
-        for (const key of ["name", "arguments"] as const) if (fn[key] !== undefined) {
-          if (typeof fn[key] !== "string") throw new ChatError("invalid_response", "Invalid tool function fragment.");
-          call.function[key] += fn[key];
-        }
+        for (const key of ["name", "arguments"] as const)
+          if (fn[key] !== undefined) {
+            if (typeof fn[key] !== "string")
+              throw new ChatError(
+                "invalid_response",
+                "Invalid tool function fragment.",
+              );
+            call.function[key] += fn[key];
+          }
       }
       this.calls.set(index, call);
     }
   }
-  finish() { return toolCalls([...this.calls.entries()].sort(([a], [b]) => a - b).map(([, value]) => value)); }
+  finish() {
+    return toolCalls(
+      [...this.calls.entries()]
+        .sort(([a], [b]) => a - b)
+        .map(([, value]) => value),
+    );
+  }
 }
 
 function assignOption(
@@ -182,7 +258,9 @@ function optionalFinishReason(value: unknown): string | null | undefined {
 }
 
 function optionalNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 function usageFrom(response: NvidiaResponse): ChatUsage | undefined {
@@ -211,11 +289,9 @@ function parseJson(text: string): NvidiaResponse {
     }
     return value as NvidiaResponse;
   } catch (cause) {
-    throw new ChatError(
-      "invalid_response",
-      "NVIDIA returned invalid JSON.",
-      { cause },
-    );
+    throw new ChatError("invalid_response", "NVIDIA returned invalid JSON.", {
+      cause,
+    });
   }
 }
 
@@ -234,14 +310,22 @@ function httpError(status: number): ChatError {
     });
   }
   if (status >= 500) {
-    return new ChatError("server", `NVIDIA server failed with HTTP ${status}.`, {
-      status,
-      retryable: true,
-    });
+    return new ChatError(
+      "server",
+      `NVIDIA server failed with HTTP ${status}.`,
+      {
+        status,
+        retryable: true,
+      },
+    );
   }
-  return new ChatError("provider", `NVIDIA request failed with HTTP ${status}.`, {
-    status,
-  });
+  return new ChatError(
+    "provider",
+    `NVIDIA request failed with HTTP ${status}.`,
+    {
+      status,
+    },
+  );
 }
 
 function isAbortError(value: unknown): boolean {
@@ -368,7 +452,10 @@ export class NvidiaChatTransport implements ChatTransport {
 
       const reasoningDelta = optionalString(choice.delta?.reasoning_content);
       if (reasoningDelta !== undefined && reasoningDelta.length > 0) {
-        for (const delta of normalizer.push("reasoning_content", reasoningDelta)) {
+        for (const delta of normalizer.push(
+          "reasoning_content",
+          reasoningDelta,
+        )) {
           callbacks.onDelta?.(delta);
         }
       }
@@ -380,8 +467,7 @@ export class NvidiaChatTransport implements ChatTransport {
         }
       }
 
-      finishReason =
-        optionalFinishReason(choice.finish_reason) ?? finishReason;
+      finishReason = optionalFinishReason(choice.finish_reason) ?? finishReason;
     }
 
     if (!sawChoice) {
@@ -408,7 +494,9 @@ export class NvidiaChatTransport implements ChatTransport {
     const parsed = parseJson(await response.text());
     const choice = firstChoice(parsed);
     const calls = toolCalls(choice?.message?.tool_calls);
-    const content = optionalString(choice?.message?.content) ?? (calls.length ? "" : undefined);
+    const content =
+      optionalString(choice?.message?.content) ??
+      (calls.length ? "" : undefined);
     if (choice === undefined || content === undefined) {
       throw new ChatError(
         "invalid_response",
@@ -416,7 +504,8 @@ export class NvidiaChatTransport implements ChatTransport {
       );
     }
 
-    const rawReasoning = optionalString(choice.message?.reasoning_content) ?? "";
+    const rawReasoning =
+      optionalString(choice.message?.reasoning_content) ?? "";
     const split = splitLeakedContent(content);
     const reasoning =
       rawReasoning.length === 0 && split.reasoningLeak.length === 0

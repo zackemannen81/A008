@@ -26,7 +26,10 @@ export class ChatError extends Error {
     message: string,
     options: ChatErrorOptions = {},
   ) {
-    super(message, options.cause === undefined ? undefined : { cause: options.cause });
+    super(
+      message,
+      options.cause === undefined ? undefined : { cause: options.cause },
+    );
     this.name = "ChatError";
     this.code = code;
     this.status = options.status;

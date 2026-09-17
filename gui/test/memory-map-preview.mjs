@@ -13,8 +13,9 @@ const server = await createServer({
           if (request.url?.split("?")[0] !== "/__memory-map-check")
             return next();
           const theme =
-            new URL(request.url, "http://127.0.0.1").searchParams.get("theme") ===
-            "deep-space"
+            new URL(request.url, "http://127.0.0.1").searchParams.get(
+              "theme",
+            ) === "deep-space"
               ? "deep-space"
               : "neutral";
           const html = await server.transformIndexHtml(

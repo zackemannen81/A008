@@ -181,7 +181,9 @@ export class EvidenceStore {
     };
     this.#claims.set(stored.id, stored);
     if (input.derivedFrom.kind === "utterance") {
-      const utterance = this.#utterances.get(asUtteranceId(input.derivedFrom.id));
+      const utterance = this.#utterances.get(
+        asUtteranceId(input.derivedFrom.id),
+      );
       this.addProvenance({
         id: input.provenanceId,
         relation: "derived_from",
@@ -317,7 +319,10 @@ function requireNonCurrentInterval(interval: Interval): Interval {
 function requireNonEmpty(value: string, field: string): string {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    throw new KnowledgeModelError("invalid_input", `${field} must not be empty`);
+    throw new KnowledgeModelError(
+      "invalid_input",
+      `${field} must not be empty`,
+    );
   }
   return trimmed;
 }
@@ -384,7 +389,9 @@ function cloneProvenance(record: ProvenanceRecord): ProvenanceRecord {
   };
 }
 
-function cloneProposition(proposition: Claim["proposition"]): Claim["proposition"] {
+function cloneProposition(
+  proposition: Claim["proposition"],
+): Claim["proposition"] {
   switch (proposition.kind) {
     case "attribute_binding":
       return {

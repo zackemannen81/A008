@@ -13,10 +13,9 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 function sseResponse(events: readonly string[]): Response {
-  return new Response(
-    events.map((event) => `data: ${event}\n\n`).join(""),
-    { headers: { "content-type": "text/event-stream" } },
-  );
+  return new Response(events.map((event) => `data: ${event}\n\n`).join(""), {
+    headers: { "content-type": "text/event-stream" },
+  });
 }
 
 test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async () => {
@@ -27,10 +26,17 @@ test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async 
     apiKey: "sk-test-secret",
     fetch: async (input, init) => {
       url = String(input);
-      auth = String((init?.headers as Record<string, string>)?.authorization ?? "");
+      auth = String(
+        (init?.headers as Record<string, string>)?.authorization ?? "",
+      );
       body = String(init?.body ?? "");
       return jsonResponse({
-        choices: [{ message: { role: "assistant", content: "ok" }, finish_reason: "stop" }],
+        choices: [
+          {
+            message: { role: "assistant", content: "ok" },
+            finish_reason: "stop",
+          },
+        ],
         usage: { prompt_tokens: 4, completion_tokens: 2, total_tokens: 6 },
       });
     },
@@ -38,8 +44,19 @@ test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async 
   const completion = await transport.complete({
     model: "gpt-5.6-luna",
     messages: [{ role: "user", content: "hi" }],
-    tools: [{ name: "read_file", description: "Read", parameters: { type: "object" } }],
-    options: { stream: false, maxTokens: 1234, reasoningEffort: "medium", temperature: 0.7 },
+    tools: [
+      {
+        name: "read_file",
+        description: "Read",
+        parameters: { type: "object" },
+      },
+    ],
+    options: {
+      stream: false,
+      maxTokens: 1234,
+      reasoningEffort: "medium",
+      temperature: 0.7,
+    },
   });
   assert.equal(url, OPENAI_CHAT_COMPLETIONS_URL);
   assert.equal(auth, "Bearer sk-test-secret");
@@ -52,26 +69,35 @@ test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async 
   assert.equal(Array.isArray(payload.tools), true);
   assert.equal(payload.tool_choice, "auto");
   assert.equal(completion.message.content, "ok");
-  assert.deepEqual(completion.usage, { promptTokens: 4, completionTokens: 2, totalTokens: 6 });
+  assert.deepEqual(completion.usage, {
+    promptTokens: 4,
+    completionTokens: 2,
+    totalTokens: 6,
+  });
 });
 
 test("OpenAI tool calls map back into A008 structured calls", async () => {
   const transport = new OpenAiChatTransport({
     apiKey: "sk-test",
-    fetch: async () => jsonResponse({
-      choices: [{
-        message: {
-          role: "assistant",
-          content: null,
-          tool_calls: [{
-            id: "call_1",
-            type: "function",
-            function: { name: "git", arguments: "{\"args\":[\"status\"]}" },
-          }],
-        },
-        finish_reason: "tool_calls",
-      }],
-    }),
+    fetch: async () =>
+      jsonResponse({
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              content: null,
+              tool_calls: [
+                {
+                  id: "call_1",
+                  type: "function",
+                  function: { name: "git", arguments: '{"args":["status"]}' },
+                },
+              ],
+            },
+            finish_reason: "tool_calls",
+          },
+        ],
+      }),
   });
   const result = await transport.complete({
     model: "gpt-5.6-luna",
@@ -79,39 +105,90 @@ test("OpenAI tool calls map back into A008 structured calls", async () => {
     options: { stream: false },
   });
   assert.equal(result.message.content, "");
-  assert.deepEqual(result.toolCalls, [{
-    id: "call_1",
-    name: "git",
-    arguments: "{\"args\":[\"status\"]}",
-  }]);
+  assert.deepEqual(result.toolCalls, [
+    {
+      id: "call_1",
+      name: "git",
+      arguments: '{"args":["status"]}',
+    },
+  ]);
 });
 
 test("OpenAI streaming preserves content and assembles fragmented tool calls", async () => {
   const deltas: string[] = [];
   const transport = new OpenAiChatTransport({
     apiKey: "sk-test",
-    fetch: async () => sseResponse([
-      JSON.stringify({ choices: [{ delta: { content: "Hi " }, finish_reason: null }], usage: null }),
-      JSON.stringify({ choices: [{ delta: { content: "there" }, finish_reason: null }] }),
-      JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, id: "call_", type: "function", function: { name: "read_", arguments: "{\"path\":\"" } }] }, finish_reason: null }] }),
-      JSON.stringify({ choices: [{ delta: { tool_calls: [{ index: 0, id: "1", function: { name: "file", arguments: "a.txt\"}" } }] }, finish_reason: "tool_calls" }] }),
-      JSON.stringify({ choices: [], usage: { prompt_tokens: 3, completion_tokens: 4, total_tokens: 7 } }),
-      "[DONE]",
-    ]),
+    fetch: async () =>
+      sseResponse([
+        JSON.stringify({
+          choices: [{ delta: { content: "Hi " }, finish_reason: null }],
+          usage: null,
+        }),
+        JSON.stringify({
+          choices: [{ delta: { content: "there" }, finish_reason: null }],
+        }),
+        JSON.stringify({
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "call_",
+                    type: "function",
+                    function: { name: "read_", arguments: '{"path":"' },
+                  },
+                ],
+              },
+              finish_reason: null,
+            },
+          ],
+        }),
+        JSON.stringify({
+          choices: [
+            {
+              delta: {
+                tool_calls: [
+                  {
+                    index: 0,
+                    id: "1",
+                    function: { name: "file", arguments: 'a.txt"}' },
+                  },
+                ],
+              },
+              finish_reason: "tool_calls",
+            },
+          ],
+        }),
+        JSON.stringify({
+          choices: [],
+          usage: { prompt_tokens: 3, completion_tokens: 4, total_tokens: 7 },
+        }),
+        "[DONE]",
+      ]),
   });
-  const result = await transport.complete({
-    model: "gpt-5.6-luna",
-    messages: [{ role: "user", content: "go" }],
-    options: { stream: true },
-  }, { onDelta: (delta) => deltas.push(delta.text) });
+  const result = await transport.complete(
+    {
+      model: "gpt-5.6-luna",
+      messages: [{ role: "user", content: "go" }],
+      options: { stream: true },
+    },
+    { onDelta: (delta) => deltas.push(delta.text) },
+  );
   assert.deepEqual(deltas, ["Hi ", "there"]);
   assert.equal(result.message.content, "Hi there");
-  assert.deepEqual(result.toolCalls, [{
-    id: "call_1",
-    name: "read_file",
-    arguments: "{\"path\":\"a.txt\"}",
-  }]);
-  assert.deepEqual(result.usage, { promptTokens: 3, completionTokens: 4, totalTokens: 7 });
+  assert.deepEqual(result.toolCalls, [
+    {
+      id: "call_1",
+      name: "read_file",
+      arguments: '{"path":"a.txt"}',
+    },
+  ]);
+  assert.deepEqual(result.usage, {
+    promptTokens: 3,
+    completionTokens: 4,
+    totalTokens: 7,
+  });
 });
 
 test("OpenAI HTTP 429 is a typed retryable rate-limit error", async () => {
@@ -120,29 +197,38 @@ test("OpenAI HTTP 429 is a typed retryable rate-limit error", async () => {
     fetch: async () => jsonResponse({ error: { message: "slow down" } }, 429),
   });
   await assert.rejects(
-    () => transport.complete({
-      model: "gpt-5.6-luna",
-      messages: [{ role: "user", content: "hi" }],
-      options: { stream: false },
-    }),
+    () =>
+      transport.complete({
+        model: "gpt-5.6-luna",
+        messages: [{ role: "user", content: "hi" }],
+        options: { stream: false },
+      }),
     (error: unknown) =>
-      typeof error === "object" && error !== null &&
-      "code" in error && error.code === "rate_limit" &&
-      "retryable" in error && error.retryable === true,
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === "rate_limit" &&
+      "retryable" in error &&
+      error.retryable === true,
   );
 });
 
 test("OpenAI provider errors preserve the bounded provider message", async () => {
   const transport = new OpenAiChatTransport({
     apiKey: "sk-test",
-    fetch: async () => jsonResponse({ error: { message: "Unsupported parameter combination." } }, 400),
+    fetch: async () =>
+      jsonResponse(
+        { error: { message: "Unsupported parameter combination." } },
+        400,
+      ),
   });
   await assert.rejects(
-    () => transport.complete({
-      model: "gpt-5.6-luna",
-      messages: [{ role: "user", content: "hi" }],
-      options: { stream: false },
-    }),
+    () =>
+      transport.complete({
+        model: "gpt-5.6-luna",
+        messages: [{ role: "user", content: "hi" }],
+        options: { stream: false },
+      }),
     (error: unknown) =>
       error instanceof Error &&
       /HTTP 400: Unsupported parameter combination\./u.test(error.message),
@@ -155,21 +241,35 @@ test("OpenAI native vision maps the active user message to image_url content", a
     apiKey: "sk-test",
     fetch: async (_input, init) => {
       body = String(init?.body ?? "");
-      return jsonResponse({ choices: [{ message: { role: "assistant", content: "seen" }, finish_reason: "stop" }] });
+      return jsonResponse({
+        choices: [
+          {
+            message: { role: "assistant", content: "seen" },
+            finish_reason: "stop",
+          },
+        ],
+      });
     },
   });
   await transport.complete({
     model: "gpt-5.6-luna",
     messages: [{ role: "user", content: "describe this" }],
-    imageAttachments: [{ mediaType: "image/jpeg", dataRef: "data:image/jpeg;base64,BBBB" }],
+    imageAttachments: [
+      { mediaType: "image/jpeg", dataRef: "data:image/jpeg;base64,BBBB" },
+    ],
     options: { stream: false },
   });
   const payload = JSON.parse(body) as any;
-  assert.deepEqual(payload.messages, [{
-    role: "user",
-    content: [
-      { type: "text", text: "describe this" },
-      { type: "image_url", image_url: { url: "data:image/jpeg;base64,BBBB" } },
-    ],
-  }]);
+  assert.deepEqual(payload.messages, [
+    {
+      role: "user",
+      content: [
+        { type: "text", text: "describe this" },
+        {
+          type: "image_url",
+          image_url: { url: "data:image/jpeg;base64,BBBB" },
+        },
+      ],
+    },
+  ]);
 });

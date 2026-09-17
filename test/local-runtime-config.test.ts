@@ -23,7 +23,8 @@ test("debug trace defaults to off and rejects unknown modes", () => {
   assert.equal(parseDebugTraceMode("SAFE"), "safe");
   assert.throws(
     () => parseDebugTraceMode("verbose"),
-    (error: unknown) => error instanceof ChatError && error.code === "configuration",
+    (error: unknown) =>
+      error instanceof ChatError && error.code === "configuration",
   );
 });
 
@@ -48,18 +49,12 @@ test("raw tracing requires an absolute file and ACP tracing always does", () => 
   const file = join(directory, "trace.debug.jsonl");
   assert.throws(
     () =>
-      parseLocalRuntimeConfig(
-        { A008_DEBUG_TRACE: "raw" },
-        { surface: "cli" },
-      ),
+      parseLocalRuntimeConfig({ A008_DEBUG_TRACE: "raw" }, { surface: "cli" }),
     (error: unknown) => error instanceof ChatError,
   );
   assert.throws(
     () =>
-      parseLocalRuntimeConfig(
-        { A008_DEBUG_TRACE: "safe" },
-        { surface: "acp" },
-      ),
+      parseLocalRuntimeConfig({ A008_DEBUG_TRACE: "safe" }, { surface: "acp" }),
     (error: unknown) => error instanceof ChatError,
   );
   const parsed = parseLocalRuntimeConfig(
@@ -73,7 +68,6 @@ test("raw tracing requires an absolute file and ACP tracing always does", () => 
   assert.equal(parsed.debugTrace, "raw");
   assert.equal(parsed.debugTraceFile, file);
 });
-
 
 function config(overrides: NodeJS.ProcessEnv = {}) {
   return parseLocalRuntimeConfig(
@@ -129,10 +123,7 @@ test("chat generation options are overridable without editing the model profile"
 
 test("ACME transport is explicit and requires an http(s) runtime URL", () => {
   assert.equal(config().chatTransport.mode, "direct");
-  assert.throws(
-    () => config({ [CHAT_TRANSPORT_ENV]: "fallback" }),
-    ChatError,
-  );
+  assert.throws(() => config({ [CHAT_TRANSPORT_ENV]: "fallback" }), ChatError);
   assert.throws(
     () => config({ [CHAT_TRANSPORT_ENV]: "acme" }),
     (error: unknown) =>

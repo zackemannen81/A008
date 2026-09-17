@@ -54,12 +54,6 @@
       "pattern": "^[A-Za-z0-9_-]+$"
     }
   },
-  "required": [
-    "type",
-    "serverInstanceId",
-    "code",
-    "message",
-    "retryable"
-  ],
+  "required": ["type", "serverInstanceId", "code", "message", "retryable"],
   "additionalProperties": false
 }

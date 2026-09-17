@@ -53,7 +53,10 @@ function isAbortError(value: unknown): boolean {
   );
 }
 
-function protocolHeaders(accept: string, token: string | undefined): Record<string, string> {
+function protocolHeaders(
+  accept: string,
+  token: string | undefined,
+): Record<string, string> {
   return {
     accept,
     [ACME_MODEL_RUNTIME_HEADER]: ACME_MODEL_RUNTIME_PROTOCOL,
@@ -88,14 +91,18 @@ export class AcmeChatTransport implements ChatTransport {
     this.#token = token === undefined || token.length === 0 ? undefined : token;
     const engineBuild = options.engineBuild?.trim();
     this.#engineBuild =
-      engineBuild === undefined || engineBuild.length === 0 ? undefined : engineBuild;
+      engineBuild === undefined || engineBuild.length === 0
+        ? undefined
+        : engineBuild;
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
     this.#timeoutMs = options.timeoutMs ?? 180_000;
     this.#requestKey = options.requestKey ?? randomUUID;
     this.#correlationId = options.correlationId;
     this.#catalog =
       options.catalog ??
-      (options.catalogPath === undefined ? undefined : loadUserCatalog(options.catalogPath));
+      (options.catalogPath === undefined
+        ? undefined
+        : loadUserCatalog(options.catalogPath));
   }
 
   async complete(
@@ -139,7 +146,9 @@ export class AcmeChatTransport implements ChatTransport {
           signal: controller.signal,
         },
       );
-      this.#assertNotTaskRuntime(response.url || ACME_MODEL_RUNTIME_EXECUTE_PATH);
+      this.#assertNotTaskRuntime(
+        response.url || ACME_MODEL_RUNTIME_EXECUTE_PATH,
+      );
       if (!response.ok) {
         throw await this.#refusal(response);
       }
@@ -156,11 +165,18 @@ export class AcmeChatTransport implements ChatTransport {
           },
         );
       }
-      const mediaType = response.headers.get("content-type")?.split(";", 1)[0]?.trim();
+      const mediaType = response.headers
+        .get("content-type")
+        ?.split(";", 1)[0]
+        ?.trim();
       if (mediaType !== "text/event-stream") {
         throw await this.#refusal(response);
       }
-      return await this.#readStream(response, callbacks, request.options?.stream !== false);
+      return await this.#readStream(
+        response,
+        callbacks,
+        request.options?.stream !== false,
+      );
     } catch (cause) {
       if (isChatError(cause)) {
         throw cause;
@@ -176,29 +192,39 @@ export class AcmeChatTransport implements ChatTransport {
         });
       }
       if (request.signal?.aborted || isAbortError(cause)) {
-        throw new AcmeChatError("cancelled", "ACME model execution was cancelled.", {
+        throw new AcmeChatError(
+          "cancelled",
+          "ACME model execution was cancelled.",
+          {
+            cause,
+            evidence: {
+              diagnosticKind: "cancelled",
+              delivery: dispatched ? "unknown" : "not-sent",
+            },
+          },
+        );
+      }
+      throw new AcmeChatError(
+        "network",
+        "ACME model runtime network request failed.",
+        {
+          retryable: !dispatched,
           cause,
           evidence: {
-            diagnosticKind: "cancelled",
+            diagnosticKind: dispatched ? "ambiguous-delivery" : "unavailable",
             delivery: dispatched ? "unknown" : "not-sent",
           },
-        });
-      }
-      throw new AcmeChatError("network", "ACME model runtime network request failed.", {
-        retryable: !dispatched,
-        cause,
-        evidence: {
-          diagnosticKind: dispatched ? "ambiguous-delivery" : "unavailable",
-          delivery: dispatched ? "unknown" : "not-sent",
         },
-      });
+      );
     } finally {
       clearTimeout(timeout);
       request.signal?.removeEventListener("abort", cancel);
     }
   }
 
-  async #requireCompatible(signal: AbortSignal): Promise<AcmeModelRuntimeDescriptor> {
+  async #requireCompatible(
+    signal: AbortSignal,
+  ): Promise<AcmeModelRuntimeDescriptor> {
     const response = await this.#fetch(
       acmeRuntimeUrl(this.#baseUrl, ACME_MODEL_RUNTIME_COMPATIBILITY_PATH),
       {
@@ -207,12 +233,17 @@ export class AcmeChatTransport implements ChatTransport {
         signal,
       },
     );
-    this.#assertNotTaskRuntime(response.url || ACME_MODEL_RUNTIME_COMPATIBILITY_PATH);
+    this.#assertNotTaskRuntime(
+      response.url || ACME_MODEL_RUNTIME_COMPATIBILITY_PATH,
+    );
     if (!response.ok) {
       throw await this.#refusal(response);
     }
     const descriptor = parseAcmeDescriptor(await this.#json(response));
-    if (this.#engineBuild !== undefined && descriptor.engineBuild !== this.#engineBuild) {
+    if (
+      this.#engineBuild !== undefined &&
+      descriptor.engineBuild !== this.#engineBuild
+    ) {
       throw new AcmeChatError(
         "configuration",
         `ACME engineBuild is ${descriptor.engineBuild}, pinned ${this.#engineBuild}.`,
@@ -236,7 +267,9 @@ export class AcmeChatTransport implements ChatTransport {
       throw new AcmeChatError(
         "invalid_response",
         "ACME streaming response had no body.",
-        { evidence: { diagnosticKind: "truncated-stream", delivery: "unknown" } },
+        {
+          evidence: { diagnosticKind: "truncated-stream", delivery: "unknown" },
+        },
       );
     }
     let expectedSequence = 0;
@@ -249,7 +282,12 @@ export class AcmeChatTransport implements ChatTransport {
         throw new AcmeChatError(
           "invalid_response",
           "ACME stream event exceeded the 64 KiB bound.",
-          { evidence: { diagnosticKind: "malformed-stream", delivery: "unknown" } },
+          {
+            evidence: {
+              diagnosticKind: "malformed-stream",
+              delivery: "unknown",
+            },
+          },
         );
       }
       let parsed: unknown;
@@ -261,7 +299,10 @@ export class AcmeChatTransport implements ChatTransport {
           "ACME stream event is not JSON.",
           {
             cause,
-            evidence: { diagnosticKind: "malformed-stream", delivery: "unknown" },
+            evidence: {
+              diagnosticKind: "malformed-stream",
+              delivery: "unknown",
+            },
           },
         );
       }
@@ -269,7 +310,12 @@ export class AcmeChatTransport implements ChatTransport {
         throw new AcmeChatError(
           "invalid_response",
           "ACME stream event is not an object.",
-          { evidence: { diagnosticKind: "malformed-stream", delivery: "unknown" } },
+          {
+            evidence: {
+              diagnosticKind: "malformed-stream",
+              delivery: "unknown",
+            },
+          },
         );
       }
       if (parsed.protocolVersion !== ACME_MODEL_RUNTIME_PROTOCOL) {
@@ -285,19 +331,36 @@ export class AcmeChatTransport implements ChatTransport {
         );
       }
       const type = typeof parsed.type === "string" ? parsed.type : undefined;
-      if (event.event !== undefined && type !== undefined && event.event !== type) {
+      if (
+        event.event !== undefined &&
+        type !== undefined &&
+        event.event !== type
+      ) {
         throw new AcmeChatError(
           "invalid_response",
           "ACME stream event type does not match the SSE event name.",
-          { evidence: { diagnosticKind: "malformed-stream", delivery: "unknown" } },
+          {
+            evidence: {
+              diagnosticKind: "malformed-stream",
+              delivery: "unknown",
+            },
+          },
         );
       }
       const eventType = event.event ?? type;
-      if (typeof parsed.sequence !== "number" || parsed.sequence !== expectedSequence) {
+      if (
+        typeof parsed.sequence !== "number" ||
+        parsed.sequence !== expectedSequence
+      ) {
         throw new AcmeChatError(
           "invalid_response",
           `ACME stream sequence was ${String(parsed.sequence)}, expected ${String(expectedSequence)}.`,
-          { evidence: { diagnosticKind: "malformed-stream", delivery: "unknown" } },
+          {
+            evidence: {
+              diagnosticKind: "malformed-stream",
+              delivery: "unknown",
+            },
+          },
         );
       }
       expectedSequence += 1;
@@ -305,7 +368,12 @@ export class AcmeChatTransport implements ChatTransport {
         throw new AcmeChatError(
           "invalid_response",
           "ACME stream continued after a terminal event.",
-          { evidence: { diagnosticKind: "malformed-stream", delivery: "unknown" } },
+          {
+            evidence: {
+              diagnosticKind: "malformed-stream",
+              delivery: "unknown",
+            },
+          },
         );
       }
       if (eventType === "reasoning-delta") {
@@ -313,7 +381,12 @@ export class AcmeChatTransport implements ChatTransport {
           throw new AcmeChatError(
             "invalid_response",
             "ACME reasoning-delta is missing text.",
-            { evidence: { diagnosticKind: "malformed-stream", delivery: "unknown" } },
+            {
+              evidence: {
+                diagnosticKind: "malformed-stream",
+                delivery: "unknown",
+              },
+            },
           );
         }
         reasoning += parsed.text;
@@ -327,7 +400,12 @@ export class AcmeChatTransport implements ChatTransport {
           throw new AcmeChatError(
             "invalid_response",
             "ACME content-delta is missing text.",
-            { evidence: { diagnosticKind: "malformed-stream", delivery: "unknown" } },
+            {
+              evidence: {
+                diagnosticKind: "malformed-stream",
+                delivery: "unknown",
+              },
+            },
           );
         }
         if (emitDeltas && parsed.text.length > 0) {
@@ -351,7 +429,9 @@ export class AcmeChatTransport implements ChatTransport {
       throw new AcmeChatError(
         "invalid_response",
         `Unsupported ACME stream event (${String(eventType)}).`,
-        { evidence: { diagnosticKind: "malformed-stream", delivery: "unknown" } },
+        {
+          evidence: { diagnosticKind: "malformed-stream", delivery: "unknown" },
+        },
       );
     }
     if (!sawTerminal || completion === undefined) {
@@ -379,7 +459,11 @@ export class AcmeChatTransport implements ChatTransport {
     } catch {
       parsed = undefined;
     }
-    return chatErrorFromRefusal(response.status, parseRefusalEnvelope(parsed), text);
+    return chatErrorFromRefusal(
+      response.status,
+      parseRefusalEnvelope(parsed),
+      text,
+    );
   }
 
   async #json(response: Response): Promise<unknown> {
@@ -390,17 +474,31 @@ export class AcmeChatTransport implements ChatTransport {
       throw new AcmeChatError(
         "invalid_response",
         "ACME compatibility response is not JSON.",
-        { cause, evidence: { diagnosticKind: "invalid-response", delivery: "not-sent" } },
+        {
+          cause,
+          evidence: {
+            diagnosticKind: "invalid-response",
+            delivery: "not-sent",
+          },
+        },
       );
     }
   }
 
   #assertNotTaskRuntime(url: string): void {
-    if (url.includes(ACME_TASK_EXECUTE_PATH) && !url.includes(ACME_MODEL_RUNTIME_EXECUTE_PATH)) {
+    if (
+      url.includes(ACME_TASK_EXECUTE_PATH) &&
+      !url.includes(ACME_MODEL_RUNTIME_EXECUTE_PATH)
+    ) {
       throw new AcmeChatError(
         "configuration",
         "A008 must not call ACME /v1/execute task runtime.",
-        { evidence: { protocolCode: "FORBIDDEN_TASK_RUNTIME", delivery: "not-sent" } },
+        {
+          evidence: {
+            protocolCode: "FORBIDDEN_TASK_RUNTIME",
+            delivery: "not-sent",
+          },
+        },
       );
     }
   }

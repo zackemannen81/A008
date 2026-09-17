@@ -74,7 +74,9 @@ function normalizeValues(values: readonly string[], field: string): string[] {
   const normalized = values.map((value) =>
     requireNonEmpty(value, field).toLocaleLowerCase("und"),
   );
-  return [...new Set(normalized)].sort((left, right) => left.localeCompare(right));
+  return [...new Set(normalized)].sort((left, right) =>
+    left.localeCompare(right),
+  );
 }
 
 function validateVector(vector: readonly number[], field: string): number[] {
@@ -83,11 +85,19 @@ function validateVector(vector: readonly number[], field: string): number[] {
   }
   const normalized = vector.map((value) => Number(value));
   if (normalized.some((value) => !Number.isFinite(value))) {
-    throw new MemoryError("invalid_input", `${field} must contain finite numbers`);
+    throw new MemoryError(
+      "invalid_input",
+      `${field} must contain finite numbers`,
+    );
   }
-  const norm = Math.sqrt(normalized.reduce((sum, value) => sum + value * value, 0));
+  const norm = Math.sqrt(
+    normalized.reduce((sum, value) => sum + value * value, 0),
+  );
   if (norm === 0) {
-    throw new MemoryError("invalid_input", `${field} must have a non-zero norm`);
+    throw new MemoryError(
+      "invalid_input",
+      `${field} must have a non-zero norm`,
+    );
   }
   return normalized;
 }
@@ -108,9 +118,13 @@ function parseAudit(row: AuditRow): MemoryAuditEvent {
   try {
     return JSON.parse(row.payload_json) as MemoryAuditEvent;
   } catch (error) {
-    throw new MemoryError("illegal_state", "stored audit event is not valid JSON", {
-      cause: error,
-    });
+    throw new MemoryError(
+      "illegal_state",
+      "stored audit event is not valid JSON",
+      {
+        cause: error,
+      },
+    );
   }
 }
 
@@ -123,7 +137,10 @@ function cloneItem(item: KnowledgeItem): KnowledgeItem {
   };
 }
 
-function cosineSimilarity(left: readonly number[], right: readonly number[]): number {
+function cosineSimilarity(
+  left: readonly number[],
+  right: readonly number[],
+): number {
   if (left.length !== right.length || left.length === 0) {
     return -1;
   }
@@ -164,7 +181,11 @@ function normalizedLabelWeights(
   const result = new Map<string, number>();
   for (const label of labels) {
     const value = requireNonEmpty(label.value, field).toLocaleLowerCase("und");
-    if (!Number.isFinite(label.weight) || label.weight < 0 || label.weight > 1) {
+    if (
+      !Number.isFinite(label.weight) ||
+      label.weight < 0 ||
+      label.weight > 1
+    ) {
       throw new MemoryError(
         "invalid_input",
         `${field} weight must be a finite number between 0 and 1`,
@@ -175,7 +196,10 @@ function normalizedLabelWeights(
   return result;
 }
 
-function scopeClause(alias: string, scopes: readonly string[]): {
+function scopeClause(
+  alias: string,
+  scopes: readonly string[],
+): {
   readonly sql: string;
   readonly parameters: readonly string[];
 } {
@@ -227,9 +251,7 @@ class SqliteReadView implements MemoryReadView {
   }
 
   listKeepAlive(): readonly KnowledgeItem[] {
-    return this.queryItems(
-      "canonical_status = 'current' AND keep_alive = 1",
-    );
+    return this.queryItems("canonical_status = 'current' AND keep_alive = 1");
   }
 
   listCurrent(): readonly KnowledgeItem[] {
@@ -376,8 +398,7 @@ export class SqliteMemoryRepository
            WHERE namespace = ? AND id = ? AND canonical_status = 'current'`,
         )
         .get(this.namespace, knowledgeId) as
-        | { readonly id: string; readonly revision: number }
-        | undefined;
+        { readonly id: string; readonly revision: number } | undefined;
       if (row === undefined) {
         throw new MemoryError(
           "missing_target",
@@ -450,7 +471,10 @@ export class SqliteMemoryRepository
       );
     }
     await this.transactionTail;
-    const scopes = normalizeValues(plan.applicabilityScopes, "applicability scope");
+    const scopes = normalizeValues(
+      plan.applicabilityScopes,
+      "applicability scope",
+    );
     const boundedLimits: CandidateChannelLimits = {
       exact: boundedLimit(limits.exact, "limits.exact"),
       lexical: boundedLimit(limits.lexical, "limits.lexical"),
@@ -594,7 +618,10 @@ export class SqliteMemoryRepository
 
   private requireOpen(): void {
     if (this.closed) {
-      throw new MemoryError("illegal_state", "SQLite memory repository is closed");
+      throw new MemoryError(
+        "illegal_state",
+        "SQLite memory repository is closed",
+      );
     }
   }
 
@@ -853,7 +880,12 @@ export class SqliteMemoryRepository
          ORDER BY d.knowledge_id
          LIMIT ?`,
       )
-      .all(this.namespace, ...domains, ...scope.parameters, limit) as IdValueRow[];
+      .all(
+        this.namespace,
+        ...domains,
+        ...scope.parameters,
+        limit,
+      ) as IdValueRow[];
     return rows.map((row) => ({
       knowledgeId: row.knowledge_id,
       channel: "domain",

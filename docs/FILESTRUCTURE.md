@@ -4,6 +4,8 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+`docs/A008_SYSTEM_ARCHITECTURE.md` owns the target logical architecture for local/hosted A008 with embedded `@acme-engine/model-runtime` and the A008/ACME/provider ownership boundary.
+
 A008-0111 extends the existing `src/bootstrap/` registry/service/validator and `src/gui-host/project-routes.ts` with read-only adoption of an already-existing root. `packages/protocol/src/{routes,http-schemas,http-operations}.ts` owns the additive `POST /v1/projects/register` contract and regenerated OpenAPI. `gui/src/projects/` owns the separate New/Add existing modes. No new persistence owner or project-tree metadata file is introduced; registration writes only the existing external projects registry.
 
 A008-0106 adds `docs/CLIENT_API_V2.md`, the accepted protocol/lifecycle target,

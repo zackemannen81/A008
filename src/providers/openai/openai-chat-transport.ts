@@ -53,7 +53,10 @@ function record(value: unknown): Record<string, unknown> {
 function toolCalls(value: unknown): ChatToolCall[] {
   if (value == null) return [];
   if (!Array.isArray(value)) {
-    throw new ChatError("invalid_response", "OpenAI tool calls must be an array.");
+    throw new ChatError(
+      "invalid_response",
+      "OpenAI tool calls must be an array.",
+    );
   }
   const ids = new Set<string>();
   return value.map((item) => {
@@ -68,7 +71,10 @@ function toolCalls(value: unknown): ChatToolCall[] {
       fn.name.length === 0 ||
       typeof fn.arguments !== "string"
     ) {
-      throw new ChatError("invalid_response", "Invalid or duplicate OpenAI tool call.");
+      throw new ChatError(
+        "invalid_response",
+        "Invalid or duplicate OpenAI tool call.",
+      );
     }
     ids.add(call.id);
     return { id: call.id, name: fn.name, arguments: fn.arguments };
@@ -79,7 +85,9 @@ function optionalString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 function optionalNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 function usageFrom(response: OpenAiResponse): ChatUsage | undefined {
@@ -97,7 +105,8 @@ function usageFrom(response: OpenAiResponse): ChatUsage | undefined {
 }
 
 function firstChoice(response: OpenAiResponse): OpenAiChoice | undefined {
-  if (!Array.isArray(response.choices) || response.choices.length === 0) return undefined;
+  if (!Array.isArray(response.choices) || response.choices.length === 0)
+    return undefined;
   const choice = response.choices[0];
   return typeof choice === "object" && choice !== null
     ? (choice as OpenAiChoice)
@@ -106,10 +115,13 @@ function firstChoice(response: OpenAiResponse): OpenAiChoice | undefined {
 function parseJson(text: string): OpenAiResponse {
   try {
     const value: unknown = JSON.parse(text);
-    if (typeof value !== "object" || value === null) throw new Error("not object");
+    if (typeof value !== "object" || value === null)
+      throw new Error("not object");
     return value as OpenAiResponse;
   } catch (cause) {
-    throw new ChatError("invalid_response", "OpenAI returned invalid JSON.", { cause });
+    throw new ChatError("invalid_response", "OpenAI returned invalid JSON.", {
+      cause,
+    });
   }
 }
 
@@ -117,14 +129,24 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
   const options = request.options ?? {};
   let attachmentUserIndex = -1;
   if (request.imageAttachments?.length) {
-    request.messages.forEach((message, index) => { if (message.role === "user") attachmentUserIndex = index; });
-    if (attachmentUserIndex < 0) throw new ChatError("configuration", "Native vision requires a user message.");
+    request.messages.forEach((message, index) => {
+      if (message.role === "user") attachmentUserIndex = index;
+    });
+    if (attachmentUserIndex < 0)
+      throw new ChatError(
+        "configuration",
+        "Native vision requires a user message.",
+      );
   }
   const payload: Record<string, unknown> = {
     model: request.model,
     messages: request.messages.map((message, index) =>
       message.role === "tool"
-        ? { role: "tool", tool_call_id: message.toolCallId, content: message.content }
+        ? {
+            role: "tool",
+            tool_call_id: message.toolCallId,
+            content: message.content,
+          }
         : "toolCalls" in message
           ? {
               role: "assistant",
@@ -151,10 +173,14 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
     stream: options.stream ?? true,
   };
   if (request.tools?.length) {
-    payload.tools = request.tools.map((tool) => ({ type: "function", function: tool }));
+    payload.tools = request.tools.map((tool) => ({
+      type: "function",
+      function: tool,
+    }));
     payload.tool_choice = "auto";
   }
-  if (options.maxTokens != null) payload.max_completion_tokens = options.maxTokens;
+  if (options.maxTokens != null)
+    payload.max_completion_tokens = options.maxTokens;
   // GPT-5.6 Luna Chat Completions rejects function tools with reasoning_effort > none.
   // Keep A008 tools available by lowering only the effective tool-call request.
   const reasoningEffort =
@@ -174,9 +200,12 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
 
 function providerErrorDetail(text: string): string | undefined {
   try {
-    const parsed = JSON.parse(text) as { readonly error?: { readonly message?: unknown } };
+    const parsed = JSON.parse(text) as {
+      readonly error?: { readonly message?: unknown };
+    };
     const message = parsed.error?.message;
-    if (typeof message !== "string" || message.trim().length === 0) return undefined;
+    if (typeof message !== "string" || message.trim().length === 0)
+      return undefined;
     return message.replace(/\s+/gu, " ").trim().slice(0, 800);
   } catch {
     return undefined;
@@ -185,7 +214,11 @@ function providerErrorDetail(text: string): string | undefined {
 
 function httpError(status: number, detail?: string): ChatError {
   if (status === 401 || status === 403) {
-    return new ChatError("authentication", `OpenAI authentication failed with HTTP ${status}.`, { status });
+    return new ChatError(
+      "authentication",
+      `OpenAI authentication failed with HTTP ${status}.`,
+      { status },
+    );
   }
   if (status === 429) {
     return new ChatError("rate_limit", "OpenAI rate limit exceeded.", {
@@ -194,10 +227,14 @@ function httpError(status: number, detail?: string): ChatError {
     });
   }
   if (status >= 500) {
-    return new ChatError("server", `OpenAI server failed with HTTP ${status}.`, {
-      status,
-      retryable: true,
-    });
+    return new ChatError(
+      "server",
+      `OpenAI server failed with HTTP ${status}.`,
+      {
+        status,
+        retryable: true,
+      },
+    );
   }
   return new ChatError(
     "provider",
@@ -211,26 +248,38 @@ function httpError(status: number, detail?: string): ChatError {
 function isAbortError(value: unknown): boolean {
   return (
     (value instanceof DOMException && value.name === "AbortError") ||
-    (typeof value === "object" && value !== null && "name" in value && value.name === "AbortError")
+    (typeof value === "object" &&
+      value !== null &&
+      "name" in value &&
+      value.name === "AbortError")
   );
 }
 
 class ToolCallStream {
-  readonly calls = new Map<number, {
-    id: string;
-    type: string;
-    function: { name: string; arguments: string };
-  }>();
+  readonly calls = new Map<
+    number,
+    {
+      id: string;
+      type: string;
+      function: { name: string; arguments: string };
+    }
+  >();
 
   push(value: unknown): void {
     if (value == null) return;
     if (!Array.isArray(value)) {
-      throw new ChatError("invalid_response", "Invalid OpenAI tool call stream.");
+      throw new ChatError(
+        "invalid_response",
+        "Invalid OpenAI tool call stream.",
+      );
     }
     for (const item of value) {
       const delta = record(item);
       if (!Number.isSafeInteger(delta.index) || Number(delta.index) < 0) {
-        throw new ChatError("invalid_response", "Invalid OpenAI tool call index.");
+        throw new ChatError(
+          "invalid_response",
+          "Invalid OpenAI tool call index.",
+        );
       }
       const index = Number(delta.index);
       const call = this.calls.get(index) ?? {
@@ -239,20 +288,32 @@ class ToolCallStream {
         function: { name: "", arguments: "" },
       };
       if (delta.type !== undefined && delta.type !== "function") {
-        throw new ChatError("invalid_response", "Unsupported OpenAI tool type.");
+        throw new ChatError(
+          "invalid_response",
+          "Unsupported OpenAI tool type.",
+        );
       }
       if (delta.id !== undefined) {
-        if (typeof delta.id !== "string") throw new ChatError("invalid_response", "Invalid OpenAI tool id.");
+        if (typeof delta.id !== "string")
+          throw new ChatError("invalid_response", "Invalid OpenAI tool id.");
         call.id += delta.id;
       }
       if (delta.function !== undefined) {
         const fn = record(delta.function);
         if (fn.name !== undefined) {
-          if (typeof fn.name !== "string") throw new ChatError("invalid_response", "Invalid OpenAI tool name.");
+          if (typeof fn.name !== "string")
+            throw new ChatError(
+              "invalid_response",
+              "Invalid OpenAI tool name.",
+            );
           call.function.name += fn.name;
         }
         if (fn.arguments !== undefined) {
-          if (typeof fn.arguments !== "string") throw new ChatError("invalid_response", "Invalid OpenAI tool arguments.");
+          if (typeof fn.arguments !== "string")
+            throw new ChatError(
+              "invalid_response",
+              "Invalid OpenAI tool arguments.",
+            );
           call.function.arguments += fn.arguments;
         }
       }
@@ -278,7 +339,10 @@ export class OpenAiChatTransport implements ChatTransport {
   constructor(options: OpenAiChatTransportOptions) {
     const apiKey = options.apiKey.trim();
     if (apiKey.length === 0) {
-      throw new ChatError("configuration", "OPENAI_API_KEY is required for OpenAI chat.");
+      throw new ChatError(
+        "configuration",
+        "OPENAI_API_KEY is required for OpenAI chat.",
+      );
     }
     this.#apiKey = apiKey;
     this.#endpoint = options.endpoint?.trim() || OPENAI_CHAT_COMPLETIONS_URL;
@@ -327,7 +391,9 @@ export class OpenAiChatTransport implements ChatTransport {
         });
       }
       if (request.signal?.aborted || isAbortError(cause)) {
-        throw new ChatError("cancelled", "OpenAI request was cancelled.", { cause });
+        throw new ChatError("cancelled", "OpenAI request was cancelled.", {
+          cause,
+        });
       }
       throw new ChatError("network", "OpenAI network request failed.", {
         retryable: true,
@@ -344,7 +410,10 @@ export class OpenAiChatTransport implements ChatTransport {
     callbacks: ChatCallbacks,
   ): Promise<ChatCompletion> {
     if (response.body === null) {
-      throw new ChatError("invalid_response", "OpenAI streaming response had no body.");
+      throw new ChatError(
+        "invalid_response",
+        "OpenAI streaming response had no body.",
+      );
     }
     const toolStream = new ToolCallStream();
     let content = "";
@@ -365,10 +434,14 @@ export class OpenAiChatTransport implements ChatTransport {
         callbacks.onDelta?.({ type: "content", text: delta });
       }
       if (choice.finish_reason === null) finishReason = null;
-      else if (typeof choice.finish_reason === "string") finishReason = choice.finish_reason;
+      else if (typeof choice.finish_reason === "string")
+        finishReason = choice.finish_reason;
     }
     if (!sawChoice) {
-      throw new ChatError("invalid_response", "OpenAI stream did not contain a chat choice.");
+      throw new ChatError(
+        "invalid_response",
+        "OpenAI stream did not contain a chat choice.",
+      );
     }
     const calls = toolStream.calls.size > 0 ? toolStream.finish() : [];
     return {
@@ -384,7 +457,8 @@ export class OpenAiChatTransport implements ChatTransport {
     const choice = firstChoice(parsed);
     const message = choice?.message;
     const calls = toolCalls(message?.tool_calls);
-    const content = optionalString(message?.content) ?? (calls.length > 0 ? "" : undefined);
+    const content =
+      optionalString(message?.content) ?? (calls.length > 0 ? "" : undefined);
     if (choice === undefined || content === undefined) {
       throw new ChatError(
         "invalid_response",

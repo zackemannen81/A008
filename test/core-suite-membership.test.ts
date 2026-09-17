@@ -118,7 +118,11 @@ test("test:core names no file twice", () => {
     seen.add(entry);
     return false;
   });
-  assert.deepEqual(duplicated, [], `duplicated in test:core: ${duplicated.join(", ")}`);
+  assert.deepEqual(
+    duplicated,
+    [],
+    `duplicated in test:core: ${duplicated.join(", ")}`,
+  );
 });
 
 test("this check is itself in the list, and runs under its own script name", () => {

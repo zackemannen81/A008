@@ -10,7 +10,11 @@ test("chatgpt.com frame-ancestors does not allow the A008 host", () => {
     "content-security-policy":
       "frame-ancestors 'self' chrome-extension://iaiigpefkbhgjcmcmffmfkpmhemdhdnj chrome-extension://lfkehkpjohcoelkpembgemeipeppanef",
   });
-  const policy = framePolicyFromHeaders(headers, EMBEDDER, "https://chatgpt.com/");
+  const policy = framePolicyFromHeaders(
+    headers,
+    EMBEDDER,
+    "https://chatgpt.com/",
+  );
   assert.equal(policy.embeddable, false);
   assert.equal(policy.reason, "frame-ancestors");
 });
@@ -20,7 +24,11 @@ test("nvidia Build frame-ancestors does not allow the A008 host", () => {
     "content-security-policy":
       "frame-ancestors 'self' *.nvidia.com *.hcaptcha.com hcaptcha.com",
   });
-  const policy = framePolicyFromHeaders(headers, EMBEDDER, "https://build.nvidia.com/");
+  const policy = framePolicyFromHeaders(
+    headers,
+    EMBEDDER,
+    "https://build.nvidia.com/",
+  );
   assert.equal(policy.embeddable, false);
   assert.equal(policy.reason, "frame-ancestors");
 });
@@ -29,23 +37,41 @@ test("report-only CSP does not block framing", () => {
   const headers = new Headers({
     "content-security-policy-report-only": "frame-ancestors 'none'",
   });
-  assert.equal(framePolicyFromHeaders(headers, EMBEDDER, "https://example.test/").embeddable, true);
+  assert.equal(
+    framePolicyFromHeaders(headers, EMBEDDER, "https://example.test/")
+      .embeddable,
+    true,
+  );
 });
 
 test("X-Frame-Options DENY blocks framing", () => {
   const headers = new Headers({ "x-frame-options": "DENY" });
-  const policy = framePolicyFromHeaders(headers, EMBEDDER, "https://example.test/");
+  const policy = framePolicyFromHeaders(
+    headers,
+    EMBEDDER,
+    "https://example.test/",
+  );
   assert.equal(policy.embeddable, false);
   assert.equal(policy.reason, "x-frame-options");
 });
 
 test("frame-ancestors * allows embedding", () => {
-  const headers = new Headers({ "content-security-policy": "frame-ancestors *" });
-  assert.equal(framePolicyFromHeaders(headers, EMBEDDER, "https://example.test/").embeddable, true);
+  const headers = new Headers({
+    "content-security-policy": "frame-ancestors *",
+  });
+  assert.equal(
+    framePolicyFromHeaders(headers, EMBEDDER, "https://example.test/")
+      .embeddable,
+    true,
+  );
 });
 
 test("missing framing headers are treated as embeddable", () => {
-  assert.equal(framePolicyFromHeaders(new Headers(), EMBEDDER, "https://example.test/").embeddable, true);
+  assert.equal(
+    framePolicyFromHeaders(new Headers(), EMBEDDER, "https://example.test/")
+      .embeddable,
+    true,
+  );
 });
 
 test("frame-check uses response headers and cancels the body", async () => {

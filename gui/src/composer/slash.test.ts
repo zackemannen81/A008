@@ -1,19 +1,32 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { GuiSession } from "../session/types.js";
-import {
-  ComposerSlashError,
-  parseSlash,
-  SLASH_HELP,
-} from "./slash.js";
+import { ComposerSlashError, parseSlash, SLASH_HELP } from "./slash.js";
 import { submitComposer } from "./submit.js";
 import type { SessionSnapshot } from "../session/session-controls.js";
 
 const snapshot: SessionSnapshot = {
   model: "nvidia/nemotron-3.5-lightning-30b-a3b",
-  parameters: { stream: true, temperature: 1, topP: .95, maxTokens: 16384, enableThinking: true, reasoningBudget: 4096, reasoningEffort: null, seed: null, stop: null },
-  messages: [{ role: "user", content: "Committed question" }, { role: "assistant", content: "visible answer" }],
-  runtime: { cwd: "C:/fixture", projectId: "fixture-project", memoryPath: "C:/fixture/memory.sqlite" },
+  parameters: {
+    stream: true,
+    temperature: 1,
+    topP: 0.95,
+    maxTokens: 16384,
+    enableThinking: true,
+    reasoningBudget: 4096,
+    reasoningEffort: null,
+    seed: null,
+    stop: null,
+  },
+  messages: [
+    { role: "user", content: "Committed question" },
+    { role: "assistant", content: "visible answer" },
+  ],
+  runtime: {
+    cwd: "C:/fixture",
+    projectId: "fixture-project",
+    memoryPath: "C:/fixture/memory.sqlite",
+  },
 };
 
 test("parseSlash recognizes the A008-0029 command set and /! alias", () => {
@@ -233,7 +246,10 @@ test("/history and /status inspect committed runtime state without reasoning", a
   }
   assert.equal(status.kind, "notice");
   if (status.kind === "notice") {
-    assert.match(status.message, /model: nvidia\/nemotron-3.5-lightning-30b-a3b/u);
+    assert.match(
+      status.message,
+      /model: nvidia\/nemotron-3.5-lightning-30b-a3b/u,
+    );
     assert.match(status.message, /status: ready/u);
     assert.match(status.message, /session: sess-1/u);
     assert.match(status.message, /tools: terminal via \/shell/u);
@@ -244,9 +260,7 @@ test("/history and /status inspect committed runtime state without reasoning", a
   assert.deepEqual(harness.prompts, []);
 });
 
-function createSessionHarness(
-  overrides: Partial<GuiSession> = {},
-): {
+function createSessionHarness(overrides: Partial<GuiSession> = {}): {
   readonly session: GuiSession;
   readonly prompts: string[];
   readonly shells: string[];
@@ -264,8 +278,15 @@ function createSessionHarness(
     answer: "",
     error: undefined,
     async connect() {},
-    async controlSession(control) { return { ...snapshot, ...(control.action === "undo" ? { undone: true } : {}) }; },
-    async endSession() { cancelCount.value += 1; },
+    async controlSession(control) {
+      return {
+        ...snapshot,
+        ...(control.action === "undo" ? { undone: true } : {}),
+      };
+    },
+    async endSession() {
+      cancelCount.value += 1;
+    },
     async prompt(text: string) {
       prompts.push(text);
     },
@@ -297,10 +318,20 @@ test("submitComposer sends the transient image descriptor with an ordinary promp
   const harness = createSessionHarness();
   const session: GuiSession = {
     ...harness.session,
-    async prompt(text, attachment) { captured = { text, attachment }; },
+    async prompt(text, attachment) {
+      captured = { text, attachment };
+    },
   };
-  const attachment = { type: "image" as const, locator: `source:${"a".repeat(64)}/photo.png`, mediaType: "image/png" };
-  const result = await submitComposer("describe it", { session, runShellCommand: unusedShell, attachment });
+  const attachment = {
+    type: "image" as const,
+    locator: `source:${"a".repeat(64)}/photo.png`,
+    mediaType: "image/png",
+  };
+  const result = await submitComposer("describe it", {
+    session,
+    runShellCommand: unusedShell,
+    attachment,
+  });
   assert.deepEqual(result, { kind: "prompt", text: "describe it" });
   assert.deepEqual(captured, { text: "describe it", attachment });
 });

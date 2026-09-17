@@ -17,7 +17,10 @@ export class ClaimEntityReferenceStore {
   readonly #byClaim = new Map<string, Set<EntityId>>();
   readonly #byEntity = new Map<EntityId, Set<string>>();
 
-  attach(claimId: string, entityIds: readonly EntityId[]): readonly ClaimEntityReference[] {
+  attach(
+    claimId: string,
+    entityIds: readonly EntityId[],
+  ): readonly ClaimEntityReference[] {
     const claim = requireNonEmpty(claimId, "claimId");
     const unique = [...new Set(entityIds)];
     for (const entityId of unique) {
@@ -65,7 +68,10 @@ export class ClaimEntityReferenceStore {
 function requireNonEmpty(value: string, field: string): string {
   const normalized = value.trim();
   if (normalized.length === 0) {
-    throw new KnowledgeModelError("invalid_input", `${field} must not be empty`);
+    throw new KnowledgeModelError(
+      "invalid_input",
+      `${field} must not be empty`,
+    );
   }
   return normalized;
 }

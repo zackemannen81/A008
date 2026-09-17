@@ -127,7 +127,8 @@ function applyUserAssertionPolicy(
       return applyStatus(store, claim.id, "asserted", {
         policyId,
         decision: "not_accepted",
-        reason: "source evidence is not an explicit user assertion of the claim",
+        reason:
+          "source evidence is not an explicit user assertion of the claim",
       });
     }
   }

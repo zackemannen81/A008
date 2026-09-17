@@ -71,7 +71,10 @@ function requireNonEmpty(value: string, field: string): string {
 function validateStringSet(values: readonly string[], field: string): string[] {
   const normalized = uniqueStrings(values);
   if (normalized.some((value) => value.length === 0)) {
-    throw new MemoryError("invalid_input", `${field} must not contain empty values`);
+    throw new MemoryError(
+      "invalid_input",
+      `${field} must not contain empty values`,
+    );
   }
   return normalized.sort((left, right) => left.localeCompare(right));
 }
@@ -155,7 +158,10 @@ function validateTask(task: MemoryTask): MemoryTask {
   };
 }
 
-function activationFor(item: KnowledgeItem, score: number): "active" | "dormant" {
+function activationFor(
+  item: KnowledgeItem,
+  score: number,
+): "active" | "dormant" {
   return item.keepAlive || score >= item.activationThreshold
     ? "active"
     : "dormant";
@@ -216,8 +222,7 @@ export class SemanticMemory {
     this.repository = options.repository;
     this.policy = options.policy;
     this.measurer = options.measurer;
-    this.idFactory =
-      options.idFactory ?? (() => `knowledge_${randomUUID()}`);
+    this.idFactory = options.idFactory ?? (() => `knowledge_${randomUUID()}`);
     requireNonEmpty(this.measurer.unit, "measurement unit");
   }
 
@@ -342,7 +347,9 @@ export class SemanticMemory {
       const merged: KnowledgeItem = {
         ...target,
         proposition:
-          decision.type === "extend" ? proposal.proposition : target.proposition,
+          decision.type === "extend"
+            ? proposal.proposition
+            : target.proposition,
         kind: decision.type === "extend" ? proposal.kind : target.kind,
         tags: validateStringSet(
           [...target.tags, ...(proposal.tags ?? [])],
@@ -393,7 +400,9 @@ export class SemanticMemory {
     return this.repository.read((view) => view.historyFrom(normalizedId));
   }
 
-  async discover(unvalidatedTask: MemoryTask): Promise<readonly KnowledgeItem[]> {
+  async discover(
+    unvalidatedTask: MemoryTask,
+  ): Promise<readonly KnowledgeItem[]> {
     const task = validateTask(unvalidatedTask);
     return this.repository.read((view) => {
       const relevant = view
@@ -518,10 +527,7 @@ export class SemanticMemory {
 
     return this.repository.read((view) => {
       const requestedIds = [
-        ...new Set([
-          ...rankedCandidateIds,
-          ...task.requiredKnowledgeIds,
-        ]),
+        ...new Set([...rankedCandidateIds, ...task.requiredKnowledgeIds]),
       ];
       const requestedItems = view.list(requestedIds);
       const requestedById = new Map(

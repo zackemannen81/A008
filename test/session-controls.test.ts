@@ -24,7 +24,10 @@ const defaults = defaultSessionParameters(
 );
 
 test("all registered model defaults conform to their controls, including effort-only models", () => {
-  assert.equal(generationCapabilities("unverified-model").verifiedOn, "unverified");
+  assert.equal(
+    generationCapabilities("unverified-model").verifiedOn,
+    "unverified",
+  );
   assert.equal(generationCapabilities("unverified-model").maxTokens, 16384);
   for (const profile of defaultModelRegistry.list()) {
     const parameters = defaultSessionParameters(profile);
@@ -151,7 +154,6 @@ test("session controls require routing identifiers and validate the action", () 
     assert.ok("error" in parseClientMessage(JSON.stringify(value)));
   }
 });
-
 
 test(
   "real GUI host → spawned ACP → runtime → provider proves commands, payloads and history",

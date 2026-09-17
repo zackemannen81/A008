@@ -32,9 +32,7 @@ export function deserializeInstant(serialized: string): Instant {
 
 export function serializeInterval(interval: Interval): string {
   return JSON.stringify({
-    from: isUnknownInstant(interval.from)
-      ? { unknown: true }
-      : interval.from,
+    from: isUnknownInstant(interval.from) ? { unknown: true } : interval.from,
     to:
       interval.to === null
         ? null

@@ -223,13 +223,11 @@ test("dense single-domain and many-domain maps preserve spacing, bounds and orde
       label: `Long synthetic memory label number ${i}`,
       domains: [`domain ${i % domains}`],
     }));
-    const edges = nodes
-      .slice(1)
-      .map((node) => ({
-        from: nodes[0]!.id,
-        to: node.id,
-        relation: "references",
-      }));
+    const edges = nodes.slice(1).map((node) => ({
+      from: nodes[0]!.id,
+      to: node.id,
+      relation: "references",
+    }));
     const layout = layoutGraph(nodes, edges);
     assert.deepEqual(
       layout,

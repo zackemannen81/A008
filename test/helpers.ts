@@ -10,9 +10,7 @@ export const TEST_PROJECT_ID =
 export const TEST_AGENT_ID =
   "A008_v1_agent_40000000-0000-4000-8000-000000000017";
 
-export function isolatedMemoryEnv(
-  overrides: NodeJS.ProcessEnv = {},
-): {
+export function isolatedMemoryEnv(overrides: NodeJS.ProcessEnv = {}): {
   readonly directory: string;
   readonly sqlitePath: string;
   readonly env: NodeJS.ProcessEnv;
@@ -36,20 +34,29 @@ export function isolatedMemoryEnv(
 
 export function semanticOperation(
   request: ChatRequest,
-): "knowledge_analysis" | "relation_classification" | "retrieval_scope" | undefined {
+):
+  | "knowledge_analysis"
+  | "relation_classification"
+  | "retrieval_scope"
+  | undefined {
   const content = request.messages.at(-1)?.content;
   if (content === undefined) {
     return undefined;
   }
   try {
     const parsed = JSON.parse(content) as unknown;
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
       return undefined;
     }
     const operation = (parsed as { readonly operation?: unknown }).operation;
     if (
       operation === "knowledge_analysis" ||
-      operation === "relation_classification" || operation === "retrieval_scope"
+      operation === "relation_classification" ||
+      operation === "retrieval_scope"
     ) {
       return operation;
     }
@@ -83,7 +90,13 @@ export function memoryAwareFakeTransport(options: {
     async complete(request, callbacks) {
       requests.push(request);
       const operation = semanticOperation(request);
-      if (operation === "retrieval_scope") return { message: { role: "assistant", content: '{"domains":[],"relatedDomains":[]}' } };
+      if (operation === "retrieval_scope")
+        return {
+          message: {
+            role: "assistant",
+            content: '{"domains":[],"relatedDomains":[]}',
+          },
+        };
       if (operation === "knowledge_analysis") {
         const content = JSON.stringify(
           options.analyze?.(semanticInput(request)) ?? [],
@@ -103,14 +116,18 @@ export function memoryAwareFakeTransport(options: {
         const classified = Array.isArray(input.items)
           ? input.items.map((item) => ({
               ...((options.classify?.({
-                ...(input.associationContext === undefined ? {} : { associationContext: input.associationContext }),
-                ...(item.sourceSupport === undefined ? {} : { sourceSupport: item.sourceSupport }),
+                ...(input.associationContext === undefined
+                  ? {}
+                  : { associationContext: input.associationContext }),
+                ...(item.sourceSupport === undefined
+                  ? {}
+                  : { sourceSupport: item.sourceSupport }),
                 proposal: item.proposal,
                 candidates: input.candidates ?? [],
               }) ?? { type: "new" }) as Record<string, unknown>),
               proposalHandle: item.proposalHandle,
             }))
-          : options.classify?.(input) ?? { type: "new" };
+          : (options.classify?.(input) ?? { type: "new" });
         const content = JSON.stringify(classified);
         return { message: { role: "assistant", content } };
       }
@@ -122,7 +139,9 @@ export function memoryAwareFakeTransport(options: {
       callbacks?.onDelta?.({ type: "content", text: result.content });
       return {
         message: { role: "assistant", content: result.content },
-        ...(result.reasoning === undefined ? {} : { reasoning: result.reasoning }),
+        ...(result.reasoning === undefined
+          ? {}
+          : { reasoning: result.reasoning }),
       };
     },
   };
@@ -149,7 +168,10 @@ export function byteStream(
   });
 }
 
-export function splitBytes(value: string, widths: readonly number[]): Uint8Array[] {
+export function splitBytes(
+  value: string,
+  widths: readonly number[],
+): Uint8Array[] {
   const bytes = new TextEncoder().encode(value);
   const chunks: Uint8Array[] = [];
   let offset = 0;

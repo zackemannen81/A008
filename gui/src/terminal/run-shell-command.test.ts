@@ -14,7 +14,9 @@ interface FetchCall {
   readonly body: string | undefined;
 }
 
-function headerRecord(headers: HeadersInit | undefined): Record<string, string> {
+function headerRecord(
+  headers: HeadersInit | undefined,
+): Record<string, string> {
   const out: Record<string, string> = {};
   if (headers === undefined) {
     return out;
@@ -55,13 +57,15 @@ function jsonResponse(body: unknown, status = 200, statusText = ""): Response {
   });
 }
 
-function hostResult(overrides: Partial<{
-  stdout: string;
-  stderr: string;
-  exitCode: number | null;
-  timedOut: boolean;
-  truncated: boolean;
-}> = {}) {
+function hostResult(
+  overrides: Partial<{
+    stdout: string;
+    stderr: string;
+    exitCode: number | null;
+    timedOut: boolean;
+    truncated: boolean;
+  }> = {},
+) {
   return {
     stdout: "",
     stderr: "",
@@ -72,9 +76,10 @@ function hostResult(overrides: Partial<{
   };
 }
 
-function fakeHost(
-  handler: (call: FetchCall) => Response | Promise<Response>,
-): { readonly fetch: typeof fetch; readonly calls: FetchCall[] } {
+function fakeHost(handler: (call: FetchCall) => Response | Promise<Response>): {
+  readonly fetch: typeof fetch;
+  readonly calls: FetchCall[];
+} {
   const calls: FetchCall[] = [];
   const fetchImpl: typeof fetch = async (input, init) => {
     const call: FetchCall = {
@@ -98,13 +103,17 @@ function assert(condition: unknown, message: string): asserts condition {
 
 function assertEqual<T>(actual: T, expected: T, message: string): void {
   if (actual !== expected) {
-    throw new Error(`${message}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    throw new Error(
+      `${message}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`,
+    );
   }
 }
 
 function assertMatch(actual: string, pattern: RegExp, message: string): void {
   if (!pattern.test(actual)) {
-    throw new Error(`${message}: ${JSON.stringify(actual)} did not match ${pattern}`);
+    throw new Error(
+      `${message}: ${JSON.stringify(actual)} did not match ${pattern}`,
+    );
   }
 }
 
@@ -117,7 +126,9 @@ async function assertRejects(
     await fn();
   } catch (error) {
     if (!check(error)) {
-      throw new Error(`${message}: rejected with unexpected value ${String(error)}`);
+      throw new Error(
+        `${message}: rejected with unexpected value ${String(error)}`,
+      );
     }
     return;
   }
@@ -138,10 +149,22 @@ export async function runTerminalModuleTests(): Promise<void> {
     assert(call !== undefined, "recorded call");
     assertEqual(call.input, SHELL_ENDPOINT, "endpoint");
     assertEqual(call.method, "POST", "method");
-    assertEqual(call.credentials, "same-origin", "same-origin PIN cookie retained");
-    assertEqual(call.headers["content-type"], "application/json", "json content-type");
+    assertEqual(
+      call.credentials,
+      "same-origin",
+      "same-origin PIN cookie retained",
+    );
+    assertEqual(
+      call.headers["content-type"],
+      "application/json",
+      "json content-type",
+    );
     assertEqual(call.headers["accept"], "application/json", "json accept");
-    assertEqual(call.headers["authorization"], undefined, "no authorization header");
+    assertEqual(
+      call.headers["authorization"],
+      undefined,
+      "no authorization header",
+    );
     assertEqual(call.body, JSON.stringify({ command: "echo ok" }), "body");
     assertMatch(text, /exit: 0/u, "exit");
     assertMatch(text, /stdout:/u, "stdout label");
@@ -172,28 +195,31 @@ export async function runTerminalModuleTests(): Promise<void> {
     assertEqual(host.calls.length, 0, "no fetch");
   });
 
-  await runCase("formats stderr, timeout, truncation, and null exit", async () => {
-    const result = await executeShellCommand("slow", {
-      fetch: fakeHost(() =>
-        jsonResponse(
-          hostResult({
-            stdout: "",
-            stderr: "boom\n",
-            exitCode: null,
-            timedOut: true,
-            truncated: true,
-          }),
-        ),
-      ).fetch,
-    });
-    assertEqual(result.exitCode, null, "null exit");
-    assertEqual(result.timedOut, true, "timedOut");
-    assertEqual(result.truncated, true, "truncated");
-    const text = formatShellHostResult(result);
-    assertMatch(text, /exit: null \(timed out\)/u, "timed out exit");
-    assertMatch(text, /output truncated/u, "truncated");
-    assertMatch(text, /stderr:\nboom/u, "stderr");
-  });
+  await runCase(
+    "formats stderr, timeout, truncation, and null exit",
+    async () => {
+      const result = await executeShellCommand("slow", {
+        fetch: fakeHost(() =>
+          jsonResponse(
+            hostResult({
+              stdout: "",
+              stderr: "boom\n",
+              exitCode: null,
+              timedOut: true,
+              truncated: true,
+            }),
+          ),
+        ).fetch,
+      });
+      assertEqual(result.exitCode, null, "null exit");
+      assertEqual(result.timedOut, true, "timedOut");
+      assertEqual(result.truncated, true, "truncated");
+      const text = formatShellHostResult(result);
+      assertMatch(text, /exit: null \(timed out\)/u, "timed out exit");
+      assertMatch(text, /output truncated/u, "truncated");
+      assertMatch(text, /stderr:\nboom/u, "stderr");
+    },
+  );
 
   await runCase("formats empty stdout and stderr as no output", async () => {
     const text = formatShellHostResult(hostResult());
@@ -235,7 +261,8 @@ export async function runTerminalModuleTests(): Promise<void> {
         }),
       (error) =>
         error instanceof ShellCommandError &&
-        error.message === "GUI host shell result field 'stdout' must be a string.",
+        error.message ===
+          "GUI host shell result field 'stdout' must be a string.",
       "malformed result",
     );
   });
@@ -271,8 +298,9 @@ if (isDirectNodeRun()) {
     () => undefined,
     (error: unknown) => {
       console.error(error);
-      const proc = (globalThis as { process?: { exit?: (code: number) => void } })
-        .process;
+      const proc = (
+        globalThis as { process?: { exit?: (code: number) => void } }
+      ).process;
       proc?.exit?.(1);
     },
   );

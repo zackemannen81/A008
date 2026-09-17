@@ -52,8 +52,15 @@ function findEndOfCentralDirectory(buffer: Buffer): number {
   // The record is last, but a trailing comment of up to 65535 bytes may follow
   // it, so the signature has to be searched for backwards rather than read at a
   // fixed offset.
-  const earliest = Math.max(0, buffer.length - EOCD_FIXED_SIZE - MAX_COMMENT_LENGTH);
-  for (let offset = buffer.length - EOCD_FIXED_SIZE; offset >= earliest; offset -= 1) {
+  const earliest = Math.max(
+    0,
+    buffer.length - EOCD_FIXED_SIZE - MAX_COMMENT_LENGTH,
+  );
+  for (
+    let offset = buffer.length - EOCD_FIXED_SIZE;
+    offset >= earliest;
+    offset -= 1
+  ) {
     if (buffer.readUInt32LE(offset) === END_OF_CENTRAL_DIRECTORY) {
       return offset;
     }
@@ -150,10 +157,14 @@ export function readZipEntry(bytes: Uint8Array, entry: ZipEntry): Uint8Array {
   const buffer = asBuffer(bytes);
   const header = entry.localHeaderOffset;
   if (header + LOCAL_HEADER_FIXED_SIZE > buffer.length) {
-    throw invalid(`ZIP entry ${entry.name} points past the end of the archive.`);
+    throw invalid(
+      `ZIP entry ${entry.name} points past the end of the archive.`,
+    );
   }
   if (buffer.readUInt32LE(header) !== LOCAL_FILE_HEADER) {
-    throw invalid(`ZIP entry ${entry.name} has a wrong local header signature.`);
+    throw invalid(
+      `ZIP entry ${entry.name} has a wrong local header signature.`,
+    );
   }
 
   const nameLength = buffer.readUInt16LE(header + 26);
@@ -167,7 +178,9 @@ export function readZipEntry(bytes: Uint8Array, entry: ZipEntry): Uint8Array {
   const raw = buffer.subarray(start, end);
   if (entry.compressionMethod === STORED) {
     if (raw.length > MAX_ZIP_ENTRY_BYTES) {
-      throw invalid(`ZIP entry ${entry.name} is larger than ${MAX_ZIP_ENTRY_BYTES} bytes.`);
+      throw invalid(
+        `ZIP entry ${entry.name} is larger than ${MAX_ZIP_ENTRY_BYTES} bytes.`,
+      );
     }
     return new Uint8Array(raw);
   }

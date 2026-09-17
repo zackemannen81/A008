@@ -112,7 +112,10 @@ export class KnowledgeLabelStore {
   attach(input: AttachLabelsInput): LabelRecord {
     const recordId = input.recordId.trim();
     if (recordId.length === 0) {
-      throw new KnowledgeModelError("invalid_input", "recordId must not be empty");
+      throw new KnowledgeModelError(
+        "invalid_input",
+        "recordId must not be empty",
+      );
     }
     if (input.recordKind !== "claim" && input.recordKind !== "utterance") {
       throw new KnowledgeModelError(

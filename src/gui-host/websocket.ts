@@ -51,8 +51,16 @@ export function acceptWebSocket(
 ): GuiWebSocket | undefined {
   const key = headerValue(request.headers["sec-websocket-key"]);
   const version = headerValue(request.headers["sec-websocket-version"]);
-  const requestedProtocols = headerValue(request.headers["sec-websocket-protocol"])?.split(",").map(value => value.trim()) ?? [];
-  if (key === undefined || version !== "13" || (options.protocol !== undefined && !requestedProtocols.includes(options.protocol))) {
+  const requestedProtocols =
+    headerValue(request.headers["sec-websocket-protocol"])
+      ?.split(",")
+      .map((value) => value.trim()) ?? [];
+  if (
+    key === undefined ||
+    version !== "13" ||
+    (options.protocol !== undefined &&
+      !requestedProtocols.includes(options.protocol))
+  ) {
     socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
     return undefined;
   }
@@ -62,7 +70,9 @@ export function acceptWebSocket(
   socket.write(
     "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n" +
       `Sec-WebSocket-Accept: ${accept}\r\n` +
-      (options.protocol ? `Sec-WebSocket-Protocol: ${options.protocol}\r\n` : "") +
+      (options.protocol
+        ? `Sec-WebSocket-Protocol: ${options.protocol}\r\n`
+        : "") +
       "\r\n",
   );
   return new OpenGuiWebSocket(socket, head, onMessage, options);
@@ -91,11 +101,19 @@ class OpenGuiWebSocket implements GuiWebSocket {
   #awaitingPong = false;
   #resolveClosed: () => void = () => undefined;
 
-  constructor(socket: Duplex, head: Buffer, onMessage: (text: string) => void, options: WebSocketAcceptOptions) {
+  constructor(
+    socket: Duplex,
+    head: Buffer,
+    onMessage: (text: string) => void,
+    options: WebSocketAcceptOptions,
+  ) {
     this.#socket = socket;
     this.#onMessage = onMessage;
     const messageLimit = options.maxMessageBytes;
-    this.#maxMessageBytes = typeof messageLimit === "function" ? messageLimit : () => messageLimit ?? MAX_PAYLOAD_BYTES;
+    this.#maxMessageBytes =
+      typeof messageLimit === "function"
+        ? messageLimit
+        : () => messageLimit ?? MAX_PAYLOAD_BYTES;
     this.closed = new Promise((resolve) => {
       this.#resolveClosed = resolve;
     });
@@ -198,7 +216,8 @@ class OpenGuiWebSocket implements GuiWebSocket {
         return;
       }
       this.#fragmentBytes += frame.payload.length;
-      if (this.#fragmentBytes > this.#maxMessageBytes()) throw new Error("message too large");
+      if (this.#fragmentBytes > this.#maxMessageBytes())
+        throw new Error("message too large");
       this.#fragments.push(frame.payload);
     }
     if (!frame.fin) {
@@ -220,7 +239,10 @@ class OpenGuiWebSocket implements GuiWebSocket {
   }
 }
 
-function readFrame(buffer: Buffer, maxPayloadBytes = MAX_PAYLOAD_BYTES): ParsedFrame | undefined {
+function readFrame(
+  buffer: Buffer,
+  maxPayloadBytes = MAX_PAYLOAD_BYTES,
+): ParsedFrame | undefined {
   if (buffer.length < 2) {
     return undefined;
   }

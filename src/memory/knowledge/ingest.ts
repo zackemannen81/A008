@@ -20,8 +20,7 @@ import type {
   KnowledgeIdFactory,
 } from "./types.js";
 
-const FADER_VAR_PATTERN =
-  /fader\s+v[aå]r\s+som\s+[aä]r\s+i\s+himmelen/iu;
+const FADER_VAR_PATTERN = /fader\s+v[aå]r\s+som\s+[aä]r\s+i\s+himmelen/iu;
 
 export interface IngestScope {
   readonly verified: boolean;
@@ -73,7 +72,10 @@ export interface IngestResult {
   readonly utterances: readonly Utterance[];
 }
 
-export function ingest(input: IngestInput, options: IngestOptions): IngestResult {
+export function ingest(
+  input: IngestInput,
+  options: IngestOptions,
+): IngestResult {
   validateScope(input.scope);
   if (typeof input.content !== "string") {
     throw new KnowledgeModelError("invalid_input", "content must be a string");
@@ -151,7 +153,10 @@ export function classifySpeech(
   }
   const trimmed = content.trim();
   if (trimmed.endsWith("?")) {
-    return { act: "question", contentKind: contentKind ?? "dialogue_assertion" };
+    return {
+      act: "question",
+      contentKind: contentKind ?? "dialogue_assertion",
+    };
   }
   if (isHypothetical(trimmed)) {
     return {
@@ -257,7 +262,10 @@ function resolveRelation(
 function requireNonEmpty(value: string, field: string): string {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    throw new KnowledgeModelError("invalid_input", `${field} must not be empty`);
+    throw new KnowledgeModelError(
+      "invalid_input",
+      `${field} must not be empty`,
+    );
   }
   return trimmed;
 }

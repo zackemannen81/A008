@@ -220,10 +220,7 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": [
-                "device",
-                "browser-pin"
-              ]
+              "enum": ["device", "browser-pin"]
             }
           },
           "features": {
@@ -367,9 +364,7 @@
             "pattern": "^[A-Za-z0-9_-]+$"
           }
         },
-        "required": [
-          "projectId"
-        ],
+        "required": ["projectId"],
         "additionalProperties": false
       },
       "v2-ticket-response": {
@@ -403,12 +398,7 @@
             "pattern": "^[A-Za-z0-9_-]+$"
           }
         },
-        "required": [
-          "serverInstanceId",
-          "ticket",
-          "expiresAt",
-          "projectId"
-        ],
+        "required": ["serverInstanceId", "ticket", "expiresAt", "projectId"],
         "additionalProperties": false
       },
       "v2-authenticate": {
@@ -425,10 +415,7 @@
             "maxLength": 128
           }
         },
-        "required": [
-          "type",
-          "ticket"
-        ],
+        "required": ["type", "ticket"],
         "additionalProperties": false
       }
     },

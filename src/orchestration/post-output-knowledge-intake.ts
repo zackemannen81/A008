@@ -1,4 +1,7 @@
-import { isKnowledgeSeverity, type KnowledgeSeverity } from "../core/memory-lifecycle-policy.js";
+import {
+  isKnowledgeSeverity,
+  type KnowledgeSeverity,
+} from "../core/memory-lifecycle-policy.js";
 import { parseRuntimeId } from "../identity/runtime-id.js";
 import type {
   AgentId,
@@ -38,8 +41,7 @@ export interface SourceAnalyzerInput {
 }
 
 export type PostOutputAnalyzerInput =
-  | DialogueAnalyzerInput
-  | SourceAnalyzerInput;
+  DialogueAnalyzerInput | SourceAnalyzerInput;
 
 export interface KnowledgeSupportSpan {
   readonly source: "message" | "source";
@@ -70,9 +72,16 @@ export type SupportQuoteResolution =
   | { readonly ok: true; readonly span: KnowledgeSupportSpan }
   | { readonly ok: false; readonly reason: string };
 
-function quoteSearchForms(quote: string, sourceText: string): readonly string[] {
+function quoteSearchForms(
+  quote: string,
+  sourceText: string,
+): readonly string[] {
   const forms = [quote];
-  if (sourceText.includes("\r\n") && quote.includes("\n") && !quote.includes("\r\n")) {
+  if (
+    sourceText.includes("\r\n") &&
+    quote.includes("\n") &&
+    !quote.includes("\r\n")
+  ) {
     forms.push(quote.replaceAll("\n", "\r\n"));
   }
   if (!sourceText.includes("\r\n") && quote.includes("\r\n")) {
@@ -106,14 +115,20 @@ function locateExactQuote(
       if (start === undefined) {
         return { ok: false, reason: "quote occurrence not found in source" };
       }
-      return { ok: true, span: { source: "message", start, end: start + form.length } };
+      return {
+        ok: true,
+        span: { source: "message", start, end: start + form.length },
+      };
     }
     if (positions.length > 1) {
       return { ok: false, reason: "quote is ambiguous" };
     }
     const start = positions[0];
     if (start === undefined) continue;
-    return { ok: true, span: { source: "message", start, end: start + form.length } };
+    return {
+      ok: true,
+      span: { source: "message", start, end: start + form.length },
+    };
   }
   return { ok: false, reason: "quote not found in source" };
 }
@@ -140,7 +155,10 @@ export function resolveAnalyzerSupport(
   }
   let occurrence: number | undefined;
   if (value.occurrence !== undefined) {
-    if (!Number.isSafeInteger(value.occurrence) || Number(value.occurrence) < 1) {
+    if (
+      !Number.isSafeInteger(value.occurrence) ||
+      Number(value.occurrence) < 1
+    ) {
       return { ok: false, reason: "invalid quote occurrence" };
     }
     occurrence = Number(value.occurrence);
@@ -148,14 +166,24 @@ export function resolveAnalyzerSupport(
   const tryLocate = (quote: string): SupportQuoteResolution => {
     const located = locateExactQuote(sourceText, quote, occurrence);
     if (located.ok === true) {
-      return { ok: true, span: { source: expectedSource, start: located.span.start, end: located.span.end } };
+      return {
+        ok: true,
+        span: {
+          source: expectedSource,
+          start: located.span.start,
+          end: located.span.end,
+        },
+      };
     }
     return located;
   };
   if (typeof value.quote === "string" && value.quote.length > 0) {
     const fromQuote = tryLocate(value.quote);
     if (fromQuote.ok === true) return fromQuote;
-    if (fromQuote.reason === "quote is ambiguous" || fromQuote.reason === "quote occurrence not found in source") {
+    if (
+      fromQuote.reason === "quote is ambiguous" ||
+      fromQuote.reason === "quote occurrence not found in source"
+    ) {
       return fromQuote;
     }
   }
@@ -163,7 +191,11 @@ export function resolveAnalyzerSupport(
     const fromProposition = tryLocate(extras.proposition);
     if (fromProposition.ok === true) return fromProposition;
   }
-  if (typeof value.quote === "string" && extras.answer !== undefined && extras.answer.includes(value.quote)) {
+  if (
+    typeof value.quote === "string" &&
+    extras.answer !== undefined &&
+    extras.answer.includes(value.quote)
+  ) {
     return undefined;
   }
   if (typeof value.quote !== "string" || value.quote.length === 0) {
@@ -239,8 +271,7 @@ export interface StageSourceKnowledgeInput {
  * working unchanged; a source must name itself.
  */
 export type StagePostOutputKnowledgeInput =
-  | StageDialogueKnowledgeInput
-  | StageSourceKnowledgeInput;
+  StageDialogueKnowledgeInput | StageSourceKnowledgeInput;
 
 export interface StagedKnowledgeProposal {
   readonly severity?: KnowledgeSeverity;
@@ -376,7 +407,10 @@ export function parseProposalConfidence(value: unknown, field: string): number {
     return unit(value, field);
   }
   if (typeof value === "string") {
-    const normalized = value.trim().toLocaleLowerCase("und").replace(/[_-]+/g, " ");
+    const normalized = value
+      .trim()
+      .toLocaleLowerCase("und")
+      .replace(/[_-]+/g, " ");
     const word = CONFIDENCE_WORDS.get(normalized);
     if (word !== undefined) {
       return word;
@@ -486,9 +520,7 @@ export function serializeStagedKnowledgeProposals(
   });
 }
 
-export class Utf8ByteKnowledgeIntakeMeasurer
-  implements KnowledgeIntakeMeasurer
-{
+export class Utf8ByteKnowledgeIntakeMeasurer implements KnowledgeIntakeMeasurer {
   readonly unit = "utf8_bytes";
 
   measure(serializedBatch: string): number {
@@ -596,19 +628,36 @@ export class PostOutputKnowledgeIntake {
         );
       }
       const raw = value as Record<string, unknown>;
-      if (!isKnowledgeSeverity(raw.severity)) throw new MemoryError("policy", `proposal ${index + 1} requires severity critical, important or minor`);
-      const sourceText = analyzerInput.kind === "source" ? analyzerInput.content : analyzerInput.message;
-      const expectedSource = analyzerInput.kind === "source" ? "source" : "message";
+      if (!isKnowledgeSeverity(raw.severity))
+        throw new MemoryError(
+          "policy",
+          `proposal ${index + 1} requires severity critical, important or minor`,
+        );
+      const sourceText =
+        analyzerInput.kind === "source"
+          ? analyzerInput.content
+          : analyzerInput.message;
+      const expectedSource =
+        analyzerInput.kind === "source" ? "source" : "message";
       const proposition = nonEmpty(
         raw.proposition,
         `proposal ${index + 1} proposition`,
       );
-      const resolvedSupport = resolveAnalyzerSupport(raw.support, expectedSource, sourceText, {
-        proposition,
-        ...(analyzerInput.kind === "dialogue" ? { answer: analyzerInput.answer } : {}),
-      });
+      const resolvedSupport = resolveAnalyzerSupport(
+        raw.support,
+        expectedSource,
+        sourceText,
+        {
+          proposition,
+          ...(analyzerInput.kind === "dialogue"
+            ? { answer: analyzerInput.answer }
+            : {}),
+        },
+      );
       if (resolvedSupport?.ok === false) {
-        skipped.push(`proposal ${index + 1} reinforcement skipped: ${resolvedSupport.reason}`);
+        skipped.push(
+          `proposal ${index + 1} reinforcement skipped: ${resolvedSupport.reason}`,
+        );
       }
       const kind = nonEmpty(raw.kind, `proposal ${index + 1} kind`);
       const semanticKey = `${kind.toLowerCase()}\u0000${proposition.toLowerCase()}`;
@@ -629,7 +678,9 @@ export class PostOutputKnowledgeIntake {
       let structuredProposition: KnowledgeProposal["structuredProposition"];
       if (raw.structuredProposition !== undefined) {
         try {
-          structuredProposition = parseClaimProposition(raw.structuredProposition);
+          structuredProposition = parseClaimProposition(
+            raw.structuredProposition,
+          );
         } catch (error) {
           throw new MemoryError(
             "policy",
@@ -642,7 +693,9 @@ export class PostOutputKnowledgeIntake {
       const proposal: KnowledgeProposal = {
         proposition,
         kind,
-        ...(structuredProposition === undefined ? {} : { structuredProposition }),
+        ...(structuredProposition === undefined
+          ? {}
+          : { structuredProposition }),
         tags: normalizedStrings(
           raw.tags,
           `proposal ${index + 1} tags`,
@@ -659,7 +712,9 @@ export class PostOutputKnowledgeIntake {
       };
       return {
         severity: raw.severity,
-        ...(resolvedSupport?.ok === true ? { support: resolvedSupport.span } : {}),
+        ...(resolvedSupport?.ok === true
+          ? { support: resolvedSupport.span }
+          : {}),
         proposal,
         domains: normalizedStrings(
           raw.domains,
@@ -711,16 +766,21 @@ export class PostOutputKnowledgeIntake {
       skippedProposals: skipped,
       origin:
         analyzerInput.kind === "source"
-          ? { kind: "source", utteranceId: nonEmpty(
-              (input as StageSourceKnowledgeInput).utteranceId,
-              "utteranceId",
-            ) }
+          ? {
+              kind: "source",
+              utteranceId: nonEmpty(
+                (input as StageSourceKnowledgeInput).utteranceId,
+                "utteranceId",
+              ),
+            }
           : { kind: "dialogue" },
       sourceMessage:
         analyzerInput.kind === "source"
           ? analyzerInput.locator
           : analyzerInput.message,
-      ...(analyzerInput.kind === "dialogue" ? { answerMessage: analyzerInput.answer } : {}),
+      ...(analyzerInput.kind === "dialogue"
+        ? { answerMessage: analyzerInput.answer }
+        : {}),
       proposals,
       serialized,
       measuredUnits,

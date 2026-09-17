@@ -51,7 +51,9 @@ export function createNvidiaTransportOptions(
     apiKey,
     ...(endpoint === undefined ? {} : { endpoint }),
     ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
-    ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
+    ...(options.timeoutMs === undefined
+      ? {}
+      : { timeoutMs: options.timeoutMs }),
   };
 }
 
@@ -59,8 +61,9 @@ export function createNvidiaChatTransport(
   options: NvidiaSessionCompositionOptions,
 ): ChatTransport {
   const transportOptions = createNvidiaTransportOptions(options);
-  return (options.createTransport ??
-    ((input) => new NvidiaChatTransport(input)))(transportOptions);
+  return (
+    options.createTransport ?? ((input) => new NvidiaChatTransport(input))
+  )(transportOptions);
 }
 
 export function createNvidiaChatSession(
@@ -73,7 +76,9 @@ export function createNvidiaChatSession(
   return new ChatSession({
     model: profile.id,
     transport,
-    ...(options.systemMessage === undefined ? {} : { systemMessage: options.systemMessage }),
+    ...(options.systemMessage === undefined
+      ? {}
+      : { systemMessage: options.systemMessage }),
     generation: profile.defaults,
   });
 }

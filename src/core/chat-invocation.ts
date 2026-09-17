@@ -55,7 +55,10 @@ function historyLimit(value: number | undefined): number | undefined {
 export function validateBudget(
   budget: ChatInvocationBudget | undefined,
   serialized: string,
-): { readonly measuredUnits: number | null; readonly measurementUnit: string | null } {
+): {
+  readonly measuredUnits: number | null;
+  readonly measurementUnit: string | null;
+} {
   if (budget === undefined) {
     return { measuredUnits: null, measurementUnit: null };
   }
@@ -65,7 +68,10 @@ export function validateBudget(
       "Chat invocation budget maximum must be a positive safe integer.",
     );
   }
-  const unit = nonEmpty(budget.measurer.unit, "Chat invocation measurement unit");
+  const unit = nonEmpty(
+    budget.measurer.unit,
+    "Chat invocation measurement unit",
+  );
   const measuredUnits = budget.measurer.measure(serialized);
   if (!Number.isSafeInteger(measuredUnits) || measuredUnits < 0) {
     throw new ChatError(
@@ -118,16 +124,18 @@ export function composeChatInvocation(
         : dialogue.slice(-maximumHistory);
   const configuredInstructions = [
     ...persistentSystemMessages,
-    ...(plan.systemMessages ?? []).map((content, index) => nonEmpty(
-        content,
-        `Chat invocation system message ${index + 1}`,
-      )),
+    ...(plan.systemMessages ?? []).map((content, index) =>
+      nonEmpty(content, `Chat invocation system message ${index + 1}`),
+    ),
   ];
   const contextInstructions = (plan.contextSystemMessages ?? []).map(
-    (content, index) => nonEmpty(content, `Chat context instruction ${index + 1}`),
+    (content, index) =>
+      nonEmpty(content, `Chat context instruction ${index + 1}`),
   );
   const systemInstruction = [
-    ...(configuredInstructions.length ? configuredInstructions : [DEFAULT_SYSTEM_MESSAGE]),
+    ...(configuredInstructions.length
+      ? configuredInstructions
+      : [DEFAULT_SYSTEM_MESSAGE]),
     ...contextInstructions,
   ].join("\n\n");
   const messages: ChatMessage[] = [

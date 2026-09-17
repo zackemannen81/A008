@@ -8,7 +8,11 @@ import { A008AcpAgent, sessionNotifier } from "./A008-acp-agent.js";
 import { ModelToolSession } from "../tools/model-tools.js";
 import { prepareAcpTools } from "../tools/acp-tools.js";
 import { nativeToolCatalog } from "../tools/repository-tools.js";
-import { defaultCatalogPath, loadUserCatalog, userModelProfile } from "../core/user-catalog.js";
+import {
+  defaultCatalogPath,
+  loadUserCatalog,
+  userModelProfile,
+} from "../core/user-catalog.js";
 
 export interface AcpServerOptions {
   readonly env?: NodeJS.ProcessEnv;
@@ -17,7 +21,12 @@ export interface AcpServerOptions {
   readonly stderr?: NodeJS.WritableStream;
 }
 
-export function createAcpRuntime(options: { env: NodeJS.ProcessEnv; cwd?: string; stderr: NodeJS.WritableStream; ownershipAlreadyHeld?: boolean }) {
+export function createAcpRuntime(options: {
+  env: NodeJS.ProcessEnv;
+  cwd?: string;
+  stderr: NodeJS.WritableStream;
+  ownershipAlreadyHeld?: boolean;
+}) {
   const { env, stderr } = options;
   const runtime = createLocalMemoryRuntime({
     env,
@@ -28,17 +37,29 @@ export function createAcpRuntime(options: { env: NodeJS.ProcessEnv; cwd?: string
   const agent = new A008AcpAgent({
     sessionControls: true,
     extraProfiles: () => {
-      try { return loadUserCatalog(defaultCatalogPath(env)).chatModels.map(userModelProfile); }
-      catch { return []; }
+      try {
+        return loadUserCatalog(defaultCatalogPath(env)).chatModels.map(
+          userModelProfile,
+        );
+      } catch {
+        return [];
+      }
     },
-    runtimeInfo: () => ({ cwd: options.cwd ?? process.cwd(), projectId: runtime.projectId, memoryPath: runtime.sqlitePath, tools: nativeToolCatalog() }),
+    runtimeInfo: () => ({
+      cwd: options.cwd ?? process.cwd(),
+      projectId: runtime.projectId,
+      memoryPath: runtime.sqlitePath,
+      tools: nativeToolCatalog(),
+    }),
     inspectMemory: (query) => runtime.inspectMemory(query),
     createSession: (model) => runtime.openSession({ model }),
-    resolveImageAttachment: (locator) => runtime.resolveImageAttachment(locator),
+    resolveImageAttachment: (locator) =>
+      runtime.resolveImageAttachment(locator),
     // Wired only here, so an agent constructed without a runtime refuses
     // `_a008/source/ingest` instead of silently doing nothing.
     sharedMemoryCapabilities: () => runtime.sharedMemoryCapabilities(),
-    recallSharedMemory: async (params) => await runtime.recallSharedMemory(params),
+    recallSharedMemory: async (params) =>
+      await runtime.recallSharedMemory(params),
     writeSharedMemory: (params) => runtime.writeSharedMemory(params),
     ingestSource: async (params) => {
       const outcome = await runtime.ingestSource(params);
@@ -60,7 +81,9 @@ export function createAcpRuntime(options: { env: NodeJS.ProcessEnv; cwd?: string
   return { runtime, agent };
 }
 
-export async function runAcpServer(options: AcpServerOptions = {}): Promise<void> {
+export async function runAcpServer(
+  options: AcpServerOptions = {},
+): Promise<void> {
   const env = options.env ?? process.env;
   const stdin = options.stdin ?? process.stdin;
   const stdout = options.stdout ?? process.stdout;
@@ -76,8 +99,12 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
     const connection = acp
       .agent({ name: "A008" })
       .onRequest("initialize", (context) => agent.initialize(context.params))
-      .onRequest("session/new", context => {
-        const toolSession = new ModelToolSession({ cwd: process.cwd(), env, mcpServers: context.params.mcpServers });
+      .onRequest("session/new", (context) => {
+        const toolSession = new ModelToolSession({
+          cwd: process.cwd(),
+          env,
+          mcpServers: context.params.mcpServers,
+        });
         const created = agent.newSession(context.params);
         tools.set(created.sessionId, toolSession);
         return created;
@@ -86,9 +113,20 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
         agent.setSessionConfigOption(context.params),
       )
       .onRequest("session/prompt", (context) => {
-        const work = agent.prompt(context.params, sessionNotifier(context.client), (signal, budgets) =>
-          prepareAcpTools(tools.get(context.params.sessionId)!, context.params.sessionId, budgets, signal,
-            sessionNotifier(context.client), params => context.client.request("session/request_permission", params)));
+        const work = agent.prompt(
+          context.params,
+          sessionNotifier(context.client),
+          (signal, budgets) =>
+            prepareAcpTools(
+              tools.get(context.params.sessionId)!,
+              context.params.sessionId,
+              budgets,
+              signal,
+              sessionNotifier(context.client),
+              (params) =>
+                context.client.request("session/request_permission", params),
+            ),
+        );
         active.add(work);
         void work.finally(() => active.delete(work)).catch(() => undefined);
         return work;
@@ -96,19 +134,26 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
       // The fluent agent builder registers nothing implicitly, so the optional
       // `session/close` method needs its own handler even though the agent
       // advertises the capability from `initialize`.
-      .onRequest("session/close", async context => {
+      .onRequest("session/close", async (context) => {
         const result = agent.closeSession(context.params);
-        await tools.get(context.params.sessionId)?.close(); tools.delete(context.params.sessionId);
+        await tools.get(context.params.sessionId)?.close();
+        tools.delete(context.params.sessionId);
         return result;
       })
-      .onRequest("_a008/session/control", (params: unknown) => params,
-        async context => {
+      .onRequest(
+        "_a008/session/control",
+        (params: unknown) => params,
+        async (context) => {
           const result = agent.controlSession(context.params);
           for (const [id, tool] of tools) {
-            if (!agent.openSessionIds().includes(id)) { tools.delete(id); await tool.close(); }
+            if (!agent.openSessionIds().includes(id)) {
+              tools.delete(id);
+              await tool.close();
+            }
           }
           return result;
-        })
+        },
+      )
       // ADR 0020 D4. Registered through the custom-method overload, which takes
       // an explicit params parser; the agent re-validates regardless.
       .onRequest(
@@ -131,22 +176,30 @@ export async function runAcpServer(options: AcpServerOptions = {}): Promise<void
         (params: unknown) => params,
         async (context) => await agent.ingestSource(context.params),
       )
-      .onRequest("memory/inspect", (params: unknown) => params,
-        async (context) => await agent.inspectMemory(context.params))
-      .onNotification("session/cancel", (context) => agent.cancel(context.params))
+      .onRequest(
+        "memory/inspect",
+        (params: unknown) => params,
+        async (context) => await agent.inspectMemory(context.params),
+      )
+      .onNotification("session/cancel", (context) =>
+        agent.cancel(context.params),
+      )
       .connect(stream);
 
     await connection.closed;
   } finally {
     for (const id of agent.openSessionIds()) agent.cancel({ sessionId: id });
     await Promise.allSettled([...active]);
-    await Promise.allSettled([...tools.values()].map(tool => tool.close()));
+    await Promise.allSettled([...tools.values()].map((tool) => tool.close()));
     runtime.close();
   }
 }
 
 const entryPath = process.argv[1];
-if (entryPath !== undefined && import.meta.url === pathToFileURL(entryPath).href) {
+if (
+  entryPath !== undefined &&
+  import.meta.url === pathToFileURL(entryPath).href
+) {
   runAcpServer().catch((error: unknown) => {
     const stderr = process.stderr;
     stderr.write(

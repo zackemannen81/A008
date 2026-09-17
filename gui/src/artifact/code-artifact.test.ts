@@ -17,7 +17,7 @@ test("preview document stays free of host theme identity", () => {
 
 test("assistant answer parser separates prose and complete fenced code", () => {
   const segments = parseAssistantAnswer(
-    "Before\n```html\n<canvas id=\"c\"></canvas>\n```\nAfter",
+    'Before\n```html\n<canvas id="c"></canvas>\n```\nAfter',
   );
   assert.equal(segments.length, 3);
   assert.deepEqual(segments[0], { kind: "text", text: "Before\n" });
@@ -32,7 +32,10 @@ test("assistant answer parser separates prose and complete fenced code", () => {
 
 test("only complete bounded html fences become artifacts", () => {
   assert.equal(htmlArtifactFromAnswer("```html\n<div>", "turn-1"), undefined);
-  assert.equal(htmlArtifactFromAnswer("```js\nconsole.log(1)\n```", "turn-2"), undefined);
+  assert.equal(
+    htmlArtifactFromAnswer("```js\nconsole.log(1)\n```", "turn-2"),
+    undefined,
+  );
 
   const artifact = htmlArtifactFromAnswer(
     "x\n```HTML title=demo\n<!doctype html><canvas></canvas>\n```",
@@ -55,13 +58,20 @@ test("preview document injects network-denying policy before untrusted html", ()
   const preview = buildPreviewDocument(
     "<!doctype html><html><body><canvas></canvas><script>fetch('https://example.com')</script></body></html>",
   );
-  assert.ok(preview.indexOf("Content-Security-Policy") < preview.indexOf("<html>"));
+  assert.ok(
+    preview.indexOf("Content-Security-Policy") < preview.indexOf("<html>"),
+  );
   assert.match(preview, /default-src 'none'/u);
   assert.match(preview, /connect-src 'none'/u);
   assert.match(preview, /form-action 'none'/u);
   assert.match(preview, /navigate-to 'none'/u);
   assert.match(preview, /preview network access is disabled/u);
-  assert.equal(/allow-same-origin|allow-forms|allow-popups|allow-top-navigation/u.test(CODE_PREVIEW_SANDBOX), false);
+  assert.equal(
+    /allow-same-origin|allow-forms|allow-popups|allow-top-navigation/u.test(
+      CODE_PREVIEW_SANDBOX,
+    ),
+    false,
+  );
   assert.equal(CODE_PREVIEW_SANDBOX, "allow-scripts");
   assert.throws(
     () => buildPreviewDocument("x".repeat(MAX_CODE_ARTIFACT_BYTES + 1)),

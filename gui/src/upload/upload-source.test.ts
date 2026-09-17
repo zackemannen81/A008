@@ -15,7 +15,9 @@ interface FetchCall {
   readonly bodyBytes: Uint8Array | undefined;
 }
 
-function headerRecord(headers: HeadersInit | undefined): Record<string, string> {
+function headerRecord(
+  headers: HeadersInit | undefined,
+): Record<string, string> {
   const out: Record<string, string> = {};
   if (headers === undefined) {
     return out;
@@ -66,9 +68,10 @@ function jsonResponse(body: unknown, status = 200, statusText = ""): Response {
   });
 }
 
-function fakeHost(
-  handler: (call: FetchCall) => Response | Promise<Response>,
-): { readonly fetch: typeof fetch; readonly calls: FetchCall[] } {
+function fakeHost(handler: (call: FetchCall) => Response | Promise<Response>): {
+  readonly fetch: typeof fetch;
+  readonly calls: FetchCall[];
+} {
   const calls: FetchCall[] = [];
   const fetchImpl: typeof fetch = async (input, init) => {
     const call: FetchCall = {
@@ -131,7 +134,10 @@ test("posts raw bytes with the octet-stream content type and filename header", a
   assert.equal(call.method, "POST");
   assert.equal(call.credentials, "same-origin");
   assert.equal(call.headers["content-type"], "application/octet-stream");
-  assert.equal(call.headers["x-a008-filename"], encodeURIComponent("report.txt"));
+  assert.equal(
+    call.headers["x-a008-filename"],
+    encodeURIComponent("report.txt"),
+  );
   assert.ok(call.bodyBytes);
   assert.equal(
     new TextDecoder().decode(call.bodyBytes),
@@ -147,7 +153,9 @@ test("posts raw bytes with the octet-stream content type and filename header", a
 
 test("percent-encodes a filename with non-Latin1 characters", async () => {
   const host = fakeHost(() => jsonResponse(uploadedSource()));
-  await uploadSource(fakeFile("résumé 简历 🙂.txt", "x"), { fetch: host.fetch });
+  await uploadSource(fakeFile("résumé 简历 🙂.txt", "x"), {
+    fetch: host.fetch,
+  });
 
   const call = host.calls[0];
   assert.ok(call);
@@ -233,7 +241,8 @@ test("rejects a nameless file without fetching", async () => {
   await assert.rejects(
     () => uploadSource(fakeFile("   ", "x"), { fetch: host.fetch }),
     (error: unknown) =>
-      error instanceof UploadError && error.message === "Select a file to upload.",
+      error instanceof UploadError &&
+      error.message === "Select a file to upload.",
   );
   assert.equal(host.calls.length, 0, "refused before reaching the network");
 });

@@ -64,7 +64,10 @@ test("session returns and streams reasoning without committing or replaying it",
     { role: "user", content: "second" },
     { role: "assistant", content: "answer 2" },
   ]);
-  assert.equal(JSON.stringify(requests[1]?.messages).includes(reasoning), false);
+  assert.equal(
+    JSON.stringify(requests[1]?.messages).includes(reasoning),
+    false,
+  );
 });
 
 test("undoLastTurn drops the last user and assistant pair", async () => {
@@ -120,9 +123,17 @@ test("session rejects empty messages before calling the transport", async () => 
 
 test("unavailable and duplicate tool calls name the offending call", async () => {
   const offered = {
-    definitions: [{ name: "read_file", description: "Read", parameters: { type: "object", properties: {} } }],
+    definitions: [
+      {
+        name: "read_file",
+        description: "Read",
+        parameters: { type: "object", properties: {} },
+      },
+    ],
     maximumCalls: 4,
-    async execute() { return "ok"; },
+    async execute() {
+      return "ok";
+    },
   };
   const session = new ChatSession({
     model: "provider/model",
@@ -198,7 +209,9 @@ test("native image input survives same-turn tool continuation but never enters c
         if (round === 1) {
           return {
             message: { role: "assistant", content: "" },
-            toolCalls: [{ id: "call-vision", name: "inspect", arguments: "{}" }],
+            toolCalls: [
+              { id: "call-vision", name: "inspect", arguments: "{}" },
+            ],
           };
         }
         return { message: { role: "assistant", content: "final answer" } };
@@ -206,15 +219,27 @@ test("native image input survives same-turn tool continuation but never enters c
     },
   });
   await session.send("what is in this image?", {
-    imageAttachments: [{ mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" }],
+    imageAttachments: [
+      { mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" },
+    ],
     tools: {
-      definitions: [{ name: "inspect", description: "Inspect", parameters: { type: "object", properties: {} } }],
+      definitions: [
+        {
+          name: "inspect",
+          description: "Inspect",
+          parameters: { type: "object", properties: {} },
+        },
+      ],
       maximumCalls: 2,
-      async execute() { return "tool result"; },
+      async execute() {
+        return "tool result";
+      },
     },
   });
   assert.equal(seen.length, 2);
-  assert.deepEqual(seen[0]?.imageAttachments, [{ mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" }]);
+  assert.deepEqual(seen[0]?.imageAttachments, [
+    { mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" },
+  ]);
   assert.deepEqual(seen[1]?.imageAttachments, seen[0]?.imageAttachments);
   assert.deepEqual(session.messages, [
     { role: "user", content: "what is in this image?" },

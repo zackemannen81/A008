@@ -33,12 +33,18 @@ function joined(view: ReturnType<typeof buildSettingsView>): string {
 export function runSettingsViewChecks(): void {
   const idle = buildSettingsView(session());
   assert(idle.product === "A008", "product is A008");
-  assert(idle.model === "nvidia/nemotron-3.5-lightning-30b-a3b", "model from session");
+  assert(
+    idle.model === "nvidia/nemotron-3.5-lightning-30b-a3b",
+    "model from session",
+  );
   assert(idle.connection === "idle", "idle connection label");
   assert(idle.session === "none", "missing session id is none");
   assert(idle.memory === "local, host-owned", "memory has no path");
   assert(idle.telemetry === "off", "telemetry is off");
-  assert(idle.credentials === "host process only", "credentials stay on the host");
+  assert(
+    idle.credentials === "host process only",
+    "credentials stay on the host",
+  );
   assert(idle.canConnect, "idle can connect");
   assert(idle.error === undefined, "idle has no error");
 
@@ -51,7 +57,8 @@ export function runSettingsViewChecks(): void {
   assert(ready.connection === "connected", "ready maps to connected");
   assert(!ready.canConnect, "ready does not offer connect");
   assert(
-    ready.session === "A008_v1_acp_session_11111111-1111-4111-8111-111111111111",
+    ready.session ===
+      "A008_v1_acp_session_11111111-1111-4111-8111-111111111111",
     "session id is displayed",
   );
 
@@ -74,7 +81,10 @@ export function runSettingsViewChecks(): void {
   assert(!shown.includes("posthog"), "PostHog is not product copy");
   assert(!shown.includes("agent canvas"), "Agent Canvas is not product copy");
 
-  assert(redactSecrets("NVIDIA_API_KEY") === "[redacted]", "key-only error redacts");
+  assert(
+    redactSecrets("NVIDIA_API_KEY") === "[redacted]",
+    "key-only error redacts",
+  );
   assert(
     !redactSecrets("see .env.local").includes(".env"),
     "env file names are redacted",

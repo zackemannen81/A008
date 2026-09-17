@@ -12,7 +12,10 @@ function collapse(value: string): string {
   return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("und");
 }
 
-function evidenceSlice(message: string, span: AssertionEvidenceSpan | undefined): string {
+function evidenceSlice(
+  message: string,
+  span: AssertionEvidenceSpan | undefined,
+): string {
   if (span === undefined) {
     return message;
   }

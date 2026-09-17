@@ -13,13 +13,7 @@
  */
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import {
-  dirname,
-  isAbsolute,
-  join,
-  relative,
-  resolve,
-} from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { ChatError } from "../core/errors.js";
 
 export const SOURCE_STORE_PATH_ENV = "A008_SOURCE_STORE_PATH";
@@ -101,7 +95,11 @@ export function sourceLocator(sha256: string, filename: string): string {
  * — path containment is a security boundary, not a convenience check
  * (ADR 0020 D2), so it must hold even if an upstream sanitiser has a bug.
  */
-export function blobPath(storeRoot: string, sha256: string, filename: string): string {
+export function blobPath(
+  storeRoot: string,
+  sha256: string,
+  filename: string,
+): string {
   const resolvedRoot = resolve(storeRoot);
   const candidate = resolve(resolvedRoot, sha256, filename);
   const rel = relative(resolvedRoot, candidate);
@@ -161,7 +159,9 @@ export function resolveSourceStorePath(
   if (configured === undefined || configured.length === 0) {
     return undefined;
   }
-  const resolved = isAbsolute(configured) ? resolve(configured) : resolve(cwd, configured);
+  const resolved = isAbsolute(configured)
+    ? resolve(configured)
+    : resolve(cwd, configured);
   const repositoryRoot = findRepositoryRootFrom(cwd);
   if (repositoryRoot !== undefined) {
     const relativeToRepo = relative(repositoryRoot, resolved);
@@ -181,7 +181,10 @@ export function resolveSourceStorePath(
 function findRepositoryRootFrom(startDirectory: string): string | undefined {
   let current = resolve(startDirectory);
   while (true) {
-    if (existsSync(join(current, "package.json")) && existsSync(join(current, "AGENTS.md"))) {
+    if (
+      existsSync(join(current, "package.json")) &&
+      existsSync(join(current, "AGENTS.md"))
+    ) {
       return current;
     }
     const parent = dirname(current);

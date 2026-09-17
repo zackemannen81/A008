@@ -1,11 +1,19 @@
 import { ChatError } from "../core/errors.js";
-import type { ChatCallbacks, ChatCompletion, ChatRequest, ChatTransport } from "../core/types.js";
+import type {
+  ChatCallbacks,
+  ChatCompletion,
+  ChatRequest,
+  ChatTransport,
+} from "../core/types.js";
 import { loadUserCatalog, type UserCatalog } from "../core/user-catalog.js";
 import {
   AcmeChatTransport,
   type AcmeChatTransportOptions,
 } from "../providers/acme/acme-chat-transport.js";
-import { KieChatTransport, type FetchLike } from "../providers/kie/kie-chat-transport.js";
+import {
+  KieChatTransport,
+  type FetchLike,
+} from "../providers/kie/kie-chat-transport.js";
 import { isKieChatModelId } from "../providers/kie/kie-models.js";
 import { NvidiaChatTransport } from "../providers/nvidia/nvidia-chat-transport.js";
 import { OpenAiChatTransport } from "../providers/openai/openai-chat-transport.js";
@@ -15,7 +23,11 @@ import { NVIDIA_ENDPOINT_ENV } from "./nvidia-session.js";
 export function usesKieChat(model: string, catalogPath: string): boolean {
   const catalog = loadUserCatalog(catalogPath);
   if (isKieChatModelId(model)) return true;
-  if (catalog.chatModels.some((entry) => entry.id === model && entry.provider === "kie")) {
+  if (
+    catalog.chatModels.some(
+      (entry) => entry.id === model && entry.provider === "kie",
+    )
+  ) {
     return true;
   }
   return catalog.chatProvider === "kie";
@@ -24,14 +36,18 @@ export function usesKieChat(model: string, catalogPath: string): boolean {
 function isKnownKieChatModel(model: string, catalog: UserCatalog): boolean {
   return (
     isKieChatModelId(model) ||
-    catalog.chatModels.some((entry) => entry.id === model && entry.provider === "kie")
+    catalog.chatModels.some(
+      (entry) => entry.id === model && entry.provider === "kie",
+    )
   );
 }
 
 function isKnownOpenAiChatModel(model: string, catalog: UserCatalog): boolean {
   return (
     model === "gpt-5.6-luna" ||
-    catalog.chatModels.some((entry) => entry.id === model && entry.provider === "openai")
+    catalog.chatModels.some(
+      (entry) => entry.id === model && entry.provider === "openai",
+    )
   );
 }
 
@@ -52,7 +68,10 @@ export function createAcmeRuntimeChatTransport(options: {
   readonly correlationId?: AcmeChatTransportOptions["correlationId"];
   readonly catalogPath?: string;
 }): ChatTransport {
-  if (options.selection.mode !== "acme" || options.selection.baseUrl === undefined) {
+  if (
+    options.selection.mode !== "acme" ||
+    options.selection.baseUrl === undefined
+  ) {
     throw new ChatError(
       "configuration",
       "ACME chat transport requires A008_CHAT_TRANSPORT=acme and A008_ACME_MODEL_RUNTIME_URL.",
@@ -61,14 +80,22 @@ export function createAcmeRuntimeChatTransport(options: {
   return new AcmeChatTransport({
     baseUrl: options.selection.baseUrl,
     timeoutMs: options.timeoutMs,
-    ...(options.selection.token === undefined ? {} : { token: options.selection.token }),
+    ...(options.selection.token === undefined
+      ? {}
+      : { token: options.selection.token }),
     ...(options.selection.engineBuild === undefined
       ? {}
       : { engineBuild: options.selection.engineBuild }),
     ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
-    ...(options.requestKey === undefined ? {} : { requestKey: options.requestKey }),
-    ...(options.correlationId === undefined ? {} : { correlationId: options.correlationId }),
-    ...(options.catalogPath === undefined ? {} : { catalogPath: options.catalogPath }),
+    ...(options.requestKey === undefined
+      ? {}
+      : { requestKey: options.requestKey }),
+    ...(options.correlationId === undefined
+      ? {}
+      : { correlationId: options.correlationId }),
+    ...(options.catalogPath === undefined
+      ? {}
+      : { catalogPath: options.catalogPath }),
   });
 }
 
@@ -121,23 +148,37 @@ export function createDispatchingChatTransport(options: {
     : undefined;
 
   return {
-    complete(request: ChatRequest, callbacks?: ChatCallbacks): Promise<ChatCompletion> {
+    complete(
+      request: ChatRequest,
+      callbacks?: ChatCallbacks,
+    ): Promise<ChatCompletion> {
       const catalog = loadUserCatalog(options.catalogPath);
       if (isKnownOpenAiChatModel(request.model, catalog)) {
         if (!openAiKey) {
-          throw new ChatError("configuration", "OPENAI_API_KEY is required for OpenAI chat.");
+          throw new ChatError(
+            "configuration",
+            "OPENAI_API_KEY is required for OpenAI chat.",
+          );
         }
-        const model = isKnownOpenAiChatModel(request.model, catalog) ? request.model : "gpt-5.6-luna";
+        const model = isKnownOpenAiChatModel(request.model, catalog)
+          ? request.model
+          : "gpt-5.6-luna";
         const transport = new OpenAiChatTransport({
           apiKey: openAiKey,
           timeoutMs: options.timeoutMs,
           ...(options.fetch ? { fetch: options.fetch } : {}),
         });
-        return transport.complete(model === request.model ? request : { ...request, model }, callbacks);
+        return transport.complete(
+          model === request.model ? request : { ...request, model },
+          callbacks,
+        );
       }
       if (usesKieChat(request.model, options.catalogPath)) {
         if (!kieKey) {
-          throw new ChatError("configuration", "KIE_API_KEY is required for kie.ai chat.");
+          throw new ChatError(
+            "configuration",
+            "KIE_API_KEY is required for kie.ai chat.",
+          );
         }
         const catalog = loadUserCatalog(options.catalogPath);
         const model = isKnownKieChatModel(request.model, catalog)
@@ -162,7 +203,10 @@ export function createDispatchingChatTransport(options: {
         );
       }
       if (!nvidia) {
-        throw new ChatError("configuration", "NVIDIA_API_KEY is required for NVIDIA chat.");
+        throw new ChatError(
+          "configuration",
+          "NVIDIA_API_KEY is required for NVIDIA chat.",
+        );
       }
       return nvidia.complete(request, callbacks);
     },

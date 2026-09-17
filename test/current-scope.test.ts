@@ -116,8 +116,14 @@ test("membership is normalised on both sides", () => {
 });
 
 test("order is stable, so an identical read scopes identically", () => {
-  const once = advanceScope(["a", "b"], { domains: ["c"], relatedDomains: ["a"] });
-  const twice = advanceScope(["a", "b"], { domains: ["c"], relatedDomains: ["a"] });
+  const once = advanceScope(["a", "b"], {
+    domains: ["c"],
+    relatedDomains: ["a"],
+  });
+  const twice = advanceScope(["a", "b"], {
+    domains: ["c"],
+    relatedDomains: ["a"],
+  });
   assert.deepEqual(once.scope, twice.scope);
 });
 
@@ -165,7 +171,12 @@ test("a domain named again survives eviction ahead of one that was not", () => {
 
 test("a ceiling below one is refused rather than emptying the scope", () => {
   assert.throws(
-    () => advanceScope([], { domains: ["a"], relatedDomains: [] }, { maximumDomains: 0 }),
+    () =>
+      advanceScope(
+        [],
+        { domains: ["a"], relatedDomains: [] },
+        { maximumDomains: 0 },
+      ),
     RangeError,
   );
   assert.equal(DEFAULT_MAXIMUM_SCOPE_DOMAINS, 32);
@@ -182,11 +193,15 @@ test("scopes are per conversation and do not leak between them", () => {
     relatedDomains: [],
   });
   assert.deepEqual(scopes.current("conversation-a"), ["neuroscience"]);
-  assert.deepEqual(scopes.current("conversation-b"), ["automotive engineering"]);
+  assert.deepEqual(scopes.current("conversation-b"), [
+    "automotive engineering",
+  ]);
 
   scopes.forget("conversation-a");
   assert.deepEqual(scopes.current("conversation-a"), []);
-  assert.deepEqual(scopes.current("conversation-b"), ["automotive engineering"]);
+  assert.deepEqual(scopes.current("conversation-b"), [
+    "automotive engineering",
+  ]);
 });
 
 test("one conversation's scope cannot widen another's", () => {
@@ -250,9 +265,11 @@ function storeWith(
 
 function request(message: string): MemoryReadRequest {
   return {
-    projectId: "A008_v1_project_70000000-0000-4000-8000-000000000001" as ProjectId,
+    projectId:
+      "A008_v1_project_70000000-0000-4000-8000-000000000001" as ProjectId,
     conversationId: CONVERSATION,
-    taskId: "A008_v1_task_70000000-0000-4000-8000-000000000004" as RuntimeTaskId,
+    taskId:
+      "A008_v1_task_70000000-0000-4000-8000-000000000004" as RuntimeTaskId,
     agentId: "A008_v1_agent_70000000-0000-4000-8000-000000000003" as AgentId,
     message,
     applicabilityScopes: ["local"],
@@ -278,7 +295,8 @@ function scripted(
 test("the owner's worked sequence: widen, carry, then reset on a new topic", async () => {
   const context = storeWith([
     {
-      content: "Hippocampus fungerar som en växelstation för nya medvetna minnen",
+      content:
+        "Hippocampus fungerar som en växelstation för nya medvetna minnen",
       tags: ["hippocampus"],
       domains: ["neuroscience"],
     },
@@ -294,7 +312,10 @@ test("the owner's worked sequence: widen, carry, then reset on a new topic", asy
       new Map([
         [
           "Hur fungerar människans minne?",
-          { domains: ["psychology"], relatedDomains: ["neuroscience", "cognitive science"] },
+          {
+            domains: ["psychology"],
+            relatedDomains: ["neuroscience", "cognitive science"],
+          },
         ],
         [
           "Och vad händer när vi sover efter att vi lärt oss något?",
@@ -302,7 +323,10 @@ test("the owner's worked sequence: widen, carry, then reset on a new topic", asy
         ],
         [
           "Vilken motor sitter i en Porsche 911 GT3?",
-          { domains: ["automotive engineering"], relatedDomains: ["motorsport"] },
+          {
+            domains: ["automotive engineering"],
+            relatedDomains: ["motorsport"],
+          },
         ],
       ]),
     ),
@@ -364,7 +388,9 @@ test("this turn's own domains query even when the ceiling evicts them", async ()
   });
 
   const result = await reader.read(request("Vad vet du?"));
-  const found = result.projection.projection.items.map((item) => item.proposition);
+  const found = result.projection.projection.items.map(
+    (item) => item.proposition,
+  );
   assert.ok(
     found.some((text) => text.includes("ämne 0")),
     `a primary domain was evicted before it was queried: ${JSON.stringify(found)}`,
@@ -383,12 +409,20 @@ test("the classifier is offered the vocabulary the store actually holds", async 
   const context = storeWith([
     { content: "Något om minnet", tags: ["minne"], domains: ["neurologi"] },
   ]);
-  let offered: { readonly knownDomains: readonly string[]; readonly knownTags: readonly string[] } | undefined;
+  let offered:
+    | {
+        readonly knownDomains: readonly string[];
+        readonly knownTags: readonly string[];
+      }
+    | undefined;
   const reader = new KnowledgeMemoryReader({
     context,
     scopeClassifier: {
       async classify(input) {
-        offered = { knownDomains: input.knownDomains, knownTags: input.knownTags };
+        offered = {
+          knownDomains: input.knownDomains,
+          knownTags: input.knownTags,
+        };
         return { domains: [], relatedDomains: [] };
       },
     },
@@ -401,13 +435,23 @@ test("the classifier is offered the vocabulary the store actually holds", async 
 
 test("semantic necessity skips a greeting instead of matching an old greeting utterance", async () => {
   const context = storeWith([
-    { content: "Hej, kan du bygga en bitmap font och textscroller?", tags: ["local"], domains: [] },
+    {
+      content: "Hej, kan du bygga en bitmap font och textscroller?",
+      tags: ["local"],
+      domains: [],
+    },
   ]);
   const reader = new KnowledgeMemoryReader({
     context,
     scopeClassifier: {
       async classify() {
-        return { retrieve: false, domains: [], relatedDomains: [], tags: [], relatedTags: [] };
+        return {
+          retrieve: false,
+          domains: [],
+          relatedDomains: [],
+          tags: [],
+          relatedTags: [],
+        };
       },
     },
   });
@@ -420,19 +464,35 @@ test("semantic necessity skips a greeting instead of matching an old greeting ut
 
 test("longer lexical questions require more than one generic shared word", async () => {
   const context = storeWith([
-    { content: "The demo uses a tracker module for music", tags: [], domains: [] },
-    { content: "The demo includes neon text and neon glow", tags: [], domains: [] },
+    {
+      content: "The demo uses a tracker module for music",
+      tags: [],
+      domains: [],
+    },
+    {
+      content: "The demo includes neon text and neon glow",
+      tags: [],
+      domains: [],
+    },
   ]);
   const reader = new KnowledgeMemoryReader({
     context,
     scopeClassifier: {
       async classify() {
-        return { retrieve: true, domains: [], relatedDomains: [], tags: [], relatedTags: [] };
+        return {
+          retrieve: true,
+          domains: [],
+          relatedDomains: [],
+          tags: [],
+          relatedTags: [],
+        };
       },
     },
   });
 
-  const result = await reader.read(request("does the demo have any neon text?"));
+  const result = await reader.read(
+    request("does the demo have any neon text?"),
+  );
   assert.equal(result.evidence.semanticRetrieval, "used");
   assert.deepEqual(
     result.projection.projection.items.map((item) => item.proposition),
@@ -523,7 +583,11 @@ test("without a classifier the reader still works, on the lexical half alone", a
   // find the record on a shared word — that is what the direct lexical match is
   // for — but neither the tag nor the domain channel fires, and that gap is
   // exactly what the classifier fills.
-  assert.equal(named.evidence.channelCounts.domain, 1, "the named domain matched");
+  assert.equal(
+    named.evidence.channelCounts.domain,
+    1,
+    "the named domain matched",
+  );
 
   const unnamed = await reader.read(request("Hur fungerar människans minne?"));
   assert.equal(unnamed.evidence.channelCounts.domain, 0);

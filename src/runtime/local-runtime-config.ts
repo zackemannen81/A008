@@ -1,12 +1,6 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import {
-  dirname,
-  isAbsolute,
-  join,
-  relative,
-  resolve,
-} from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ChatError } from "../core/errors.js";
 import type { DebugTraceMode } from "./debug-trace.js";
@@ -121,7 +115,10 @@ function positiveInteger(
   return parsed;
 }
 
-function booleanFlag(raw: string | undefined, name: string): boolean | undefined {
+function booleanFlag(
+  raw: string | undefined,
+  name: string,
+): boolean | undefined {
   if (raw === undefined) {
     return undefined;
   }
@@ -144,7 +141,12 @@ function resolvedChatGeneration(
     0,
     2,
   );
-  const topP = boundedNumber(optionalText(env, CHAT_TOP_P_ENV), CHAT_TOP_P_ENV, 0, 1);
+  const topP = boundedNumber(
+    optionalText(env, CHAT_TOP_P_ENV),
+    CHAT_TOP_P_ENV,
+    0,
+    1,
+  );
   const maxTokens = positiveInteger(
     optionalText(env, CHAT_MAX_TOKENS_ENV),
     CHAT_MAX_TOKENS_ENV,
@@ -175,7 +177,8 @@ export function findRepositoryRoot(startDirectory: string): string {
   while (true) {
     if (
       existsSync(join(current, "package.json")) &&
-      (existsSync(join(current, "AGENTS.md")) || existsSync(join(current, "agent007.brain.json")))
+      (existsSync(join(current, "AGENTS.md")) ||
+        existsSync(join(current, "agent007.brain.json")))
     ) {
       return current;
     }
@@ -315,8 +318,7 @@ export function parseLocalRuntimeConfig(
   const repositoryRoot =
     options.repositoryRoot ??
     findRepositoryRoot(moduleDirectory(import.meta.url));
-  const sqliteRaw =
-    optionalText(env, SQLITE_PATH_ENV) ?? defaultSqlitePath();
+  const sqliteRaw = optionalText(env, SQLITE_PATH_ENV) ?? defaultSqlitePath();
   const mode = parseDebugTraceMode(
     options.cli?.debugTrace ?? optionalText(env, DEBUG_TRACE_ENV),
   );

@@ -32,7 +32,11 @@ declare module "node:assert/strict" {
      * chain: `assert.equal(request?.type, "session/new")` is what makes
      * `request` non-optional on the following line.
      */
-    equal<T>(actual: unknown, expected: T, message?: string): asserts actual is T;
+    equal<T>(
+      actual: unknown,
+      expected: T,
+      message?: string,
+    ): asserts actual is T;
     notEqual(actual: unknown, expected: unknown, message?: string): void;
     deepEqual(actual: unknown, expected: unknown, message?: string): void;
     match(actual: string, regexp: RegExp, message?: string): void;

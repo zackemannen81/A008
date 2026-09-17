@@ -29,11 +29,6 @@
       "pattern": "^[A-Za-z0-9_-]+$"
     }
   },
-  "required": [
-    "serverInstanceId",
-    "ticket",
-    "expiresAt",
-    "projectId"
-  ],
+  "required": ["serverInstanceId", "ticket", "expiresAt", "projectId"],
   "additionalProperties": false
 }

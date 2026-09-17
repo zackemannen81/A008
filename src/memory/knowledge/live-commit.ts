@@ -1,5 +1,10 @@
 import { prepareAssociations } from "./association-commit.js";
-import { DEFAULT_MEMORY_LIFECYCLE_POLICY, isKnowledgeSeverity, parseMemoryLifecyclePolicy, type MemoryLifecyclePolicy } from "../../core/memory-lifecycle-policy.js";
+import {
+  DEFAULT_MEMORY_LIFECYCLE_POLICY,
+  isKnowledgeSeverity,
+  parseMemoryLifecyclePolicy,
+  type MemoryLifecyclePolicy,
+} from "../../core/memory-lifecycle-policy.js";
 import type { SemanticOperationContext } from "../../orchestration/semantic-operation.js";
 import { atomicKnowledge } from "./knowledge-transaction.js";
 import { createHash, randomUUID } from "node:crypto";
@@ -24,7 +29,10 @@ import {
   serializeRelationClassifierBatchInput,
   serializeRelationClassifierInput,
 } from "../../orchestration/relation-gated-memory-commit.js";
-import type { ReconciliationDecision, ReconciliationRelation } from "../types.js";
+import type {
+  ReconciliationDecision,
+  ReconciliationRelation,
+} from "../types.js";
 import { accept } from "./accept.js";
 import { UNKNOWN_INSTANT } from "./clocks.js";
 import { asUtteranceId, recordClaimsFromUtterance } from "./evidence.js";
@@ -48,11 +56,7 @@ import {
   selectUtteranceDomains,
   statementEntityLabel,
 } from "./write-policy.js";
-import type {
-  Entity,
-  KnowledgeIdFactory,
-  SlotDefinition,
-} from "./types.js";
+import type { Entity, KnowledgeIdFactory, SlotDefinition } from "./types.js";
 
 export interface KnowledgeEngineCommitOptions {
   readonly policy?: MemoryLifecyclePolicy;
@@ -85,7 +89,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
   readonly #measurer = new Utf8ByteKnowledgeIntakeMeasurer();
 
   constructor(options: KnowledgeEngineCommitOptions) {
-    this.#policy = parseMemoryLifecyclePolicy(options.policy ?? DEFAULT_MEMORY_LIFECYCLE_POLICY);
+    this.#policy = parseMemoryLifecyclePolicy(
+      options.policy ?? DEFAULT_MEMORY_LIFECYCLE_POLICY,
+    );
     this.#context = options.context;
     this.#classifier = options.classifier;
     this.#idFactory = options.idFactory ?? randomUUID;
@@ -111,48 +117,108 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         `proposal ${input.proposalIndex} is missing from the staged batch`,
       );
     }
-    if (!isKnowledgeSeverity(staged.severity)) throw new Error("Live claim requires validated severity");
+    if (!isKnowledgeSeverity(staged.severity))
+      throw new Error("Live claim requires validated severity");
     const utteranceDomains = selectUtteranceDomains(input.batch.proposals);
     const at = this.#context.lifecycle.now();
     const candidateRecords = this.#context.evidence.listClaims();
-    const targets = new Map(candidateRecords.map((claim, index) => [`candidate_${index + 1}`, claim]));
+    const targets = new Map(
+      candidateRecords.map((claim, index) => [`candidate_${index + 1}`, claim]),
+    );
     const candidates = this.#classifierCandidates(candidateRecords, at);
     const origin = input.batch.origin;
-    const sourceUtterance = origin.kind === "source" ? this.#context.evidence.listUtterances().find(u => u.id === origin.utteranceId) : undefined;
-    const sourceArtifact = sourceUtterance === undefined ? undefined : this.#context.evidence.listArtifacts().find(a => a.id === sourceUtterance.artifactId);
-    const source = origin.kind === "source" ? sourceUtterance?.content : input.batch.sourceMessage;
+    const sourceUtterance =
+      origin.kind === "source"
+        ? this.#context.evidence
+            .listUtterances()
+            .find((u) => u.id === origin.utteranceId)
+        : undefined;
+    const sourceArtifact =
+      sourceUtterance === undefined
+        ? undefined
+        : this.#context.evidence
+            .listArtifacts()
+            .find((a) => a.id === sourceUtterance.artifactId);
+    const source =
+      origin.kind === "source"
+        ? sourceUtterance?.content
+        : input.batch.sourceMessage;
     const span = staged.support;
-    const validSupport = span !== undefined && source !== undefined &&
+    const validSupport =
+      span !== undefined &&
+      source !== undefined &&
       span.source === (origin.kind === "source" ? "source" : "message") &&
-      (origin.kind !== "source" || sourceArtifact?.locator === input.batch.sourceMessage) &&
-      Number.isSafeInteger(span.start) && Number.isSafeInteger(span.end) && span.start >= 0 && span.end > span.start && span.end <= source.length;
-    const inferredMessageSpan = origin.kind === "dialogue"
-      ? exactUniqueSpan(input.batch.sourceMessage, staged.proposal.proposition)
-      : undefined;
+      (origin.kind !== "source" ||
+        sourceArtifact?.locator === input.batch.sourceMessage) &&
+      Number.isSafeInteger(span.start) &&
+      Number.isSafeInteger(span.end) &&
+      span.start >= 0 &&
+      span.end > span.start &&
+      span.end <= source.length;
+    const inferredMessageSpan =
+      origin.kind === "dialogue"
+        ? exactUniqueSpan(
+            input.batch.sourceMessage,
+            staged.proposal.proposition,
+          )
+        : undefined;
     const claimSourceSpan = validSupport
       ? { start: span.start, end: span.end }
       : inferredMessageSpan;
     const claimOrigin: "source" | "message" | "answer" =
-      origin.kind === "source" ? "source" : claimSourceSpan !== undefined ? "message" : "answer";
-    const occurrenceId = origin.kind === "source"
-      ? "source:" + createHash("sha256").update(JSON.stringify([input.batch.sourceMessage, source])).digest("hex")
-      : `turn:${input.batch.conversationId}:${input.batch.taskId}`;
-    const associationEntities = this.#previewBatchEntities(input.batch.proposals);
-    const associations = prepareAssociations(this.#context, targets,
-      source !== undefined && (origin.kind !== "source" || sourceArtifact?.locator === input.batch.sourceMessage)
-        ? { origin: origin.kind === "source" ? "source" : "message", content: source } : undefined,
+      origin.kind === "source"
+        ? "source"
+        : claimSourceSpan !== undefined
+          ? "message"
+          : "answer";
+    const occurrenceId =
+      origin.kind === "source"
+        ? "source:" +
+          createHash("sha256")
+            .update(JSON.stringify([input.batch.sourceMessage, source]))
+            .digest("hex")
+        : `turn:${input.batch.conversationId}:${input.batch.taskId}`;
+    const associationEntities = this.#previewBatchEntities(
+      input.batch.proposals,
+    );
+    const associations = prepareAssociations(
+      this.#context,
+      targets,
+      source !== undefined &&
+        (origin.kind !== "source" ||
+          sourceArtifact?.locator === input.batch.sourceMessage)
+        ? {
+            origin: origin.kind === "source" ? "source" : "message",
+            content: source,
+          }
+        : undefined,
       origin.kind === "source" ? input.batch.sourceMessage : occurrenceId,
       staged.proposal.scope,
       associationEntities,
     );
     const classifierInput = {
-      ...(associations.associationContext === undefined ? {} : { associationContext: associations.associationContext }),
-      ...(validSupport ? { sourceSupport: { origin: span.source, content: source, start: span.start, end: span.end } } : {}),
+      ...(associations.associationContext === undefined
+        ? {}
+        : { associationContext: associations.associationContext }),
+      ...(validSupport
+        ? {
+            sourceSupport: {
+              origin: span.source,
+              content: source,
+              start: span.start,
+              end: span.end,
+            },
+          }
+        : {}),
       proposal: {
         proposition: staged.proposal.proposition,
         ...(staged.proposal.structuredProposition === undefined
           ? {}
-          : { structuredProposition: structuredClone(staged.proposal.structuredProposition) }),
+          : {
+              structuredProposition: structuredClone(
+                staged.proposal.structuredProposition,
+              ),
+            }),
         kind: staged.proposal.kind,
         tags: [...(staged.proposal.tags ?? [])],
         scope: [...staged.proposal.scope],
@@ -165,9 +231,18 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     const serialized = serializeRelationClassifierInput(classifierInput);
     const classifierDecision =
       preclassifiedDecision ??
-      (await this.#classifier.classify(structuredClone(classifierInput), operation));
+      (await this.#classifier.classify(
+        structuredClone(classifierInput),
+        operation,
+      ));
     operation.signal?.throwIfAborted();
-    if (!classifierDecision || !["new", "restatement", "extend", "supersede", "conflict"].includes(classifierDecision.type)) throw new Error("Invalid live relation decision");
+    if (
+      !classifierDecision ||
+      !["new", "restatement", "extend", "supersede", "conflict"].includes(
+        classifierDecision.type,
+      )
+    )
+      throw new Error("Invalid live relation decision");
     return atomicKnowledge(this.#context, () => {
       operation.signal?.throwIfAborted();
       // Entity identity is referential, not truth-bearing. Materialize the
@@ -177,50 +252,125 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       const structuralEntities = this.#materializeEntities(staged.entities);
       const applyAssociations = (claimId: string): readonly string[] => {
         if (classifierDecision.associations === undefined) return [];
-        const evidenceUtteranceId = origin.kind === "source"
-          ? this.#ingestOnce(input, at, "source")
-          : this.#ingestOnce(input, at, "message");
-        const result = associations.apply(classifierDecision.associations, claimId, evidenceUtteranceId, occurrenceId, at, this.#policy);
+        const evidenceUtteranceId =
+          origin.kind === "source"
+            ? this.#ingestOnce(input, at, "source")
+            : this.#ingestOnce(input, at, "message");
+        const result = associations.apply(
+          classifierDecision.associations,
+          claimId,
+          evidenceUtteranceId,
+          occurrenceId,
+          at,
+          this.#policy,
+        );
         operation.signal?.throwIfAborted();
         return result;
       };
-      const priorCreation = this.#context.evidence.listClaims().find(claim => claim.label === staged.proposal.proposition && this.#context.lifecycle.get(claim.id)?.lifecycle.creationOccurrenceId === occurrenceId);
+      const priorCreation = this.#context.evidence
+        .listClaims()
+        .find(
+          (claim) =>
+            claim.label === staged.proposal.proposition &&
+            this.#context.lifecycle.get(claim.id)?.lifecycle
+              .creationOccurrenceId === occurrenceId,
+        );
       if (priorCreation !== undefined) {
-        this.#context.entityReferences.attach(priorCreation.id, structuralEntities.map((entity) => entity.id));
-        return this.#reusedClaimResult(classifierDecision, priorCreation.id, "duplicate_creation", candidates, serialized, applyAssociations(priorCreation.id));
+        this.#context.entityReferences.attach(
+          priorCreation.id,
+          structuralEntities.map((entity) => entity.id),
+        );
+        return this.#reusedClaimResult(
+          classifierDecision,
+          priorCreation.id,
+          "duplicate_creation",
+          candidates,
+          serialized,
+          applyAssociations(priorCreation.id),
+        );
       }
       const utteranceId = this.#ingestOnce(input, at, claimOrigin);
-      const selected = "targetHandle" in classifierDecision ? targets.get(classifierDecision.targetHandle) : undefined;
-      const currentTarget = selected === undefined ? undefined : this.#context.evidence.listClaims().find(c => c.id === selected.id);
-      const resolved = selected !== undefined && currentTarget !== undefined && JSON.stringify(selected) === JSON.stringify(currentTarget) && this.#context.lifecycle.get(selected.id)?.evidenceKind === "claim";
+      const selected =
+        "targetHandle" in classifierDecision
+          ? targets.get(classifierDecision.targetHandle)
+          : undefined;
+      const currentTarget =
+        selected === undefined
+          ? undefined
+          : this.#context.evidence
+              .listClaims()
+              .find((c) => c.id === selected.id);
+      const resolved =
+        selected !== undefined &&
+        currentTarget !== undefined &&
+        JSON.stringify(selected) === JSON.stringify(currentTarget) &&
+        this.#context.lifecycle.get(selected.id)?.evidenceKind === "claim";
       let reinforcement = "not_eligible";
-      const targetBinding = selected === undefined ? undefined : this.#context.state.snapshot().bindings.find(b => b.claimId === selected.id && b.interval.to === null);
+      const targetBinding =
+        selected === undefined
+          ? undefined
+          : this.#context.state
+              .snapshot()
+              .bindings.find(
+                (b) => b.claimId === selected.id && b.interval.to === null,
+              );
       // A restatement reuses its canonical carrier. Retain the new attributed utterance;
       // do not create another identical claim that a later retry could select instead.
-      if (resolved && classifierDecision.type === "restatement" &&
-          (origin.kind === "source" || currentTarget.status === "accepted") &&
-          !["contested", "retracted", "rejected"].includes(currentTarget.status) &&
-          (targetBinding === undefined || !this.#context.state.isContested(targetBinding.slot))) {
-        this.#context.labels.attach({ recordId: utteranceId, recordKind: "utterance", tags: [...(staged.proposal.tags ?? [])], domains: [...utteranceDomains] });
-        const committedSource = this.#context.evidence.listUtterances().find(u => u.id === utteranceId);
-        reinforcement = !validSupport || classifierDecision.supportsTarget !== true || committedSource?.content !== source
-          ? "skipped_unproven_source"
-          : this.#context.lifecycle.reinforceOccurrence({ occurrenceId, evidenceId: selected.id, at, support: { utteranceId, start: span.start, end: span.end } }) ? "applied" : "duplicate_or_creation";
-        this.#context.entityReferences.attach(selected.id, structuralEntities.map((entity) => entity.id));
-        return this.#reusedClaimResult(classifierDecision, selected.id, reinforcement, candidates, serialized, applyAssociations(selected.id));
+      if (
+        resolved &&
+        classifierDecision.type === "restatement" &&
+        (origin.kind === "source" || currentTarget.status === "accepted") &&
+        !["contested", "retracted", "rejected"].includes(
+          currentTarget.status,
+        ) &&
+        (targetBinding === undefined ||
+          !this.#context.state.isContested(targetBinding.slot))
+      ) {
+        this.#context.labels.attach({
+          recordId: utteranceId,
+          recordKind: "utterance",
+          tags: [...(staged.proposal.tags ?? [])],
+          domains: [...utteranceDomains],
+        });
+        const committedSource = this.#context.evidence
+          .listUtterances()
+          .find((u) => u.id === utteranceId);
+        reinforcement =
+          !validSupport ||
+          classifierDecision.supportsTarget !== true ||
+          committedSource?.content !== source
+            ? "skipped_unproven_source"
+            : this.#context.lifecycle.reinforceOccurrence({
+                  occurrenceId,
+                  evidenceId: selected.id,
+                  at,
+                  support: { utteranceId, start: span.start, end: span.end },
+                })
+              ? "applied"
+              : "duplicate_or_creation";
+        this.#context.entityReferences.attach(
+          selected.id,
+          structuralEntities.map((entity) => entity.id),
+        );
+        return this.#reusedClaimResult(
+          classifierDecision,
+          selected.id,
+          reinforcement,
+          candidates,
+          serialized,
+          applyAssociations(selected.id),
+        );
       }
 
       const drafts: readonly ClaimDraft[] = [
         {
           label: staged.proposal.proposition,
-          proposition:
-            staged.proposal.structuredProposition ??
-            {
-              kind: "attribute_binding",
-              entityLabel: statementEntityLabel(staged.proposal.proposition),
-              attribute: STATEMENT_SLOT,
-              value: staged.proposal.proposition,
-            },
+          proposition: staged.proposal.structuredProposition ?? {
+            kind: "attribute_binding",
+            entityLabel: statementEntityLabel(staged.proposal.proposition),
+            attribute: STATEMENT_SLOT,
+            value: staged.proposal.proposition,
+          },
           certainty: certaintyFromConfidence(staged.proposal.confidence),
           aboutInterval: { from: UNKNOWN_INSTANT, to: null },
         },
@@ -289,30 +439,40 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
 
       const accepted =
         evidenceClaim !== undefined &&
-        this.#context.evidence.requireClaim(evidenceClaim.id).status === "accepted";
-      const conflictTargetBindings = classifierDecision.type === "conflict"
-        ? classifierDecision.targetHandles.map((handle) => {
-            const target = targets.get(handle);
-            return target === undefined
-              ? undefined
-              : this.#context.state.snapshot().bindings.find(
-                  (binding) => binding.claimId === target.id && binding.interval.to === null,
-                );
-          })
-        : [];
+        this.#context.evidence.requireClaim(evidenceClaim.id).status ===
+          "accepted";
+      const conflictTargetBindings =
+        classifierDecision.type === "conflict"
+          ? classifierDecision.targetHandles.map((handle) => {
+              const target = targets.get(handle);
+              return target === undefined
+                ? undefined
+                : this.#context.state
+                    .snapshot()
+                    .bindings.find(
+                      (binding) =>
+                        binding.claimId === target.id &&
+                        binding.interval.to === null,
+                    );
+            })
+          : [];
       const firstConflictBinding = conflictTargetBindings[0];
       const conflictTargetSlot =
         staged.proposal.structuredProposition === undefined &&
         firstConflictBinding !== undefined &&
         conflictTargetBindings.every(
-          (binding) => binding !== undefined && slotKey(binding.slot) === slotKey(firstConflictBinding.slot),
+          (binding) =>
+            binding !== undefined &&
+            slotKey(binding.slot) === slotKey(firstConflictBinding.slot),
         )
           ? this.#context.slots.get(firstConflictBinding.slot)
           : undefined;
-      const slot = conflictTargetSlot ?? this.#ensureSlot(
-        staged.proposal.structuredProposition,
-        staged.proposal.proposition,
-      );
+      const slot =
+        conflictTargetSlot ??
+        this.#ensureSlot(
+          staged.proposal.structuredProposition,
+          staged.proposal.proposition,
+        );
       const slotClaim = statementClaim({
         id: evidenceClaim?.id ?? `slot:${this.#idFactory()}`,
         slot: slot.ref,
@@ -330,7 +490,10 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       let permitsReinforcement = true;
       if (accepted) {
         const decision = reconcile(this.#context.state, slotClaim, slot);
-        if (classifierDecision.type === "conflict" || decision.outcome === "conflict") {
+        if (
+          classifierDecision.type === "conflict" ||
+          decision.outcome === "conflict"
+        ) {
           // The two can now disagree, and before A008-0062 they almost never did.
           // With `<entity>.statement` single-valued, a second distinct value was
           // mechanically a conflict, so `reconcile` agreed with any classifier
@@ -352,7 +515,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           relation = "conflict";
           conflictTargetIds.push(...decision.competingClaimIds);
         } else if (decision.outcome === "change") {
-          update(this.#context.state, decision, { decidedBy: USER_ASSERTION_POLICY_ID });
+          update(this.#context.state, decision, {
+            decidedBy: USER_ASSERTION_POLICY_ID,
+          });
           relation =
             classifierDecision.type === "supersede" ||
             classifierDecision.type === "extend"
@@ -360,27 +525,43 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
               : "new";
         } else if (decision.outcome === "re_assertion") {
           relation = "restatement";
-
         } else if (
           decision.outcome === "correction" ||
           decision.outcome === "retraction"
         ) {
-          update(this.#context.state, decision, { decidedBy: USER_ASSERTION_POLICY_ID });
+          update(this.#context.state, decision, {
+            decidedBy: USER_ASSERTION_POLICY_ID,
+          });
           permitsReinforcement = false;
           relation = "supersede";
         }
       } else if (classifierDecision.type === "restatement") {
         relation = "restatement";
-
       }
 
-      if (permitsReinforcement && (classifierDecision.type === "restatement" || classifierDecision.type === "extend")) {
+      if (
+        permitsReinforcement &&
+        (classifierDecision.type === "restatement" ||
+          classifierDecision.type === "extend")
+      ) {
         if (!resolved) reinforcement = "skipped_unresolved_target";
-        else if (!validSupport || classifierDecision.supportsTarget !== true) reinforcement = "skipped_unproven_source";
+        else if (!validSupport || classifierDecision.supportsTarget !== true)
+          reinforcement = "skipped_unproven_source";
         else {
-          const committedSource = this.#context.evidence.listUtterances().find(u => u.id === utteranceId);
-          if (committedSource?.content !== source) reinforcement = "skipped_changed_source";
-          else reinforcement = this.#context.lifecycle.reinforceOccurrence({ occurrenceId, evidenceId: selected.id, at, support: { utteranceId, start: span.start, end: span.end } }) ? "applied" : "duplicate_or_creation";
+          const committedSource = this.#context.evidence
+            .listUtterances()
+            .find((u) => u.id === utteranceId);
+          if (committedSource?.content !== source)
+            reinforcement = "skipped_changed_source";
+          else
+            reinforcement = this.#context.lifecycle.reinforceOccurrence({
+              occurrenceId,
+              evidenceId: selected.id,
+              at,
+              support: { utteranceId, start: span.start, end: span.end },
+            })
+              ? "applied"
+              : "duplicate_or_creation";
         }
       }
       const associationResults = applyAssociations(evidenceClaim?.id ?? "");
@@ -398,8 +579,12 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         evidence: {
           associations: associationResults,
           reinforcement,
-          materializedCandidateIds: candidates.map((candidate) => candidate.handle),
-          classifierCandidateIds: candidates.map((candidate) => candidate.handle),
+          materializedCandidateIds: candidates.map(
+            (candidate) => candidate.handle,
+          ),
+          classifierCandidateIds: candidates.map(
+            (candidate) => candidate.handle,
+          ),
           classifierInputSerialized: serialized,
           classifierInputMeasuredUnits: this.#measurer.measure(serialized),
           classifierInputMeasurementUnit: this.#measurer.unit,
@@ -416,18 +601,29 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     operation.signal?.throwIfAborted();
     const batch = structuredClone(input.batch);
     const start = input.startProposalIndex;
-    if (!Number.isSafeInteger(start) || start < 0 || start > batch.proposals.length) {
+    if (
+      !Number.isSafeInteger(start) ||
+      start < 0 ||
+      start > batch.proposals.length
+    ) {
       throw new Error("batch startProposalIndex is out of range");
     }
     if (start === batch.proposals.length) return [];
 
     if (this.#classifier.classifyBatch === undefined) {
       const fallback: RelationBatchCommitStep[] = [];
-      for (let proposalIndex = start; proposalIndex < batch.proposals.length; proposalIndex += 1) {
+      for (
+        let proposalIndex = start;
+        proposalIndex < batch.proposals.length;
+        proposalIndex += 1
+      ) {
         try {
           fallback.push({
             proposalIndex,
-            result: await this.#commitInternal({ batch, proposalIndex }, operation),
+            result: await this.#commitInternal(
+              { batch, proposalIndex },
+              operation,
+            ),
           });
         } catch (error) {
           fallback.push({ proposalIndex, error });
@@ -437,7 +633,8 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       return fallback;
     }
 
-    const at = this.#context.lifecycle.now();    const initialClaims = this.#context.evidence.listClaims();
+    const at = this.#context.lifecycle.now();
+    const initialClaims = this.#context.evidence.listClaims();
     const initialTargets = new Map(
       initialClaims.map((claim, index) => [`candidate_${index + 1}`, claim]),
     );
@@ -445,16 +642,22 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     const origin = batch.origin;
     const sourceUtterance =
       origin.kind === "source"
-        ? this.#context.evidence.listUtterances().find((entry) => entry.id === origin.utteranceId)
+        ? this.#context.evidence
+            .listUtterances()
+            .find((entry) => entry.id === origin.utteranceId)
         : undefined;
     const sourceArtifact =
       sourceUtterance === undefined
         ? undefined
-        : this.#context.evidence.listArtifacts().find((entry) => entry.id === sourceUtterance.artifactId);
-    const source = origin.kind === "source" ? sourceUtterance?.content : batch.sourceMessage;
+        : this.#context.evidence
+            .listArtifacts()
+            .find((entry) => entry.id === sourceUtterance.artifactId);
+    const source =
+      origin.kind === "source" ? sourceUtterance?.content : batch.sourceMessage;
     const sourceIsUsable =
       source !== undefined &&
-      (origin.kind !== "source" || sourceArtifact?.locator === batch.sourceMessage);
+      (origin.kind !== "source" ||
+        sourceArtifact?.locator === batch.sourceMessage);
     const occurrenceId =
       origin.kind === "source"
         ? "source:" +
@@ -466,7 +669,10 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       this.#context,
       initialTargets,
       sourceIsUsable
-        ? { origin: origin.kind === "source" ? "source" : "message", content: source }
+        ? {
+            origin: origin.kind === "source" ? "source" : "message",
+            content: source,
+          }
         : undefined,
       origin.kind === "source" ? batch.sourceMessage : occurrenceId,
       batch.proposals[start]?.proposal.scope ?? [],
@@ -502,7 +708,11 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           proposition: staged.proposal.proposition,
           ...(staged.proposal.structuredProposition === undefined
             ? {}
-            : { structuredProposition: structuredClone(staged.proposal.structuredProposition) }),
+            : {
+                structuredProposition: structuredClone(
+                  staged.proposal.structuredProposition,
+                ),
+              }),
           kind: staged.proposal.kind,
           tags: [...(staged.proposal.tags ?? [])],
           scope: [...staged.proposal.scope],
@@ -516,7 +726,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       ...(associationContext === undefined ? {} : { associationContext }),
       candidates,
       items,
-    };    const serializedBatchInput = serializeRelationClassifierBatchInput(classifierInput);
+    };
+    const serializedBatchInput =
+      serializeRelationClassifierBatchInput(classifierInput);
     const rawDecisions = await this.#classifier.classifyBatch(
       structuredClone(classifierInput),
       operation,
@@ -526,68 +738,110 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       throw new Error("Invalid live batch relation decision count");
     }
 
-    const candidateHandles = new Set(candidates.map((candidate) => candidate.handle));
+    const candidateHandles = new Set(
+      candidates.map((candidate) => candidate.handle),
+    );
     const entityHandles = new Set(
       associationContext?.entities.map((entity) => entity.handle) ?? [],
     );
     const proposalHandles = items.map((item) => item.proposalHandle);
-    const validated: RelationClassifierBatchDecision[] = rawDecisions.map((raw, index) => {
-      const expectedHandle = proposalHandles[index]!;
-      if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-        throw new Error(`Invalid live batch relation decision for ${expectedHandle}`);
-      }
-      const value = raw as RelationClassifierBatchDecision;
-      if (value.proposalHandle !== expectedHandle) {
-        throw new Error(`Invalid live batch proposal handle for ${expectedHandle}`);
-      }
-      if (!["new", "restatement", "extend", "supersede", "conflict"].includes(value.type)) {
-        throw new Error(`Invalid live batch relation type for ${expectedHandle}`);
-      }
-      const allowedTargets = new Set([
-        ...candidateHandles,
-        ...proposalHandles.slice(0, index),
-      ]);
-      if (value.type === "restatement" || value.type === "extend" || value.type === "supersede") {
-        if (!allowedTargets.has(value.targetHandle)) {
-          throw new Error(`Invalid live batch target for ${expectedHandle}`);
+    const validated: RelationClassifierBatchDecision[] = rawDecisions.map(
+      (raw, index) => {
+        const expectedHandle = proposalHandles[index]!;
+        if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+          throw new Error(
+            `Invalid live batch relation decision for ${expectedHandle}`,
+          );
         }
-      }
-      if (value.type === "conflict") {
-        if (!Array.isArray(value.targetHandles) || value.targetHandles.length === 0) {
-          throw new Error(`Invalid live batch conflict targets for ${expectedHandle}`);
+        const value = raw as RelationClassifierBatchDecision;
+        if (value.proposalHandle !== expectedHandle) {
+          throw new Error(
+            `Invalid live batch proposal handle for ${expectedHandle}`,
+          );
         }
-        if (new Set(value.targetHandles).size !== value.targetHandles.length ||
-            value.targetHandles.some((handle) => !allowedTargets.has(handle))) {
-          throw new Error(`Invalid live batch conflict targets for ${expectedHandle}`);
+        if (
+          !["new", "restatement", "extend", "supersede", "conflict"].includes(
+            value.type,
+          )
+        ) {
+          throw new Error(
+            `Invalid live batch relation type for ${expectedHandle}`,
+          );
         }
-      }
-      if (value.associations !== undefined) {
-        if (!Array.isArray(value.associations)) {
-          throw new Error(`Invalid live batch associations for ${expectedHandle}`);
-        }
-        for (const association of value.associations) {
-          const endpoints = [association?.fromHandle, association?.toHandle];
-          if (endpoints.some((handle) =>
-            typeof handle !== "string" ||
-            (handle !== "proposal" && !candidateHandles.has(handle) && !entityHandles.has(handle)))) {
-            throw new Error(`Invalid live batch association handle for ${expectedHandle}`);
+        const allowedTargets = new Set([
+          ...candidateHandles,
+          ...proposalHandles.slice(0, index),
+        ]);
+        if (
+          value.type === "restatement" ||
+          value.type === "extend" ||
+          value.type === "supersede"
+        ) {
+          if (!allowedTargets.has(value.targetHandle)) {
+            throw new Error(`Invalid live batch target for ${expectedHandle}`);
           }
         }
-      }
-      return structuredClone(value);
-    });
+        if (value.type === "conflict") {
+          if (
+            !Array.isArray(value.targetHandles) ||
+            value.targetHandles.length === 0
+          ) {
+            throw new Error(
+              `Invalid live batch conflict targets for ${expectedHandle}`,
+            );
+          }
+          if (
+            new Set(value.targetHandles).size !== value.targetHandles.length ||
+            value.targetHandles.some((handle) => !allowedTargets.has(handle))
+          ) {
+            throw new Error(
+              `Invalid live batch conflict targets for ${expectedHandle}`,
+            );
+          }
+        }
+        if (value.associations !== undefined) {
+          if (!Array.isArray(value.associations)) {
+            throw new Error(
+              `Invalid live batch associations for ${expectedHandle}`,
+            );
+          }
+          for (const association of value.associations) {
+            const endpoints = [association?.fromHandle, association?.toHandle];
+            if (
+              endpoints.some(
+                (handle) =>
+                  typeof handle !== "string" ||
+                  (handle !== "proposal" &&
+                    !candidateHandles.has(handle) &&
+                    !entityHandles.has(handle)),
+              )
+            ) {
+              throw new Error(
+                `Invalid live batch association handle for ${expectedHandle}`,
+              );
+            }
+          }
+        }
+        return structuredClone(value);
+      },
+    );
     const initialClaimIds = new Map(
       [...initialTargets].map(([handle, claim]) => [handle, claim.id]),
     );
-    const proposalClaimIds = new Map<string, (typeof initialClaims)[number]["id"]>();
+    const proposalClaimIds = new Map<
+      string,
+      (typeof initialClaims)[number]["id"]
+    >();
     const currentHandleForClaim = (claimId: string): string => {
       const currentClaims = this.#context.evidence.listClaims();
       const index = currentClaims.findIndex((claim) => claim.id === claimId);
-      if (index < 0) throw new Error(`Live batch target is no longer present: ${claimId}`);
+      if (index < 0)
+        throw new Error(`Live batch target is no longer present: ${claimId}`);
       return `candidate_${index + 1}`;
     };
     const resolveTargetHandle = (handle: string): string => {
-      const claimId = initialClaimIds.get(handle) ?? proposalClaimIds.get(handle);
+      const claimId =
+        initialClaimIds.get(handle) ?? proposalClaimIds.get(handle);
       if (claimId === undefined) {
         throw new Error(`Unresolved live batch target handle: ${handle}`);
       }
@@ -633,7 +887,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     for (let offset = 0; offset < validated.length; offset += 1) {
       const proposalIndex = start + offset;
       const batchDecision = validated[offset]!;
-      const beforeIds = new Set(this.#context.evidence.listClaims().map((claim) => claim.id));
+      const beforeIds = new Set(
+        this.#context.evidence.listClaims().map((claim) => claim.id),
+      );
       try {
         const translated = translateDecision(batchDecision);
         const result = await this.#commitInternal(
@@ -655,7 +911,10 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         const afterClaims = this.#context.evidence.listClaims();
         const created = afterClaims.filter((claim) => !beforeIds.has(claim.id));
         let claimId = created.length === 1 ? created[0]!.id : undefined;
-        if (claimId === undefined && "targetId" in result.reconciliationDecision) {
+        if (
+          claimId === undefined &&
+          "targetId" in result.reconciliationDecision
+        ) {
           const targetId = result.reconciliationDecision.targetId;
           claimId = afterClaims.find((claim) => claim.id === targetId)?.id;
         }
@@ -664,7 +923,8 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           claimId = afterClaims.find(
             (claim) =>
               claim.label === staged.proposal.proposition &&
-              this.#context.lifecycle.get(claim.id)?.lifecycle.creationOccurrenceId === occurrenceId,
+              this.#context.lifecycle.get(claim.id)?.lifecycle
+                .creationOccurrenceId === occurrenceId,
           )?.id;
         }
         if (claimId !== undefined) {
@@ -689,12 +949,19 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     return {
       classifierDecision,
       reconciliationDecision: { type: "restatement", targetId },
-      reconciliation: { relation: "restatement", item: null, previousItem: null, conflictTargetIds: [] },
+      reconciliation: {
+        relation: "restatement",
+        item: null,
+        previousItem: null,
+        conflictTargetIds: [],
+      },
       evidence: {
         associations,
         reinforcement,
-        materializedCandidateIds: candidates.map(candidate => candidate.handle),
-        classifierCandidateIds: candidates.map(candidate => candidate.handle),
+        materializedCandidateIds: candidates.map(
+          (candidate) => candidate.handle,
+        ),
+        classifierCandidateIds: candidates.map((candidate) => candidate.handle),
         classifierInputSerialized: serialized,
         classifierInputMeasuredUnits: this.#measurer.measure(serialized),
         classifierInputMeasurementUnit: this.#measurer.unit,
@@ -718,20 +985,46 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     // the extractor's own speaker, relation and locator.
     if (input.batch.origin.kind === "source") {
       const sourceId = input.batch.origin.utteranceId;
-      if (!this.#context.evidence.listUtterances().some(u => u.id === sourceId)) throw new Error("Source utterance does not belong to this namespace");
-      if (!this.#context.lifecycle.get(sourceId)) this.#context.lifecycle.attach({ evidenceId: sourceId, evidenceKind: "utterance", at });
+      if (
+        !this.#context.evidence.listUtterances().some((u) => u.id === sourceId)
+      )
+        throw new Error("Source utterance does not belong to this namespace");
+      if (!this.#context.lifecycle.get(sourceId))
+        this.#context.lifecycle.attach({
+          evidenceId: sourceId,
+          evidenceKind: "utterance",
+          at,
+        });
       return sourceId;
     }
     const assistant = claimOrigin === "answer";
-    const content = assistant ? input.batch.answerMessage : input.batch.sourceMessage;
+    const content = assistant
+      ? input.batch.answerMessage
+      : input.batch.sourceMessage;
     if (typeof content !== "string" || content.trim().length === 0) {
-      throw new Error(assistant ? "Dialogue batch is missing its final answer" : "Dialogue batch is missing its user message");
+      throw new Error(
+        assistant
+          ? "Dialogue batch is missing its final answer"
+          : "Dialogue batch is missing its user message",
+      );
     }
     const baseLocator = `turn:${input.batch.conversationId}:${input.batch.taskId}`;
     const locator = assistant ? `${baseLocator}:assistant` : baseLocator;
     const speaker = assistant ? "assistant" : "user";
-    const artifact = this.#context.evidence.listArtifacts().find(a => a.locator === locator);
-    const existing = artifact === undefined ? undefined : this.#context.evidence.listUtterances().find(u => u.artifactId === artifact.id && u.content === content && u.speaker === speaker)?.id;
+    const artifact = this.#context.evidence
+      .listArtifacts()
+      .find((a) => a.locator === locator);
+    const existing =
+      artifact === undefined
+        ? undefined
+        : this.#context.evidence
+            .listUtterances()
+            .find(
+              (u) =>
+                u.artifactId === artifact.id &&
+                u.content === content &&
+                u.speaker === speaker,
+            )?.id;
     if (existing !== undefined) return existing;
     const ingested = ingest(
       {
@@ -750,7 +1043,8 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       { store: this.#context.evidence, idFactory: this.#idFactory },
     );
     const utterance = ingested.utterances[0];
-    if (utterance === undefined) throw new Error("INGEST did not record an utterance");
+    if (utterance === undefined)
+      throw new Error("INGEST did not record an utterance");
     this.#context.lifecycle.attach({
       evidenceId: utterance.id,
       evidenceKind: "utterance",
@@ -803,7 +1097,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     staged: RelationCommitInput["batch"]["proposals"][number],
   ): readonly string[] {
     const owner = propositionOwnerLabel(staged.proposal.structuredProposition);
-    return owner === undefined ? [...staged.entities] : [...staged.entities, owner];
+    return owner === undefined
+      ? [...staged.entities]
+      : [...staged.entities, owner];
   }
 
   #ensureSlot(
@@ -871,7 +1167,10 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     return definition;
   }
 
-  #classifierCandidates(claims: ReturnType<KnowledgeReadContext["evidence"]["listClaims"]>, at: string) {
+  #classifierCandidates(
+    claims: ReturnType<KnowledgeReadContext["evidence"]["listClaims"]>,
+    at: string,
+  ) {
     // Comparison includes dormant and source-attributed claims; activation is not truth.
     return claims.map((claim, index) => ({
       handle: `candidate_${index + 1}`,
@@ -882,10 +1181,10 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       scope: ["local"],
       authority: 1,
       confidence: 0.5,
-      activationStatus: viewLifecycle(this.#context.lifecycle, claim.id, at).memoryState,
+      activationStatus: viewLifecycle(this.#context.lifecycle, claim.id, at)
+        .memoryState,
     }));
   }
-
 }
 
 function statementClaim(input: {
@@ -969,7 +1268,9 @@ function propositionOwnerLabel(
 ): string | undefined {
   if (proposition === undefined) return undefined;
   if (proposition.kind === "attribute_binding") return proposition.entityLabel;
-  if (proposition.kind === "relationship_binding") return proposition.subjectLabel;
-  if (proposition.kind === "negation") return propositionOwnerLabel(proposition.of);
+  if (proposition.kind === "relationship_binding")
+    return proposition.subjectLabel;
+  if (proposition.kind === "negation")
+    return propositionOwnerLabel(proposition.of);
   return undefined;
 }

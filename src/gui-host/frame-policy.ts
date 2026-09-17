@@ -25,7 +25,11 @@ function frameAncestorSources(csp: string): string[] | undefined {
   for (const directive of csp.split(";")) {
     const trimmed = directive.trim();
     if (!/^frame-ancestors\b/iu.test(trimmed)) continue;
-    return trimmed.replace(/^frame-ancestors\b/iu, "").trim().split(/\s+/u).filter(Boolean);
+    return trimmed
+      .replace(/^frame-ancestors\b/iu, "")
+      .trim()
+      .split(/\s+/u)
+      .filter(Boolean);
   }
   return undefined;
 }
@@ -46,21 +50,30 @@ function ancestorMatches(source: string, embedder: URL, page: URL): boolean {
       const suffix = hostPart.slice(1).toLowerCase();
       return embedder.hostname.toLowerCase().endsWith(suffix);
     }
-    const parsed = raw.includes("://") ? new URL(raw) : new URL(`${embedder.protocol}//${raw}`);
+    const parsed = raw.includes("://")
+      ? new URL(raw)
+      : new URL(`${embedder.protocol}//${raw}`);
     return embedder.origin.toLowerCase() === parsed.origin.toLowerCase();
   } catch {
     return false;
   }
 }
 
-function cspAllows(headers: Headers, embedder: URL, page: URL): boolean | undefined {
+function cspAllows(
+  headers: Headers,
+  embedder: URL,
+  page: URL,
+): boolean | undefined {
   const policies = headerList(headers, "content-security-policy");
   let saw = false;
   for (const policy of policies) {
     const sources = frameAncestorSources(policy);
     if (sources === undefined) continue;
     saw = true;
-    if (sources.length === 0 || sources.some((source) => source.toLowerCase() === "'none'")) {
+    if (
+      sources.length === 0 ||
+      sources.some((source) => source.toLowerCase() === "'none'")
+    ) {
       return false;
     }
     if (!sources.some((source) => ancestorMatches(source, embedder, page))) {
@@ -70,7 +83,11 @@ function cspAllows(headers: Headers, embedder: URL, page: URL): boolean | undefi
   return saw ? true : undefined;
 }
 
-function xFrameAllows(headers: Headers, embedder: URL, page: URL): boolean | undefined {
+function xFrameAllows(
+  headers: Headers,
+  embedder: URL,
+  page: URL,
+): boolean | undefined {
   const raw = headerList(headers, "x-frame-options")[0];
   if (raw === undefined) return undefined;
   const value = raw.trim().toLowerCase();

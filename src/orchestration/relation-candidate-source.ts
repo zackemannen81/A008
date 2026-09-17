@@ -32,7 +32,9 @@ export interface RelationCandidate {
 }
 
 export interface RelationCandidateSource {
-  find(request: RelationCandidateRequest): Promise<readonly RelationCandidate[]>;
+  find(
+    request: RelationCandidateRequest,
+  ): Promise<readonly RelationCandidate[]>;
 }
 
 export interface IndexedRelationCandidateSourceOptions {
@@ -96,9 +98,7 @@ function cloneItem(item: KnowledgeItem): KnowledgeItem {
   };
 }
 
-export class IndexedRelationCandidateSource
-  implements RelationCandidateSource
-{
+export class IndexedRelationCandidateSource implements RelationCandidateSource {
   readonly #memory: Pick<SemanticMemory, "projectId" | "getKnowledge">;
   readonly #candidateStore: MemoryCandidateStore;
   readonly #maximumCandidates: number;

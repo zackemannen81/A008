@@ -1,5 +1,12 @@
-import { ShellCommandError, parseShellHostResult, type ShellHostResult } from '../../../packages/protocol/src/index.js';
-export { ShellCommandError, type ShellHostResult } from '../../../packages/protocol/src/index.js';
+import {
+  ShellCommandError,
+  parseShellHostResult,
+  type ShellHostResult,
+} from "../../../packages/protocol/src/index.js";
+export {
+  ShellCommandError,
+  type ShellHostResult,
+} from "../../../packages/protocol/src/index.js";
 import { engineHeaders } from "../session/engine-access.js";
 /** Host protocol v1 shell endpoint (ADR 0019 D4). */
 export const SHELL_ENDPOINT = "/v1/shell";
@@ -24,7 +31,9 @@ export async function executeShellCommand(
 
   const fetchImpl = options.fetch ?? globalThis.fetch;
   if (typeof fetchImpl !== "function") {
-    throw new ShellCommandError("fetch is not available to reach the GUI host shell.");
+    throw new ShellCommandError(
+      "fetch is not available to reach the GUI host shell.",
+    );
   }
 
   const endpoint = options.endpoint ?? SHELL_ENDPOINT;
@@ -114,5 +123,6 @@ async function failureMessage(response: Response): Promise<string> {
   return statusText.length > 0 ? `${prefix}: ${statusText}` : `${prefix}.`;
 }
 
-
-function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

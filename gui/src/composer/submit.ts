@@ -132,7 +132,9 @@ export async function submitComposer(
         (await controlSession(deps.session, { action: "inspect" })).runtime.cwd,
       );
     case "tools":
-      return notice(`${GUI_TOOLS}${deps.session.details?.runtime.tools ? `\n\n${deps.session.details.runtime.tools.map(tool => `${tool.name}  ${tool.description}`).join("\n")}` : ""}`);
+      return notice(
+        `${GUI_TOOLS}${deps.session.details?.runtime.tools ? `\n\n${deps.session.details.runtime.tools.map((tool) => `${tool.name}  ${tool.description}`).join("\n")}` : ""}`,
+      );
     case "shell":
       if (parsed.argument === "")
         return { kind: "error", message: "Usage: /shell <command>" };

@@ -13,12 +13,26 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { acpFailure, createSpawnedAcpBridge, type AcpBridge } from "../src/gui-host/acp-bridge.js";
-import { isAllowedOrigin, parseAllowedOrigins } from "../src/gui-host/origin.js";
+import {
+  acpFailure,
+  createSpawnedAcpBridge,
+  type AcpBridge,
+} from "../src/gui-host/acp-bridge.js";
+import {
+  isAllowedOrigin,
+  parseAllowedOrigins,
+} from "../src/gui-host/origin.js";
 import { parseClientMessage } from "../src/gui-host/protocol.js";
-import { hostServerMessageSchema, modelsResponseSchema } from "../packages/protocol/src/index.js";
+import {
+  hostServerMessageSchema,
+  modelsResponseSchema,
+} from "../packages/protocol/src/index.js";
 import { redactWireText } from "../src/gui-host/redact.js";
-import { startGuiHost, type GuiHost, type GuiHostOptions } from "../src/gui-host/server.js";
+import {
+  startGuiHost,
+  type GuiHost,
+  type GuiHostOptions,
+} from "../src/gui-host/server.js";
 
 const SECRET = "gui-host-secret-do-not-leak-A008-0032";
 const SESSION_ID = "sess-1";
@@ -32,7 +46,9 @@ function injectedBridge(released?: string[], ingested?: string[]): AcpBridge {
   return {
     async newSession() {
       created += 1;
-      return { sessionId: created === 1 ? SESSION_ID : `sess-${String(created)}` };
+      return {
+        sessionId: created === 1 ? SESSION_ID : `sess-${String(created)}`,
+      };
     },
     async ingestSource(request) {
       ingested?.push(request.locator);
@@ -97,8 +113,16 @@ async function httpJson(
   host: GuiHost,
   path: string,
   init: RequestInit = {},
-): Promise<{ readonly status: number; readonly body: unknown; readonly raw: string; readonly headers: Headers }> {
-  const response = await fetch(`http://127.0.0.1:${String(host.port)}${path}`, init);
+): Promise<{
+  readonly status: number;
+  readonly body: unknown;
+  readonly raw: string;
+  readonly headers: Headers;
+}> {
+  const response = await fetch(
+    `http://127.0.0.1:${String(host.port)}${path}`,
+    init,
+  );
   const raw = await response.text();
   return {
     status: response.status,
@@ -119,9 +143,13 @@ class SessionClient {
     const client = new SessionClient(ws);
     await new Promise<void>((resolve, reject) => {
       ws.addEventListener("open", () => resolve(), { once: true });
-      ws.addEventListener("error", () => {
-        reject(new Error("WebSocket failed to open."));
-      }, { once: true });
+      ws.addEventListener(
+        "error",
+        () => {
+          reject(new Error("WebSocket failed to open."));
+        },
+        { once: true },
+      );
     });
     return client;
   }
@@ -132,7 +160,11 @@ class SessionClient {
       const raw = String(event.data);
       this.raw.push(raw);
       const parsed = JSON.parse(raw) as unknown;
-      assert.equal(hostServerMessageSchema.safeParse(parsed).success, true, `Host output violates shared v1 schema: ${raw}`);
+      assert.equal(
+        hostServerMessageSchema.safeParse(parsed).success,
+        true,
+        `Host output violates shared v1 schema: ${raw}`,
+      );
       const waiter = this.#waiters.shift();
       if (waiter !== undefined) {
         waiter(parsed);
@@ -211,11 +243,14 @@ function assertWireClean(raw: readonly string[]): void {
 
 test("ACP failures do not glue memory diagnostics from stderr", () => {
   const glued = acpFailure(
-    new Error("Provider requested unavailable tool \"memory\"."),
+    new Error('Provider requested unavailable tool "memory".'),
     "memory> memory skipped 4 malformed proposals: proposal 1 reinforcement skipped: quote not found in source",
   );
   assert.equal(glued.message, 'Provider requested unavailable tool "memory".');
-  const startup = acpFailure(new Error("Internal error"), "NVIDIA_API_KEY is missing");
+  const startup = acpFailure(
+    new Error("Internal error"),
+    "NVIDIA_API_KEY is missing",
+  );
   assert.match(startup.message, /NVIDIA_API_KEY is missing/u);
 });
 
@@ -238,14 +273,34 @@ test("parseClientMessage accepts host protocol v1 client frames", () => {
     { type: "prompt", requestId: "r2", sessionId: "s", text: "hi" },
   );
   assert.deepEqual(
-    parseClientMessage(JSON.stringify({ type: "session/resume", requestId: "r3", sessionId: "s", resumeToken: "a".repeat(64) })),
-    { type: "session/resume", requestId: "r3", sessionId: "s", resumeToken: "a".repeat(64) },
+    parseClientMessage(
+      JSON.stringify({
+        type: "session/resume",
+        requestId: "r3",
+        sessionId: "s",
+        resumeToken: "a".repeat(64),
+      }),
+    ),
+    {
+      type: "session/resume",
+      requestId: "r3",
+      sessionId: "s",
+      resumeToken: "a".repeat(64),
+    },
   );
-  assert.equal("error" in parseClientMessage(JSON.stringify({ type: "session/resume", requestId: "r4", sessionId: "s", resumeToken: "short" })), true);
   assert.equal(
-    "error" in parseClientMessage("{"),
+    "error" in
+      parseClientMessage(
+        JSON.stringify({
+          type: "session/resume",
+          requestId: "r4",
+          sessionId: "s",
+          resumeToken: "short",
+        }),
+      ),
     true,
   );
+  assert.equal("error" in parseClientMessage("{"), true);
 });
 
 test("redactWireText removes credential names and values", () => {
@@ -260,10 +315,19 @@ test("redactWireText removes credential names and values", () => {
 
 test("isAllowedOrigin admits loopback and same-origin browsers only", () => {
   assert.equal(isAllowedOrigin(undefined, "127.0.0.1:8787"), true);
-  assert.equal(isAllowedOrigin("http://127.0.0.1:8787", "127.0.0.1:8787"), true);
-  assert.equal(isAllowedOrigin("http://localhost:5173", "127.0.0.1:8787"), true);
+  assert.equal(
+    isAllowedOrigin("http://127.0.0.1:8787", "127.0.0.1:8787"),
+    true,
+  );
+  assert.equal(
+    isAllowedOrigin("http://localhost:5173", "127.0.0.1:8787"),
+    true,
+  );
   assert.equal(isAllowedOrigin("https://a008.example", "a008.example"), true);
-  assert.equal(isAllowedOrigin("https://evil.example", "127.0.0.1:8787"), false);
+  assert.equal(
+    isAllowedOrigin("https://evil.example", "127.0.0.1:8787"),
+    false,
+  );
   assert.equal(isAllowedOrigin("null", "127.0.0.1:8787"), false);
   assert.equal(isAllowedOrigin("not a url", "127.0.0.1:8787"), false);
   assert.equal(isAllowedOrigin("file://", "127.0.0.1:8787"), false);
@@ -279,22 +343,39 @@ test("GET /health and /v1/models do not require a credential", async () => {
     assert.equal(modelsResponseSchema.safeParse(models.body).success, true);
     // The route lists whatever the registry holds, so this asserts the shape
     // and the default's presence rather than a fixed list that grows with it.
-    const listed = (models.body as { models: { id: string; name: string }[] }).models;
+    const listed = (models.body as { models: { id: string; name: string }[] })
+      .models;
     assert.ok(listed.length >= 1);
     assert.ok(
-      listed.some((entry) => entry.id === "nvidia/nemotron-3.5-lightning-30b-a3b"),
+      listed.some(
+        (entry) => entry.id === "nvidia/nemotron-3.5-lightning-30b-a3b",
+      ),
     );
     for (const entry of listed) {
       assert.equal(typeof entry.id, "string");
       assert.equal(typeof entry.name, "string");
       // ADR 0026 adds public parameter metadata, never environment secrets.
       const keys = Object.keys(entry);
-      for (const key of ["added", "capabilities", "defaults", "executionProvider", "id", "inputModalities", "name", "provider"]) {
+      for (const key of [
+        "added",
+        "capabilities",
+        "defaults",
+        "executionProvider",
+        "id",
+        "inputModalities",
+        "name",
+        "provider",
+      ]) {
         assert.ok(keys.includes(key), `model metadata includes ${key}`);
       }
       assert.equal(typeof (entry as { provider?: unknown }).provider, "string");
-      assert.equal(typeof (entry as { executionProvider?: unknown }).executionProvider, "string");
-      assert.ok(Array.isArray((entry as { inputModalities?: unknown }).inputModalities));
+      assert.equal(
+        typeof (entry as { executionProvider?: unknown }).executionProvider,
+        "string",
+      );
+      assert.ok(
+        Array.isArray((entry as { inputModalities?: unknown }).inputModalities),
+      );
       const verifiedOn = (entry as { verifiedOn?: unknown }).verifiedOn;
       assert.ok(verifiedOn === undefined || typeof verifiedOn === "string");
     }
@@ -326,7 +407,11 @@ test("standalone PIN gate protects HTTP and WebSocket access", async () => {
 
     const login = await httpJson(host, "/auth/login", {
       method: "POST",
-      headers: { "content-type": "application/json", origin, "x-forwarded-proto": "https" },
+      headers: {
+        "content-type": "application/json",
+        origin,
+        "x-forwarded-proto": "https",
+      },
       body: JSON.stringify({ pin }),
     });
     assert.equal(login.status, 200);
@@ -370,8 +455,14 @@ test("standalone PIN gate rate-limits repeated failures", async () => {
 });
 
 test("standalone PIN must contain exactly six digits", async () => {
-  await assert.rejects(() => startGuiHost({ pin: "12345" }), /exactly six digits/u);
-  await assert.rejects(() => startGuiHost({ pin: "abcdef" }), /exactly six digits/u);
+  await assert.rejects(
+    () => startGuiHost({ pin: "12345" }),
+    /exactly six digits/u,
+  );
+  await assert.rejects(
+    () => startGuiHost({ pin: "abcdef" }),
+    /exactly six digits/u,
+  );
 });
 
 test("POST /v1/shell reuses the injected terminal runner in host cwd", async () => {
@@ -422,7 +513,10 @@ test("POST /v1/shell runs a local node process through runTerminalCommand", asyn
       }),
     });
     assert.equal(result.status, 200);
-    const body = result.body as { readonly stdout: string; readonly exitCode: number };
+    const body = result.body as {
+      readonly stdout: string;
+      readonly exitCode: number;
+    };
     assert.equal(body.exitCode, 0);
     assert.match(body.stdout, /shell-ok/u);
     const empty = await httpJson(host, "/v1/shell", {
@@ -518,7 +612,12 @@ test("WebSocket session streams thought and answer then prompt/ok", async () => 
     const client = await SessionClient.open(host.port);
     try {
       client.send({ type: "session/new", requestId: "n1" });
-      const created = await client.next() as { type: string; requestId: string; sessionId: string; resumeToken: string };
+      const created = (await client.next()) as {
+        type: string;
+        requestId: string;
+        sessionId: string;
+        resumeToken: string;
+      };
       assert.equal(created.type, "session/new/ok");
       assert.equal(created.requestId, "n1");
       assert.equal(created.sessionId, SESSION_ID);
@@ -551,20 +650,22 @@ test("WebSocket session streams thought and answer then prompt/ok", async () => 
   });
 });
 
-
 async function openRawWebSocket(port: number): Promise<Socket> {
   const socket = netConnect({ host: "127.0.0.1", port });
   const key = randomBytes(16).toString("base64");
   socket.write(
     `GET /v1/session HTTP/1.1\r\nHost: 127.0.0.1:${String(port)}\r\n` +
-    `Origin: http://127.0.0.1:${String(port)}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n` +
-    `Sec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n\r\n`,
+      `Origin: http://127.0.0.1:${String(port)}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n` +
+      `Sec-WebSocket-Key: ${key}\r\nSec-WebSocket-Version: 13\r\n\r\n`,
   );
   await new Promise<void>((resolve, reject) => {
     let text = "";
     const onData = (chunk: Buffer) => {
       text += chunk.toString("latin1");
-      if (text.includes("\r\n\r\n")) { socket.off("data", onData); resolve(); }
+      if (text.includes("\r\n\r\n")) {
+        socket.off("data", onData);
+        resolve();
+      }
     };
     socket.on("data", onData);
     socket.once("error", reject);
@@ -583,8 +684,14 @@ test("host heartbeat keeps responsive WebSockets alive and closes a peer that ne
 
     const silent = await openRawWebSocket(host.port);
     await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("silent WebSocket was not closed by heartbeat")), 250);
-      const done = () => { clearTimeout(timer); resolve(); };
+      const timer = setTimeout(
+        () => reject(new Error("silent WebSocket was not closed by heartbeat")),
+        250,
+      );
+      const done = () => {
+        clearTimeout(timer);
+        resolve();
+      };
       silent.once("close", done);
       silent.once("end", done);
     });
@@ -593,45 +700,101 @@ test("host heartbeat keeps responsive WebSockets alive and closes a peer that ne
 
 test("a detached session resumes within grace with its opaque capability", async () => {
   const released: string[] = [];
-  await withHost({ sessionResumeGraceMs: 300, createAcpBridge: () => injectedBridge(released) }, async (host) => {
-    const first = await SessionClient.open(host.port);
-    first.send({ type: "session/new", requestId: "n1" });
-    const created = await first.next() as { type: string; sessionId: string; resumeToken: string };
-    assert.match(created.resumeToken, /^[a-f0-9]{64}$/u);
-    first.close();
-    await new Promise((resolve) => setTimeout(resolve, 30));
-    assert.deepEqual(released, []);
+  await withHost(
+    {
+      sessionResumeGraceMs: 300,
+      createAcpBridge: () => injectedBridge(released),
+    },
+    async (host) => {
+      const first = await SessionClient.open(host.port);
+      first.send({ type: "session/new", requestId: "n1" });
+      const created = (await first.next()) as {
+        type: string;
+        sessionId: string;
+        resumeToken: string;
+      };
+      assert.match(created.resumeToken, /^[a-f0-9]{64}$/u);
+      first.close();
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      assert.deepEqual(released, []);
 
-    const second = await SessionClient.open(host.port);
-    second.send({ type: "session/resume", requestId: "r1", sessionId: created.sessionId, resumeToken: created.resumeToken });
-    assert.deepEqual(await second.next(), { type: "session/resume/ok", requestId: "r1", sessionId: created.sessionId, resumeToken: created.resumeToken });
-    second.send({ type: "prompt", requestId: "p1", sessionId: created.sessionId, text: "hello" });
-    assert.equal((await second.next() as { type: string }).type, "thought");
-    assert.equal((await second.next() as { type: string }).type, "answer");
-    assert.equal((await second.next() as { type: string }).type, "prompt/ok");
-    second.close();
-  });
+      const second = await SessionClient.open(host.port);
+      second.send({
+        type: "session/resume",
+        requestId: "r1",
+        sessionId: created.sessionId,
+        resumeToken: created.resumeToken,
+      });
+      assert.deepEqual(await second.next(), {
+        type: "session/resume/ok",
+        requestId: "r1",
+        sessionId: created.sessionId,
+        resumeToken: created.resumeToken,
+      });
+      second.send({
+        type: "prompt",
+        requestId: "p1",
+        sessionId: created.sessionId,
+        text: "hello",
+      });
+      assert.equal(((await second.next()) as { type: string }).type, "thought");
+      assert.equal(((await second.next()) as { type: string }).type, "answer");
+      assert.equal(
+        ((await second.next()) as { type: string }).type,
+        "prompt/ok",
+      );
+      second.close();
+    },
+  );
 });
 
 test("invalid or expired resume capability cannot claim a detached session", async () => {
   const released: string[] = [];
-  await withHost({ sessionResumeGraceMs: 80, createAcpBridge: () => injectedBridge(released) }, async (host) => {
-    const first = await SessionClient.open(host.port);
-    first.send({ type: "session/new", requestId: "n1" });
-    const created = await first.next() as { sessionId: string; resumeToken: string };
-    first.close();
+  await withHost(
+    {
+      sessionResumeGraceMs: 80,
+      createAcpBridge: () => injectedBridge(released),
+    },
+    async (host) => {
+      const first = await SessionClient.open(host.port);
+      first.send({ type: "session/new", requestId: "n1" });
+      const created = (await first.next()) as {
+        sessionId: string;
+        resumeToken: string;
+      };
+      first.close();
 
-    const attacker = await SessionClient.open(host.port);
-    attacker.send({ type: "session/resume", requestId: "bad", sessionId: created.sessionId, resumeToken: "0".repeat(64) });
-    assert.deepEqual(await attacker.next(), { type: "error", requestId: "bad", sessionId: created.sessionId, message: "Session resume is unavailable or expired." });
-    attacker.close();
+      const attacker = await SessionClient.open(host.port);
+      attacker.send({
+        type: "session/resume",
+        requestId: "bad",
+        sessionId: created.sessionId,
+        resumeToken: "0".repeat(64),
+      });
+      assert.deepEqual(await attacker.next(), {
+        type: "error",
+        requestId: "bad",
+        sessionId: created.sessionId,
+        message: "Session resume is unavailable or expired.",
+      });
+      attacker.close();
 
-    await eventually(() => released.includes(created.sessionId), "detached session expiry", 1_000);
-    const late = await SessionClient.open(host.port);
-    late.send({ type: "session/resume", requestId: "late", sessionId: created.sessionId, resumeToken: created.resumeToken });
-    assert.equal((await late.next() as { type: string }).type, "error");
-    late.close();
-  });
+      await eventually(
+        () => released.includes(created.sessionId),
+        "detached session expiry",
+        1_000,
+      );
+      const late = await SessionClient.open(host.port);
+      late.send({
+        type: "session/resume",
+        requestId: "late",
+        sessionId: created.sessionId,
+        resumeToken: created.resumeToken,
+      });
+      assert.equal(((await late.next()) as { type: string }).type, "error");
+      late.close();
+    },
+  );
 });
 
 /** Waits for a condition the host reaches asynchronously after a socket close. */
@@ -660,10 +823,17 @@ test("a disconnecting renderer releases every session it owned after resume grac
       await client.next();
       client.send({ type: "session/new", requestId: "n2" });
       await client.next();
-      assert.deepEqual(released, [], "sessions must survive while the socket is open");
+      assert.deepEqual(
+        released,
+        [],
+        "sessions must survive while the socket is open",
+      );
 
       client.close();
-      await eventually(() => released.length === 2, "both sessions to be released");
+      await eventually(
+        () => released.length === 2,
+        "both sessions to be released",
+      );
       assert.deepEqual([...released].sort(), ["sess-1", "sess-2"]);
     },
   );
@@ -682,7 +852,10 @@ test("one renderer expiry leaves another renderer's session alone", async () => 
       await second.next();
 
       first.close();
-      await eventually(() => released.length === 1, "the first session to be released");
+      await eventually(
+        () => released.length === 1,
+        "the first session to be released",
+      );
       assert.deepEqual(released, ["sess-1"]);
 
       // The survivor is still usable, which is the point of per-socket ownership.
@@ -698,7 +871,10 @@ test("one renderer expiry leaves another renderer's session alone", async () => 
         text: "thinking",
       });
       second.close();
-      await eventually(() => released.length === 2, "the second session to be released");
+      await eventually(
+        () => released.length === 2,
+        "the second session to be released",
+      );
     },
   );
 });
@@ -717,7 +893,11 @@ test("a socket that opened no session releases nothing and starts no bridge", as
       const client = await SessionClient.open(host.port);
       client.close();
       await new Promise((resolve) => setTimeout(resolve, 100));
-      assert.equal(bridgesCreated, 0, "closing an idle socket must not spawn ACP");
+      assert.equal(
+        bridgesCreated,
+        0,
+        "closing an idle socket must not spawn ACP",
+      );
       assert.deepEqual(released, []);
     },
   );
@@ -775,7 +955,10 @@ test("disconnecting while a prompt streams aborts the turn and releases after gr
       // "wait" only resolves when the prompt signal aborts, so a release that
       // arrives at all proves the in-flight turn was abandoned, not orphaned.
       client.close();
-      await eventually(() => released.length === 1, "release after an aborted turn");
+      await eventually(
+        () => released.length === 1,
+        "release after an aborted turn",
+      );
       assert.deepEqual(released, [SESSION_ID]);
     },
   );
@@ -903,49 +1086,46 @@ async function openFakeAcpSession(
 }
 
 test("spawned fake ACP bridge streams thought and answer", async () => {
-  await withHost(
-    spawnedFakeAcp(),
-    async (host) => {
-      const client = await SessionClient.open(host.port);
-      try {
-        client.send({
-          type: "session/new",
-          requestId: "n1",
-          model: "nvidia/nemotron-3.5-lightning-30b-a3b",
-        });
-        const created = (await client.next()) as {
-          readonly type: string;
-          readonly sessionId: string;
-        };
-        assert.equal(created.type, "session/new/ok");
-        assert.match(created.sessionId, /^A008_v1_acp_session_/u);
-        client.send({
-          type: "prompt",
-          requestId: "p1",
-          sessionId: created.sessionId,
-          text: "hello",
-        });
-        assert.deepEqual(await client.next(), {
-          type: "thought",
-          sessionId: created.sessionId,
-          text: "thinking",
-        });
-        assert.deepEqual(await client.next(), {
-          type: "answer",
-          sessionId: created.sessionId,
-          text: "hello",
-        });
-        assert.deepEqual(await client.next(), {
-          type: "prompt/ok",
-          requestId: "p1",
-          sessionId: created.sessionId,
-        });
-        assertWireClean(client.raw);
-      } finally {
-        client.close();
-      }
-    },
-  );
+  await withHost(spawnedFakeAcp(), async (host) => {
+    const client = await SessionClient.open(host.port);
+    try {
+      client.send({
+        type: "session/new",
+        requestId: "n1",
+        model: "nvidia/nemotron-3.5-lightning-30b-a3b",
+      });
+      const created = (await client.next()) as {
+        readonly type: string;
+        readonly sessionId: string;
+      };
+      assert.equal(created.type, "session/new/ok");
+      assert.match(created.sessionId, /^A008_v1_acp_session_/u);
+      client.send({
+        type: "prompt",
+        requestId: "p1",
+        sessionId: created.sessionId,
+        text: "hello",
+      });
+      assert.deepEqual(await client.next(), {
+        type: "thought",
+        sessionId: created.sessionId,
+        text: "thinking",
+      });
+      assert.deepEqual(await client.next(), {
+        type: "answer",
+        sessionId: created.sessionId,
+        text: "hello",
+      });
+      assert.deepEqual(await client.next(), {
+        type: "prompt/ok",
+        requestId: "p1",
+        sessionId: created.sessionId,
+      });
+      assertWireClean(client.raw);
+    } finally {
+      client.close();
+    }
+  });
 });
 
 test("spawned fake ACP bridge cancels an in-flight prompt over stdio", async () => {
@@ -984,7 +1164,12 @@ test("spawned fake ACP bridge reports a failed turn as an error frame", async ()
       });
 
       // The ACP subprocess survives a failed turn and the session still works.
-      client.send({ type: "prompt", requestId: "p2", sessionId, text: "hello" });
+      client.send({
+        type: "prompt",
+        requestId: "p2",
+        sessionId,
+        text: "hello",
+      });
       assert.deepEqual(await client.next(), {
         type: "thought",
         sessionId,
@@ -1016,7 +1201,11 @@ async function upload(
   body: string,
   filename: string,
   extraHeaders: Readonly<Record<string, string>> = {},
-): Promise<{ readonly status: number; readonly body: unknown; readonly raw: string }> {
+): Promise<{
+  readonly status: number;
+  readonly body: unknown;
+  readonly raw: string;
+}> {
   return await httpJson(host, "/v1/upload", {
     method: "POST",
     headers: {
@@ -1049,7 +1238,10 @@ test("POST /v1/upload stores the original and reports a content-addressed locato
       // The bridge was asked to ingest by locator only; bytes never cross ACP.
       assert.deepEqual(ingested, [body.locator]);
       assert.equal(
-        readFileSync(join(storeRoot, String(body.sha256), "report.txt"), "utf8"),
+        readFileSync(
+          join(storeRoot, String(body.sha256), "report.txt"),
+          "utf8",
+        ),
         "A008 upload body.",
       );
       assertWireClean([result.raw]);
@@ -1060,12 +1252,20 @@ test("POST /v1/upload stores the original and reports a content-addressed locato
 test("the same bytes twice yield one locator and one stored blob", async () => {
   const storeRoot = uploadStore();
   await withHost({ sourceStorePath: storeRoot }, async (host) => {
-    const first = (await upload(host, "identical", "a.txt")).body as Record<string, unknown>;
-    const second = (await upload(host, "identical", "a.txt")).body as Record<string, unknown>;
+    const first = (await upload(host, "identical", "a.txt")).body as Record<
+      string,
+      unknown
+    >;
+    const second = (await upload(host, "identical", "a.txt")).body as Record<
+      string,
+      unknown
+    >;
 
     assert.equal(first.locator, second.locator);
     assert.equal(first.sha256, second.sha256);
-    assert.deepEqual(readdirSync(join(storeRoot, String(first.sha256))), ["a.txt"]);
+    assert.deepEqual(readdirSync(join(storeRoot, String(first.sha256))), [
+      "a.txt",
+    ]);
   });
 });
 
@@ -1079,10 +1279,8 @@ test("a hostile filename cannot place a file outside the store", async () => {
       "..",
       "   ",
     ]) {
-      const body = (await upload(host, `x-${declared}`, declared)).body as Record<
-        string,
-        unknown
-      >;
+      const body = (await upload(host, `x-${declared}`, declared))
+        .body as Record<string, unknown>;
       const locator = String(body.locator);
       const name = locator.slice(locator.lastIndexOf("/") + 1);
       assert.equal(name.includes(".."), false, `no traversal in ${locator}`);
@@ -1099,30 +1297,33 @@ test("a hostile filename cannot place a file outside the store", async () => {
 
 test("an oversized upload is refused and nothing is written", async () => {
   const storeRoot = uploadStore();
-  await withHost({ sourceStorePath: storeRoot, maxUploadBytes: 16 }, async (host) => {
-    // Refusing an oversized stream tears the connection down rather than
-    // politely finishing it, so either a non-200 status or a transport-level
-    // failure counts as a refusal. What must hold is that nothing is stored.
-    let accepted = false;
-    try {
-      const result = await upload(host, "x".repeat(64), "big.txt");
-      accepted = result.status === 200;
-      if (!accepted) {
-        assert.match(
-          String((result.body as { message?: string }).message ?? ""),
-          /large/iu,
-        );
+  await withHost(
+    { sourceStorePath: storeRoot, maxUploadBytes: 16 },
+    async (host) => {
+      // Refusing an oversized stream tears the connection down rather than
+      // politely finishing it, so either a non-200 status or a transport-level
+      // failure counts as a refusal. What must hold is that nothing is stored.
+      let accepted = false;
+      try {
+        const result = await upload(host, "x".repeat(64), "big.txt");
+        accepted = result.status === 200;
+        if (!accepted) {
+          assert.match(
+            String((result.body as { message?: string }).message ?? ""),
+            /large/iu,
+          );
+        }
+      } catch {
+        accepted = false;
       }
-    } catch {
-      accepted = false;
-    }
-    assert.equal(accepted, false, "an oversized upload must never succeed");
-    assert.deepEqual(readdirSync(storeRoot), [], "nothing written");
+      assert.equal(accepted, false, "an oversized upload must never succeed");
+      assert.deepEqual(readdirSync(storeRoot), [], "nothing written");
 
-    // The host is still serving afterwards.
-    const health = await httpJson(host, "/health");
-    assert.deepEqual(health.body, { ok: true, name: "A008-gui-host" });
-  });
+      // The host is still serving afterwards.
+      const health = await httpJson(host, "/health");
+      assert.deepEqual(health.body, { ok: true, name: "A008-gui-host" });
+    },
+  );
 });
 
 test("POST /v1/upload requires the octet-stream content type", async () => {
@@ -1130,7 +1331,10 @@ test("POST /v1/upload requires the octet-stream content type", async () => {
   await withHost({ sourceStorePath: storeRoot }, async (host) => {
     const result = await httpJson(host, "/v1/upload", {
       method: "POST",
-      headers: { "content-type": "application/json", "x-a008-filename": "a.txt" },
+      headers: {
+        "content-type": "application/json",
+        "x-a008-filename": "a.txt",
+      },
       body: "{}",
     });
     assert.equal(result.status, 415);
@@ -1201,7 +1405,10 @@ test("an operator can name an origin the rules would otherwise refuse", () => {
   // admit every local HTML file, and POST /v1/shell runs a real command.
   assert.equal(isAllowedOrigin("null", "127.0.0.1:8787"), false);
   assert.equal(isAllowedOrigin("app://a008", "127.0.0.1:8787"), false);
-  assert.equal(isAllowedOrigin("https://evil.example", "127.0.0.1:8787"), false);
+  assert.equal(
+    isAllowedOrigin("https://evil.example", "127.0.0.1:8787"),
+    false,
+  );
 
   const named = parseAllowedOrigins("null, app://a008");
   assert.deepEqual(named, ["null", "app://a008"]);
@@ -1210,7 +1417,10 @@ test("an operator can name an origin the rules would otherwise refuse", () => {
   assert.equal(isAllowedOrigin("APP://A008", "127.0.0.1:8787", named), true);
 
   // Naming one origin admits only that one.
-  assert.equal(isAllowedOrigin("https://evil.example", "127.0.0.1:8787", named), false);
+  assert.equal(
+    isAllowedOrigin("https://evil.example", "127.0.0.1:8787", named),
+    false,
+  );
   assert.equal(isAllowedOrigin("app://other", "127.0.0.1:8787", named), false);
 });
 
@@ -1219,7 +1429,10 @@ test("the allowlist is empty unless an operator sets it", () => {
   assert.deepEqual(parseAllowedOrigins(""), []);
   assert.deepEqual(parseAllowedOrigins("  ,  ,"), []);
   // Default-deny: with no list, nothing beyond the ordinary rules is admitted.
-  assert.equal(isAllowedOrigin("null", "127.0.0.1:8787", parseAllowedOrigins(undefined)), false);
+  assert.equal(
+    isAllowedOrigin("null", "127.0.0.1:8787", parseAllowedOrigins(undefined)),
+    false,
+  );
 });
 
 test("a named origin reaches the shell route and the WebSocket upgrade", async () => {
@@ -1227,22 +1440,29 @@ test("a named origin reaches the shell route and the WebSocket upgrade", async (
     const refused = await httpJson(host, "/v1/shell", {
       method: "POST",
       headers: { "content-type": "application/json", origin: "app://other" },
-      body: JSON.stringify({ command: "node -e \"console.log(1)\"" }),
+      body: JSON.stringify({ command: 'node -e "console.log(1)"' }),
     });
     assert.equal(refused.status, 403, "an unnamed origin is still refused");
 
     const allowed = await httpJson(host, "/v1/shell", {
       method: "POST",
       headers: { "content-type": "application/json", origin: "app://a008" },
-      body: JSON.stringify({ command: "node -e \"console.log('named-origin-ok')\"" }),
+      body: JSON.stringify({
+        command: "node -e \"console.log('named-origin-ok')\"",
+      }),
     });
     assert.equal(allowed.status, 200);
-    assert.match(String((allowed.body as { stdout?: string }).stdout ?? ""), /named-origin-ok/u);
+    assert.match(
+      String((allowed.body as { stdout?: string }).stdout ?? ""),
+      /named-origin-ok/u,
+    );
 
     // The upgrade path reads the same list, not a second copy of the rules.
     const upgrade = await attemptUpgrade(host.port, { origin: "app://a008" });
     assert.equal(upgrade.upgraded, true);
-    const stillRefused = await attemptUpgrade(host.port, { origin: "app://other" });
+    const stillRefused = await attemptUpgrade(host.port, {
+      origin: "app://other",
+    });
     assert.equal(stillRefused.upgraded, false);
     assert.equal(stillRefused.status, 403);
   });

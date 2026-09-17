@@ -61,7 +61,14 @@ class GuiSessionClientImpl implements GuiSessionClient {
   #resumeToken: string | undefined;
   #reconnectAttempt = 0;
   #reconnectTimer: ReturnType<typeof setTimeout> | undefined;
-  #pendingControl: { requestId: string; control: SessionControl; resolve: (state: SessionSnapshot) => void; reject: (error: Error) => void } | undefined;
+  #pendingControl:
+    | {
+        requestId: string;
+        control: SessionControl;
+        resolve: (state: SessionSnapshot) => void;
+        reject: (error: Error) => void;
+      }
+    | undefined;
 
   constructor(options: GuiSessionClientOptions) {
     this.#url = engineSocketUrl(options.url ?? resolveGuiSessionUrl());
@@ -69,7 +76,9 @@ class GuiSessionClientImpl implements GuiSessionClient {
     this.#webSocket = options.webSocket;
     this.#createRequestId =
       options.createRequestId ?? (() => globalThis.crypto.randomUUID());
-    this.#reconnectDelaysMs = options.reconnectDelaysMs?.length ? options.reconnectDelaysMs : DEFAULT_RECONNECT_DELAYS_MS;
+    this.#reconnectDelaysMs = options.reconnectDelaysMs?.length
+      ? options.reconnectDelaysMs
+      : DEFAULT_RECONNECT_DELAYS_MS;
     this.#snapshot = {
       status: "idle",
       sessionId: undefined,
@@ -121,32 +130,75 @@ class GuiSessionClientImpl implements GuiSessionClient {
     this.#clearReconnectTimer();
     this.#detachSocket();
     const error = new Error("Panel disconnected.");
-    this.#pendingConnect?.reject(error); this.#pendingPrompt?.reject(error); this.#pendingControl?.reject(error);
-    this.#pendingConnect = undefined; this.#pendingPrompt = undefined; this.#pendingControl = undefined; this.#connectWork = undefined;
-    this.#replaceSnapshot({ status: "idle", sessionId: undefined, busy: false, tools: [] });
+    this.#pendingConnect?.reject(error);
+    this.#pendingPrompt?.reject(error);
+    this.#pendingControl?.reject(error);
+    this.#pendingConnect = undefined;
+    this.#pendingPrompt = undefined;
+    this.#pendingControl = undefined;
+    this.#connectWork = undefined;
+    this.#replaceSnapshot({
+      status: "idle",
+      sessionId: undefined,
+      busy: false,
+      tools: [],
+    });
   };
 
-  get details() { return this.#snapshot.details; }
-  get busy() { return this.#snapshot.busy ?? false; }
-  get pendingText() { return this.#snapshot.pendingText; }
+  get details() {
+    return this.#snapshot.details;
+  }
+  get busy() {
+    return this.#snapshot.busy ?? false;
+  }
+  get pendingText() {
+    return this.#snapshot.pendingText;
+  }
 
   controlSession = (control: SessionControl): Promise<SessionSnapshot> => {
     const sessionId = this.#snapshot.sessionId;
-    if (this.#snapshot.status !== "ready" || sessionId === undefined || this.#socket?.readyState !== SOCKET_OPEN) return Promise.reject(new Error("Connect to a session first."));
-    if (this.#pendingControl !== undefined || this.#pendingPrompt !== undefined && control.action !== "close") return Promise.reject(new Error("Wait for the current operation to finish."));
+    if (
+      this.#snapshot.status !== "ready" ||
+      sessionId === undefined ||
+      this.#socket?.readyState !== SOCKET_OPEN
+    )
+      return Promise.reject(new Error("Connect to a session first."));
+    if (
+      this.#pendingControl !== undefined ||
+      (this.#pendingPrompt !== undefined && control.action !== "close")
+    )
+      return Promise.reject(
+        new Error("Wait for the current operation to finish."),
+      );
     const requestId = this.#createRequestId();
     const done = new Promise<SessionSnapshot>((resolve, reject) => {
       this.#pendingControl = { requestId, control, resolve, reject };
     });
     this.#replaceSnapshot({ busy: true, error: undefined });
-    try { this.#socket.send(encodeClientMessage({ type: "session/control", requestId, sessionId, control })); }
-    catch (error) { this.#onHostError(requestId, toError(error, "Session control failed.").message); }
+    try {
+      this.#socket.send(
+        encodeClientMessage({
+          type: "session/control",
+          requestId,
+          sessionId,
+          control,
+        }),
+      );
+    } catch (error) {
+      this.#onHostError(
+        requestId,
+        toError(error, "Session control failed.").message,
+      );
+    }
     return done;
   };
 
   endSession = async (): Promise<void> => {
     try {
-      if (this.#snapshot.status === "ready" && this.#snapshot.sessionId !== undefined) {
+      if (
+        this.#snapshot.status === "ready" &&
+        this.#snapshot.sessionId !== undefined
+      ) {
         await this.controlSession({ action: "close" });
       }
     } finally {
@@ -165,8 +217,16 @@ class GuiSessionClientImpl implements GuiSessionClient {
       this.#pendingControl = undefined;
       this.#connectWork = undefined;
       this.#detachSocket();
-      this.#replaceSnapshot({ status: "idle", sessionId: undefined, details: undefined,
-        thought: "", answer: "", pendingText: undefined, busy: false, error: undefined });
+      this.#replaceSnapshot({
+        status: "idle",
+        sessionId: undefined,
+        details: undefined,
+        thought: "",
+        answer: "",
+        pendingText: undefined,
+        busy: false,
+        error: undefined,
+      });
     }
   };
 
@@ -178,12 +238,18 @@ class GuiSessionClientImpl implements GuiSessionClient {
   };
 
   connect = (): Promise<void> => {
-    if (this.#snapshot.status === "ready" && this.#snapshot.sessionId !== undefined) {
+    if (
+      this.#snapshot.status === "ready" &&
+      this.#snapshot.sessionId !== undefined
+    ) {
       return Promise.resolve();
     }
     if (this.#connectWork !== undefined) return this.#connectWork;
     this.#clearReconnectTimer();
-    const mode = this.#snapshot.sessionId !== undefined && this.#resumeToken !== undefined ? "resume" : "new";
+    const mode =
+      this.#snapshot.sessionId !== undefined && this.#resumeToken !== undefined
+        ? "resume"
+        : "new";
     return this.#beginConnect(mode);
   };
 
@@ -195,7 +261,10 @@ class GuiSessionClientImpl implements GuiSessionClient {
     });
   }
 
-  prompt = (text: string, attachment?: PromptImageAttachment): Promise<void> => {
+  prompt = (
+    text: string,
+    attachment?: PromptImageAttachment,
+  ): Promise<void> => {
     if (typeof text !== "string" || text.trim().length === 0) {
       return Promise.reject(new Error("Prompt text is empty."));
     }
@@ -207,7 +276,11 @@ class GuiSessionClientImpl implements GuiSessionClient {
     ) {
       return Promise.reject(new Error("GUI session is not ready."));
     }
-    if (this.#pendingPrompt !== undefined || this.#pendingControl !== undefined || this.#observedActive) {
+    if (
+      this.#pendingPrompt !== undefined ||
+      this.#pendingControl !== undefined ||
+      this.#observedActive
+    ) {
       return Promise.reject(new Error("A prompt is already in progress."));
     }
 
@@ -240,7 +313,11 @@ class GuiSessionClientImpl implements GuiSessionClient {
     } catch (error) {
       this.#pendingPrompt = undefined;
       const failure = toError(error, "Failed to send prompt.");
-      this.#replaceSnapshot({ error: failure.message, busy: false, pendingText: undefined });
+      this.#replaceSnapshot({
+        error: failure.message,
+        busy: false,
+        pendingText: undefined,
+      });
       return Promise.reject(failure);
     }
 
@@ -290,7 +367,9 @@ class GuiSessionClientImpl implements GuiSessionClient {
       pendingText: undefined,
       busy: false,
       error: undefined,
-      ...(mode === "new" ? { details: undefined, sessionId: undefined, thought: "", answer: "" } : {}),
+      ...(mode === "new"
+        ? { details: undefined, sessionId: undefined, thought: "", answer: "" }
+        : {}),
     });
 
     const WebSocketImpl = this.#webSocket ?? globalThis.WebSocket;
@@ -324,11 +403,15 @@ class GuiSessionClientImpl implements GuiSessionClient {
       try {
         const sessionId = this.#snapshot.sessionId;
         const resumeToken = this.#resumeToken;
-        socket.send(encodeClientMessage(
-          mode === "resume" && sessionId !== undefined && resumeToken !== undefined
-            ? { type: "session/resume", requestId, sessionId, resumeToken }
-            : { type: "session/new", requestId, model: this.#model },
-        ));
+        socket.send(
+          encodeClientMessage(
+            mode === "resume" &&
+              sessionId !== undefined &&
+              resumeToken !== undefined
+              ? { type: "session/resume", requestId, sessionId, resumeToken }
+              : { type: "session/new", requestId, model: this.#model },
+          ),
+        );
       } catch (error) {
         this.#fail(
           generation,
@@ -403,14 +486,26 @@ class GuiSessionClientImpl implements GuiSessionClient {
           this.#sendToolPermission(message.id, true);
           return;
         }
-        this.#replaceSnapshot({ permission: { id: message.id, title: message.title, text: message.text } });
+        this.#replaceSnapshot({
+          permission: {
+            id: message.id,
+            title: message.title,
+            text: message.text,
+          },
+        });
         return;
       case "tool": {
         if (message.sessionId !== this.#snapshot.sessionId) return;
-        const tools = [...this.#snapshot.tools ?? []];
-        const index = tools.findIndex(tool => tool.id === message.id);
-        const tool = { id: message.id, title: message.title, status: message.status, text: message.text };
-        if (index < 0) tools.push(tool); else tools[index] = tool;
+        const tools = [...(this.#snapshot.tools ?? [])];
+        const index = tools.findIndex((tool) => tool.id === message.id);
+        const tool = {
+          id: message.id,
+          title: message.title,
+          status: message.status,
+          text: message.text,
+        };
+        if (index < 0) tools.push(tool);
+        else tools[index] = tool;
         this.#replaceSnapshot({ tools });
         return;
       }
@@ -419,24 +514,52 @@ class GuiSessionClientImpl implements GuiSessionClient {
         const wasActive = this.#observedActive;
         this.#observedActive = message.active;
         if (!wasActive && message.active) this.#cancelled = false;
-        this.#replaceSnapshot({ busy: message.active || this.#pendingPrompt !== undefined || this.#pendingControl !== undefined,
-          ...(message.state ? { details: message.state, model: message.state.model } : {}),
-          ...(message.active ? { pendingText: message.text, ...(!wasActive ? { thought: "", answer: "", tools: [] } : {}) } : { pendingText: undefined }),
+        this.#replaceSnapshot({
+          busy:
+            message.active ||
+            this.#pendingPrompt !== undefined ||
+            this.#pendingControl !== undefined,
+          ...(message.state
+            ? { details: message.state, model: message.state.model }
+            : {}),
+          ...(message.active
+            ? {
+                pendingText: message.text,
+                ...(!wasActive ? { thought: "", answer: "", tools: [] } : {}),
+              }
+            : { pendingText: undefined }),
         });
         return;
       }
       case "session/new/ok":
       case "session/resume/ok":
-        this.#onSessionOk(message.requestId, message.sessionId, message.resumeToken, message.state);
+        this.#onSessionOk(
+          message.requestId,
+          message.sessionId,
+          message.resumeToken,
+          message.state,
+        );
         return;
       case "session/control/ok": {
         const pending = this.#pendingControl;
-        if (pending === undefined || pending.requestId !== message.requestId || message.sessionId !== this.#snapshot.sessionId) return;
+        if (
+          pending === undefined ||
+          pending.requestId !== message.requestId ||
+          message.sessionId !== this.#snapshot.sessionId
+        )
+          return;
         this.#pendingControl = undefined;
         this.#model = message.state.model;
-        const clear = pending.control.action !== "inspect" && pending.control.action !== "configure";
-        this.#replaceSnapshot({ details: message.state, model: message.state.model, error: undefined,
-          busy: this.#pendingPrompt !== undefined, ...(clear ? { thought: "", answer: "", tools: [] } : {}) });
+        const clear =
+          pending.control.action !== "inspect" &&
+          pending.control.action !== "configure";
+        this.#replaceSnapshot({
+          details: message.state,
+          model: message.state.model,
+          error: undefined,
+          busy: this.#pendingPrompt !== undefined,
+          ...(clear ? { thought: "", answer: "", tools: [] } : {}),
+        });
         pending.resolve(message.state);
         return;
       }
@@ -458,16 +581,23 @@ class GuiSessionClientImpl implements GuiSessionClient {
   #sendToolPermission(permissionId: string, allow: boolean): void {
     const sessionId = this.#snapshot.sessionId;
     if (!sessionId || this.#socket?.readyState !== SOCKET_OPEN) return;
-    this.#socket.send(encodeClientMessage({
-      type: "tool/permission",
-      requestId: this.#createRequestId(),
-      sessionId,
-      permissionId,
-      allow,
-    }));
+    this.#socket.send(
+      encodeClientMessage({
+        type: "tool/permission",
+        requestId: this.#createRequestId(),
+        sessionId,
+        permissionId,
+        allow,
+      }),
+    );
   }
 
-  #onSessionOk(requestId: string, sessionId: string, resumeToken: string | undefined, state?: SessionSnapshot): void {
+  #onSessionOk(
+    requestId: string,
+    sessionId: string,
+    resumeToken: string | undefined,
+    state?: SessionSnapshot,
+  ): void {
     const pending = this.#pendingConnect;
     if (pending === undefined || pending.requestId !== requestId) {
       return;
@@ -491,7 +621,11 @@ class GuiSessionClientImpl implements GuiSessionClient {
     sessionId: string,
     text: string,
   ): void {
-    if (this.#snapshot.sessionId !== sessionId || this.#pendingPrompt === undefined && !this.#observedActive || this.#cancelled) {
+    if (
+      this.#snapshot.sessionId !== sessionId ||
+      (this.#pendingPrompt === undefined && !this.#observedActive) ||
+      this.#cancelled
+    ) {
       return;
     }
     this.#replaceSnapshot({
@@ -499,7 +633,11 @@ class GuiSessionClientImpl implements GuiSessionClient {
     });
   }
 
-  #onPromptOk(requestId: string, sessionId: string, state?: SessionSnapshot): void {
+  #onPromptOk(
+    requestId: string,
+    sessionId: string,
+    state?: SessionSnapshot,
+  ): void {
     this.#replaceSnapshot({ permission: undefined });
     const pending = this.#pendingPrompt;
     if (
@@ -510,9 +648,12 @@ class GuiSessionClientImpl implements GuiSessionClient {
       return;
     }
     this.#pendingPrompt = undefined;
-    this.#replaceSnapshot({ busy: this.#pendingControl !== undefined, pendingText: undefined,
+    this.#replaceSnapshot({
+      busy: this.#pendingControl !== undefined,
+      pendingText: undefined,
       ...(state === undefined ? {} : { details: state, model: state.model }),
-      ...(this.#cancelled ? { thought: "", answer: "" } : {}) });
+      ...(this.#cancelled ? { thought: "", answer: "" } : {}),
+    });
     if (this.#cancelled) pending.reject(new Error("Prompt cancelled."));
     else pending.resolve();
     this.#cancelled = false;
@@ -520,10 +661,16 @@ class GuiSessionClientImpl implements GuiSessionClient {
 
   #onHostError(requestId: string | undefined, message: string): void {
     this.#replaceSnapshot({ permission: undefined });
-    if (this.#pendingControl !== undefined && (requestId === undefined || requestId === this.#pendingControl.requestId)) {
+    if (
+      this.#pendingControl !== undefined &&
+      (requestId === undefined || requestId === this.#pendingControl.requestId)
+    ) {
       const pending = this.#pendingControl;
       this.#pendingControl = undefined;
-      this.#replaceSnapshot({ busy: this.#pendingPrompt !== undefined, error: message });
+      this.#replaceSnapshot({
+        busy: this.#pendingPrompt !== undefined,
+        error: message,
+      });
       pending.reject(new Error(message));
       return;
     }
@@ -535,7 +682,12 @@ class GuiSessionClientImpl implements GuiSessionClient {
       this.#pendingConnect = undefined;
       this.#clearReconnectTimer();
       this.#resumeToken = undefined;
-      this.#replaceSnapshot({ status: "error", sessionId: undefined, busy: false, error: message });
+      this.#replaceSnapshot({
+        status: "error",
+        sessionId: undefined,
+        busy: false,
+        error: message,
+      });
       pending.reject(new Error(message));
       return;
     }
@@ -550,7 +702,8 @@ class GuiSessionClientImpl implements GuiSessionClient {
         status: "ready",
         busy: this.#pendingControl !== undefined,
         pendingText: undefined,
-        thought: "", answer: "",
+        thought: "",
+        answer: "",
         error: message,
       });
       pending.reject(new Error(message));
@@ -562,14 +715,17 @@ class GuiSessionClientImpl implements GuiSessionClient {
 
   #transportLost(generation: number, message: string): void {
     if (generation !== this.#generation) return;
-    const canResume = this.#snapshot.sessionId !== undefined && this.#resumeToken !== undefined;
+    const canResume =
+      this.#snapshot.sessionId !== undefined && this.#resumeToken !== undefined;
     if (!canResume) {
       this.#fail(generation, message);
       return;
     }
     this.#generation += 1;
     this.#allowAllTools = false;
-    const failure = new Error("Connection interrupted before the operation completed.");
+    const failure = new Error(
+      "Connection interrupted before the operation completed.",
+    );
     this.#pendingConnect?.reject(failure);
     this.#pendingPrompt?.reject(failure);
     this.#pendingControl?.reject(failure);
@@ -579,14 +735,29 @@ class GuiSessionClientImpl implements GuiSessionClient {
     this.#connectWork = undefined;
     const socket = this.#socket;
     this.#socket = undefined;
-    if (socket !== undefined && socket.readyState !== SOCKET_CLOSED) socket.close();
-    this.#replaceSnapshot({ status: "connecting", busy: false, pendingText: undefined, permission: undefined, error: undefined });
+    if (socket !== undefined && socket.readyState !== SOCKET_CLOSED)
+      socket.close();
+    this.#replaceSnapshot({
+      status: "connecting",
+      busy: false,
+      pendingText: undefined,
+      permission: undefined,
+      error: undefined,
+    });
     this.#scheduleReconnect();
   }
 
   #scheduleReconnect(): void {
-    if (this.#reconnectTimer !== undefined || this.#snapshot.sessionId === undefined || this.#resumeToken === undefined) return;
-    const index = Math.min(this.#reconnectAttempt, this.#reconnectDelaysMs.length - 1);
+    if (
+      this.#reconnectTimer !== undefined ||
+      this.#snapshot.sessionId === undefined ||
+      this.#resumeToken === undefined
+    )
+      return;
+    const index = Math.min(
+      this.#reconnectAttempt,
+      this.#reconnectDelaysMs.length - 1,
+    );
     const delay = Math.max(0, this.#reconnectDelaysMs[index] ?? 5_000);
     this.#reconnectAttempt += 1;
     this.#reconnectTimer = setTimeout(() => {

@@ -65,9 +65,7 @@ export function parseSlash(input: string): ParsedSlash | undefined {
 
   const match = /^\/([A-Za-z][\w-]*)(?:\s+([\s\S]*))?$/u.exec(trimmed);
   if (match === null) {
-    throw new ComposerSlashError(
-      `Unknown command: ${trimmed}. Type /help.`,
-    );
+    throw new ComposerSlashError(`Unknown command: ${trimmed}. Type /help.`);
   }
   const raw = match[1]!.toLowerCase();
   const argument = (match[2] ?? "").trim();

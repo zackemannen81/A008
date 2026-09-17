@@ -28,7 +28,9 @@ const TASK = "A008_v1_task_20000000-0000-4000-8000-000000000004";
 const NOW = { unknown: true } as const;
 const OPEN = { from: NOW, to: null } as const;
 
-function payload(overrides: Partial<ProjectionPayload> = {}): ProjectionPayload {
+function payload(
+  overrides: Partial<ProjectionPayload> = {},
+): ProjectionPayload {
   return {
     scope: { tags: ["local"], entities: [], slots: [] },
     state: [],
@@ -110,7 +112,9 @@ test("every surface in the payload reaches the projection", () => {
     payload: payload({
       state: [stateEntry("colour", "the house is white")],
       claims: [claim("Brittan says the house is white")],
-      events: [{ type: "paint", label: "the house was painted", eventTime: NOW }],
+      events: [
+        { type: "paint", label: "the house was painted", eventTime: NOW },
+      ],
       history: [stateEntry("colour", "the house was red")],
       utterances: [utterance("someone painted the house")],
       artifacts: [
@@ -128,7 +132,15 @@ test("every surface in the payload reaches the projection", () => {
 
   assert.deepEqual(
     result.items.map((item) => item.kind),
-    ["state", "claim", "event", "history", "utterance", "artifact", "provenance"],
+    [
+      "state",
+      "claim",
+      "event",
+      "history",
+      "utterance",
+      "artifact",
+      "provenance",
+    ],
   );
   assert.equal(
     result.items.length,
@@ -177,7 +189,10 @@ test("items are ranked by authority, highest first", () => {
   });
 
   const authorities = result.items.map((item) => item.authority);
-  assert.deepEqual(authorities, [...authorities].sort((a, b) => b - a));
+  assert.deepEqual(
+    authorities,
+    [...authorities].sort((a, b) => b - a),
+  );
   assert.equal(result.items[0]?.proposition, "current truth");
 });
 
@@ -187,8 +202,16 @@ test("equal authority keeps a stable, reproducible order", () => {
   const input = payload({
     utterances: [utterance("first"), utterance("second"), utterance("third")],
   });
-  const once = projectionItems({ taskId: TASK, measurer: MEASURER, payload: input });
-  const twice = projectionItems({ taskId: TASK, measurer: MEASURER, payload: input });
+  const once = projectionItems({
+    taskId: TASK,
+    measurer: MEASURER,
+    payload: input,
+  });
+  const twice = projectionItems({
+    taskId: TASK,
+    measurer: MEASURER,
+    payload: input,
+  });
   assert.deepEqual(propositions(once.items), ["first", "second", "third"]);
   assert.deepEqual(propositions(once.items), propositions(twice.items));
 });
@@ -207,10 +230,10 @@ test("the same words on several surfaces are sent once, by the strongest", () =>
 
   assert.deepEqual(propositions(result.items), [shared]);
   assert.equal(result.items[0]?.kind, "state");
-  assert.deepEqual(
-    result.deduplicated.map((item) => item.kind).sort(),
-    ["claim", "utterance"],
-  );
+  assert.deepEqual(result.deduplicated.map((item) => item.kind).sort(), [
+    "claim",
+    "utterance",
+  ]);
 });
 
 test("deduplication ignores case and surrounding space", () => {
@@ -240,7 +263,10 @@ test("the budget cuts the lowest-ranked items and names them", () => {
   });
 
   assert.ok(result.items.length >= 1, "everything was cut");
-  assert.ok(result.omitted.length >= 1, "nothing was cut, so nothing is proved");
+  assert.ok(
+    result.omitted.length >= 1,
+    "nothing was cut, so nothing is proved",
+  );
   assert.equal(
     result.items.length + result.omitted.length,
     3,
@@ -370,7 +396,8 @@ function worldWithBothFacts(): KnowledgeReadContext {
 
 function request(message: string): MemoryReadRequest {
   return {
-    projectId: "A008_v1_project_20000000-0000-4000-8000-000000000001" as ProjectId,
+    projectId:
+      "A008_v1_project_20000000-0000-4000-8000-000000000001" as ProjectId,
     conversationId:
       "A008_v1_conversation_20000000-0000-4000-8000-000000000002" as ConversationId,
     taskId: TASK as RuntimeTaskId,
@@ -384,8 +411,12 @@ test("the reader returns both facts the store found, not the first surface", asy
   const reader = new KnowledgeMemoryReader({ context: worldWithBothFacts() });
   const result = await reader.read(request("Vad heter / kallas du för?"));
 
-  const kinds = new Set(result.projection.projection.items.map((item) => item.kind));
-  const texts = result.projection.projection.items.map((item) => item.proposition);
+  const kinds = new Set(
+    result.projection.projection.items.map((item) => item.kind),
+  );
+  const texts = result.projection.projection.items.map(
+    (item) => item.proposition,
+  );
 
   assert.ok(
     texts.some((text) => text.includes("Agent008")),

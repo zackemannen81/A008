@@ -87,7 +87,10 @@ function verifiedScope(): { readonly verified: true } {
   return { verified: true };
 }
 
-function collectKeys(value: unknown, keys: Set<string> = new Set()): Set<string> {
+function collectKeys(
+  value: unknown,
+  keys: Set<string> = new Set(),
+): Set<string> {
   if (typeof value !== "object" || value === null) {
     return keys;
   }
@@ -185,7 +188,11 @@ test("S4 — attributed prediction records an utterance and an asserted claim, n
     "revision",
     "canonicalStatus",
   ]) {
-    assert.equal(keys.has(forbidden), false, `payload must not contain ${forbidden}`);
+    assert.equal(
+      keys.has(forbidden),
+      false,
+      `payload must not contain ${forbidden}`,
+    );
   }
 });
 
@@ -208,9 +215,14 @@ test("S5 — recitation of Fader vår is a prayer utterance and produces no worl
   assert.equal(utterance.content, "Fader vår som är i himmelen");
   assert.equal(allowsWorldClaims(utterance.act), false);
 
-  const claims = recordClaimsFromUtterance(store, utterance.id, [HEAVEN_DRAFT], {
-    idFactory: ids,
-  });
+  const claims = recordClaimsFromUtterance(
+    store,
+    utterance.id,
+    [HEAVEN_DRAFT],
+    {
+      idFactory: ids,
+    },
+  );
   assert.equal(claims.length, 0);
   assert.equal(store.listClaims().length, 0);
 
@@ -338,12 +350,9 @@ test("question never produces a world claim", () => {
   );
   assert.equal(ingested.utterances[0]?.act, "question");
   assert.equal(
-    recordClaimsFromUtterance(
-      store,
-      ingested.utterances[0]!.id,
-      [OWNS_DRAFT],
-      { idFactory: ids },
-    ).length,
+    recordClaimsFromUtterance(store, ingested.utterances[0]!.id, [OWNS_DRAFT], {
+      idFactory: ids,
+    }).length,
     0,
   );
 });
@@ -590,7 +599,10 @@ test("sectioned payload is not a flat list of sentences and history carries an i
       {
         slot: "house.color",
         value: "white",
-        interval: { from: "2026-01-01T00:00:00.000Z", to: "2026-06-01T00:00:00.000Z" },
+        interval: {
+          from: "2026-01-01T00:00:00.000Z",
+          to: "2026-06-01T00:00:00.000Z",
+        },
       },
     ],
     claims: [
@@ -605,7 +617,10 @@ test("sectioned payload is not a flat list of sentences and history carries an i
     ],
   });
   assert.equal(Array.isArray(composed.payload), false);
-  assert.equal(composed.payload.history[0]?.interval.to, "2026-06-01T00:00:00.000Z");
+  assert.equal(
+    composed.payload.history[0]?.interval.to,
+    "2026-06-01T00:00:00.000Z",
+  );
   assert.equal(composed.payload.claims[0]?.attributedTo, "Kanal 4 presenter");
   assert.equal(composed.payload.claims[0]?.status, "asserted");
   assert.equal(composed.payload.state.length, 0);

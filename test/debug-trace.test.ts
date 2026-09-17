@@ -69,7 +69,7 @@ test("traced fetch clones the body and never logs authorization", async () => {
   });
   const fetch = tracedFetch(
     async () =>
-      new Response("data: {\"choices\":[]}\n\n", {
+      new Response('data: {"choices":[]}\n\n', {
         status: 200,
         headers: { "content-type": "text/event-stream" },
       }),

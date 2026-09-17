@@ -89,14 +89,18 @@ export function redactHeaders(
     return result;
   }
   new Headers(headers).forEach((value, key) => {
-    result[key] = SECRET_HEADER.test(key) || SECRET_HEADER_PART.test(key)
-      ? "[redacted]"
-      : value;
+    result[key] =
+      SECRET_HEADER.test(key) || SECRET_HEADER_PART.test(key)
+        ? "[redacted]"
+        : value;
   });
   return result;
 }
 
-export function redactSecrets(value: string, secrets: readonly string[]): string {
+export function redactSecrets(
+  value: string,
+  secrets: readonly string[],
+): string {
   let result = value;
   for (const secret of secrets) {
     if (secret.length >= 8) {
@@ -118,20 +122,29 @@ function boundText(
 
 function semanticOperation(
   request: ChatRequest,
-): "knowledge_analysis" | "relation_classification" | "retrieval_scope" | undefined {
+):
+  | "knowledge_analysis"
+  | "relation_classification"
+  | "retrieval_scope"
+  | undefined {
   const content = request.messages.at(-1)?.content;
   if (content === undefined) {
     return undefined;
   }
   try {
     const parsed = JSON.parse(content) as unknown;
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    if (
+      typeof parsed !== "object" ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
       return undefined;
     }
     const operation = (parsed as { readonly operation?: unknown }).operation;
     if (
       operation === "knowledge_analysis" ||
-      operation === "relation_classification" || operation === "retrieval_scope"
+      operation === "relation_classification" ||
+      operation === "retrieval_scope"
     ) {
       return operation;
     }
@@ -210,10 +223,12 @@ class WritingDebugTracer implements DebugTraceObserver {
   }
 
   track(pending: Promise<void>): void {
-    this.#writes = this.#writes.then(() => pending).catch((error: unknown) => {
-      this.#sinkFailure =
-        error instanceof Error ? error.message : "trace sink failed";
-    });
+    this.#writes = this.#writes
+      .then(() => pending)
+      .catch((error: unknown) => {
+        this.#sinkFailure =
+          error instanceof Error ? error.message : "trace sink failed";
+      });
   }
 
   async flush(): Promise<void> {
@@ -244,12 +259,16 @@ class WritingDebugTracer implements DebugTraceObserver {
       ts: event.ts ?? this.#now().toISOString(),
       seq: event.seq ?? (this.#seq += 1),
       traceId: event.traceId,
-      ...(event.httpCallId === undefined ? {} : { httpCallId: event.httpCallId }),
+      ...(event.httpCallId === undefined
+        ? {}
+        : { httpCallId: event.httpCallId }),
       surface: event.surface ?? this.#surface,
       phase: event.phase,
       ...(event.operation === undefined ? {} : { operation: event.operation }),
       ...(event.status === undefined ? {} : { status: event.status }),
-      ...(event.chatStatus === undefined ? {} : { chatStatus: event.chatStatus }),
+      ...(event.chatStatus === undefined
+        ? {}
+        : { chatStatus: event.chatStatus }),
       ...(event.memoryStatus === undefined
         ? {}
         : { memoryStatus: event.memoryStatus }),
@@ -284,7 +303,10 @@ class WritingDebugTracer implements DebugTraceObserver {
         typeof event.payload === "string"
           ? event.payload
           : JSON.stringify(event.payload);
-      const bounded = boundText(payloadText, Math.max(256, this.#maxEventChars - 512));
+      const bounded = boundText(
+        payloadText,
+        Math.max(256, this.#maxEventChars - 512),
+      );
       const reduced: DebugTraceEvent = {
         ...event,
         payload: bounded.value,
@@ -393,17 +415,23 @@ export function tracedChatTransport(
   return {
     async complete(request: ChatRequest, callbacks: ChatCallbacks = {}) {
       const operation = semanticOperation(request) ?? "chat";
-      const serialized = JSON.stringify(request.tools ? { messages: request.messages, tools: request.tools } : request.messages);
+      const serialized = JSON.stringify(
+        request.tools
+          ? { messages: request.messages, tools: request.tools }
+          : request.messages,
+      );
       const requestPhase =
         operation === "knowledge_analysis"
           ? "analyze_request"
-          : operation === "relation_classification" || operation === "retrieval_scope"
+          : operation === "relation_classification" ||
+              operation === "retrieval_scope"
             ? "classify_request"
             : "chat_request";
       const responsePhase =
         operation === "knowledge_analysis"
           ? "analyze_response"
-          : operation === "relation_classification" || operation === "retrieval_scope"
+          : operation === "relation_classification" ||
+              operation === "retrieval_scope"
             ? "classify_response"
             : "chat_response";
       tracer.emit({
@@ -550,7 +578,8 @@ function providerOperationFromBody(rawBody: string): string {
     const envelope = JSON.parse(content) as { readonly operation?: unknown };
     if (
       envelope.operation === "knowledge_analysis" ||
-      envelope.operation === "relation_classification" || envelope.operation === "retrieval_scope"
+      envelope.operation === "relation_classification" ||
+      envelope.operation === "retrieval_scope"
     ) {
       return envelope.operation;
     }

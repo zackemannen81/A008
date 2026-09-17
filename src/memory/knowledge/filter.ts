@@ -102,7 +102,9 @@ function taskApplies(record: RetrievedRecord, scope: SemanticScope): boolean {
     record.who ?? "",
     record.slotLabel ?? "",
   ]);
-  return scope.entities.some((entity) => haystack.includes(entity.toLocaleLowerCase("sv-SE")));
+  return scope.entities.some((entity) =>
+    haystack.includes(entity.toLocaleLowerCase("sv-SE")),
+  );
 }
 
 function uniqueLower(values: readonly string[]): readonly string[] {
@@ -120,7 +122,5 @@ function uniqueLower(values: readonly string[]): readonly string[] {
 }
 
 function normalizeAll(values: readonly string[]): string {
-  return values
-    .map((value) => value.toLocaleLowerCase("sv-SE"))
-    .join(" ");
+  return values.map((value) => value.toLocaleLowerCase("sv-SE")).join(" ");
 }

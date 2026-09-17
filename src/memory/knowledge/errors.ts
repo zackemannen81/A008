@@ -12,7 +12,10 @@ export class KnowledgeModelError extends Error {
     message: string,
     options: KnowledgeModelErrorOptions = {},
   ) {
-    super(message, options.cause === undefined ? undefined : { cause: options.cause });
+    super(
+      message,
+      options.cause === undefined ? undefined : { cause: options.cause },
+    );
     this.name = "KnowledgeModelError";
     this.code = code;
   }

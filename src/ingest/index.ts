@@ -1,7 +1,4 @@
-export {
-  SourceIngestError,
-  isSourceIngestError,
-} from "./errors.js";
+export { SourceIngestError, isSourceIngestError } from "./errors.js";
 export type {
   SourceIngestErrorCode,
   SourceIngestErrorOptions,

@@ -32,6 +32,9 @@ export function certaintyFromConfidence(
 }
 
 export function statementEntityLabel(proposition: string): string {
-  const digest = createHash("sha256").update(proposition).digest("hex").slice(0, 12);
+  const digest = createHash("sha256")
+    .update(proposition)
+    .digest("hex")
+    .slice(0, 12);
   return `statement_${digest}`;
 }

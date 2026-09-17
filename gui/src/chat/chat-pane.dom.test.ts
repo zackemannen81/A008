@@ -239,7 +239,10 @@ test("DOM contract: session error renders outside the answer channel", () => {
     textsOn(nodes, "answer").join("").includes("host unavailable"),
     false,
   );
-  assert.equal(textsOn(nodes, "thought").join("").includes("host unavailable"), false);
+  assert.equal(
+    textsOn(nodes, "thought").join("").includes("host unavailable"),
+    false,
+  );
 });
 
 test("DOM contract: rendered markup carries A008 copy and no OpenHands identity", () => {
@@ -253,23 +256,36 @@ test("DOM contract: rendered markup carries A008 copy and no OpenHands identity"
 });
 
 test("live tools attach only to the latest assistant turn", () => {
-  const html = renderToStaticMarkup(createElement(ChatPane, {
-    session: fakeSession({
-      details: {
-        model: "fixture",
-        parameters: { stream: true, temperature: null, topP: null, maxTokens: 16,
-          enableThinking: null, reasoningBudget: null, reasoningEffort: null, seed: null, stop: null },
-        messages: [
-          { role: "user", content: "first" },
-          { role: "assistant", content: "first answer" },
-          { role: "user", content: "second" },
-          { role: "assistant", content: "second answer" },
+  const html = renderToStaticMarkup(
+    createElement(ChatPane, {
+      session: fakeSession({
+        details: {
+          model: "fixture",
+          parameters: {
+            stream: true,
+            temperature: null,
+            topP: null,
+            maxTokens: 16,
+            enableThinking: null,
+            reasoningBudget: null,
+            reasoningEffort: null,
+            seed: null,
+            stop: null,
+          },
+          messages: [
+            { role: "user", content: "first" },
+            { role: "assistant", content: "first answer" },
+            { role: "user", content: "second" },
+            { role: "assistant", content: "second answer" },
+          ],
+          runtime: { cwd: "C:\\code\\A008", projectId: null, memoryPath: null },
+        },
+        tools: [
+          { id: "edit-2", title: "edit_file", status: "completed", text: "ok" },
         ],
-        runtime: { cwd: "C:\\code\\A008", projectId: null, memoryPath: null },
-      },
-      tools: [{ id: "edit-2", title: "edit_file", status: "completed", text: "ok" }],
+      }),
     }),
-  }));
+  );
   const first = html.indexOf("first answer");
   const second = html.indexOf("second answer");
   const tool = html.indexOf("edit_file · completed");
@@ -279,34 +295,50 @@ test("live tools attach only to the latest assistant turn", () => {
 });
 
 test("empty tool snapshot clears stale activity before the next prompt cycle", () => {
-  const firstCycle = renderToStaticMarkup(createElement(ChatPane, {
-    session: fakeSession({
-      answer: "First answer",
-      tools: [{ id: "read-1", title: "read_file", status: "completed", text: "first" }],
+  const firstCycle = renderToStaticMarkup(
+    createElement(ChatPane, {
+      session: fakeSession({
+        answer: "First answer",
+        tools: [
+          {
+            id: "read-1",
+            title: "read_file",
+            status: "completed",
+            text: "first",
+          },
+        ],
+      }),
     }),
-  }));
-  const resetCycle = renderToStaticMarkup(createElement(ChatPane, {
-    session: fakeSession({ answer: "Second answer", tools: [] }),
-  }));
+  );
+  const resetCycle = renderToStaticMarkup(
+    createElement(ChatPane, {
+      session: fakeSession({ answer: "Second answer", tools: [] }),
+    }),
+  );
   assert.match(firstCycle, /read_file · completed/u);
   assert.equal(resetCycle.includes("read_file · completed"), false);
   assert.equal(resetCycle.includes("First answer"), false);
 });
 
 test("tool activity renders inside the assistant turn, not as a page footer", () => {
-  const html = renderToStaticMarkup(createElement(ChatPane, {
-    session: fakeSession({
-      answer: "Saving index.html",
-      tools: [
-        { id: "read", title: "read_file", status: "completed", text: "ok" },
-        { id: "edit", title: "edit_file", status: "completed", text: "ok" },
-      ],
+  const html = renderToStaticMarkup(
+    createElement(ChatPane, {
+      session: fakeSession({
+        answer: "Saving index.html",
+        tools: [
+          { id: "read", title: "read_file", status: "completed", text: "ok" },
+          { id: "edit", title: "edit_file", status: "completed", text: "ok" },
+        ],
+      }),
     }),
-  }));
+  );
   assert.match(html, /a008-tool-activity/u);
   assert.match(html, /read_file · completed/u);
   assert.match(html, /edit_file · completed/u);
-  const assistant = /data-a008-role="assistant"[\s\S]*a008-tool-activity[\s\S]*<\/article>/u.exec(html);
+  const assistant =
+    /data-a008-role="assistant"[\s\S]*a008-tool-activity[\s\S]*<\/article>/u.exec(
+      html,
+    );
   assert.ok(assistant, "tool activity must sit inside the assistant article");
 });
 
@@ -314,16 +346,30 @@ test("completed HTML code renders separately and exposes an explicit Canvas acti
   const session = fakeSession({
     details: {
       model: "fixture",
-      parameters: { stream: true, temperature: null, topP: null, maxTokens: 16,
-        enableThinking: null, reasoningBudget: null, reasoningEffort: null, seed: null, stop: null },
+      parameters: {
+        stream: true,
+        temperature: null,
+        topP: null,
+        maxTokens: 16,
+        enableThinking: null,
+        reasoningBudget: null,
+        reasoningEffort: null,
+        seed: null,
+        stop: null,
+      },
       messages: [
         { role: "user", content: "make a canvas" },
-        { role: "assistant", content: "Here\n```html\n<canvas id=\"demo\"></canvas>\n```\nDone" },
+        {
+          role: "assistant",
+          content: 'Here\n```html\n<canvas id="demo"></canvas>\n```\nDone',
+        },
       ],
       runtime: { cwd: "C:\\code\\A008", projectId: null, memoryPath: null },
     },
   });
-  const html = renderToStaticMarkup(createElement(ChatPane, { session, onArtifactOpen() {} }));
+  const html = renderToStaticMarkup(
+    createElement(ChatPane, { session, onArtifactOpen() {} }),
+  );
   assert.match(html, /a008-chat-code/u);
   assert.match(html, /Open in Canvas/u);
   assert.match(html, /a008-hl/u);
@@ -336,15 +382,19 @@ test("completed HTML code renders separately and exposes an explicit Canvas acti
 });
 
 test("live or incomplete HTML never exposes the Canvas action", () => {
-  const live = renderToStaticMarkup(createElement(ChatPane, {
-    session: fakeSession({ answer: "```html\n<canvas></canvas>\n```" }),
-    onArtifactOpen() {},
-  }));
+  const live = renderToStaticMarkup(
+    createElement(ChatPane, {
+      session: fakeSession({ answer: "```html\n<canvas></canvas>\n```" }),
+      onArtifactOpen() {},
+    }),
+  );
   assert.equal(live.includes("Open in Canvas"), false);
 
-  const incomplete = renderToStaticMarkup(createElement(ChatPane, {
-    session: fakeSession({ answer: "```html\n<canvas></canvas>" }),
-    onArtifactOpen() {},
-  }));
+  const incomplete = renderToStaticMarkup(
+    createElement(ChatPane, {
+      session: fakeSession({ answer: "```html\n<canvas></canvas>" }),
+      onArtifactOpen() {},
+    }),
+  );
   assert.equal(incomplete.includes("Open in Canvas"), false);
 });

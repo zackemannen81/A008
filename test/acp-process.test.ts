@@ -10,14 +10,16 @@ import * as acp from "@agentclientprotocol/sdk";
 import { parseRuntimeId } from "../src/identity/runtime-id.js";
 import { isolatedMemoryEnv, uniqueTraceFile } from "./helpers.js";
 
-const ASSERTION =
-  "Durable fact: the local memory project code is alpha-seven.";
+const ASSERTION = "Durable fact: the local memory project code is alpha-seven.";
 const PROPOSITION = "the local memory project code is alpha-seven";
 
 interface ProviderPayload {
   readonly model?: unknown;
   readonly stream?: unknown;
-  readonly messages?: Array<{ readonly role?: unknown; readonly content?: unknown }>;
+  readonly messages?: Array<{
+    readonly role?: unknown;
+    readonly content?: unknown;
+  }>;
 }
 
 async function requestBody(request: IncomingMessage): Promise<string> {
@@ -93,7 +95,10 @@ test("compiled ACP process completes one turn through a local fake NVIDIA endpoi
     payloads.push(payload);
     const operation = operationOf(payload);
     if (payload.stream === false || operation !== undefined) {
-      writeSemantic(response, operation === "relation_classification" ? { type: "new" } : []);
+      writeSemantic(
+        response,
+        operation === "relation_classification" ? { type: "new" } : [],
+      );
       return;
     }
     writeChatSse(response, "local thought", ["fake ", "answer"]);
@@ -115,7 +120,9 @@ test("compiled ACP process completes one turn through a local fake NVIDIA endpoi
     },
     stdio: ["pipe", "pipe", "pipe"],
   });
-  assert(child.stdin !== null && child.stdout !== null && child.stderr !== null);
+  assert(
+    child.stdin !== null && child.stdout !== null && child.stderr !== null,
+  );
   let stderr = "";
   child.stderr.setEncoding("utf8");
   child.stderr.on("data", (chunk: string) => {
@@ -171,7 +178,10 @@ test("compiled ACP process completes one turn through a local fake NVIDIA endpoi
     assert.equal(receivedAuthorization, "Bearer local-test-key");
     const chat = payloads.find((payload) => operationOf(payload) === undefined);
     assert.equal(chat?.model, "nvidia/nemotron-3.5-lightning-30b-a3b");
-    assert.match(String(chat?.messages?.at(-1)?.content), /Hello from Agent Canvas/u);
+    assert.match(
+      String(chat?.messages?.at(-1)?.content),
+      /Hello from Agent Canvas/u,
+    );
     assert.deepEqual(
       updates.map((notification) => notification.update),
       [
@@ -221,13 +231,16 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
         const last = payload.messages?.at(-1)?.content;
         const envelope =
           typeof last === "string"
-            ? (JSON.parse(last) as { readonly input?: { readonly message?: unknown } })
+            ? (JSON.parse(last) as {
+                readonly input?: { readonly message?: unknown };
+              })
             : undefined;
         writeSemantic(
           response,
           envelope?.input?.message === ASSERTION
             ? [
-                { severity: "important",
+                {
+                  severity: "important",
                   proposition: PROPOSITION,
                   kind: "fact",
                   tags: ["memory"],
@@ -246,7 +259,9 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
     let projected = false;
     try {
       const envelope = JSON.parse(user) as {
-        readonly retrievedContext?: { readonly items?: Array<{ readonly proposition?: unknown }> };
+        readonly retrievedContext?: {
+          readonly items?: Array<{ readonly proposition?: unknown }>;
+        };
       };
       projected = (envelope.retrievedContext?.items ?? []).some(
         (item) => item.proposition === PROPOSITION,
@@ -254,13 +269,9 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
     } catch {
       projected = false;
     }
-    writeChatSse(
-      response,
-      "private thought",
-      [projected
-        ? "The local memory project code is alpha-seven."
-        : "Noted."],
-    );
+    writeChatSse(response, "private thought", [
+      projected ? "The local memory project code is alpha-seven." : "Noted.",
+    ]);
   });
   provider.listen(0, "127.0.0.1");
   await once(provider, "listening");
@@ -281,7 +292,9 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
     },
     stdio: ["pipe", "pipe", "pipe"],
   });
-  assert(child.stdin !== null && child.stdout !== null && child.stderr !== null);
+  assert(
+    child.stdin !== null && child.stdout !== null && child.stderr !== null,
+  );
   let stderr = "";
   child.stderr.setEncoding("utf8");
   child.stderr.on("data", (chunk: string) => {
@@ -325,10 +338,18 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
       (payload) => operationOf(payload) === undefined,
     );
     assert.equal(chatPayloads.length, 2);
-    assert.match(String(chatPayloads[1]?.messages?.at(-1)?.content), new RegExp(PROPOSITION, "u"));
-    assert.equal(String(chatPayloads[1]?.messages?.at(-1)?.content).includes("A008_v1_"), false);
     assert.match(
-      updates.map((notification) => JSON.stringify(notification.update)).join("\n"),
+      String(chatPayloads[1]?.messages?.at(-1)?.content),
+      new RegExp(PROPOSITION, "u"),
+    );
+    assert.equal(
+      String(chatPayloads[1]?.messages?.at(-1)?.content).includes("A008_v1_"),
+      false,
+    );
+    assert.match(
+      updates
+        .map((notification) => JSON.stringify(notification.update))
+        .join("\n"),
       /alpha-seven/u,
     );
     assert.equal(stderr.includes("local-test-key"), false);

@@ -14,9 +14,7 @@ import {
 } from "../src/orchestration/post-output-knowledge-intake.js";
 import { PostOutputMemoryCoordinator } from "../src/orchestration/post-output-memory-coordinator.js";
 import { IndexedRelationCandidateSource } from "../src/orchestration/relation-candidate-source.js";
-import {
-  RelationGatedMemoryCommit,
-} from "../src/orchestration/relation-gated-memory-commit.js";
+import { RelationGatedMemoryCommit } from "../src/orchestration/relation-gated-memory-commit.js";
 import {
   ChatTransportSemanticJsonGenerator,
   ModelBackedKnowledgeRelationClassifier,
@@ -71,12 +69,16 @@ test("actual SQLite multi-proposal flow observes earlier indexed canon", async (
           input: Record<string, unknown>;
         };
         if (envelope.operation === "knowledge_analysis") {
-          assert.deepEqual(Object.keys(envelope.input).sort(), ["answer", "message"]);
+          assert.deepEqual(Object.keys(envelope.input).sort(), [
+            "answer",
+            "message",
+          ]);
           return {
             message: {
               role: "assistant",
               content: JSON.stringify([
-                { severity: "important",
+                {
+                  severity: "important",
                   proposition: "SQLite stores canonical memory.",
                   kind: "architecture-decision",
                   tags: ["memory", "sqlite"],
@@ -84,7 +86,8 @@ test("actual SQLite multi-proposal flow observes earlier indexed canon", async (
                   entities: ["sqlite"],
                   confidence: 0.9,
                 },
-                { severity: "important",
+                {
+                  severity: "important",
                   proposition:
                     "SQLite stores canonical memory and relation decisions.",
                   kind: "architecture-decision",
@@ -212,8 +215,14 @@ test("actual SQLite multi-proposal flow observes earlier indexed canon", async (
       JSON.stringify(semanticRequests).includes("coordinator-current"),
       false,
     );
-    assert.equal(JSON.stringify(result).includes("private analyzer reasoning"), false);
-    assert.equal(JSON.stringify(result).includes("private relation reasoning"), false);
+    assert.equal(
+      JSON.stringify(result).includes("private analyzer reasoning"),
+      false,
+    );
+    assert.equal(
+      JSON.stringify(result).includes("private relation reasoning"),
+      false,
+    );
     if (result.status !== "completed") {
       throw new Error("expected completed coordinator result");
     }
@@ -221,7 +230,11 @@ test("actual SQLite multi-proposal flow observes earlier indexed canon", async (
       result.records.map((record) => record.result.reconciliation.relation),
       ["new", "extend"],
     );
-    assert.ok(result.records.every((record) => record.result.index.status === "updated"));
+    assert.ok(
+      result.records.every(
+        (record) => record.result.index.status === "updated",
+      ),
+    );
 
     const current = await memory.getKnowledge("coordinator-current");
     assert.equal(
@@ -255,16 +268,16 @@ test("actual SQLite multi-proposal flow observes earlier indexed canon", async (
       applicabilityScopes: ["runtime"],
       confidence: 1,
     };
-    const retrieval = await repository.retrieveCandidates(
-      retrievalPlan,
-      [],
-      { exact: 8, lexical: 8, tag: 8, domain: 8, semantic: 1 },
-    );
+    const retrieval = await repository.retrieveCandidates(retrievalPlan, [], {
+      exact: 8,
+      lexical: 8,
+      tag: 8,
+      domain: 8,
+      semantic: 1,
+    });
     assert.ok(retrieval.hits.length > 0);
     assert.ok(
-      retrieval.hits.every(
-        (hit) => hit.knowledgeId === "coordinator-current",
-      ),
+      retrieval.hits.every((hit) => hit.knowledgeId === "coordinator-current"),
     );
     assert.deepEqual(
       new Set(retrieval.hits.map((hit) => hit.channel)),

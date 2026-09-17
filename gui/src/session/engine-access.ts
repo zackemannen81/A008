@@ -1,7 +1,9 @@
 /** Ephemeral panel capability, supplied by the native engine client. Never persisted. */
 export function engineAccessToken(): string | undefined {
   if (typeof globalThis.location !== "object") return undefined;
-  const token = new URLSearchParams(globalThis.location.hash.slice(1)).get("engine");
+  const token = new URLSearchParams(globalThis.location.hash.slice(1)).get(
+    "engine",
+  );
   return token && /^[a-f0-9]{64}$/.test(token) ? token : undefined;
 }
 
@@ -40,11 +42,18 @@ export async function fetchWithAuthRecovery(
   if (hasEngineCapability(location.hash ?? "")) return response;
 
   const url = requestUrl(input, location.href);
-  if (url === undefined || url.origin !== location.origin || !url.pathname.startsWith("/v1/")) {
+  if (
+    url === undefined ||
+    url.origin !== location.origin ||
+    !url.pathname.startsWith("/v1/")
+  ) {
     return response;
   }
 
-  const body = await response.clone().json().catch(() => undefined) as unknown;
+  const body = (await response
+    .clone()
+    .json()
+    .catch(() => undefined)) as unknown;
   if (
     isRecord(body) &&
     body.error === PIN_AUTH_REQUIRED &&
@@ -56,7 +65,12 @@ export async function fetchWithAuthRecovery(
 }
 
 export function installAuthRecovery(): void {
-  if (authRecoveryInstalled || typeof globalThis.fetch !== "function" || typeof globalThis.location !== "object") return;
+  if (
+    authRecoveryInstalled ||
+    typeof globalThis.fetch !== "function" ||
+    typeof globalThis.location !== "object"
+  )
+    return;
   const nativeFetch = globalThis.fetch.bind(globalThis);
   const location = globalThis.location;
   globalThis.fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
@@ -68,14 +82,20 @@ export function installAuthRecovery(): void {
   authRecoveryInstalled = true;
 }
 function hasEngineCapability(hash: string): boolean {
-  const token = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash).get("engine");
+  const token = new URLSearchParams(
+    hash.startsWith("#") ? hash.slice(1) : hash,
+  ).get("engine");
   return token !== null && /^[a-f0-9]{64}$/.test(token);
 }
 
-function requestUrl(input: RequestInfo | URL, baseHref: string): URL | undefined {
+function requestUrl(
+  input: RequestInfo | URL,
+  baseHref: string,
+): URL | undefined {
   try {
     if (input instanceof URL) return input;
-    if (typeof Request !== "undefined" && input instanceof Request) return new URL(input.url);
+    if (typeof Request !== "undefined" && input instanceof Request)
+      return new URL(input.url);
     return new URL(String(input), baseHref);
   } catch {
     return undefined;

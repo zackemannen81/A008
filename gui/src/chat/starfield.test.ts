@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createStars, rotate4, STARFIELD_COUNT, startStarfield } from "./starfield-engine.js";
+import {
+  createStars,
+  rotate4,
+  STARFIELD_COUNT,
+  startStarfield,
+} from "./starfield-engine.js";
 import { EmptyStarfield } from "./starfield.js";
 
 test("4D rotation of a unit axis is a right angle in that plane", () => {

@@ -58,19 +58,32 @@ test("shared composition owns model defaults and endpoint mapping", async () => 
 });
 
 test("NVIDIA factory preserves explicit/default provenance at final composition", async () => {
-  for (const explicit of [undefined, "You are a helpful AI assistant.", "Explicit session base."]) {
+  for (const explicit of [
+    undefined,
+    "You are a helpful AI assistant.",
+    "Explicit session base.",
+  ]) {
     const requests: ChatRequest[] = [];
     const session = createNvidiaChatSession({
       env: { NVIDIA_API_KEY: "local-test-key" },
       ...(explicit === undefined ? {} : { systemMessage: explicit }),
-      createTransport: () => ({ async complete(request) {
-        requests.push(request);
-        return { message: { role: "assistant", content: "ok" } };
-      } }),
+      createTransport: () => ({
+        async complete(request) {
+          requests.push(request);
+          return { message: { role: "assistant", content: "ok" } };
+        },
+      }),
     });
-    await session.send("hello", { invocation: { systemMessages: ["Configured global."] } });
+    await session.send("hello", {
+      invocation: { systemMessages: ["Configured global."] },
+    });
     assert.deepEqual(requests[0]!.messages, [
-      { role: "system", content: explicit ? `${explicit}\n\nConfigured global.` : "Configured global." },
+      {
+        role: "system",
+        content: explicit
+          ? `${explicit}\n\nConfigured global.`
+          : "Configured global.",
+      },
       { role: "user", content: "hello" },
     ]);
   }

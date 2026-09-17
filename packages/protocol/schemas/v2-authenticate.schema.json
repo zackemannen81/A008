@@ -12,9 +12,6 @@
       "maxLength": 128
     }
   },
-  "required": [
-    "type",
-    "ticket"
-  ],
+  "required": ["type", "ticket"],
   "additionalProperties": false
 }

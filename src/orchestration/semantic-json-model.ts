@@ -26,9 +26,7 @@ import {
 import type { SemanticOperationContext } from "./semantic-operation.js";
 
 export type SemanticJsonOperation =
-  | "knowledge_analysis"
-  | "relation_classification"
-  | "retrieval_scope";
+  "knowledge_analysis" | "relation_classification" | "retrieval_scope";
 
 export interface SemanticJsonGenerateInput extends SemanticOperationContext {
   readonly operation: SemanticJsonOperation;
@@ -50,11 +48,11 @@ export interface ChatTransportSemanticJsonGeneratorOptions {
 /** Owner-authored extraction semantics; A008-0085 clarifies response syntax and
  * durable selection without weakening source fidelity, untrusted-data framing,
  * array-only output, or completeness for qualifying claims. */
-import  { POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION } from "../prompt-contracts/POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION.js" ;
+import { POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION } from "../prompt-contracts/POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION.js";
 export { POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION };
-import {KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION}  from "../prompt-contracts/KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION.js" ;
+import { KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION } from "../prompt-contracts/KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION.js";
 export { KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION };
-import { KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION } from "../prompt-contracts/KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION.js" ;
+import { KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION } from "../prompt-contracts/KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION.js";
 export { KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION };
 
 function nonEmpty(value: unknown, field: string): string {
@@ -119,15 +117,18 @@ function generationOptions(
   value: Omit<ChatGenerationOptions, "stream"> | undefined,
 ): ChatGenerationOptions {
   const raw = (value ?? {}) as Record<string, unknown>;
-  const temperature = raw.temperature === null ? undefined :
-    optionalFiniteNumber(
-      raw.temperature,
-      "temperature",
-    ) ?? SEMANTIC_JSON_GENERATION.temperature;
+  const temperature =
+    raw.temperature === null
+      ? undefined
+      : (optionalFiniteNumber(raw.temperature, "temperature") ??
+        SEMANTIC_JSON_GENERATION.temperature);
   // Null deliberately omits an unsupported control; undefined keeps the default.
   // Capability selection belongs to the runtime, not this provider-neutral owner.
-  const topP = raw.topP === null ? undefined :
-    optionalFiniteNumber(raw.topP, "topP") ?? SEMANTIC_JSON_GENERATION.topP;
+  const topP =
+    raw.topP === null
+      ? undefined
+      : (optionalFiniteNumber(raw.topP, "topP") ??
+        SEMANTIC_JSON_GENERATION.topP);
   const maxTokens =
     optionalPositiveInteger(raw.maxTokens, "maxTokens") ??
     SEMANTIC_JSON_GENERATION.maxTokens;
@@ -182,13 +183,20 @@ function validCompletionContent(value: unknown): string {
     );
   }
   const message = (value as { readonly message?: unknown }).message;
-  if (typeof message !== "object" || message === null || Array.isArray(message)) {
+  if (
+    typeof message !== "object" ||
+    message === null ||
+    Array.isArray(message)
+  ) {
     throw new ChatError(
       "invalid_response",
       "Semantic model returned an invalid assistant message.",
     );
   }
-  const raw = message as { readonly role?: unknown; readonly content?: unknown };
+  const raw = message as {
+    readonly role?: unknown;
+    readonly content?: unknown;
+  };
   if (raw.role !== "assistant") {
     throw new ChatError(
       "invalid_response",
@@ -227,7 +235,9 @@ function validCompletionContent(value: unknown): string {
 function jsonCandidates(content: string): readonly string[] {
   const candidates = [content];
 
-  const fenced = /^```[A-Za-z0-9_-]*[ \t]*\r?\n([\s\S]*?)\r?\n?```$/u.exec(content);
+  const fenced = /^```[A-Za-z0-9_-]*[ \t]*\r?\n([\s\S]*?)\r?\n?```$/u.exec(
+    content,
+  );
   if (fenced?.[1] !== undefined) {
     candidates.push(fenced[1].trim());
   }
@@ -253,10 +263,7 @@ const DIAGNOSTIC_EXCERPT_CHARACTERS = 200;
  * carries no credential — the semantic call sends none — and without it the
  * failure is unactionable from a log.
  */
-function describeNonJsonResponse(
-  completion: unknown,
-  content: string,
-): string {
+function describeNonJsonResponse(completion: unknown, content: string): string {
   const finishReason = (completion as { readonly finishReason?: unknown })
     .finishReason;
   const excerpt = content
@@ -300,9 +307,7 @@ function parseSemanticResponse(value: unknown): unknown {
   );
 }
 
-export class ChatTransportSemanticJsonGenerator
-  implements SemanticJsonGenerator
-{
+export class ChatTransportSemanticJsonGenerator implements SemanticJsonGenerator {
   readonly #transport: ChatTransport;
   readonly #model: string;
   readonly #budget: ChatInvocationBudget;
@@ -361,18 +366,18 @@ export class ChatTransportSemanticJsonGenerator
       return parseSemanticResponse(completion);
     } catch (error) {
       if (error instanceof ChatError && error.code === "invalid_response") {
-        throw new ChatError("invalid_response",
+        throw new ChatError(
+          "invalid_response",
           `Semantic ${operation} (${this.#model}): ${error.message}`,
-          { cause: error });
+          { cause: error },
+        );
       }
       throw error;
     }
   }
 }
 
-export class ModelBackedPostOutputKnowledgeAnalyzer
-  implements PostOutputKnowledgeAnalyzer
-{
+export class ModelBackedPostOutputKnowledgeAnalyzer implements PostOutputKnowledgeAnalyzer {
   readonly #generator: SemanticJsonGenerator;
 
   constructor(generator: SemanticJsonGenerator) {
@@ -399,9 +404,7 @@ export class ModelBackedPostOutputKnowledgeAnalyzer
   }
 }
 
-export class ModelBackedKnowledgeRelationClassifier
-  implements KnowledgeRelationClassifier
-{
+export class ModelBackedKnowledgeRelationClassifier implements KnowledgeRelationClassifier {
   readonly #generator: SemanticJsonGenerator;
 
   constructor(generator: SemanticJsonGenerator) {
@@ -437,11 +440,17 @@ export class ModelBackedKnowledgeRelationClassifier
     // Backward-compatible one-item adapter for existing semantic fixtures and
     // embedders. A real multi-proposal batch must still return the batch array;
     // we never fan it back out into N provider calls.
-    if (input.items.length === 1 && typeof untrusted === "object" && untrusted !== null) {
-      return [{
-        ...(untrusted as RelationClassifierDecision),
-        proposalHandle: input.items[0]!.proposalHandle,
-      }];
+    if (
+      input.items.length === 1 &&
+      typeof untrusted === "object" &&
+      untrusted !== null
+    ) {
+      return [
+        {
+          ...(untrusted as RelationClassifierDecision),
+          proposalHandle: input.items[0]!.proposalHandle,
+        },
+      ];
     }
     return untrusted as readonly RelationClassifierBatchDecision[];
   }
@@ -512,9 +521,7 @@ export interface RetrievalScopeClassifier {
 /** How much stored vocabulary is offered to the classifier. */
 export const MAXIMUM_OFFERED_VOCABULARY = 200;
 
-export class ModelBackedRetrievalScopeClassifier
-  implements RetrievalScopeClassifier
-{
+export class ModelBackedRetrievalScopeClassifier implements RetrievalScopeClassifier {
   readonly #generator: SemanticJsonGenerator;
   readonly #maximumVocabulary: number;
 

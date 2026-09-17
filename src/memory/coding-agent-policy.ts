@@ -21,7 +21,10 @@ function validateBoost(value: number, field: string): number {
   return value;
 }
 
-function intersects(left: readonly string[], right: readonly string[]): boolean {
+function intersects(
+  left: readonly string[],
+  right: readonly string[],
+): boolean {
   const rightSet = new Set(right);
   return left.some((value) => rightSet.has(value));
 }
@@ -53,10 +56,7 @@ export class CodingAgentMemoryPolicy implements MemoryPolicy {
     return scopeMatches && termMatches;
   }
 
-  projectionReinforcement(
-    _item: KnowledgeItem,
-    _task: MemoryTask,
-  ): number {
+  projectionReinforcement(_item: KnowledgeItem, _task: MemoryTask): number {
     return this.projectionBoost;
   }
 

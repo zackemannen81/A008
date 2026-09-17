@@ -85,7 +85,10 @@ export class RuntimeIdentityFactory {
 
   create<Kind extends RuntimeIdentityKind>(kind: Kind): RuntimeId<Kind> {
     if (!RUNTIME_IDENTITY_KINDS.includes(kind)) {
-      throw new IdentityError("invalid_id", `Unsupported runtime ID kind: ${kind}`);
+      throw new IdentityError(
+        "invalid_id",
+        `Unsupported runtime ID kind: ${kind}`,
+      );
     }
     const uuid = this.#uuidFactory();
     if (!UUID_V4_REGEX.test(uuid)) {

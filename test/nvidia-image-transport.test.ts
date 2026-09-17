@@ -31,9 +31,12 @@ test("image transport posts prompt to the configured endpoint without leaking th
     fetch: async (input, init) => {
       url = String(input);
       body = String(init?.body ?? "");
-      return new Response(JSON.stringify({ artifacts: [{ base64: PNG.toString("base64") }] }), {
-        headers: { "content-type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ artifacts: [{ base64: PNG.toString("base64") }] }),
+        {
+          headers: { "content-type": "application/json" },
+        },
+      );
     },
   });
   const result = await transport.generate({ prompt: "a coffee shop interior" });

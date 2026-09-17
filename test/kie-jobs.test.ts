@@ -12,17 +12,22 @@ const PNG = Buffer.from(
 );
 
 test("parses createTask and success resultUrls", () => {
-  assert.equal(parseKieCreateTask({ code: 200, data: { taskId: "task_1" } }), "task_1");
+  assert.equal(
+    parseKieCreateTask({ code: 200, data: { taskId: "task_1" } }),
+    "task_1",
+  );
   assert.deepEqual(
     parseKieResultUrls({
-      data: { state: "success", resultJson: JSON.stringify({ resultUrls: ["https://example.test/a.png"] }) },
+      data: {
+        state: "success",
+        resultJson: JSON.stringify({
+          resultUrls: ["https://example.test/a.png"],
+        }),
+      },
     }),
     ["https://example.test/a.png"],
   );
-  assert.deepEqual(
-    parseKieResultUrls({ data: { state: "generating" } }),
-    [],
-  );
+  assert.deepEqual(parseKieResultUrls({ data: { state: "generating" } }), []);
   assert.throws(
     () => parseKieResultUrls({ data: { state: "fail", failMsg: "nsfw" } }),
     /nsfw/u,
@@ -40,14 +45,24 @@ test("job transport polls until a result URL can be downloaded", async () => {
     fetch: async (input) => {
       const url = String(input);
       if (url.includes("createTask")) {
-        return new Response(JSON.stringify({ code: 200, data: { taskId: "task_img" } }));
+        return new Response(
+          JSON.stringify({ code: 200, data: { taskId: "task_img" } }),
+        );
       }
       if (url.includes("recordInfo")) {
         polls += 1;
-        if (polls < 2) return new Response(JSON.stringify({ data: { state: "generating" } }));
+        if (polls < 2)
+          return new Response(
+            JSON.stringify({ data: { state: "generating" } }),
+          );
         return new Response(
           JSON.stringify({
-            data: { state: "success", resultJson: JSON.stringify({ resultUrls: ["https://example.test/out.png"] }) },
+            data: {
+              state: "success",
+              resultJson: JSON.stringify({
+                resultUrls: ["https://example.test/out.png"],
+              }),
+            },
           }),
         );
       }
@@ -57,7 +72,10 @@ test("job transport polls until a result URL can be downloaded", async () => {
       throw new Error(url);
     },
   });
-  const result = await transport.generateImage("flux-2/flex-text-to-image", "a coffee shop interior");
+  const result = await transport.generateImage(
+    "flux-2/flex-text-to-image",
+    "a coffee shop interior",
+  );
   assert.equal(result.mediaType, "image/png");
   assert.equal(result.bytes.equals(PNG), true);
   assert.ok(polls >= 2);

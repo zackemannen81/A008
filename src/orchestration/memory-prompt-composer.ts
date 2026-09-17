@@ -22,22 +22,12 @@ function nonEmpty(value: string, field: string): string {
   return normalized;
 }
 
-function normalizedStrings(
-  values: readonly string[],
-  field: string,
-): string[] {
-  return values.map((value, index) =>
-    nonEmpty(value, `${field} ${index + 1}`),
-  );
+function normalizedStrings(values: readonly string[], field: string): string[] {
+  return values.map((value, index) => nonEmpty(value, `${field} ${index + 1}`));
 }
 
-export class DeterministicMemoryPromptComposer
-  implements MemoryPromptComposer
-{
-  compose(
-    projection: ProjectionResult,
-    originalMessage: string,
-  ): MemoryPrompt {
+export class DeterministicMemoryPromptComposer implements MemoryPromptComposer {
+  compose(projection: ProjectionResult, originalMessage: string): MemoryPrompt {
     const message = nonEmpty(originalMessage, "Original message");
     const items = projection.projection.items.map((item, index) => {
       if (
@@ -55,10 +45,7 @@ export class DeterministicMemoryPromptComposer
           item.proposition,
           `Projected memory item ${index + 1} proposition`,
         ),
-        kind: nonEmpty(
-          item.kind,
-          `Projected memory item ${index + 1} kind`,
-        ),
+        kind: nonEmpty(item.kind, `Projected memory item ${index + 1} kind`),
         tags: normalizedStrings(
           item.tags,
           `Projected memory item ${index + 1} tag`,

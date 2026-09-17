@@ -17,17 +17,20 @@ const NAMED_ENTITIES = new Map<string, string>([
 ]);
 
 export function decodeXmlText(value: string): string {
-  return value.replace(/&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);/g, (match, body: string) => {
-    if (body.startsWith("#x") || body.startsWith("#X")) {
-      const code = Number.parseInt(body.slice(2), 16);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
-    }
-    if (body.startsWith("#")) {
-      const code = Number.parseInt(body.slice(1), 10);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : match;
-    }
-    return NAMED_ENTITIES.get(body) ?? match;
-  });
+  return value.replace(
+    /&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);/g,
+    (match, body: string) => {
+      if (body.startsWith("#x") || body.startsWith("#X")) {
+        const code = Number.parseInt(body.slice(2), 16);
+        return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+      }
+      if (body.startsWith("#")) {
+        const code = Number.parseInt(body.slice(1), 10);
+        return Number.isFinite(code) ? String.fromCodePoint(code) : match;
+      }
+      return NAMED_ENTITIES.get(body) ?? match;
+    },
+  );
 }
 
 export interface XmlTag {
@@ -154,7 +157,9 @@ export function findOfficeDocumentPart(relsXml: string): string | undefined {
       if (target !== undefined || tag.closing || tag.name !== "Relationship") {
         return;
       }
-      if (attributeValue(tag.attributes, "Type") !== OFFICE_DOCUMENT_RELATIONSHIP) {
+      if (
+        attributeValue(tag.attributes, "Type") !== OFFICE_DOCUMENT_RELATIONSHIP
+      ) {
         return;
       }
       const value = attributeValue(tag.attributes, "Target");

@@ -89,7 +89,10 @@ async function main(): Promise<void> {
 }
 
 const entryPath = process.argv[1];
-if (entryPath !== undefined && import.meta.url === pathToFileURL(entryPath).href) {
+if (
+  entryPath !== undefined &&
+  import.meta.url === pathToFileURL(entryPath).href
+) {
   main().catch((error: unknown) => {
     process.stderr.write(
       `fake ACP failed: ${error instanceof Error ? error.message : "unknown error"}\n`,

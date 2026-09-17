@@ -9,10 +9,8 @@ import type {
 } from "./read-types.js";
 import type { SlotRef } from "./types.js";
 
-const PLANNER_CURRENT =
-  /\b(nu|aktuell|current|now|latest|senaste)\b/u;
-const PLANNER_PAST =
-  /\b(tidigare|förut|histor|past|previous|before)\b/u;
+const PLANNER_CURRENT = /\b(nu|aktuell|current|now|latest|senaste)\b/u;
+const PLANNER_PAST = /\b(tidigare|förut|histor|past|previous|before)\b/u;
 const PLANNER_FUTURE =
   /\b(senare|framtid|future|later|next|imorgon|tomorrow)\b/u;
 
@@ -38,7 +36,10 @@ export function define(
   input: DefineInput,
   context: KnowledgeReadContext,
 ): SemanticScope {
-  if (input.verifiedScope === undefined || input.verifiedScope.verified !== true) {
+  if (
+    input.verifiedScope === undefined ||
+    input.verifiedScope.verified !== true
+  ) {
     throw new KnowledgeModelError(
       "invalid_input",
       "DEFINE requires verified runtime scope",
@@ -173,7 +174,10 @@ function discoverSlots(
     } else {
       const subject = String(ref.subject);
       const object = ref.object === undefined ? "" : String(ref.object);
-      if (entityIds.has(subject) || (object.length > 0 && entityIds.has(object))) {
+      if (
+        entityIds.has(subject) ||
+        (object.length > 0 && entityIds.has(object))
+      ) {
         include = true;
         if (wantsReturn) {
           include = false;
