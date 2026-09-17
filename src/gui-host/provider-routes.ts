@@ -46,6 +46,10 @@ export function mergedModels(registry: ModelRegistry, catalogPath: string): Host
   ].map((profile) => ({
     id: profile.id,
     name: profile.name,
+    provider: profile.provider,
+    executionProvider: profile.executionProvider ?? profile.provider,
+    inputModalities: [...profile.inputModalities],
+    ...(profile.verifiedOn === undefined ? {} : { verifiedOn: profile.verifiedOn }),
     defaults: defaultSessionParameters(profile),
     capabilities: generationCapabilities(profile.id),
     added: !registry.get(profile.id),

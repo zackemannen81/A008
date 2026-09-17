@@ -54,14 +54,24 @@ interface NvidiaResponse {
 
 function buildPayload(request: ChatRequest): Record<string, unknown> {
   const options = request.options ?? {};
+  let attachmentUserIndex = -1;
+  if (request.imageAttachments?.length) {
+    request.messages.forEach((message, index) => { if (message.role === "user") attachmentUserIndex = index; });
+    if (attachmentUserIndex < 0) throw new ChatError("configuration", "Native vision requires a user message.");
+  }
   const payload: Record<string, unknown> = {
     model: request.model,
-    messages: request.messages.map(message => message.role === "tool"
+    messages: request.messages.map((message, index) => message.role === "tool"
       ? { role: "tool", tool_call_id: message.toolCallId, content: message.content }
       : "toolCalls" in message ? { role: "assistant", content: message.content || null,
         ...(message.reasoning ? { reasoning_content: message.reasoning } : {}),
         tool_calls: message.toolCalls.map(call => ({ id: call.id, type: "function", function: { name: call.name, arguments: call.arguments } })) }
-      : { ...message }),
+      : index === attachmentUserIndex && message.role === "user"
+        ? { role: "user", content: [
+            { type: "text", text: message.content },
+            ...request.imageAttachments!.map(image => ({ type: "image_url", image_url: { url: image.dataRef } })),
+          ] }
+        : { ...message }),
     stream: options.stream ?? true,
   };
   if (request.tools?.length) {

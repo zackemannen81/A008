@@ -185,3 +185,40 @@ test("reset preserves only the system message", async () => {
   session.reset();
   assert.deepEqual(session.messages, [{ role: "system", content: "system" }]);
 });
+
+test("native image input survives same-turn tool continuation but never enters committed history", async () => {
+  const seen: ChatRequest[] = [];
+  let round = 0;
+  const session = new ChatSession({
+    model: "provider/vision",
+    transport: {
+      async complete(request) {
+        seen.push(request);
+        round += 1;
+        if (round === 1) {
+          return {
+            message: { role: "assistant", content: "" },
+            toolCalls: [{ id: "call-vision", name: "inspect", arguments: "{}" }],
+          };
+        }
+        return { message: { role: "assistant", content: "final answer" } };
+      },
+    },
+  });
+  await session.send("what is in this image?", {
+    imageAttachments: [{ mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" }],
+    tools: {
+      definitions: [{ name: "inspect", description: "Inspect", parameters: { type: "object", properties: {} } }],
+      maximumCalls: 2,
+      async execute() { return "tool result"; },
+    },
+  });
+  assert.equal(seen.length, 2);
+  assert.deepEqual(seen[0]?.imageAttachments, [{ mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" }]);
+  assert.deepEqual(seen[1]?.imageAttachments, seen[0]?.imageAttachments);
+  assert.deepEqual(session.messages, [
+    { role: "user", content: "what is in this image?" },
+    { role: "assistant", content: "final answer" },
+  ]);
+  assert.equal(JSON.stringify(session.messages).includes("base64"), false);
+});

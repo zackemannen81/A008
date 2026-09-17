@@ -216,3 +216,32 @@ test("missing API key fails before fetch can be used", () => {
   );
   assert.equal(calls, 0);
 });
+
+test("NVIDIA native vision maps only the active user message to image_url content", async () => {
+  let payload: any;
+  const transport = new NvidiaChatTransport({
+    apiKey: "test-token",
+    fetch: async (_input, init) => {
+      payload = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ choices: [{ message: { content: "seen" }, finish_reason: "stop" }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    },
+  });
+  await transport.complete({
+    model: "moonshotai/kimi-k3",
+    messages: [
+      { role: "user", content: "old text turn" },
+      { role: "assistant", content: "old answer" },
+      { role: "user", content: "describe this" },
+    ],
+    imageAttachments: [{ mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" }],
+    options: { stream: false },
+  });
+  assert.equal(payload.messages[0].content, "old text turn");
+  assert.deepEqual(payload.messages[2].content, [
+    { type: "text", text: "describe this" },
+    { type: "image_url", image_url: { url: "data:image/png;base64,AAAA" } },
+  ]);
+});

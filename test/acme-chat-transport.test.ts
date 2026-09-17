@@ -872,3 +872,28 @@ test("ChatError remains the public failure type", () => {
   });
   assert.equal(error instanceof ChatError, true);
 });
+
+test("buildAcmeExecuteBody maps native image parts and requires vision without changing text history", () => {
+  const body = buildAcmeExecuteBody(
+    {
+      model: "moonshotai/kimi-k3",
+      messages: [{ role: "system", content: "system" }, { role: "user", content: "describe this" }],
+      imageAttachments: [{ mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" }],
+    },
+    { requestKey: "vision-1", timeoutMs: 10_000 },
+  );
+  assert.deepEqual(body.requiredCapabilities, { vision: true });
+  const request = body.request as any;
+  assert.deepEqual(request.messages[1], {
+    role: "user",
+    content: [
+      { type: "text", text: "describe this" },
+      { type: "image", mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" },
+    ],
+  });
+  assert.deepEqual((body as any).model, {
+    profile: "moonshotai/kimi-k3",
+    modelHint: "moonshotai/kimi-k3",
+    providerHint: "nvidia",
+  });
+});

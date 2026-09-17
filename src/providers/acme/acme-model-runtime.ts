@@ -246,9 +246,19 @@ export function buildAcmeExecuteBody(
     };
   },
 ): Record<string, unknown> {
-  const messages = request.messages.map((message) => ({
+  let attachmentUserIndex = -1;
+  if (request.imageAttachments?.length) {
+    request.messages.forEach((message, index) => { if (message.role === "user") attachmentUserIndex = index; });
+    if (attachmentUserIndex < 0) throw new ChatError("configuration", "Native vision requires a user message.");
+  }
+  const messages = request.messages.map((message, index) => ({
     role: message.role,
-    content: messageContent(message),
+    content: [
+      ...messageContent(message),
+      ...(index === attachmentUserIndex
+        ? request.imageAttachments!.map((image) => ({ type: "image", mediaType: image.mediaType, dataRef: image.dataRef }))
+        : []),
+    ],
   }));
   if (messages.length === 0) {
     throw new ChatError("configuration", "ACME model request requires messages.");
@@ -283,9 +293,10 @@ export function buildAcmeExecuteBody(
   if (options.correlationId !== undefined && options.correlationId.length > 0) {
     body.correlationId = options.correlationId;
   }
-  if (request.tools !== undefined && request.tools.length > 0) {
-    body.requiredCapabilities = { tools: true };
-  }
+  const requiredCapabilities: Record<string, boolean> = {};
+  if (request.tools !== undefined && request.tools.length > 0) requiredCapabilities.tools = true;
+  if (request.imageAttachments?.length) requiredCapabilities.vision = true;
+  if (Object.keys(requiredCapabilities).length > 0) body.requiredCapabilities = requiredCapabilities;
   return body;
 }
 

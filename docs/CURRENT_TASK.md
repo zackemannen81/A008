@@ -2,7 +2,7 @@
 
 Task ID: A008-0124
 Parent Task: None
-Status: Ready
+Status: In Progress
 Owner: ChatGPT (operator)
 Created: 2026-09-17
 Last updated: 2026-09-17
@@ -117,6 +117,7 @@ Contract revision: `79f0274b6ab62dc985ed1fe5f4b52ff155052b47`.
 - [ ] Add invocation-local image representation while preserving committed string history.
 - [ ] Map image input through current direct transports and ACME without fallback.
 - [ ] Add focused regressions, then run full minimum gates.
+- [ ] Repair the pre-existing GUI test resolver `.jsx` → `.tsx` gap discovered while executing the frozen full-GUI verification gate; no product/runtime behavior change.
 - [ ] Run one owner-authorized live ACME vision smoke and record evidence.
 - [ ] Update owning docs, archive task, write handoff and restore `CURRENT_TASK.md` before final push.
 

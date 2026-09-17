@@ -44,9 +44,16 @@ export interface ChatGenerationOptions {
   readonly stop?: readonly string[] | null;
 }
 
+export interface ChatImageAttachment {
+  readonly mediaType: string;
+  /** Provider-ready transient reference (normally a data URL); never committed to history. */
+  readonly dataRef: string;
+}
+
 export interface ChatRequest {
   readonly model: string;
   readonly messages: readonly ChatWireMessage[];
+  readonly imageAttachments?: readonly ChatImageAttachment[];
   readonly tools?: readonly ChatToolDefinition[];
   readonly options?: ChatGenerationOptions;
   readonly signal?: AbortSignal;

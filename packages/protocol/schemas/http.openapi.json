@@ -2840,6 +2840,23 @@
                 "name": {
                   "$ref": "#/components/schemas/models/$defs/__schema0"
                 },
+                "provider": {
+                  "$ref": "#/components/schemas/models/$defs/__schema1"
+                },
+                "executionProvider": {
+                  "$ref": "#/components/schemas/models/$defs/__schema1"
+                },
+                "inputModalities": {
+                  "readOnly": true,
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/models/$defs/__schema2"
+                  }
+                },
+                "verifiedOn": {
+                  "$ref": "#/components/schemas/models/$defs/__schema1"
+                },
                 "defaults": {
                   "type": "object",
                   "properties": {
@@ -2849,7 +2866,7 @@
                     "temperature": {
                       "anyOf": [
                         {
-                          "$ref": "#/components/schemas/models/$defs/__schema1"
+                          "$ref": "#/components/schemas/models/$defs/__schema3"
                         },
                         {
                           "type": "null"
@@ -2859,7 +2876,7 @@
                     "topP": {
                       "anyOf": [
                         {
-                          "$ref": "#/components/schemas/models/$defs/__schema1"
+                          "$ref": "#/components/schemas/models/$defs/__schema3"
                         },
                         {
                           "type": "null"
@@ -2867,7 +2884,7 @@
                       ]
                     },
                     "maxTokens": {
-                      "$ref": "#/components/schemas/models/$defs/__schema1"
+                      "$ref": "#/components/schemas/models/$defs/__schema3"
                     },
                     "enableThinking": {
                       "type": [
@@ -2878,7 +2895,7 @@
                     "reasoningBudget": {
                       "anyOf": [
                         {
-                          "$ref": "#/components/schemas/models/$defs/__schema1"
+                          "$ref": "#/components/schemas/models/$defs/__schema3"
                         },
                         {
                           "type": "null"
@@ -2898,7 +2915,7 @@
                     "seed": {
                       "anyOf": [
                         {
-                          "$ref": "#/components/schemas/models/$defs/__schema1"
+                          "$ref": "#/components/schemas/models/$defs/__schema3"
                         },
                         {
                           "type": "null"
@@ -2936,7 +2953,7 @@
                   "type": "object",
                   "properties": {
                     "maxTokens": {
-                      "$ref": "#/components/schemas/models/$defs/__schema1"
+                      "$ref": "#/components/schemas/models/$defs/__schema3"
                     },
                     "topP": {
                       "type": "boolean"
@@ -2947,7 +2964,7 @@
                     "reasoningBudget": {
                       "anyOf": [
                         {
-                          "$ref": "#/components/schemas/models/$defs/__schema1"
+                          "$ref": "#/components/schemas/models/$defs/__schema3"
                         },
                         {
                           "type": "null"
@@ -2989,6 +3006,9 @@
               "required": [
                 "id",
                 "name",
+                "provider",
+                "executionProvider",
+                "inputModalities",
                 "defaults",
                 "capabilities",
                 "added"
@@ -3004,6 +3024,19 @@
             "type": "string"
           },
           "__schema1": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/models/$defs/__schema0"
+          },
+          "__schema2": {
+            "type": "string",
+            "enum": [
+              "text",
+              "image",
+              "video",
+              "audio"
+            ]
+          },
+          "__schema3": {
             "type": "number"
           }
         }

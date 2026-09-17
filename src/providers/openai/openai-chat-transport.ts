@@ -115,9 +115,14 @@ function parseJson(text: string): OpenAiResponse {
 
 function buildPayload(request: ChatRequest): Record<string, unknown> {
   const options = request.options ?? {};
+  let attachmentUserIndex = -1;
+  if (request.imageAttachments?.length) {
+    request.messages.forEach((message, index) => { if (message.role === "user") attachmentUserIndex = index; });
+    if (attachmentUserIndex < 0) throw new ChatError("configuration", "Native vision requires a user message.");
+  }
   const payload: Record<string, unknown> = {
     model: request.model,
-    messages: request.messages.map((message) =>
+    messages: request.messages.map((message, index) =>
       message.role === "tool"
         ? { role: "tool", tool_call_id: message.toolCallId, content: message.content }
         : "toolCalls" in message
@@ -130,7 +135,18 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
                 function: { name: call.name, arguments: call.arguments },
               })),
             }
-          : { role: message.role, content: message.content },
+          : index === attachmentUserIndex && message.role === "user"
+            ? {
+                role: "user",
+                content: [
+                  { type: "text", text: message.content },
+                  ...request.imageAttachments!.map((image) => ({
+                    type: "image_url",
+                    image_url: { url: image.dataRef },
+                  })),
+                ],
+              }
+            : { role: message.role, content: message.content },
     ),
     stream: options.stream ?? true,
   };

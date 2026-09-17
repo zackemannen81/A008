@@ -24,7 +24,7 @@ import {
   defaultModelRegistry,
   type ModelRegistry,
 } from "../core/model-registry.js";
-import type { ChatCompletion, ChatTransport } from "../core/types.js";
+import type { ChatCompletion, ChatImageAttachment, ChatTransport } from "../core/types.js";
 import { IdentityError } from "../identity/errors.js";
 import {
   parseRuntimeId,
@@ -55,6 +55,7 @@ import {
   SourceExtractorRegistry,
   Utf8TextExtractor,
 } from "../ingest/index.js";
+import { IMAGE_GIF, IMAGE_JPEG, IMAGE_PNG, IMAGE_WEBP } from "../ingest/types.js";
 import { MemoryAwareChatSession } from "../orchestration/memory-aware-chat-session.js";
 import type { MemoryReadPort } from "../orchestration/memory-aware-chat-session.js";
 import {
@@ -621,6 +622,7 @@ export class LocalMemorySession {
               ...(options.generation === undefined
                 ? {}
                 : { generation: options.generation }),
+              ...(options.imageAttachments?.length ? { imageAttachments: options.imageAttachments } : {}),
               ...(options.signal === undefined ? {} : { signal: options.signal }),
               ...(options.onDelta === undefined ? {} : { onDelta: options.onDelta }),
               ...(tools === undefined ? {} : { tools }),
@@ -935,6 +937,28 @@ export class LocalMemoryRuntime {
       committer: this.#committerDecorator?.(committer) ?? committer,
     });
     return { chat: memoryAware, coordinator };
+  }
+
+
+  resolveImageAttachment(locator: string): ChatImageAttachment {
+    if (this.#closed) throw new ChatError("configuration", "Local memory runtime is closed.");
+    if (this.sourceStoreRoot === undefined) {
+      throw new ChatError("configuration", "A008_SOURCE_STORE_PATH is not configured.");
+    }
+    const resolvedPath = resolveSourceLocatorPath(this.sourceStoreRoot, locator);
+    const bytes = this.#readSourceBytes(resolvedPath);
+    const mediaType = sniffSourceMediaType(bytes);
+    const supported = new Set([IMAGE_PNG, IMAGE_JPEG, IMAGE_WEBP, IMAGE_GIF]);
+    if (!supported.has(mediaType)) {
+      throw new ChatError(
+        "configuration",
+        `Native vision attachment must be PNG, JPEG, WebP or GIF; stored source is ${mediaType}.`,
+      );
+    }
+    return {
+      mediaType,
+      dataRef: `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`,
+    };
   }
 
   /**

@@ -54,6 +54,7 @@ export interface MemoryAwareTurnInput {
 
 export interface MemoryAwareTurnOptions {
   readonly generation?: ChatGenerationOptions;
+  readonly imageAttachments?: SendMessageOptions["imageAttachments"];
   readonly signal?: AbortSignal;
   readonly onDelta?: SendMessageOptions["onDelta"];
   readonly tools?: SendMessageOptions["tools"];
@@ -223,6 +224,7 @@ export class MemoryAwareChatSession {
         ...(options.generation === undefined
           ? {}
           : { generation: options.generation }),
+        ...(options.imageAttachments?.length ? { imageAttachments: options.imageAttachments } : {}),
         ...(options.signal === undefined ? {} : { signal: options.signal }),
         ...(options.onDelta === undefined ? {} : { onDelta: options.onDelta }),
         ...(options.tools === undefined ? {} : { tools: options.tools }),

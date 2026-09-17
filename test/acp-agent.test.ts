@@ -420,3 +420,60 @@ test("ACP memory methods fail closed when no memory runtime was composed", async
   await assert.rejects(() => agent.recallMemory({ query: "anything" }), /method/i);
   await assert.rejects(() => agent.writeMemory({ content: "anything" }), /method/i);
 });
+
+test("ACP native source image is capability-gated and stays invocation-local", async () => {
+  let captured: ChatRequest | undefined;
+  let created: ChatSession | undefined;
+  const agent = new A008AcpAgent({
+    createSession(model) {
+      created = new ChatSession({
+        model,
+        transport: {
+          async complete(request) {
+            captured = request;
+            return { message: { role: "assistant", content: "a cat" } };
+          },
+        },
+      });
+      return created;
+    },
+    resolveImageAttachment(locator) {
+      assert.match(locator, /^source:/u);
+      return { mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" };
+    },
+    createSessionId: () => SESSION_ID,
+  });
+  agent.newSession(NEW_SESSION);
+  agent.setSessionConfigOption({ sessionId: SESSION_ID, configId: "model", value: "moonshotai/kimi-k3" });
+  await agent.prompt({
+    sessionId: SESSION_ID,
+    prompt: [
+      { type: "text", text: "what is shown?" },
+      { type: "resource_link", name: "chat-image", uri: `source:${"a".repeat(64)}/photo.png`, mimeType: "image/png" },
+    ],
+  }, async () => undefined);
+  assert.deepEqual(captured?.imageAttachments, [{ mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" }]);
+  assert.equal(captured?.messages.at(-1)?.content, "what is shown?");
+  assert.deepEqual(created?.messages, [
+    { role: "user", content: "what is shown?" },
+    { role: "assistant", content: "a cat" },
+  ]);
+
+  const textOnlyId = "A008_v1_acp_session_00000000-0000-4000-8000-000000000002";
+  const blocked = new A008AcpAgent({
+    createSession() { throw new Error("provider must not be reached"); },
+    resolveImageAttachment() { throw new Error("resolver must not run for unsupported model"); },
+    createSessionId: () => textOnlyId,
+  });
+  blocked.newSession(NEW_SESSION);
+  await assert.rejects(
+    blocked.prompt({
+      sessionId: textOnlyId,
+      prompt: [
+        { type: "text", text: "look" },
+        { type: "resource_link", name: "chat-image", uri: `source:${"b".repeat(64)}/photo.png`, mimeType: "image/png" },
+      ],
+    }, async () => undefined),
+    (error: unknown) => error instanceof RequestError && /does not declare image input support/u.test(error.message),
+  );
+});

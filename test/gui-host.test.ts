@@ -288,7 +288,15 @@ test("GET /health and /v1/models do not require a credential", async () => {
       assert.equal(typeof entry.id, "string");
       assert.equal(typeof entry.name, "string");
       // ADR 0026 adds public parameter metadata, never environment secrets.
-      assert.deepEqual(Object.keys(entry).sort(), ["added", "capabilities", "defaults", "id", "name"]);
+      const keys = Object.keys(entry);
+      for (const key of ["added", "capabilities", "defaults", "executionProvider", "id", "inputModalities", "name", "provider"]) {
+        assert.ok(keys.includes(key), `model metadata includes ${key}`);
+      }
+      assert.equal(typeof (entry as { provider?: unknown }).provider, "string");
+      assert.equal(typeof (entry as { executionProvider?: unknown }).executionProvider, "string");
+      assert.ok(Array.isArray((entry as { inputModalities?: unknown }).inputModalities));
+      const verifiedOn = (entry as { verifiedOn?: unknown }).verifiedOn;
+      assert.ok(verifiedOn === undefined || typeof verifiedOn === "string");
     }
     assertWireClean([health.raw, models.raw]);
   });

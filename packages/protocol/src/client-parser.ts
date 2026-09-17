@@ -26,6 +26,7 @@ export function encodeClientMessage(message: ClientMessage): string {
         requestId: message.requestId,
         sessionId: message.sessionId,
         text: message.text,
+        ...(message.attachment === undefined ? {} : { attachment: message.attachment }),
       });
     case "cancel":
       return JSON.stringify({

@@ -60,3 +60,14 @@ test("v1 inventory names every literal HTTP dispatch route plus login, blobs and
   assert.match(server, /handleBlobGet/u);
   assert.match(server, /tryServeStatic/u);
 });
+
+test("v1 prompt accepts one additive image locator while legacy prompt shape stays valid", () => {
+  const legacy = { type: "prompt", requestId: "r1", sessionId: "s1", text: "hello" };
+  assert.equal(clientMessageSchema.safeParse(legacy).success, true);
+  const withImage = {
+    ...legacy,
+    attachment: { type: "image", locator: `source:${"a".repeat(64)}/photo.png`, mediaType: "image/png" },
+  };
+  assert.equal(clientMessageSchema.safeParse(withImage).success, true);
+  assert.equal(clientMessageSchema.safeParse({ ...legacy, attachment: { type: "image", locator: "", mediaType: "image/png" } }).success, false);
+});

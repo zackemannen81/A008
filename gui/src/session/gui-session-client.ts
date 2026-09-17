@@ -11,6 +11,7 @@ import type {
   GuiSessionState,
   GuiSessionStatus,
   ToolPermissionDecision,
+  PromptImageAttachment,
   GuiWebSocket,
   GuiWebSocketConstructor,
   GuiWebSocketEvent,
@@ -194,7 +195,7 @@ class GuiSessionClientImpl implements GuiSessionClient {
     });
   }
 
-  prompt = (text: string): Promise<void> => {
+  prompt = (text: string, attachment?: PromptImageAttachment): Promise<void> => {
     if (typeof text !== "string" || text.trim().length === 0) {
       return Promise.reject(new Error("Prompt text is empty."));
     }
@@ -233,6 +234,7 @@ class GuiSessionClientImpl implements GuiSessionClient {
           requestId,
           sessionId,
           text,
+          ...(attachment === undefined ? {} : { attachment }),
         }),
       );
     } catch (error) {

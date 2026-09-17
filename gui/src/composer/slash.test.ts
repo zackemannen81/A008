@@ -291,3 +291,16 @@ function createSessionHarness(
 async function unusedShell(): Promise<string> {
   throw new Error("runShellCommand must not be called");
 }
+
+test("submitComposer sends the transient image descriptor with an ordinary prompt", async () => {
+  let captured: unknown;
+  const harness = createSessionHarness();
+  const session: GuiSession = {
+    ...harness.session,
+    async prompt(text, attachment) { captured = { text, attachment }; },
+  };
+  const attachment = { type: "image" as const, locator: `source:${"a".repeat(64)}/photo.png`, mediaType: "image/png" };
+  const result = await submitComposer("describe it", { session, runShellCommand: unusedShell, attachment });
+  assert.deepEqual(result, { kind: "prompt", text: "describe it" });
+  assert.deepEqual(captured, { text: "describe it", attachment });
+});

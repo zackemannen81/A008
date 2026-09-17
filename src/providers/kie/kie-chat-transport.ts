@@ -84,6 +84,9 @@ export class KieChatTransport implements ChatTransport {
   }
 
   async complete(request: ChatRequest, callbacks: ChatCallbacks = {}): Promise<ChatCompletion> {
+    if (request.imageAttachments?.length) {
+      throw new ChatError("configuration", "Native vision is not mapped for the current KIE chat transport.");
+    }
     const controller = new AbortController();
     let timedOut = false;
     const timeout = setTimeout(() => {

@@ -3,6 +3,7 @@ import type {
   ChatCallbacks,
   ChatCompletion,
   ChatGenerationOptions,
+  ChatImageAttachment,
   ChatMessage,
   ChatTransport,
   ChatTools,
@@ -25,6 +26,8 @@ export interface SendMessageOptions extends ChatCallbacks {
   /** Runtime compositions resolve this inside their per-turn settings snapshot. */
   readonly prepareTools?: (signal: AbortSignal, budgets: import("./runtime-preferences.js").RuntimeBudgets) => Promise<ChatTools>;
   readonly tools?: ChatTools;
+  /** Invocation-local native image input; never enters committed #messages. */
+  readonly imageAttachments?: readonly ChatImageAttachment[];
   readonly generation?: ChatGenerationOptions;
   readonly signal?: AbortSignal;
   readonly invocation?: ChatInvocationPlan;
@@ -108,6 +111,7 @@ export class ChatSession {
       {
         model: this.#model,
         messages: wire,
+        ...(options.imageAttachments?.length ? { imageAttachments: options.imageAttachments } : {}),
         ...(tools ? { tools: tools.definitions } : {}),
         options: generation,
         ...(options.signal === undefined ? {} : { signal: options.signal }),

@@ -17,7 +17,7 @@ import {
   type SetSessionConfigOptionResponse,
 } from "@agentclientprotocol/sdk";
 import type { SendMessageOptions } from "../core/chat-session.js";
-import type { ChatCompletion } from "../core/types.js";
+import type { ChatCompletion, ChatImageAttachment } from "../core/types.js";
 import type { ChatMessage } from "../core/types.js";
 import { defaultSessionParameters, parseSessionParameters, type SessionParameters } from "../core/generation-controls.js";
 import { parseSessionControl, type SessionSnapshot } from "../core/session-control.js";
@@ -28,6 +28,7 @@ import { parseMemoryInspectionQuery, type MemoryInspection, type MemoryInspectio
 import { isSourceIngestError } from "../ingest/index.js";
 import {
   DEFAULT_MODEL_ID,
+  acceptsModality,
   defaultModelRegistry,
   type ModelRegistry,
 } from "../core/model-registry.js";
@@ -41,7 +42,7 @@ import {
   parseRuntimeId,
   RuntimeIdentityFactory,
 } from "../identity/runtime-id.js";
-import { promptToText } from "./prompt-content.js";
+import { promptToTurnInput } from "./prompt-content.js";
 
 export interface AcpTurnSession {
   readonly runtimePreferences?: import("../core/runtime-preferences.js").RuntimePreferencesSnapshot;
@@ -262,6 +263,8 @@ export interface A008AcpAgentOptions {
   readonly sessionControls?: boolean;
   readonly runtimeInfo?: () => SessionSnapshot["runtime"];
   readonly createSession: (model: string) => AcpTurnSession;
+  /** Resolve a validated source locator into transient provider-ready image input. */
+  readonly resolveImageAttachment?: (locator: string) => ChatImageAttachment;
   readonly registry?: ModelRegistry;
   /** Extra chat models from the user catalog. Reloaded on each resolve. */
   readonly extraProfiles?: () => readonly ModelProfile[];
@@ -285,6 +288,7 @@ export class A008AcpAgent {
   readonly #sessionControls: boolean;
   readonly #runtimeInfo: () => SessionSnapshot["runtime"];
   readonly #createSession: (model: string) => AcpTurnSession;
+  readonly #resolveImageAttachment: A008AcpAgentOptions["resolveImageAttachment"];
   readonly #registry: ModelRegistry;
   readonly #extraProfiles: () => readonly ModelProfile[];
   readonly #createSessionId: () => string;
@@ -300,6 +304,7 @@ export class A008AcpAgent {
     this.#sessionControls = options.sessionControls === true;
     this.#runtimeInfo = options.runtimeInfo ?? (() => ({ cwd: process.cwd(), projectId: null, memoryPath: null }));
     this.#createSession = options.createSession;
+    this.#resolveImageAttachment = options.resolveImageAttachment;
     this.#registry = options.registry ?? defaultModelRegistry;
     this.#extraProfiles =
       options.extraProfiles ??
@@ -418,7 +423,22 @@ export class A008AcpAgent {
       );
     }
 
-    const content = promptToText(params.prompt);
+    const input = promptToTurnInput(params.prompt);
+    let imageAttachment: ChatImageAttachment | undefined;
+    if (input.image !== undefined) {
+      const profile = this.#resolveProfile(state.model);
+      if (!acceptsModality(profile, "image")) {
+        throw RequestError.invalidParams(
+          { model: state.model, modality: "image" },
+          `Model ${state.model} does not declare image input support.`,
+        );
+      }
+      if (this.#resolveImageAttachment === undefined) {
+        throw RequestError.invalidParams(undefined, "Native vision requires the configured A008 source store.");
+      }
+      imageAttachment = this.#resolveImageAttachment(input.image.locator);
+    }
+    const content = input.text;
     state.chat ??= this.#createSession(state.model);
     const controller = new AbortController();
     state.activeTurn = controller;
@@ -447,6 +467,7 @@ export class A008AcpAgent {
 
     try {
       const completion = await state.chat.send(content, {
+        ...(imageAttachment === undefined ? {} : { imageAttachments: [imageAttachment] }),
         ...(prepareTools ? { prepareTools } : {}),
         signal: controller.signal,
         onDelta: (delta) => queueDelta(delta.type, delta.text),

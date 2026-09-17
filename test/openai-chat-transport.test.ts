@@ -148,3 +148,28 @@ test("OpenAI provider errors preserve the bounded provider message", async () =>
       /HTTP 400: Unsupported parameter combination\./u.test(error.message),
   );
 });
+
+test("OpenAI native vision maps the active user message to image_url content", async () => {
+  let body = "";
+  const transport = new OpenAiChatTransport({
+    apiKey: "sk-test",
+    fetch: async (_input, init) => {
+      body = String(init?.body ?? "");
+      return jsonResponse({ choices: [{ message: { role: "assistant", content: "seen" }, finish_reason: "stop" }] });
+    },
+  });
+  await transport.complete({
+    model: "gpt-5.6-luna",
+    messages: [{ role: "user", content: "describe this" }],
+    imageAttachments: [{ mediaType: "image/jpeg", dataRef: "data:image/jpeg;base64,BBBB" }],
+    options: { stream: false },
+  });
+  const payload = JSON.parse(body) as any;
+  assert.deepEqual(payload.messages, [{
+    role: "user",
+    content: [
+      { type: "text", text: "describe this" },
+      { type: "image_url", image_url: { url: "data:image/jpeg;base64,BBBB" } },
+    ],
+  }]);
+});

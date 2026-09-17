@@ -1,4 +1,4 @@
-import type { GuiSession } from "../session/types.js";
+import type { GuiSession, PromptImageAttachment } from "../session/types.js";
 import {
   loadModels,
   type SessionControl,
@@ -14,6 +14,7 @@ import {
 export interface ComposerSubmitDeps {
   readonly session: GuiSession;
   readonly runShellCommand: (command: string) => Promise<string>;
+  readonly attachment?: PromptImageAttachment;
   readonly models?: typeof loadModels;
 }
 export type ComposerSubmitResult =
@@ -69,7 +70,7 @@ export async function submitComposer(
     };
   }
   if (parsed === undefined) {
-    await deps.session.prompt(text);
+    await deps.session.prompt(text, deps.attachment);
     return { kind: "prompt", text };
   }
   const notice = (message: string): ComposerSubmitResult => ({

@@ -20,7 +20,9 @@ export const generationCapabilitiesSchema = z.object({
   seed: z.boolean(), stop: z.boolean(), verifiedOn: text,
 });
 export type GenerationCapabilities = z.infer<typeof generationCapabilitiesSchema>;
-export const modelSchema = z.object({ id: text, name: text,
+export const modelModalitySchema = z.enum(["text", "image", "video", "audio"]);
+export const modelSchema = z.object({ id: text, name: text, provider: nonempty, executionProvider: nonempty,
+  inputModalities: z.array(modelModalitySchema).min(1).readonly(), verifiedOn: nonempty.optional(),
   defaults: sessionParametersSchema, capabilities: generationCapabilitiesSchema });
 export type GuiModel = z.infer<typeof modelSchema>;
 export const modelsResponseSchema = z.object({ models: z.array(modelSchema) });
@@ -69,10 +71,14 @@ export type SessionControlInput = z.infer<typeof sessionControlInputSchema>;
 export type SessionControl = Exclude<SessionControlInput, { action: "configure" | "configureRuntime" }> |
   { action: "configure"; parameters: SessionParameters } |
   { action: "configureRuntime"; settings: RuntimePreferences; revision: string };
+export const promptImageAttachmentSchema = z.object({
+  type: z.literal("image"), locator: nonempty, mediaType: nonempty,
+});
+export type PromptImageAttachment = z.infer<typeof promptImageAttachmentSchema>;
 export const clientMessageSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("session/new"), requestId: commandId, model: commandId.optional() }),
   z.object({ type: z.literal("session/resume"), requestId: commandId, sessionId: commandId, resumeToken }),
-  z.object({ type: z.literal("prompt"), requestId: commandId, sessionId: commandId, text }),
+  z.object({ type: z.literal("prompt"), requestId: commandId, sessionId: commandId, text, attachment: promptImageAttachmentSchema.optional() }),
   z.object({ type: z.literal("cancel"), requestId: commandId, sessionId: commandId }),
   z.object({ type: z.literal("tool/permission"), requestId: commandId, sessionId: commandId, permissionId: text, allow: z.boolean() }),
   z.object({ type: z.literal("session/control"), requestId: commandId, sessionId: commandId, control: sessionControlInputSchema }),

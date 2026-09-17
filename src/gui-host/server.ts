@@ -1102,6 +1102,7 @@ async function handleSocketMessage(input: {
           },
         },
         controller.signal,
+        parsed.attachment,
       );
       if (!input.ownedSessions.has(parsed.sessionId)) return;
       const state = await bridge.controlSession?.(parsed.sessionId, { action: "inspect" });

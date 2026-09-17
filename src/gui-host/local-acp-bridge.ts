@@ -60,12 +60,15 @@ export function createLocalAcpBridge(options: {
       } catch (error) { await host.closeSession(created.sessionId); throw error; }
     },
     async controlSession(id, control) { requireSession(id); return host.control(id, control); },
-    async prompt(id, text, current, signal) {
+    async prompt(id, text, current, signal, attachment) {
       requireSession(id); signal.throwIfAborted();
       if (handlers.has(id)) throw new Error("Session already has an active turn.");
       const abort = () => { deny(id); host.sessionAgent(id).cancel({ sessionId: id }); };
       handlers.set(id, current); signal.addEventListener("abort", abort, { once: true });
-      try { await host.prompt({ sessionId: id, prompt: [{ type: "text", text }] }, notify); }
+      try { await host.prompt({ sessionId: id, prompt: [
+        { type: "text", text },
+        ...(attachment === undefined ? [] : [{ type: "resource_link" as const, uri: attachment.locator, name: "chat-image", mimeType: attachment.mediaType }]),
+      ] }, notify); }
       finally { deny(id); handlers.delete(id); signal.removeEventListener("abort", abort); }
     },
     resolveToolPermission(id, permissionId, allow) {

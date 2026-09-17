@@ -33,6 +33,8 @@ function fixture(
   const storeRoot = join(parent, "store");
   mkdirSync(join(storeRoot, HASH), { recursive: true });
   writeFileSync(join(storeRoot, HASH, "report.txt"), "The invoice total is 4500 SEK.");
+  const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x00]);
+  writeFileSync(join(storeRoot, HASH, "photo.png"), png);
 
   // A file the runtime must never open. It sits beside the store, which is
   // exactly what a traversal locator would reach.
@@ -48,13 +50,15 @@ function fixture(
     surface: "cli",
     readSourceBytes: (path) => {
       opened.push(path);
-      return new Uint8Array(
-        Buffer.from(
-          path.endsWith("report.txt")
-            ? "The invoice total is 4500 SEK."
-            : "unexpected read",
-        ),
-      );
+      return path.endsWith("photo.png")
+        ? new Uint8Array(png)
+        : new Uint8Array(
+            Buffer.from(
+              path.endsWith("report.txt")
+                ? "The invoice total is 4500 SEK."
+                : "unexpected read",
+            ),
+          );
     },
     ...(options.registry === undefined
       ? {}
@@ -258,6 +262,24 @@ test("a failed extraction degrades the ingest rather than losing the evidence", 
       "completed",
       "a failed extraction is reported, not silently swallowed",
     );
+  } finally {
+    runtime.close();
+  }
+});
+
+test("native vision resolves a contained image from sniffed bytes and traversal never reaches the reader", () => {
+  const { runtime, opened } = fixture();
+  try {
+    const attachment = runtime.resolveImageAttachment(`source:${HASH}/photo.png`);
+    assert.equal(attachment.mediaType, "image/png");
+    assert.match(attachment.dataRef, /^data:image\/png;base64,/u);
+    assert.equal(opened.length, 1, "the contained image is read exactly once");
+    opened.length = 0;
+    assert.throws(
+      () => runtime.resolveImageAttachment("source:../secret.png"),
+      /escapes the configured store root/u,
+    );
+    assert.deepEqual(opened, [], "traversal is rejected before reading bytes");
   } finally {
     runtime.close();
   }

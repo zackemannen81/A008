@@ -6,6 +6,7 @@ import * as acp from "@agentclientprotocol/sdk";
 import { ChatError } from "../core/errors.js";
 import { randomUUID } from "node:crypto";
 import type { SessionControl, SessionSnapshot } from "../core/session-control.js";
+import type { PromptImageAttachment } from "../../packages/protocol/src/index.js";
 import type { MemoryInspection, MemoryInspectionQuery } from "../memory/knowledge/inspection.js";
 
 export interface AcpPromptHandlers {
@@ -48,6 +49,7 @@ export interface AcpBridge {
     text: string,
     handlers: AcpPromptHandlers,
     signal: AbortSignal,
+    attachment?: PromptImageAttachment,
   ): Promise<void>;
   cancel(sessionId: string): void;
   /**
@@ -210,7 +212,7 @@ export async function createSpawnedAcpBridge(
         throw acpFailure(error, stderrTail.lastLine());
       }
     },
-    async prompt(sessionId, text, promptHandlers, signal) {
+    async prompt(sessionId, text, promptHandlers, signal, attachment) {
       const cancel = (): void => {
         cancelPermissions(sessionId);
         connection.agent.notify("session/cancel", { sessionId }).catch(() => {
@@ -226,7 +228,15 @@ export async function createSpawnedAcpBridge(
       try {
         await connection.agent.request("session/prompt", {
           sessionId,
-          prompt: [{ type: "text", text }],
+          prompt: [
+            { type: "text", text },
+            ...(attachment === undefined ? [] : [{
+              type: "resource_link" as const,
+              uri: attachment.locator,
+              name: "chat-image",
+              mimeType: attachment.mediaType,
+            }]),
+          ],
         });
       } catch (error) {
         throw acpFailure(error, stderrTail.lastLine());

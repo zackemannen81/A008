@@ -279,6 +279,30 @@ test("prompt streams thought and answer on separate buffers", async () => {
   assert.equal(client.status, "ready");
 });
 
+test("image prompt sends bounded locator metadata and surfaces unsupported-model errors", async () => {
+  const client = createClient();
+  const socket = await becomeReady(client);
+  const attachment = {
+    type: "image" as const,
+    locator: `source:${"a".repeat(64)}/photo.png`,
+    mediaType: "image/png",
+  };
+  const pending = client.prompt("look at this", attachment);
+  assert.deepEqual(parsedFrames(socket)[1], {
+    type: "prompt",
+    requestId: "req-2",
+    sessionId: "sess-1",
+    text: "look at this",
+    attachment,
+  });
+  const message = "Model nvidia/nemotron-3.5-lightning-30b-a3b does not declare image input support.";
+  socket.deliver({ type: "error", requestId: "req-2", sessionId: "sess-1", message });
+  await assert.rejects(pending, new RegExp(message.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
+  assert.equal(client.error, message);
+  assert.equal(client.status, "ready");
+  assert.equal(client.busy, false);
+});
+
 test("a new prompt clears previous thought and answer buffers", async () => {
   const client = createClient();
   const socket = await becomeReady(client);

@@ -34,6 +34,7 @@ export function createAcpRuntime(options: { env: NodeJS.ProcessEnv; cwd?: string
     runtimeInfo: () => ({ cwd: options.cwd ?? process.cwd(), projectId: runtime.projectId, memoryPath: runtime.sqlitePath, tools: nativeToolCatalog() }),
     inspectMemory: (query) => runtime.inspectMemory(query),
     createSession: (model) => runtime.openSession({ model }),
+    resolveImageAttachment: (locator) => runtime.resolveImageAttachment(locator),
     // Wired only here, so an agent constructed without a runtime refuses
     // `_a008/source/ingest` instead of silently doing nothing.
     sharedMemoryCapabilities: () => runtime.sharedMemoryCapabilities(),

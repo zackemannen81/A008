@@ -13,6 +13,23 @@
           "name": {
             "$ref": "#/$defs/__schema0"
           },
+          "provider": {
+            "$ref": "#/$defs/__schema1"
+          },
+          "executionProvider": {
+            "$ref": "#/$defs/__schema1"
+          },
+          "inputModalities": {
+            "readOnly": true,
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "verifiedOn": {
+            "$ref": "#/$defs/__schema1"
+          },
           "defaults": {
             "type": "object",
             "properties": {
@@ -22,7 +39,7 @@
               "temperature": {
                 "anyOf": [
                   {
-                    "$ref": "#/$defs/__schema1"
+                    "$ref": "#/$defs/__schema3"
                   },
                   {
                     "type": "null"
@@ -32,7 +49,7 @@
               "topP": {
                 "anyOf": [
                   {
-                    "$ref": "#/$defs/__schema1"
+                    "$ref": "#/$defs/__schema3"
                   },
                   {
                     "type": "null"
@@ -40,7 +57,7 @@
                 ]
               },
               "maxTokens": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/__schema3"
               },
               "enableThinking": {
                 "type": [
@@ -51,7 +68,7 @@
               "reasoningBudget": {
                 "anyOf": [
                   {
-                    "$ref": "#/$defs/__schema1"
+                    "$ref": "#/$defs/__schema3"
                   },
                   {
                     "type": "null"
@@ -71,7 +88,7 @@
               "seed": {
                 "anyOf": [
                   {
-                    "$ref": "#/$defs/__schema1"
+                    "$ref": "#/$defs/__schema3"
                   },
                   {
                     "type": "null"
@@ -109,7 +126,7 @@
             "type": "object",
             "properties": {
               "maxTokens": {
-                "$ref": "#/$defs/__schema1"
+                "$ref": "#/$defs/__schema3"
               },
               "topP": {
                 "type": "boolean"
@@ -120,7 +137,7 @@
               "reasoningBudget": {
                 "anyOf": [
                   {
-                    "$ref": "#/$defs/__schema1"
+                    "$ref": "#/$defs/__schema3"
                   },
                   {
                     "type": "null"
@@ -159,6 +176,9 @@
         "required": [
           "id",
           "name",
+          "provider",
+          "executionProvider",
+          "inputModalities",
           "defaults",
           "capabilities"
         ]
@@ -173,6 +193,19 @@
       "type": "string"
     },
     "__schema1": {
+      "minLength": 1,
+      "$ref": "#/$defs/__schema0"
+    },
+    "__schema2": {
+      "type": "string",
+      "enum": [
+        "text",
+        "image",
+        "video",
+        "audio"
+      ]
+    },
+    "__schema3": {
       "type": "number"
     }
   }
