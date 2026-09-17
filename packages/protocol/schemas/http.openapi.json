@@ -1378,6 +1378,22 @@
               "domains": {
                 "$ref": "#/components/schemas/memorySnapshot/$defs/__schema5"
               },
+              "storedDomains": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema5"
+              },
+              "effectiveDomains": {
+                "$ref": "#/components/schemas/memorySnapshot/$defs/__schema5"
+              },
+              "primaryEffectiveDomain": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "detail": {
                 "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
               },

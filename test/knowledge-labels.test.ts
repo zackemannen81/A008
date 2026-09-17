@@ -559,7 +559,7 @@ test("a version 1 database opens and is migrated, not refused", () => {
       projectId: sqliteKnowledgeTestProjectId(),
     });
     try {
-      assert.equal(handle.store.schemaVersion, 4);
+      assert.equal(handle.store.schemaVersion, 5);
       assert.deepEqual(handle.context.labels.list(), []);
       handle.context.labels.attach({
         recordId: "u1",
@@ -578,7 +578,7 @@ test("a version 1 database opens and is migrated, not refused", () => {
       const row = check
         .prepare("SELECT version FROM A008_knowledge_schema WHERE singleton = 1")
         .get() as { readonly version: number };
-      assert.equal(row.version, 4);
+      assert.equal(row.version, 5);
     } finally {
       check.close();
     }
@@ -589,13 +589,12 @@ test("a version 1 database opens and is migrated, not refused", () => {
 
 // --- statement slots are a set (A008-0062) ---------------------------------
 
-test("many statements about one entity coexist instead of conflicting", async () => {
-  // Three facts the user states in one message, all naming the same entity
-  // first. Before A008-0062 `<entity>.statement` was single-valued, so the
-  // second was read as disagreeing with the first, the slot was marked
-  // contested permanently, the third threw, and the whole batch — including the
-  // two that had succeeded — was rolled back. Every later turn about the same
-  // subject failed at its first proposal, across restarts.
+test("many unstructured statements about one entity coexist without entity-first slot ownership", async () => {
+  // Three facts name the same extracted entity. A008-0122 makes `entities[]`
+  // referential only: array position cannot choose state ownership. Because
+  // these proposals have no structured proposition, each gets a statement-
+  // specific fallback slot while deterministic claim→Zorro references preserve
+  // the shared graph anchor. No false conflict is introduced.
   const facts = [
     "Zorros häst heter Fresca",
     "Zorro bor i Kalifornien",
@@ -618,7 +617,7 @@ test("many statements about one entity coexist instead of conflicting", async ()
             kind: "fact",
             tags: ["zorro"],
             domains: ["fiktion"],
-            // One entity on every proposal, which is what puts them on one slot.
+            // One shared graph referent on every proposal; it must not become slot ownership.
             entities: ["Zorro"],
             confidence: 0.9,
           }));
@@ -652,15 +651,19 @@ test("many statements about one entity coexist instead of conflicting", async ()
             : "relation",
         ),
       );
-      assert.deepEqual([...slots], ["zorro.statement"], "one slot, many members");
-      const statement = snapshot.slots.find(
+      assert.equal(slots.size, facts.length, "unstructured facts were conflated onto one owner slot");
+      assert.ok(
+        [...slots].every((name) => /^statement_[0-9a-f]{12}\.statement$/u.test(name)),
+        `unexpected fallback slots: ${[...slots].join(", ")}`,
+      );
+      const references = snapshot.entityReferences ?? [];
+      assert.equal(references.length, facts.length);
+      assert.deepEqual(new Set(references.map((reference) => String(reference.entityId))), new Set(["zorro"]));
+      const statementSlots = snapshot.slots.filter(
         (slot) => slot.ref.kind === "attribute" && slot.ref.name === "statement",
       );
-      assert.equal(statement?.cardinality, "set");
-      // Registered as a set, not merely widened into one by the second
-      // proposal. Both paths reach the same place, so without this the
-      // registration is only proved by the repair that would have covered for
-      // it — and a fresh store would keep taking the long way round.
+      assert.equal(statementSlots.length, facts.length);
+      assert.ok(statementSlots.every((slot) => slot.cardinality === "set"));
       assert.equal(
         snapshot.slots.filter((slot) => slot.cardinality === "single").length,
         0,

@@ -1,5 +1,6 @@
 import { define, type DefineInput } from "./define.js";
 import { EvidenceStore } from "./evidence.js";
+import { ClaimEntityReferenceStore } from "./entity-references.js";
 import { RelationIndex } from "./expand.js";
 import { expand } from "./expand.js";
 import { compose } from "./compose.js";
@@ -38,6 +39,7 @@ export function createKnowledgeContext(clock?: () => string): KnowledgeReadConte
     slots: new SlotRegistry(),
     state: new KnowledgeState(),
     evidence: new EvidenceStore(),
+    entityReferences: new ClaimEntityReferenceStore(),
     labels: new KnowledgeLabelStore(),
     lifecycle: new EvidenceLifecycleStore(clock),
     relations: new RelationIndex(),

@@ -124,6 +124,7 @@ export function inspectKnowledge(
       2,
     );
     if (query.query) searchable.set(id, normalizeLabel(full));
+    const storedDomains = [...(labels?.domains ?? [])];
     records.push({
       id,
       sourceId,
@@ -132,7 +133,10 @@ export function inspectKnowledge(
       status,
       activation: life?.state ?? "untracked",
       tags: [...(labels?.tags ?? [])],
-      domains: [...(labels?.domains ?? [])],
+      domains: [...storedDomains],
+      storedDomains,
+      effectiveDomains: [...storedDomains],
+      primaryEffectiveDomain: storedDomains[0] ?? null,
       detail: full.slice(0, 16_000),
       truncated: full.length > 16_000 || label.length > 500,
     });
@@ -144,7 +148,7 @@ export function inspectKnowledge(
     add(
       "entity",
       entity.id,
-      entity.labels.join(" · ") || entity.id,
+      entity.preferredLabel ?? (entity.labels.join(" · ") || entity.id),
       entity.type,
       entity,
     );
@@ -182,6 +186,15 @@ export function inspectKnowledge(
   for (const claim of state.claims) {
     if (!evidenceClaimIds.has(claim.id))
       add("claim", claim.id, claim.label, claim.status, claim);
+  }
+  // Structural claim↔entity membership is inspection topology only. It is not
+  // a RelationIndex/L3 semantic association and therefore has no lifecycle.
+  for (const reference of context.entityReferences.list()) {
+    link(
+      key("claim", reference.claimId),
+      key("entity", reference.entityId),
+      "entity_ref",
+    );
   }
   for (const event of state.events)
     add("event", event.id, event.label, event.type, event);
@@ -256,6 +269,59 @@ export function inspectKnowledge(
       }
     }
   }
+  // Projection-only domains. Stored domains stay on their owning claim/
+  // utterance; entities and provenance inherit grouping context from connected
+  // evidence without mutating persistent semantic labels.
+  const effectiveCounts = new Map<string, Map<string, number>>();
+  const addEffective = (recordId: string, names: readonly string[]): void => {
+    if (names.length === 0) return;
+    const counts = effectiveCounts.get(recordId) ?? new Map<string, number>();
+    for (const name of names) counts.set(name, (counts.get(name) ?? 0) + 1);
+    effectiveCounts.set(recordId, counts);
+  };
+  for (const record of records) addEffective(record.id, record.storedDomains ?? record.domains);
+  const claimDomains = new Map<string, readonly string[]>(
+    claims.map((claim) => [String(claim.id), [...context.labels.labelsFor(claim.id).domains]]),
+  );
+  const utteranceById = new Map(
+    context.evidence.listUtterances().map((utterance) => [String(utterance.id), utterance] as const),
+  );
+  for (const reference of context.entityReferences.list()) {
+    addEffective(key("entity", reference.entityId), claimDomains.get(String(reference.claimId)) ?? []);
+  }
+  for (const claim of claims) {
+    const inherited = claimDomains.get(String(claim.id)) ?? [];
+    if (claim.derivedFrom.kind === "utterance") {
+      addEffective(key("utterance", claim.derivedFrom.id), inherited);
+      const utterance = utteranceById.get(String(claim.derivedFrom.id));
+      if (utterance !== undefined) addEffective(key("artifact", utterance.artifactId), inherited);
+    }
+  }
+  for (const provenance of context.evidence.listProvenance()) {
+    const provenanceId = key("provenance", provenance.id);
+    const endpoints = [
+      key(provenance.fromKind, provenance.fromId),
+      key(provenance.toKind, provenance.toId),
+    ];
+    for (const endpoint of endpoints) {
+      addEffective(provenanceId, [...(effectiveCounts.get(endpoint)?.keys() ?? [])]);
+    }
+  }
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index]!;
+    const counts = effectiveCounts.get(record.id) ?? new Map<string, number>();
+    const effectiveDomains = [...counts.keys()].sort();
+    const primaryEffectiveDomain = [...counts.entries()]
+      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))[0]?.[0] ?? null;
+    records[index] = {
+      ...record,
+      domains: effectiveDomains,
+      storedDomains: [...(record.storedDomains ?? [])],
+      effectiveDomains,
+      primaryEffectiveDomain,
+    };
+  }
+
   const domains = new Map<string, number>();
   // Count actual label attachments once, not the bindings that display claim labels.
   for (const labels of labelById.values())

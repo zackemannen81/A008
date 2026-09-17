@@ -13,6 +13,7 @@ import {
 } from "./clocks.js";
 import { KnowledgeModelError } from "./errors.js";
 import type { Claim, ProvenanceRecord, Utterance } from "./evidence-types.js";
+import type { ClaimEntityReference } from "./entity-references.js";
 import { asArtifactId, asEntityId } from "./ids.js";
 import type {
   LifecycleRecord,
@@ -58,6 +59,8 @@ export interface KnowledgeNamespaceSnapshot {
   readonly utterances: readonly Utterance[];
   readonly claims: readonly Claim[];
   readonly provenance: readonly ProvenanceRecord[];
+  /** Absent on pre-schema-5 snapshots; new captures always include it. */
+  readonly entityReferences?: readonly ClaimEntityReference[];
   readonly labels: readonly LabelRecord[];
   readonly lifecycle: LifecycleSnapshot;
   readonly lifecycleNextTransition: number;
@@ -292,6 +295,11 @@ export class SqliteKnowledgeStore {
         "SELECT payload_json FROM A008_knowledge_provenance WHERE namespace = ? ORDER BY id",
       )
       .all(this.namespace) as PayloadRow[];
+    const entityReferences = this.database
+      .prepare(
+        "SELECT claim_id, entity_id FROM A008_knowledge_claim_entities WHERE namespace = ? ORDER BY claim_id, entity_id",
+      )
+      .all(this.namespace) as { readonly claim_id: string; readonly entity_id: string }[];
     const labelRows = this.database
       .prepare(
         "SELECT payload_json FROM A008_knowledge_labels WHERE namespace = ? ORDER BY record_id",
@@ -349,6 +357,14 @@ export class SqliteKnowledgeStore {
       provenance: provenance.map((row) =>
         parseJson<ProvenanceRecord>(row.payload_json, "provenance"),
       ),
+      ...(entityReferences.length === 0
+        ? {}
+        : {
+            entityReferences: entityReferences.map((row) => ({
+              claimId: row.claim_id,
+              entityId: asEntityId(row.entity_id),
+            })),
+          }),
       labels: labelRows.map((row) => parseJson<LabelRecord>(row.payload_json, "labels")),
       lifecycle: {
         receipts: (this.database.prepare("SELECT payload_json FROM A008_knowledge_reinforcement_receipts WHERE namespace = ? ORDER BY occurrence_id, evidence_id").all(this.namespace) as PayloadRow[]).map(r => parseJson<ReinforcementReceipt>(r.payload_json, "reinforcement receipt")),
@@ -414,6 +430,7 @@ export class SqliteKnowledgeStore {
       "A008_knowledge_lifecycle_transitions",
       "A008_knowledge_lifecycle",
       "A008_knowledge_provenance",
+      "A008_knowledge_claim_entities",
       "A008_knowledge_claims",
       "A008_knowledge_utterances",
       "A008_knowledge_artifacts",
@@ -454,15 +471,16 @@ export class SqliteKnowledgeStore {
     return rows.map((row) => parseJson<KnowledgeItem>(row.payload_json, "v0 knowledge"));
   }
 
-  /** Schema 1/2 gets L2's baseline conversion; schema 3 baselines are validated
-   * unchanged. L3 adds empty metadata/receipt/audit tables, never promotes old
-   * links. The constructor encloses DDL and this version update in one transaction.
+  /** Schema 1/2 gets L2's baseline conversion; schema 3+ baselines are validated
+   * unchanged. L3 added association metadata in schema 4; schema 5 adds only
+   * structural claim↔entity membership and deliberately performs no backfill.
+   * The constructor encloses DDL and this version update in one transaction.
    */
   private migrateSchemaVersion(): void {
     this.database.transaction(() => {
       const row = this.database.prepare("SELECT version FROM A008_knowledge_schema WHERE singleton = 1").get() as { version: number } | undefined;
-      if (row?.version !== 1 && row?.version !== 2 && row?.version !== 3) return;
-      const baselineAlreadyMigrated = row.version === 3;
+      if (row?.version !== 1 && row?.version !== 2 && row?.version !== 3 && row?.version !== 4) return;
+      const baselineAlreadyMigrated = row.version >= 3;
       const at = operationalTime(this.clock());
       const records = this.database.prepare("SELECT namespace, evidence_id, payload_json FROM A008_knowledge_lifecycle").all() as { namespace: string; evidence_id: string; payload_json: string }[];
       const save = this.database.prepare("UPDATE A008_knowledge_lifecycle SET payload_json = ? WHERE namespace = ? AND evidence_id = ?");

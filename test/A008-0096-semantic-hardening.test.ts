@@ -225,10 +225,9 @@ test("certainty follows confidence and statement fallback never uses proposition
   assert.equal(certaintyFromConfidence(0.2), "unlikely");
 
   const proposition = "The upgraded file includes generated background music.";
-  const label = statementEntityLabel([], proposition);
+  const label = statementEntityLabel(proposition);
   assert.match(label, /^statement_[0-9a-f]{12}$/u);
   assert.equal(label.includes(proposition), false);
-  assert.equal(statementEntityLabel(["masken2.html"], proposition), "masken2.html");
 });
 
 test("inspection keeps provenance nodes but suppresses the duplicate direct claim-to-utterance edge", () => {

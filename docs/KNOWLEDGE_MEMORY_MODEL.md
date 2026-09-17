@@ -287,6 +287,11 @@ Slot addressing only works if entity identity is resolved. Rules:
   binding.
 - Two entities are never merged implicitly. Merging is an explicit operation
   with its own record and its own reversal path.
+- Co-mentioned entity references are distinct referents; list order never makes
+  later referents aliases of the first or grants the first ownership of a claim.
+- Superficial lexical variants may share one deterministic registry lookup
+  identity while retaining a preferred display label; this is not fuzzy or
+  semantic merging.
 - Entity identity is never derived from a natural-language label alone.
 
 ---
@@ -606,8 +611,11 @@ Identity is the enclosing project namespace plus canonical from/to IDs, the exac
 semantic relation type and a sorted, duplicate-free applicability scope. Direction
 is preserved; no current relation definition declares symmetry. Binding intervals
 never identify this record. Changing direction, endpoint, relation or scope selects
-a different edge. Domain/display/provenance links and co-occurrence are not
-promoted into semantic associations by storage, graph inspection or retrieval.
+a different edge. Domain/display/provenance links, deterministic structural claim↔entity membership,
+and co-occurrence are not promoted into semantic associations by storage, graph
+inspection or retrieval. Structural membership may be persisted/projected for
+referential navigation, but it has no association proof, strength, reinforcement
+or decay.
 
 The existing relation comparator may return independently supported associations.
 Candidate claim handles and registry entity handles map to exact canonical IDs;

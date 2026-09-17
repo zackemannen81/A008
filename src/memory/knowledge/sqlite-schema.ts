@@ -1,4 +1,4 @@
-export const KNOWLEDGE_SQLITE_SCHEMA_VERSION = 4;
+export const KNOWLEDGE_SQLITE_SCHEMA_VERSION = 5;
 
 export const KNOWLEDGE_SQLITE_SCHEMA = `
 CREATE TABLE IF NOT EXISTS A008_knowledge_schema (
@@ -149,6 +149,19 @@ CREATE TABLE IF NOT EXISTS A008_knowledge_claims (
   payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
   PRIMARY KEY(namespace, id)
 );
+
+CREATE TABLE IF NOT EXISTS A008_knowledge_claim_entities (
+  namespace TEXT NOT NULL,
+  claim_id TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  PRIMARY KEY(namespace, claim_id, entity_id),
+  FOREIGN KEY(namespace, claim_id)
+    REFERENCES A008_knowledge_claims(namespace, id) ON DELETE CASCADE,
+  FOREIGN KEY(namespace, entity_id)
+    REFERENCES A008_knowledge_entities(namespace, id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS A008_knowledge_claim_entities_entity_idx
+  ON A008_knowledge_claim_entities(namespace, entity_id, claim_id);
 
 CREATE TABLE IF NOT EXISTS A008_knowledge_provenance (
   namespace TEXT NOT NULL,

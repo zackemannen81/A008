@@ -1,4 +1,5 @@
 import type { EvidenceStore } from "./evidence.js";
+import type { ClaimEntityReferenceStore } from "./entity-references.js";
 import { RelationIndex } from "./expand.js";
 import type { KnowledgeLabelStore } from "./labels.js";
 import type { EvidenceLifecycleStore } from "./lifecycle.js";
@@ -18,6 +19,7 @@ export function loadSnapshot(
     readonly slots: SlotRegistry;
     readonly state: KnowledgeState;
     readonly evidence: EvidenceStore;
+    readonly entityReferences: ClaimEntityReferenceStore;
     readonly labels: KnowledgeLabelStore;
     readonly lifecycle: EvidenceLifecycleStore;
     readonly relations: KnowledgeReadContext["relations"];
@@ -33,6 +35,7 @@ export function loadSnapshot(
     claims: snapshot.claims,
     provenance: snapshot.provenance,
   });
+  target.entityReferences.hydrate(snapshot.entityReferences ?? []);
   target.labels.hydrate(snapshot.labels);
   target.lifecycle.hydrate(
     snapshot.lifecycle,
@@ -48,6 +51,7 @@ export function captureSnapshot(
     context.relations instanceof RelationIndex
       ? context.relations.exportLinks()
       : [];
+  const entityReferences = context.entityReferences.list();
   return {
     entities: context.entities.list(),
     slots: context.slots.list(),
@@ -56,6 +60,7 @@ export function captureSnapshot(
     artifacts: context.evidence.listArtifacts(),
     utterances: context.evidence.listUtterances(),
     claims: context.evidence.listClaims(),
+    ...(entityReferences.length === 0 ? {} : { entityReferences }),
     labels: context.labels.list(),
     provenance: context.evidence.listProvenance(),
     lifecycle: context.lifecycle.snapshot(),

@@ -442,6 +442,17 @@ at a stable owned path first.
 - Existing SQLite/context/snapshot and runtime preference owners persist schema/settings 4 and preserve legacy records.
 - `test/knowledge-model/association-lifecycle.test.ts`: A25-A30, source independence, migration/restart/concurrency and backup restoration.
 
+## A008-0122 entity/topology contract owners
+
+- `src/memory/knowledge/entity-references.ts`: structural claim↔entity membership, deliberately separate from `RelationIndex` and L3 lifecycle.
+- `src/memory/knowledge/registry.ts`: deterministic lexical entity identity plus preferred display label; co-mentioned entities remain distinct.
+- `src/memory/knowledge/live-commit.ts`: current-batch entity materialization, structured slot-owner selection, structural references, and user-vs-assistant dialogue provenance.
+- `src/memory/knowledge/{sqlite-schema,sqlite-store,sqlite-rows,sqlite-context}.ts`: schema 5 persistence for structural claim/entity membership; no legacy backfill.
+- `src/memory/knowledge/inspection.ts` and `packages/protocol/src/http-schemas.ts`: `entity_ref` graph topology plus stored/effective/primary effective domain projection.
+- `src/prompt-contracts/KNOWLEDGE_RELATION_SHARED_INSTRUCTION.ts`: shared self-contained relation and association semantics composed by the single and batch classifier prompts.
+- `src/orchestration/relation-gated-memory-commit.ts`: structured proposition serialization for proposals/candidates and the shared classifier transport contracts.
+- `test/A008-0122-memory-contract-repair.test.ts`: distinct identity, structural topology, current-batch handles, structured owner/comparison, assistant provenance, SQLite reload and prompt-parity regressions.
+
 ## Product paths
 
 `src/core/` is provider- and UI-neutral. Provider adapters live under
