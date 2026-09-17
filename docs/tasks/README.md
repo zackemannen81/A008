@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0124_native-vision-input-and-model-capability-metadata.md](A008-0124_native-vision-input-and-model-capability-metadata.md) — Ready; final approved pre-Stage-4 task for model specs plus invocation-local native image input under ADR 0044.
+
 - [A008-0118_acme-runtime-v2-consumer.md](A008-0118_acme-runtime-v2-consumer.md) — Complete; [archive](../finished/A008-0118_acme-runtime-v2-consumer.md). Stage 3.5 GO.
 
 - [A008-0105_shared-v1-http-contracts.md](A008-0105_shared-v1-http-contracts.md) — Complete locally; HTTP contract closure.
