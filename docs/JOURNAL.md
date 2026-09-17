@@ -2,6 +2,13 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-18 — A008-0125: Prettier and lint
+
+- Task: A008-0125; operator: mrwhite81; branch: `mrwhite81/A008-0125-code-sanitize`
+- Installed eslint and prettier + scripts. IMPORTANT - Not to be implemented as requirements yet.
+- [Handoff](). [). []().
+- Signature: mrWhite
+- 
 ## 2026-09-16 — A008-0120: Prompts refactoring
 
 - Task: A008-0120; operator: mrwhite81; branch: `mrwhite81/A008-0120_prompts-refactoring`
