@@ -1,5 +1,9 @@
 #!/usr/bin/env node
-import type { HttpError, UploadedSource, ShellHostResult } from '../../packages/protocol/src/index.js';
+import type {
+  HttpError,
+  UploadedSource,
+  ShellHostResult,
+} from "../../packages/protocol/src/index.js";
 
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { createReadStream, existsSync, realpathSync, statSync } from "node:fs";
@@ -18,10 +22,7 @@ import {
   defaultModelRegistry,
   type ModelRegistry,
 } from "../core/model-registry.js";
-import {
-  runTerminalCommand,
-  type TerminalRunner,
-} from "../tools/terminal.js";
+import { runTerminalCommand, type TerminalRunner } from "../tools/terminal.js";
 import { type AcpBridge } from "./acp-bridge.js";
 import { createLocalAcpBridge } from "./local-acp-bridge.js";
 import { ProjectRuntimeRegistry } from "../engine/project-runtime-registry.js";
@@ -44,13 +45,21 @@ import {
   type GuiHostServerMessage,
 } from "./protocol.js";
 import { redactWireText, wireSecrets } from "./redact.js";
-import { createPinAuthGate, GUI_PIN_ENV, GUI_PIN_LOGIN_PATH } from "./pin-auth.js";
+import {
+  createPinAuthGate,
+  GUI_PIN_ENV,
+  GUI_PIN_LOGIN_PATH,
+} from "./pin-auth.js";
 import {
   resolveSourceStorePath,
   sanitiseUploadFilename,
   writeBlob,
 } from "./source-store.js";
-import { acceptWebSocket, isWebSocketUpgrade, type GuiWebSocket } from "./websocket.js";
+import {
+  acceptWebSocket,
+  isWebSocketUpgrade,
+  type GuiWebSocket,
+} from "./websocket.js";
 import {
   assertPathOutsideRepo,
   defaultCatalogPath,
@@ -61,7 +70,10 @@ import {
   resolveNvidiaApiKey,
   resolveOpenAiApiKey,
 } from "../core/provider-secrets.js";
-import { findRepositoryRoot, moduleDirectory } from "../runtime/local-runtime-config.js";
+import {
+  findRepositoryRoot,
+  moduleDirectory,
+} from "../runtime/local-runtime-config.js";
 import { handleBrowserFrameCheck } from "./browser-frame.js";
 import {
   bindingFor,
@@ -72,8 +84,15 @@ import {
   handleProjectOpen,
   handleProjectPreview,
 } from "./project-routes.js";
-import { readProjectRegistry, resolveProjectsPath } from "../bootstrap/registry.js";
-import { defaultSqlitePath, PROJECT_ID_ENV, SQLITE_PATH_ENV } from "../runtime/local-runtime-config.js";
+import {
+  readProjectRegistry,
+  resolveProjectsPath,
+} from "../bootstrap/registry.js";
+import {
+  defaultSqlitePath,
+  PROJECT_ID_ENV,
+  SQLITE_PATH_ENV,
+} from "../runtime/local-runtime-config.js";
 import {
   handleBlobGet,
   handleImageGenerate,
@@ -161,15 +180,27 @@ export async function startGuiHost(
 ): Promise<GuiHost> {
   const env = options.env ?? process.env;
   const configuredPin = options.pin?.trim();
-  const pin = configuredPin === undefined || configuredPin === "" ? undefined : configuredPin;
+  const pin =
+    configuredPin === undefined || configuredPin === ""
+      ? undefined
+      : configuredPin;
   if (pin !== undefined && !/^\d{6}$/u.test(pin)) {
-    throw new ChatError("configuration", "A008 GUI PIN must contain exactly six digits.");
+    throw new ChatError(
+      "configuration",
+      "A008 GUI PIN must contain exactly six digits.",
+    );
   }
   const pinAuth = createPinAuthGate(pin);
-  const configuredWorkspace = options.cwd ?? (env.A008_GUI_WORKSPACE?.trim() || process.cwd());
-  if (!isAbsolute(configuredWorkspace)) throw new ChatError("configuration", "GUI workspace must be an absolute directory.");
+  const configuredWorkspace =
+    options.cwd ?? (env.A008_GUI_WORKSPACE?.trim() || process.cwd());
+  if (!isAbsolute(configuredWorkspace))
+    throw new ChatError(
+      "configuration",
+      "GUI workspace must be an absolute directory.",
+    );
   const cwd = realpathSync(configuredWorkspace);
-  if (!statSync(cwd).isDirectory()) throw new ChatError("configuration", "GUI workspace must be a directory.");
+  if (!statSync(cwd).isDirectory())
+    throw new ChatError("configuration", "GUI workspace must be a directory.");
   const projectsPath = options.projectsPath ?? resolveProjectsPath(env);
   const workspace = {
     cwd,
@@ -183,8 +214,14 @@ export async function startGuiHost(
   const staticDir = resolveStaticDir(options.staticDir, cwd, env);
   const storeRoot = resolveSourceStorePath(options.sourceStorePath, cwd, env);
   const maxUploadBytes = options.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
-  const webSocketHeartbeatMs = positiveDuration(options.webSocketHeartbeatMs ?? DEFAULT_WEBSOCKET_HEARTBEAT_MS, "WebSocket heartbeat");
-  const sessionResumeGraceMs = positiveDuration(options.sessionResumeGraceMs ?? DEFAULT_SESSION_RESUME_GRACE_MS, "Session resume grace");
+  const webSocketHeartbeatMs = positiveDuration(
+    options.webSocketHeartbeatMs ?? DEFAULT_WEBSOCKET_HEARTBEAT_MS,
+    "WebSocket heartbeat",
+  );
+  const sessionResumeGraceMs = positiveDuration(
+    options.sessionResumeGraceMs ?? DEFAULT_SESSION_RESUME_GRACE_MS,
+    "Session resume grace",
+  );
   const allowedOrigins =
     options.allowedOrigins ?? parseAllowedOrigins(env[ALLOWED_ORIGINS_ENV]);
   const fetchImpl = options.fetch ?? fetch;
@@ -199,53 +236,83 @@ export async function startGuiHost(
     resolveKieApiKey(env, secretsPath),
     resolveOpenAiApiKey(env, secretsPath),
     pin,
-  ].filter((value): value is string => typeof value === "string" && value.length > 0);
+  ].filter(
+    (value): value is string => typeof value === "string" && value.length > 0,
+  );
   const requestOriginAllowed = (request: IncomingMessage): boolean =>
     originAllowedBy(request, allowedOrigins);
   const sockets = new Set<GuiWebSocket>();
   const sessionLeases = new Map<string, SessionLease>();
   let bridge: AcpBridge | undefined;
   let bridgePending: Promise<AcpBridge> | undefined;
-  const projectRegistry = options.projectRegistry ?? new ProjectRuntimeRegistry({ env, ...(options.stderr ? { stderr: options.stderr } : {}) });
+  const projectRegistry =
+    options.projectRegistry ??
+    new ProjectRuntimeRegistry({
+      env,
+      ...(options.stderr ? { stderr: options.stderr } : {}),
+    });
 
   const runtimeBaseEnv = (): NodeJS.ProcessEnv => ({
     ...env,
-    ...(resolveNvidiaApiKey(env, secretsPath) ? { NVIDIA_API_KEY: resolveNvidiaApiKey(env, secretsPath) } : {}),
-    ...(resolveKieApiKey(env, secretsPath) ? { KIE_API_KEY: resolveKieApiKey(env, secretsPath) } : {}),
-    ...(resolveOpenAiApiKey(env, secretsPath) ? { OPENAI_API_KEY: resolveOpenAiApiKey(env, secretsPath) } : {}),
+    ...(resolveNvidiaApiKey(env, secretsPath)
+      ? { NVIDIA_API_KEY: resolveNvidiaApiKey(env, secretsPath) }
+      : {}),
+    ...(resolveKieApiKey(env, secretsPath)
+      ? { KIE_API_KEY: resolveKieApiKey(env, secretsPath) }
+      : {}),
+    ...(resolveOpenAiApiKey(env, secretsPath)
+      ? { OPENAI_API_KEY: resolveOpenAiApiKey(env, secretsPath) }
+      : {}),
   });
   const acpEnv = (): NodeJS.ProcessEnv => ({
     ...runtimeBaseEnv(),
     ...(workspace.projectId ? { [PROJECT_ID_ENV]: workspace.projectId } : {}),
-    ...(workspace.useGlobalMemory
-      ? {}
-      : { [SQLITE_PATH_ENV]: ":memory:" }),
+    ...(workspace.useGlobalMemory ? {} : { [SQLITE_PATH_ENV]: ":memory:" }),
     ...(workspace.useGlobalMemory && !env[SQLITE_PATH_ENV]
       ? { [SQLITE_PATH_ENV]: defaultSqlitePath() }
       : {}),
   });
-  const v2Sessions = options.accessToken ? undefined : new V2SessionService({ env: runtimeBaseEnv(), projectsPath, registry: projectRegistry,
-    ...(options.stderr ? { stderr: options.stderr } : {}) });
-  const v2Auth = options.accessToken ? undefined : new V2Auth({ devices: new DeviceRegistry(env), pin: pinAuth,
-    projectExists: id => readProjectRegistry(projectsPath).projects.some(project => project.projectId === id),
-    sessionAuthorized: (principal, projectId, sessionId) => v2Sessions?.sessionAuthorized(principal, projectId, sessionId) === true });
+  const v2Sessions = options.accessToken
+    ? undefined
+    : new V2SessionService({
+        env: runtimeBaseEnv(),
+        projectsPath,
+        registry: projectRegistry,
+        ...(options.stderr ? { stderr: options.stderr } : {}),
+      });
+  const v2Auth = options.accessToken
+    ? undefined
+    : new V2Auth({
+        devices: new DeviceRegistry(env),
+        pin: pinAuth,
+        projectExists: (id) =>
+          readProjectRegistry(projectsPath).projects.some(
+            (project) => project.projectId === id,
+          ),
+        sessionAuthorized: (principal, projectId, sessionId) =>
+          v2Sessions?.sessionAuthorized(principal, projectId, sessionId) ===
+          true,
+      });
 
   const getBridge = async (): Promise<AcpBridge> => {
     if (bridge !== undefined) {
       return bridge;
     }
     if (bridgePending === undefined) {
-      bridgePending = Promise.resolve().then(() =>
-        options.createAcpBridge?.() ??
-          createLocalAcpBridge({
-            registry: projectRegistry,
-            env: acpEnv(),
-            cwd: workspace.cwd,
-          }),
-      ).then((created) => {
-        bridge = created;
-        return created;
-      });
+      bridgePending = Promise.resolve()
+        .then(
+          () =>
+            options.createAcpBridge?.() ??
+            createLocalAcpBridge({
+              registry: projectRegistry,
+              env: acpEnv(),
+              cwd: workspace.cwd,
+            }),
+        )
+        .then((created) => {
+          bridge = created;
+          return created;
+        });
     }
     try {
       return await bridgePending;
@@ -285,7 +352,11 @@ export async function startGuiHost(
     forgetLease(sessionId);
     const started = bridge;
     if (started === undefined) return;
-    try { await started.closeSession(sessionId); } catch { /* detached release is best-effort */ }
+    try {
+      await started.closeSession(sessionId);
+    } catch {
+      /* detached release is best-effort */
+    }
   };
 
   const detachSessions = (sessionIds: Set<string>): void => {
@@ -294,7 +365,9 @@ export async function startGuiHost(
       if (lease === undefined) continue;
       lease.attached = false;
       if (lease.releaseTimer !== undefined) clearTimeout(lease.releaseTimer);
-      lease.releaseTimer = setTimeout(() => { void releaseDetachedSession(sessionId); }, sessionResumeGraceMs);
+      lease.releaseTimer = setTimeout(() => {
+        void releaseDetachedSession(sessionId);
+      }, sessionResumeGraceMs);
       lease.releaseTimer.unref?.();
     }
     sessionIds.clear();
@@ -308,7 +381,12 @@ export async function startGuiHost(
 
   const claimLease = (sessionId: string, resumeToken: string): boolean => {
     const lease = sessionLeases.get(sessionId);
-    if (lease === undefined || lease.attached || !safeTextEqual(lease.resumeToken, resumeToken)) return false;
+    if (
+      lease === undefined ||
+      lease.attached ||
+      !safeTextEqual(lease.resumeToken, resumeToken)
+    )
+      return false;
     if (lease.releaseTimer !== undefined) clearTimeout(lease.releaseTimer);
     delete lease.releaseTimer;
     lease.attached = true;
@@ -331,29 +409,73 @@ export async function startGuiHost(
 
   const accessAuthorized = (request: IncomingMessage): boolean => {
     if (options.accessToken === undefined) return false;
-    const token = request.headers.authorization?.replace(/^Bearer /, "") ?? new URL(request.url ?? "/", "http://127.0.0.1").searchParams.get("access") ?? "";
+    const token =
+      request.headers.authorization?.replace(/^Bearer /, "") ??
+      new URL(request.url ?? "/", "http://127.0.0.1").searchParams.get(
+        "access",
+      ) ??
+      "";
     const expected = Buffer.from(options.accessToken);
     const actual = Buffer.from(token);
-    return expected.length === actual.length && timingSafeEqual(expected, actual);
+    return (
+      expected.length === actual.length && timingSafeEqual(expected, actual)
+    );
   };
   const requestAuthorized = (request: IncomingMessage): boolean => {
     if (options.accessToken === undefined && !pinAuth.enabled) return true;
-    return accessAuthorized(request) || (pinAuth.enabled && pinAuth.authorized(request));
+    return (
+      accessAuthorized(request) ||
+      (pinAuth.enabled && pinAuth.authorized(request))
+    );
   };
-  const sendHtml = (response: ServerResponse, status: number, text: string): void => {
-    response.writeHead(status, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "content-length": Buffer.byteLength(text) });
+  const sendHtml = (
+    response: ServerResponse,
+    status: number,
+    text: string,
+  ): void => {
+    response.writeHead(status, {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+      "content-length": Buffer.byteLength(text),
+    });
     response.end(text);
   };
-  const handlePinLogin = async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
-    if (!requestOriginAllowed(request)) { sendJson(response, 403, errorBody("Cross-origin requests are refused.")); return; }
-    if (request.method !== "POST") { sendJson(response, 405, errorBody("PIN login supports POST only.")); return; }
-    if (!isJsonContentType(request)) { sendJson(response, 415, errorBody("Content-Type must be application/json.")); return; }
+  const handlePinLogin = async (
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> => {
+    if (!requestOriginAllowed(request)) {
+      sendJson(response, 403, errorBody("Cross-origin requests are refused."));
+      return;
+    }
+    if (request.method !== "POST") {
+      sendJson(response, 405, errorBody("PIN login supports POST only."));
+      return;
+    }
+    if (!isJsonContentType(request)) {
+      sendJson(
+        response,
+        415,
+        errorBody("Content-Type must be application/json."),
+      );
+      return;
+    }
     const body = await readJsonBody(request);
-    const candidate = isRecord(body) && typeof body.pin === "string" ? body.pin : "";
+    const candidate =
+      isRecord(body) && typeof body.pin === "string" ? body.pin : "";
     const result = pinAuth.attempt(request, candidate);
     if (!result.ok) {
-      if (result.retryAfterSeconds !== undefined) response.setHeader("retry-after", String(result.retryAfterSeconds));
-      sendJson(response, result.retryAfterSeconds === undefined ? 401 : 429, errorBody(result.retryAfterSeconds === undefined ? "Invalid PIN." : "Too many PIN attempts. Try again shortly."));
+      if (result.retryAfterSeconds !== undefined)
+        response.setHeader("retry-after", String(result.retryAfterSeconds));
+      sendJson(
+        response,
+        result.retryAfterSeconds === undefined ? 401 : 429,
+        errorBody(
+          result.retryAfterSeconds === undefined
+            ? "Invalid PIN."
+            : "Too many PIN attempts. Try again shortly.",
+        ),
+      );
       return;
     }
     response.setHeader("set-cookie", pinAuth.sessionCookie(request));
@@ -362,19 +484,32 @@ export async function startGuiHost(
   const server = createServer((request, response) => {
     const pathname = requestPath(request);
     if (v2Auth && pathname.startsWith("/v2/")) {
-      void handleV2AuthHttp({ auth: v2Auth, request, response, originAllowed: requestOriginAllowed(request), readJson: readJsonBody, sendJson });
+      void handleV2AuthHttp({
+        auth: v2Auth,
+        request,
+        response,
+        originAllowed: requestOriginAllowed(request),
+        readJson: readJsonBody,
+        sendJson,
+      });
       return;
     }
     if (pinAuth.enabled && pathname === GUI_PIN_LOGIN_PATH) {
       void handlePinLogin(request, response);
       return;
     }
-    if (pinAuth.enabled && (pathname === "/" || pathname === "/index.html") && !pinAuth.authorized(request)) {
+    if (
+      pinAuth.enabled &&
+      (pathname === "/" || pathname === "/index.html") &&
+      !pinAuth.authorized(request)
+    ) {
       sendHtml(response, 200, pinAuth.loginPage());
       return;
     }
     if (pathname.startsWith("/v1/") && !requestAuthorized(request)) {
-      const message = pinAuth.enabled ? "Authentication required." : "Engine panel authorization required.";
+      const message = pinAuth.enabled
+        ? "Authentication required."
+        : "Engine panel authorization required.";
       sendJson(response, 401, errorBody(message));
       return;
     }
@@ -411,13 +546,24 @@ export async function startGuiHost(
         socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
         return;
       }
-      const ws = openV2SessionSocket({ request, socket, head, auth: v2Auth, sessions: v2Sessions,
-        redact: text => redactWireText(text, secrets) });
+      const ws = openV2SessionSocket({
+        request,
+        socket,
+        head,
+        auth: v2Auth,
+        sessions: v2Sessions,
+        redact: (text) => redactWireText(text, secrets),
+      });
       if (!ws) return;
       sockets.add(ws);
-      const heartbeat = setInterval(() => { if (!ws.ping()) ws.close(1001, "heartbeat timeout"); }, webSocketHeartbeatMs);
+      const heartbeat = setInterval(() => {
+        if (!ws.ping()) ws.close(1001, "heartbeat timeout");
+      }, webSocketHeartbeatMs);
       heartbeat.unref?.();
-      void ws.closed.then(() => { clearInterval(heartbeat); sockets.delete(ws); });
+      void ws.closed.then(() => {
+        clearInterval(heartbeat);
+        sockets.delete(ws);
+      });
       return;
     }
     if (pathname !== "/v1/session" || !isWebSocketUpgrade(request)) {
@@ -450,7 +596,9 @@ export async function startGuiHost(
         registerLease,
         claimLease,
         forgetLease,
-        detachSession(sessionId) { detachSessions(new Set([sessionId])); },
+        detachSession(sessionId) {
+          detachSessions(new Set([sessionId]));
+        },
       });
     });
     if (ws === undefined) {
@@ -493,7 +641,8 @@ export async function startGuiHost(
         socket.close();
       }
       sockets.clear();
-      for (const lease of sessionLeases.values()) if (lease.releaseTimer !== undefined) clearTimeout(lease.releaseTimer);
+      for (const lease of sessionLeases.values())
+        if (lease.releaseTimer !== undefined) clearTimeout(lease.releaseTimer);
       sessionLeases.clear();
       const pending = bridgePending;
       bridgePending = undefined;
@@ -527,7 +676,11 @@ async function handleHttp(input: {
   readonly registry: ModelRegistry;
   readonly runTerminal: TerminalRunner;
   readonly secrets: readonly string[];
-  readonly sendJson: (response: ServerResponse, status: number, body: unknown) => void;
+  readonly sendJson: (
+    response: ServerResponse,
+    status: number,
+    body: unknown,
+  ) => void;
   readonly staticDir: string | undefined;
   readonly storeRoot: string | undefined;
   readonly maxUploadBytes: number;
@@ -559,18 +712,41 @@ async function handleHttp(input: {
 
   try {
     if (method === "GET" && pathname === "/v1/memory") {
-      const params = new URL(request.url ?? "/v1/memory", "http://localhost").searchParams;
+      const params = new URL(request.url ?? "/v1/memory", "http://localhost")
+        .searchParams;
       const raw: Record<string, unknown> = {};
       for (const [name, value] of params) {
-        if (name in raw) { sendJson(response, 400, errorBody("Duplicate memory query parameter.")); return; }
-        raw[name] = name === "limit" || name === "offset" ? (/^\d+$/u.test(value) ? Number(value) : NaN) : value;
+        if (name in raw) {
+          sendJson(
+            response,
+            400,
+            errorBody("Duplicate memory query parameter."),
+          );
+          return;
+        }
+        raw[name] =
+          name === "limit" || name === "offset"
+            ? /^\d+$/u.test(value)
+              ? Number(value)
+              : NaN
+            : value;
       }
       let query;
-      try { query = parseMemoryInspectionQuery(raw); }
-      catch (error) { sendJson(response, 400, errorBody(publicErrorMessage(error))); return; }
+      try {
+        query = parseMemoryInspectionQuery(raw);
+      } catch (error) {
+        sendJson(response, 400, errorBody(publicErrorMessage(error)));
+        return;
+      }
       const bridge = await input.getBridge();
       if (bridge.inspectMemory === undefined) {
-        sendJson(response, 503, errorBody("This runtime does not support memory inspection. Restart with the current A008 build."));
+        sendJson(
+          response,
+          503,
+          errorBody(
+            "This runtime does not support memory inspection. Restart with the current A008 build.",
+          ),
+        );
         return;
       }
       sendJson(response, 200, await bridge.inspectMemory(query));
@@ -581,10 +757,14 @@ async function handleHttp(input: {
       return;
     }
     if (method === "GET" && pathname === "/v1/browser/frame-check") {
-      const target = new URL(request.url ?? "/", "http://localhost").searchParams.get("url") ?? "";
+      const target =
+        new URL(request.url ?? "/", "http://localhost").searchParams.get(
+          "url",
+        ) ?? "";
       const originHeader = firstHeaderValue(request.headers.origin);
       const host = firstHeaderValue(request.headers.host);
-      const embedderOrigin = originHeader || (host ? `http://${host}` : "http://127.0.0.1");
+      const embedderOrigin =
+        originHeader || (host ? `http://${host}` : "http://127.0.0.1");
       sendJson(
         response,
         200,
@@ -621,15 +801,25 @@ async function handleHttp(input: {
     }
     if (method === "POST" && pathname === "/v1/catalog/nvidia") {
       if (!isJsonContentType(request)) {
-        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
         return;
       }
-      const added = handleNvidiaCatalogAdd(input.catalogPath, await readJsonBody(request));
+      const added = handleNvidiaCatalogAdd(
+        input.catalogPath,
+        await readJsonBody(request),
+      );
       sendJson(response, 200, { added });
       return;
     }
     if (method === "DELETE" && pathname === "/v1/catalog/nvidia") {
-      const id = new URL(request.url ?? "/", "http://localhost").searchParams.get("id") ?? "";
+      const id =
+        new URL(request.url ?? "/", "http://localhost").searchParams.get(
+          "id",
+        ) ?? "";
       handleNvidiaCatalogRemove(input.catalogPath, id);
       sendJson(response, 200, { removed: id });
       return;
@@ -644,7 +834,11 @@ async function handleHttp(input: {
     }
     if (method === "POST" && pathname === "/v1/provider-settings") {
       if (!isJsonContentType(request)) {
-        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
         return;
       }
       sendJson(
@@ -661,7 +855,11 @@ async function handleHttp(input: {
     }
     if (method === "POST" && pathname === "/v1/images") {
       if (!isJsonContentType(request)) {
-        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
         return;
       }
       sendJson(
@@ -685,29 +883,47 @@ async function handleHttp(input: {
       return;
     }
     if (method === "GET" && pathname === "/v1/projects") {
-      sendJson(response, 200, handleProjectList({ registryPath: input.projectsPath }));
+      sendJson(
+        response,
+        200,
+        handleProjectList({ registryPath: input.projectsPath }),
+      );
       return;
     }
     if (method === "GET" && pathname === "/v1/projects/browse") {
-      const pathValue = new URL(request.url ?? "/", "http://localhost").searchParams.get("path");
+      const pathValue = new URL(
+        request.url ?? "/",
+        "http://localhost",
+      ).searchParams.get("path");
       sendJson(response, 200, handleDirectoryList(pathValue));
       return;
     }
     if (method === "POST" && pathname === "/v1/projects/preview") {
       if (!isJsonContentType(request)) {
-        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
         return;
       }
       sendJson(
         response,
         200,
-        handleProjectPreview({ registryPath: input.projectsPath }, await readJsonBody(request)),
+        handleProjectPreview(
+          { registryPath: input.projectsPath },
+          await readJsonBody(request),
+        ),
       );
       return;
     }
     if (method === "POST" && pathname === "/v1/projects/bootstrap") {
       if (!isJsonContentType(request)) {
-        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
         return;
       }
       const created = handleProjectBootstrap(
@@ -720,7 +936,11 @@ async function handleHttp(input: {
     }
     if (method === "POST" && pathname === "/v1/projects/register") {
       if (!isJsonContentType(request)) {
-        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
         return;
       }
       const project = handleExistingProjectRegister(
@@ -733,7 +953,11 @@ async function handleHttp(input: {
     }
     if (method === "POST" && pathname === "/v1/projects/open") {
       if (!isJsonContentType(request)) {
-        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
         return;
       }
       const opened = handleProjectOpen(
@@ -776,7 +1000,10 @@ async function handleHttp(input: {
       await handleUpload(input);
       return;
     }
-    if ((method === "GET" || method === "HEAD") && input.staticDir !== undefined) {
+    if (
+      (method === "GET" || method === "HEAD") &&
+      input.staticDir !== undefined
+    ) {
       const served = tryServeStatic(
         input.staticDir,
         pathname,
@@ -790,7 +1017,11 @@ async function handleHttp(input: {
     sendJson(response, 404, errorBody("Not found."));
   } catch (error) {
     if (isChatError(error) && error.code === "configuration") {
-      sendJson(response, error.status ?? 400, errorBody(publicErrorMessage(error)));
+      sendJson(
+        response,
+        error.status ?? 400,
+        errorBody(publicErrorMessage(error)),
+      );
       return;
     }
     sendJson(response, 500, errorBody(publicErrorMessage(error)));
@@ -809,7 +1040,11 @@ async function handleHttp(input: {
 async function handleUpload(input: {
   readonly request: IncomingMessage;
   readonly response: ServerResponse;
-  readonly sendJson: (response: ServerResponse, status: number, body: unknown) => void;
+  readonly sendJson: (
+    response: ServerResponse,
+    status: number,
+    body: unknown,
+  ) => void;
   readonly storeRoot: string | undefined;
   readonly maxUploadBytes: number;
   readonly getBridge: () => Promise<AcpBridge>;
@@ -832,7 +1067,10 @@ async function handleUpload(input: {
     return;
   }
   const declaredFilename = firstHeaderValue(request.headers["x-a008-filename"]);
-  const { buffer, sha256 } = await readUploadBody(request, input.maxUploadBytes);
+  const { buffer, sha256 } = await readUploadBody(
+    request,
+    input.maxUploadBytes,
+  );
   const mediaType = sniffSourceMediaType(buffer);
   const filename = sanitiseUploadFilename(declaredFilename);
   const stored = writeBlob(input.storeRoot, sha256, filename, buffer);
@@ -887,22 +1125,32 @@ async function readUploadBody(
     const length = Number.parseInt(declared, 10);
     if (Number.isFinite(length) && length > maxBytes) {
       request.destroy();
-      throw new ChatError("configuration", "Upload exceeds the maximum allowed size.", {
-        status: 413,
-      });
+      throw new ChatError(
+        "configuration",
+        "Upload exceeds the maximum allowed size.",
+        {
+          status: 413,
+        },
+      );
     }
   }
   const hash = createHash("sha256");
   const chunks: Buffer[] = [];
   let total = 0;
   for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array);
+    const buffer = Buffer.isBuffer(chunk)
+      ? chunk
+      : Buffer.from(chunk as Uint8Array);
     total += buffer.length;
     if (total > maxBytes) {
       request.destroy();
-      throw new ChatError("configuration", "Upload exceeds the maximum allowed size.", {
-        status: 413,
-      });
+      throw new ChatError(
+        "configuration",
+        "Upload exceeds the maximum allowed size.",
+        {
+          status: 413,
+        },
+      );
     }
     hash.update(buffer);
     chunks.push(buffer);
@@ -966,9 +1214,18 @@ async function handleSocketMessage(input: {
           ? await bridge.newSession()
           : await bridge.newSession(parsed.model);
       let state;
-      try { state = await bridge.controlSession?.(created.sessionId, { action: "inspect" }); }
-      catch (error) { await bridge.closeSession(created.sessionId).catch(() => undefined); throw error; }
-      if (input.lifetime.closed) { await bridge.closeSession(created.sessionId).catch(() => undefined); return; }
+      try {
+        state = await bridge.controlSession?.(created.sessionId, {
+          action: "inspect",
+        });
+      } catch (error) {
+        await bridge.closeSession(created.sessionId).catch(() => undefined);
+        throw error;
+      }
+      if (input.lifetime.closed) {
+        await bridge.closeSession(created.sessionId).catch(() => undefined);
+        return;
+      }
       input.ownedSessions.add(created.sessionId);
       const resumeToken = input.registerLease(created.sessionId);
       sendSocket(
@@ -984,24 +1241,57 @@ async function handleSocketMessage(input: {
       );
       if (bridge.subscribeSession) {
         input.observers.get(created.sessionId)?.();
-        input.observers.set(created.sessionId, bridge.subscribeSession(created.sessionId, message => sendSocket(input.ws, message, input.secrets)));
+        input.observers.set(
+          created.sessionId,
+          bridge.subscribeSession(created.sessionId, (message) =>
+            sendSocket(input.ws, message, input.secrets),
+          ),
+        );
       }
       return;
     }
     if (parsed.type === "session/resume") {
       if (!input.claimLease(parsed.sessionId, parsed.resumeToken)) {
-        sendSocket(input.ws, errorMessage({ message: "Session resume is unavailable or expired." }, { requestId: parsed.requestId, sessionId: parsed.sessionId }), input.secrets);
+        sendSocket(
+          input.ws,
+          errorMessage(
+            { message: "Session resume is unavailable or expired." },
+            { requestId: parsed.requestId, sessionId: parsed.sessionId },
+          ),
+          input.secrets,
+        );
         return;
       }
       input.ownedSessions.add(parsed.sessionId);
       try {
         const bridge = await input.getBridge();
-        const state = await bridge.controlSession?.(parsed.sessionId, { action: "inspect" });
-        if (input.lifetime.closed) { input.ownedSessions.delete(parsed.sessionId); input.detachSession(parsed.sessionId); return; }
-        sendSocket(input.ws, { type: "session/resume/ok", requestId: parsed.requestId, sessionId: parsed.sessionId, resumeToken: parsed.resumeToken, ...(state === undefined ? {} : { state }) }, input.secrets);
+        const state = await bridge.controlSession?.(parsed.sessionId, {
+          action: "inspect",
+        });
+        if (input.lifetime.closed) {
+          input.ownedSessions.delete(parsed.sessionId);
+          input.detachSession(parsed.sessionId);
+          return;
+        }
+        sendSocket(
+          input.ws,
+          {
+            type: "session/resume/ok",
+            requestId: parsed.requestId,
+            sessionId: parsed.sessionId,
+            resumeToken: parsed.resumeToken,
+            ...(state === undefined ? {} : { state }),
+          },
+          input.secrets,
+        );
         if (bridge.subscribeSession) {
           input.observers.get(parsed.sessionId)?.();
-          input.observers.set(parsed.sessionId, bridge.subscribeSession(parsed.sessionId, message => sendSocket(input.ws, message, input.secrets)));
+          input.observers.set(
+            parsed.sessionId,
+            bridge.subscribeSession(parsed.sessionId, (message) =>
+              sendSocket(input.ws, message, input.secrets),
+            ),
+          );
         }
       } catch (error) {
         input.ownedSessions.delete(parsed.sessionId);
@@ -1042,18 +1332,39 @@ async function handleSocketMessage(input: {
     }
     if (parsed.type === "tool/permission") {
       const bridge = await input.getBridge();
-      if (!bridge.resolveToolPermission) throw new Error("Approve this action in the native client.");
-      bridge.resolveToolPermission(parsed.sessionId, parsed.permissionId, parsed.allow);
+      if (!bridge.resolveToolPermission)
+        throw new Error("Approve this action in the native client.");
+      bridge.resolveToolPermission(
+        parsed.sessionId,
+        parsed.permissionId,
+        parsed.allow,
+      );
       return;
     }
-    if (parsed.type === "session/control" && parsed.control.action === "close") {
+    if (
+      parsed.type === "session/control" &&
+      parsed.control.action === "close"
+    ) {
       input.activePrompts.get(parsed.sessionId)?.abort();
       const bridge = await input.getBridge();
-      if (bridge.controlSession === undefined) throw new Error("Session controls require the current A008 runtime.");
-      const state = await bridge.controlSession(parsed.sessionId, parsed.control);
+      if (bridge.controlSession === undefined)
+        throw new Error("Session controls require the current A008 runtime.");
+      const state = await bridge.controlSession(
+        parsed.sessionId,
+        parsed.control,
+      );
       input.ownedSessions.delete(parsed.sessionId);
       input.forgetLease(parsed.sessionId);
-      sendSocket(input.ws, { type: "session/control/ok", requestId: parsed.requestId, sessionId: parsed.sessionId, state }, input.secrets);
+      sendSocket(
+        input.ws,
+        {
+          type: "session/control/ok",
+          requestId: parsed.requestId,
+          sessionId: parsed.sessionId,
+          state,
+        },
+        input.secrets,
+      );
       return;
     }
     if (input.activePrompts.has(parsed.sessionId)) {
@@ -1073,19 +1384,40 @@ async function handleSocketMessage(input: {
     try {
       const bridge = await input.getBridge();
       if (parsed.type === "session/control") {
-        if (bridge.controlSession === undefined) throw new Error("Session controls require the current A008 runtime.");
-        const state = await bridge.controlSession(parsed.sessionId, parsed.control);
-        sendSocket(input.ws, { type: "session/control/ok", requestId: parsed.requestId, sessionId: parsed.sessionId, state }, input.secrets);
+        if (bridge.controlSession === undefined)
+          throw new Error("Session controls require the current A008 runtime.");
+        const state = await bridge.controlSession(
+          parsed.sessionId,
+          parsed.control,
+        );
+        sendSocket(
+          input.ws,
+          {
+            type: "session/control/ok",
+            requestId: parsed.requestId,
+            sessionId: parsed.sessionId,
+            state,
+          },
+          input.secrets,
+        );
         return;
       }
       await bridge.prompt(
         parsed.sessionId,
         parsed.text,
         {
-          onTool(message) { sendSocket(input.ws, message, input.secrets); },
-          onPermission(message) { sendSocket(input.ws, message, input.secrets); },
+          onTool(message) {
+            sendSocket(input.ws, message, input.secrets);
+          },
+          onPermission(message) {
+            sendSocket(input.ws, message, input.secrets);
+          },
           onThought(text) {
-            if (controller.signal.aborted || !input.ownedSessions.has(parsed.sessionId)) return;
+            if (
+              controller.signal.aborted ||
+              !input.ownedSessions.has(parsed.sessionId)
+            )
+              return;
             sendSocket(
               input.ws,
               { type: "thought", sessionId: parsed.sessionId, text },
@@ -1093,7 +1425,11 @@ async function handleSocketMessage(input: {
             );
           },
           onAnswer(text) {
-            if (controller.signal.aborted || !input.ownedSessions.has(parsed.sessionId)) return;
+            if (
+              controller.signal.aborted ||
+              !input.ownedSessions.has(parsed.sessionId)
+            )
+              return;
             sendSocket(
               input.ws,
               { type: "answer", sessionId: parsed.sessionId, text },
@@ -1102,9 +1438,12 @@ async function handleSocketMessage(input: {
           },
         },
         controller.signal,
+        parsed.attachment,
       );
       if (!input.ownedSessions.has(parsed.sessionId)) return;
-      const state = await bridge.controlSession?.(parsed.sessionId, { action: "inspect" });
+      const state = await bridge.controlSession?.(parsed.sessionId, {
+        action: "inspect",
+      });
       sendSocket(
         input.ws,
         {
@@ -1148,7 +1487,8 @@ function safeTextEqual(expected: string, actual: string): boolean {
 }
 
 function positiveDuration(value: number, label: string): number {
-  if (!Number.isFinite(value) || value <= 0) throw new ChatError("configuration", `${label} must be greater than zero.`);
+  if (!Number.isFinite(value) || value <= 0)
+    throw new ChatError("configuration", `${label} must be greater than zero.`);
   return Math.floor(value);
 }
 
@@ -1210,7 +1550,8 @@ function tryServeStatic(
   if (!stats.isFile()) {
     return false;
   }
-  const mime = MIME_TYPES[extname(target).toLowerCase()] ?? "application/octet-stream";
+  const mime =
+    MIME_TYPES[extname(target).toLowerCase()] ?? "application/octet-stream";
   response.writeHead(200, {
     "content-type": mime,
     "content-length": stats.size,
@@ -1226,7 +1567,8 @@ function tryServeStatic(
 
 function safeStaticPath(root: string, urlPath: string): string | undefined {
   const decoded = decodeURIComponent(urlPath);
-  const relativeUrl = decoded === "/" ? "index.html" : decoded.replace(/^\/+/u, "");
+  const relativeUrl =
+    decoded === "/" ? "index.html" : decoded.replace(/^\/+/u, "");
   if (relativeUrl.split(/[/\\]/u).includes("..")) {
     return undefined;
   }
@@ -1244,14 +1586,20 @@ function resolveStaticDir(
   env: NodeJS.ProcessEnv,
 ): string | undefined {
   const configured = explicit ?? env.A008_GUI_STATIC_DIR?.trim();
-  if (configured !== undefined && configured.length > 0 && existsSync(configured)) {
+  if (
+    configured !== undefined &&
+    configured.length > 0 &&
+    existsSync(configured)
+  ) {
     return resolve(configured);
   }
   const fromCwd = join(cwd, "gui", "dist");
   if (existsSync(fromCwd)) {
     return fromCwd;
   }
-  const fromPackage = fileURLToPath(new URL("../../../gui/dist", import.meta.url));
+  const fromPackage = fileURLToPath(
+    new URL("../../../gui/dist", import.meta.url),
+  );
   if (existsSync(fromPackage)) {
     return fromPackage;
   }
@@ -1307,17 +1655,25 @@ function parseListenOptions(
 }
 
 const entryPath = process.argv[1];
-if (entryPath !== undefined && import.meta.url === pathToFileURL(entryPath).href) {
+if (
+  entryPath !== undefined &&
+  import.meta.url === pathToFileURL(entryPath).href
+) {
   const stderr = process.stderr;
   try {
-    const listenOptions = parseListenOptions(process.argv.slice(2), process.env);
+    const listenOptions = parseListenOptions(
+      process.argv.slice(2),
+      process.env,
+    );
     const configuredPin = process.env[GUI_PIN_ENV]?.trim();
     const host = await startGuiHost({
       ...listenOptions,
       ...(configuredPin ? { pin: configuredPin } : {}),
       stderr,
     });
-    stderr.write(`A008-gui-host listening on http://${host.host}:${String(host.port)}\n`);
+    stderr.write(
+      `A008-gui-host listening on http://${host.host}:${String(host.port)}\n`,
+    );
   } catch (error: unknown) {
     stderr.write(
       `A008-gui-host failed: ${error instanceof Error ? error.message : "unknown error"}\n`,

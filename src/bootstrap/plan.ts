@@ -1,10 +1,20 @@
 import { join } from "node:path";
 import type { RuntimeIdentityFactory } from "../identity/runtime-id.js";
-import { docsFirstFiles, multiAgentPolicy, taskPrefixFromName } from "./templates.js";
-import type { PlannedMutation, ProjectBootstrapConfig, ProjectBootstrapPlan } from "./types.js";
+import {
+  docsFirstFiles,
+  multiAgentPolicy,
+  taskPrefixFromName,
+} from "./templates.js";
+import type {
+  PlannedMutation,
+  ProjectBootstrapConfig,
+  ProjectBootstrapPlan,
+} from "./types.js";
 import { DEFAULT_MAX_WORKERS } from "./types.js";
 
-export function plannedFiles(config: ProjectBootstrapConfig): Readonly<Record<string, string>> {
+export function plannedFiles(
+  config: ProjectBootstrapConfig,
+): Readonly<Record<string, string>> {
   const files: Record<string, string> = {};
   if (config.continuity.docsFirst) {
     Object.assign(
@@ -29,7 +39,9 @@ export function planProjectBootstrap(
   config: ProjectBootstrapConfig,
   projectId: string,
 ): ProjectBootstrapPlan {
-  const mutations: PlannedMutation[] = [{ kind: "mkdir", path: config.rootFolder }];
+  const mutations: PlannedMutation[] = [
+    { kind: "mkdir", path: config.rootFolder },
+  ];
   const files = plannedFiles(config);
   for (const [relativePath, body] of Object.entries(files)) {
     const path = join(config.rootFolder, relativePath);

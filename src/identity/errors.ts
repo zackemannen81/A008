@@ -7,7 +7,11 @@ export type IdentityErrorCode =
 export class IdentityError extends Error {
   readonly code: IdentityErrorCode;
 
-  constructor(code: IdentityErrorCode, message: string, options?: ErrorOptions) {
+  constructor(
+    code: IdentityErrorCode,
+    message: string,
+    options?: ErrorOptions,
+  ) {
     super(message, options);
     this.name = "IdentityError";
     this.code = code;

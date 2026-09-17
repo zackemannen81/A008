@@ -52,9 +52,8 @@ export function buildSettingsView(session: GuiSession): SettingsView {
   const memory = MEMORY_STATUS_LABEL;
   const telemetry = TELEMETRY_STATUS_LABEL;
   const credentials = CREDENTIAL_STATUS_LABEL;
-  const displayedSession = sessionId === undefined || sessionId.length === 0
-    ? "none"
-    : sessionId;
+  const displayedSession =
+    sessionId === undefined || sessionId.length === 0 ? "none" : sessionId;
   const displayedModel = model.length === 0 ? "unset" : model;
 
   return {
@@ -72,7 +71,15 @@ export function buildSettingsView(session: GuiSession): SettingsView {
       { id: "model", label: "Model", value: displayedModel },
       { id: "connection", label: "Connection", value: connection },
       { id: "session", label: "Session", value: displayedSession },
-      ...(session.details ? [{ id: "cwd", label: "Working directory", value: session.details.runtime.cwd }] : []),
+      ...(session.details
+        ? [
+            {
+              id: "cwd",
+              label: "Working directory",
+              value: session.details.runtime.cwd,
+            },
+          ]
+        : []),
       { id: "memory", label: "Memory", value: memory },
       { id: "telemetry", label: "Telemetry", value: telemetry },
       { id: "credentials", label: "Credentials", value: credentials },

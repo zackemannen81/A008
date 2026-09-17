@@ -23,8 +23,7 @@ import {
   uniqueTraceFile,
 } from "./helpers.js";
 
-const ASSERTION =
-  "Durable fact: the local memory project code is alpha-seven.";
+const ASSERTION = "Durable fact: the local memory project code is alpha-seven.";
 const PROPOSITION = "the local memory project code is alpha-seven";
 const QUESTION = "What is the local memory project code?";
 
@@ -46,10 +45,14 @@ function assertionTransport() {
       };
     },
     analyze: (input) => {
-      const raw = input as { readonly message?: unknown; readonly answer?: unknown };
+      const raw = input as {
+        readonly message?: unknown;
+        readonly answer?: unknown;
+      };
       if (raw.message === ASSERTION) {
         return [
-          { severity: "important",
+          {
+            severity: "important",
             proposition: PROPOSITION,
             kind: "fact",
             tags: ["memory"],
@@ -102,11 +105,15 @@ test("two-turn runtime commits an explicit user assertion and rereads it", async
     assert.equal(chatRequests.length, 2);
     assert.equal(analyzeRequests.length, 2);
     assert.equal(
-      JSON.stringify(chatRequests[0]?.messages).includes("PRIVATE_RUNTIME_REASONING"),
+      JSON.stringify(chatRequests[0]?.messages).includes(
+        "PRIVATE_RUNTIME_REASONING",
+      ),
       false,
     );
     assert.equal(
-      JSON.stringify(analyzeRequests[0]?.messages).includes("PRIVATE_RUNTIME_REASONING"),
+      JSON.stringify(analyzeRequests[0]?.messages).includes(
+        "PRIVATE_RUNTIME_REASONING",
+      ),
       false,
     );
     const firstAnalyze = semanticInput(analyzeRequests[0]!) as {
@@ -114,7 +121,11 @@ test("two-turn runtime commits an explicit user assertion and rereads it", async
       readonly answer: string;
     };
     assert.deepEqual(firstAnalyze, { message: ASSERTION, answer: "Noted." });
-    assert.equal(chatRequests[1]?.messages.filter((message) => message.role !== "system").length, 3);
+    assert.equal(
+      chatRequests[1]?.messages.filter((message) => message.role !== "system")
+        .length,
+      3,
+    );
   } finally {
     runtime.close();
     rmSync(isolated.directory, { recursive: true, force: true });
@@ -224,7 +235,8 @@ test("chat rollback, staging failure, stale commit, and read failure stay distin
   const stale = memoryAwareFakeTransport({
     chat: () => ({ content: "ok" }),
     analyze: () => [
-      { severity: "important",
+      {
+        severity: "important",
         proposition: PROPOSITION,
         kind: "fact",
         tags: ["memory"],
@@ -296,7 +308,11 @@ test("pending index repair is retried once and sink failure does not rewrite the
     env: {
       ...isolated.env,
       A008_DEBUG_TRACE: "safe",
-      A008_DEBUG_TRACE_FILE: join(isolated.directory, "blocked", "trace.debug.jsonl"),
+      A008_DEBUG_TRACE_FILE: join(
+        isolated.directory,
+        "blocked",
+        "trace.debug.jsonl",
+      ),
     },
     surface: "test",
     createTransport: () =>
@@ -392,7 +408,8 @@ test("trace off creates no file and cancellation skips post-output", async () =>
     const controller = new AbortController();
     controller.abort();
     await assert.rejects(
-      () => runtime.openSession().turn(ASSERTION, { signal: controller.signal }),
+      () =>
+        runtime.openSession().turn(ASSERTION, { signal: controller.signal }),
       (error: unknown) =>
         error instanceof ChatError && error.code === "cancelled",
     );
@@ -472,7 +489,8 @@ function restatementTransport() {
         return [];
       }
       return [
-        { severity: "important",
+        {
+          severity: "important",
           proposition: PROPOSITION,
           kind: "fact",
           tags: ["memory"],
@@ -531,7 +549,10 @@ test("live restatement boosts evidence without changing the read path or state l
         restated.postOutput.records[0]?.result.reconciliation.relation,
         "restatement",
       );
-      assert.equal(restated.postOutput.records[0]?.result.reconciliation.item, null);
+      assert.equal(
+        restated.postOutput.records[0]?.result.reconciliation.item,
+        null,
+      );
     }
     const afterWrite = await readCanonical(isolated.sqlitePath);
     assert.equal(afterWrite?.revision, 1);
@@ -631,7 +652,8 @@ test("overlapping turns are rejected and cannot rewrite sourceMessage", async ()
             message: {
               role: "assistant",
               content: JSON.stringify([
-                { severity: "important",
+                {
+                  severity: "important",
                   proposition: PROPOSITION,
                   kind: "fact",
                   tags: ["memory"],
@@ -702,7 +724,8 @@ test("chat generation overrides reach the provider request", async () => {
     createTransport: (transportOptions) => ({
       async complete(request) {
         transportTimeoutMs = transportOptions.timeoutMs;
-        if (semanticOperation(request) === undefined) seen.push(request.options);
+        if (semanticOperation(request) === undefined)
+          seen.push(request.options);
         return {
           message: { role: "assistant", content: "Noted." },
           model: request.model,
@@ -786,7 +809,6 @@ test("a commit refusal is named in the diagnostic, apart from a staging skip", (
   );
 });
 
-
 test("A007 shared-memory protocol writes, recalls and survives SQLite restart without a provider call", async () => {
   const isolated = isolatedMemoryEnv();
   const marker = "A007 shared memory marker cobalt-pineapple-007";
@@ -808,7 +830,9 @@ test("A007 shared-memory protocol writes, recalls and survives SQLite restart wi
     const stored = firstRuntime.writeSharedMemory({ content: marker });
     assert.equal(stored.status, "STORED");
     assert.equal(stored.semantics, "evidence");
-    const recalled = await firstRuntime.recallSharedMemory({ query: "cobalt-pineapple-007" });
+    const recalled = await firstRuntime.recallSharedMemory({
+      query: "cobalt-pineapple-007",
+    });
     assert.ok(recalled.items.some((item) => item.content.includes(marker)));
     assert.equal(
       transport.requests.length,
@@ -826,9 +850,17 @@ test("A007 shared-memory protocol writes, recalls and survives SQLite restart wi
     createTransport: () => restartTransport,
   });
   try {
-    const recalledAfterRestart = await restarted.recallSharedMemory({ query: "cobalt-pineapple-007" });
-    assert.ok(recalledAfterRestart.items.some((item) => item.content.includes(marker)));
-    assert.equal(restartTransport.requests.length, 0, "restart recall must remain provider-free");
+    const recalledAfterRestart = await restarted.recallSharedMemory({
+      query: "cobalt-pineapple-007",
+    });
+    assert.ok(
+      recalledAfterRestart.items.some((item) => item.content.includes(marker)),
+    );
+    assert.equal(
+      restartTransport.requests.length,
+      0,
+      "restart recall must remain provider-free",
+    );
   } finally {
     restarted.close();
     rmSync(isolated.directory, { recursive: true, force: true });

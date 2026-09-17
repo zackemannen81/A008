@@ -152,9 +152,13 @@ async function handleSlash(
       const profile = ctx.deps.registry.require(parsed.argument);
       ctx.session = ctx.runtime.openSession({
         model: profile.id,
-        ...(ctx.systemMessage === undefined ? {} : { systemMessage: ctx.systemMessage }),
+        ...(ctx.systemMessage === undefined
+          ? {}
+          : { systemMessage: ctx.systemMessage }),
       });
-      out.write(`Model: ${profile.name} (${profile.id}). Conversation reset.\n`);
+      out.write(
+        `Model: ${profile.name} (${profile.id}). Conversation reset.\n`,
+      );
       return "continue";
     }
     case "status":
@@ -162,8 +166,12 @@ async function handleSlash(
       out.write(`cwd: ${ctx.deps.cwd}\n`);
       out.write(`project: ${ctx.runtime.projectId}\n`);
       out.write(`memory: ${ctx.runtime.sqlitePath}\n`);
-      out.write(`turns: ${ctx.session.messages.filter((m) => m.role !== "system").length}\n`);
-      out.write("tools: exec_command, list_files, read_file, create_file, edit_file, git (model-invoked, approval per action); /shell (user-initiated)\n");
+      out.write(
+        `turns: ${ctx.session.messages.filter((m) => m.role !== "system").length}\n`,
+      );
+      out.write(
+        "tools: exec_command, list_files, read_file, create_file, edit_file, git (model-invoked, approval per action); /shell (user-initiated)\n",
+      );
       return "continue";
     case "cwd":
       out.write(`${ctx.deps.cwd}\n`);
@@ -280,7 +288,9 @@ async function runChat(
     systemMessage: options.systemMessage,
     session: runtime.openSession({
       model: profile.id,
-      ...(options.systemMessage === undefined ? {} : { systemMessage: options.systemMessage }),
+      ...(options.systemMessage === undefined
+        ? {}
+        : { systemMessage: options.systemMessage }),
     }),
   };
   const terminal = createInterface({
@@ -290,10 +300,15 @@ async function runChat(
   });
 
   deps.stdout.write(`Model: ${profile.name} (${profile.id})\n`);
-  deps.stdout.write("Type /help for commands, /shell for a local terminal, /exit to quit.\n");
+  deps.stdout.write(
+    "Type /help for commands, /shell for a local terminal, /exit to quit.\n",
+  );
   const modelTools = new ModelToolSession({ cwd: deps.cwd, env: deps.env });
   let activeController: AbortController | undefined;
-  const interrupt = () => { if (activeController) activeController.abort(); else terminal.close(); };
+  const interrupt = () => {
+    if (activeController) activeController.abort();
+    else terminal.close();
+  };
   terminal.on("SIGINT", interrupt);
   process.on("SIGINT", interrupt);
 
@@ -327,14 +342,38 @@ async function runChat(
         activeController = controller;
         const result = await ctx.session.turn(command, {
           signal: controller.signal,
-          prepareTools: (signal, budgets) => modelTools.prepare(budgets, {
-          approve: async (activity, approvalSignal) => {
-            deps.stdout.write(`\nTool: ${activity.name}\ncwd: ${activity.cwd}\n${activity.input}\n`);
-            try { return (await terminal.question("Allow this action once? [y/N] ", { signal: approvalSignal })).trim().toLowerCase() === "y"; }
-            catch { return false; }
-          },
-          update: async activity => { if (activity.status !== "pending") deps.stderr.write(`tool> ${activity.name}: ${activity.status}${activity.output ? `\n${activity.output}` : ""}\n`); },
-        }, signal),
+          prepareTools: (signal, budgets) =>
+            modelTools.prepare(
+              budgets,
+              {
+                approve: async (activity, approvalSignal) => {
+                  deps.stdout.write(
+                    `\nTool: ${activity.name}\ncwd: ${activity.cwd}\n${activity.input}\n`,
+                  );
+                  try {
+                    return (
+                      (
+                        await terminal.question(
+                          "Allow this action once? [y/N] ",
+                          { signal: approvalSignal },
+                        )
+                      )
+                        .trim()
+                        .toLowerCase() === "y"
+                    );
+                  } catch {
+                    return false;
+                  }
+                },
+                update: async (activity) => {
+                  if (activity.status !== "pending")
+                    deps.stderr.write(
+                      `tool> ${activity.name}: ${activity.status}${activity.output ? `\n${activity.output}` : ""}\n`,
+                    );
+                },
+              },
+              signal,
+            ),
           onDelta: (delta) => {
             if (delta.type === "reasoning") {
               if (!reasoningStarted) {
@@ -409,6 +448,9 @@ export async function runCli(
 }
 
 const entryPath = process.argv[1];
-if (entryPath !== undefined && import.meta.url === pathToFileURL(entryPath).href) {
+if (
+  entryPath !== undefined &&
+  import.meta.url === pathToFileURL(entryPath).href
+) {
   process.exitCode = await runCli(process.argv.slice(2));
 }

@@ -185,7 +185,9 @@ export function serializeProjectionPayload(payload: ProjectionPayload): string {
   });
 }
 
-function serializeInstant(instant: ProjectionPayload["utterances"][number]["assertedAt"]): unknown {
+function serializeInstant(
+  instant: ProjectionPayload["utterances"][number]["assertedAt"],
+): unknown {
   if (typeof instant === "object" && instant.unknown === true) {
     return { unknown: true };
   }

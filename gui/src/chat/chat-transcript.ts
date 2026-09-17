@@ -55,7 +55,9 @@ interface SessionMessage {
  * Optional structural extension. The stub `GuiSession` has no `messages`
  * field; a later session client may add one without renaming stub exports.
  */
-function readOptionalMessages(session: GuiSession): SessionMessage[] | undefined {
+function readOptionalMessages(
+  session: GuiSession,
+): SessionMessage[] | undefined {
   const candidate = (session as GuiSession & { readonly messages?: unknown })
     .messages;
   if (candidate === undefined) {
@@ -178,23 +180,43 @@ function attachLiveTools(
  * Build the A008 transcript. Thought is a separate display-only field and is
  * never concatenated into answer text.
  */
-export function buildChatTranscript(input: ChatTranscriptInput): ChatTranscript {
+export function buildChatTranscript(
+  input: ChatTranscriptInput,
+): ChatTranscript {
   if (input.session.details !== undefined) {
     const session = input.session;
     const turns = turnsFromMessages(input.session.details.messages);
     if (session.pendingText !== undefined) {
-      turns.push({ kind: "user", id: "pending-user", text: session.pendingText });
-      turns.push({ kind: "assistant", id: "pending-assistant", thought: session.thought, answer: session.answer, live: true });
+      turns.push({
+        kind: "user",
+        id: "pending-user",
+        text: session.pendingText,
+      });
+      turns.push({
+        kind: "assistant",
+        id: "pending-assistant",
+        thought: session.thought,
+        answer: session.answer,
+        live: true,
+      });
     } else {
       const last = turns.at(-1);
-      if (last?.kind === "assistant" && last.answer === session.answer) turns[turns.length - 1] = { ...last, thought: session.thought };
+      if (last?.kind === "assistant" && last.answer === session.answer)
+        turns[turns.length - 1] = { ...last, thought: session.thought };
     }
     const withTools = attachLiveTools(turns, session.tools);
-    return { status: session.status, error: session.error, empty: withTools.length === 0, turns: withTools };
+    return {
+      status: session.status,
+      error: session.error,
+      empty: withTools.length === 0,
+      turns: withTools,
+    };
   }
   const messages = readOptionalMessages(input.session);
   const history =
-    messages !== undefined ? turnsFromMessages(messages) : (input.history ?? []);
+    messages !== undefined
+      ? turnsFromMessages(messages)
+      : (input.history ?? []);
   const thought = input.session.thought;
   const answer = input.session.answer;
   const turns =

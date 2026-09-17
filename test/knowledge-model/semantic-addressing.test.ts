@@ -193,11 +193,12 @@ test("entity identity reuses a slug-equivalent label instead of re-registering",
   assert.equal(byDisplay?.id, "html5_canvas");
   assert.equal(byAlias?.id, "html5_canvas");
   assert.throws(
-    () => entities.register({
-      id: asEntityId("html5_canvas"),
-      type: "fact",
-      labels: ["html5_canvas"],
-    }),
+    () =>
+      entities.register({
+        id: asEntityId("html5_canvas"),
+        type: "fact",
+        labels: ["html5_canvas"],
+      }),
     /already registered/u,
   );
 });

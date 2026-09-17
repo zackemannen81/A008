@@ -34,16 +34,26 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function decodeBase64(value: string): Buffer {
-  const trimmed = value.includes(",") ? value.slice(value.indexOf(",") + 1) : value;
+  const trimmed = value.includes(",")
+    ? value.slice(value.indexOf(",") + 1)
+    : value;
   const bytes = Buffer.from(trimmed, "base64");
   if (bytes.length === 0) {
-    throw new ChatError("provider", "Image response contained empty image data.");
+    throw new ChatError(
+      "provider",
+      "Image response contained empty image data.",
+    );
   }
   return bytes;
 }
 
 function mediaTypeOf(bytes: Buffer): "image/png" | "image/jpeg" {
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+  if (
+    bytes.length >= 3 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff
+  ) {
     return "image/jpeg";
   }
   return "image/png";
@@ -55,10 +65,17 @@ export function parseNvidiaImagePayload(value: unknown): NvidiaImageResult {
     throw new ChatError("provider", "Image response was not a JSON object.");
   }
   const artifacts = value.artifacts;
-  if (Array.isArray(artifacts) && artifacts.length > 0 && isRecord(artifacts[0])) {
+  if (
+    Array.isArray(artifacts) &&
+    artifacts.length > 0 &&
+    isRecord(artifacts[0])
+  ) {
     const encoded = artifacts[0].base64;
     if (typeof encoded !== "string" || encoded.trim().length === 0) {
-      throw new ChatError("provider", "Image artifact was missing base64 data.");
+      throw new ChatError(
+        "provider",
+        "Image artifact was missing base64 data.",
+      );
     }
     const bytes = decodeBase64(encoded);
     return { bytes, mediaType: mediaTypeOf(bytes) };
@@ -76,7 +93,10 @@ export function parseNvidiaImagePayload(value: unknown): NvidiaImageResult {
     const bytes = decodeBase64(value.image);
     return { bytes, mediaType: mediaTypeOf(bytes) };
   }
-  throw new ChatError("provider", "Image response did not include image bytes.");
+  throw new ChatError(
+    "provider",
+    "Image response did not include image bytes.",
+  );
 }
 
 export class NvidiaImageTransport {
@@ -106,8 +126,15 @@ export class NvidiaImageTransport {
     }
     const width = request.width ?? 1024;
     const height = request.height ?? 1024;
-    if (![width, height].every((n) => Number.isSafeInteger(n) && n >= 64 && n <= 2048)) {
-      throw new ChatError("configuration", "Image width and height must be whole numbers from 64 to 2048.");
+    if (
+      ![width, height].every(
+        (n) => Number.isSafeInteger(n) && n >= 64 && n <= 2048,
+      )
+    ) {
+      throw new ChatError(
+        "configuration",
+        "Image width and height must be whole numbers from 64 to 2048.",
+      );
     }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.#timeoutMs);
@@ -147,7 +174,10 @@ export class NvidiaImageTransport {
       if (error instanceof Error && error.name === "AbortError") {
         throw new ChatError("timeout", "Image generation timed out.");
       }
-      throw new ChatError("network", "Failed to reach the image generation endpoint.");
+      throw new ChatError(
+        "network",
+        "Failed to reach the image generation endpoint.",
+      );
     } finally {
       clearTimeout(timer);
     }

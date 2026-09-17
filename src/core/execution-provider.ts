@@ -23,7 +23,10 @@ export function acmeProviderHint(
 export function resolveExecutionProvider(
   model: string,
   catalog?: {
-    readonly chatModels: readonly { readonly id: string; readonly provider: string }[];
+    readonly chatModels: readonly {
+      readonly id: string;
+      readonly provider: string;
+    }[];
   },
 ): ExecutionProvider {
   const shipped = defaultModelRegistry.get(model)?.executionProvider;
@@ -37,5 +40,8 @@ export function resolveExecutionProvider(
   if (entry !== undefined) {
     return catalogExecutionProvider(entry.provider);
   }
-  throw new ChatError("configuration", `No executionProvider for model ${model}.`);
+  throw new ChatError(
+    "configuration",
+    `No executionProvider for model ${model}.`,
+  );
 }

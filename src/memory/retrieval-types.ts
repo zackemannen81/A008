@@ -4,17 +4,10 @@ import type {
   ProjectId,
   RuntimeTaskId,
 } from "../identity/types.js";
-import type {
-  ActivationStatus,
-  ProjectionResult,
-} from "./types.js";
+import type { ActivationStatus, ProjectionResult } from "./types.js";
 
 export type RetrievalIntent =
-  | "question"
-  | "instruction"
-  | "correction"
-  | "continuation"
-  | "statement";
+  "question" | "instruction" | "correction" | "continuation" | "statement";
 
 export interface DialogueTurn {
   readonly role: "user" | "assistant";
@@ -83,11 +76,7 @@ export interface EmbeddingProvider {
 }
 
 export type RetrievalChannel =
-  | "exact"
-  | "lexical"
-  | "tag"
-  | "domain"
-  | "semantic";
+  "exact" | "lexical" | "tag" | "domain" | "semantic";
 
 export interface CandidateChannelHit {
   readonly knowledgeId: string;
@@ -168,7 +157,8 @@ export interface MemoryReadEvidence {
   readonly projectionMaximum: number;
   readonly projectionMeasuredUnits: number;
   readonly projectionMeasurementUnit: string;
-  readonly semanticRetrieval: "used" | "skipped" | "degraded" | "not_configured" | "no_vectors";
+  readonly semanticRetrieval:
+    "used" | "skipped" | "degraded" | "not_configured" | "no_vectors";
 }
 
 export interface HybridMemoryReadResult {

@@ -128,21 +128,29 @@ function acmeFetch(
         if (toolCalls.length > 0) {
           return { role: "assistant" as const, content: text, toolCalls };
         }
-        return { role: message.role as "system" | "user" | "assistant", content: text };
+        return {
+          role: message.role as "system" | "user" | "assistant",
+          content: text,
+        };
       }),
     };
     const result = complete(mapped);
     const events: string[] = [];
     let sequence = 0;
     if (result.reasoning) {
-      events.push(sseEvent("reasoning-delta", { sequence, text: result.reasoning }));
+      events.push(
+        sseEvent("reasoning-delta", { sequence, text: result.reasoning }),
+      );
       sequence += 1;
     }
     if (result.content) {
-      events.push(sseEvent("content-delta", { sequence, text: result.content }));
+      events.push(
+        sseEvent("content-delta", { sequence, text: result.content }),
+      );
       sequence += 1;
     }
-    const finishReason = result.finishReason ?? (result.toolCalls ? "tool" : "stop");
+    const finishReason =
+      result.finishReason ?? (result.toolCalls ? "tool" : "stop");
     const response = {
       provider: "openai",
       model: "gpt-5.6-luna",
@@ -170,7 +178,10 @@ function acmeFetch(
           modelExecutionId: "model_execution_parity",
           replayed: false,
           usage: response.usage,
-          diagnostic: { kind: "completed", finishReason: response.finishReason },
+          diagnostic: {
+            kind: "completed",
+            finishReason: response.finishReason,
+          },
           response,
         },
       }),
@@ -179,7 +190,9 @@ function acmeFetch(
   };
 }
 
-function acmeTransport(complete: (request: ChatRequest) => Normalized): AcmeChatTransport {
+function acmeTransport(
+  complete: (request: ChatRequest) => Normalized,
+): AcmeChatTransport {
   return new AcmeChatTransport({
     baseUrl: BASE,
     timeoutMs: 5_000,
@@ -188,7 +201,9 @@ function acmeTransport(complete: (request: ChatRequest) => Normalized): AcmeChat
   });
 }
 
-function directTransport(complete: (request: ChatRequest) => Normalized): ChatTransport {
+function directTransport(
+  complete: (request: ChatRequest) => Normalized,
+): ChatTransport {
   return {
     async complete(request, callbacks) {
       const result = complete(request);
@@ -200,9 +215,14 @@ function directTransport(complete: (request: ChatRequest) => Normalized): ChatTr
       }
       return {
         message: { role: "assistant", content: result.content },
-        ...(result.reasoning === undefined ? {} : { reasoning: result.reasoning }),
-        ...(result.toolCalls === undefined ? {} : { toolCalls: result.toolCalls }),
-        finishReason: result.finishReason ?? (result.toolCalls ? "tool_calls" : "stop"),
+        ...(result.reasoning === undefined
+          ? {}
+          : { reasoning: result.reasoning }),
+        ...(result.toolCalls === undefined
+          ? {}
+          : { toolCalls: result.toolCalls }),
+        finishReason:
+          result.finishReason ?? (result.toolCalls ? "tool_calls" : "stop"),
         usage: { promptTokens: 4, completionTokens: 2, totalTokens: 6 },
       };
     },
@@ -228,7 +248,7 @@ test("direct and ACME text, reasoning, tool call and tool-result continuation ma
       return {
         content: "",
         toolCalls: [
-          { id: "call_1", name: "get_weather", arguments: "{\"city\":\"Paris\"}" },
+          { id: "call_1", name: "get_weather", arguments: '{"city":"Paris"}' },
         ],
         finishReason: "tool_calls",
       };
@@ -238,12 +258,16 @@ test("direct and ACME text, reasoning, tool call and tool-result continuation ma
   const executed: string[] = [];
   const tools = {
     definitions: [
-      { name: "get_weather", description: "Weather", parameters: { type: "object" } },
+      {
+        name: "get_weather",
+        description: "Weather",
+        parameters: { type: "object" },
+      },
     ],
     maximumCalls: 2,
     async execute(call: ChatToolCall) {
       executed.push(`${call.id}:${call.name}:${call.arguments}`);
-      return "{\"celsius\":18}";
+      return '{"celsius":18}';
     },
   };
   const directDeltas: string[] = [];
@@ -281,8 +305,8 @@ test("direct and ACME text, reasoning, tool call and tool-result continuation ma
   assert.equal(acmeWeather.message.content, directWeather.message.content);
   assert.deepEqual(directSession.messages, acmeSession.messages);
   assert.deepEqual(executed, [
-    "call_1:get_weather:{\"city\":\"Paris\"}",
-    "call_1:get_weather:{\"city\":\"Paris\"}",
+    'call_1:get_weather:{"city":"Paris"}',
+    'call_1:get_weather:{"city":"Paris"}',
   ]);
 });
 
@@ -292,7 +316,7 @@ test("fragmented ACME tool calls are not executed until structurally complete", 
     transport: acmeTransport(() => ({
       content: "",
       toolCalls: [
-        { id: "call_1", name: "get_weather", arguments: "{\"city\":\"Paris\"}" },
+        { id: "call_1", name: "get_weather", arguments: '{"city":"Paris"}' },
       ],
       finishReason: "length",
     })),
@@ -303,7 +327,11 @@ test("fragmented ACME tool calls are not executed until structurally complete", 
       session.send("weather", {
         tools: {
           definitions: [
-            { name: "get_weather", description: "Weather", parameters: { type: "object" } },
+            {
+              name: "get_weather",
+              description: "Weather",
+              parameters: { type: "object" },
+            },
           ],
           maximumCalls: 2,
           async execute() {
@@ -352,7 +380,8 @@ test("stateless semantic JSON matches through direct and ACME transports", async
 });
 
 test("direct and ACME local runtimes commit equivalent chat and knowledge", async () => {
-  const ASSERTION = "Durable fact: the local memory project code is alpha-seven.";
+  const ASSERTION =
+    "Durable fact: the local memory project code is alpha-seven.";
   const PROPOSITION = "the local memory project code is alpha-seven";
   const QUESTION = "What is the local memory project code?";
 
@@ -444,23 +473,58 @@ test("multi-proposal memory write uses one extraction and one batch relation cal
     const operation = semanticOperation(request);
     if (operation !== undefined) operations.push(operation);
     if (operation === "retrieval_scope") {
-      return { content: '{"domains":["fixtures"],"relatedDomains":[],"tags":[],"relatedTags":[]}' };
+      return {
+        content:
+          '{"domains":["fixtures"],"relatedDomains":[],"tags":[],"relatedTags":[]}',
+      };
     }
     if (operation === "knowledge_analysis") {
-      return { content: JSON.stringify([
-        { severity: "important", proposition: "The fixture is blue.", kind: "fact", tags: ["fixture"], domains: ["fixtures"], entities: ["fixture"], confidence: 0.9 },
-        { severity: "important", proposition: "The fixture is round.", kind: "fact", tags: ["fixture"], domains: ["fixtures"], entities: ["fixture"], confidence: 0.9 },
-        { severity: "minor", proposition: "The fixture is portable.", kind: "fact", tags: ["fixture"], domains: ["fixtures"], entities: ["fixture"], confidence: 0.8 },
-      ]) };
+      return {
+        content: JSON.stringify([
+          {
+            severity: "important",
+            proposition: "The fixture is blue.",
+            kind: "fact",
+            tags: ["fixture"],
+            domains: ["fixtures"],
+            entities: ["fixture"],
+            confidence: 0.9,
+          },
+          {
+            severity: "important",
+            proposition: "The fixture is round.",
+            kind: "fact",
+            tags: ["fixture"],
+            domains: ["fixtures"],
+            entities: ["fixture"],
+            confidence: 0.9,
+          },
+          {
+            severity: "minor",
+            proposition: "The fixture is portable.",
+            kind: "fact",
+            tags: ["fixture"],
+            domains: ["fixtures"],
+            entities: ["fixture"],
+            confidence: 0.8,
+          },
+        ]),
+      };
     }
     if (operation === "relation_classification") {
       const envelope = JSON.parse(request.messages.at(-1)!.content) as {
-        readonly input: { readonly items: readonly { readonly proposalHandle: string }[] };
+        readonly input: {
+          readonly items: readonly { readonly proposalHandle: string }[];
+        };
       };
-      return { content: JSON.stringify(envelope.input.items.map((item) => ({
-        proposalHandle: item.proposalHandle,
-        type: "new",
-      }))) };
+      return {
+        content: JSON.stringify(
+          envelope.input.items.map((item) => ({
+            proposalHandle: item.proposalHandle,
+            type: "new",
+          })),
+        ),
+      };
     }
     return { content: "Noted." };
   };
@@ -470,14 +534,33 @@ test("multi-proposal memory write uses one extraction and one batch relation cal
     A008_CHAT_TRANSPORT: "acme",
     A008_ACME_MODEL_RUNTIME_URL: BASE,
   });
-  const runtime = createLocalMemoryRuntime({ env: isolated.env, surface: "test", fetch: acmeFetch(complete) });
+  const runtime = createLocalMemoryRuntime({
+    env: isolated.env,
+    surface: "test",
+    fetch: acmeFetch(complete),
+  });
   try {
-    const result = await runtime.openSession({ model: "gpt-5.6-luna" }).turn("The fixture is blue, round, and portable.");
+    const result = await runtime
+      .openSession({ model: "gpt-5.6-luna" })
+      .turn("The fixture is blue, round, and portable.");
     assert.equal(result.postOutput.status, "completed");
-    assert.equal("records" in result.postOutput ? result.postOutput.records.length : 0, 3);
-    assert.equal(operations.filter((entry) => entry === "knowledge_analysis").length, 1);
-    assert.equal(operations.filter((entry) => entry === "relation_classification").length, 1);
-    assert.deepEqual(operations, ["retrieval_scope", "knowledge_analysis", "relation_classification"]);
+    assert.equal(
+      "records" in result.postOutput ? result.postOutput.records.length : 0,
+      3,
+    );
+    assert.equal(
+      operations.filter((entry) => entry === "knowledge_analysis").length,
+      1,
+    );
+    assert.equal(
+      operations.filter((entry) => entry === "relation_classification").length,
+      1,
+    );
+    assert.deepEqual(operations, [
+      "retrieval_scope",
+      "knowledge_analysis",
+      "relation_classification",
+    ]);
   } finally {
     runtime.close();
   }
@@ -489,30 +572,67 @@ test("batch relation handles resolve earlier proposals and reject future targets
     const complete = (request: ChatRequest): Normalized => {
       const operation = semanticOperation(request);
       if (operation === "retrieval_scope") {
-        return { content: '{"domains":[],"relatedDomains":[],"tags":[],"relatedTags":[]}' };
+        return {
+          content:
+            '{"domains":[],"relatedDomains":[],"tags":[],"relatedTags":[]}',
+        };
       }
       if (operation === "knowledge_analysis") {
-        return { content: JSON.stringify([
-          { severity: "important", proposition: "The fixture colour is blue.", kind: "fact", tags: ["fixture"], domains: ["fixtures"], entities: ["fixture"], confidence: 0.9 },
-          { severity: "important", proposition: "The fixture has a blue colour.", kind: "fact", tags: ["fixture"], domains: ["fixtures"], entities: ["fixture"], confidence: 0.9 },
-        ]) };
+        return {
+          content: JSON.stringify([
+            {
+              severity: "important",
+              proposition: "The fixture colour is blue.",
+              kind: "fact",
+              tags: ["fixture"],
+              domains: ["fixtures"],
+              entities: ["fixture"],
+              confidence: 0.9,
+            },
+            {
+              severity: "important",
+              proposition: "The fixture has a blue colour.",
+              kind: "fact",
+              tags: ["fixture"],
+              domains: ["fixtures"],
+              entities: ["fixture"],
+              confidence: 0.9,
+            },
+          ]),
+        };
       }
       if (operation === "relation_classification") {
         relationCalls += 1;
         const envelope = JSON.parse(request.messages.at(-1)!.content) as {
-          readonly input: { readonly items: readonly { readonly proposalHandle: string }[] };
+          readonly input: {
+            readonly items: readonly { readonly proposalHandle: string }[];
+          };
         };
         const [first, second] = envelope.input.items;
         assert.ok(first && second);
-        return { content: JSON.stringify(mode === "earlier"
-          ? [
-              { proposalHandle: first.proposalHandle, type: "new" },
-              { proposalHandle: second.proposalHandle, type: "restatement", targetHandle: first.proposalHandle, supportsTarget: false },
-            ]
-          : [
-              { proposalHandle: first.proposalHandle, type: "restatement", targetHandle: second.proposalHandle, supportsTarget: false },
-              { proposalHandle: second.proposalHandle, type: "new" },
-            ]) };
+        return {
+          content: JSON.stringify(
+            mode === "earlier"
+              ? [
+                  { proposalHandle: first.proposalHandle, type: "new" },
+                  {
+                    proposalHandle: second.proposalHandle,
+                    type: "restatement",
+                    targetHandle: first.proposalHandle,
+                    supportsTarget: false,
+                  },
+                ]
+              : [
+                  {
+                    proposalHandle: first.proposalHandle,
+                    type: "restatement",
+                    targetHandle: second.proposalHandle,
+                    supportsTarget: false,
+                  },
+                  { proposalHandle: second.proposalHandle, type: "new" },
+                ],
+          ),
+        };
       }
       return { content: "Noted." };
     };
@@ -521,9 +641,15 @@ test("batch relation handles resolve earlier proposals and reject future targets
       A008_CHAT_TRANSPORT: "acme",
       A008_ACME_MODEL_RUNTIME_URL: BASE,
     });
-    const runtime = createLocalMemoryRuntime({ env: isolated.env, surface: "test", fetch: acmeFetch(complete) });
+    const runtime = createLocalMemoryRuntime({
+      env: isolated.env,
+      surface: "test",
+      fetch: acmeFetch(complete),
+    });
     try {
-      const result = await runtime.openSession({ model: "gpt-5.6-luna" }).turn("The fixture colour is blue.");
+      const result = await runtime
+        .openSession({ model: "gpt-5.6-luna" })
+        .turn("The fixture colour is blue.");
       return { result, relationCalls, inspection: runtime.inspectMemory() };
     } finally {
       runtime.close();
@@ -535,13 +661,19 @@ test("batch relation handles resolve earlier proposals and reject future targets
   assert.equal(valid.relationCalls, 1);
   if (valid.result.postOutput.status === "completed") {
     assert.equal(valid.result.postOutput.records.length, 2);
-    assert.equal(valid.result.postOutput.records[1]!.result.classifierDecision.type, "restatement");
+    assert.equal(
+      valid.result.postOutput.records[1]!.result.classifierDecision.type,
+      "restatement",
+    );
   }
 
   const invalid = await run("future");
   assert.equal(invalid.result.postOutput.status, "commit_failed");
   assert.equal(invalid.relationCalls, 1);
-  assert.match(invalid.result.memoryDiagnostic ?? "", /Invalid live batch target/u);
+  assert.match(
+    invalid.result.memoryDiagnostic ?? "",
+    /Invalid live batch target/u,
+  );
   assert.equal(invalid.inspection.summary.counts.claim, 0);
 });
 
@@ -552,19 +684,29 @@ test("Luna semantic retrieval and extraction omit unsupported temperature throug
     const operation = semanticOperation(request);
     if (operation) semanticOperations.push(operation);
     return {
-      content: operation === "retrieval_scope"
-        ? '{"domains":[],"relatedDomains":[],"tags":[],"relatedTags":[]}'
-        : operation === "knowledge_analysis" ? "[]" : "Luna answer.",
+      content:
+        operation === "retrieval_scope"
+          ? '{"domains":[],"relatedDomains":[],"tags":[],"relatedTags":[]}'
+          : operation === "knowledge_analysis"
+            ? "[]"
+            : "Luna answer.",
     };
   });
-  const fetch = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
+  const fetch = async (
+    input: string | URL | Request,
+    init?: RequestInit,
+  ): Promise<Response> => {
     const url = String(input);
     if (url.endsWith(ACME_MODEL_RUNTIME_EXECUTE_PATH)) {
-      const body = JSON.parse(String(init?.body ?? "{}")) as { request?: Record<string, unknown> };
+      const body = JSON.parse(String(init?.body ?? "{}")) as {
+        request?: Record<string, unknown>;
+      };
       const request = body.request ?? {};
       const serialized = JSON.stringify(request);
-      if (serialized.includes("retrieval_scope") ||
-          serialized.includes("knowledge_analysis")) {
+      if (
+        serialized.includes("retrieval_scope") ||
+        serialized.includes("knowledge_analysis")
+      ) {
         semanticRequests.push(request);
       }
     }
@@ -576,17 +718,42 @@ test("Luna semantic retrieval and extraction omit unsupported temperature throug
     A008_CHAT_TRANSPORT: "acme",
     A008_ACME_MODEL_RUNTIME_URL: BASE,
   });
-  const runtime = createLocalMemoryRuntime({ env: isolated.env, surface: "test", fetch });
+  const runtime = createLocalMemoryRuntime({
+    env: isolated.env,
+    surface: "test",
+    fetch,
+  });
   try {
-    const result = await runtime.openSession({ model: "gpt-5.6-luna" }).turn("hello");
+    const result = await runtime
+      .openSession({ model: "gpt-5.6-luna" })
+      .turn("hello");
     assert.equal(result.completion.message.content, "Luna answer.");
     assert.equal(result.postOutput.status, "completed");
-    assert.deepEqual(semanticOperations, ["retrieval_scope", "knowledge_analysis"]);
+    assert.deepEqual(semanticOperations, [
+      "retrieval_scope",
+      "knowledge_analysis",
+    ]);
     assert.equal(semanticRequests.length, 2);
-    assert.equal(semanticRequests.every(request => !Object.hasOwn(request, "temperature")), true);
-    assert.equal(semanticRequests.every(request => !Object.hasOwn(request, "topP")), true);
-    assert.equal(semanticRequests.every(request => !Object.hasOwn(request, "enableThinking")), true);
-    assert.equal(semanticRequests.every(request => request.reasoningEffort === "none"), true);
+    assert.equal(
+      semanticRequests.every(
+        (request) => !Object.hasOwn(request, "temperature"),
+      ),
+      true,
+    );
+    assert.equal(
+      semanticRequests.every((request) => !Object.hasOwn(request, "topP")),
+      true,
+    );
+    assert.equal(
+      semanticRequests.every(
+        (request) => !Object.hasOwn(request, "enableThinking"),
+      ),
+      true,
+    );
+    assert.equal(
+      semanticRequests.every((request) => request.reasoningEffort === "none"),
+      true,
+    );
   } finally {
     runtime.close();
   }
@@ -655,9 +822,15 @@ test("explicit ACME composition does not require provider keys and does not defa
     },
   });
   return transport
-    .complete({ model: "gpt-5.6-luna", messages: [{ role: "user", content: "hi" }] })
+    .complete({
+      model: "gpt-5.6-luna",
+      messages: [{ role: "user", content: "hi" }],
+    })
     .then((completion) => {
       assert.equal(completion.message.content, "ok");
-      assert.equal(urls.some((url) => url.includes("openai.com")), false);
+      assert.equal(
+        urls.some((url) => url.includes("openai.com")),
+        false,
+      );
     });
 });

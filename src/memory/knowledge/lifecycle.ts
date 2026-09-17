@@ -11,7 +11,12 @@ import type {
   MemoryLifecycle,
   MemoryLifecycleState,
 } from "./lifecycle-types.js";
-import { DEFAULT_MEMORY_LIFECYCLE_POLICY, RAW_LIFECYCLE_POLICY, isKnowledgeSeverity, parseMemoryLifecyclePolicy } from "../../core/memory-lifecycle-policy.js";
+import {
+  DEFAULT_MEMORY_LIFECYCLE_POLICY,
+  RAW_LIFECYCLE_POLICY,
+  isKnowledgeSeverity,
+  parseMemoryLifecyclePolicy,
+} from "../../core/memory-lifecycle-policy.js";
 import type { ReinforcementReceipt } from "./lifecycle-types.js";
 import type { Instant } from "./types.js";
 
@@ -27,12 +32,17 @@ export function derivedLifecycleState(input: {
   readonly threshold: number;
   readonly pinned: boolean;
 }): MemoryLifecycleState {
-  return input.pinned || input.strength >= input.threshold ? "active" : "dormant";
+  return input.pinned || input.strength >= input.threshold
+    ? "active"
+    : "dormant";
 }
 
 export function clampUnitInterval(value: number, field: string): number {
   if (!Number.isFinite(value)) {
-    throw new KnowledgeModelError("invalid_input", `${field} must be a finite number`);
+    throw new KnowledgeModelError(
+      "invalid_input",
+      `${field} must be a finite number`,
+    );
   }
   if (value < 0) {
     return 0;
@@ -49,7 +59,9 @@ export class EvidenceLifecycleStore {
   #nextTransition = 0;
   readonly #receipts = new Map<string, ReinforcementReceipt>();
   constructor(readonly clock: () => string = () => new Date().toISOString()) {}
-  now(): string { return operationalTime(this.clock()); }
+  now(): string {
+    return operationalTime(this.clock());
+  }
 
   /** Runtime calls this only after source ownership and semantic support validation. */
   reinforceOccurrence(receipt: ReinforcementReceipt): boolean {
@@ -59,9 +71,20 @@ export class EvidenceLifecycleStore {
     operationalTime(receipt.at);
     if (this.#receipts.has(key)) return false;
     const current = this.#records.get(receipt.evidenceId);
-    if (!current || current.evidenceKind !== "claim") throw new KnowledgeModelError("invalid_input", "Reinforcement target must be an existing claim");
-    if (current.lifecycle.creationOccurrenceId === receipt.occurrenceId) return false;
-    this.reinforce({ evidenceIds: [receipt.evidenceId], caller: "knowledge-commit", reason: "distinct supporting occurrence", at: receipt.at, amount: current.lifecycle.boost });
+    if (!current || current.evidenceKind !== "claim")
+      throw new KnowledgeModelError(
+        "invalid_input",
+        "Reinforcement target must be an existing claim",
+      );
+    if (current.lifecycle.creationOccurrenceId === receipt.occurrenceId)
+      return false;
+    this.reinforce({
+      evidenceIds: [receipt.evidenceId],
+      caller: "knowledge-commit",
+      reason: "distinct supporting occurrence",
+      at: receipt.at,
+      amount: current.lifecycle.boost,
+    });
     this.#receipts.set(key, structuredClone(receipt));
     return true;
   }
@@ -81,7 +104,7 @@ export class EvidenceLifecycleStore {
 
   snapshot(): LifecycleSnapshot {
     return {
-      receipts: [...this.#receipts.values()].map(r => structuredClone(r)),
+      receipts: [...this.#receipts.values()].map((r) => structuredClone(r)),
       records: this.list(),
       transitions: this.transitions(),
     };
@@ -92,11 +115,14 @@ export class EvidenceLifecycleStore {
   }
 
   hydrate(snapshot: LifecycleSnapshot, nextTransition?: number): void {
-    snapshot.records.forEach(r => validateLifecycle(r.lifecycle));
+    snapshot.records.forEach((r) => validateLifecycle(r.lifecycle));
     (snapshot.receipts ?? []).forEach(validateReceipt);
     this.#receipts.clear();
     for (const receipt of snapshot.receipts ?? []) {
-      this.#receipts.set(JSON.stringify([receipt.occurrenceId, receipt.evidenceId]), structuredClone(receipt));
+      this.#receipts.set(
+        JSON.stringify([receipt.occurrenceId, receipt.evidenceId]),
+        structuredClone(receipt),
+      );
     }
     this.#records.clear();
     this.#transitions.length = 0;
@@ -113,7 +139,15 @@ export class EvidenceLifecycleStore {
   }
 
   attach(input: AttachLifecycleInput): LifecycleRecord {
-    if (!["claim", "utterance", "event", "artifact_summary"].includes(input.evidenceKind)) throw new KnowledgeModelError("invalid_input", "Invalid lifecycle carrier");
+    if (
+      !["claim", "utterance", "event", "artifact_summary"].includes(
+        input.evidenceKind,
+      )
+    )
+      throw new KnowledgeModelError(
+        "invalid_input",
+        "Invalid lifecycle carrier",
+      );
     const evidenceId = requireNonEmpty(input.evidenceId, "evidenceId");
     if (this.#records.has(evidenceId)) {
       throw new KnowledgeModelError(
@@ -121,12 +155,26 @@ export class EvidenceLifecycleStore {
         `lifecycle for ${evidenceId} is already attached`,
       );
     }
-    if (input.severity !== undefined && (!isKnowledgeSeverity(input.severity) || input.evidenceKind !== "claim")) {
-      throw new KnowledgeModelError("invalid_input", "Only a claim can have validated semantic severity");
+    if (
+      input.severity !== undefined &&
+      (!isKnowledgeSeverity(input.severity) || input.evidenceKind !== "claim")
+    ) {
+      throw new KnowledgeModelError(
+        "invalid_input",
+        "Only a claim can have validated semantic severity",
+      );
     }
-    const policy = parseMemoryLifecyclePolicy(input.policy ?? DEFAULT_MEMORY_LIFECYCLE_POLICY);
-    const creation = input.severity === undefined ? RAW_LIFECYCLE_POLICY : policy[input.severity];
-    const at = input.at === undefined || isUnknownInstant(input.at) ? this.now() : operationalTime(input.at);
+    const policy = parseMemoryLifecyclePolicy(
+      input.policy ?? DEFAULT_MEMORY_LIFECYCLE_POLICY,
+    );
+    const creation =
+      input.severity === undefined
+        ? RAW_LIFECYCLE_POLICY
+        : policy[input.severity];
+    const at =
+      input.at === undefined || isUnknownInstant(input.at)
+        ? this.now()
+        : operationalTime(input.at);
     const strength = finiteUnit(
       input.strength ?? creation.strength,
       "strength",
@@ -139,11 +187,19 @@ export class EvidenceLifecycleStore {
       input.threshold ?? creation.threshold,
       "threshold",
     );
-    if (threshold === 0) throw new KnowledgeModelError("invalid_input", "New threshold must be greater than zero");
+    if (threshold === 0)
+      throw new KnowledgeModelError(
+        "invalid_input",
+        "New threshold must be greater than zero",
+      );
     const pinned = input.pinned === true;
-    const lastReinforcedAt = cloneInstant(input.lastReinforcedAt ?? UNKNOWN_INSTANT);
+    const lastReinforcedAt = cloneInstant(
+      input.lastReinforcedAt ?? UNKNOWN_INSTANT,
+    );
     const lifecycle = buildLifecycle({
-      ...(input.creationOccurrenceId === undefined ? {} : { creationOccurrenceId: input.creationOccurrenceId }),
+      ...(input.creationOccurrenceId === undefined
+        ? {}
+        : { creationOccurrenceId: input.creationOccurrenceId }),
       severity: input.severity ?? null,
       policyVersion: "exponential-v1",
       decayLambda: input.decayLambda ?? Math.LN2 / creation.halfLifeSeconds,
@@ -177,14 +233,18 @@ export class EvidenceLifecycleStore {
   }
 
   reinforce(input: LifecycleWriteInput): readonly LifecycleRecord[] {
-    input = { ...input, at: typeof input.at === "string" ? operationalTime(input.at) : this.now() };
+    input = {
+      ...input,
+      at: typeof input.at === "string" ? operationalTime(input.at) : this.now(),
+    };
     const amount = finiteUnit(
       input.amount ?? DEFAULT_REINFORCE_AMOUNT,
       "amount",
     );
     return this.#adjust(input, "reinforced", (current) => ({
       strength: clampUnitInterval(current.strength + amount, "strength"),
-      lastReinforcedAt: typeof input.at === "string" ? operationalTime(input.at) : this.now(),
+      lastReinforcedAt:
+        typeof input.at === "string" ? operationalTime(input.at) : this.now(),
     }));
   }
 
@@ -207,7 +267,6 @@ export class EvidenceLifecycleStore {
       const raised = clampUnitInterval(current.strength + amount, "strength");
       return {
         strength: Math.max(raised, current.threshold),
-
       };
     });
   }
@@ -250,12 +309,20 @@ export class EvidenceLifecycleStore {
   ): readonly LifecycleRecord[] {
     const caller = requireNonEmpty(input.caller, "caller");
     const reason = requireNonEmpty(input.reason, "reason");
-    const at = typeof input.at === "string" ? operationalTime(input.at) : this.now();
+    const at =
+      typeof input.at === "string" ? operationalTime(input.at) : this.now();
     const ids = [...new Set(input.evidenceIds)];
-    for (const id of ids) if (!this.#records.has(requireNonEmpty(id, "evidenceId"))) throw new KnowledgeModelError("invalid_input", "Lifecycle is not attached");
+    for (const id of ids)
+      if (!this.#records.has(requireNonEmpty(id, "evidenceId")))
+        throw new KnowledgeModelError(
+          "invalid_input",
+          "Lifecycle is not attached",
+        );
     const updated: LifecycleRecord[] = [];
     for (const evidenceId of ids) {
-      const existing = this.#records.get(requireNonEmpty(evidenceId, "evidenceId"));
+      const existing = this.#records.get(
+        requireNonEmpty(evidenceId, "evidenceId"),
+      );
       if (existing === undefined) {
         throw new KnowledgeModelError(
           "invalid_input",
@@ -263,8 +330,17 @@ export class EvidenceLifecycleStore {
         );
       }
       const evaluated = evaluateLifecycle(existing.lifecycle, at);
-      const patch = next({ ...existing.lifecycle, strength: evaluated.strength, state: evaluated.memoryState });
-      const baselineAt = new Date(Math.max(Date.parse(at), Date.parse(existing.lifecycle.strengthUpdatedAt))).toISOString();
+      const patch = next({
+        ...existing.lifecycle,
+        strength: evaluated.strength,
+        state: evaluated.memoryState,
+      });
+      const baselineAt = new Date(
+        Math.max(
+          Date.parse(at),
+          Date.parse(existing.lifecycle.strengthUpdatedAt),
+        ),
+      ).toISOString();
       const lifecycle = buildLifecycle({
         ...existing.lifecycle,
         strengthUpdatedAt: baselineAt,
@@ -272,7 +348,8 @@ export class EvidenceLifecycleStore {
         decayRate: existing.lifecycle.decayRate,
         threshold: existing.lifecycle.threshold,
         pinned: existing.lifecycle.pinned,
-        lastReinforcedAt: patch.lastReinforcedAt ?? existing.lifecycle.lastReinforcedAt,
+        lastReinforcedAt:
+          patch.lastReinforcedAt ?? existing.lifecycle.lastReinforcedAt,
       });
       const record: LifecycleRecord = {
         evidenceId: existing.evidenceId,
@@ -296,7 +373,9 @@ export class EvidenceLifecycleStore {
     return updated;
   }
 
-  #writeTransition(input: Omit<LifecycleTransition, "id">): LifecycleTransition {
+  #writeTransition(
+    input: Omit<LifecycleTransition, "id">,
+  ): LifecycleTransition {
     this.#nextTransition += 1;
     const transition: LifecycleTransition = {
       id: `A008_knowledge_lifecycle_${String(this.#nextTransition).padStart(4, "0")}`,
@@ -343,31 +422,75 @@ export function reactivate(
   return store.reactivate(input);
 }
 
-export function viewLifecycle(store: EvidenceLifecycleStore, evidenceId: string, at = store.now()): { readonly strength: number; readonly memoryState: MemoryLifecycleState } {
+export function viewLifecycle(
+  store: EvidenceLifecycleStore,
+  evidenceId: string,
+  at = store.now(),
+): { readonly strength: number; readonly memoryState: MemoryLifecycleState } {
   const attached = store.get(evidenceId);
-  return attached === undefined ? { strength: 1, memoryState: "active" } : evaluateLifecycle(attached.lifecycle, at);
+  return attached === undefined
+    ? { strength: 1, memoryState: "active" }
+    : evaluateLifecycle(attached.lifecycle, at);
 }
 
 export function operationalTime(value: unknown): string {
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value) || !Number.isFinite(Date.parse(value))) {
-    throw new KnowledgeModelError("invalid_input", "Invalid operational timestamp");
+  if (
+    typeof value !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value) ||
+    !Number.isFinite(Date.parse(value))
+  ) {
+    throw new KnowledgeModelError(
+      "invalid_input",
+      "Invalid operational timestamp",
+    );
   }
   const normalized = new Date(value).toISOString();
-  if (normalized.slice(0, 19) !== value.slice(0, 19)) throw new KnowledgeModelError("invalid_input", "Invalid operational date");
+  if (normalized.slice(0, 19) !== value.slice(0, 19))
+    throw new KnowledgeModelError("invalid_input", "Invalid operational date");
   return normalized;
 }
 export function finiteUnit(value: number, field: string): number {
-  if (!Number.isFinite(value) || value < 0 || value > 1) throw new KnowledgeModelError("invalid_input", field + " must be between zero and one");
+  if (!Number.isFinite(value) || value < 0 || value > 1)
+    throw new KnowledgeModelError(
+      "invalid_input",
+      field + " must be between zero and one",
+    );
   return value;
 }
 export function validateLifecycle(life: MemoryLifecycle): void {
-  if (!life || typeof life !== "object" || !["active", "dormant"].includes(life.state) ||
-      !(typeof life.lastReinforcedAt === "string" || (life.lastReinforcedAt !== null && typeof life.lastReinforcedAt === "object" && life.lastReinforcedAt.unknown === true))) throw new KnowledgeModelError("invalid_input", "Invalid lifecycle metadata");
-  finiteUnit(life.strength, "strength"); finiteUnit(life.threshold, "threshold"); finiteUnit(life.boost, "boost"); finiteUnit(life.decayRate, "legacy maintenance rate");
-  if (!Number.isFinite(life.decayLambda) || life.decayLambda < 0 || life.maximum !== 1 || typeof life.pinned !== "boolean" ||
-      (life.policyVersion !== "exponential-v1" && life.policyVersion !== "legacy-exponential-v1") ||
-      (life.threshold === 0 && life.policyVersion !== "legacy-exponential-v1") ||
-      (life.severity !== null && !isKnowledgeSeverity(life.severity))) throw new KnowledgeModelError("invalid_input", "Invalid lifecycle baseline");
+  if (
+    !life ||
+    typeof life !== "object" ||
+    !["active", "dormant"].includes(life.state) ||
+    !(
+      typeof life.lastReinforcedAt === "string" ||
+      (life.lastReinforcedAt !== null &&
+        typeof life.lastReinforcedAt === "object" &&
+        life.lastReinforcedAt.unknown === true)
+    )
+  )
+    throw new KnowledgeModelError(
+      "invalid_input",
+      "Invalid lifecycle metadata",
+    );
+  finiteUnit(life.strength, "strength");
+  finiteUnit(life.threshold, "threshold");
+  finiteUnit(life.boost, "boost");
+  finiteUnit(life.decayRate, "legacy maintenance rate");
+  if (
+    !Number.isFinite(life.decayLambda) ||
+    life.decayLambda < 0 ||
+    life.maximum !== 1 ||
+    typeof life.pinned !== "boolean" ||
+    (life.policyVersion !== "exponential-v1" &&
+      life.policyVersion !== "legacy-exponential-v1") ||
+    (life.threshold === 0 && life.policyVersion !== "legacy-exponential-v1") ||
+    (life.severity !== null && !isKnowledgeSeverity(life.severity))
+  )
+    throw new KnowledgeModelError(
+      "invalid_input",
+      "Invalid lifecycle baseline",
+    );
   operationalTime(life.strengthUpdatedAt);
 }
 export function evaluateLifecycle(life: MemoryLifecycle, at: string) {
@@ -375,34 +498,89 @@ export function evaluateLifecycle(life: MemoryLifecycle, at: string) {
   return evaluatePersistence(life, at);
 }
 /** Pure arithmetic shared by independent evidence and association owners. */
-export function evaluatePersistence(life: Pick<MemoryLifecycle, "strength" | "threshold" | "decayLambda" | "strengthUpdatedAt"> & { readonly pinned?: boolean }, at: string) {
-  finiteUnit(life.strength, "strength"); finiteUnit(life.threshold, "threshold");
-  if (!Number.isFinite(life.decayLambda) || life.decayLambda < 0) throw new KnowledgeModelError("invalid_input", "Invalid decay lambda");
+export function evaluatePersistence(
+  life: Pick<
+    MemoryLifecycle,
+    "strength" | "threshold" | "decayLambda" | "strengthUpdatedAt"
+  > & { readonly pinned?: boolean },
+  at: string,
+) {
+  finiteUnit(life.strength, "strength");
+  finiteUnit(life.threshold, "threshold");
+  if (!Number.isFinite(life.decayLambda) || life.decayLambda < 0)
+    throw new KnowledgeModelError("invalid_input", "Invalid decay lambda");
   operationalTime(life.strengthUpdatedAt);
   const evaluatedAt = operationalTime(at);
-  const elapsedSeconds = Math.max(0, (Date.parse(evaluatedAt) - Date.parse(life.strengthUpdatedAt)) / 1000);
+  const elapsedSeconds = Math.max(
+    0,
+    (Date.parse(evaluatedAt) - Date.parse(life.strengthUpdatedAt)) / 1000,
+  );
   const strength = life.strength * Math.exp(-life.decayLambda * elapsedSeconds);
-  const memoryState: MemoryLifecycleState = life.pinned || strength >= life.threshold ? "active" : "dormant";
-  const delay = life.strength >= life.threshold && life.threshold > 0 && life.decayLambda > 0
-    ? Math.log(life.strength / life.threshold) / life.decayLambda * 1000 : null;
-  const crossing = delay === null ? null : Date.parse(life.strengthUpdatedAt) + delay;
-  return { strength, memoryState, evaluatedAt,
-    thresholdCrossingAt: crossing !== null && Number.isFinite(crossing) && Math.abs(crossing) <= 8640000000000000 ? new Date(crossing).toISOString() : null };
+  const memoryState: MemoryLifecycleState =
+    life.pinned || strength >= life.threshold ? "active" : "dormant";
+  const delay =
+    life.strength >= life.threshold &&
+    life.threshold > 0 &&
+    life.decayLambda > 0
+      ? (Math.log(life.strength / life.threshold) / life.decayLambda) * 1000
+      : null;
+  const crossing =
+    delay === null ? null : Date.parse(life.strengthUpdatedAt) + delay;
+  return {
+    strength,
+    memoryState,
+    evaluatedAt,
+    thresholdCrossingAt:
+      crossing !== null &&
+      Number.isFinite(crossing) &&
+      Math.abs(crossing) <= 8640000000000000
+        ? new Date(crossing).toISOString()
+        : null,
+  };
 }
 /** P4: one explicit migration instant, no fabricated historical age/severity. */
-export function migrateLegacyLifecycle(record: LifecycleRecord, at: string): LifecycleRecord {
+export function migrateLegacyLifecycle(
+  record: LifecycleRecord,
+  at: string,
+): LifecycleRecord {
   const old = record.lifecycle;
-  if ("strengthUpdatedAt" in old) { validateLifecycle(old); return structuredClone(record); }
+  if ("strengthUpdatedAt" in old) {
+    validateLifecycle(old);
+    return structuredClone(record);
+  }
   const legacy = record.lifecycle as Omit<MemoryLifecycle, "strengthUpdatedAt">;
-  finiteUnit(legacy.strength, "legacy strength"); finiteUnit(legacy.threshold, "legacy threshold"); finiteUnit(legacy.decayRate, "legacy decayRate");
-  if (typeof legacy.pinned !== "boolean" || !["active", "dormant"].includes(legacy.state) ||
-      !(typeof legacy.lastReinforcedAt === "string" || isUnknownInstant(legacy.lastReinforcedAt))) throw new KnowledgeModelError("invalid_input", "Corrupt legacy lifecycle");
-  const lifecycle: MemoryLifecycle = { ...legacy, severity: null, policyVersion: "legacy-exponential-v1", decayLambda: Math.LN2 / RAW_LIFECYCLE_POLICY.halfLifeSeconds, strengthUpdatedAt: operationalTime(at), boost: 0.2, maximum: 1 };
+  finiteUnit(legacy.strength, "legacy strength");
+  finiteUnit(legacy.threshold, "legacy threshold");
+  finiteUnit(legacy.decayRate, "legacy decayRate");
+  if (
+    typeof legacy.pinned !== "boolean" ||
+    !["active", "dormant"].includes(legacy.state) ||
+    !(
+      typeof legacy.lastReinforcedAt === "string" ||
+      isUnknownInstant(legacy.lastReinforcedAt)
+    )
+  )
+    throw new KnowledgeModelError("invalid_input", "Corrupt legacy lifecycle");
+  const lifecycle: MemoryLifecycle = {
+    ...legacy,
+    severity: null,
+    policyVersion: "legacy-exponential-v1",
+    decayLambda: Math.LN2 / RAW_LIFECYCLE_POLICY.halfLifeSeconds,
+    strengthUpdatedAt: operationalTime(at),
+    boost: 0.2,
+    maximum: 1,
+  };
   validateLifecycle(lifecycle);
   return { ...record, lifecycle };
 }
-function buildLifecycle(input: Omit<MemoryLifecycle, "state">): MemoryLifecycle {
-  const life = { ...input, state: derivedLifecycleState(input), lastReinforcedAt: cloneInstant(input.lastReinforcedAt) };
+function buildLifecycle(
+  input: Omit<MemoryLifecycle, "state">,
+): MemoryLifecycle {
+  const life = {
+    ...input,
+    state: derivedLifecycleState(input),
+    lastReinforcedAt: cloneInstant(input.lastReinforcedAt),
+  };
   validateLifecycle(life);
   return life;
 }
@@ -410,7 +588,10 @@ function buildLifecycle(input: Omit<MemoryLifecycle, "state">): MemoryLifecycle 
 function requireNonEmpty(value: string, field: string): string {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    throw new KnowledgeModelError("invalid_input", `${field} must not be empty`);
+    throw new KnowledgeModelError(
+      "invalid_input",
+      `${field} must not be empty`,
+    );
   }
   return trimmed;
 }
@@ -420,7 +601,10 @@ function cloneInstant(instant: Instant): Instant {
 }
 
 function cloneLifecycle(lifecycle: MemoryLifecycle): MemoryLifecycle {
-  return { ...lifecycle, lastReinforcedAt: cloneInstant(lifecycle.lastReinforcedAt) };
+  return {
+    ...lifecycle,
+    lastReinforcedAt: cloneInstant(lifecycle.lastReinforcedAt),
+  };
 }
 
 function cloneRecord(record: LifecycleRecord): LifecycleRecord {
@@ -464,6 +648,23 @@ function inferredLifecycleSequence(
 }
 
 function validateReceipt(receipt: ReinforcementReceipt): void {
-  if (!receipt || typeof receipt.occurrenceId !== "string" || !receipt.occurrenceId.trim() || typeof receipt.evidenceId !== "string" || !receipt.evidenceId.trim() || !receipt.support || typeof receipt.support.utteranceId !== "string" || !receipt.support.utteranceId.trim() || !Number.isSafeInteger(receipt.support.start) || !Number.isSafeInteger(receipt.support.end) || receipt.support.start < 0 || receipt.support.end <= receipt.support.start) throw new KnowledgeModelError("invalid_input", "Invalid reinforcement receipt");
+  if (
+    !receipt ||
+    typeof receipt.occurrenceId !== "string" ||
+    !receipt.occurrenceId.trim() ||
+    typeof receipt.evidenceId !== "string" ||
+    !receipt.evidenceId.trim() ||
+    !receipt.support ||
+    typeof receipt.support.utteranceId !== "string" ||
+    !receipt.support.utteranceId.trim() ||
+    !Number.isSafeInteger(receipt.support.start) ||
+    !Number.isSafeInteger(receipt.support.end) ||
+    receipt.support.start < 0 ||
+    receipt.support.end <= receipt.support.start
+  )
+    throw new KnowledgeModelError(
+      "invalid_input",
+      "Invalid reinforcement receipt",
+    );
   operationalTime(receipt.at);
 }

@@ -9,10 +9,7 @@ const PROPOSITION = "the local memory project code is alpha-seven";
 
 test("only contiguous user assertions that are not questions activate", () => {
   assert.equal(
-    isExplicitUserAssertion(
-      `Durable fact: ${PROPOSITION}.`,
-      PROPOSITION,
-    ),
+    isExplicitUserAssertion(`Durable fact: ${PROPOSITION}.`, PROPOSITION),
     true,
   );
   assert.equal(
@@ -20,10 +17,7 @@ test("only contiguous user assertions that are not questions activate", () => {
     false,
   );
   assert.equal(
-    isExplicitUserAssertion(
-      "The assistant invented this fact.",
-      PROPOSITION,
-    ),
+    isExplicitUserAssertion("The assistant invented this fact.", PROPOSITION),
     false,
   );
   assert.equal(isExplicitUserAssertion("short", "tiny"), false);

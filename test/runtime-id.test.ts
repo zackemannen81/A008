@@ -73,10 +73,7 @@ test("default runtime ID generation is unique and contains only routing metadata
 
   assert.equal(ids.size, 100);
   for (const id of ids) {
-    assert.match(
-      id,
-      /^A008_v1_conversation_[0-9a-f-]{36}$/,
-    );
+    assert.match(id, /^A008_v1_conversation_[0-9a-f-]{36}$/);
     assert.ok(!id.includes("owner"));
     assert.ok(!id.includes("task description"));
   }

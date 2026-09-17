@@ -19,7 +19,10 @@ export function slugFromName(name: string): string {
 
 export function isInsideDirectory(child: string, parent: string): boolean {
   const rel = relative(resolve(parent), resolve(child));
-  return rel === "" || (!rel.startsWith(`..${sep}`) && rel !== ".." && !rel.startsWith("../"));
+  return (
+    rel === "" ||
+    (!rel.startsWith(`..${sep}`) && rel !== ".." && !rel.startsWith("../"))
+  );
 }
 
 function requiredString(value: unknown, label: string): string {
@@ -36,55 +39,93 @@ function flag(value: unknown, label: string): boolean {
   return value;
 }
 
-export function parseExistingProjectRegistration(raw: unknown): ExistingProjectRegistration {
+export function parseExistingProjectRegistration(
+  raw: unknown,
+): ExistingProjectRegistration {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new ChatError("configuration", "Existing project registration must be an object.");
+    throw new ChatError(
+      "configuration",
+      "Existing project registration must be an object.",
+    );
   }
   const body = raw as Record<string, unknown>;
   const projectName = requiredString(body.projectName, "Project name");
   const rootFolder = requiredString(body.rootFolder, "Project root folder");
   if (!isAbsolute(rootFolder)) {
-    throw new ChatError("configuration", "Project root folder must be an absolute path.");
+    throw new ChatError(
+      "configuration",
+      "Project root folder must be an absolute path.",
+    );
   }
   const memoryRaw =
-    body.memory !== null && typeof body.memory === "object" && !Array.isArray(body.memory)
+    body.memory !== null &&
+    typeof body.memory === "object" &&
+    !Array.isArray(body.memory)
       ? (body.memory as Record<string, unknown>)
       : {};
-  const useGlobalA008Memory = flag(memoryRaw.useGlobalA008Memory, "Use global A008 memory");
-  return { projectName, rootFolder: resolve(rootFolder), memory: { useGlobalA008Memory } };
+  const useGlobalA008Memory = flag(
+    memoryRaw.useGlobalA008Memory,
+    "Use global A008 memory",
+  );
+  return {
+    projectName,
+    rootFolder: resolve(rootFolder),
+    memory: { useGlobalA008Memory },
+  };
 }
 
-export function parseProjectBootstrapConfig(raw: unknown): ProjectBootstrapConfig {
+export function parseProjectBootstrapConfig(
+  raw: unknown,
+): ProjectBootstrapConfig {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new ChatError("configuration", "Project bootstrap config must be an object.");
+    throw new ChatError(
+      "configuration",
+      "Project bootstrap config must be an object.",
+    );
   }
   const body = raw as Record<string, unknown>;
   const projectName = requiredString(body.projectName, "Project name");
   const rootFolder = requiredString(body.rootFolder, "Project root folder");
   if (!isAbsolute(rootFolder)) {
-    throw new ChatError("configuration", "Project root folder must be an absolute path.");
+    throw new ChatError(
+      "configuration",
+      "Project root folder must be an absolute path.",
+    );
   }
   const repositoryRaw =
-    body.repository !== null && typeof body.repository === "object" && !Array.isArray(body.repository)
+    body.repository !== null &&
+    typeof body.repository === "object" &&
+    !Array.isArray(body.repository)
       ? (body.repository as Record<string, unknown>)
       : {};
-  const initialize = flag(repositoryRaw.initialize ?? false, "Initialize Git repository");
+  const initialize = flag(
+    repositoryRaw.initialize ?? false,
+    "Initialize Git repository",
+  );
   const repositoryName =
     typeof repositoryRaw.name === "string" && repositoryRaw.name.trim() !== ""
       ? repositoryRaw.name.trim()
       : slugFromName(projectName);
   const continuityRaw =
-    body.continuity !== null && typeof body.continuity === "object" && !Array.isArray(body.continuity)
+    body.continuity !== null &&
+    typeof body.continuity === "object" &&
+    !Array.isArray(body.continuity)
       ? (body.continuity as Record<string, unknown>)
       : {};
-  const docsFirst = flag(continuityRaw.docsFirst ?? false, "Docs-First Continuity Protocol");
+  const docsFirst = flag(
+    continuityRaw.docsFirst ?? false,
+    "Docs-First Continuity Protocol",
+  );
   const multiRaw =
     continuityRaw.multiAgent !== null &&
     typeof continuityRaw.multiAgent === "object" &&
     !Array.isArray(continuityRaw.multiAgent)
       ? (continuityRaw.multiAgent as Record<string, unknown>)
       : {};
-  const multiEnabled = flag(multiRaw.enabled ?? false, "Multi-Agent Orchestrator Add-on");
+  const multiEnabled = flag(
+    multiRaw.enabled ?? false,
+    "Multi-Agent Orchestrator Add-on",
+  );
   if (multiEnabled && !docsFirst) {
     throw new ChatError(
       "configuration",
@@ -108,9 +149,15 @@ export function parseProjectBootstrapConfig(raw: unknown): ProjectBootstrapConfi
       }
       maxWorkers = multiRaw.maxWorkers;
     }
-    workerCloneRoot = requiredString(multiRaw.workerCloneRoot, "Worker clone root folder");
+    workerCloneRoot = requiredString(
+      multiRaw.workerCloneRoot,
+      "Worker clone root folder",
+    );
     if (!isAbsolute(workerCloneRoot)) {
-      throw new ChatError("configuration", "Worker clone root folder must be an absolute path.");
+      throw new ChatError(
+        "configuration",
+        "Worker clone root folder must be an absolute path.",
+      );
     }
     if (isInsideDirectory(workerCloneRoot, rootFolder)) {
       throw new ChatError(
@@ -120,7 +167,9 @@ export function parseProjectBootstrapConfig(raw: unknown): ProjectBootstrapConfi
     }
   }
   const memoryRaw =
-    body.memory !== null && typeof body.memory === "object" && !Array.isArray(body.memory)
+    body.memory !== null &&
+    typeof body.memory === "object" &&
+    !Array.isArray(body.memory)
       ? (body.memory as Record<string, unknown>)
       : {};
   const useGlobalA008Memory = flag(

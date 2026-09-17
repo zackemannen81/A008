@@ -20,11 +20,16 @@ export function defaultProjectsPath(): string {
   return join(homedir(), ".a008", "projects.json");
 }
 
-export function resolveProjectsPath(env: NodeJS.ProcessEnv = process.env): string {
+export function resolveProjectsPath(
+  env: NodeJS.ProcessEnv = process.env,
+): string {
   const configured = env[PROJECTS_PATH_ENV]?.trim();
   const path = resolve(configured || defaultProjectsPath());
   if (!isAbsolute(path)) {
-    throw new ChatError("configuration", "A008_PROJECTS_PATH must be an absolute path.");
+    throw new ChatError(
+      "configuration",
+      "A008_PROJECTS_PATH must be an absolute path.",
+    );
   }
   return path;
 }
@@ -48,7 +53,8 @@ export function readProjectRegistry(path: string): ProjectRegistryDocument {
   const document = parsed as ProjectRegistryDocument;
   return {
     version: PROJECT_REGISTRY_VERSION,
-    currentId: typeof document.currentId === "string" ? document.currentId : null,
+    currentId:
+      typeof document.currentId === "string" ? document.currentId : null,
     projects: document.projects,
   };
 }
@@ -67,7 +73,9 @@ export function upsertRegisteredProject(
   current: boolean,
 ): ProjectRegistryDocument {
   const projects = [
-    ...document.projects.filter((entry) => entry.projectId !== project.projectId),
+    ...document.projects.filter(
+      (entry) => entry.projectId !== project.projectId,
+    ),
     project,
   ];
   return {
@@ -88,7 +96,9 @@ export function findProjectByRoot(
   rootFolder: string,
 ): RegisteredProject | undefined {
   const target = projectRootKey(rootFolder);
-  return document.projects.find((entry) => projectRootKey(entry.rootFolder) === target);
+  return document.projects.find(
+    (entry) => projectRootKey(entry.rootFolder) === target,
+  );
 }
 
 export function findProjectById(

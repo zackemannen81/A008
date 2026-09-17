@@ -1,11 +1,5 @@
-import {
-  ChatSession,
-  type SendMessageOptions,
-} from "../core/chat-session.js";
-import type {
-  ChatCompletion,
-  ChatGenerationOptions,
-} from "../core/types.js";
+import { ChatSession, type SendMessageOptions } from "../core/chat-session.js";
+import type { ChatCompletion, ChatGenerationOptions } from "../core/types.js";
 import type { ChatInvocationBudget } from "../core/chat-invocation.js";
 import { ChatError } from "../core/errors.js";
 import { parseRuntimeId } from "../identity/runtime-id.js";
@@ -26,7 +20,10 @@ import {
 } from "./memory-prompt-composer.js";
 
 export interface MemoryReadPort {
-  read(request: MemoryReadRequest, options?: { readonly signal?: AbortSignal }): Promise<HybridMemoryReadResult>;
+  read(
+    request: MemoryReadRequest,
+    options?: { readonly signal?: AbortSignal },
+  ): Promise<HybridMemoryReadResult>;
 }
 
 export interface MemoryAwareSessionContext {
@@ -54,6 +51,7 @@ export interface MemoryAwareTurnInput {
 
 export interface MemoryAwareTurnOptions {
   readonly generation?: ChatGenerationOptions;
+  readonly imageAttachments?: SendMessageOptions["imageAttachments"];
   readonly signal?: AbortSignal;
   readonly onDelta?: SendMessageOptions["onDelta"];
   readonly tools?: SendMessageOptions["tools"];
@@ -100,13 +98,8 @@ function nonEmpty(value: string, field: string): string {
   return normalized;
 }
 
-function copiedStrings(
-  values: readonly string[],
-  field: string,
-): string[] {
-  return values.map((value, index) =>
-    nonEmpty(value, `${field} ${index + 1}`),
-  );
+function copiedStrings(values: readonly string[], field: string): string[] {
+  return values.map((value, index) => nonEmpty(value, `${field} ${index + 1}`));
 }
 
 export class MemoryAwareChatSession {
@@ -191,13 +184,20 @@ export class MemoryAwareChatSession {
         input.requiredKnowledgeIds ?? [],
         "Required knowledge ID",
       );
-      const recentTurns = (this.#recentMessageLimit === 0 ? [] : this.#chat.messages
-        .filter(
-          (entry): entry is { readonly role: "user" | "assistant"; readonly content: string } =>
-            entry.role === "user" || entry.role === "assistant",
-        )
-        .slice(-this.#recentMessageLimit))
-        .map((entry) => ({ ...entry }));
+      const recentTurns = (
+        this.#recentMessageLimit === 0
+          ? []
+          : this.#chat.messages
+              .filter(
+                (
+                  entry,
+                ): entry is {
+                  readonly role: "user" | "assistant";
+                  readonly content: string;
+                } => entry.role === "user" || entry.role === "assistant",
+              )
+              .slice(-this.#recentMessageLimit)
+      ).map((entry) => ({ ...entry }));
       const request: MemoryReadRequest = {
         ...this.#context,
         taskId,
@@ -206,8 +206,12 @@ export class MemoryAwareChatSession {
         applicabilityScopes,
         requiredKnowledgeIds,
       };
-      const memory = await this.#memoryReader.read(request, options.signal === undefined ? {} : { signal: options.signal });
-      if (options.signal?.aborted) throw new ChatError("cancelled", "Memory-aware turn was cancelled.");
+      const memory = await this.#memoryReader.read(
+        request,
+        options.signal === undefined ? {} : { signal: options.signal },
+      );
+      if (options.signal?.aborted)
+        throw new ChatError("cancelled", "Memory-aware turn was cancelled.");
       this.#validateMemoryResult(memory, request);
       const prompt = this.#promptComposer.compose(memory.projection, message);
       const sendOptions: SendMessageOptions = {
@@ -223,6 +227,9 @@ export class MemoryAwareChatSession {
         ...(options.generation === undefined
           ? {}
           : { generation: options.generation }),
+        ...(options.imageAttachments?.length
+          ? { imageAttachments: options.imageAttachments }
+          : {}),
         ...(options.signal === undefined ? {} : { signal: options.signal }),
         ...(options.onDelta === undefined ? {} : { onDelta: options.onDelta }),
         ...(options.tools === undefined ? {} : { tools: options.tools }),

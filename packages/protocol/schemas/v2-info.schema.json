@@ -19,10 +19,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": [
-          "device",
-          "browser-pin"
-        ]
+        "enum": ["device", "browser-pin"]
       }
     },
     "features": {

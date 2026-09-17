@@ -1,7 +1,5 @@
 export type SourceIngestErrorCode =
-  | "unsupported_media_type"
-  | "invalid_source"
-  | "description_failed";
+  "unsupported_media_type" | "invalid_source" | "description_failed";
 
 export interface SourceIngestErrorOptions {
   readonly mediaType?: string;
@@ -33,6 +31,8 @@ export class SourceIngestError extends Error {
   }
 }
 
-export function isSourceIngestError(value: unknown): value is SourceIngestError {
+export function isSourceIngestError(
+  value: unknown,
+): value is SourceIngestError {
   return value instanceof SourceIngestError;
 }

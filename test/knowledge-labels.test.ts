@@ -23,7 +23,10 @@ import {
 
 const HORSE = "Zorros häst heter Fresca";
 const HORSE_PROPOSITION = "Zorros häst heter Fresca";
-import { createKnowledgeContext, readKnowledge } from "../src/memory/knowledge/read.js";
+import {
+  createKnowledgeContext,
+  readKnowledge,
+} from "../src/memory/knowledge/read.js";
 import { KnowledgeMemoryReader } from "../src/memory/knowledge/live-reader.js";
 import { ingest } from "../src/memory/knowledge/ingest.js";
 import { asEntityId } from "../src/memory/knowledge/ids.js";
@@ -66,8 +69,17 @@ test("attaching twice merges instead of replacing", () => {
   // found by. Replacing would silently narrow it whenever a later extraction
   // phrased the subject differently.
   const store = new KnowledgeLabelStore();
-  store.attach({ recordId: "c1", recordKind: "claim", tags: ["sömn"], domains: ["neurologi"] });
-  store.attach({ recordId: "c1", recordKind: "claim", tags: ["konsolidering"] });
+  store.attach({
+    recordId: "c1",
+    recordKind: "claim",
+    tags: ["sömn"],
+    domains: ["neurologi"],
+  });
+  store.attach({
+    recordId: "c1",
+    recordKind: "claim",
+    tags: ["konsolidering"],
+  });
 
   assert.deepEqual(store.labelsFor("c1"), {
     tags: ["sömn", "konsolidering"],
@@ -82,11 +94,25 @@ test("matching is a union across both axes, never an intersection", () => {
   // would disable the broader signal exactly when it is needed, which is when
   // the message does not name the record's tags.
   const store = new KnowledgeLabelStore();
-  store.attach({ recordId: "a", recordKind: "claim", tags: ["hippocampus"], domains: ["neurologi"] });
-  store.attach({ recordId: "b", recordKind: "claim", tags: ["motor"], domains: ["fordonsteknik"] });
+  store.attach({
+    recordId: "a",
+    recordKind: "claim",
+    tags: ["hippocampus"],
+    domains: ["neurologi"],
+  });
+  store.attach({
+    recordId: "b",
+    recordKind: "claim",
+    tags: ["motor"],
+    domains: ["fordonsteknik"],
+  });
 
-  assert.deepEqual(store.matching({ tags: ["hippocampus"], domains: [] }), ["a"]);
-  assert.deepEqual(store.matching({ tags: [], domains: ["fordonsteknik"] }), ["b"]);
+  assert.deepEqual(store.matching({ tags: ["hippocampus"], domains: [] }), [
+    "a",
+  ]);
+  assert.deepEqual(store.matching({ tags: [], domains: ["fordonsteknik"] }), [
+    "b",
+  ]);
   assert.deepEqual(
     [...store.matching({ tags: ["motor"], domains: ["neurologi"] })].sort(),
     ["a", "b"],
@@ -118,7 +144,8 @@ test("blank and duplicate labels are dropped, bad ones refused", () => {
     KnowledgeModelError,
   );
   assert.throws(
-    () => store.attach({ recordId: "x", recordKind: "claim", tags: [7] as never }),
+    () =>
+      store.attach({ recordId: "x", recordKind: "claim", tags: [7] as never }),
     KnowledgeModelError,
   );
 });
@@ -128,8 +155,18 @@ test("the vocabulary is what a classifier can be seeded with", () => {
   // own trace: the retrieval step answered in English and the extraction step
   // in Swedish, and those sets never intersect.
   const store = new KnowledgeLabelStore();
-  store.attach({ recordId: "a", recordKind: "claim", tags: ["Sömn"], domains: ["Neurologi"] });
-  store.attach({ recordId: "b", recordKind: "claim", tags: ["motor"], domains: ["neurologi"] });
+  store.attach({
+    recordId: "a",
+    recordKind: "claim",
+    tags: ["Sömn"],
+    domains: ["Neurologi"],
+  });
+  store.attach({
+    recordId: "b",
+    recordKind: "claim",
+    tags: ["motor"],
+    domains: ["neurologi"],
+  });
   assert.deepEqual(store.vocabulary(), {
     tags: ["motor", "sömn"],
     domains: ["neurologi"],
@@ -153,7 +190,8 @@ function labelledWorld(): KnowledgeReadContext {
   const context = createKnowledgeContext();
   const facts = [
     {
-      content: "Hippocampus fungerar som en växelstation för nya medvetna minnen",
+      content:
+        "Hippocampus fungerar som en växelstation för nya medvetna minnen",
       // "minneslagring" appears nowhere in the sentence. A tag that is also in
       // the text would be found by the direct lexical channel and prove nothing
       // about the label channel.
@@ -190,10 +228,12 @@ function labelledWorld(): KnowledgeReadContext {
 
 function request(message: string): MemoryReadRequest {
   return {
-    projectId: "A008_v1_project_40000000-0000-4000-8000-000000000001" as ProjectId,
+    projectId:
+      "A008_v1_project_40000000-0000-4000-8000-000000000001" as ProjectId,
     conversationId:
       "A008_v1_conversation_40000000-0000-4000-8000-000000000002" as ConversationId,
-    taskId: "A008_v1_task_40000000-0000-4000-8000-000000000004" as RuntimeTaskId,
+    taskId:
+      "A008_v1_task_40000000-0000-4000-8000-000000000004" as RuntimeTaskId,
     agentId: "A008_v1_agent_40000000-0000-4000-8000-000000000003" as AgentId,
     message,
     applicabilityScopes: ["local"],
@@ -229,7 +269,9 @@ test("a domain match retrieves a record that shares no words with the question",
   // "växelstation" and "minnen" do not.
   const reader = new KnowledgeMemoryReader({ context: labelledWorld() });
   const result = await reader.read(request("Vad säger neurologi om det här?"));
-  const texts = result.projection.projection.items.map((item) => item.proposition);
+  const texts = result.projection.projection.items.map(
+    (item) => item.proposition,
+  );
 
   assert.ok(
     texts.some((text) => text.includes("Hippocampus")),
@@ -307,7 +349,8 @@ test("a proposition's words do not become entity aliases", async () => {
             return [];
           }
           return [
-            { severity: "important",
+            {
+              severity: "important",
               proposition: HORSE_PROPOSITION,
               kind: "fact",
               tags: ["häst"],
@@ -358,7 +401,6 @@ test("a proposition's words do not become entity aliases", async () => {
   }
 });
 
-
 test("a label match survives a message that also names an entity", () => {
   // `taskApplies` requires an associative record to mention one of the message's
   // entities. That gate is right for a relation hop and wrong for a subject-area
@@ -371,7 +413,7 @@ test("a label match survives a message that also names an entity", () => {
   const context = labelledWorld();
   const result = readKnowledge(
     {
-      message: "Vad vet du om \"Porsche\" och neurologi?",
+      message: 'Vad vet du om "Porsche" och neurologi?',
       verifiedScope: {
         verified: true,
         tags: [],
@@ -415,7 +457,11 @@ test("an unlabelled record reached associatively is not filtered away", () => {
     type: "house",
     labels: ["brittans_hus", "huset"],
   });
-  (context.relations as RelationIndex).link("brittans_hus", utterance.id, "about");
+  (context.relations as RelationIndex).link(
+    "brittans_hus",
+    utterance.id,
+    "about",
+  );
   assert.deepEqual(context.labels.labelsFor(utterance.id), EMPTY_LABELS);
 
   const result = readKnowledge(
@@ -528,9 +574,10 @@ test("labels survive a SQLite round trip", () => {
         tags: ["sömn"],
         domains: ["neurologi"],
       });
-      assert.deepEqual(second.context.labels.matching({ domains: ["neurologi"] }), [
-        utterance.id,
-      ]);
+      assert.deepEqual(
+        second.context.labels.matching({ domains: ["neurologi"] }),
+        [utterance.id],
+      );
     } finally {
       second.close();
     }
@@ -549,7 +596,11 @@ test("a version 1 database opens and is migrated, not refused", () => {
   try {
     const raw = new Database(filename);
     raw.exec(KNOWLEDGE_SQLITE_SCHEMA);
-    raw.prepare("UPDATE A008_knowledge_schema SET version = 1 WHERE singleton = 1").run();
+    raw
+      .prepare(
+        "UPDATE A008_knowledge_schema SET version = 1 WHERE singleton = 1",
+      )
+      .run();
     raw.exec("DROP TABLE A008_knowledge_labels");
     raw.exec("DROP TABLE A008_knowledge_label_index");
     raw.close();
@@ -566,9 +617,10 @@ test("a version 1 database opens and is migrated, not refused", () => {
         recordKind: "utterance",
         domains: ["neurologi"],
       });
-      assert.deepEqual(handle.context.labels.matching({ domains: ["neurologi"] }), [
-        "u1",
-      ]);
+      assert.deepEqual(
+        handle.context.labels.matching({ domains: ["neurologi"] }),
+        ["u1"],
+      );
     } finally {
       handle.close();
     }
@@ -576,7 +628,9 @@ test("a version 1 database opens and is migrated, not refused", () => {
     const check = new Database(filename, { readonly: true });
     try {
       const row = check
-        .prepare("SELECT version FROM A008_knowledge_schema WHERE singleton = 1")
+        .prepare(
+          "SELECT version FROM A008_knowledge_schema WHERE singleton = 1",
+        )
         .get() as { readonly version: number };
       assert.equal(row.version, 5);
     } finally {
@@ -609,10 +663,14 @@ test("many unstructured statements about one entity coexist without entity-first
         chat: () => ({ content: "Noterat." }),
         analyze: (input) => {
           const raw = input as { readonly message?: unknown };
-          if (typeof raw.message !== "string" || !raw.message.includes("Fresca")) {
+          if (
+            typeof raw.message !== "string" ||
+            !raw.message.includes("Fresca")
+          ) {
             return [];
           }
-          return facts.map((proposition) => ({ severity: "important",
+          return facts.map((proposition) => ({
+            severity: "important",
             proposition,
             kind: "fact",
             tags: ["zorro"],
@@ -651,16 +709,26 @@ test("many unstructured statements about one entity coexist without entity-first
             : "relation",
         ),
       );
-      assert.equal(slots.size, facts.length, "unstructured facts were conflated onto one owner slot");
+      assert.equal(
+        slots.size,
+        facts.length,
+        "unstructured facts were conflated onto one owner slot",
+      );
       assert.ok(
-        [...slots].every((name) => /^statement_[0-9a-f]{12}\.statement$/u.test(name)),
+        [...slots].every((name) =>
+          /^statement_[0-9a-f]{12}\.statement$/u.test(name),
+        ),
         `unexpected fallback slots: ${[...slots].join(", ")}`,
       );
       const references = snapshot.entityReferences ?? [];
       assert.equal(references.length, facts.length);
-      assert.deepEqual(new Set(references.map((reference) => String(reference.entityId))), new Set(["zorro"]));
+      assert.deepEqual(
+        new Set(references.map((reference) => String(reference.entityId))),
+        new Set(["zorro"]),
+      );
       const statementSlots = snapshot.slots.filter(
-        (slot) => slot.ref.kind === "attribute" && slot.ref.name === "statement",
+        (slot) =>
+          slot.ref.kind === "attribute" && slot.ref.name === "statement",
       );
       assert.equal(statementSlots.length, facts.length);
       assert.ok(statementSlots.every((slot) => slot.cardinality === "set"));

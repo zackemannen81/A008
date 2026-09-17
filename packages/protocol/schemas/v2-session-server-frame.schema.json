@@ -25,11 +25,7 @@
           "pattern": "^[A-Za-z0-9_-]+$"
         }
       },
-      "required": [
-        "type",
-        "serverInstanceId",
-        "projectId"
-      ],
+      "required": ["type", "serverInstanceId", "projectId"],
       "additionalProperties": false
     },
     {
@@ -95,43 +91,25 @@
                   "type": "boolean"
                 },
                 "temperature": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
+                  "type": ["number", "null"]
                 },
                 "topP": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
+                  "type": ["number", "null"]
                 },
                 "maxTokens": {
                   "type": "number"
                 },
                 "enableThinking": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
+                  "type": ["boolean", "null"]
                 },
                 "reasoningBudget": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
+                  "type": ["number", "null"]
                 },
                 "reasoningEffort": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
+                  "type": ["string", "null"]
                 },
                 "seed": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
+                  "type": ["number", "null"]
                 },
                 "stop": {
                   "anyOf": [
@@ -169,19 +147,13 @@
                 "properties": {
                   "role": {
                     "type": "string",
-                    "enum": [
-                      "user",
-                      "assistant"
-                    ]
+                    "enum": ["user", "assistant"]
                   },
                   "content": {
                     "type": "string"
                   }
                 },
-                "required": [
-                  "role",
-                  "content"
-                ],
+                "required": ["role", "content"],
                 "additionalProperties": false
               }
             },
@@ -201,10 +173,7 @@
                     "type": "string"
                   }
                 },
-                "required": [
-                  "name",
-                  "description"
-                ],
+                "required": ["name", "description"],
                 "additionalProperties": false
               }
             },
@@ -246,10 +215,7 @@
             },
             "signal": {
               "type": "string",
-              "enum": [
-                "thought",
-                "answer"
-              ]
+              "enum": ["thought", "answer"]
             },
             "sessionId": {
               "type": "string",
@@ -261,12 +227,7 @@
               "type": "string"
             }
           },
-          "required": [
-            "type",
-            "signal",
-            "sessionId",
-            "text"
-          ],
+          "required": ["type", "signal", "sessionId", "text"],
           "additionalProperties": false
         },
         {
@@ -409,13 +370,7 @@
           "pattern": "^[A-Za-z0-9_-]+$"
         }
       },
-      "required": [
-        "type",
-        "serverInstanceId",
-        "code",
-        "message",
-        "retryable"
-      ],
+      "required": ["type", "serverInstanceId", "code", "message", "retryable"],
       "additionalProperties": false
     }
   ]

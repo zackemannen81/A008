@@ -1,4 +1,8 @@
-import type { ComposedSet, RetrievedRecord, RetrievedSurface } from "./read-types.js";
+import type {
+  ComposedSet,
+  RetrievedRecord,
+  RetrievedSurface,
+} from "./read-types.js";
 
 const SURFACE_ORDER: Readonly<Record<RetrievedSurface, number>> = {
   claim: 0,

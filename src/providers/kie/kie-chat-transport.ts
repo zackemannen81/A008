@@ -30,7 +30,11 @@ function optionalString(value: unknown): string | undefined {
 }
 
 function firstChoice(parsed: unknown): Record<string, unknown> | undefined {
-  if (!isRecord(parsed) || !Array.isArray(parsed.choices) || parsed.choices.length === 0) {
+  if (
+    !isRecord(parsed) ||
+    !Array.isArray(parsed.choices) ||
+    parsed.choices.length === 0
+  ) {
     return undefined;
   }
   const choice = parsed.choices[0];
@@ -75,7 +79,10 @@ export class KieChatTransport implements ChatTransport {
   constructor(options: KieChatTransportOptions) {
     const apiKey = options.apiKey.trim();
     if (apiKey.length === 0) {
-      throw new ChatError("configuration", "KIE_API_KEY is required for kie.ai chat.");
+      throw new ChatError(
+        "configuration",
+        "KIE_API_KEY is required for kie.ai chat.",
+      );
     }
     this.#apiKey = apiKey;
     this.#endpoint = options.endpoint?.trim() || undefined;
@@ -83,7 +90,16 @@ export class KieChatTransport implements ChatTransport {
     this.#timeoutMs = options.timeoutMs ?? 120_000;
   }
 
-  async complete(request: ChatRequest, callbacks: ChatCallbacks = {}): Promise<ChatCompletion> {
+  async complete(
+    request: ChatRequest,
+    callbacks: ChatCallbacks = {},
+  ): Promise<ChatCompletion> {
+    if (request.imageAttachments?.length) {
+      throw new ChatError(
+        "configuration",
+        "Native vision is not mapped for the current KIE chat transport.",
+      );
+    }
     const controller = new AbortController();
     let timedOut = false;
     const timeout = setTimeout(() => {
@@ -100,7 +116,11 @@ export class KieChatTransport implements ChatTransport {
       model: request.model,
       messages: request.messages.map((message) =>
         "toolCallId" in message
-          ? { role: "tool", tool_call_id: message.toolCallId, content: message.content }
+          ? {
+              role: "tool",
+              tool_call_id: message.toolCallId,
+              content: message.content,
+            }
           : { role: message.role, content: message.content },
       ),
       stream: streaming,
@@ -121,28 +141,45 @@ export class KieChatTransport implements ChatTransport {
       });
       const raw = streaming ? undefined : await response.text();
       if (!response.ok) {
-        throw new ChatError("provider", `kie.ai chat failed (${response.status}).`);
+        throw new ChatError(
+          "provider",
+          `kie.ai chat failed (${response.status}).`,
+        );
       }
       if (streaming) return await this.#readStreaming(response, callbacks);
       return this.#readJson(raw ?? "");
     } catch (cause) {
       if (isChatError(cause)) throw cause;
       if (timedOut) {
-        throw new ChatError("timeout", "kie.ai request timed out.", { retryable: true, cause });
+        throw new ChatError("timeout", "kie.ai request timed out.", {
+          retryable: true,
+          cause,
+        });
       }
       if (request.signal?.aborted || isAbortError(cause)) {
-        throw new ChatError("cancelled", "kie.ai request was cancelled.", { cause });
+        throw new ChatError("cancelled", "kie.ai request was cancelled.", {
+          cause,
+        });
       }
-      throw new ChatError("network", "kie.ai network request failed.", { retryable: true, cause });
+      throw new ChatError("network", "kie.ai network request failed.", {
+        retryable: true,
+        cause,
+      });
     } finally {
       clearTimeout(timeout);
       request.signal?.removeEventListener("abort", cancel);
     }
   }
 
-  async #readStreaming(response: Response, callbacks: ChatCallbacks): Promise<ChatCompletion> {
+  async #readStreaming(
+    response: Response,
+    callbacks: ChatCallbacks,
+  ): Promise<ChatCompletion> {
     if (response.body === null) {
-      throw new ChatError("invalid_response", "kie.ai streaming response had no body.");
+      throw new ChatError(
+        "invalid_response",
+        "kie.ai streaming response had no body.",
+      );
     }
     let content = "";
     let finishReason: string | null | undefined;
@@ -152,12 +189,15 @@ export class KieChatTransport implements ChatTransport {
       const parsed = parseJson(data);
       const choice = firstChoice(parsed);
       if (choice === undefined) continue;
-      const delta = isRecord(choice.delta) ? optionalString(choice.delta.content) : undefined;
+      const delta = isRecord(choice.delta)
+        ? optionalString(choice.delta.content)
+        : undefined;
       if (delta) {
         content += delta;
         callbacks.onDelta?.({ type: "content", text: delta });
       }
-      if (typeof choice.finish_reason === "string") finishReason = choice.finish_reason;
+      if (typeof choice.finish_reason === "string")
+        finishReason = choice.finish_reason;
       usage = usageOf(parsed) ?? usage;
     }
     return completionOf(content, finishReason, usage);
@@ -165,16 +205,23 @@ export class KieChatTransport implements ChatTransport {
 
   #readJson(raw: string): ChatCompletion {
     const parsed = parseJson(raw);
-    if (isRecord(parsed) && parsed.code !== undefined && parsed.code !== 200 && firstChoice(parsed) === undefined) {
+    if (
+      isRecord(parsed) &&
+      parsed.code !== undefined &&
+      parsed.code !== 200 &&
+      firstChoice(parsed) === undefined
+    ) {
       throw new ChatError(
         "provider",
         typeof parsed.msg === "string" ? parsed.msg : "kie.ai chat failed.",
       );
     }
     const choice = firstChoice(parsed);
-    const message = choice && isRecord(choice.message) ? choice.message : undefined;
+    const message =
+      choice && isRecord(choice.message) ? choice.message : undefined;
     const content = optionalString(message?.content) ?? "";
-    const finishReason = typeof choice?.finish_reason === "string" ? choice.finish_reason : null;
+    const finishReason =
+      typeof choice?.finish_reason === "string" ? choice.finish_reason : null;
     return completionOf(content, finishReason, usageOf(parsed));
   }
 }

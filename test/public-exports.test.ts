@@ -86,7 +86,11 @@ test("memory and orchestration surfaces are exported from the package root", () 
   assert.equal(serializeStagedKnowledgeProposals([]), '{"proposals":[]}');
   assert.ok(
     new PostOutputKnowledgeIntake({
-      analyzer: { async analyze() { return []; } },
+      analyzer: {
+        async analyze() {
+          return [];
+        },
+      },
       context: {
         projectId,
         conversationId: identities.create("conversation"),
@@ -115,7 +119,11 @@ test("memory and orchestration surfaces are exported from the package root", () 
     new RelationGatedMemoryCommit({
       memory: durableMemory,
       candidateSource,
-      classifier: { async classify() { return { type: "new" }; } },
+      classifier: {
+        async classify() {
+          return { type: "new" };
+        },
+      },
       classifierBudget: {
         maximum: 1_024,
         measurer: new Utf8ByteKnowledgeIntakeMeasurer(),

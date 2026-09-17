@@ -32,7 +32,10 @@ export function retrieve(
   context: KnowledgeReadContext,
   query: RetrieveQuery,
 ): readonly RetrievedRecord[] {
-  context = { ...context, evaluatedAt: context.evaluatedAt ?? context.lifecycle.now() };
+  context = {
+    ...context,
+    evaluatedAt: context.evaluatedAt ?? context.lifecycle.now(),
+  };
   const records: RetrievedRecord[] = [];
   const seen = new Set<string>();
   const intents = new Set(scope.intents);
@@ -48,10 +51,15 @@ export function retrieve(
           push(
             records,
             seen,
-            slotClaimRecord(claim, query.message, scope, context, "direct", true, [
-              "direct_slot_match",
-              "contested_slot",
-            ]),
+            slotClaimRecord(
+              claim,
+              query.message,
+              scope,
+              context,
+              "direct",
+              true,
+              ["direct_slot_match", "contested_slot"],
+            ),
           );
         }
         continue;
@@ -115,31 +123,61 @@ export function retrieve(
 
   if (intents.has("attribution") || intents.has("current_state")) {
     for (const utterance of context.evidence.listUtterances()) {
-      if (!utteranceMatches(utterance.speaker, utterance.content, query.message, scope)) {
+      if (
+        !utteranceMatches(
+          utterance.speaker,
+          utterance.content,
+          query.message,
+          scope,
+        )
+      ) {
         continue;
       }
       push(
         records,
         seen,
-        utteranceRecord(utterance, query.message, scope, context, "direct", false, [
-          intents.has("attribution")
-            ? "direct_attribution_match"
-            : "current_state_evidence",
-        ]),
+        utteranceRecord(
+          utterance,
+          query.message,
+          scope,
+          context,
+          "direct",
+          false,
+          [
+            intents.has("attribution")
+              ? "direct_attribution_match"
+              : "current_state_evidence",
+          ],
+        ),
       );
     }
     for (const claim of context.evidence.listClaims()) {
-      if (!claimMatchesQuery(claim.label, claim.attributedTo, query.message, scope)) {
+      if (
+        !claimMatchesQuery(
+          claim.label,
+          claim.attributedTo,
+          query.message,
+          scope,
+        )
+      ) {
         continue;
       }
       push(
         records,
         seen,
-        evidenceClaimRecord(claim, query.message, scope, context, "direct", false, [
-          intents.has("attribution")
-            ? "direct_attribution_match"
-            : "current_state_evidence",
-        ]),
+        evidenceClaimRecord(
+          claim,
+          query.message,
+          scope,
+          context,
+          "direct",
+          false,
+          [
+            intents.has("attribution")
+              ? "direct_attribution_match"
+              : "current_state_evidence",
+          ],
+        ),
       );
     }
   }
@@ -226,7 +264,9 @@ export function retrieve(
   }
 
   if (!intents.has("history")) {
-    return records.filter((record) => record.surface !== "history" || isOpen(record.interval));
+    return records.filter(
+      (record) => record.surface !== "history" || isOpen(record.interval),
+    );
   }
   return records;
 }
@@ -341,7 +381,10 @@ function resolveSlots(
     if (ref.kind === "relation") {
       if (entityIds.has(String(ref.subject))) {
         add(ref);
-      } else if (ref.object !== undefined && entityIds.has(String(ref.object))) {
+      } else if (
+        ref.object !== undefined &&
+        entityIds.has(String(ref.object))
+      ) {
         add(ref);
       }
     }
@@ -421,7 +464,11 @@ function slotClaimRecord(
   required: boolean,
   reasons: readonly string[],
 ): RetrievedRecord {
-  const viewed = viewLifecycle(context.lifecycle, claim.id, context.evaluatedAt);
+  const viewed = viewLifecycle(
+    context.lifecycle,
+    claim.id,
+    context.evaluatedAt,
+  );
   const score = scoreRetrieved({
     matchKind,
     exactSlot: true,
@@ -460,7 +507,11 @@ function eventRecord(
   required: boolean,
   reasons: readonly string[],
 ): RetrievedRecord {
-  const viewed = viewLifecycle(context.lifecycle, event.id, context.evaluatedAt);
+  const viewed = viewLifecycle(
+    context.lifecycle,
+    event.id,
+    context.evaluatedAt,
+  );
   const score = scoreRetrieved({
     matchKind,
     exactSlot: false,
@@ -499,7 +550,11 @@ function utteranceRecord(
   required: boolean,
   reasons: readonly string[],
 ): RetrievedRecord {
-  const viewed = viewLifecycle(context.lifecycle, utterance.id, context.evaluatedAt);
+  const viewed = viewLifecycle(
+    context.lifecycle,
+    utterance.id,
+    context.evaluatedAt,
+  );
   const score = scoreRetrieved({
     matchKind,
     exactSlot: false,
@@ -537,7 +592,11 @@ function evidenceClaimRecord(
   required: boolean,
   reasons: readonly string[],
 ): RetrievedRecord {
-  const viewed = viewLifecycle(context.lifecycle, claim.id, context.evaluatedAt);
+  const viewed = viewLifecycle(
+    context.lifecycle,
+    claim.id,
+    context.evaluatedAt,
+  );
   const score = scoreRetrieved({
     matchKind,
     exactSlot: false,
@@ -572,7 +631,10 @@ function eventMatches(
   message: string,
   slots: readonly SlotRef[],
 ): boolean {
-  if (mentionsLabel(message, event.label) || mentionsLabel(message, event.type)) {
+  if (
+    mentionsLabel(message, event.label) ||
+    mentionsLabel(message, event.type)
+  ) {
     return true;
   }
   if (event.who !== undefined && mentionsLabel(message, event.who)) {
@@ -582,7 +644,12 @@ function eventMatches(
     return true;
   }
   const lower = normalize(message);
-  if (lower.includes("målade") || lower.includes("painted") || lower.includes("rött") || lower.includes("red")) {
+  if (
+    lower.includes("målade") ||
+    lower.includes("painted") ||
+    lower.includes("rött") ||
+    lower.includes("red")
+  ) {
     return event.type === "house_painted" || event.what === "red";
   }
   return event.effects.some((effect) =>
@@ -599,7 +666,11 @@ function utteranceMatches(
   if (mentionsLabel(message, speaker) || mentionsLabel(message, content)) {
     return true;
   }
-  if (scope.entities.some((label) => mentionsLabel(content, label) || mentionsLabel(speaker, label))) {
+  if (
+    scope.entities.some(
+      (label) => mentionsLabel(content, label) || mentionsLabel(speaker, label),
+    )
+  ) {
     return true;
   }
   if (lexicalOverlap(message, speaker) || lexicalOverlap(message, content)) {
@@ -607,7 +678,10 @@ function utteranceMatches(
   }
   const lower = normalize(message);
   if (lower.includes("presentatören") || lower.includes("presenter")) {
-    return normalize(speaker).includes("kanal") || normalize(speaker).includes("presenter");
+    return (
+      normalize(speaker).includes("kanal") ||
+      normalize(speaker).includes("presenter")
+    );
   }
   return false;
 }
@@ -633,20 +707,58 @@ function claimMatchesQuery(
     return true;
   }
   if (
-    (lower.includes("äger") || lower.includes("owns") || lower.includes("bil")) &&
+    (lower.includes("äger") ||
+      lower.includes("owns") ||
+      lower.includes("bil")) &&
     (claim.includes("owns") || claim.includes("bil") || claim.includes("car"))
   ) {
     return true;
   }
-  if (scope.temporalHints.mentionsFuture && (claim.includes("rain") || claim.includes("tomorrow"))) {
+  if (
+    scope.temporalHints.mentionsFuture &&
+    (claim.includes("rain") || claim.includes("tomorrow"))
+  ) {
     return true;
   }
   return false;
 }
 
 const LEXICAL_STOPWORDS = new Set([
-  "and", "any", "are", "can", "does", "for", "from", "have", "how", "the", "this", "what", "when", "where", "which", "who", "why", "with",
-  "att", "det", "den", "du", "ett", "har", "hur", "kan", "med", "och", "som", "vad", "var", "vem", "vilken", "vilket", "varför",
+  "and",
+  "any",
+  "are",
+  "can",
+  "does",
+  "for",
+  "from",
+  "have",
+  "how",
+  "the",
+  "this",
+  "what",
+  "when",
+  "where",
+  "which",
+  "who",
+  "why",
+  "with",
+  "att",
+  "det",
+  "den",
+  "du",
+  "ett",
+  "har",
+  "hur",
+  "kan",
+  "med",
+  "och",
+  "som",
+  "vad",
+  "var",
+  "vem",
+  "vilken",
+  "vilket",
+  "varför",
 ]);
 
 function lexicalOverlap(left: string, right: string): boolean {
@@ -660,7 +772,13 @@ function lexicalOverlap(left: string, right: string): boolean {
 }
 
 function contentTokens(value: string): readonly string[] {
-  return [...new Set(tokenize(value).filter((token) => token.length >= 3 && !LEXICAL_STOPWORDS.has(token)))];
+  return [
+    ...new Set(
+      tokenize(value).filter(
+        (token) => token.length >= 3 && !LEXICAL_STOPWORDS.has(token),
+      ),
+    ),
+  ];
 }
 
 function tokenize(value: string): readonly string[] {
@@ -684,7 +802,9 @@ function push(
 function assertNoClosedIntervals(records: readonly RetrievedRecord[]): void {
   for (const record of records) {
     if (record.surface === "history" && !isOpen(record.interval)) {
-      throw new Error("closed intervals are unreachable without history intent");
+      throw new Error(
+        "closed intervals are unreachable without history intent",
+      );
     }
   }
 }

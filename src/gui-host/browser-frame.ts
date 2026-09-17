@@ -1,9 +1,14 @@
-import type { FrameCheck } from '../../packages/protocol/src/index.js';
+import type { FrameCheck } from "../../packages/protocol/src/index.js";
 import { ChatError } from "../core/errors.js";
 import type { FetchLike } from "./provider-routes.js";
-import { framePolicyFromHeaders, type FrameBlockReason } from "./frame-policy.js";
+import {
+  framePolicyFromHeaders,
+  type FrameBlockReason,
+} from "./frame-policy.js";
 
-export type BrowserFrameCheck = Omit<FrameCheck, 'reason'> & { readonly reason?: FrameBlockReason };
+export type BrowserFrameCheck = Omit<FrameCheck, "reason"> & {
+  readonly reason?: FrameBlockReason;
+};
 
 const CHECK_TIMEOUT_MS = 8_000;
 
@@ -16,7 +21,10 @@ export function parseBrowserTargetUrl(raw: string): string {
   try {
     parsed = new URL(trimmed);
   } catch {
-    throw new ChatError("configuration", "url must be an absolute http(s) address.");
+    throw new ChatError(
+      "configuration",
+      "url must be an absolute http(s) address.",
+    );
   }
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new ChatError("configuration", "url must be http or https.");
@@ -53,7 +61,11 @@ export async function handleBrowserFrameCheck(input: {
     /* headers are enough */
   }
   const pageUrl = response.url && response.url.length > 0 ? response.url : url;
-  const policy = framePolicyFromHeaders(response.headers, input.embedderOrigin, pageUrl);
+  const policy = framePolicyFromHeaders(
+    response.headers,
+    input.embedderOrigin,
+    pageUrl,
+  );
   return {
     url: pageUrl,
     embeddable: policy.embeddable,

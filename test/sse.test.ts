@@ -13,7 +13,9 @@ test("SSE parser survives arbitrary byte boundaries and CRLF", async () => {
   ].join("");
   const values: string[] = [];
 
-  for await (const value of parseSseData(byteStream(splitBytes(source, [1, 7, 2, 5])))) {
+  for await (const value of parseSseData(
+    byteStream(splitBytes(source, [1, 7, 2, 5])),
+  )) {
     values.push(value);
   }
 

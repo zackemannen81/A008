@@ -59,7 +59,10 @@ test("mixed request/assertion utterances are evaluated on the supporting span", 
     true,
   );
   assert.equal(
-    isExplicitUserAssertion(message, request, { start: 0, end: request.length }),
+    isExplicitUserAssertion(message, request, {
+      start: 0,
+      end: request.length,
+    }),
     false,
   );
 });
@@ -172,7 +175,10 @@ test("write-side domain cap does not erase proposal domains", async () => {
     batch.proposals.map((entry) => entry.domains),
     domains.map((domain) => [domain]),
   );
-  assert.deepEqual(selectUtteranceDomains(batch.proposals), domains.slice(0, 4));
+  assert.deepEqual(
+    selectUtteranceDomains(batch.proposals),
+    domains.slice(0, 4),
+  );
 });
 
 test("structured propositions survive staging without free-text reparsing", async () => {
@@ -214,7 +220,10 @@ test("structured propositions survive staging without free-text reparsing", asyn
     applicabilityScopes: ["local"],
   });
 
-  assert.deepEqual(batch.proposals[0]!.proposal.structuredProposition, structured);
+  assert.deepEqual(
+    batch.proposals[0]!.proposal.structuredProposition,
+    structured,
+  );
   assert.match(batch.serialized, /structuredProposition/u);
 });
 

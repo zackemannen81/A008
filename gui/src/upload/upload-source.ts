@@ -1,5 +1,12 @@
-import { UploadError, parseUploadedSource, type UploadedSource } from '../../../packages/protocol/src/index.js';
-export { UploadError, type UploadedSource } from '../../../packages/protocol/src/index.js';
+import {
+  UploadError,
+  parseUploadedSource,
+  type UploadedSource,
+} from "../../../packages/protocol/src/index.js";
+export {
+  UploadError,
+  type UploadedSource,
+} from "../../../packages/protocol/src/index.js";
 import { engineHeaders } from "../session/engine-access.js";
 /** Host protocol v1 upload endpoint (ADR 0020 D3). */
 export const UPLOAD_ENDPOINT = "/v1/upload";
@@ -74,10 +81,9 @@ export async function uploadSource(
       body,
     });
   } catch (cause) {
-    throw new UploadError(
-      "Failed to reach the A008 GUI host upload route.",
-      { cause },
-    );
+    throw new UploadError("Failed to reach the A008 GUI host upload route.", {
+      cause,
+    });
   }
 
   if (!response.ok) {
@@ -120,5 +126,6 @@ async function failureMessage(response: Response): Promise<string> {
   return statusText.length > 0 ? `${prefix}: ${statusText}` : `${prefix}.`;
 }
 
-
-function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

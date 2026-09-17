@@ -96,6 +96,33 @@ function Sampling(props: {
   );
 }
 
+
+export function modelCapabilityBadges(model: GuiModel): readonly string[] {
+  const badges: string[] = [];
+  if (model.inputModalities.includes("image")) badges.push("Vision");
+  if (model.inputModalities.length > 1) badges.push("Multimodal");
+  if (model.capabilities.thinking || model.capabilities.reasoningEfforts.length > 0) badges.push("Reasoning");
+  return badges;
+}
+
+function ModelSpecifications(props: { readonly model: GuiModel }) {
+  const { model } = props;
+  const badges = modelCapabilityBadges(model);
+  return (
+    <section className="a008-model-specs" aria-label="Model specifications">
+      {badges.length ? <div className="a008-model-badges">{badges.map((badge) => <span key={badge}>{badge}</span>)}</div> : null}
+      <dl>
+        <div><dt>Provider</dt><dd>{model.provider}</dd></div>
+        <div><dt>Execution</dt><dd>{model.executionProvider}</dd></div>
+        <div><dt>Input</dt><dd>{model.inputModalities.join(" · ")}</dd></div>
+        <div><dt>Max output</dt><dd>{model.capabilities.maxTokens.toLocaleString()} tokens</dd></div>
+        <div><dt>Profile verified</dt><dd>{model.verifiedOn ?? "Unverified"}</dd></div>
+        <div><dt>Controls verified</dt><dd>{model.capabilities.verifiedOn}</dd></div>
+      </dl>
+    </section>
+  );
+}
+
 function ParameterForm(props: {
   session: GuiSession;
   model: GuiModel;
@@ -459,6 +486,7 @@ export function ParametersPanel(props: {
         <p className="a008-parameter-footnote">
           Changing model starts a new conversation.
         </p>
+        {model ? <ModelSpecifications model={model} /> : null}
         </div>
         {session.status !== "ready" && page !== "appearance" ? (
           <div className="a008-parameter-connect">

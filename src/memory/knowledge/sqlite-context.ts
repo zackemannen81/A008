@@ -63,12 +63,26 @@ export function createSqliteKnowledgeContext(
   const hydrate = (): void => {
     const snapshot = store.load();
     loadSnapshot(
-      { entities, slots, state, evidence, entityReferences, labels, lifecycle, relations },
+      {
+        entities,
+        slots,
+        state,
+        evidence,
+        entityReferences,
+        labels,
+        lifecycle,
+        relations,
+      },
       snapshot,
     );
     loadedRevision = store.revision();
   };
-  try { hydrate(); } catch (error) { store.close(); throw error; }
+  try {
+    hydrate();
+  } catch (error) {
+    store.close();
+    throw error;
+  }
 
   let persistEnabled = false;
   const persist = (): void => {
@@ -77,7 +91,10 @@ export function createSqliteKnowledgeContext(
     }
     let lockedRevision = loadedRevision;
     store.atomic(() => {
-      if (loadedRevision !== store.revision()) throw new Error("Knowledge changed before explicit persist; reload before retrying");
+      if (loadedRevision !== store.revision())
+        throw new Error(
+          "Knowledge changed before explicit persist; reload before retrying",
+        );
       store.updateNamespace(store.load(), captureSnapshot(inner));
       lockedRevision = store.revision();
     });
@@ -99,7 +116,9 @@ export function createSqliteKnowledgeContext(
       } catch (error) {
         // Reload after SQLite has rolled back (the outer catch below).
         throw error;
-      } finally { persistEnabled = true; }
+      } finally {
+        persistEnabled = true;
+      }
     });
     // FTS can flush shadow-table writes at COMMIT. Record our revision only
     // after those writes, so the next operation does not reload its own state.
@@ -108,7 +127,12 @@ export function createSqliteKnowledgeContext(
   };
   const safeAtomic = <T>(operation: () => T): T => {
     if (!persistEnabled) return operation();
-    try { return atomic(operation); } catch (error) { hydrate(); throw error; }
+    try {
+      return atomic(operation);
+    } catch (error) {
+      hydrate();
+      throw error;
+    }
   };
   const inner: KnowledgeReadContext = {
     atomic: safeAtomic,
@@ -130,7 +154,10 @@ export function createSqliteKnowledgeContext(
       "applyAcceptance",
       "hydrate",
     ]),
-    entityReferences: persisting(entityReferences, safeAtomic, ["attach", "hydrate"]),
+    entityReferences: persisting(entityReferences, safeAtomic, [
+      "attach",
+      "hydrate",
+    ]),
     labels: persisting(labels, safeAtomic, ["attach", "hydrate"]),
     lifecycle: persisting(lifecycle, safeAtomic, [
       "attach",
@@ -141,7 +168,11 @@ export function createSqliteKnowledgeContext(
       "decay",
       "hydrate",
     ]),
-    relations: persisting(relations, safeAtomic, ["link", "hydrate", "establishAssociation"]),
+    relations: persisting(relations, safeAtomic, [
+      "link",
+      "hydrate",
+      "establishAssociation",
+    ]),
   };
   persistEnabled = true;
 
@@ -176,10 +207,9 @@ function persisting<T extends object>(
         return value.bind(source);
       }
       return (...args: unknown[]) => {
-        return atomic(() => (value as (...inner: unknown[]) => unknown).apply(
-          source,
-          args,
-        ));
+        return atomic(() =>
+          (value as (...inner: unknown[]) => unknown).apply(source, args),
+        );
       };
     },
   }) as T;

@@ -13,7 +13,11 @@ import {
 } from "../src/orchestration/post-output-knowledge-intake.js";
 import { parseProposalConfidence } from "../src/orchestration/post-output-knowledge-intake.js";
 import { describeMemoryOutcome } from "../src/runtime/local-memory-runtime.js";
-import { ChatTransportSemanticJsonGenerator, ModelBackedPostOutputKnowledgeAnalyzer, POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION } from "../src/orchestration/semantic-json-model.js";
+import {
+  ChatTransportSemanticJsonGenerator,
+  ModelBackedPostOutputKnowledgeAnalyzer,
+  POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION,
+} from "../src/orchestration/semantic-json-model.js";
 import { Utf8ByteChatMessageMeasurer } from "../src/core/chat-invocation.js";
 
 const PROJECT = parseRuntimeId(
@@ -36,8 +40,9 @@ const AGENT = parseRuntimeId(
 function intake(
   analyzer: PostOutputKnowledgeAnalyzer,
   maximum = 8_192,
-  limits: ConstructorParameters<typeof PostOutputKnowledgeIntake>[0]["limits"] =
-    undefined,
+  limits: ConstructorParameters<
+    typeof PostOutputKnowledgeIntake
+  >[0]["limits"] = undefined,
 ) {
   return new PostOutputKnowledgeIntake({
     analyzer,
@@ -62,37 +67,74 @@ const input = {
 } as const;
 
 test("documented extractor examples are valid JSON batches with exact original-source support", async () => {
-  const encoded = /<examples>(.*?)<\/examples>/u.exec(POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION)?.[1];
+  const encoded = /<examples>(.*?)<\/examples>/u.exec(
+    POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION,
+  )?.[1];
   assert.ok(encoded);
   const examples = JSON.parse(encoded) as readonly {
-    input: { message: string; answer: string } | { kind: "source"; locator: string; content: string };
+    input:
+      | { message: string; answer: string }
+      | { kind: "source"; locator: string; content: string };
     output: readonly AnalyzedKnowledgeDraft[];
   }[];
   assert.equal(examples.length, 3);
-  assert.deepEqual(examples.map(e => e.output.length), [0, 1, 1]);
+  assert.deepEqual(
+    examples.map((e) => e.output.length),
+    [0, 1, 1],
+  );
   let calls = 0;
   for (const example of examples) {
-    const analyzer = new ModelBackedPostOutputKnowledgeAnalyzer(new ChatTransportSemanticJsonGenerator({
-      model: "fixture/extractor", budget: { maximum: 16384, measurer: new Utf8ByteChatMessageMeasurer() },
-      transport: { async complete() {
-        calls += 1;
-        return { message: { role: "assistant", content: JSON.stringify(example.output) }, reasoning: "private example reasoning" };
-      } },
-    }));
+    const analyzer = new ModelBackedPostOutputKnowledgeAnalyzer(
+      new ChatTransportSemanticJsonGenerator({
+        model: "fixture/extractor",
+        budget: { maximum: 16384, measurer: new Utf8ByteChatMessageMeasurer() },
+        transport: {
+          async complete() {
+            calls += 1;
+            return {
+              message: {
+                role: "assistant",
+                content: JSON.stringify(example.output),
+              },
+              reasoning: "private example reasoning",
+            };
+          },
+        },
+      }),
+    );
     const stager = intake(analyzer);
-    const result = await stager.stage("content" in example.input ? {
-      ...example.input, taskId: TASK, utteranceId: "fixture-source-utterance", applicabilityScopes: ["fixtures"],
-    } : { ...example.input, taskId: TASK, applicabilityScopes: ["fixtures"] });
+    const result = await stager.stage(
+      "content" in example.input
+        ? {
+            ...example.input,
+            taskId: TASK,
+            utteranceId: "fixture-source-utterance",
+            applicabilityScopes: ["fixtures"],
+          }
+        : { ...example.input, taskId: TASK, applicabilityScopes: ["fixtures"] },
+    );
     assert.equal(result.proposals.length, example.output.length);
     assert.deepEqual(result.skippedProposals, []);
     for (const proposal of result.proposals) {
       assert.equal(proposal.severity, "minor");
       assert.ok(proposal.support);
-      const source = "content" in example.input ? example.input.content : example.input.message;
-      assert.equal(source.slice(proposal.support.start, proposal.support.end), proposal.proposal.proposition);
-      assert.equal(proposal.support.source, "content" in example.input ? "source" : "message");
+      const source =
+        "content" in example.input
+          ? example.input.content
+          : example.input.message;
+      assert.equal(
+        source.slice(proposal.support.start, proposal.support.end),
+        proposal.proposal.proposition,
+      );
+      assert.equal(
+        proposal.support.source,
+        "content" in example.input ? "source" : "message",
+      );
     }
-    assert.equal(JSON.stringify(result).includes("private example reasoning"), false);
+    assert.equal(
+      JSON.stringify(result).includes("private example reasoning"),
+      false,
+    );
   }
   assert.equal(calls, 3);
   // These exercise the wire contract and runtime admission, not live model judgement.
@@ -155,7 +197,8 @@ test("intake exposes only message and final answer and applies runtime-owned fie
     },
   );
   assert.deepEqual(result.proposals, [
-    { severity: "important" as const,
+    {
+      severity: "important" as const,
       proposal: {
         proposition: "Reasoning never becomes knowledge.",
         kind: "architecture-decision",
@@ -173,8 +216,14 @@ test("intake exposes only message and final answer and applies runtime-owned fie
       entities: ["ChatSession", "MemoryAwareChatSession"],
     },
   ]);
-  assert.equal(result.serialized, serializeStagedKnowledgeProposals(result.proposals));
-  assert.equal(result.measuredUnits, Buffer.byteLength(result.serialized, "utf8"));
+  assert.equal(
+    result.serialized,
+    serializeStagedKnowledgeProposals(result.proposals),
+  );
+  assert.equal(
+    result.measuredUnits,
+    Buffer.byteLength(result.serialized, "utf8"),
+  );
   assert.equal(result.measurementUnit, "utf8_bytes");
   assert.equal(result.serialized.includes("private chain of thought"), false);
   assert.equal(result.serialized.includes("A008_v1_"), false);
@@ -187,7 +236,8 @@ test("intake enforces the exact multibyte serialized budget", async () => {
   const analyzer: PostOutputKnowledgeAnalyzer = {
     async analyze() {
       return [
-        { severity: "important",
+        {
+          severity: "important",
           proposition: "ÅÄÖ memory",
           kind: "fact",
           tags: ["svenska"],
@@ -235,14 +285,35 @@ test("one bad item is skipped and reported, not allowed to discard the batch", a
   const staged = await intake({
     async analyze() {
       return [
-        { severity: "important", proposition: "first durable claim", kind: "fact" },
+        {
+          severity: "important",
+          proposition: "first durable claim",
+          kind: "fact",
+        },
         { severity: "important", proposition: "", kind: "fact" },
-        { severity: "important", proposition: "second durable claim", kind: "fact" },
-        { severity: "important", proposition: "third durable claim", kind: "fact", confidence: 2 },
-        { severity: "important", proposition: "fourth durable claim", kind: "fact" },
+        {
+          severity: "important",
+          proposition: "second durable claim",
+          kind: "fact",
+        },
+        {
+          severity: "important",
+          proposition: "third durable claim",
+          kind: "fact",
+          confidence: 2,
+        },
+        {
+          severity: "important",
+          proposition: "fourth durable claim",
+          kind: "fact",
+        },
         // A near-duplicate: the instruction asks for recursive splitting, so
         // the model will not always dedupe perfectly.
-        { severity: "important", proposition: "First durable claim", kind: "Fact" },
+        {
+          severity: "important",
+          proposition: "First durable claim",
+          kind: "Fact",
+        },
         "not an object",
       ] as never;
     },
@@ -264,7 +335,9 @@ test("one bad item is skipped and reported, not allowed to discard the batch", a
 test("a clean extraction reports nothing skipped", async () => {
   const staged = await intake({
     async analyze() {
-      return [{ severity: "important", proposition: "a durable claim", kind: "fact" }];
+      return [
+        { severity: "important", proposition: "a durable claim", kind: "fact" },
+      ];
     },
   }).stage(input);
 
@@ -284,7 +357,11 @@ test("intake propagates analyzer failure and validates measurer behavior", async
   );
 
   const invalidMeasurement = new PostOutputKnowledgeIntake({
-    analyzer: { async analyze() { return []; } },
+    analyzer: {
+      async analyze() {
+        return [];
+      },
+    },
     context: {
       projectId: PROJECT,
       conversationId: CONVERSATION,
@@ -303,7 +380,11 @@ test("intake propagates analyzer failure and validates measurer behavior", async
   assert.throws(
     () =>
       new PostOutputKnowledgeIntake({
-        analyzer: { async analyze() { return []; } },
+        analyzer: {
+          async analyze() {
+            return [];
+          },
+        },
         context: {
           projectId: PROJECT,
           conversationId: CONVERSATION,
@@ -328,10 +409,14 @@ test("the default staging ceiling holds a real extraction, not eight proposals",
   const staged = await intake(
     {
       async analyze() {
-        return Array.from({ length: REAL_WORLD_PROPOSALS }, (_value, index) => ({ severity: "important",
-          proposition: `Distinct durable claim number ${String(index)}`,
-          kind: "fact",
-        }));
+        return Array.from(
+          { length: REAL_WORLD_PROPOSALS },
+          (_value, index) => ({
+            severity: "important",
+            proposition: `Distinct durable claim number ${String(index)}`,
+            kind: "fact",
+          }),
+        );
       },
     },
     // A budget wide enough that only the proposal ceiling can reject here.
@@ -351,7 +436,8 @@ test("the default staging ceiling is still a ceiling", async () => {
       intake(
         {
           async analyze() {
-            return Array.from({ length: OVER_CEILING }, (_value, index) => ({ severity: "important",
+            return Array.from({ length: OVER_CEILING }, (_value, index) => ({
+              severity: "important",
               proposition: `Claim number ${String(index)}`,
               kind: "fact",
             }));
@@ -369,7 +455,13 @@ test("a source variant reaches the analyzer as a source, not as a turn", async (
   const staged = await intake({
     async analyze(value) {
       received = value;
-      return [{ severity: "important", proposition: "The invoice total is 4500 SEK", kind: "fact" }];
+      return [
+        {
+          severity: "important",
+          proposition: "The invoice total is 4500 SEK",
+          kind: "fact",
+        },
+      ];
     },
   }).stage({
     kind: "source",
@@ -400,7 +492,13 @@ test("a source batch carries its locator as sourceMessage, never its content", a
   const content = "The invoice total is 4500 SEK. Approved by finance.";
   const staged = await intake({
     async analyze() {
-      return [{ severity: "important", proposition: "The invoice total is 4500 SEK", kind: "fact" }];
+      return [
+        {
+          severity: "important",
+          proposition: "The invoice total is 4500 SEK",
+          kind: "fact",
+        },
+      ];
     },
   }).stage({
     kind: "source",
@@ -425,7 +523,13 @@ test("a source batch carries its locator as sourceMessage, never its content", a
 test("a dialogue batch still declares its origin", async () => {
   const staged = await intake({
     async analyze() {
-      return [{ severity: "important", proposition: "Reasoning is display-only", kind: "fact" }];
+      return [
+        {
+          severity: "important",
+          proposition: "Reasoning is display-only",
+          kind: "fact",
+        },
+      ];
     },
   }).stage(input);
 
@@ -472,12 +576,14 @@ test("exact support quotes become runtime UTF-16 spans", async () => {
   const quote = "The sample box is blue.";
   const staged = await intake({
     async analyze() {
-      return [{
-        severity: "important",
-        proposition: quote,
-        kind: "fact",
-        support: { source: "message", quote },
-      }];
+      return [
+        {
+          severity: "important",
+          proposition: quote,
+          kind: "fact",
+          support: { source: "message", quote },
+        },
+      ];
     },
   }).stage({
     taskId: TASK,
@@ -491,7 +597,13 @@ test("exact support quotes become runtime UTF-16 spans", async () => {
     start: message.indexOf(quote),
     end: message.indexOf(quote) + quote.length,
   });
-  assert.equal(message.slice(staged.proposals[0]!.support!.start, staged.proposals[0]!.support!.end), quote);
+  assert.equal(
+    message.slice(
+      staged.proposals[0]!.support!.start,
+      staged.proposals[0]!.support!.end,
+    ),
+    quote,
+  );
 });
 
 test("model-supplied offsets cannot reinforce; missing quotes stay exact-match only", async () => {
@@ -531,12 +643,14 @@ test("a verbatim proposition can supply the span when the quote was rewritten", 
   const message = "I use TypeScript.";
   const staged = await intake({
     async analyze() {
-      return [{
-        severity: "important",
-        proposition: "I use TypeScript.",
-        kind: "fact",
-        support: { source: "message", quote: "I use typescript." },
-      }];
+      return [
+        {
+          severity: "important",
+          proposition: "I use TypeScript.",
+          kind: "fact",
+          support: { source: "message", quote: "I use typescript." },
+        },
+      ];
     },
   }).stage({
     taskId: TASK,
@@ -555,12 +669,17 @@ test("a verbatim proposition can supply the span when the quote was rewritten", 
 test("quotes that exist only in the answer are omitted rather than reported", async () => {
   const staged = await intake({
     async analyze() {
-      return [{
-        severity: "important",
-        proposition: "The start button launches the game",
-        kind: "fact",
-        support: { source: "message", quote: "Startknappen startar nu spelet korrekt." },
-      }];
+      return [
+        {
+          severity: "important",
+          proposition: "The start button launches the game",
+          kind: "fact",
+          support: {
+            source: "message",
+            quote: "Startknappen startar nu spelet korrekt.",
+          },
+        },
+      ];
     },
   }).stage({
     taskId: TASK,
@@ -588,12 +707,19 @@ test("CRLF in the original source still matches a LF quote", () => {
 test("ambiguous quotes refuse reinforcement unless occurrence is unique", () => {
   const source = "alpha beta alpha";
   const quote = "alpha";
-  assert.deepEqual(resolveAnalyzerSupport({ source: "message", quote }, "message", source), {
-    ok: false,
-    reason: "quote is ambiguous",
-  });
   assert.deepEqual(
-    resolveAnalyzerSupport({ source: "message", quote, occurrence: 2 }, "message", source),
+    resolveAnalyzerSupport({ source: "message", quote }, "message", source),
+    {
+      ok: false,
+      reason: "quote is ambiguous",
+    },
+  );
+  assert.deepEqual(
+    resolveAnalyzerSupport(
+      { source: "message", quote, occurrence: 2 },
+      "message",
+      source,
+    ),
     { ok: true, span: { source: "message", start: 11, end: 16 } },
   );
   assert.equal(resolveAnalyzerSupport(undefined, "message", source), undefined);
@@ -619,7 +745,16 @@ test("the confidence a model actually writes is read, not discarded", () => {
 
 test("confidence outside the scale or vocabulary is still refused by name", () => {
   // Leniency has to stop somewhere, or an unreadable value becomes a guess.
-  for (const bad of [1.5, -0.1, Number.NaN, "quite sure", "", "yes", null, {}]) {
+  for (const bad of [
+    1.5,
+    -0.1,
+    Number.NaN,
+    "quite sure",
+    "",
+    "yes",
+    null,
+    {},
+  ]) {
     assert.throws(
       () => parseProposalConfidence(bad, "proposal 3 confidence"),
       (error: unknown) =>
@@ -634,7 +769,8 @@ test("a word-confidence proposal is staged instead of skipped", async () => {
   const staged = await intake({
     async analyze() {
       return [
-        { severity: "important",
+        {
+          severity: "important",
           proposition: "Sömn är avgörande för minneskonsolidering",
           kind: "condition",
           tags: ["sömn"],

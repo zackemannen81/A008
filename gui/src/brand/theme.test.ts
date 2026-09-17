@@ -89,13 +89,26 @@ test("unknown or missing theme identity becomes Neutral", () => {
 
 test("missing, invalid and unknown stored themes default to Neutral", () => {
   assert.equal(readStoredAppTheme(memoryStore()), "neutral");
-  assert.equal(readStoredAppTheme(memoryStore({ [GUI_PREFERENCES_STORAGE_KEY]: "{" })), "neutral");
   assert.equal(
-    readStoredAppTheme(memoryStore({ [GUI_PREFERENCES_STORAGE_KEY]: JSON.stringify({ appearance: { theme: "warm" } }) })),
+    readStoredAppTheme(memoryStore({ [GUI_PREFERENCES_STORAGE_KEY]: "{" })),
     "neutral",
   );
   assert.equal(
-    readStoredAppTheme(memoryStore({ [GUI_PREFERENCES_STORAGE_KEY]: JSON.stringify({ theme: "deep-space" }) })),
+    readStoredAppTheme(
+      memoryStore({
+        [GUI_PREFERENCES_STORAGE_KEY]: JSON.stringify({
+          appearance: { theme: "warm" },
+        }),
+      }),
+    ),
+    "neutral",
+  );
+  assert.equal(
+    readStoredAppTheme(
+      memoryStore({
+        [GUI_PREFERENCES_STORAGE_KEY]: JSON.stringify({ theme: "deep-space" }),
+      }),
+    ),
     "neutral",
   );
 });
@@ -104,9 +117,12 @@ test("Neutral and Deep Space round-trip through preference storage", () => {
   const store = memoryStore();
   persistAppTheme("deep-space", store);
   assert.equal(readStoredAppTheme(store), "deep-space");
-  assert.deepEqual(JSON.parse(store.getItem(GUI_PREFERENCES_STORAGE_KEY) ?? ""), {
-    appearance: { theme: "deep-space" },
-  });
+  assert.deepEqual(
+    JSON.parse(store.getItem(GUI_PREFERENCES_STORAGE_KEY) ?? ""),
+    {
+      appearance: { theme: "deep-space" },
+    },
+  );
   persistAppTheme("neutral", store);
   assert.equal(readStoredAppTheme(store), "neutral");
 });
@@ -121,17 +137,23 @@ test("saving theme preserves unrelated preference keys", () => {
   });
   assert.equal(readStoredAppTheme(store), "neutral");
   persistAppTheme("deep-space", store);
-  assert.deepEqual(JSON.parse(store.getItem(GUI_PREFERENCES_STORAGE_KEY) ?? ""), {
-    appearance: { density: "compact", theme: "deep-space" },
-    extra: { keep: true },
-  });
+  assert.deepEqual(
+    JSON.parse(store.getItem(GUI_PREFERENCES_STORAGE_KEY) ?? ""),
+    {
+      appearance: { density: "compact", theme: "deep-space" },
+      extra: { keep: true },
+    },
+  );
   assert.equal(store.getItem("a008.shortcutDock"), "hidden");
 });
 
 test("selecting a theme updates the root data attribute immediately", () => {
   const store = memoryStore();
   const root = attributeRoot();
-  assert.equal(selectAppTheme("deep-space", { storage: store, root }), "deep-space");
+  assert.equal(
+    selectAppTheme("deep-space", { storage: store, root }),
+    "deep-space",
+  );
   assert.equal(root.getAttribute(APP_THEME_ATTRIBUTE), "deep-space");
   applyAppTheme("neutral", root);
   assert.equal(root.getAttribute(APP_THEME_ATTRIBUTE), "neutral");
@@ -171,7 +193,9 @@ test("theme selection is renderer-local and does not use session APIs", () => {
 });
 
 test("Code Canvas preview documents do not inherit host theme tokens", () => {
-  const preview = buildPreviewDocument("<canvas></canvas><style>body{color:red}</style>");
+  const preview = buildPreviewDocument(
+    "<canvas></canvas><style>body{color:red}</style>",
+  );
   assert.equal(preview.includes(APP_THEME_ATTRIBUTE), false);
   assert.equal(preview.includes("--a008-bg-app"), false);
   assert.equal(preview.includes("deep-space"), false);
@@ -194,7 +218,10 @@ test("both themes declare every required semantic and visualization token", () =
   assert.notEqual(deepAt, -1);
   const neutral = tokenNames(css.slice(0, deepAt));
   const deepSpace = tokenNames(css.slice(deepAt));
-  for (const name of [...REQUIRED_APP_THEME_TOKENS, ...REQUIRED_VIZ_THEME_TOKENS]) {
+  for (const name of [
+    ...REQUIRED_APP_THEME_TOKENS,
+    ...REQUIRED_VIZ_THEME_TOKENS,
+  ]) {
     assert.ok(neutral.has(name), `Neutral missing ${name}`);
     assert.ok(deepSpace.has(name), `Deep Space missing ${name}`);
   }
@@ -227,7 +254,10 @@ test("Neutral token values are the extracted current A008 palette", () => {
     "--a008-viz-canvas-outer": "#0e100f",
   };
   for (const [name, value] of Object.entries(expected)) {
-    assert.match(neutral, new RegExp(`${name}:\\s*${value.replace(/[()]/gu, "\\$&")}`));
+    assert.match(
+      neutral,
+      new RegExp(`${name}:\\s*${value.replace(/[()]/gu, "\\$&")}`),
+    );
   }
 });
 

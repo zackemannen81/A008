@@ -1,5 +1,6 @@
-import { useId, useState, type FormEvent, type KeyboardEvent } from "react";
-import type { GuiSession } from "../session/types.js";
+import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import type { GuiSession, PromptImageAttachment } from "../session/types.js";
+import { uploadSource } from "../upload/upload-source.js";
 import { runShellCommand } from "../terminal/terminal-pane.js";
 import { submitComposer } from "./submit.js";
 
@@ -10,7 +11,10 @@ export function Composer(props: {
   readonly onImage?: (prompt: string) => void;
 }) {
   const inputId = useId();
+  const fileInput = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState("");
+  const [attachment, setAttachment] = useState<(PromptImageAttachment & { readonly name: string })>();
+  const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
@@ -48,6 +52,9 @@ export function Composer(props: {
       const result = await submitComposer(draft, {
         session: props.session,
         runShellCommand,
+        ...(attachment === undefined ? {} : {
+          attachment: { type: "image", locator: attachment.locator, mediaType: attachment.mediaType },
+        }),
       });
       if (result.kind === "empty") {
         return;
@@ -57,6 +64,7 @@ export function Composer(props: {
         return;
       }
       setDraft("");
+      if (result.kind === "prompt") setAttachment(undefined);
       if (result.kind === "notice") {
         setNotice(result.message);
         return;
@@ -68,6 +76,24 @@ export function Composer(props: {
       );
     } finally {
       setPending(false);
+    }
+  }
+
+  async function attachImage(file: File | undefined): Promise<void> {
+    if (file === undefined) return;
+    setUploading(true);
+    setError("");
+    try {
+      const uploaded = await uploadSource(file);
+      if (!uploaded.mediaType.startsWith("image/")) {
+        throw new Error(`Selected source is ${uploaded.mediaType}, not an image.`);
+      }
+      setAttachment({ type: "image", locator: uploaded.locator, mediaType: uploaded.mediaType, name: file.name });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Image upload failed.");
+    } finally {
+      setUploading(false);
+      if (fileInput.current) fileInput.current.value = "";
     }
   }
 
@@ -101,7 +127,7 @@ export function Composer(props: {
           rows={1}
           value={draft}
           placeholder="Ask anything, or describe a task…"
-          disabled={pending || props.session.busy}
+          disabled={pending || props.session.busy || uploading}
           onChange={(event) => {
             setDraft(event.target.value);
           }}
@@ -110,7 +136,7 @@ export function Composer(props: {
         <button
           className="a008-composer-send"
           type="submit"
-          disabled={pending || props.session.busy}
+          disabled={pending || props.session.busy || uploading}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path
@@ -121,25 +147,43 @@ export function Composer(props: {
           Send
         </button>
         </div>
+        {attachment ? (
+          <div className="a008-composer-image-chip" role="status">
+            <span>{attachment.name}</span>
+            <small>{attachment.mediaType}</small>
+            <button type="button" aria-label="Remove image attachment" onClick={() => setAttachment(undefined)}>×</button>
+          </div>
+        ) : uploading ? <p className="a008-composer-uploading" role="status">Uploading image…</p> : null}
         <div className="a008-composer-tools">
-        {props.onImage ? (
+          <input
+            ref={fileInput}
+            className="a008-composer-file-input"
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            aria-label="Choose image attachment"
+            onChange={(event) => { void attachImage(event.currentTarget.files?.[0]); }}
+          />
           <details className="a008-composer-attach">
             <summary aria-label="Add">+</summary>
-            <button
-              type="button"
-              onClick={() => {
-                if (draft.trim().length === 0) {
-                  setError("Describe the image in the composer first.");
-                  return;
-                }
-                props.onImage?.(draft.trim());
-                setDraft("");
-              }}
-            >
-              Image
+            <button type="button" disabled={uploading || pending || props.session.busy} onClick={() => fileInput.current?.click()}>
+              Attach image
             </button>
+            {props.onImage ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (draft.trim().length === 0) {
+                    setError("Describe the image in the composer first.");
+                    return;
+                  }
+                  props.onImage?.(draft.trim());
+                  setDraft("");
+                }}
+              >
+                Generate image
+              </button>
+            ) : null}
           </details>
-        ) : null}
       <div className="a008-session-toolbar" aria-label="Session controls">
         <select
           aria-label="Session commands"

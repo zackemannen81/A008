@@ -45,13 +45,22 @@ function requireUnitInterval(value: number, field: string): void {
   }
 }
 
-function requireDistinctNonEmpty(values: readonly string[], field: string): void {
+function requireDistinctNonEmpty(
+  values: readonly string[],
+  field: string,
+): void {
   const normalized = values.map((value) => value.trim());
   if (normalized.some((value) => value.length === 0)) {
-    throw new MemoryError("illegal_state", `${field} must not contain empty values`);
+    throw new MemoryError(
+      "illegal_state",
+      `${field} must not contain empty values`,
+    );
   }
   if (new Set(normalized).size !== normalized.length) {
-    throw new MemoryError("illegal_state", `${field} must not contain duplicates`);
+    throw new MemoryError(
+      "illegal_state",
+      `${field} must not contain duplicates`,
+    );
   }
 }
 
@@ -100,13 +109,13 @@ function validateItem(item: KnowledgeItem): void {
 function validateState(items: ReadonlyMap<string, KnowledgeItem>): void {
   for (const [id, item] of items) {
     if (id !== item.id) {
-      throw new MemoryError("illegal_state", `repository key mismatch for ${id}`);
+      throw new MemoryError(
+        "illegal_state",
+        `repository key mismatch for ${id}`,
+      );
     }
     validateItem(item);
-    if (
-      item.supersededBy !== null &&
-      !items.has(item.supersededBy)
-    ) {
+    if (item.supersededBy !== null && !items.has(item.supersededBy)) {
       throw new MemoryError(
         "illegal_state",
         `knowledge ${item.id} references missing successor ${item.supersededBy}`,
@@ -154,9 +163,7 @@ class ReadView implements MemoryReadView {
 
   listKeepAlive(): readonly KnowledgeItem[] {
     return [...this.items.values()]
-      .filter(
-        (item) => item.canonicalStatus === "current" && item.keepAlive,
-      )
+      .filter((item) => item.canonicalStatus === "current" && item.keepAlive)
       .sort((left, right) => left.id.localeCompare(right.id))
       .map(cloneItem);
   }
@@ -258,7 +265,9 @@ export class InMemoryMemoryRepository implements MemoryRepository {
       }
       duplicateCheck.add(item.id);
     }
-    this.items = new Map(initialItems.map((item) => [item.id, cloneItem(item)]));
+    this.items = new Map(
+      initialItems.map((item) => [item.id, cloneItem(item)]),
+    );
     this.audit = initialAudit.map(cloneAudit);
     validateState(this.items);
   }

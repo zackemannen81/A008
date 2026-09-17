@@ -117,7 +117,10 @@ test("stale buffers are suppressed until the session moves on", () => {
     }),
     true,
   );
-  const afterNewThought = reduceChatHistory(afterPrompt, live("New thought", ""));
+  const afterNewThought = reduceChatHistory(
+    afterPrompt,
+    live("New thought", ""),
+  );
   assert.equal(
     shouldSuppressLive(afterNewThought, { thought: "New thought", answer: "" }),
     false,

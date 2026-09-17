@@ -1,9 +1,12 @@
 import type { SessionControl, SessionSnapshot } from "./session-controls.js";
+import type { PromptImageAttachment } from "../../../packages/protocol/src/index.js";
+export type { PromptImageAttachment } from "../../../packages/protocol/src/index.js";
 export const DEFAULT_GUI_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b";
 
 export type GuiSessionStatus = "idle" | "connecting" | "ready" | "error";
 
-export type RuntimeToolStatus = "running" | "ok" | "failed" | "completed" | "pending";
+export type RuntimeToolStatus =
+  "running" | "ok" | "failed" | "completed" | "pending";
 
 export interface RuntimeToolCall {
   readonly id: string;
@@ -41,7 +44,7 @@ export interface GuiSession extends GuiSessionState {
   controlSession?(control: SessionControl): Promise<SessionSnapshot>;
   endSession?(): Promise<void>;
   connect(): Promise<void>;
-  prompt(text: string): Promise<void>;
+  prompt(text: string, attachment?: PromptImageAttachment): Promise<void>;
   cancel(): Promise<void>;
 }
 

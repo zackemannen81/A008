@@ -3,12 +3,18 @@ import type { ClaimProposition } from "./evidence-types.js";
 
 function nonEmpty(value: unknown, field: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
-    throw new KnowledgeModelError("invalid_input", `${field} must be a non-empty string`);
+    throw new KnowledgeModelError(
+      "invalid_input",
+      `${field} must be a non-empty string`,
+    );
   }
   return value.trim();
 }
 
-function stringArray(value: unknown, field: string): readonly string[] | undefined {
+function stringArray(
+  value: unknown,
+  field: string,
+): readonly string[] | undefined {
   if (value === undefined) return undefined;
   if (!Array.isArray(value)) {
     throw new KnowledgeModelError("invalid_input", `${field} must be an array`);
@@ -18,7 +24,10 @@ function stringArray(value: unknown, field: string): readonly string[] | undefin
 
 export function parseClaimProposition(value: unknown): ClaimProposition {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new KnowledgeModelError("invalid_input", "structuredProposition must be an object");
+    throw new KnowledgeModelError(
+      "invalid_input",
+      "structuredProposition must be an object",
+    );
   }
   const raw = value as Record<string, unknown>;
   const kind = nonEmpty(raw.kind, "structuredProposition.kind");
@@ -26,7 +35,10 @@ export function parseClaimProposition(value: unknown): ClaimProposition {
   if (kind === "attribute_binding") {
     return {
       kind,
-      entityLabel: nonEmpty(raw.entityLabel, "structuredProposition.entityLabel"),
+      entityLabel: nonEmpty(
+        raw.entityLabel,
+        "structuredProposition.entityLabel",
+      ),
       attribute: nonEmpty(raw.attribute, "structuredProposition.attribute"),
       value: structuredClone(raw.value),
     };
@@ -34,9 +46,15 @@ export function parseClaimProposition(value: unknown): ClaimProposition {
   if (kind === "relationship_binding") {
     return {
       kind,
-      subjectLabel: nonEmpty(raw.subjectLabel, "structuredProposition.subjectLabel"),
+      subjectLabel: nonEmpty(
+        raw.subjectLabel,
+        "structuredProposition.subjectLabel",
+      ),
       relation: nonEmpty(raw.relation, "structuredProposition.relation"),
-      objectLabel: nonEmpty(raw.objectLabel, "structuredProposition.objectLabel"),
+      objectLabel: nonEmpty(
+        raw.objectLabel,
+        "structuredProposition.objectLabel",
+      ),
     };
   }
   if (kind === "event_occurrence") {
@@ -54,7 +72,8 @@ export function parseClaimProposition(value: unknown): ClaimProposition {
     return {
       kind,
       name: nonEmpty(raw.name, "structuredProposition.name"),
-      arguments: stringArray(raw.arguments, "structuredProposition.arguments") ?? [],
+      arguments:
+        stringArray(raw.arguments, "structuredProposition.arguments") ?? [],
     };
   }
   if (kind === "negation") {

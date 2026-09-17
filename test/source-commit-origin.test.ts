@@ -44,7 +44,8 @@ function batch(
   sourceMessage: string,
 ): StagedKnowledgeBatch {
   const proposals = [
-    { severity: "important" as const,
+    {
+      severity: "important" as const,
       proposal: {
         id: "prop-1",
         proposition: PROPOSITION,
@@ -74,7 +75,9 @@ function batch(
 }
 
 async function withContext(
-  run: (handle: ReturnType<typeof createSqliteKnowledgeContext>) => Promise<void>,
+  run: (
+    handle: ReturnType<typeof createSqliteKnowledgeContext>,
+  ) => Promise<void>,
 ): Promise<void> {
   const handle = createSqliteKnowledgeContext({
     filename: ":memory:",
@@ -103,7 +106,8 @@ test("a source claim is not accepted as a user assertion", async () => {
     );
     const utteranceId = ingested.utterances[0]?.id;
     assert.ok(utteranceId);
-    const utterancesAfterIngest = handle.context.evidence.listUtterances().length;
+    const utterancesAfterIngest =
+      handle.context.evidence.listUtterances().length;
 
     await new KnowledgeEngineCommit({
       context: handle.context,
@@ -153,7 +157,9 @@ test("a dialogue claim still reaches the user-assertion policy", async () => {
       "a dialogue batch ingests the user's turn",
     );
     assert.equal(
-      handle.context.evidence.listClaims().some((claim) => claim.status === "accepted"),
+      handle.context.evidence
+        .listClaims()
+        .some((claim) => claim.status === "accepted"),
       true,
       "the dialogue path still accepts",
     );
@@ -212,7 +218,8 @@ test("a classifier conflict aligns unstructured fallback ownership without using
     const proposals = [
       { proposition: "Zorros häst heter Fresca" },
       { proposition: "Zorros häst heter Tornado" },
-    ].map((entry, index) => ({ severity: "important" as const,
+    ].map((entry, index) => ({
+      severity: "important" as const,
       proposal: {
         id: `prop-${index + 1}`,
         proposition: entry.proposition,
@@ -228,7 +235,10 @@ test("a classifier conflict aligns unstructured fallback ownership without using
     const contradicting: KnowledgeRelationClassifier = {
       async classify(input) {
         return input.proposal.proposition.includes("Tornado")
-          ? { type: "conflict", targetHandles: input.candidates.map((c) => c.handle) }
+          ? {
+              type: "conflict",
+              targetHandles: input.candidates.map((c) => c.handle),
+            }
           : { type: "new" };
       },
     };
@@ -281,7 +291,10 @@ test("a statement slot is registered as a set on the very first commit", async (
 
     const statement = handle.context.slots
       .list()
-      .filter((slot) => slot.ref.kind === "attribute" && slot.ref.name === "statement");
+      .filter(
+        (slot) =>
+          slot.ref.kind === "attribute" && slot.ref.name === "statement",
+      );
     assert.equal(statement.length, 1);
     assert.equal(
       statement[0]?.cardinality,

@@ -27,7 +27,11 @@ function descriptor() {
   };
 }
 
-function jsonResponse(body: unknown, status = 200, headers: Record<string, string> = {}): Response {
+function jsonResponse(
+  body: unknown,
+  status = 200,
+  headers: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { "content-type": "application/json", ...headers },
@@ -48,7 +52,10 @@ function sseResponse(events: readonly string[], status = 200): Response {
   });
 }
 
-function completed(sequence: number, overrides: Record<string, unknown> = {}): string {
+function completed(
+  sequence: number,
+  overrides: Record<string, unknown> = {},
+): string {
   const response = {
     provider: "openai",
     model: "gpt-5.6-luna",
@@ -97,7 +104,10 @@ function failed(
 }
 
 function fakeAcme(options: {
-  readonly onExecute?: (url: string, init?: RequestInit) => Response | Promise<Response>;
+  readonly onExecute?: (
+    url: string,
+    init?: RequestInit,
+  ) => Response | Promise<Response>;
   readonly onCompatibility?: () => Response;
   readonly urls?: string[];
 }): (input: string | URL | Request, init?: RequestInit) => Promise<Response> {
@@ -105,7 +115,10 @@ function fakeAcme(options: {
   return async (input, init) => {
     const url = String(input);
     urls.push(url);
-    if (url.includes("/v1/execute") && !url.includes(ACME_MODEL_RUNTIME_EXECUTE_PATH)) {
+    if (
+      url.includes("/v1/execute") &&
+      !url.includes(ACME_MODEL_RUNTIME_EXECUTE_PATH)
+    ) {
       throw new Error("must not call ACME task runtime");
     }
     if (url.endsWith(ACME_MODEL_RUNTIME_COMPATIBILITY_PATH)) {
@@ -114,7 +127,10 @@ function fakeAcme(options: {
     if (url.endsWith(ACME_MODEL_RUNTIME_EXECUTE_PATH)) {
       return (
         options.onExecute?.(url, init) ??
-        sseResponse([sseEvent("content-delta", { sequence: 0, text: "Hello" }), completed(1)])
+        sseResponse([
+          sseEvent("content-delta", { sequence: 0, text: "Hello" }),
+          completed(1),
+        ])
       );
     }
     throw new Error(`unexpected URL ${url}`);
@@ -122,7 +138,10 @@ function fakeAcme(options: {
 }
 
 function transport(
-  fetch: (input: string | URL | Request, init?: RequestInit) => Promise<Response>,
+  fetch: (
+    input: string | URL | Request,
+    init?: RequestInit,
+  ) => Promise<Response>,
   extras: Omit<ConstructorParameters<typeof AcmeChatTransport>[0], "fetch"> = {
     baseUrl: BASE,
   },
@@ -176,14 +195,22 @@ test("pinned engineBuild is checked before a provider call", async () => {
           executePath: ACME_MODEL_RUNTIME_EXECUTE_PATH,
         }),
     }),
-    { baseUrl: BASE, engineBuild: ENGINE_BUILD, timeoutMs: 5_000, requestKey: () => "req-1" },
+    {
+      baseUrl: BASE,
+      engineBuild: ENGINE_BUILD,
+      timeoutMs: 5_000,
+      requestKey: () => "req-1",
+    },
   );
   await assert.rejects(
     () => adapter.complete(textRequest),
     (error: unknown) =>
       error instanceof AcmeChatError && error.message.includes("pinned"),
   );
-  assert.equal(urls.some((url) => url.endsWith(ACME_MODEL_RUNTIME_EXECUTE_PATH)), false);
+  assert.equal(
+    urls.some((url) => url.endsWith(ACME_MODEL_RUNTIME_EXECUTE_PATH)),
+    false,
+  );
 });
 
 test("maps prepared A008 text, tools and Luna controls onto acme-model-runtime/2", async () => {
@@ -194,7 +221,9 @@ test("maps prepared A008 text, tools and Luna controls onto acme-model-runtime/2
       onExecute: (_url, init) => {
         body = String(init?.body ?? "");
         protocolHeader = String(
-          (init?.headers as Record<string, string>)[ACME_MODEL_RUNTIME_HEADER] ?? "",
+          (init?.headers as Record<string, string>)[
+            ACME_MODEL_RUNTIME_HEADER
+          ] ?? "",
         );
         return sseResponse([
           sseEvent("content-delta", { sequence: 0, text: "ok" }),
@@ -206,7 +235,13 @@ test("maps prepared A008 text, tools and Luna controls onto acme-model-runtime/2
   const completion = await adapter.complete({
     model: "gpt-5.6-luna",
     messages: [{ role: "user", content: "hi" }],
-    tools: [{ name: "read_file", description: "Read", parameters: { type: "object" } }],
+    tools: [
+      {
+        name: "read_file",
+        description: "Read",
+        parameters: { type: "object" },
+      },
+    ],
     options: {
       stream: true,
       maxTokens: 128,
@@ -251,18 +286,22 @@ test("streams reasoning and content and maps assembled tool calls", async () => 
             index: 0,
             toolCallId: "call_1",
             name: "get_weather",
-            argumentsDelta: "{\"city\":",
+            argumentsDelta: '{"city":',
           }),
           sseEvent("tool-call-delta", {
             sequence: 3,
             index: 0,
-            argumentsDelta: "\"Paris\"}",
+            argumentsDelta: '"Paris"}',
           }),
           completed(4, {
             text: "",
             finishReason: "tool",
             toolCalls: [
-              { toolCallId: "call_1", name: "get_weather", arguments: { city: "Paris" } },
+              {
+                toolCallId: "call_1",
+                name: "get_weather",
+                arguments: { city: "Paris" },
+              },
             ],
           }),
         ]),
@@ -289,7 +328,7 @@ test("streams reasoning and content and maps assembled tool calls", async () => 
   assert.equal(result.message.content, "");
   assert.equal(result.finishReason, "tool_calls");
   assert.deepEqual(result.toolCalls, [
-    { id: "call_1", name: "get_weather", arguments: "{\"city\":\"Paris\"}" },
+    { id: "call_1", name: "get_weather", arguments: '{"city":"Paris"}' },
   ]);
 });
 
@@ -316,14 +355,20 @@ test("tool-result continuation is a later bounded execute and never a task runti
         role: "assistant",
         content: "",
         toolCalls: [
-          { id: "call_1", name: "get_weather", arguments: "{\"city\":\"Paris\"}" },
+          { id: "call_1", name: "get_weather", arguments: '{"city":"Paris"}' },
         ],
       },
-      { role: "tool", toolCallId: "call_1", content: "{\"celsius\":18}" },
+      { role: "tool", toolCallId: "call_1", content: '{"celsius":18}' },
     ],
   });
   assert.equal(result.message.content, "18C");
-  assert.equal(urls.some((url) => url.endsWith("/v1/execute") && !url.endsWith("/v1/model/execute")), false);
+  assert.equal(
+    urls.some(
+      (url) =>
+        url.endsWith("/v1/execute") && !url.endsWith("/v1/model/execute"),
+    ),
+    false,
+  );
   const request = (bodies[0] as { request: { messages: unknown[] } }).request;
   assert.deepEqual(request.messages[1], {
     role: "assistant",
@@ -347,7 +392,8 @@ test("tool-result continuation is a later bounded execute and never a task runti
 test("empty usable answer is a typed failure with execution evidence", async () => {
   const adapter = transport(
     fakeAcme({
-      onExecute: () => sseResponse([completed(0, { text: "", toolCalls: undefined })]),
+      onExecute: () =>
+        sseResponse([completed(0, { text: "", toolCalls: undefined })]),
     }),
   );
   await assert.rejects(
@@ -370,7 +416,7 @@ test("truncated tool stream fails closed without a complete call", async () => {
             index: 0,
             toolCallId: "call_1",
             name: "get_weather",
-            argumentsDelta: "{\"city\":",
+            argumentsDelta: '{"city":',
           }),
         ]),
     }),
@@ -455,7 +501,8 @@ test("cancellation propagates to the ACME execute fetch", async () => {
   });
   await assert.rejects(
     () => adapter.complete({ ...textRequest, signal: controller.signal }),
-    (error: unknown) => error instanceof AcmeChatError && error.code === "cancelled",
+    (error: unknown) =>
+      error instanceof AcmeChatError && error.code === "cancelled",
   );
   assert.equal(executeSignal?.aborted, true);
 });
@@ -465,11 +512,16 @@ test("provider 429/5xx and malformed terminal data keep ACME evidence", async ()
     fakeAcme({
       onExecute: () =>
         sseResponse([
-          failed(0, "rate-limit", {
-            code: "RATE_LIMIT",
-            message: "slow down",
-            details: { httpStatus: 429 },
-          }, { httpStatus: 429 }),
+          failed(
+            0,
+            "rate-limit",
+            {
+              code: "RATE_LIMIT",
+              message: "slow down",
+              details: { httpStatus: 429 },
+            },
+            { httpStatus: 429 },
+          ),
         ]),
     }),
   );
@@ -486,10 +538,15 @@ test("provider 429/5xx and malformed terminal data keep ACME evidence", async ()
     fakeAcme({
       onExecute: () =>
         sseResponse([
-          failed(0, "provider-http", {
-            code: "PROVIDER_ERROR",
-            message: "upstream 503",
-          }, { httpStatus: 503, delivery: "sent" }),
+          failed(
+            0,
+            "provider-http",
+            {
+              code: "PROVIDER_ERROR",
+              message: "upstream 503",
+            },
+            { httpStatus: 503, delivery: "sent" },
+          ),
         ]),
     }),
   );
@@ -527,11 +584,17 @@ test("ambiguous delivery after dispatch never falls back to a direct provider", 
       urls,
       onExecute: () =>
         sseResponse([
-          failed(0, "ambiguous-delivery", {
-            code: "TIMEOUT",
-            message: "The provider may have executed this call; no response was received.",
-            details: { delivery: "unknown", reason: "timeout" },
-          }, { delivery: "unknown" }),
+          failed(
+            0,
+            "ambiguous-delivery",
+            {
+              code: "TIMEOUT",
+              message:
+                "The provider may have executed this call; no response was received.",
+              details: { delivery: "unknown", reason: "timeout" },
+            },
+            { delivery: "unknown" },
+          ),
         ]),
     }),
   );
@@ -543,10 +606,22 @@ test("ambiguous delivery after dispatch never falls back to a direct provider", 
       error.retryable === false &&
       error.delivery === "unknown",
   );
-  assert.equal(urls.some((url) => url.includes("openai.com")), false);
-  assert.equal(urls.some((url) => url.includes("nvidia.com")), false);
-  assert.equal(urls.some((url) => url.includes("kie.ai")), false);
-  assert.equal(urls.some((url) => url.endsWith("/v1/execute")), false);
+  assert.equal(
+    urls.some((url) => url.includes("openai.com")),
+    false,
+  );
+  assert.equal(
+    urls.some((url) => url.includes("nvidia.com")),
+    false,
+  );
+  assert.equal(
+    urls.some((url) => url.includes("kie.ai")),
+    false,
+  );
+  assert.equal(
+    urls.some((url) => url.endsWith("/v1/execute")),
+    false,
+  );
 });
 
 test("transport refusal is not an engine terminal and does not dispatch twice", async () => {
@@ -559,7 +634,8 @@ test("transport refusal is not an engine terminal and does not dispatch twice", 
           {
             protocolVersion: "acme-model-runtime-error/1",
             code: "MODEL_RUNTIME_PROTOCOL_MISMATCH",
-            message: "x-acme-model-runtime-protocol does not match this runtime.",
+            message:
+              "x-acme-model-runtime-protocol does not match this runtime.",
           },
           409,
         ),
@@ -573,7 +649,10 @@ test("transport refusal is not an engine terminal and does not dispatch twice", 
       error.protocolCode === "MODEL_RUNTIME_PROTOCOL_MISMATCH" &&
       error.delivery === "not-sent",
   );
-  assert.equal(urls.filter((url) => url.endsWith(ACME_MODEL_RUNTIME_EXECUTE_PATH)).length, 1);
+  assert.equal(
+    urls.filter((url) => url.endsWith(ACME_MODEL_RUNTIME_EXECUTE_PATH)).length,
+    1,
+  );
 });
 
 test("ACME token is a composition header and is not copied into model content", async () => {
@@ -589,7 +668,12 @@ test("ACME token is a composition header and is not copied into model content", 
         return sseResponse([completed(0)]);
       },
     }),
-    { baseUrl: BASE, token: "acme-runtime-secret", timeoutMs: 5_000, requestKey: () => "req-1" },
+    {
+      baseUrl: BASE,
+      token: "acme-runtime-secret",
+      timeoutMs: 5_000,
+      requestKey: () => "req-1",
+    },
   );
   await adapter.complete({
     model: "nvidia/nemotron-3.5-lightning-30b-a3b",
@@ -604,7 +688,10 @@ test("buildAcmeExecuteBody omits empty tools and maps NVIDIA model identity", ()
   const body = buildAcmeExecuteBody(
     {
       model: "nvidia/nemotron-3.5-lightning-30b-a3b",
-      messages: [{ role: "system", content: "Be brief." }, { role: "user", content: "Hi" }],
+      messages: [
+        { role: "system", content: "Be brief." },
+        { role: "user", content: "Hi" },
+      ],
       options: { maxTokens: 32, stop: ["END"] },
     },
     { requestKey: "k", timeoutMs: 180_000 },
@@ -802,19 +889,51 @@ test("v2 mapping sends the full supported control set and the execution provider
 });
 
 test("unsupported supplied ACME controls fail before execute", () => {
-  const cases: Array<{ model: string; options: ChatRequest["options"]; field: string }> = [
+  const cases: Array<{
+    model: string;
+    options: ChatRequest["options"];
+    field: string;
+  }> = [
     { model: "gpt-5.6-luna", options: { topP: 0.9 }, field: "topP" },
-    { model: "gpt-5.6-luna", options: { enableThinking: true }, field: "enableThinking" },
+    {
+      model: "gpt-5.6-luna",
+      options: { enableThinking: true },
+      field: "enableThinking",
+    },
     { model: "gpt-5.6-luna", options: { seed: 7 }, field: "seed" },
-    { model: "gpt-5.6-luna", options: { reasoningBudget: 64 }, field: "reasoningBudget" },
+    {
+      model: "gpt-5.6-luna",
+      options: { reasoningBudget: 64 },
+      field: "reasoningBudget",
+    },
     { model: "gpt-5.6-luna", options: { stop: ["END"] }, field: "stop" },
-    { model: "moonshotai/kimi-k3", options: { enableThinking: true }, field: "enableThinking" },
+    {
+      model: "moonshotai/kimi-k3",
+      options: { enableThinking: true },
+      field: "enableThinking",
+    },
     { model: "moonshotai/kimi-k3", options: { topP: 0.5 }, field: "topP" },
-    { model: "meta/muse-glimmer-30b", options: { enableThinking: false }, field: "enableThinking" },
-    { model: "poolside/laguna-xs-2.1", options: { enableThinking: false }, field: "enableThinking" },
+    {
+      model: "meta/muse-glimmer-30b",
+      options: { enableThinking: false },
+      field: "enableThinking",
+    },
+    {
+      model: "poolside/laguna-xs-2.1",
+      options: { enableThinking: false },
+      field: "enableThinking",
+    },
     { model: "poolside/laguna-xs-2.1", options: { seed: 1 }, field: "seed" },
-    { model: "deepseek-ai/deepseek-v4-pro-0813", options: { enableThinking: false }, field: "enableThinking" },
-    { model: "gemini-3-flash", options: { enableThinking: false }, field: "enableThinking" },
+    {
+      model: "deepseek-ai/deepseek-v4-pro-0813",
+      options: { enableThinking: false },
+      field: "enableThinking",
+    },
+    {
+      model: "gemini-3-flash",
+      options: { enableThinking: false },
+      field: "enableThinking",
+    },
   ];
   for (const row of cases) {
     assert.throws(
@@ -871,4 +990,38 @@ test("ChatError remains the public failure type", () => {
     evidence: { modelExecutionId: "id", diagnosticKind: "ambiguous-delivery" },
   });
   assert.equal(error instanceof ChatError, true);
+});
+
+test("buildAcmeExecuteBody maps native image parts and requires vision without changing text history", () => {
+  const body = buildAcmeExecuteBody(
+    {
+      model: "moonshotai/kimi-k3",
+      messages: [
+        { role: "system", content: "system" },
+        { role: "user", content: "describe this" },
+      ],
+      imageAttachments: [
+        { mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" },
+      ],
+    },
+    { requestKey: "vision-1", timeoutMs: 10_000 },
+  );
+  assert.deepEqual(body.requiredCapabilities, { vision: true });
+  const request = body.request as any;
+  assert.deepEqual(request.messages[1], {
+    role: "user",
+    content: [
+      { type: "text", text: "describe this" },
+      {
+        type: "image",
+        mediaType: "image/png",
+        dataRef: "data:image/png;base64,AAAA",
+      },
+    ],
+  });
+  assert.deepEqual((body as any).model, {
+    profile: "moonshotai/kimi-k3",
+    modelHint: "moonshotai/kimi-k3",
+    providerHint: "nvidia",
+  });
 });

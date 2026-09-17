@@ -22,13 +22,21 @@ const PNG = Buffer.from(
 test("merged models include user-catalog additions with unverified controls", () => {
   const dir = mkdtempSync(join(tmpdir(), "a008-cat-"));
   const catalogPath = join(dir, "catalog.json");
-  handleNvidiaCatalogAdd(catalogPath, { id: "nvidia/preview-example", name: "Preview" });
+  handleNvidiaCatalogAdd(catalogPath, {
+    id: "nvidia/preview-example",
+    name: "Preview",
+  });
   const models = mergedModels(defaultModelRegistry, catalogPath);
   const added = models.find((model) => model.id === "nvidia/preview-example");
   assert.equal(added?.name, "Preview");
   assert.equal(added?.added, true);
   assert.equal(added?.capabilities.verifiedOn, "unverified");
-  assert.ok(models.some((model) => model.id === "nvidia/nemotron-3.5-lightning-30b-a3b" && !model.added));
+  assert.ok(
+    models.some(
+      (model) =>
+        model.id === "nvidia/nemotron-3.5-lightning-30b-a3b" && !model.added,
+    ),
+  );
 });
 
 test("catalog browse marks already-added models and never returns the API key", async () => {
@@ -39,7 +47,9 @@ test("catalog browse marks already-added models and never returns the API key", 
     fetch: async () =>
       new Response(
         JSON.stringify({
-          data: [{ id: "nvidia/nemotron-3.5-lightning-30b-a3b", owned_by: "nvidia" }],
+          data: [
+            { id: "nvidia/nemotron-3.5-lightning-30b-a3b", owned_by: "nvidia" },
+          ],
         }),
       ),
     registry: defaultModelRegistry,
@@ -48,21 +58,27 @@ test("catalog browse marks already-added models and never returns the API key", 
   const body = JSON.stringify(listed);
   assert.equal(body.includes("nvapi-test"), false);
   assert.match(body, /Free Endpoint/u);
-  assert.equal(
-    listed.models[0]?.added,
-    true,
-  );
+  assert.equal(listed.models[0]?.added, true);
 });
 
 test("image generate stores a blob and returns a locator, not the credential", async () => {
   const dir = mkdtempSync(join(tmpdir(), "a008-img-"));
   const catalogPath = join(dir, "catalog.json");
-  writeFileSync(catalogPath, JSON.stringify({ version: 1, chatModels: [], image: { model: "x", endpoint: "https://example.test/img" } }));
+  writeFileSync(
+    catalogPath,
+    JSON.stringify({
+      version: 1,
+      chatModels: [],
+      image: { model: "x", endpoint: "https://example.test/img" },
+    }),
+  );
   const result = await handleImageGenerate({
     apiKey: "nvapi-test",
     kieApiKey: undefined,
     fetch: async () =>
-      new Response(JSON.stringify({ artifacts: [{ base64: PNG.toString("base64") }] })),
+      new Response(
+        JSON.stringify({ artifacts: [{ base64: PNG.toString("base64") }] }),
+      ),
     catalogPath,
     storeRoot: join(dir, "store"),
     body: { prompt: "a coffee shop interior" },
@@ -93,7 +109,11 @@ test("kie catalog is curated and needs no API key", () => {
   const listed = handleKieCatalogGet(join(dir, "catalog.json"));
   const body = JSON.stringify(listed);
   assert.match(body, /docs\.kie\.ai/u);
-  assert.ok(listed.models.some((model) => model.id === "gemini-3-flash" && model.kind === "chat"));
+  assert.ok(
+    listed.models.some(
+      (model) => model.id === "gemini-3-flash" && model.kind === "chat",
+    ),
+  );
   assert.ok(listed.models.some((model) => model.kind === "video"));
 });
 
@@ -129,7 +149,11 @@ test("kie image generate stores a blob and never returns the credential", async 
   const catalogPath = join(dir, "catalog.json");
   writeFileSync(
     catalogPath,
-    JSON.stringify({ version: 1, imageProvider: "kie", kie: { imageModel: "flux-2/flex-text-to-image" } }),
+    JSON.stringify({
+      version: 1,
+      imageProvider: "kie",
+      kie: { imageModel: "flux-2/flex-text-to-image" },
+    }),
   );
   const result = await handleImageGenerate({
     apiKey: undefined,
@@ -137,12 +161,19 @@ test("kie image generate stores a blob and never returns the credential", async 
     fetch: async (input) => {
       const url = String(input);
       if (url.includes("createTask")) {
-        return new Response(JSON.stringify({ code: 200, data: { taskId: "task_gui" } }));
+        return new Response(
+          JSON.stringify({ code: 200, data: { taskId: "task_gui" } }),
+        );
       }
       if (url.includes("recordInfo")) {
         return new Response(
           JSON.stringify({
-            data: { state: "success", resultJson: JSON.stringify({ resultUrls: ["https://example.test/k.png"] }) },
+            data: {
+              state: "success",
+              resultJson: JSON.stringify({
+                resultUrls: ["https://example.test/k.png"],
+              }),
+            },
           }),
         );
       }

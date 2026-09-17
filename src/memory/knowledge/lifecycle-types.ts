@@ -1,20 +1,16 @@
 import type { Instant } from "./types.js";
-import type { KnowledgeSeverity, MemoryLifecyclePolicy } from "../../core/memory-lifecycle-policy.js";
+import type {
+  KnowledgeSeverity,
+  MemoryLifecyclePolicy,
+} from "../../core/memory-lifecycle-policy.js";
 
 export type MemoryLifecycleState = "active" | "dormant";
 
 export type LifecycleTransitionKind =
-  | "created"
-  | "reinforced"
-  | "weakened"
-  | "reactivated"
-  | "decayed";
+  "created" | "reinforced" | "weakened" | "reactivated" | "decayed";
 
 export type EvidenceLifecycleKind =
-  | "utterance"
-  | "event"
-  | "claim"
-  | "artifact_summary";
+  "utterance" | "event" | "claim" | "artifact_summary";
 
 export interface MemoryLifecycle {
   readonly creationOccurrenceId?: string;
@@ -77,7 +73,11 @@ export interface ReinforcementReceipt {
   readonly occurrenceId: string;
   readonly evidenceId: string;
   readonly at: string;
-  readonly support: { readonly utteranceId: string; readonly start: number; readonly end: number };
+  readonly support: {
+    readonly utteranceId: string;
+    readonly start: number;
+    readonly end: number;
+  };
 }
 
 export interface LifecycleWriteInput {

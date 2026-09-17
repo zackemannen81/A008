@@ -7,10 +7,18 @@ import type { EntityRegistry, SlotRegistry } from "./registry.js";
 import type { KnowledgeReadContext } from "./read-types.js";
 import type { KnowledgeState } from "./state.js";
 import type { KnowledgeNamespaceSnapshot } from "./sqlite-store.js";
-export function atomicKnowledge<T>(context: KnowledgeReadContext, operation: () => T): T {
+export function atomicKnowledge<T>(
+  context: KnowledgeReadContext,
+  operation: () => T,
+): T {
   if (context.atomic) return context.atomic(operation);
   const before = captureSnapshot(context);
-  try { return operation(); } catch (error) { loadSnapshot(context, before); throw error; }
+  try {
+    return operation();
+  } catch (error) {
+    loadSnapshot(context, before);
+    throw error;
+  }
 }
 
 export function loadSnapshot(
@@ -41,7 +49,8 @@ export function loadSnapshot(
     snapshot.lifecycle,
     snapshot.lifecycleNextTransition,
   );
-  if (target.relations instanceof RelationIndex) target.relations.hydrate(snapshot.relations, snapshot.associations);
+  if (target.relations instanceof RelationIndex)
+    target.relations.hydrate(snapshot.relations, snapshot.associations);
 }
 
 export function captureSnapshot(
@@ -66,6 +75,8 @@ export function captureSnapshot(
     lifecycle: context.lifecycle.snapshot(),
     lifecycleNextTransition: context.lifecycle.transitionSequence(),
     relations,
-    ...(context.relations instanceof RelationIndex ? { associations: context.relations.associationSnapshot() } : {}),
+    ...(context.relations instanceof RelationIndex
+      ? { associations: context.relations.associationSnapshot() }
+      : {}),
   };
 }

@@ -41,11 +41,7 @@ export interface KnowledgeProposal {
 }
 
 export type ReconciliationRelation =
-  | "new"
-  | "restatement"
-  | "extend"
-  | "supersede"
-  | "conflict";
+  "new" | "restatement" | "extend" | "supersede" | "conflict";
 
 export type ReconciliationDecision =
   | { readonly type: "new" }

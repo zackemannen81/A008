@@ -1,9 +1,7 @@
 import { parseRuntimeId } from "../identity/runtime-id.js";
 import type { ProjectId } from "../identity/types.js";
 import { MemoryError } from "../memory/errors.js";
-import type {
-  RetrievalDocument,
-} from "../memory/retrieval-types.js";
+import type { RetrievalDocument } from "../memory/retrieval-types.js";
 import type { ClaimProposition } from "../memory/knowledge/evidence-types.js";
 import type {
   KnowledgeProposal,
@@ -51,23 +49,49 @@ export interface SemanticAssociationDecision {
   readonly toHandle: string;
   readonly relation: string;
   readonly supportsRelation: boolean;
-  readonly support: { readonly source: "message" | "source"; readonly start: number; readonly end: number };
+  readonly support: {
+    readonly source: "message" | "source";
+    readonly start: number;
+    readonly end: number;
+  };
 }
 export interface AssociationClassifierContext {
-  readonly source: { readonly origin: "message" | "source"; readonly content: string };
-  readonly entities: readonly { readonly handle: string; readonly labels: readonly string[]; readonly type: string }[];
-  readonly existing: readonly { readonly fromHandle: string; readonly toHandle: string; readonly relation: string; readonly scope: readonly string[] }[];
+  readonly source: {
+    readonly origin: "message" | "source";
+    readonly content: string;
+  };
+  readonly entities: readonly {
+    readonly handle: string;
+    readonly labels: readonly string[];
+    readonly type: string;
+  }[];
+  readonly existing: readonly {
+    readonly fromHandle: string;
+    readonly toHandle: string;
+    readonly relation: string;
+    readonly scope: readonly string[];
+  }[];
 }
 export interface RelationClassifierInput {
   readonly associationContext?: AssociationClassifierContext;
-  readonly sourceSupport?: { readonly origin: "message" | "source"; readonly content: string; readonly start: number; readonly end: number };
+  readonly sourceSupport?: {
+    readonly origin: "message" | "source";
+    readonly content: string;
+    readonly start: number;
+    readonly end: number;
+  };
   readonly proposal: RelationClassifierProposal;
   readonly candidates: readonly RelationClassifierCandidate[];
 }
 
 export interface RelationClassifierBatchItem {
   readonly proposalHandle: string;
-  readonly sourceSupport?: { readonly origin: "message" | "source"; readonly content: string; readonly start: number; readonly end: number };
+  readonly sourceSupport?: {
+    readonly origin: "message" | "source";
+    readonly content: string;
+    readonly start: number;
+    readonly end: number;
+  };
   readonly proposal: RelationClassifierProposal;
 }
 
@@ -81,7 +105,9 @@ export type RelationClassifierBatchDecision = RelationClassifierDecision & {
   readonly proposalHandle: string;
 };
 
-export type RelationClassifierDecision = { readonly associations?: readonly SemanticAssociationDecision[] } & (
+export type RelationClassifierDecision = {
+  readonly associations?: readonly SemanticAssociationDecision[];
+} & (
   | { readonly type: "new" }
   | {
       readonly type: "restatement" | "extend" | "supersede";
@@ -91,7 +117,8 @@ export type RelationClassifierDecision = { readonly associations?: readonly Sema
   | {
       readonly type: "conflict";
       readonly targetHandles: readonly string[];
-    });
+    }
+);
 
 export interface KnowledgeRelationClassifier {
   classify(
@@ -167,9 +194,7 @@ export interface PendingRelationIndexRepair {
 }
 
 export type RelationIndexResult =
-  | UpdatedRelationIndex
-  | NotRequiredRelationIndex
-  | PendingRelationIndexRepair;
+  UpdatedRelationIndex | NotRequiredRelationIndex | PendingRelationIndexRepair;
 
 export interface RelationGatedCommitResult {
   readonly classifierDecision: RelationClassifierDecision;
@@ -201,13 +226,21 @@ function nonNegativeSafeInteger(value: number, field: string): number {
 
 function nonEmpty(value: unknown, field: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
-    throw new MemoryError("invalid_input", `${field} must be a non-empty string`);
+    throw new MemoryError(
+      "invalid_input",
+      `${field} must be a non-empty string`,
+    );
   }
   return value.trim();
 }
 
 function unit(value: unknown, field: string): number {
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 1) {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < 0 ||
+    value > 1
+  ) {
     throw new MemoryError(
       "invalid_input",
       `${field} must be a finite number between 0 and 1`,
@@ -242,7 +275,10 @@ function validatedStagedProposal(
   staged: StagedKnowledgeProposal,
 ): StagedKnowledgeProposal {
   const proposal = staged.proposal as unknown as Record<string, unknown>;
-  const relevanceScore = unit(proposal.relevanceScore, "proposal relevanceScore");
+  const relevanceScore = unit(
+    proposal.relevanceScore,
+    "proposal relevanceScore",
+  );
   const activationThreshold = unit(
     proposal.activationThreshold,
     "proposal activationThreshold",
@@ -270,7 +306,11 @@ function validatedStagedProposal(
       proposition: nonEmpty(proposal.proposition, "proposal proposition"),
       ...(staged.proposal.structuredProposition === undefined
         ? {}
-        : { structuredProposition: structuredClone(staged.proposal.structuredProposition) }),
+        : {
+            structuredProposition: structuredClone(
+              staged.proposal.structuredProposition,
+            ),
+          }),
       kind: nonEmpty(proposal.kind, "proposal kind"),
       tags: normalizedStrings(proposal.tags, "proposal tags"),
       scope: normalizedStrings(proposal.scope, "proposal scope"),
@@ -312,7 +352,11 @@ function classifierProposal(
     proposition: staged.proposal.proposition,
     ...(staged.proposal.structuredProposition === undefined
       ? {}
-      : { structuredProposition: structuredClone(staged.proposal.structuredProposition) }),
+      : {
+          structuredProposition: structuredClone(
+            staged.proposal.structuredProposition,
+          ),
+        }),
     kind: staged.proposal.kind,
     tags: [...(staged.proposal.tags ?? [])],
     scope: [...staged.proposal.scope],
@@ -342,12 +386,30 @@ export function serializeRelationClassifierInput(
   input: RelationClassifierInput,
 ): string {
   return JSON.stringify({
-    ...(input.associationContext === undefined ? {} : { associationContext: {
-      source: { origin: input.associationContext.source.origin, content: input.associationContext.source.content },
-      entities: input.associationContext.entities.map(e => ({ handle: e.handle, labels: [...e.labels], type: e.type })),
-      existing: input.associationContext.existing.map(e => ({ fromHandle: e.fromHandle, toHandle: e.toHandle, relation: e.relation, scope: [...e.scope] })),
-    } }),
-    ...(input.sourceSupport === undefined ? {} : { sourceSupport: input.sourceSupport }),
+    ...(input.associationContext === undefined
+      ? {}
+      : {
+          associationContext: {
+            source: {
+              origin: input.associationContext.source.origin,
+              content: input.associationContext.source.content,
+            },
+            entities: input.associationContext.entities.map((e) => ({
+              handle: e.handle,
+              labels: [...e.labels],
+              type: e.type,
+            })),
+            existing: input.associationContext.existing.map((e) => ({
+              fromHandle: e.fromHandle,
+              toHandle: e.toHandle,
+              relation: e.relation,
+              scope: [...e.scope],
+            })),
+          },
+        }),
+    ...(input.sourceSupport === undefined
+      ? {}
+      : { sourceSupport: input.sourceSupport }),
     proposal: {
       proposition: input.proposal.proposition,
       ...(input.proposal.structuredProposition === undefined
@@ -380,15 +442,27 @@ export function serializeRelationClassifierBatchInput(
   input: RelationClassifierBatchInput,
 ): string {
   return JSON.stringify({
-    ...(input.associationContext === undefined ? {} : { associationContext: {
-      source: { origin: input.associationContext.source.origin, content: input.associationContext.source.content },
-      entities: input.associationContext.entities.map((entity) => ({
-        handle: entity.handle, labels: [...entity.labels], type: entity.type,
-      })),
-      existing: input.associationContext.existing.map((edge) => ({
-        fromHandle: edge.fromHandle, toHandle: edge.toHandle, relation: edge.relation, scope: [...edge.scope],
-      })),
-    } }),
+    ...(input.associationContext === undefined
+      ? {}
+      : {
+          associationContext: {
+            source: {
+              origin: input.associationContext.source.origin,
+              content: input.associationContext.source.content,
+            },
+            entities: input.associationContext.entities.map((entity) => ({
+              handle: entity.handle,
+              labels: [...entity.labels],
+              type: entity.type,
+            })),
+            existing: input.associationContext.existing.map((edge) => ({
+              fromHandle: edge.fromHandle,
+              toHandle: edge.toHandle,
+              relation: edge.relation,
+              scope: [...edge.scope],
+            })),
+          },
+        }),
     candidates: input.candidates.map((candidate) => ({
       handle: candidate.handle,
       proposition: candidate.proposition,
@@ -404,7 +478,9 @@ export function serializeRelationClassifierBatchInput(
     })),
     items: input.items.map((item) => ({
       proposalHandle: item.proposalHandle,
-      ...(item.sourceSupport === undefined ? {} : { sourceSupport: item.sourceSupport }),
+      ...(item.sourceSupport === undefined
+        ? {}
+        : { sourceSupport: item.sourceSupport }),
       proposal: {
         proposition: item.proposal.proposition,
         ...(item.proposal.structuredProposition === undefined
@@ -424,7 +500,9 @@ export function serializeRelationClassifierBatchInput(
 function sanitizedClassifierInput(
   input: RelationClassifierInput,
 ): RelationClassifierInput {
-  return JSON.parse(serializeRelationClassifierInput(input)) as RelationClassifierInput;
+  return JSON.parse(
+    serializeRelationClassifierInput(input),
+  ) as RelationClassifierInput;
 }
 
 function omittedClassifierField(value: unknown): boolean {
@@ -482,7 +560,10 @@ function validatedClassifierDecision(
   handles: ReadonlyMap<string, RelationCandidate>,
 ): RelationClassifierDecision {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new MemoryError("policy", "relation classifier decision must be an object");
+    throw new MemoryError(
+      "policy",
+      "relation classifier decision must be an object",
+    );
   }
   const raw = value as Record<string, unknown>;
   const type = classifierDecisionType(raw);
@@ -618,7 +699,10 @@ export class RelationGatedMemoryCommit {
         );
       }
       if (!Array.isArray(batch.proposals)) {
-        throw new MemoryError("invalid_input", "staged proposals must be an array");
+        throw new MemoryError(
+          "invalid_input",
+          "staged proposals must be an array",
+        );
       }
       if (
         !Number.isSafeInteger(input.proposalIndex) ||
@@ -627,7 +711,9 @@ export class RelationGatedMemoryCommit {
       ) {
         throw new MemoryError("invalid_input", "proposalIndex is out of range");
       }
-      const expectedSerialized = serializeStagedKnowledgeProposals(batch.proposals);
+      const expectedSerialized = serializeStagedKnowledgeProposals(
+        batch.proposals,
+      );
       if (batch.serialized !== expectedSerialized) {
         throw new MemoryError(
           "invalid_input",
@@ -710,7 +796,10 @@ export class RelationGatedMemoryCommit {
         sanitizedClassifierInput(classifierInput),
         context.signal === undefined ? {} : { signal: context.signal },
       );
-      const classifierDecision = validatedClassifierDecision(untrusted, handles);
+      const classifierDecision = validatedClassifierDecision(
+        untrusted,
+        handles,
+      );
       const reconciliationDecision = mappedDecision(
         classifierDecision,
         handles,
@@ -722,7 +811,9 @@ export class RelationGatedMemoryCommit {
         })),
       };
       const sourceMessage =
-        typeof batch.sourceMessage === "string" ? batch.sourceMessage.trim() : "";
+        typeof batch.sourceMessage === "string"
+          ? batch.sourceMessage.trim()
+          : "";
       const proposal =
         reconciliationDecision.type === "new" &&
         this.#activateNewProposal !== undefined &&

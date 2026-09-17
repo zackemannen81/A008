@@ -19,7 +19,12 @@ test("kie chat posts OpenAI-compatible JSON to the model URL", async () => {
       body = String(init?.body ?? "");
       return new Response(
         JSON.stringify({
-          choices: [{ message: { role: "assistant", content: "hello from kie" }, finish_reason: "stop" }],
+          choices: [
+            {
+              message: { role: "assistant", content: "hello from kie" },
+              finish_reason: "stop",
+            },
+          ],
         }),
       );
     },
@@ -39,15 +44,26 @@ test("kie chat posts OpenAI-compatible JSON to the model URL", async () => {
 test("kie chat reads SSE content deltas", async () => {
   const stream = new ReadableStream({
     start(controller) {
-      controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"He"}}]}\n\n'));
-      controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"j"}}]}\n\n'));
+      controller.enqueue(
+        new TextEncoder().encode(
+          'data: {"choices":[{"delta":{"content":"He"}}]}\n\n',
+        ),
+      );
+      controller.enqueue(
+        new TextEncoder().encode(
+          'data: {"choices":[{"delta":{"content":"j"}}]}\n\n',
+        ),
+      );
       controller.enqueue(new TextEncoder().encode("data: [DONE]\n\n"));
       controller.close();
     },
   });
   const transport = new KieChatTransport({
     apiKey: "kie-secret",
-    fetch: async () => new Response(stream, { headers: { "content-type": "text/event-stream" } }),
+    fetch: async () =>
+      new Response(stream, {
+        headers: { "content-type": "text/event-stream" },
+      }),
   });
   const result = await transport.complete({
     model: "gemini-3-flash",

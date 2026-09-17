@@ -12,7 +12,10 @@ import {
 const live = JSON.parse(
   readFileSync(
     fileURLToPath(
-      new URL("../../test/fixtures/nvidia-live-reasoning-leak.json", import.meta.url),
+      new URL(
+        "../../test/fixtures/nvidia-live-reasoning-leak.json",
+        import.meta.url,
+      ),
     ),
     "utf8",
   ),
@@ -53,7 +56,9 @@ test("clean short answers after reasoning stay content", () => {
 });
 
 test("think tags inside content are stripped into reasoning", () => {
-  const split = splitLeakedContent("<think>secret plan</think>\nVisible answer");
+  const split = splitLeakedContent(
+    "<think>secret plan</think>\nVisible answer",
+  );
   assert.match(split.reasoningLeak, /secret plan/u);
   assert.equal(split.answer, "Visible answer");
 });

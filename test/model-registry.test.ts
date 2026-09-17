@@ -88,10 +88,19 @@ test("OpenAI GPT-5.6 Luna is a verified selectable profile", () => {
 test("shipped profiles declare executionProvider separately from vendor provider", () => {
   const expected: Record<string, { provider: string; execution: string }> = {
     "gpt-5.6-luna": { provider: "openai", execution: "openai" },
-    "nvidia/nemotron-3.5-lightning-30b-a3b": { provider: "nvidia", execution: "nvidia" },
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning": { provider: "nvidia", execution: "nvidia" },
+    "nvidia/nemotron-3.5-lightning-30b-a3b": {
+      provider: "nvidia",
+      execution: "nvidia",
+    },
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning": {
+      provider: "nvidia",
+      execution: "nvidia",
+    },
     "moonshotai/kimi-k3": { provider: "moonshotai", execution: "nvidia" },
-    "deepseek-ai/deepseek-v4-pro-0813": { provider: "deepseek-ai", execution: "nvidia" },
+    "deepseek-ai/deepseek-v4-pro-0813": {
+      provider: "deepseek-ai",
+      execution: "nvidia",
+    },
     "meta/muse-glimmer-30b": { provider: "meta", execution: "nvidia" },
     "poolside/laguna-xs-2.1": { provider: "poolside", execution: "nvidia" },
   };
@@ -110,7 +119,10 @@ test("shipped profiles declare executionProvider separately from vendor provider
     "poolside/laguna-xs-2.1",
   ]) {
     assert.equal(
-      Object.hasOwn(defaultModelRegistry.require(id).defaults, "enableThinking"),
+      Object.hasOwn(
+        defaultModelRegistry.require(id).defaults,
+        "enableThinking",
+      ),
       false,
       `${id} must omit enableThinking rather than send false`,
     );
@@ -128,7 +140,8 @@ test("the model id is matched exactly", () => {
   ]) {
     assert.throws(
       () => defaultModelRegistry.require(near),
-      (error: unknown) => error instanceof ChatError && error.code === "unknown_model",
+      (error: unknown) =>
+        error instanceof ChatError && error.code === "unknown_model",
       near,
     );
   }

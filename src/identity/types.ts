@@ -1,11 +1,7 @@
 declare const runtimeIdentityBrand: unique symbol;
 
 export type RuntimeIdentityKind =
-  | "project"
-  | "conversation"
-  | "task"
-  | "agent"
-  | "acp_session";
+  "project" | "conversation" | "task" | "agent" | "acp_session";
 
 export type RuntimeId<Kind extends RuntimeIdentityKind> = string & {
   readonly [runtimeIdentityBrand]: Kind;

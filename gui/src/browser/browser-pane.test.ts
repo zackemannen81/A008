@@ -6,7 +6,10 @@ import { BrowserPane, BrowserViewport, normalizeUrl } from "./browser-pane.js";
 
 test("browser only accepts http(s) addresses", () => {
   assert.equal(normalizeUrl("example.com"), "https://example.com/");
-  assert.equal(normalizeUrl("https://docs.nvidia.com/foo"), "https://docs.nvidia.com/foo");
+  assert.equal(
+    normalizeUrl("https://docs.nvidia.com/foo"),
+    "https://docs.nvidia.com/foo",
+  );
   assert.equal(normalizeUrl("javascript:alert(1)"), undefined);
   assert.equal(normalizeUrl("file:///etc/passwd"), undefined);
   assert.equal(normalizeUrl("   "), undefined);

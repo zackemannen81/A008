@@ -15,10 +15,7 @@
           "$ref": "#/$defs/__schema0"
         }
       },
-      "required": [
-        "type",
-        "requestId"
-      ]
+      "required": ["type", "requestId"]
     },
     {
       "type": "object",
@@ -38,12 +35,7 @@
           "$ref": "#/$defs/__schema1"
         }
       },
-      "required": [
-        "type",
-        "requestId",
-        "sessionId",
-        "resumeToken"
-      ]
+      "required": ["type", "requestId", "sessionId", "resumeToken"]
     },
     {
       "type": "object",
@@ -60,14 +52,25 @@
         },
         "text": {
           "$ref": "#/$defs/__schema1"
+        },
+        "attachment": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "image"
+            },
+            "locator": {
+              "$ref": "#/$defs/__schema2"
+            },
+            "mediaType": {
+              "$ref": "#/$defs/__schema2"
+            }
+          },
+          "required": ["type", "locator", "mediaType"]
         }
       },
-      "required": [
-        "type",
-        "requestId",
-        "sessionId",
-        "text"
-      ]
+      "required": ["type", "requestId", "sessionId", "text"]
     },
     {
       "type": "object",
@@ -83,11 +86,7 @@
           "$ref": "#/$defs/__schema0"
         }
       },
-      "required": [
-        "type",
-        "requestId",
-        "sessionId"
-      ]
+      "required": ["type", "requestId", "sessionId"]
     },
     {
       "type": "object",
@@ -109,13 +108,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "type",
-        "requestId",
-        "sessionId",
-        "permissionId",
-        "allow"
-      ]
+      "required": ["type", "requestId", "sessionId", "permissionId", "allow"]
     },
     {
       "type": "object",
@@ -137,17 +130,10 @@
               "properties": {
                 "action": {
                   "type": "string",
-                  "enum": [
-                    "inspect",
-                    "reset",
-                    "undo",
-                    "close"
-                  ]
+                  "enum": ["inspect", "reset", "undo", "close"]
                 }
               },
-              "required": [
-                "action"
-              ]
+              "required": ["action"]
             },
             {
               "type": "object",
@@ -160,10 +146,7 @@
                   "$ref": "#/$defs/__schema0"
                 }
               },
-              "required": [
-                "action",
-                "model"
-              ]
+              "required": ["action", "model"]
             },
             {
               "type": "object",
@@ -174,10 +157,7 @@
                 },
                 "parameters": {}
               },
-              "required": [
-                "action",
-                "parameters"
-              ]
+              "required": ["action", "parameters"]
             },
             {
               "type": "object",
@@ -191,21 +171,12 @@
                   "$ref": "#/$defs/__schema1"
                 }
               },
-              "required": [
-                "action",
-                "settings",
-                "revision"
-              ]
+              "required": ["action", "settings", "revision"]
             }
           ]
         }
       },
-      "required": [
-        "type",
-        "requestId",
-        "sessionId",
-        "control"
-      ]
+      "required": ["type", "requestId", "sessionId", "control"]
     }
   ],
   "$defs": {
@@ -215,6 +186,10 @@
     },
     "__schema1": {
       "type": "string"
+    },
+    "__schema2": {
+      "minLength": 1,
+      "$ref": "#/$defs/__schema1"
     }
   }
 }

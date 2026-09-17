@@ -10,10 +10,7 @@
         },
         "signal": {
           "type": "string",
-          "enum": [
-            "thought",
-            "answer"
-          ]
+          "enum": ["thought", "answer"]
         },
         "sessionId": {
           "type": "string",
@@ -25,12 +22,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "type",
-        "signal",
-        "sessionId",
-        "text"
-      ],
+      "required": ["type", "signal", "sessionId", "text"],
       "additionalProperties": false
     },
     {

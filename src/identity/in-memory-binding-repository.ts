@@ -89,14 +89,13 @@ function bindingsEqual(
     left.externalReferences.length === right.externalReferences.length &&
     left.externalReferences.every(
       (reference, index) =>
-        externalKey(reference) === externalKey(right.externalReferences[index]!),
+        externalKey(reference) ===
+        externalKey(right.externalReferences[index]!),
     )
   );
 }
 
-export class InMemoryAcpIdentityBindingRepository
-  implements AcpIdentityBindingRepository
-{
+export class InMemoryAcpIdentityBindingRepository implements AcpIdentityBindingRepository {
   private bindingsBySession = new Map<string, AcpIdentityBinding>();
   private externalToSession = new Map<string, string>();
   private sessionsByConversation = new Map<string, Set<string>>();
@@ -115,7 +114,10 @@ export class InMemoryAcpIdentityBindingRepository
 
     try {
       const workingBindings = new Map(
-        [...this.bindingsBySession].map(([id, value]) => [id, cloneBinding(value)]),
+        [...this.bindingsBySession].map(([id, value]) => [
+          id,
+          cloneBinding(value),
+        ]),
       );
       const workingExternal = new Map(this.externalToSession);
       const workingConversations = new Map(

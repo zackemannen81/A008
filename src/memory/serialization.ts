@@ -1,7 +1,4 @@
-import type {
-  ContextProjection,
-  SerializedContextMeasurer,
-} from "./types.js";
+import type { ContextProjection, SerializedContextMeasurer } from "./types.js";
 
 export function serializeContextProjection(
   projection: ContextProjection,

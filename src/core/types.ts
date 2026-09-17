@@ -16,16 +16,19 @@ export interface ChatToolCall {
   readonly arguments: string;
 }
 /** Tool observations are invocation data, never committed conversation history. */
-export type ChatWireMessage = ChatMessage | {
-  readonly role: "assistant";
-  readonly content: string;
-  readonly toolCalls: readonly ChatToolCall[];
-  readonly reasoning?: string;
-} | {
-  readonly role: "tool";
-  readonly toolCallId: string;
-  readonly content: string;
-};
+export type ChatWireMessage =
+  | ChatMessage
+  | {
+      readonly role: "assistant";
+      readonly content: string;
+      readonly toolCalls: readonly ChatToolCall[];
+      readonly reasoning?: string;
+    }
+  | {
+      readonly role: "tool";
+      readonly toolCallId: string;
+      readonly content: string;
+    };
 export interface ChatTools {
   readonly definitions: readonly ChatToolDefinition[];
   readonly maximumCalls: number;
@@ -44,9 +47,16 @@ export interface ChatGenerationOptions {
   readonly stop?: readonly string[] | null;
 }
 
+export interface ChatImageAttachment {
+  readonly mediaType: string;
+  /** Provider-ready transient reference (normally a data URL); never committed to history. */
+  readonly dataRef: string;
+}
+
 export interface ChatRequest {
   readonly model: string;
   readonly messages: readonly ChatWireMessage[];
+  readonly imageAttachments?: readonly ChatImageAttachment[];
   readonly tools?: readonly ChatToolDefinition[];
   readonly options?: ChatGenerationOptions;
   readonly signal?: AbortSignal;

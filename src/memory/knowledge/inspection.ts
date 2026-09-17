@@ -1,7 +1,19 @@
-import { MEMORY_KINDS as INSPECTION_KINDS } from '../../../packages/protocol/src/index.js';
-import type { MemoryKind as InspectionKind, MemoryInspectionQuery, MemoryRecord as MemoryInspectionRecord, MemoryEdge as MemoryInspectionEdge, MemorySnapshot as MemoryInspection } from '../../../packages/protocol/src/index.js';
-export { MEMORY_KINDS as INSPECTION_KINDS } from '../../../packages/protocol/src/index.js';
-export type { MemoryKind as InspectionKind, MemoryInspectionQuery, MemoryRecord as MemoryInspectionRecord, MemoryEdge as MemoryInspectionEdge, MemorySnapshot as MemoryInspection } from '../../../packages/protocol/src/index.js';
+import { MEMORY_KINDS as INSPECTION_KINDS } from "../../../packages/protocol/src/index.js";
+import type {
+  MemoryKind as InspectionKind,
+  MemoryInspectionQuery,
+  MemoryRecord as MemoryInspectionRecord,
+  MemoryEdge as MemoryInspectionEdge,
+  MemorySnapshot as MemoryInspection,
+} from "../../../packages/protocol/src/index.js";
+export { MEMORY_KINDS as INSPECTION_KINDS } from "../../../packages/protocol/src/index.js";
+export type {
+  MemoryKind as InspectionKind,
+  MemoryInspectionQuery,
+  MemoryRecord as MemoryInspectionRecord,
+  MemoryEdge as MemoryInspectionEdge,
+  MemorySnapshot as MemoryInspection,
+} from "../../../packages/protocol/src/index.js";
 import { evaluateAssociation } from "./association-lifecycle.js";
 import { evaluateLifecycle } from "./lifecycle.js";
 import { MemoryError } from "../errors.js";
@@ -78,10 +90,23 @@ export function inspectKnowledge(
   const state = context.state.snapshot();
   const evaluatedAt = context.lifecycle.now();
   const snapshot = context.lifecycle.snapshot();
-  const lifecycle = { ...snapshot, records: snapshot.records.map(r => {
-    const evaluated = evaluateLifecycle(r.lifecycle, evaluatedAt);
-    return { ...r, lifecycle: { ...r.lifecycle, state: evaluated.memoryState, effectiveStrength: evaluated.strength, evaluatedAt, baselineState: r.lifecycle.state, thresholdCrossingAt: evaluated.thresholdCrossingAt } };
-  }) };
+  const lifecycle = {
+    ...snapshot,
+    records: snapshot.records.map((r) => {
+      const evaluated = evaluateLifecycle(r.lifecycle, evaluatedAt);
+      return {
+        ...r,
+        lifecycle: {
+          ...r.lifecycle,
+          state: evaluated.memoryState,
+          effectiveStrength: evaluated.strength,
+          evaluatedAt,
+          baselineState: r.lifecycle.state,
+          thresholdCrossingAt: evaluated.thresholdCrossingAt,
+        },
+      };
+    }),
+  };
   const lifeById = new Map(
     lifecycle.records.map((record) => [record.evidenceId, record.lifecycle]),
   );
@@ -114,7 +139,21 @@ export function inspectKnowledge(
       {
         record: data,
         ...(() => {
-          const associations = context.relations.neighbors(sourceId).flatMap(hop => hop.association ? [{ ...hop.association, evaluated: evaluateAssociation(hop.association, evaluatedAt) }] : []);
+          const associations = context.relations
+            .neighbors(sourceId)
+            .flatMap((hop) =>
+              hop.association
+                ? [
+                    {
+                      ...hop.association,
+                      evaluated: evaluateAssociation(
+                        hop.association,
+                        evaluatedAt,
+                      ),
+                    },
+                  ]
+                : [],
+            );
           return associations.length ? { associations } : {};
         })(),
         ...(labels === undefined ? {} : { labels }),
@@ -279,22 +318,32 @@ export function inspectKnowledge(
     for (const name of names) counts.set(name, (counts.get(name) ?? 0) + 1);
     effectiveCounts.set(recordId, counts);
   };
-  for (const record of records) addEffective(record.id, record.storedDomains ?? record.domains);
+  for (const record of records)
+    addEffective(record.id, record.storedDomains ?? record.domains);
   const claimDomains = new Map<string, readonly string[]>(
-    claims.map((claim) => [String(claim.id), [...context.labels.labelsFor(claim.id).domains]]),
+    claims.map((claim) => [
+      String(claim.id),
+      [...context.labels.labelsFor(claim.id).domains],
+    ]),
   );
   const utteranceById = new Map(
-    context.evidence.listUtterances().map((utterance) => [String(utterance.id), utterance] as const),
+    context.evidence
+      .listUtterances()
+      .map((utterance) => [String(utterance.id), utterance] as const),
   );
   for (const reference of context.entityReferences.list()) {
-    addEffective(key("entity", reference.entityId), claimDomains.get(String(reference.claimId)) ?? []);
+    addEffective(
+      key("entity", reference.entityId),
+      claimDomains.get(String(reference.claimId)) ?? [],
+    );
   }
   for (const claim of claims) {
     const inherited = claimDomains.get(String(claim.id)) ?? [];
     if (claim.derivedFrom.kind === "utterance") {
       addEffective(key("utterance", claim.derivedFrom.id), inherited);
       const utterance = utteranceById.get(String(claim.derivedFrom.id));
-      if (utterance !== undefined) addEffective(key("artifact", utterance.artifactId), inherited);
+      if (utterance !== undefined)
+        addEffective(key("artifact", utterance.artifactId), inherited);
     }
   }
   for (const provenance of context.evidence.listProvenance()) {
@@ -304,15 +353,19 @@ export function inspectKnowledge(
       key(provenance.toKind, provenance.toId),
     ];
     for (const endpoint of endpoints) {
-      addEffective(provenanceId, [...(effectiveCounts.get(endpoint)?.keys() ?? [])]);
+      addEffective(provenanceId, [
+        ...(effectiveCounts.get(endpoint)?.keys() ?? []),
+      ]);
     }
   }
   for (let index = 0; index < records.length; index += 1) {
     const record = records[index]!;
     const counts = effectiveCounts.get(record.id) ?? new Map<string, number>();
     const effectiveDomains = [...counts.keys()].sort();
-    const primaryEffectiveDomain = [...counts.entries()]
-      .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))[0]?.[0] ?? null;
+    const primaryEffectiveDomain =
+      [...counts.entries()].sort(
+        (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
+      )[0]?.[0] ?? null;
     records[index] = {
       ...record,
       domains: effectiveDomains,

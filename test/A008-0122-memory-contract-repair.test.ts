@@ -53,7 +53,11 @@ async function stage(
         return structuredClone(drafts);
       },
     },
-    context: { projectId: PROJECT, conversationId: CONVERSATION, agentId: AGENT },
+    context: {
+      projectId: PROJECT,
+      conversationId: CONVERSATION,
+      agentId: AGENT,
+    },
     budget: {
       maximum: 1_048_576,
       measurer: new Utf8ByteKnowledgeIntakeMeasurer(),
@@ -91,12 +95,15 @@ test("0122 identity keeps co-mentioned referents distinct and normalizes lexical
   assert.notEqual(pkg.id, lock.id);
   assert.notEqual(pkg.id, lower.id);
   assert.deepEqual(context.entities.get(pkg.id)?.labels, ["gui/package.json"]);
-  assert.deepEqual(context.entities.get(lock.id)?.labels, ["gui/package-lock.json"]);
+  assert.deepEqual(context.entities.get(lock.id)?.labels, [
+    "gui/package-lock.json",
+  ]);
 });
 
 test("0122 structural claim-entity membership is persisted separately from L3 associations", async () => {
   const context = createKnowledgeContext();
-  const message = "gui/package.json and gui/package-lock.json both reference React.";
+  const message =
+    "gui/package.json and gui/package-lock.json both reference React.";
   const batch = await stage(1, message, "Acknowledged.", [
     {
       severity: "important",
@@ -115,15 +122,33 @@ test("0122 structural claim-entity membership is persisted separately from L3 as
   const pkg = context.entities.findByIdentity("gui/package.json")!;
   const lock = context.entities.findByIdentity("gui/package-lock.json")!;
 
-  assert.deepEqual(new Set(refs.map((reference) => reference.entityId)), new Set([react.id, pkg.id, lock.id]));
-  assert.equal((context.relations as RelationIndex).associationSnapshot().records.length, 0);
+  assert.deepEqual(
+    new Set(refs.map((reference) => reference.entityId)),
+    new Set([react.id, pkg.id, lock.id]),
+  );
+  assert.equal(
+    (context.relations as RelationIndex).associationSnapshot().records.length,
+    0,
+  );
 
-  const snapshot = inspectKnowledge(context, { projectId: String(PROJECT), durable: false });
-  const reactNode = snapshot.records.find((record) => record.kind === "entity" && record.sourceId === react.id)!;
+  const snapshot = inspectKnowledge(context, {
+    projectId: String(PROJECT),
+    durable: false,
+  });
+  const reactNode = snapshot.records.find(
+    (record) => record.kind === "entity" && record.sourceId === react.id,
+  )!;
   assert.deepEqual(reactNode.storedDomains, []);
   assert.deepEqual(reactNode.effectiveDomains, ["software"]);
   assert.equal(reactNode.primaryEffectiveDomain, "software");
-  assert.ok(snapshot.graph.edges.some((edge) => edge.from === `claim:${claim.id}` && edge.to === `entity:${react.id}` && edge.relation === "entity_ref"));
+  assert.ok(
+    snapshot.graph.edges.some(
+      (edge) =>
+        edge.from === `claim:${claim.id}` &&
+        edge.to === `entity:${react.id}` &&
+        edge.relation === "entity_ref",
+    ),
+  );
 });
 
 test("0122 current-batch entities are legal semantic-association endpoints", async () => {
@@ -155,19 +180,31 @@ test("0122 current-batch entities are legal semantic-association endpoints", asy
       classify: async () => ({ type: "new" }),
       classifyBatch: async (input) => {
         seen = structuredClone(input);
-        const pkgHandle = input.associationContext!.entities.find((entity) => entity.labels.includes("gui/package.json"))!.handle;
-        const reactHandle = input.associationContext!.entities.find((entity) => entity.labels.includes("React"))!.handle;
-        return [{
-          proposalHandle: input.items[0]!.proposalHandle,
-          type: "new" as const,
-          associations: [{
-            fromHandle: pkgHandle,
-            toHandle: reactHandle,
-            relation: "requires",
-            supportsRelation: true,
-            support: { source: "message" as const, start: 0, end: message.length },
-          }],
-        }];
+        const pkgHandle = input.associationContext!.entities.find((entity) =>
+          entity.labels.includes("gui/package.json"),
+        )!.handle;
+        const reactHandle = input.associationContext!.entities.find((entity) =>
+          entity.labels.includes("React"),
+        )!.handle;
+        return [
+          {
+            proposalHandle: input.items[0]!.proposalHandle,
+            type: "new" as const,
+            associations: [
+              {
+                fromHandle: pkgHandle,
+                toHandle: reactHandle,
+                relation: "requires",
+                supportsRelation: true,
+                support: {
+                  source: "message" as const,
+                  start: 0,
+                  end: message.length,
+                },
+              },
+            ],
+          },
+        ];
       },
     },
   });
@@ -175,13 +212,26 @@ test("0122 current-batch entities are legal semantic-association endpoints", asy
   const steps = await writer.commitBatch({ batch, startProposalIndex: 0 });
   assert.equal(steps.length, 1);
   assert.ok("result" in steps[0]!);
-  assert.ok(seen?.associationContext?.entities.some((entity) => entity.labels.includes("React")));
+  assert.ok(
+    seen?.associationContext?.entities.some((entity) =>
+      entity.labels.includes("React"),
+    ),
+  );
   assert.deepEqual(seen?.items[0]?.proposal.structuredProposition, structured);
 
   const pkg = context.entities.findByIdentity("gui/package.json")!;
   const react = context.entities.findByIdentity("React")!;
-  const associations = (context.relations as RelationIndex).associationSnapshot().records;
-  assert.ok(associations.some((record) => record.from === pkg.id && record.to === react.id && record.relation === "requires"));
+  const associations = (
+    context.relations as RelationIndex
+  ).associationSnapshot().records;
+  assert.ok(
+    associations.some(
+      (record) =>
+        record.from === pkg.id &&
+        record.to === react.id &&
+        record.relation === "requires",
+    ),
+  );
 });
 
 test("0122 structured proposition owns the slot and reaches relation comparison", async () => {
@@ -193,31 +243,40 @@ test("0122 structured proposition owns the slot and reaches relation comparison"
     attribute: "version",
     value: "19",
   };
-  const first = await stage(3, firstMessage, "Acknowledged.", [{
-    severity: "important",
-    proposition: firstMessage,
-    kind: "property",
-    structuredProposition: firstStructured,
-    entities: ["gui/package.json", "React"],
-    support: { source: "message", quote: firstMessage },
-  }]);
+  const first = await stage(3, firstMessage, "Acknowledged.", [
+    {
+      severity: "important",
+      proposition: firstMessage,
+      kind: "property",
+      structuredProposition: firstStructured,
+      entities: ["gui/package.json", "React"],
+      support: { source: "message", quote: firstMessage },
+    },
+  ]);
   await commitOne(context, first, () => ({ type: "new" }));
 
   const react = context.entities.findByIdentity("React")!;
-  const open = context.state.snapshot().bindings.find((binding) => binding.interval.to === null && binding.label === firstMessage)!;
+  const open = context.state
+    .snapshot()
+    .bindings.find(
+      (binding) =>
+        binding.interval.to === null && binding.label === firstMessage,
+    )!;
   assert.equal(open.slot.kind, "attribute");
   if (open.slot.kind === "attribute") assert.equal(open.slot.entity, react.id);
 
   const secondMessage = "React version is 20.";
   const secondStructured = { ...firstStructured, value: "20" };
-  const second = await stage(4, secondMessage, "Acknowledged.", [{
-    severity: "important",
-    proposition: secondMessage,
-    kind: "property",
-    structuredProposition: secondStructured,
-    entities: ["gui/package.json", "React"],
-    support: { source: "message", quote: secondMessage },
-  }]);
+  const second = await stage(4, secondMessage, "Acknowledged.", [
+    {
+      severity: "important",
+      proposition: secondMessage,
+      kind: "property",
+      structuredProposition: secondStructured,
+      entities: ["gui/package.json", "React"],
+      support: { source: "message", quote: secondMessage },
+    },
+  ]);
   let seen: RelationClassifierInput | undefined;
   await commitOne(context, second, (input) => {
     seen = structuredClone(input);
@@ -225,27 +284,35 @@ test("0122 structured proposition owns the slot and reaches relation comparison"
   });
 
   assert.deepEqual(seen?.proposal.structuredProposition, secondStructured);
-  assert.deepEqual(seen?.candidates.find((candidate) => candidate.proposition === firstMessage)?.structuredProposition, firstStructured);
+  assert.deepEqual(
+    seen?.candidates.find((candidate) => candidate.proposition === firstMessage)
+      ?.structuredProposition,
+    firstStructured,
+  );
 });
 
 test("0122 answer-only discoveries use assistant provenance and never user acceptance", async () => {
   const context = createKnowledgeContext();
   const message = "Can you inspect the GUI dependencies?";
   const answer = "The GUI requires React.";
-  const batch = await stage(5, message, answer, [{
-    severity: "important",
-    proposition: answer,
-    kind: "fact",
-    entities: ["React"],
-    domains: ["software"],
-    support: { source: "message", quote: answer },
-  }]);
+  const batch = await stage(5, message, answer, [
+    {
+      severity: "important",
+      proposition: answer,
+      kind: "fact",
+      entities: ["React"],
+      domains: ["software"],
+      support: { source: "message", quote: answer },
+    },
+  ]);
 
   assert.equal(batch.proposals[0]!.support, undefined);
   await commitOne(context, batch, () => ({ type: "new" }));
 
   const claim = context.evidence.listClaims()[0]!;
-  const utterance = context.evidence.listUtterances().find((entry) => entry.id === claim.derivedFrom.id)!;
+  const utterance = context.evidence
+    .listUtterances()
+    .find((entry) => entry.id === claim.derivedFrom.id)!;
   const slotClaim = context.state.claim(claim.id)!;
   assert.equal(claim.attributedTo, "assistant");
   assert.equal(claim.status, "asserted");
@@ -254,7 +321,16 @@ test("0122 answer-only discoveries use assistant provenance and never user accep
   assert.equal(utterance.content, answer);
   assert.equal(slotClaim.attributedTo, "assistant");
   assert.equal(slotClaim.acceptanceEligible, false);
-  assert.ok(context.evidence.listProvenance().some((record) => record.relation === "derived_from" && record.fromId === claim.id && record.toId === utterance.id));
+  assert.ok(
+    context.evidence
+      .listProvenance()
+      .some(
+        (record) =>
+          record.relation === "derived_from" &&
+          record.fromId === claim.id &&
+          record.toId === utterance.id,
+      ),
+  );
 });
 
 test("0122 structural references survive SQLite reload", async () => {
@@ -263,14 +339,16 @@ test("0122 structural references survive SQLite reload", async () => {
   const first = createSqliteKnowledgeContext({ filename, projectId: PROJECT });
   try {
     const message = "React is listed by gui/package.json.";
-    const batch = await stage(6, message, "Acknowledged.", [{
-      severity: "important",
-      proposition: message,
-      kind: "fact",
-      entities: ["React", "gui/package.json"],
-      domains: ["software"],
-      support: { source: "message", quote: message },
-    }]);
+    const batch = await stage(6, message, "Acknowledged.", [
+      {
+        severity: "important",
+        proposition: message,
+        kind: "fact",
+        entities: ["React", "gui/package.json"],
+        domains: ["software"],
+        support: { source: "message", quote: message },
+      },
+    ]);
     await new KnowledgeEngineCommit({
       context: first.context,
       classifier: { classify: async () => ({ type: "new" }) },
@@ -279,14 +357,31 @@ test("0122 structural references survive SQLite reload", async () => {
     first.close();
   }
 
-  const reopened = createSqliteKnowledgeContext({ filename, projectId: PROJECT });
+  const reopened = createSqliteKnowledgeContext({
+    filename,
+    projectId: PROJECT,
+  });
   try {
     assert.equal(reopened.context.entityReferences.list().length, 2);
     const react = reopened.context.entities.findByIdentity("React")!;
     const claim = reopened.context.evidence.listClaims()[0]!;
-    assert.ok(reopened.context.entityReferences.forClaim(claim.id).some((reference) => reference.entityId === react.id));
-    const snapshot = inspectKnowledge(reopened.context, { projectId: String(PROJECT), durable: true });
-    assert.ok(snapshot.graph.edges.some((edge) => edge.from === `claim:${claim.id}` && edge.to === `entity:${react.id}` && edge.relation === "entity_ref"));
+    assert.ok(
+      reopened.context.entityReferences
+        .forClaim(claim.id)
+        .some((reference) => reference.entityId === react.id),
+    );
+    const snapshot = inspectKnowledge(reopened.context, {
+      projectId: String(PROJECT),
+      durable: true,
+    });
+    assert.ok(
+      snapshot.graph.edges.some(
+        (edge) =>
+          edge.from === `claim:${claim.id}` &&
+          edge.to === `entity:${react.id}` &&
+          edge.relation === "entity_ref",
+      ),
+    );
   } finally {
     reopened.close();
     rmSync(directory, { recursive: true, force: true });
@@ -300,7 +395,10 @@ test("0122 single and batch relation prompts share the same explicit semantics",
   ]) {
     assert.match(instruction, /restatement means the same semantic assertion/u);
     assert.match(instruction, /supersede means the proposal replaces/u);
-    assert.match(instruction, /structural claim-entity membership are not semantic associations/u);
+    assert.match(
+      instruction,
+      /structural claim-entity membership are not semantic associations/u,
+    );
     assert.match(instruction, /structuredProposition/u);
   }
   assert.doesNotMatch(

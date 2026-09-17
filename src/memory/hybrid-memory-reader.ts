@@ -250,9 +250,13 @@ export class HybridMemoryReader {
         admittedCandidateCount: admitted.length,
         rankedCandidates,
         dormantCandidateIds: bounded
-          .filter((entry) => entry.candidate.item.activationStatus === "dormant")
+          .filter(
+            (entry) => entry.candidate.item.activationStatus === "dormant",
+          )
           .map((entry) => entry.candidate.item.id),
-        selectedKnowledgeIds: projection.projection.items.map((item) => item.id),
+        selectedKnowledgeIds: projection.projection.items.map(
+          (item) => item.id,
+        ),
         omittedKnowledgeIds: rankedCandidates
           .filter((candidate) => !candidate.included)
           .map((candidate) => candidate.knowledgeId),
@@ -266,9 +270,7 @@ export class HybridMemoryReader {
     };
   }
 
-  private async createSemanticVectors(
-    queries: readonly string[],
-  ): Promise<{
+  private async createSemanticVectors(queries: readonly string[]): Promise<{
     readonly vectors: readonly SemanticQueryVector[];
     readonly status: "used" | "not_configured" | "no_vectors";
   }> {

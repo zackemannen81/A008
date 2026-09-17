@@ -1,9 +1,4 @@
-import type {
-  ArtifactId,
-  ContentKind,
-  Instant,
-  Interval,
-} from "./types.js";
+import type { ArtifactId, ContentKind, Instant, Interval } from "./types.js";
 
 declare const utteranceIdBrand: unique symbol;
 declare const claimIdBrand: unique symbol;
@@ -11,7 +6,9 @@ declare const provenanceIdBrand: unique symbol;
 
 export type UtteranceId = string & { readonly [utteranceIdBrand]: "utterance" };
 export type ClaimId = string & { readonly [claimIdBrand]: "claim" };
-export type ProvenanceId = string & { readonly [provenanceIdBrand]: "provenance" };
+export type ProvenanceId = string & {
+  readonly [provenanceIdBrand]: "provenance";
+};
 
 export type SpeechAct =
   | "assertion"
@@ -26,11 +23,7 @@ export type SpeechAct =
 export type ClaimCertainty = "certain" | "probable" | "possible" | "unlikely";
 
 export type ClaimStatus =
-  | "asserted"
-  | "accepted"
-  | "contested"
-  | "rejected"
-  | "retracted";
+  "asserted" | "accepted" | "contested" | "rejected" | "retracted";
 
 export type ProvenanceRelation = "derived_from" | "appears_in" | "caused_by";
 
@@ -43,10 +36,7 @@ export type ReconcileOutcome =
   | "no_op";
 
 export type AcceptanceDecision =
-  | "accepted"
-  | "rejected"
-  | "contested"
-  | "not_accepted";
+  "accepted" | "rejected" | "contested" | "not_accepted";
 
 export const USER_ASSERTION_POLICY_ID = "user-assertion-v1" as const;
 

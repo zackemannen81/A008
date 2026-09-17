@@ -21,8 +21,13 @@ import {
  */
 const VERBOSITY_ERRORS = 0;
 
-function resourceDirectories(): { cMapUrl: string; standardFontDataUrl: string } {
-  const packageJson = createRequire(import.meta.url).resolve("pdfjs-dist/package.json");
+function resourceDirectories(): {
+  cMapUrl: string;
+  standardFontDataUrl: string;
+} {
+  const packageJson = createRequire(import.meta.url).resolve(
+    "pdfjs-dist/package.json",
+  );
   const root = dirname(packageJson);
   return {
     cMapUrl: pathToFileURL(join(root, "cmaps/")).href,
@@ -81,7 +86,10 @@ export class PdfExtractor implements SourceExtractor {
         }
       }
 
-      const content = pages.join("\n\n").replace(/\n{3,}/g, "\n\n").trim();
+      const content = pages
+        .join("\n\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim();
       if (content === "") {
         // Almost always a scan: pages of images with no text layer. Reporting it
         // is the difference between "A008 cannot read this" and silently storing

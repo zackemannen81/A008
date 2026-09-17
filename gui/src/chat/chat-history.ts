@@ -138,5 +138,7 @@ export function shouldSuppressLive(
   state: ChatHistoryState,
   buffers: ChatLiveBuffers,
 ): boolean {
-  return state.suppressed !== undefined && sameBuffers(state.suppressed, buffers);
+  return (
+    state.suppressed !== undefined && sameBuffers(state.suppressed, buffers)
+  );
 }

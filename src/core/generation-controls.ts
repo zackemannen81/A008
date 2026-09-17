@@ -1,8 +1,14 @@
 import { ChatError } from "./errors.js";
 import type { ChatGenerationOptions, ModelProfile } from "./types.js";
 
-import type { SessionParameters, GenerationCapabilities } from "../../packages/protocol/src/index.js";
-export type { SessionParameters, GenerationCapabilities } from "../../packages/protocol/src/index.js";
+import type {
+  SessionParameters,
+  GenerationCapabilities,
+} from "../../packages/protocol/src/index.js";
+export type {
+  SessionParameters,
+  GenerationCapabilities,
+} from "../../packages/protocol/src/index.js";
 
 // Hosted NVIDIA API schemas, checked 2026-09-06 (sources in ADR 0026).
 // This describes exposed controls, not every capability of model weights.
@@ -79,7 +85,9 @@ export function defaultSessionParameters(
   const options = { ...profile.defaults, ...overrides };
   const caps = generationCapabilities(profile.id);
   const effort =
-    caps.reasoningEfforts.length === 0 ? null : (options.reasoningEffort ?? null);
+    caps.reasoningEfforts.length === 0
+      ? null
+      : (options.reasoningEffort ?? null);
   return {
     stream: options.stream ?? true,
     temperature: options.temperature ?? null,

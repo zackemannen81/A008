@@ -48,7 +48,9 @@ export function project(input: ProjectInput): ProjectResult {
           : `${String(slot.subject)} --${slot.name}--> ${slot.object === undefined ? "?" : String(slot.object)}`,
       ),
     },
-    state: records.filter((record) => record.surface === "state").map(toStateEntry),
+    state: records
+      .filter((record) => record.surface === "state")
+      .map(toStateEntry),
     history: records
       .filter((record) => record.surface === "history")
       .map(toHistoryEntry),
@@ -154,7 +156,9 @@ function toProvenance(record: RetrievedRecord): PayloadProvenance {
   };
 }
 
-function requireInterval(record: RetrievedRecord): NonNullable<RetrievedRecord["interval"]> {
+function requireInterval(
+  record: RetrievedRecord,
+): NonNullable<RetrievedRecord["interval"]> {
   if (record.interval === undefined) {
     return { from: { unknown: true }, to: null };
   }

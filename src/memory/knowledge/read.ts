@@ -33,7 +33,9 @@ export interface ReadResult {
   readonly projected: ProjectResult;
 }
 
-export function createKnowledgeContext(clock?: () => string): KnowledgeReadContext {
+export function createKnowledgeContext(
+  clock?: () => string,
+): KnowledgeReadContext {
   return {
     entities: new EntityRegistry(),
     slots: new SlotRegistry(),
@@ -50,10 +52,18 @@ export function readKnowledge(
   input: ReadInput,
   context: KnowledgeReadContext,
 ): ReadResult {
-  context = { ...context, ...(input.applicabilityScopes === undefined ? {} : { applicabilityScopes: input.applicabilityScopes }), evaluatedAt: context.evaluatedAt ?? context.lifecycle.now() };
+  context = {
+    ...context,
+    ...(input.applicabilityScopes === undefined
+      ? {}
+      : { applicabilityScopes: input.applicabilityScopes }),
+    evaluatedAt: context.evaluatedAt ?? context.lifecycle.now(),
+  };
   const scope = define(input, context);
   const retrieved = retrieve(scope, context, { message: input.message });
-  const expanded = expand(retrieved, scope, context, { message: input.message });
+  const expanded = expand(retrieved, scope, context, {
+    message: input.message,
+  });
   const filtered = filter({
     expanded,
     scope,

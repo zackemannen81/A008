@@ -108,16 +108,31 @@ function extractEntities(message: string, maximum: number): string[] {
 function classifyIntents(message: string): RetrievalIntent[] {
   const lower = message.toLocaleLowerCase("und");
   const intents = new Set<RetrievalIntent>();
-  if (message.includes("?") || /^(vad|vem|var|när|hur|varför|which|what|who|where|when|how|why)\b/u.test(lower)) {
+  if (
+    message.includes("?") ||
+    /^(vad|vem|var|när|hur|varför|which|what|who|where|when|how|why)\b/u.test(
+      lower,
+    )
+  ) {
     intents.add("question");
   }
-  if (/\b(nej|istället|rättelse|korrigera|actually|instead|correction)\b/u.test(lower)) {
+  if (
+    /\b(nej|istället|rättelse|korrigera|actually|instead|correction)\b/u.test(
+      lower,
+    )
+  ) {
     intents.add("correction");
   }
-  if (/\b(fortsätt|fortsatta|continue|same|samma|den|det|that|it)\b/u.test(lower)) {
+  if (
+    /\b(fortsätt|fortsatta|continue|same|samma|den|det|that|it)\b/u.test(lower)
+  ) {
     intents.add("continuation");
   }
-  if (/^(gör|bygg|skapa|ändra|lägg|ta|implementera|do|build|create|change|add|remove|implement)\b/u.test(lower)) {
+  if (
+    /^(gör|bygg|skapa|ändra|lägg|ta|implementera|do|build|create|change|add|remove|implement)\b/u.test(
+      lower,
+    )
+  ) {
     intents.add("instruction");
   }
   if (intents.size === 0) {
@@ -152,10 +167,10 @@ export class DeterministicRetrievalPlanner implements RetrievalPlanner {
       options.maxEntities ?? 8,
       "maxEntities",
     );
-    this.maxRecentTurns = options.maxRecentTurns === 0 ? 0 : requirePositiveInteger(
-      options.maxRecentTurns ?? 2,
-      "maxRecentTurns",
-    );
+    this.maxRecentTurns =
+      options.maxRecentTurns === 0
+        ? 0
+        : requirePositiveInteger(options.maxRecentTurns ?? 2, "maxRecentTurns");
     this.maxTurnCharacters = requirePositiveInteger(
       options.maxTurnCharacters ?? 1_000,
       "maxTurnCharacters",
@@ -227,7 +242,9 @@ export class DeterministicRetrievalPlanner implements RetrievalPlanner {
       semanticQueries,
       temporalHints: {
         currentOnly: /\b(nu|aktuell|current|now|latest|senaste)\b/u.test(lower),
-        mentionsPast: /\b(tidigare|förut|histor|past|previous|before)\b/u.test(lower),
+        mentionsPast: /\b(tidigare|förut|histor|past|previous|before)\b/u.test(
+          lower,
+        ),
         mentionsFuture: /\b(senare|framtid|future|later|next)\b/u.test(lower),
       },
       applicabilityScopes: scopes,

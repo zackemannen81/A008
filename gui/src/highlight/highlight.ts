@@ -81,9 +81,12 @@ function utf8Bytes(text: string): number {
   return new TextEncoder().encode(text).byteLength;
 }
 
-export function resolveHighlightLanguage(language: string | undefined): string | undefined {
+export function resolveHighlightLanguage(
+  language: string | undefined,
+): string | undefined {
   if (language === undefined || language.trim() === "") return undefined;
-  const mapped = ALIASES[language.trim().toLowerCase()] ?? language.trim().toLowerCase();
+  const mapped =
+    ALIASES[language.trim().toLowerCase()] ?? language.trim().toLowerCase();
   return hljs.getLanguage(mapped) ? mapped : undefined;
 }
 
@@ -99,7 +102,8 @@ export function highlightCode(
   if (resolved !== undefined) {
     try {
       return {
-        html: hljs.highlight(code, { language: resolved, ignoreIllegals: true }).value,
+        html: hljs.highlight(code, { language: resolved, ignoreIllegals: true })
+          .value,
         language: resolved,
       };
     } catch {

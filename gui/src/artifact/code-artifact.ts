@@ -32,7 +32,11 @@ export function parseAssistantAnswer(answer: string): AnswerSegment[] {
   const segments: AnswerSegment[] = [];
   let offset = 0;
   FENCE.lastIndex = 0;
-  for (let match = FENCE.exec(answer); match !== null; match = FENCE.exec(answer)) {
+  for (
+    let match = FENCE.exec(answer);
+    match !== null;
+    match = FENCE.exec(answer)
+  ) {
     if (match.index > offset) {
       segments.push({ kind: "text", text: answer.slice(offset, match.index) });
     }
@@ -43,7 +47,8 @@ export function parseAssistantAnswer(answer: string): AnswerSegment[] {
       kind: "code",
       language,
       code,
-      artifactEligible: HTML_LANGUAGES.has(language) && bytes <= MAX_CODE_ARTIFACT_BYTES,
+      artifactEligible:
+        HTML_LANGUAGES.has(language) && bytes <= MAX_CODE_ARTIFACT_BYTES,
       oversized: bytes > MAX_CODE_ARTIFACT_BYTES,
     });
     offset = match.index + match[0].length;
@@ -62,8 +67,9 @@ export function htmlArtifactFromAnswer(
   sourceTurnId: string,
 ): HtmlArtifactCandidate | undefined {
   const html = parseAssistantAnswer(answer)
-    .filter((segment): segment is Extract<AnswerSegment, { kind: "code" }> =>
-      segment.kind === "code" && segment.artifactEligible,
+    .filter(
+      (segment): segment is Extract<AnswerSegment, { kind: "code" }> =>
+        segment.kind === "code" && segment.artifactEligible,
     )
     .at(-1);
   if (html === undefined) return undefined;

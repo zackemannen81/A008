@@ -103,16 +103,17 @@ function interpretSourceCode(
       unresolvedReferences.push({
         label,
         role: "entity",
-        reason: "entity resolution matched more than one symbol; no guess was made",
+        reason:
+          "entity resolution matched more than one symbol; no guess was made",
         confidence: 0,
       });
       continue;
     }
 
     const entityId =
-      resolved.status === "resolved" ? resolved.entity.id : asEntityId(
-        `A008_knowledge_entity_${nextId()}`,
-      );
+      resolved.status === "resolved"
+        ? resolved.entity.id
+        : asEntityId(`A008_knowledge_entity_${nextId()}`);
     if (resolved.status === "absent") {
       entities.push({
         id: entityId,
@@ -239,7 +240,10 @@ function requireLocator(locator: string | undefined): string {
 
 function validateInput(input: InterpretInput): void {
   if (input.contentKind.trim().length === 0) {
-    throw new KnowledgeModelError("invalid_input", "contentKind must not be empty");
+    throw new KnowledgeModelError(
+      "invalid_input",
+      "contentKind must not be empty",
+    );
   }
   if (typeof input.content !== "string") {
     throw new KnowledgeModelError("invalid_input", "content must be a string");
@@ -258,7 +262,9 @@ function emptyProposal(): InterpretProposal {
   };
 }
 
-function languageFromLocator(locator: string): string | { readonly unknown: true } {
+function languageFromLocator(
+  locator: string,
+): string | { readonly unknown: true } {
   const lower = locator.toLowerCase();
   if (
     lower.endsWith(".cpp") ||
@@ -276,7 +282,11 @@ function languageFromLocator(locator: string): string | { readonly unknown: true
   if (lower.endsWith(".ts") || lower.endsWith(".tsx")) {
     return "TypeScript";
   }
-  if (lower.endsWith(".js") || lower.endsWith(".jsx") || lower.endsWith(".mjs")) {
+  if (
+    lower.endsWith(".js") ||
+    lower.endsWith(".jsx") ||
+    lower.endsWith(".mjs")
+  ) {
     return "JavaScript";
   }
   return UNKNOWN_INSTANT;
@@ -296,7 +306,11 @@ function extractFunctions(content: string): ExtractedFunction[] {
   while (match !== null) {
     const returnType = match[1];
     const name = match[2];
-    if (returnType !== undefined && name !== undefined && match[0] !== undefined) {
+    if (
+      returnType !== undefined &&
+      name !== undefined &&
+      match[0] !== undefined
+    ) {
       functions.push({
         name,
         returnType,

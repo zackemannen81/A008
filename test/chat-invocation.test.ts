@@ -45,7 +45,10 @@ test("chat invocation composition is stable, ordered, bounded, and defensive", (
 
 test("chat invocation enforces an exact multibyte UTF-8 budget", () => {
   const measurer = new Utf8ByteChatMessageMeasurer();
-  const instruction = { systemMessages: ["Svara på svenska 🦊"], contextSystemMessages: [MEMORY_CONTEXT_SYSTEM_INSTRUCTION] };
+  const instruction = {
+    systemMessages: ["Svara på svenska 🦊"],
+    contextSystemMessages: [MEMORY_CONTEXT_SYSTEM_INSTRUCTION],
+  };
   const baseline = composeChatInvocation([], "räv 🦊", instruction);
   const exact = measurer.measure(baseline.serialized);
   const accepted = composeChatInvocation([], "räv 🦊", {
@@ -71,7 +74,8 @@ function projection(items = 1): ProjectionResult {
       taskId: "A008_v1_task_aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       items: Array.from({ length: items }, (_, index) => ({
         id: `knowledge-private-${index}`,
-        proposition: index === 0 ? "Use SQLite locally." : "Keep context bounded.",
+        proposition:
+          index === 0 ? "Use SQLite locally." : "Keep context bounded.",
         kind: "architecture",
         tags: ["memory"],
         scope: ["core"],
@@ -119,8 +123,11 @@ test("empty memory uses the same envelope and malformed projections fail closed"
   const composer = new DeterministicMemoryPromptComposer();
   const empty = composer.compose(projection(0), "continue");
   assert.deepEqual(
-    (JSON.parse(empty.userEnvelope) as { retrievedContext: { items: unknown[] } })
-      .retrievedContext.items,
+    (
+      JSON.parse(empty.userEnvelope) as {
+        retrievedContext: { items: unknown[] };
+      }
+    ).retrievedContext.items,
     [],
   );
   const malformed = projection();
@@ -146,16 +153,40 @@ test("one instruction selects fallback only when explicit configuration is absen
   const rule = MEMORY_CONTEXT_SYSTEM_INSTRUCTION;
   const cases = [
     { base: undefined, global: [], rule: [], expected: DEFAULT_SYSTEM_MESSAGE },
-    { base: undefined, global: [], rule: [rule], expected: `${DEFAULT_SYSTEM_MESSAGE}\n\n${rule}` },
-    { base: undefined, global: ["Global"], rule: [rule], expected: `Global\n\n${rule}` },
+    {
+      base: undefined,
+      global: [],
+      rule: [rule],
+      expected: `${DEFAULT_SYSTEM_MESSAGE}\n\n${rule}`,
+    },
+    {
+      base: undefined,
+      global: ["Global"],
+      rule: [rule],
+      expected: `Global\n\n${rule}`,
+    },
     { base: "Explicit", global: [], rule: [], expected: "Explicit" },
-    { base: "Explicit", global: ["Global"], rule: [rule], expected: `Explicit\n\nGlobal\n\n${rule}` },
-    { base: DEFAULT_SYSTEM_MESSAGE, global: ["Global"], rule: [rule], expected: `${DEFAULT_SYSTEM_MESSAGE}\n\nGlobal\n\n${rule}` },
+    {
+      base: "Explicit",
+      global: ["Global"],
+      rule: [rule],
+      expected: `Explicit\n\nGlobal\n\n${rule}`,
+    },
+    {
+      base: DEFAULT_SYSTEM_MESSAGE,
+      global: ["Global"],
+      rule: [rule],
+      expected: `${DEFAULT_SYSTEM_MESSAGE}\n\nGlobal\n\n${rule}`,
+    },
   ];
   for (const fixture of cases) {
-    const history: ChatMessage[] = fixture.base === undefined ? [] : [{ role: "system", content: fixture.base }];
+    const history: ChatMessage[] =
+      fixture.base === undefined
+        ? []
+        : [{ role: "system", content: fixture.base }];
     const result = composeChatInvocation(history, "Actual question", {
-      systemMessages: fixture.global, contextSystemMessages: fixture.rule,
+      systemMessages: fixture.global,
+      contextSystemMessages: fixture.rule,
     });
     assert.deepEqual(result.messages, [
       { role: "system", content: fixture.expected },
@@ -163,8 +194,12 @@ test("one instruction selects fallback only when explicit configuration is absen
     ]);
   }
   const history: ChatMessage[] = [{ role: "system", content: "Explicit" }];
-  const first = composeChatInvocation(history, "one", { systemMessages: ["First snapshot"] });
-  const second = composeChatInvocation(history, "two", { systemMessages: ["Second snapshot"] });
+  const first = composeChatInvocation(history, "one", {
+    systemMessages: ["First snapshot"],
+  });
+  const second = composeChatInvocation(history, "two", {
+    systemMessages: ["Second snapshot"],
+  });
   assert.equal(first.messages[0]!.content, "Explicit\n\nFirst snapshot");
   assert.equal(second.messages[0]!.content, "Explicit\n\nSecond snapshot");
   assert.deepEqual(history, [{ role: "system", content: "Explicit" }]);

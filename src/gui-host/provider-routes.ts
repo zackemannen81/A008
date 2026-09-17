@@ -1,4 +1,10 @@
-import type { NvidiaCatalog, KieCatalog, GeneratedImage, ProviderSettings, HostModel } from '../../packages/protocol/src/index.js';
+import type {
+  NvidiaCatalog,
+  KieCatalog,
+  GeneratedImage,
+  ProviderSettings,
+  HostModel,
+} from "../../packages/protocol/src/index.js";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, statSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -37,7 +43,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function mergedModels(registry: ModelRegistry, catalogPath: string): HostModel[] {
+export function mergedModels(
+  registry: ModelRegistry,
+  catalogPath: string,
+): HostModel[] {
   const extras = loadUserCatalog(catalogPath).chatModels.map(userModelProfile);
   const seen = new Set(registry.list().map((profile) => profile.id));
   return [
@@ -46,6 +55,12 @@ export function mergedModels(registry: ModelRegistry, catalogPath: string): Host
   ].map((profile) => ({
     id: profile.id,
     name: profile.name,
+    provider: profile.provider,
+    executionProvider: profile.executionProvider ?? profile.provider,
+    inputModalities: [...profile.inputModalities],
+    ...(profile.verifiedOn === undefined
+      ? {}
+      : { verifiedOn: profile.verifiedOn }),
     defaults: defaultSessionParameters(profile),
     capabilities: generationCapabilities(profile.id),
     added: !registry.get(profile.id),
@@ -65,10 +80,13 @@ export async function handleNvidiaCatalogGet(input: {
     );
   }
   const remote = await fetchNvidiaCatalog(input.apiKey, { fetch: input.fetch });
-  const local = new Set(mergedModels(input.registry, input.catalogPath).map((m) => m.id));
+  const local = new Set(
+    mergedModels(input.registry, input.catalogPath).map((m) => m.id),
+  );
   return {
     source: "https://integrate.api.nvidia.com/v1/models",
-    browse: "https://build.nvidia.com/models?filters=nimType%3Anim_type_preview",
+    browse:
+      "https://build.nvidia.com/models?filters=nimType%3Anim_type_preview",
     note: "NVIDIA Build Free Endpoint models are hosted NIMs billed against your NGC credits. Quota is not unlimited.",
     models: remote.map((entry) => ({
       id: entry.id,
@@ -82,13 +100,23 @@ export function handleNvidiaCatalogAdd(
   catalogPath: string,
   body: unknown,
 ): UserChatModel {
-  if (!isRecord(body) || typeof body.id !== "string" || body.id.trim().length === 0) {
+  if (
+    !isRecord(body) ||
+    typeof body.id !== "string" ||
+    body.id.trim().length === 0
+  ) {
     throw new ChatError("configuration", "id is required to add a model.");
   }
   const model: UserChatModel = {
     id: body.id.trim(),
-    name: typeof body.name === "string" && body.name.trim() ? body.name.trim() : body.id.trim(),
-    provider: typeof body.provider === "string" && body.provider.trim() ? body.provider.trim() : "nvidia",
+    name:
+      typeof body.name === "string" && body.name.trim()
+        ? body.name.trim()
+        : body.id.trim(),
+    provider:
+      typeof body.provider === "string" && body.provider.trim()
+        ? body.provider.trim()
+        : "nvidia",
     inputModalities: ["text"],
   };
   const next = addUserChatModel(loadUserCatalog(catalogPath), model);
@@ -96,9 +124,16 @@ export function handleNvidiaCatalogAdd(
   return model;
 }
 
-export function handleNvidiaCatalogRemove(catalogPath: string, id: string): void {
-  if (!id.trim()) throw new ChatError("configuration", "id is required to remove a model.");
-  saveUserCatalog(catalogPath, removeUserChatModel(loadUserCatalog(catalogPath), id.trim()));
+export function handleNvidiaCatalogRemove(
+  catalogPath: string,
+  id: string,
+): void {
+  if (!id.trim())
+    throw new ChatError("configuration", "id is required to remove a model.");
+  saveUserCatalog(
+    catalogPath,
+    removeUserChatModel(loadUserCatalog(catalogPath), id.trim()),
+  );
 }
 
 export function handleKieCatalogGet(catalogPath: string): KieCatalog {
@@ -126,7 +161,10 @@ export async function handleImageGenerate(input: {
   body: unknown;
 }): Promise<GeneratedImage> {
   if (!input.storeRoot) {
-    throw new ChatError("configuration", "A008_SOURCE_STORE_PATH is required to store generated images.");
+    throw new ChatError(
+      "configuration",
+      "A008_SOURCE_STORE_PATH is required to store generated images.",
+    );
   }
   if (!isRecord(input.body) || typeof input.body.prompt !== "string") {
     throw new ChatError("configuration", "prompt must be a string.");
@@ -145,10 +183,10 @@ export async function handleImageGenerate(input: {
               "KIE_API_KEY is not configured. Set it in Parameters → Provider.",
             );
           }
-          return new KieJobTransport({ apiKey: input.kieApiKey, fetch: input.fetch }).generateImage(
-            catalog.kie.imageModel,
-            prompt,
-          );
+          return new KieJobTransport({
+            apiKey: input.kieApiKey,
+            fetch: input.fetch,
+          }).generateImage(catalog.kie.imageModel, prompt);
         })()
       : await (async () => {
           if (!input.apiKey) {
@@ -192,7 +230,10 @@ export function handleBlobGet(
   const safeName = sanitiseUploadFilename(filename);
   const path = blobPath(storeRoot, sha256, safeName);
   if (!existsSync(path) || !statSync(path).isFile()) return false;
-  const type = safeName.endsWith(".jpg") || safeName.endsWith(".jpeg") ? "image/jpeg" : "image/png";
+  const type =
+    safeName.endsWith(".jpg") || safeName.endsWith(".jpeg")
+      ? "image/jpeg"
+      : "image/png";
   response.writeHead(200, {
     "content-type": type,
     "cache-control": "private, max-age=31536000, immutable",
@@ -201,7 +242,11 @@ export function handleBlobGet(
   return true;
 }
 
-export function providerSettingsView(catalogPath: string, secretsPath: string, env: NodeJS.ProcessEnv): ProviderSettings {
+export function providerSettingsView(
+  catalogPath: string,
+  secretsPath: string,
+  env: NodeJS.ProcessEnv,
+): ProviderSettings {
   const catalog = loadUserCatalog(catalogPath);
   const nvidia = resolveNvidiaApiKey(env, secretsPath);
   const kie = resolveKieApiKey(env, secretsPath);
@@ -217,9 +262,21 @@ export function providerSettingsView(catalogPath: string, secretsPath: string, e
     kieChatModel: catalog.kie.chatModel,
     kieChatEndpoint: catalog.kie.chatEndpoint,
     kieImageModel: catalog.kie.imageModel,
-    keySource: env.NVIDIA_API_KEY?.trim() ? "environment" : nvidia ? "secrets-file" : "missing",
-    kieKeySource: env.KIE_API_KEY?.trim() ? "environment" : kie ? "secrets-file" : "missing",
-    openAiKeySource: env.OPENAI_API_KEY?.trim() ? "environment" : openAi ? "secrets-file" : "missing",
+    keySource: env.NVIDIA_API_KEY?.trim()
+      ? "environment"
+      : nvidia
+        ? "secrets-file"
+        : "missing",
+    kieKeySource: env.KIE_API_KEY?.trim()
+      ? "environment"
+      : kie
+        ? "secrets-file"
+        : "missing",
+    openAiKeySource: env.OPENAI_API_KEY?.trim()
+      ? "environment"
+      : openAi
+        ? "secrets-file"
+        : "missing",
   };
 }
 
@@ -230,7 +287,10 @@ export function handleProviderSettingsPost(input: {
   body: unknown;
 }): ReturnType<typeof providerSettingsView> {
   if (!isRecord(input.body)) {
-    throw new ChatError("configuration", "Provider settings must be a JSON object.");
+    throw new ChatError(
+      "configuration",
+      "Provider settings must be a JSON object.",
+    );
   }
   const currentSecrets = loadProviderSecrets(input.secretsPath);
   let nvidiaApiKey = currentSecrets.nvidiaApiKey;
@@ -239,21 +299,30 @@ export function handleProviderSettingsPost(input: {
   if (typeof input.body.nvidiaApiKey === "string") {
     const key = input.body.nvidiaApiKey.trim();
     if (key.length === 0) {
-      throw new ChatError("configuration", "nvidiaApiKey must be non-empty when provided.");
+      throw new ChatError(
+        "configuration",
+        "nvidiaApiKey must be non-empty when provided.",
+      );
     }
     nvidiaApiKey = key;
   }
   if (typeof input.body.kieApiKey === "string") {
     const key = input.body.kieApiKey.trim();
     if (key.length === 0) {
-      throw new ChatError("configuration", "kieApiKey must be non-empty when provided.");
+      throw new ChatError(
+        "configuration",
+        "kieApiKey must be non-empty when provided.",
+      );
     }
     kieApiKey = key;
   }
   if (typeof input.body.openAiApiKey === "string") {
     const key = input.body.openAiApiKey.trim();
     if (key.length === 0) {
-      throw new ChatError("configuration", "openAiApiKey must be non-empty when provided.");
+      throw new ChatError(
+        "configuration",
+        "openAiApiKey must be non-empty when provided.",
+      );
     }
     openAiApiKey = key;
   }
@@ -262,38 +331,51 @@ export function handleProviderSettingsPost(input: {
     kieApiKey !== currentSecrets.kieApiKey ||
     openAiApiKey !== currentSecrets.openAiApiKey
   ) {
-    saveProviderSecrets(input.secretsPath, { nvidiaApiKey, kieApiKey, openAiApiKey });
+    saveProviderSecrets(input.secretsPath, {
+      nvidiaApiKey,
+      kieApiKey,
+      openAiApiKey,
+    });
   }
   const catalog = loadUserCatalog(input.catalogPath);
   const asChatProvider = (value: unknown): ChatCatalogProvider | undefined =>
-    value === "kie" || value === "nvidia" || value === "openai" ? value : undefined;
+    value === "kie" || value === "nvidia" || value === "openai"
+      ? value
+      : undefined;
   const asImageProvider = (value: unknown): CatalogProvider | undefined =>
     value === "kie" || value === "nvidia" ? value : undefined;
   saveUserCatalog(input.catalogPath, {
     ...catalog,
-    chatProvider: asChatProvider(input.body.chatProvider) ?? catalog.chatProvider,
-    imageProvider: asImageProvider(input.body.imageProvider) ?? catalog.imageProvider,
+    chatProvider:
+      asChatProvider(input.body.chatProvider) ?? catalog.chatProvider,
+    imageProvider:
+      asImageProvider(input.body.imageProvider) ?? catalog.imageProvider,
     image: {
       model:
-        typeof input.body.imageModel === "string" && input.body.imageModel.trim()
+        typeof input.body.imageModel === "string" &&
+        input.body.imageModel.trim()
           ? input.body.imageModel.trim()
           : catalog.image.model,
       endpoint:
-        typeof input.body.imageEndpoint === "string" && input.body.imageEndpoint.trim()
+        typeof input.body.imageEndpoint === "string" &&
+        input.body.imageEndpoint.trim()
           ? input.body.imageEndpoint.trim()
           : catalog.image.endpoint,
     },
     kie: {
       chatModel:
-        typeof input.body.kieChatModel === "string" && input.body.kieChatModel.trim()
+        typeof input.body.kieChatModel === "string" &&
+        input.body.kieChatModel.trim()
           ? input.body.kieChatModel.trim()
           : catalog.kie.chatModel,
       chatEndpoint:
-        typeof input.body.kieChatEndpoint === "string" && input.body.kieChatEndpoint.trim()
+        typeof input.body.kieChatEndpoint === "string" &&
+        input.body.kieChatEndpoint.trim()
           ? input.body.kieChatEndpoint.trim()
           : catalog.kie.chatEndpoint,
       imageModel:
-        typeof input.body.kieImageModel === "string" && input.body.kieImageModel.trim()
+        typeof input.body.kieImageModel === "string" &&
+        input.body.kieImageModel.trim()
           ? input.body.kieImageModel.trim()
           : catalog.kie.imageModel,
     },

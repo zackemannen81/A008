@@ -15,19 +15,10 @@ import type {
 } from "./lifecycle-types.js";
 import type { EntityRegistry, SlotRegistry } from "./registry.js";
 import type { KnowledgeState } from "./state.js";
-import type {
-  ContentKind,
-  Instant,
-  Interval,
-  SlotRef,
-} from "./types.js";
+import type { ContentKind, Instant, Interval, SlotRef } from "./types.js";
 
 export type RetrievalIntent =
-  | "current_state"
-  | "history"
-  | "event"
-  | "attribution"
-  | "associative";
+  "current_state" | "history" | "event" | "attribution" | "associative";
 
 export interface TemporalHints {
   readonly currentOnly: boolean;

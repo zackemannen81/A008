@@ -1,5 +1,10 @@
-import type { WorkspaceBinding, ProjectCreated, ProjectsResponse, DirectoryList } from '../../packages/protocol/src/index.js';
-export type { WorkspaceBinding } from '../../packages/protocol/src/index.js';
+import type {
+  WorkspaceBinding,
+  ProjectCreated,
+  ProjectsResponse,
+  DirectoryList,
+} from "../../packages/protocol/src/index.js";
+export type { WorkspaceBinding } from "../../packages/protocol/src/index.js";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
 import { ChatError } from "../core/errors.js";
@@ -10,7 +15,10 @@ import {
   registerExistingProject,
   type ProjectBootstrapStore,
 } from "../bootstrap/service.js";
-import { parseExistingProjectRegistration, parseProjectBootstrapConfig } from "../bootstrap/validate.js";
+import {
+  parseExistingProjectRegistration,
+  parseProjectBootstrapConfig,
+} from "../bootstrap/validate.js";
 import { readProjectRegistry } from "../bootstrap/registry.js";
 import type {
   ProjectBootstrapPlan,
@@ -29,11 +37,17 @@ export function handleProjectBootstrap(
   body: unknown,
 ): ProjectCreated {
   const projectId =
-    body !== null && typeof body === "object" && !Array.isArray(body) &&
+    body !== null &&
+    typeof body === "object" &&
+    !Array.isArray(body) &&
     typeof (body as { projectId?: unknown }).projectId === "string"
       ? (body as { projectId: string }).projectId
       : undefined;
-  return executeProjectBootstrap(parseProjectBootstrapConfig(body), store, projectId);
+  return executeProjectBootstrap(
+    parseProjectBootstrapConfig(body),
+    store,
+    projectId,
+  );
 }
 
 export function handleExistingProjectRegister(
@@ -43,7 +57,9 @@ export function handleExistingProjectRegister(
   return registerExistingProject(parseExistingProjectRegistration(body), store);
 }
 
-export function handleProjectList(store: ProjectBootstrapStore): ProjectsResponse {
+export function handleProjectList(
+  store: ProjectBootstrapStore,
+): ProjectsResponse {
   const registry = readProjectRegistry(store.registryPath);
   return { currentId: registry.currentId, projects: registry.projects };
 }
@@ -77,7 +93,10 @@ export function handleDirectoryList(pathValue: unknown): DirectoryList {
   }
   const path = resolve(pathValue);
   if (!existsSync(path) || !statSync(path).isDirectory()) {
-    throw new ChatError("configuration", "Browse path must be an existing directory.");
+    throw new ChatError(
+      "configuration",
+      "Browse path must be an existing directory.",
+    );
   }
   const entries = readdirSync(path)
     .filter((name) => {
@@ -90,5 +109,3 @@ export function handleDirectoryList(pathValue: unknown): DirectoryList {
     .sort((a, b) => a.localeCompare(b));
   return { path, entries };
 }
-
-

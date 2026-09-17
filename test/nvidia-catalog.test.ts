@@ -27,8 +27,15 @@ test("catalog fetch uses the bearer key and refuses an empty key before network"
   const entries = await fetchNvidiaCatalog("nvapi-test", {
     fetch: async (input, init) => {
       assert.match(String(input), /\/models$/u);
-      assert.match(String((init?.headers as Record<string, string>).authorization), /Bearer nvapi-test/u);
-      return new Response(JSON.stringify({ data: [{ id: "meta/muse-glimmer-30b", owned_by: "meta" }] }));
+      assert.match(
+        String((init?.headers as Record<string, string>).authorization),
+        /Bearer nvapi-test/u,
+      );
+      return new Response(
+        JSON.stringify({
+          data: [{ id: "meta/muse-glimmer-30b", owned_by: "meta" }],
+        }),
+      );
     },
   });
   assert.equal(entries[0]?.id, "meta/muse-glimmer-30b");

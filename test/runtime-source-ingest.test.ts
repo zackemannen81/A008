@@ -32,7 +32,14 @@ function fixture(
   const parent = mkdtempSync(join(tmpdir(), "A008-source-"));
   const storeRoot = join(parent, "store");
   mkdirSync(join(storeRoot, HASH), { recursive: true });
-  writeFileSync(join(storeRoot, HASH, "report.txt"), "The invoice total is 4500 SEK.");
+  writeFileSync(
+    join(storeRoot, HASH, "report.txt"),
+    "The invoice total is 4500 SEK.",
+  );
+  const png = Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x00,
+  ]);
+  writeFileSync(join(storeRoot, HASH, "photo.png"), png);
 
   // A file the runtime must never open. It sits beside the store, which is
   // exactly what a traversal locator would reach.
@@ -48,13 +55,15 @@ function fixture(
     surface: "cli",
     readSourceBytes: (path) => {
       opened.push(path);
-      return new Uint8Array(
-        Buffer.from(
-          path.endsWith("report.txt")
-            ? "The invoice total is 4500 SEK."
-            : "unexpected read",
-        ),
-      );
+      return path.endsWith("photo.png")
+        ? new Uint8Array(png)
+        : new Uint8Array(
+            Buffer.from(
+              path.endsWith("report.txt")
+                ? "The invoice total is 4500 SEK."
+                : "unexpected read",
+            ),
+          );
     },
     ...(options.registry === undefined
       ? {}
@@ -96,7 +105,11 @@ test("a locator that escapes the store root is rejected before any read", async 
     }
     // The gate: containment runs before the reader is ever called, so the file
     // beside the store was never opened.
-    assert.deepEqual(opened, [], "no read was attempted for any escaping locator");
+    assert.deepEqual(
+      opened,
+      [],
+      "no read was attempted for any escaping locator",
+    );
   } finally {
     runtime.close();
   }
@@ -126,7 +139,9 @@ test("traversal is refused lexically, before the filesystem is consulted", async
 test("an absolute locator is rejected before any read", async () => {
   const { runtime, outsideFile, opened } = fixture();
   try {
-    await assert.rejects(() => runtime.ingestSource({ locator: `source:${outsideFile}` }));
+    await assert.rejects(() =>
+      runtime.ingestSource({ locator: `source:${outsideFile}` }),
+    );
     await assert.rejects(() => runtime.ingestSource({ locator: outsideFile }));
     assert.deepEqual(opened, []);
   } finally {
@@ -145,7 +160,9 @@ test("a link pointing outside the store root is rejected before any read", async
     try {
       symlinkSync(dirname(storeRoot), link, "junction");
     } catch {
-      t.skip("neither junctions nor symlinks can be created in this environment");
+      t.skip(
+        "neither junctions nor symlinks can be created in this environment",
+      );
       return;
     }
 
@@ -221,7 +238,11 @@ test("ingestSource refuses when no source store is configured", async () => {
 });
 
 test("the text extractor is the default registry", async () => {
-  assert.ok(new SourceExtractorRegistry([new Utf8TextExtractor()]).supports("text/plain"));
+  assert.ok(
+    new SourceExtractorRegistry([new Utf8TextExtractor()]).supports(
+      "text/plain",
+    ),
+  );
 });
 
 test("ingestSource makes no analyzer call unless extraction is requested", async () => {
@@ -258,6 +279,26 @@ test("a failed extraction degrades the ingest rather than losing the evidence", 
       "completed",
       "a failed extraction is reported, not silently swallowed",
     );
+  } finally {
+    runtime.close();
+  }
+});
+
+test("native vision resolves a contained image from sniffed bytes and traversal never reaches the reader", () => {
+  const { runtime, opened } = fixture();
+  try {
+    const attachment = runtime.resolveImageAttachment(
+      `source:${HASH}/photo.png`,
+    );
+    assert.equal(attachment.mediaType, "image/png");
+    assert.match(attachment.dataRef, /^data:image\/png;base64,/u);
+    assert.equal(opened.length, 1, "the contained image is read exactly once");
+    opened.length = 0;
+    assert.throws(
+      () => runtime.resolveImageAttachment("source:../secret.png"),
+      /escapes the configured store root/u,
+    );
+    assert.deepEqual(opened, [], "traversal is rejected before reading bytes");
   } finally {
     runtime.close();
   }

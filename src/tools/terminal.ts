@@ -1,4 +1,4 @@
-import type { ShellHostResult } from '../../packages/protocol/src/index.js';
+import type { ShellHostResult } from "../../packages/protocol/src/index.js";
 import { spawn } from "node:child_process";
 import { ChatError } from "../core/errors.js";
 
@@ -7,7 +7,10 @@ export const DEFAULT_TERMINAL_MAX_BYTES = 64 * 1024;
 
 export interface TerminalRunInput {
   /** Host-selected executable and literal arguments; bypasses the shell. */
-  readonly executable?: { readonly file: string; readonly args: readonly string[] };
+  readonly executable?: {
+    readonly file: string;
+    readonly args: readonly string[];
+  };
   readonly command: string;
   readonly cwd: string;
   readonly timeoutMs?: number;
@@ -79,16 +82,30 @@ export async function runTerminalCommand(
   }
 
   return await new Promise((resolve, reject) => {
-    const powershell = input.shell === "powershell" && process.platform === "win32";
-    const child = spawn(input.executable?.file ?? (powershell ? "powershell.exe" : command), input.executable ? [...input.executable.args] : powershell
-      ? ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand", Buffer.from(command, "utf16le").toString("base64")] : [], {
-      cwd,
-      env: input.env ?? process.env,
-      shell: !input.executable && !powershell,
-      detached: process.platform !== "win32",
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const powershell =
+      input.shell === "powershell" && process.platform === "win32";
+    const child = spawn(
+      input.executable?.file ?? (powershell ? "powershell.exe" : command),
+      input.executable
+        ? [...input.executable.args]
+        : powershell
+          ? [
+              "-NoLogo",
+              "-NoProfile",
+              "-NonInteractive",
+              "-EncodedCommand",
+              Buffer.from(command, "utf16le").toString("base64"),
+            ]
+          : [],
+      {
+        cwd,
+        env: input.env ?? process.env,
+        shell: !input.executable && !powershell,
+        detached: process.platform !== "win32",
+        windowsHide: true,
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
 
     let stdout = "";
     let stderr = "";
@@ -103,7 +120,10 @@ export async function runTerminalCommand(
       settled = true;
       clearTimeout(timer);
       input.signal?.removeEventListener("abort", cancel);
-      if (input.signal?.aborted) { reject(new ChatError("cancelled", "Terminal command was cancelled.")); return; }
+      if (input.signal?.aborted) {
+        reject(new ChatError("cancelled", "Terminal command was cancelled."));
+        return;
+      }
       resolve(result);
     };
 
@@ -158,10 +178,27 @@ export async function runTerminalCommand(
 export function killProcessTree(pid: number | undefined): void {
   if (!pid) return;
   if (process.platform === "win32") {
-    const killer = spawn("taskkill.exe", ["/PID", String(pid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
-    killer.on("error", () => { try { process.kill(pid); } catch { /* Already exited. */ } });
+    const killer = spawn("taskkill.exe", ["/PID", String(pid), "/T", "/F"], {
+      windowsHide: true,
+      stdio: "ignore",
+    });
+    killer.on("error", () => {
+      try {
+        process.kill(pid);
+      } catch {
+        /* Already exited. */
+      }
+    });
   } else {
-    try { process.kill(-pid, "SIGKILL"); } catch { try { process.kill(pid, "SIGKILL"); } catch { /* Already exited. */ } }
+    try {
+      process.kill(-pid, "SIGKILL");
+    } catch {
+      try {
+        process.kill(pid, "SIGKILL");
+      } catch {
+        /* Already exited. */
+      }
+    }
   }
 }
 
@@ -177,10 +214,16 @@ export function formatTerminalResult(result: TerminalRunResult): string {
     lines.push("output truncated");
   }
   if (result.stdout.length > 0) {
-    lines.push("stdout:", result.stdout.endsWith("\n") ? result.stdout.slice(0, -1) : result.stdout);
+    lines.push(
+      "stdout:",
+      result.stdout.endsWith("\n") ? result.stdout.slice(0, -1) : result.stdout,
+    );
   }
   if (result.stderr.length > 0) {
-    lines.push("stderr:", result.stderr.endsWith("\n") ? result.stderr.slice(0, -1) : result.stderr);
+    lines.push(
+      "stderr:",
+      result.stderr.endsWith("\n") ? result.stderr.slice(0, -1) : result.stderr,
+    );
   }
   if (result.stdout.length === 0 && result.stderr.length === 0) {
     lines.push("(no output)");

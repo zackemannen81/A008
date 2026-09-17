@@ -16,7 +16,11 @@ function readPreferenceObject(
     const raw = storage.getItem(GUI_PREFERENCES_STORAGE_KEY);
     if (raw === null || raw === "") return {};
     const parsed: unknown = JSON.parse(raw);
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    if (
+      parsed === null ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
+    ) {
       return {};
     }
     return parsed as Record<string, unknown>;
@@ -52,8 +56,13 @@ export function persistAppTheme(
     const current = readPreferenceObject(store);
     const previous = current.appearance;
     const appearance =
-      previous !== null && typeof previous === "object" && !Array.isArray(previous)
-        ? { ...(previous as Record<string, unknown>), theme: parseAppThemeId(id) }
+      previous !== null &&
+      typeof previous === "object" &&
+      !Array.isArray(previous)
+        ? {
+            ...(previous as Record<string, unknown>),
+            theme: parseAppThemeId(id),
+          }
         : { theme: parseAppThemeId(id) };
     store.setItem(
       GUI_PREFERENCES_STORAGE_KEY,

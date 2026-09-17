@@ -4,7 +4,10 @@ import type { ArtifactId, EntityId } from "./types.js";
 function requireNonEmpty(value: string, field: string): string {
   const trimmed = value.trim();
   if (trimmed.length === 0) {
-    throw new KnowledgeModelError("invalid_input", `${field} must not be empty`);
+    throw new KnowledgeModelError(
+      "invalid_input",
+      `${field} must not be empty`,
+    );
   }
   return trimmed;
 }

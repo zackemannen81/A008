@@ -177,18 +177,23 @@ test("five retrieval channels merge into one scored candidate and one projection
     embeddingModel: embeddingProvider.model,
     embedding: [1, 0],
   });
-  const result = await reader(repository, { embeddings: embeddingProvider }).read(
-    request,
-  );
+  const result = await reader(repository, {
+    embeddings: embeddingProvider,
+  }).read(request);
   assert.equal(result.evidence.uniqueCandidateCount, 1);
-  assert.deepEqual(
-    result.evidence.rankedCandidates[0]?.channels,
-    ["domain", "exact", "lexical", "semantic", "tag"],
-  );
+  assert.deepEqual(result.evidence.rankedCandidates[0]?.channels, [
+    "domain",
+    "exact",
+    "lexical",
+    "semantic",
+    "tag",
+  ]);
   assert.deepEqual(result.evidence.selectedKnowledgeIds, ["sqlite-memory"]);
   assert.equal(result.projection.projection.items.length, 1);
   assert.equal(
-    result.projection.serialized.match(/SQLite memory keeps provider architecture local\./gu)?.length,
+    result.projection.serialized.match(
+      /SQLite memory keeps provider architecture local\./gu,
+    )?.length,
     1,
   );
   assert.equal(result.evidence.semanticRetrieval, "used");
@@ -216,23 +221,24 @@ test("S6 reduced: dormant exact/direct hit is projected without mutation", async
   });
   const before = await repository.read((view) => view.get("dormant"));
   const auditBefore = await repository.readAudit();
-  const result = await reader(repository, { embeddings: embeddingProvider }).read(
-    request,
-  );
+  const result = await reader(repository, {
+    embeddings: embeddingProvider,
+  }).read(request);
   assert.deepEqual(result.evidence.dormantCandidateIds, ["dormant"]);
   assert.deepEqual(result.evidence.selectedKnowledgeIds, ["dormant"]);
   assert.equal(result.evidence.rankedCandidates[0]?.exclusionReason, null);
   assert.equal(result.evidence.rankedCandidates[0]?.included, true);
-  assert.ok(
-    result.evidence.rankedCandidates[0]?.channels.includes("exact"),
-  );
+  assert.ok(result.evidence.rankedCandidates[0]?.channels.includes("exact"));
   assert.ok(
     result.evidence.rankedCandidates[0]?.reasons.includes(
       "direct_match_ignores_activation",
     ),
   );
   assert.equal(result.evidence.rankedCandidates[0]?.components.strength, 0);
-  assert.deepEqual(await repository.read((view) => view.get("dormant")), before);
+  assert.deepEqual(
+    await repository.read((view) => view.get("dormant")),
+    before,
+  );
   assert.deepEqual(await repository.readAudit(), auditBefore);
   repository.close();
 });
@@ -294,17 +300,20 @@ test("S7 reduced: dormant associative hit is omitted with an explicit reason", a
     (result.evidence.rankedCandidates[0]?.score ?? 0) >=
       new NeutralHybridMemoryReadPolicy().projectionThreshold,
   );
-  assert.deepEqual(await repository.read((view) => view.get("paint-shop")), before);
+  assert.deepEqual(
+    await repository.read((view) => view.get("paint-shop")),
+    before,
+  );
   assert.deepEqual(await repository.readAudit(), auditBefore);
   repository.close();
 });
 
 test("exact-channel scoring zeros memory strength; associative scoring keeps it", async () => {
   assert.equal(
-    strengthWeightForChannels(
-      new NeutralHybridMemoryReadPolicy().weights,
-      ["exact", "lexical"],
-    ),
+    strengthWeightForChannels(new NeutralHybridMemoryReadPolicy().weights, [
+      "exact",
+      "lexical",
+    ]),
     0,
   );
   assert.equal(
@@ -512,7 +521,9 @@ test("100 and 100,000 records produce byte-identical bounded projection", async 
     ];
     const started = performance.now();
     await seed(repository, corpus);
-    const planner = new DeterministicRetrievalPlanner({ knownTags: ["needle"] });
+    const planner = new DeterministicRetrievalPlanner({
+      knownTags: ["needle"],
+    });
     const result = await reader(repository, { planner }).read({
       ...request,
       message: "needle memory architecture",
@@ -524,7 +535,10 @@ test("100 and 100,000 records produce byte-identical bounded projection", async 
 
   const small = await run(100);
   const large = await run(100_000);
-  assert.equal(large.result.projection.serialized, small.result.projection.serialized);
+  assert.equal(
+    large.result.projection.serialized,
+    small.result.projection.serialized,
+  );
   assert.deepEqual(large.result.evidence.selectedKnowledgeIds, ["needle"]);
   assert.equal(large.result.evidence.uniqueCandidateCount <= 32, true);
   console.log(

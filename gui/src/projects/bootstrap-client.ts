@@ -1,12 +1,28 @@
-import type { ExistingProjectRegistration, ProjectBootstrapConfig, ProjectBootstrapPlan, RegisteredProject, ProjectsResponse, ProjectCreated, WorkspaceBinding } from '../../../packages/protocol/src/index.js';
-export type { ExistingProjectRegistration, ProjectBootstrapConfig, ProjectBootstrapPlan, RegisteredProject } from '../../../packages/protocol/src/index.js';
+import type {
+  ExistingProjectRegistration,
+  ProjectBootstrapConfig,
+  ProjectBootstrapPlan,
+  RegisteredProject,
+  ProjectsResponse,
+  ProjectCreated,
+  WorkspaceBinding,
+} from "../../../packages/protocol/src/index.js";
+export type {
+  ExistingProjectRegistration,
+  ProjectBootstrapConfig,
+  ProjectBootstrapPlan,
+  RegisteredProject,
+} from "../../../packages/protocol/src/index.js";
 import { engineHeaders } from "../session/engine-access.js";
 
 async function readJson(response: Response): Promise<unknown> {
   const body: unknown = await response.json();
   if (!response.ok) {
     const message =
-      body !== null && typeof body === "object" && "error" in body && typeof (body as { error: unknown }).error === "string"
+      body !== null &&
+      typeof body === "object" &&
+      "error" in body &&
+      typeof (body as { error: unknown }).error === "string"
         ? (body as { error: string }).error
         : `Request failed (${String(response.status)})`;
     throw new Error(message);

@@ -1,5 +1,13 @@
-import type { ClientMessage, HostServerMessage, SessionControlInput } from "./schemas.js";
-export function parseSessionControlInput(value: unknown, invalid: () => Error = () => new Error("Invalid session control action or parameters.")): SessionControlInput {
+import type {
+  ClientMessage,
+  HostServerMessage,
+  SessionControlInput,
+} from "./schemas.js";
+export function parseSessionControlInput(
+  value: unknown,
+  invalid: () => Error = () =>
+    new Error("Invalid session control action or parameters."),
+): SessionControlInput {
   if (typeof value !== "object" || value === null || Array.isArray(value))
     throw new Error("Invalid session control.");
   const input = value as Record<string, unknown>;
@@ -19,7 +27,11 @@ export function parseSessionControlInput(value: unknown, invalid: () => Error = 
       break;
     case "configureRuntime":
       if ("settings" in input && typeof input.revision === "string")
-        return { action: "configureRuntime", settings: input.settings, revision: input.revision };
+        return {
+          action: "configureRuntime",
+          settings: input.settings,
+          revision: input.revision,
+        };
       break;
   }
   throw invalid();
@@ -37,7 +49,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function parseClientMessage(
   raw: string,
-  parseControl: (value: unknown) => SessionControlInput = parseSessionControlInput,
+  parseControl: (
+    value: unknown,
+  ) => SessionControlInput = parseSessionControlInput,
 ): ClientMessage<SessionControlInput> | ParseFailure {
   let parsed: unknown;
   try {
@@ -58,13 +72,39 @@ export function parseClientMessage(
       : undefined;
   const type = parsed.type;
   if (type === "tool/permission") {
-    if (!requestId || !sessionId || typeof parsed.permissionId !== "string" || typeof parsed.allow !== "boolean") return { error: "Invalid tool permission response." };
-    return { type, requestId, sessionId, permissionId: parsed.permissionId, allow: parsed.allow };
+    if (
+      !requestId ||
+      !sessionId ||
+      typeof parsed.permissionId !== "string" ||
+      typeof parsed.allow !== "boolean"
+    )
+      return { error: "Invalid tool permission response." };
+    return {
+      type,
+      requestId,
+      sessionId,
+      permissionId: parsed.permissionId,
+      allow: parsed.allow,
+    };
   }
   if (type === "session/control") {
-    if (requestId === undefined || sessionId === undefined) return { error: "session/control requires requestId and sessionId." };
-    try { return { type, requestId, sessionId, control: parseControl(parsed.control) }; }
-    catch (error) { return { error: error instanceof Error ? error.message : "Invalid session control.", requestId, sessionId }; }
+    if (requestId === undefined || sessionId === undefined)
+      return { error: "session/control requires requestId and sessionId." };
+    try {
+      return {
+        type,
+        requestId,
+        sessionId,
+        control: parseControl(parsed.control),
+      };
+    } catch (error) {
+      return {
+        error:
+          error instanceof Error ? error.message : "Invalid session control.",
+        requestId,
+        sessionId,
+      };
+    }
   }
   if (type === "session/new") {
     if (requestId === undefined) {
@@ -74,16 +114,30 @@ export function parseClientMessage(
       return { type: "session/new", requestId };
     }
     if (typeof parsed.model !== "string" || parsed.model.trim().length === 0) {
-      return { error: "session/new model must be a non-empty string.", requestId };
+      return {
+        error: "session/new model must be a non-empty string.",
+        requestId,
+      };
     }
     return { type: "session/new", requestId, model: parsed.model };
   }
   if (type === "session/resume") {
     if (requestId === undefined || sessionId === undefined) {
-      return { error: "session/resume requires requestId and sessionId.", ...(requestId === undefined ? {} : { requestId }), ...(sessionId === undefined ? {} : { sessionId }) };
+      return {
+        error: "session/resume requires requestId and sessionId.",
+        ...(requestId === undefined ? {} : { requestId }),
+        ...(sessionId === undefined ? {} : { sessionId }),
+      };
     }
-    if (typeof parsed.resumeToken !== "string" || !/^[a-f0-9]{64}$/u.test(parsed.resumeToken)) {
-      return { error: "session/resume requires a valid resume capability.", requestId, sessionId };
+    if (
+      typeof parsed.resumeToken !== "string" ||
+      !/^[a-f0-9]{64}$/u.test(parsed.resumeToken)
+    ) {
+      return {
+        error: "session/resume requires a valid resume capability.",
+        requestId,
+        sessionId,
+      };
     }
     return { type, requestId, sessionId, resumeToken: parsed.resumeToken };
   }

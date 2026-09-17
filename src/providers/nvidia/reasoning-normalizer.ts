@@ -9,8 +9,7 @@ export interface NvidiaChannelTransition {
 
 const THINK_OPEN = /<think>|<thinking>|<\|begin_of_thinking\|>/iu;
 const THINK_CLOSE = /<\/think>|<\/thinking>|<\|end_of_thinking\|>/iu;
-const RESPONSE_MARKER =
-  /I'll generate the response\.?\s*✅?\s*/iu;
+const RESPONSE_MARKER = /I'll generate the response\.?\s*✅?\s*/iu;
 const HOLD_AFTER_REASONING_CHARS = 80;
 
 export function looksLikeChainOfThought(text: string): boolean {

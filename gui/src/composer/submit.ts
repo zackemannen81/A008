@@ -1,4 +1,4 @@
-import type { GuiSession } from "../session/types.js";
+import type { GuiSession, PromptImageAttachment } from "../session/types.js";
 import {
   loadModels,
   type SessionControl,
@@ -14,6 +14,7 @@ import {
 export interface ComposerSubmitDeps {
   readonly session: GuiSession;
   readonly runShellCommand: (command: string) => Promise<string>;
+  readonly attachment?: PromptImageAttachment;
   readonly models?: typeof loadModels;
 }
 export type ComposerSubmitResult =
@@ -69,7 +70,7 @@ export async function submitComposer(
     };
   }
   if (parsed === undefined) {
-    await deps.session.prompt(text);
+    await deps.session.prompt(text, deps.attachment);
     return { kind: "prompt", text };
   }
   const notice = (message: string): ComposerSubmitResult => ({
@@ -131,7 +132,9 @@ export async function submitComposer(
         (await controlSession(deps.session, { action: "inspect" })).runtime.cwd,
       );
     case "tools":
-      return notice(`${GUI_TOOLS}${deps.session.details?.runtime.tools ? `\n\n${deps.session.details.runtime.tools.map(tool => `${tool.name}  ${tool.description}`).join("\n")}` : ""}`);
+      return notice(
+        `${GUI_TOOLS}${deps.session.details?.runtime.tools ? `\n\n${deps.session.details.runtime.tools.map((tool) => `${tool.name}  ${tool.description}`).join("\n")}` : ""}`,
+      );
     case "shell":
       if (parsed.argument === "")
         return { kind: "error", message: "Usage: /shell <command>" };

@@ -23,13 +23,19 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function parseKieCreateTask(value: unknown): string {
-  if (!isRecord(value) || !isRecord(value.data) || typeof value.data.taskId !== "string") {
+  if (
+    !isRecord(value) ||
+    !isRecord(value.data) ||
+    typeof value.data.taskId !== "string"
+  ) {
     throw new ChatError("provider", "kie.ai did not return a taskId.");
   }
   if (value.code !== undefined && value.code !== 200) {
     throw new ChatError(
       "provider",
-      typeof value.msg === "string" ? value.msg : `kie.ai createTask failed (${String(value.code)}).`,
+      typeof value.msg === "string"
+        ? value.msg
+        : `kie.ai createTask failed (${String(value.code)}).`,
     );
   }
   const id = value.data.taskId.trim();
@@ -53,7 +59,10 @@ export function parseKieResultUrls(value: unknown): readonly string[] {
   if (state !== "success") return [];
   const raw = value.data.resultJson;
   if (typeof raw !== "string" || raw.trim().length === 0) {
-    throw new ChatError("provider", "kie.ai success response had no resultJson.");
+    throw new ChatError(
+      "provider",
+      "kie.ai success response had no resultJson.",
+    );
   }
   let parsed: unknown;
   try {
@@ -64,7 +73,9 @@ export function parseKieResultUrls(value: unknown): readonly string[] {
   if (!isRecord(parsed) || !Array.isArray(parsed.resultUrls)) {
     throw new ChatError("provider", "kie.ai resultJson had no resultUrls.");
   }
-  return parsed.resultUrls.filter((item): item is string => typeof item === "string" && item.length > 0);
+  return parsed.resultUrls.filter(
+    (item): item is string => typeof item === "string" && item.length > 0,
+  );
 }
 
 export class KieJobTransport {
@@ -78,20 +89,31 @@ export class KieJobTransport {
   constructor(options: KieJobTransportOptions) {
     const apiKey = options.apiKey.trim();
     if (apiKey.length === 0) {
-      throw new ChatError("configuration", "KIE_API_KEY is required for kie.ai generation.");
+      throw new ChatError(
+        "configuration",
+        "KIE_API_KEY is required for kie.ai generation.",
+      );
     }
     this.#apiKey = apiKey;
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
     this.#now = options.now ?? Date.now;
-    this.#sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    this.#sleep =
+      options.sleep ??
+      ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.#pollMs = options.pollMs ?? 2000;
     this.#timeoutMs = options.timeoutMs ?? 180_000;
   }
 
-  async generateImage(model: string, prompt: string): Promise<{ bytes: Buffer; mediaType: "image/png" | "image/jpeg" }> {
+  async generateImage(
+    model: string,
+    prompt: string,
+  ): Promise<{ bytes: Buffer; mediaType: "image/png" | "image/jpeg" }> {
     const trimmed = prompt.trim();
     if (trimmed.length < 3) {
-      throw new ChatError("configuration", "Image prompt must be at least 3 characters.");
+      throw new ChatError(
+        "configuration",
+        "Image prompt must be at least 3 characters.",
+      );
     }
     const created = await this.#json(KIE_CREATE_TASK_URL, {
       method: "POST",
@@ -112,11 +134,17 @@ export class KieJobTransport {
         const url = urls[0]!;
         const response = await this.#fetch(url, { method: "GET" });
         if (!response.ok) {
-          throw new ChatError("provider", `Failed to download kie.ai result (${response.status}).`);
+          throw new ChatError(
+            "provider",
+            `Failed to download kie.ai result (${response.status}).`,
+          );
         }
         const bytes = Buffer.from(await response.arrayBuffer());
         const mediaType =
-          bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
+          bytes.length >= 3 &&
+          bytes[0] === 0xff &&
+          bytes[1] === 0xd8 &&
+          bytes[2] === 0xff
             ? "image/jpeg"
             : "image/png";
         return { bytes, mediaType };
@@ -126,7 +154,10 @@ export class KieJobTransport {
     throw new ChatError("timeout", "kie.ai image generation timed out.");
   }
 
-  async #json(url: string, init: { method: string; body?: string }): Promise<unknown> {
+  async #json(
+    url: string,
+    init: { method: string; body?: string },
+  ): Promise<unknown> {
     let response: Response;
     try {
       response = await this.#fetch(url, {
@@ -139,7 +170,10 @@ export class KieJobTransport {
         ...(init.body ? { body: init.body } : {}),
       });
     } catch (cause) {
-      throw new ChatError("network", "Failed to reach kie.ai.", { cause, retryable: true });
+      throw new ChatError("network", "Failed to reach kie.ai.", {
+        cause,
+        retryable: true,
+      });
     }
     const text = await response.text();
     let payload: unknown;
@@ -149,7 +183,10 @@ export class KieJobTransport {
       throw new ChatError("provider", "kie.ai returned non-JSON.");
     }
     if (!response.ok) {
-      const msg = isRecord(payload) && typeof payload.msg === "string" ? payload.msg : `kie.ai failed (${response.status}).`;
+      const msg =
+        isRecord(payload) && typeof payload.msg === "string"
+          ? payload.msg
+          : `kie.ai failed (${response.status}).`;
       throw new ChatError("provider", msg);
     }
     return payload;

@@ -21,11 +21,7 @@
           "$ref": "#/$defs/__schema3"
         }
       },
-      "required": [
-        "type",
-        "requestId",
-        "sessionId"
-      ]
+      "required": ["type", "requestId", "sessionId"]
     },
     {
       "type": "object",
@@ -47,12 +43,7 @@
           "$ref": "#/$defs/__schema3"
         }
       },
-      "required": [
-        "type",
-        "requestId",
-        "sessionId",
-        "resumeToken"
-      ]
+      "required": ["type", "requestId", "sessionId", "resumeToken"]
     },
     {
       "type": "object",
@@ -71,11 +62,7 @@
           "$ref": "#/$defs/__schema3"
         }
       },
-      "required": [
-        "type",
-        "requestId",
-        "sessionId"
-      ]
+      "required": ["type", "requestId", "sessionId"]
     },
     {
       "type": "object",
@@ -94,12 +81,7 @@
           "$ref": "#/$defs/__schema3"
         }
       },
-      "required": [
-        "type",
-        "requestId",
-        "sessionId",
-        "state"
-      ]
+      "required": ["type", "requestId", "sessionId", "state"]
     },
     {
       "type": "object",
@@ -115,11 +97,7 @@
           "$ref": "#/$defs/__schema1"
         }
       },
-      "required": [
-        "type",
-        "sessionId",
-        "text"
-      ]
+      "required": ["type", "sessionId", "text"]
     },
     {
       "type": "object",
@@ -135,11 +113,7 @@
           "$ref": "#/$defs/__schema1"
         }
       },
-      "required": [
-        "type",
-        "sessionId",
-        "text"
-      ]
+      "required": ["type", "sessionId", "text"]
     },
     {
       "type": "object",
@@ -158,10 +132,7 @@
           "$ref": "#/$defs/__schema1"
         }
       },
-      "required": [
-        "type",
-        "message"
-      ]
+      "required": ["type", "message"]
     },
     {
       "type": "object",
@@ -186,14 +157,7 @@
           "$ref": "#/$defs/__schema1"
         }
       },
-      "required": [
-        "type",
-        "sessionId",
-        "id",
-        "title",
-        "status",
-        "text"
-      ]
+      "required": ["type", "sessionId", "id", "title", "status", "text"]
     },
     {
       "type": "object",
@@ -215,13 +179,7 @@
           "$ref": "#/$defs/__schema1"
         }
       },
-      "required": [
-        "type",
-        "sessionId",
-        "id",
-        "title",
-        "text"
-      ]
+      "required": ["type", "sessionId", "id", "title", "text"]
     },
     {
       "type": "object",
@@ -243,11 +201,7 @@
           "$ref": "#/$defs/__schema3"
         }
       },
-      "required": [
-        "type",
-        "sessionId",
-        "active"
-      ]
+      "required": ["type", "sessionId", "active"]
     }
   ],
   "$defs": {
@@ -325,10 +279,7 @@
               "$ref": "#/$defs/__schema5"
             },
             "enableThinking": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": ["boolean", "null"]
             },
             "reasoningBudget": {
               "anyOf": [
@@ -395,19 +346,13 @@
             "properties": {
               "role": {
                 "type": "string",
-                "enum": [
-                  "user",
-                  "assistant"
-                ]
+                "enum": ["user", "assistant"]
               },
               "content": {
                 "$ref": "#/$defs/__schema1"
               }
             },
-            "required": [
-              "role",
-              "content"
-            ]
+            "required": ["role", "content"]
           }
         },
         "runtime": {
@@ -449,18 +394,11 @@
                     "$ref": "#/$defs/__schema1"
                   }
                 },
-                "required": [
-                  "name",
-                  "description"
-                ]
+                "required": ["name", "description"]
               }
             }
           },
-          "required": [
-            "cwd",
-            "projectId",
-            "memoryPath"
-          ]
+          "required": ["cwd", "projectId", "memoryPath"]
         },
         "undone": {
           "type": "boolean"
@@ -469,12 +407,7 @@
           "type": "boolean"
         }
       },
-      "required": [
-        "model",
-        "parameters",
-        "messages",
-        "runtime"
-      ]
+      "required": ["model", "parameters", "messages", "runtime"]
     },
     "__schema4": {
       "type": "object",
@@ -492,10 +425,7 @@
           }
         }
       },
-      "required": [
-        "instructions",
-        "budgets"
-      ]
+      "required": ["instructions", "budgets"]
     },
     "__schema5": {
       "type": "number"
@@ -536,14 +466,7 @@
           "$ref": "#/$defs/__schema5"
         }
       },
-      "required": [
-        "key",
-        "label",
-        "unit",
-        "description",
-        "minimum",
-        "maximum"
-      ]
+      "required": ["key", "label", "unit", "description", "minimum", "maximum"]
     },
     "__schema8": {
       "anyOf": [

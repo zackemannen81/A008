@@ -30,9 +30,13 @@ export async function resolve(specifier, context, nextResolve) {
     };
   }
 
-  if (specifier.startsWith(".") && specifier.endsWith(".js")) {
-    for (const extension of TS_CANDIDATES) {
-      const candidate = specifier.replace(/\.js$/u, extension);
+  if (
+    specifier.startsWith(".") &&
+    (specifier.endsWith(".js") || specifier.endsWith(".jsx"))
+  ) {
+    const extensions = specifier.endsWith(".jsx") ? [".tsx"] : TS_CANDIDATES;
+    for (const extension of extensions) {
+      const candidate = specifier.replace(/\.jsx?$/u, extension);
       const candidateUrl = new URL(candidate, context.parentURL);
       if (existsSync(fileURLToPath(candidateUrl))) {
         return nextResolve(candidate, context);
@@ -45,7 +49,11 @@ export async function resolve(specifier, context, nextResolve) {
 
 export async function load(url, context, nextLoad) {
   if (url.endsWith(".css")) {
-    return { format: "module", source: "export default {};", shortCircuit: true };
+    return {
+      format: "module",
+      source: "export default {};",
+      shortCircuit: true,
+    };
   }
 
   if (url.endsWith(".tsx")) {

@@ -75,25 +75,36 @@ export class KnowledgeMemoryReader {
    */
   async #classifyScope(
     request: MemoryReadRequest,
-    vocabulary: { readonly tags: readonly string[]; readonly domains: readonly string[] },
+    vocabulary: {
+      readonly tags: readonly string[];
+      readonly domains: readonly string[];
+    },
     options: { readonly signal?: AbortSignal },
   ): Promise<{
     readonly retrieve: boolean;
-    readonly semanticRetrieval: "used" | "skipped" | "degraded" | "not_configured";
+    readonly semanticRetrieval:
+      "used" | "skipped" | "degraded" | "not_configured";
     readonly domains: readonly string[];
     readonly relatedDomains: readonly string[];
     readonly tags: readonly string[];
     readonly relatedTags: readonly string[];
   }> {
     if (this.#scopeClassifier === undefined) {
-      return { ...EMPTY_CLASSIFICATION, retrieve: true, semanticRetrieval: "not_configured" };
+      return {
+        ...EMPTY_CLASSIFICATION,
+        retrieve: true,
+        semanticRetrieval: "not_configured",
+      };
     }
     try {
-      const draft = await this.#scopeClassifier.classify({
-        message: request.message,
-        knownDomains: vocabulary.domains,
-        knownTags: vocabulary.tags,
-      }, options);
+      const draft = await this.#scopeClassifier.classify(
+        {
+          message: request.message,
+          knownDomains: vocabulary.domains,
+          knownTags: vocabulary.tags,
+        },
+        options,
+      );
       const retrieve = draft.retrieve !== false;
       return {
         retrieve,
@@ -107,11 +118,18 @@ export class KnowledgeMemoryReader {
       if (options.signal?.aborted) {
         throw error;
       }
-      return { ...EMPTY_CLASSIFICATION, retrieve: true, semanticRetrieval: "degraded" };
+      return {
+        ...EMPTY_CLASSIFICATION,
+        retrieve: true,
+        semanticRetrieval: "degraded",
+      };
     }
   }
 
-  async read(request: MemoryReadRequest, options: { readonly signal?: AbortSignal } = {}): Promise<HybridMemoryReadResult> {
+  async read(
+    request: MemoryReadRequest,
+    options: { readonly signal?: AbortSignal } = {},
+  ): Promise<HybridMemoryReadResult> {
     const plan = this.#planner.plan(request);
     const vocabulary = this.#context.labels.vocabulary();
 
@@ -136,10 +154,16 @@ export class KnowledgeMemoryReader {
         classified.semanticRetrieval,
       );
     }
-    const scope = this.#scopes.advance(request.conversationId, {
-      domains: classified.domains,
-      relatedDomains: classified.relatedDomains,
-    }, this.#maximumScopeDomains === undefined ? {} : { maximumDomains: this.#maximumScopeDomains });
+    const scope = this.#scopes.advance(
+      request.conversationId,
+      {
+        domains: classified.domains,
+        relatedDomains: classified.relatedDomains,
+      },
+      this.#maximumScopeDomains === undefined
+        ? {}
+        : { maximumDomains: this.#maximumScopeDomains },
+    );
 
     const result = readKnowledge(
       {
@@ -195,9 +219,9 @@ export class KnowledgeMemoryReader {
         measurementUnit: this.#measurer.unit,
       },
       evidence: {
-        persistentCurrentCount: this.#context.state.snapshot().bindings.filter(
-          (binding) => binding.interval.to === null,
-        ).length,
+        persistentCurrentCount: this.#context.state
+          .snapshot()
+          .bindings.filter((binding) => binding.interval.to === null).length,
         channelCounts: {
           exact: result.retrieved.filter((record) =>
             record.reasons.includes("direct_slot_match"),
@@ -263,14 +287,28 @@ function emptyReadResult(
   const measuredUnits = measurer.measure(serialized);
   return {
     plan,
-    projection: { projection, serialized, measuredUnits, measurementUnit: measurer.unit },
+    projection: {
+      projection,
+      serialized,
+      measuredUnits,
+      measurementUnit: measurer.unit,
+    },
     evidence: {
-      persistentCurrentCount: context.state.snapshot().bindings.filter((binding) => binding.interval.to === null).length,
+      persistentCurrentCount: context.state
+        .snapshot()
+        .bindings.filter((binding) => binding.interval.to === null).length,
       channelCounts: { exact: 0, lexical: 0, tag: 0, domain: 0, semantic: 0 },
-      uniqueCandidateCount: 0, admittedCandidateCount: 0, rankedCandidates: [],
-      dormantCandidateIds: [], selectedKnowledgeIds: [], omittedKnowledgeIds: [],
-      candidateThreshold: 0, projectionThreshold: 0, projectionMaximum: 0,
-      projectionMeasuredUnits: measuredUnits, projectionMeasurementUnit: measurer.unit,
+      uniqueCandidateCount: 0,
+      admittedCandidateCount: 0,
+      rankedCandidates: [],
+      dormantCandidateIds: [],
+      selectedKnowledgeIds: [],
+      omittedKnowledgeIds: [],
+      candidateThreshold: 0,
+      projectionThreshold: 0,
+      projectionMaximum: 0,
+      projectionMeasuredUnits: measuredUnits,
+      projectionMeasurementUnit: measurer.unit,
       semanticRetrieval,
     },
   };
@@ -278,7 +316,10 @@ function emptyReadResult(
 
 function mentionedLabels(
   message: string,
-  vocabulary: { readonly tags: readonly string[]; readonly domains: readonly string[] },
+  vocabulary: {
+    readonly tags: readonly string[];
+    readonly domains: readonly string[];
+  },
 ): { readonly tags: readonly string[]; readonly domains: readonly string[] } {
   const haystack = normalizeLabel(message);
   const mentions = (label: string): boolean => {
@@ -290,7 +331,7 @@ function mentionedLabels(
     if (at < 0) {
       return false;
     }
-    const before = at === 0 ? " " : haystack[at - 1] ?? " ";
+    const before = at === 0 ? " " : (haystack[at - 1] ?? " ");
     const after = haystack[at + needle.length] ?? " ";
     return !isWordCharacter(before) && !isWordCharacter(after);
   };

@@ -423,3 +423,11 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.a008-model-specs { margin-top: 1rem; padding: 1rem; border: 1px solid var(--a008-border); border-radius: 6px; background: var(--a008-bg); }
+.a008-model-badges { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .9rem; }
+.a008-model-badges span { border: 1px solid var(--a008-accent); color: var(--a008-accent); border-radius: 999px; padding: .25rem .5rem; font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; }
+.a008-model-specs dl { display: grid; gap: .55rem; margin: 0; }
+.a008-model-specs dl div { display: grid; grid-template-columns: 7.5rem minmax(0,1fr); gap: .75rem; font-size: .74rem; }
+.a008-model-specs dt { color: var(--a008-muted); }
+.a008-model-specs dd { margin: 0; overflow-wrap: anywhere; }

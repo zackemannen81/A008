@@ -1,5 +1,8 @@
 import { randomUUID } from "node:crypto";
-import { acquireRuntimeLease, canonicalStoragePath } from "./runtime-ownership.js";
+import {
+  acquireRuntimeLease,
+  canonicalStoragePath,
+} from "./runtime-ownership.js";
 import {
   existsSync,
   mkdirSync,
@@ -18,13 +21,22 @@ import { RuntimePreferencesStore } from "./runtime-preferences-store.js";
 import type { RuntimeBudgets } from "../core/runtime-preferences.js";
 import { ConversationScopes } from "../memory/knowledge/current-scope.js";
 import { DeterministicRetrievalPlanner } from "../memory/deterministic-retrieval-planner.js";
-import { chatGeneration, defaultSessionParameters, generationCapabilities, parseSessionParameters } from "../core/generation-controls.js";
+import {
+  chatGeneration,
+  defaultSessionParameters,
+  generationCapabilities,
+  parseSessionParameters,
+} from "../core/generation-controls.js";
 import {
   DEFAULT_MODEL_ID,
   defaultModelRegistry,
   type ModelRegistry,
 } from "../core/model-registry.js";
-import type { ChatCompletion, ChatTransport } from "../core/types.js";
+import type {
+  ChatCompletion,
+  ChatImageAttachment,
+  ChatTransport,
+} from "../core/types.js";
 import { IdentityError } from "../identity/errors.js";
 import {
   parseRuntimeId,
@@ -39,7 +51,11 @@ import type {
 import { MemoryError, isMemoryError } from "../memory/errors.js";
 import type { ProvenanceRelation } from "../memory/knowledge/evidence-types.js";
 import { ingest } from "../memory/knowledge/ingest.js";
-import { inspectKnowledge, type MemoryInspection, type MemoryInspectionQuery } from "../memory/knowledge/inspection.js";
+import {
+  inspectKnowledge,
+  type MemoryInspection,
+  type MemoryInspectionQuery,
+} from "../memory/knowledge/inspection.js";
 import {
   createSqliteKnowledgeContext,
   KnowledgeEngineCommit,
@@ -55,6 +71,12 @@ import {
   SourceExtractorRegistry,
   Utf8TextExtractor,
 } from "../ingest/index.js";
+import {
+  IMAGE_GIF,
+  IMAGE_JPEG,
+  IMAGE_PNG,
+  IMAGE_WEBP,
+} from "../ingest/types.js";
 import { MemoryAwareChatSession } from "../orchestration/memory-aware-chat-session.js";
 import type { MemoryReadPort } from "../orchestration/memory-aware-chat-session.js";
 import {
@@ -101,7 +123,6 @@ import {
 } from "./nvidia-session.js";
 import { createConfiguredChatTransport } from "./chat-dispatch.js";
 import { defaultCatalogPath } from "../core/user-catalog.js";
-
 
 export const LOCAL_MEMORY_SCOPES = ["local"] as const;
 export const LIVE_PROJECTION_REINFORCEMENT = 0;
@@ -261,8 +282,10 @@ export interface SharedMemoryWriteResult {
   readonly semantics: "evidence";
 }
 
-
-function budget(maximum: number, label = "Semantic input (Parameters → Budgets)"): ChatInvocationBudget {
+function budget(
+  maximum: number,
+  label = "Semantic input (Parameters → Budgets)",
+): ChatInvocationBudget {
   return {
     maximum,
     label,
@@ -282,14 +305,21 @@ function semanticBudget(maximum: number): {
 
 function semanticGeneration(model: string, limits: RuntimeBudgets) {
   const capabilities = generationCapabilities(model);
-  return { ...SEMANTIC_JSON_GENERATION,
+  return {
+    ...SEMANTIC_JSON_GENERATION,
     ...(capabilities.topP ? {} : { topP: null }),
     ...(capabilities.thinking ? {} : { enableThinking: null }),
-    ...(model === "gpt-5.6-luna" ? { temperature: null, reasoningEffort: "none" } : {}),
-    maxTokens: Math.min(limits.semanticOutputTokens, capabilities.maxTokens) };
+    ...(model === "gpt-5.6-luna"
+      ? { temperature: null, reasoningEffort: "none" }
+      : {}),
+    maxTokens: Math.min(limits.semanticOutputTokens, capabilities.maxTokens),
+  };
 }
 
-function containedRelative(root: string, candidate: string): string | undefined {
+function containedRelative(
+  root: string,
+  candidate: string,
+): string | undefined {
   const relativePath = relative(root, candidate);
   if (
     relativePath === "" ||
@@ -365,7 +395,11 @@ function resolveSourceLocatorPath(storeRoot: string, locator: string): string {
 }
 
 export function formatRuntimeError(error: unknown): string {
-  if (isChatError(error) || isMemoryError(error) || error instanceof IdentityError) {
+  if (
+    isChatError(error) ||
+    isMemoryError(error) ||
+    error instanceof IdentityError
+  ) {
     return `${error.code}: ${error.message}`;
   }
   if (error instanceof Error) {
@@ -505,7 +539,8 @@ function emitCommitTrace(
 }
 
 export class LocalMemorySession {
-  #parameters: import("../core/generation-controls.js").SessionParameters | undefined;
+  #parameters:
+    import("../core/generation-controls.js").SessionParameters | undefined;
   readonly conversationId: ConversationId;
   readonly #runtime: LocalMemoryRuntime;
   readonly #chat: ChatSession;
@@ -534,8 +569,12 @@ export class LocalMemorySession {
   }
 
   get parameters() {
-    const parameters = this.#parameters ?? this.#runtime.sessionParameters(this.model);
-    return { ...parameters, stop: parameters.stop === null ? null : [...parameters.stop] };
+    const parameters =
+      this.#parameters ?? this.#runtime.sessionParameters(this.model);
+    return {
+      ...parameters,
+      stop: parameters.stop === null ? null : [...parameters.stop],
+    };
   }
 
   enableSessionControls(): void {
@@ -543,29 +582,53 @@ export class LocalMemorySession {
   }
 
   configureParameters(value: unknown): void {
-    if (this.#turnActive) throw new ChatError("configuration", "Cannot configure during an active turn.");
+    if (this.#turnActive)
+      throw new ChatError(
+        "configuration",
+        "Cannot configure during an active turn.",
+      );
     this.#parameters = parseSessionParameters(value, this.model);
   }
 
   get runtimePreferences() {
     const snapshot = this.#runtime.preferences.snapshot();
-    return { ...snapshot, fields: snapshot.fields.map(field => field.key === "semanticOutputTokens"
-      ? { ...field, description: `${field.description} Saved effective limits: extraction/classification (${this.model}) ${semanticGeneration(this.model, snapshot.settings.budgets).maxTokens}; retrieval/source extraction (${DEFAULT_MODEL_ID}) ${semanticGeneration(DEFAULT_MODEL_ID, snapshot.settings.budgets).maxTokens}.` }
-      : field) };
+    return {
+      ...snapshot,
+      fields: snapshot.fields.map((field) =>
+        field.key === "semanticOutputTokens"
+          ? {
+              ...field,
+              description: `${field.description} Saved effective limits: extraction/classification (${this.model}) ${semanticGeneration(this.model, snapshot.settings.budgets).maxTokens}; retrieval/source extraction (${DEFAULT_MODEL_ID}) ${semanticGeneration(DEFAULT_MODEL_ID, snapshot.settings.budgets).maxTokens}.`,
+            }
+          : field,
+      ),
+    };
   }
 
   configureRuntimePreferences(value: unknown, revision: string): void {
-    if (this.#turnActive) throw new ChatError("configuration", "Cannot configure during an active turn.");
+    if (this.#turnActive)
+      throw new ChatError(
+        "configuration",
+        "Cannot configure during an active turn.",
+      );
     this.#runtime.preferences.save(value, revision);
   }
 
   reset(): void {
-    if (this.#turnActive) throw new ChatError("configuration", "Cannot reset during an active turn.");
+    if (this.#turnActive)
+      throw new ChatError(
+        "configuration",
+        "Cannot reset during an active turn.",
+      );
     this.#chat.reset();
   }
 
   undoLastTurn(): boolean {
-    if (this.#turnActive) throw new ChatError("configuration", "Cannot undo during an active turn.");
+    if (this.#turnActive)
+      throw new ChatError(
+        "configuration",
+        "Cannot undo during an active turn.",
+      );
     return this.#chat.undoLastTurn();
   }
 
@@ -581,7 +644,13 @@ export class LocalMemorySession {
   ): Promise<ChatCompletion> {
     const result = await this.turn(content, {
       ...options,
-      ...(this.#parameters === undefined ? {} : { generation: chatGeneration(parseSessionParameters(this.#parameters, this.model)) }),
+      ...(this.#parameters === undefined
+        ? {}
+        : {
+            generation: chatGeneration(
+              parseSessionParameters(this.#parameters, this.model),
+            ),
+          }),
     });
     this.#lastDiagnostic = result.memoryDiagnostic;
     return result.completion;
@@ -601,98 +670,115 @@ export class LocalMemorySession {
     const traceId = randomUUID();
     const taskId = this.#identityFactory.create("task");
     try {
-      return await this.#runtime.preferences.run(() => withTraceId(traceId, async () => {
-        const tools = options.prepareTools ? await options.prepareTools(options.signal ?? new AbortController().signal, this.#runtime.preferences.current.budgets) : options.tools;
-        const turn = this.#runtime.createTurn(this.#chat, this.conversationId);
-        this.#runtime.tracer.emit({
-          traceId,
-          surface: this.#runtime.surface,
-          phase: "turn_start",
-          summary: "memory-aware turn",
-        });
-        try {
-          const memoryResult = await turn.chat.send(
-            {
-              taskId,
-              message,
-              applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
-            },
-            {
-              ...(options.generation === undefined
-                ? {}
-                : { generation: options.generation }),
-              ...(options.signal === undefined ? {} : { signal: options.signal }),
-              ...(options.onDelta === undefined ? {} : { onDelta: options.onDelta }),
-              ...(tools === undefined ? {} : { tools }),
-            },
+      return await this.#runtime.preferences.run(() =>
+        withTraceId(traceId, async () => {
+          const tools = options.prepareTools
+            ? await options.prepareTools(
+                options.signal ?? new AbortController().signal,
+                this.#runtime.preferences.current.budgets,
+              )
+            : options.tools;
+          const turn = this.#runtime.createTurn(
+            this.#chat,
+            this.conversationId,
           );
-          await this.#runtime.tracer.flush();
-          const answer = verifiedFinalAnswer(memoryResult.completion);
-          let postOutput = await turn.coordinator.process(
-            {
-              taskId,
-              message,
-              answer,
-              applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
-            },
-            options.signal === undefined ? {} : { signal: options.signal },
-          );
-          if (postOutput.status === "index_repair_required") {
-            postOutput = await turn.coordinator.repairAndResume(
-              postOutput.checkpoint,
+          this.#runtime.tracer.emit({
+            traceId,
+            surface: this.#runtime.surface,
+            phase: "turn_start",
+            summary: "memory-aware turn",
+          });
+          try {
+            const memoryResult = await turn.chat.send(
+              {
+                taskId,
+                message,
+                applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
+              },
+              {
+                ...(options.generation === undefined
+                  ? {}
+                  : { generation: options.generation }),
+                ...(options.imageAttachments?.length
+                  ? { imageAttachments: options.imageAttachments }
+                  : {}),
+                ...(options.signal === undefined
+                  ? {}
+                  : { signal: options.signal }),
+                ...(options.onDelta === undefined
+                  ? {}
+                  : { onDelta: options.onDelta }),
+                ...(tools === undefined ? {} : { tools }),
+              },
+            );
+            await this.#runtime.tracer.flush();
+            const answer = verifiedFinalAnswer(memoryResult.completion);
+            let postOutput = await turn.coordinator.process(
+              {
+                taskId,
+                message,
+                answer,
+                applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
+              },
               options.signal === undefined ? {} : { signal: options.signal },
             );
-          }
-          emitCommitTrace(
-            this.#runtime.tracer,
-            this.#runtime.surface,
-            traceId,
-            postOutput,
-          );
-          const memoryDiagnostic = describeMemoryOutcome(postOutput);
-          if (memoryDiagnostic !== undefined) {
+            if (postOutput.status === "index_repair_required") {
+              postOutput = await turn.coordinator.repairAndResume(
+                postOutput.checkpoint,
+                options.signal === undefined ? {} : { signal: options.signal },
+              );
+            }
+            emitCommitTrace(
+              this.#runtime.tracer,
+              this.#runtime.surface,
+              traceId,
+              postOutput,
+            );
+            const memoryDiagnostic = describeMemoryOutcome(postOutput);
+            if (memoryDiagnostic !== undefined) {
+              this.#runtime.tracer.emit({
+                traceId,
+                surface: this.#runtime.surface,
+                phase: "memory_failure",
+                status: "error",
+                summary: memoryDiagnostic,
+              });
+            }
+            this.#runtime.tracer.emit({
+              traceId,
+              surface: this.#runtime.surface,
+              phase: "turn_complete",
+              status: memoryDiagnostic === undefined ? "ok" : "degraded",
+              chatStatus: "ok",
+              memoryStatus: postOutput.status,
+            });
+            await this.#runtime.tracer.flush();
+            const sinkFailure = this.#runtime.tracer.consumeSinkFailure();
+            const diagnostic =
+              memoryDiagnostic ??
+              (sinkFailure === undefined
+                ? undefined
+                : `memory-trace sink failed: ${sinkFailure}`);
+            return {
+              completion: memoryResult.completion,
+              memory: memoryResult.memory,
+              taskId,
+              postOutput,
+              memoryDiagnostic: diagnostic,
+            };
+          } catch (error) {
             this.#runtime.tracer.emit({
               traceId,
               surface: this.#runtime.surface,
               phase: "memory_failure",
               status: "error",
-              summary: memoryDiagnostic,
+              summary: formatRuntimeError(error),
             });
+            await this.#runtime.tracer.flush();
+            throw error;
           }
-          this.#runtime.tracer.emit({
-            traceId,
-            surface: this.#runtime.surface,
-            phase: "turn_complete",
-            status: memoryDiagnostic === undefined ? "ok" : "degraded",
-            chatStatus: "ok",
-            memoryStatus: postOutput.status,
-          });
-          await this.#runtime.tracer.flush();
-          const sinkFailure = this.#runtime.tracer.consumeSinkFailure();
-          const diagnostic =
-            memoryDiagnostic ??
-            (sinkFailure === undefined
-              ? undefined
-              : `memory-trace sink failed: ${sinkFailure}`);
-          return {
-            completion: memoryResult.completion,
-            memory: memoryResult.memory,
-            taskId,
-            postOutput,
-            memoryDiagnostic: diagnostic,
-          };
-        } catch (error) {
-          this.#runtime.tracer.emit({
-            traceId,
-            surface: this.#runtime.surface,
-            phase: "memory_failure",
-            status: "error",
-            summary: formatRuntimeError(error),
-          });
-          await this.#runtime.tracer.flush();
-          throw error;
-        }
-      }));
+        }),
+      );
     } finally {
       this.#turnActive = false;
     }
@@ -785,27 +871,45 @@ export class LocalMemoryRuntime {
   }
 
   inspectMemory(query: MemoryInspectionQuery = {}): MemoryInspection {
-    if (this.#closed) throw new ChatError("configuration", "Local memory runtime is closed.");
-    return inspectKnowledge(this.#knowledge.context, { projectId: this.projectId, durable: this.sqlitePath !== ":memory:" }, query);
+    if (this.#closed)
+      throw new ChatError("configuration", "Local memory runtime is closed.");
+    return inspectKnowledge(
+      this.#knowledge.context,
+      { projectId: this.projectId, durable: this.sqlitePath !== ":memory:" },
+      query,
+    );
   }
 
-  async recallSharedMemory(input: SharedMemoryRecallInput): Promise<SharedMemoryRecallResult> {
+  async recallSharedMemory(
+    input: SharedMemoryRecallInput,
+  ): Promise<SharedMemoryRecallResult> {
     if (this.#closed) {
       throw new ChatError("configuration", "Local memory runtime is closed.");
     }
     const query = typeof input.query === "string" ? input.query.trim() : "";
     if (query.length === 0) {
-      throw new MemoryError("invalid_input", "shared memory recall requires a non-empty query");
+      throw new MemoryError(
+        "invalid_input",
+        "shared memory recall requires a non-empty query",
+      );
     }
     const limit = Math.max(1, Math.min(20, Number(input.limit) || 6));
     const scopes = Array.isArray(input.scopes)
-      ? input.scopes.filter((scope): scope is string => typeof scope === "string" && scope.trim().length > 0).map((scope) => scope.trim())
+      ? input.scopes
+          .filter(
+            (scope): scope is string =>
+              typeof scope === "string" && scope.trim().length > 0,
+          )
+          .map((scope) => scope.trim())
       : [...LOCAL_MEMORY_SCOPES];
     // No scope classifier is composed here. This is intentionally the free,
     // deterministic retrieval path documented by KnowledgeMemoryReader: an
     // external memory lookup must never hide a provider call or funding event.
-    const reader = new KnowledgeMemoryReader({ context: this.#knowledge.context,
-      maximumProjectionBytes: this.preferences.current.budgets.memoryProjectionBytes });
+    const reader = new KnowledgeMemoryReader({
+      context: this.#knowledge.context,
+      maximumProjectionBytes:
+        this.preferences.current.budgets.memoryProjectionBytes,
+    });
     const result = await reader.read({
       projectId: this.projectId,
       conversationId: this.#identityFactory.create("conversation"),
@@ -840,22 +944,37 @@ export class LocalMemoryRuntime {
     if (this.#closed) {
       throw new ChatError("configuration", "Local memory runtime is closed.");
     }
-    const content = typeof input.content === "string" ? input.content.trim() : "";
+    const content =
+      typeof input.content === "string" ? input.content.trim() : "";
     if (content.length === 0) {
-      throw new MemoryError("invalid_input", "shared memory write requires non-empty content");
+      throw new MemoryError(
+        "invalid_input",
+        "shared memory write requires non-empty content",
+      );
     }
     const scopes = Array.isArray(input.scopes)
-      ? input.scopes.filter((scope): scope is string => typeof scope === "string" && scope.trim().length > 0).map((scope) => scope.trim())
+      ? input.scopes
+          .filter(
+            (scope): scope is string =>
+              typeof scope === "string" && scope.trim().length > 0,
+          )
+          .map((scope) => scope.trim())
       : [...LOCAL_MEMORY_SCOPES];
-    const stored = ingest({
-      content,
-      speaker: "agent007",
-      locator: `agent007:memory:${randomUUID()}`,
-      scope: { verified: true, tags: scopes },
-    }, { store: this.#knowledge.context.evidence });
+    const stored = ingest(
+      {
+        content,
+        speaker: "agent007",
+        locator: `agent007:memory:${randomUUID()}`,
+        scope: { verified: true, tags: scopes },
+      },
+      { store: this.#knowledge.context.evidence },
+    );
     const utterance = stored.utterances[0];
     if (utterance === undefined) {
-      throw new MemoryError("illegal_state", "shared memory write produced no utterance");
+      throw new MemoryError(
+        "illegal_state",
+        "shared memory write produced no utterance",
+      );
     }
     return {
       id: utterance.id,
@@ -867,28 +986,33 @@ export class LocalMemoryRuntime {
   }
 
   sessionParameters(model: string) {
-    return defaultSessionParameters(this.#registry.require(model), this.#chatGeneration);
+    return defaultSessionParameters(
+      this.#registry.require(model),
+      this.#chatGeneration,
+    );
   }
 
   openSession(options: LocalMemorySessionOptions = {}): LocalMemorySession {
     if (this.#closed) {
-      throw new ChatError(
-        "configuration",
-        "Local memory runtime is closed.",
-      );
+      throw new ChatError("configuration", "Local memory runtime is closed.");
     }
     const profile = this.#registry.require(options.model ?? DEFAULT_MODEL_ID);
     const conversationId = this.#identityFactory.create("conversation");
     const chatSession = new ChatSession({
       model: profile.id,
       transport: this.#transport,
-      ...(options.systemMessage === undefined ? {} : { systemMessage: options.systemMessage }),
+      ...(options.systemMessage === undefined
+        ? {}
+        : { systemMessage: options.systemMessage }),
       // Profile defaults first, operator overrides on top. The profile means
       // "checked against the model card" and is not edited to tune a run.
       generation: { ...profile.defaults, ...this.#chatGeneration },
     });
     return new LocalMemorySession({
-      runtime: this, conversationId, chat: chatSession, identityFactory: this.#identityFactory,
+      runtime: this,
+      conversationId,
+      chat: chatSession,
+      identityFactory: this.#identityFactory,
     });
   }
 
@@ -904,7 +1028,10 @@ export class LocalMemoryRuntime {
         conversationId,
         agentId: this.agentId,
       },
-      invocationBudget: budget(limits.chatInputBytes, "Chat input (Parameters → Budgets)"),
+      invocationBudget: budget(
+        limits.chatInputBytes,
+        "Chat input (Parameters → Budgets)",
+      ),
       recentMessageLimit: limits.recentMessages,
       systemInstructions: settings.instructions,
     });
@@ -926,7 +1053,9 @@ export class LocalMemoryRuntime {
       limits,
     });
     const committer = new KnowledgeEngineCommit({
-      ...(this.preferences.current.memoryLifecycle === undefined ? {} : { policy: this.preferences.current.memoryLifecycle }),
+      ...(this.preferences.current.memoryLifecycle === undefined
+        ? {}
+        : { policy: this.preferences.current.memoryLifecycle }),
       context: this.#knowledge.context,
       classifier: new ModelBackedKnowledgeRelationClassifier(generator),
     });
@@ -935,6 +1064,34 @@ export class LocalMemoryRuntime {
       committer: this.#committerDecorator?.(committer) ?? committer,
     });
     return { chat: memoryAware, coordinator };
+  }
+
+  resolveImageAttachment(locator: string): ChatImageAttachment {
+    if (this.#closed)
+      throw new ChatError("configuration", "Local memory runtime is closed.");
+    if (this.sourceStoreRoot === undefined) {
+      throw new ChatError(
+        "configuration",
+        "A008_SOURCE_STORE_PATH is not configured.",
+      );
+    }
+    const resolvedPath = resolveSourceLocatorPath(
+      this.sourceStoreRoot,
+      locator,
+    );
+    const bytes = this.#readSourceBytes(resolvedPath);
+    const mediaType = sniffSourceMediaType(bytes);
+    const supported = new Set([IMAGE_PNG, IMAGE_JPEG, IMAGE_WEBP, IMAGE_GIF]);
+    if (!supported.has(mediaType)) {
+      throw new ChatError(
+        "configuration",
+        `Native vision attachment must be PNG, JPEG, WebP or GIF; stored source is ${mediaType}.`,
+      );
+    }
+    return {
+      mediaType,
+      dataRef: `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`,
+    };
   }
 
   /**
@@ -997,7 +1154,13 @@ export class LocalMemoryRuntime {
       { store: this.#knowledge.context.evidence },
     );
     const lifecycleAt = this.#knowledge.context.lifecycle.now();
-    for (const utterance of result.utterances) this.#knowledge.context.lifecycle.attach({ evidenceId: utterance.id, evidenceKind: "utterance", at: lifecycleAt, caller: "source-ingest" });
+    for (const utterance of result.utterances)
+      this.#knowledge.context.lifecycle.attach({
+        evidenceId: utterance.id,
+        evidenceKind: "utterance",
+        at: lifecycleAt,
+        caller: "source-ingest",
+      });
     const outcome: SourceIngestOutcome = {
       artifactId: result.artifact.id,
       utteranceIds: result.utterances.map((utterance) => utterance.id),
@@ -1051,7 +1214,9 @@ export class LocalMemoryRuntime {
     const conversationId = this.#identityFactory.create("conversation");
     const taskId = this.#identityFactory.create("task");
     const committer = new KnowledgeEngineCommit({
-      ...(this.preferences.current.memoryLifecycle === undefined ? {} : { policy: this.preferences.current.memoryLifecycle }),
+      ...(this.preferences.current.memoryLifecycle === undefined
+        ? {}
+        : { policy: this.preferences.current.memoryLifecycle }),
       context: this.#knowledge.context,
       classifier: new ModelBackedKnowledgeRelationClassifier(generator),
     });
@@ -1109,26 +1274,47 @@ export function createLocalMemoryRuntime(
 ): LocalMemoryRuntime {
   if (options.ownershipAlreadyHeld) return createRuntime(options);
   const config = parseLocalRuntimeConfig(options.env, {
-    surface: options.surface === "acp" ? "acp" : "cli", ...(options.cli ? { cli: options.cli } : {}),
+    surface: options.surface === "acp" ? "acp" : "cli",
+    ...(options.cli ? { cli: options.cli } : {}),
   });
   if (config.sqliteIsMemory) return createRuntime(options);
   const sqlitePath = canonicalStoragePath(config.sqlitePath);
   const sidecar = projectIdSidecarPath(sqlitePath);
-  const releaseInitialization = acquireRuntimeLease(sidecar, "identity-initialization", 5000);
+  const releaseInitialization = acquireRuntimeLease(
+    sidecar,
+    "identity-initialization",
+    5000,
+  );
   let releaseOwnership = () => {};
   let runtime: LocalMemoryRuntime | undefined;
   try {
-    const namespace = config.projectId ?? (existsSync(sidecar) ? readFileSync(sidecar, "utf8").trim() : undefined);
-    if (namespace) releaseOwnership = acquireRuntimeLease(sqlitePath, namespace);
-    runtime = createRuntime({ ...options, env: { ...options.env, A008_MEMORY_SQLITE_PATH: sqlitePath } });
-    if (!namespace) releaseOwnership = acquireRuntimeLease(sqlitePath, runtime.projectId);
+    const namespace =
+      config.projectId ??
+      (existsSync(sidecar) ? readFileSync(sidecar, "utf8").trim() : undefined);
+    if (namespace)
+      releaseOwnership = acquireRuntimeLease(sqlitePath, namespace);
+    runtime = createRuntime({
+      ...options,
+      env: { ...options.env, A008_MEMORY_SQLITE_PATH: sqlitePath },
+    });
+    if (!namespace)
+      releaseOwnership = acquireRuntimeLease(sqlitePath, runtime.projectId);
     const dispose = runtime.close.bind(runtime);
-    runtime.close = () => { dispose(); releaseOwnership(); };
+    runtime.close = () => {
+      dispose();
+      releaseOwnership();
+    };
     return runtime;
   } catch (error) {
-    try { runtime?.close(); } finally { releaseOwnership(); }
+    try {
+      runtime?.close();
+    } finally {
+      releaseOwnership();
+    }
     throw error;
-  } finally { releaseInitialization(); }
+  } finally {
+    releaseInitialization();
+  }
 }
 
 function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
@@ -1142,7 +1328,10 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
   });
   const identityFactory =
     options.identityFactory ?? new RuntimeIdentityFactory();
-  const preferences = new RuntimePreferencesStore(options.env, config.providerTimeoutMs);
+  const preferences = new RuntimePreferencesStore(
+    options.env,
+    config.providerTimeoutMs,
+  );
   if (!config.sqliteIsMemory) {
     mkdirSync(dirname(config.sqlitePath), { recursive: true });
   }
@@ -1206,16 +1395,20 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
   };
   let transportTimeout = preferences.current.budgets.providerTimeoutMs;
   let innerTransport = makeTransport(transportTimeout);
-  const transport = tracedChatTransport({
-    complete(request, callbacks) {
-      const timeout = preferences.current.budgets.providerTimeoutMs;
-      if (timeout !== transportTimeout) {
-        innerTransport = makeTransport(timeout);
-        transportTimeout = timeout;
-      }
-      return innerTransport.complete(request, callbacks);
+  const transport = tracedChatTransport(
+    {
+      complete(request, callbacks) {
+        const timeout = preferences.current.budgets.providerTimeoutMs;
+        if (timeout !== transportTimeout) {
+          innerTransport = makeTransport(timeout);
+          transportTimeout = timeout;
+        }
+        return innerTransport.complete(request, callbacks);
+      },
     },
-  }, tracer, surface);
+    tracer,
+    surface,
+  );
   const knowledge = createSqliteKnowledgeContext({
     filename: config.sqlitePath,
     projectId,
@@ -1255,7 +1448,10 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
           transport,
           model: registry.require(semanticModelId).id,
           budget: budget(limits.semanticInputBytes),
-          generation: semanticGeneration(registry.require(semanticModelId).id, limits),
+          generation: semanticGeneration(
+            registry.require(semanticModelId).id,
+            limits,
+          ),
         }),
         { maximumVocabulary: limits.retrievalVocabulary },
       ),

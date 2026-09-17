@@ -16,7 +16,10 @@ import {
 const live = JSON.parse(
   readFileSync(
     fileURLToPath(
-      new URL("../../test/fixtures/nvidia-live-reasoning-leak.json", import.meta.url),
+      new URL(
+        "../../test/fixtures/nvidia-live-reasoning-leak.json",
+        import.meta.url,
+      ),
     ),
     "utf8",
   ),
@@ -29,7 +32,11 @@ const live = JSON.parse(
 const REASONING_MUST_HAVE_NO_PATH_TO_KNOWLEDGE =
   "REASONING MUST HAVE NO PATH TO KNOWLEDGE.";
 
-function assertNoReasoningPath(reasoning: string, text: string, label: string): void {
+function assertNoReasoningPath(
+  reasoning: string,
+  text: string,
+  label: string,
+): void {
   assert.equal(
     text.includes(reasoning),
     false,
@@ -62,7 +69,8 @@ test("holy invariant: no emitted reasoning substring reaches knowledge surfaces"
       };
       if (body.stream === false) {
         const envelope = JSON.parse(body.messages?.at(-1)?.content ?? "{}");
-        if (envelope.operation === "knowledge_analysis") analyzerInputs.push(envelope);
+        if (envelope.operation === "knowledge_analysis")
+          analyzerInputs.push(envelope);
         assert.equal(body.chat_template_kwargs?.enable_thinking, false);
         assert.equal(body.reasoning_budget, undefined);
         assert.equal(body.stream, SEMANTIC_JSON_GENERATION.stream);
@@ -135,15 +143,27 @@ test("holy invariant: no emitted reasoning substring reaches knowledge surfaces"
     const phases = trace
       .trim()
       .split(/\n/u)
-      .map((line) => JSON.parse(line) as { readonly phase: string; readonly seq?: number; readonly status?: string })
-      .filter((event) => event.phase !== "turn_start" || event.seq !== undefined);
+      .map(
+        (line) =>
+          JSON.parse(line) as {
+            readonly phase: string;
+            readonly seq?: number;
+            readonly status?: string;
+          },
+      )
+      .filter(
+        (event) => event.phase !== "turn_start" || event.seq !== undefined,
+      );
     const turnPhases = phases
       .filter((event) => event.phase !== "trace-warning")
       .map((event) => event.phase);
     const readAt = turnPhases.indexOf("memory_read");
     const chatAt = turnPhases.indexOf("chat_request");
     assert.ok(readAt >= 0 && chatAt > readAt);
-    assert.equal(turnPhases.filter((phase) => phase === "memory_failure").length, 0);
+    assert.equal(
+      turnPhases.filter((phase) => phase === "memory_failure").length,
+      0,
+    );
     const complete = phases.find((event) => event.phase === "turn_complete");
     assert.equal(complete?.status, "ok");
   } finally {
@@ -183,13 +203,23 @@ test("memory timeout is a degraded outcome and is traced once after successful c
     const events = readFileSync(traceFile, "utf8")
       .trim()
       .split(/\n/u)
-      .map((line) => JSON.parse(line) as { readonly phase: string; readonly status?: string });
+      .map(
+        (line) =>
+          JSON.parse(line) as {
+            readonly phase: string;
+            readonly status?: string;
+          },
+      );
     assert.equal(
       events.filter((event) => event.phase === "memory_failure").length,
       1,
     );
     const complete = events.find((event) => event.phase === "turn_complete") as
-      | { readonly status?: string; readonly chatStatus?: string; readonly memoryStatus?: string }
+      | {
+          readonly status?: string;
+          readonly chatStatus?: string;
+          readonly memoryStatus?: string;
+        }
       | undefined;
     assert.equal(complete?.status, "degraded");
     assert.equal(complete?.chatStatus, "ok");

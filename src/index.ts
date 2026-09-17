@@ -162,12 +162,8 @@ export type { CodingAgentMemoryPolicyOptions } from "./memory/coding-agent-polic
 export { MemoryError, isMemoryError } from "./memory/errors.js";
 export type { MemoryErrorCode } from "./memory/errors.js";
 export { InMemoryMemoryRepository } from "./memory/in-memory-repository.js";
-export {
-  SqliteMemoryRepository,
-} from "./memory/sqlite-memory-repository.js";
-export type {
-  SqliteMemoryRepositoryOptions,
-} from "./memory/sqlite-memory-repository.js";
+export { SqliteMemoryRepository } from "./memory/sqlite-memory-repository.js";
+export type { SqliteMemoryRepositoryOptions } from "./memory/sqlite-memory-repository.js";
 export {
   createSqliteKnowledgeContext,
   KnowledgeEngineCommit,
@@ -185,22 +181,12 @@ export type {
 } from "./memory/knowledge/index.js";
 export { SemanticMemory } from "./memory/memory-engine.js";
 export type { SemanticMemoryOptions } from "./memory/memory-engine.js";
-export {
-  DeterministicRetrievalPlanner,
-} from "./memory/deterministic-retrieval-planner.js";
-export type {
-  DeterministicRetrievalPlannerOptions,
-} from "./memory/deterministic-retrieval-planner.js";
-export {
-  NeutralHybridMemoryReadPolicy,
-} from "./memory/hybrid-retrieval-policy.js";
-export type {
-  HybridMemoryReadPolicyOptions,
-} from "./memory/hybrid-retrieval-policy.js";
+export { DeterministicRetrievalPlanner } from "./memory/deterministic-retrieval-planner.js";
+export type { DeterministicRetrievalPlannerOptions } from "./memory/deterministic-retrieval-planner.js";
+export { NeutralHybridMemoryReadPolicy } from "./memory/hybrid-retrieval-policy.js";
+export type { HybridMemoryReadPolicyOptions } from "./memory/hybrid-retrieval-policy.js";
 export { HybridMemoryReader } from "./memory/hybrid-memory-reader.js";
-export type {
-  HybridMemoryReaderOptions,
-} from "./memory/hybrid-memory-reader.js";
+export type { HybridMemoryReaderOptions } from "./memory/hybrid-memory-reader.js";
 export {
   serializeContextProjection,
   Utf8ByteContextMeasurer,

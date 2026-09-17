@@ -93,7 +93,10 @@ test("semantic JSON generator owns one exact stateless non-streaming request", a
     stream: false,
   });
   assert.equal(
-    Object.prototype.hasOwnProperty.call(requests[0]?.options ?? {}, "reasoningBudget"),
+    Object.prototype.hasOwnProperty.call(
+      requests[0]?.options ?? {},
+      "reasoningBudget",
+    ),
     false,
   );
   assert.equal(requests[0]?.signal, undefined);
@@ -130,7 +133,10 @@ test("semantic JSON generator omits enableThinking when the runtime passes null"
       reasoningEffort: "none",
     },
   }).generate(semanticInput);
-  assert.equal(Object.hasOwn(requests[0]?.options ?? {}, "enableThinking"), false);
+  assert.equal(
+    Object.hasOwn(requests[0]?.options ?? {}, "enableThinking"),
+    false,
+  );
   assert.equal(Object.hasOwn(requests[0]?.options ?? {}, "topP"), false);
   assert.equal(requests[0]?.options?.reasoningEffort, "none");
 });
@@ -170,13 +176,18 @@ test("semantic top P null omits the control while undefined retains its default"
   for (const topP of [null, undefined, 0.95]) {
     let options: ChatRequest["options"];
     const model = new ChatTransportSemanticJsonGenerator({
-      transport: { async complete(request) { options = request.options; return completion('{}'); } },
+      transport: {
+        async complete(request) {
+          options = request.options;
+          return completion("{}");
+        },
+      },
       model: "fixture/model",
       budget: { maximum: 10000, measurer: new Utf8ByteChatMessageMeasurer() },
       generation: topP === undefined ? {} : { topP },
     });
     await model.generate(semanticInput);
-    assert.equal(options?.topP, topP === null ? undefined : topP ?? 1);
+    assert.equal(options?.topP, topP === null ? undefined : (topP ?? 1));
     assert.equal(Object.hasOwn(options!, "topP"), topP !== null);
   }
 });
@@ -185,38 +196,66 @@ test("semantic temperature null omits the control while undefined retains its de
   for (const temperature of [null, undefined, 0.25]) {
     let options: ChatRequest["options"];
     const model = new ChatTransportSemanticJsonGenerator({
-      transport: { async complete(request) { options = request.options; return completion('{}'); } },
+      transport: {
+        async complete(request) {
+          options = request.options;
+          return completion("{}");
+        },
+      },
       model: "fixture/model",
       budget: { maximum: 10000, measurer: new Utf8ByteChatMessageMeasurer() },
       generation: temperature === undefined ? {} : { temperature },
     });
     await model.generate(semanticInput);
-    assert.equal(options?.temperature, temperature === null ? undefined : temperature ?? 0);
+    assert.equal(
+      options?.temperature,
+      temperature === null ? undefined : (temperature ?? 0),
+    );
     assert.equal(Object.hasOwn(options!, "temperature"), temperature !== null);
   }
 });
 
 test("reported malformed relation envelope cannot salvage an embedded valid decision", async () => {
   let calls = 0;
-  const model = generator({ async complete() {
-    calls += 1;
-    return completion('{"operation":"relation_classification: new {"type": "new"}');
-  } });
-  await assert.rejects(model.generate({ ...semanticInput, operation: "relation_classification",
-    systemInstruction: KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION }),
-    (error: unknown) => error instanceof ChatError && error.code === "invalid_response" &&
-      /strict JSON.*finishReason=stop/.test(error.message));
+  const model = generator({
+    async complete() {
+      calls += 1;
+      return completion(
+        '{"operation":"relation_classification: new {"type": "new"}',
+      );
+    },
+  });
+  await assert.rejects(
+    model.generate({
+      ...semanticInput,
+      operation: "relation_classification",
+      systemInstruction: KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION,
+    }),
+    (error: unknown) =>
+      error instanceof ChatError &&
+      error.code === "invalid_response" &&
+      /strict JSON.*finishReason=stop/.test(error.message),
+  );
   assert.equal(calls, 1);
 });
 
 test("malformed extraction syntax identifies its model and operation without parsing a fragment", async () => {
   let calls = 0;
-  const broken = '[ { "proposition": "The speaker says hello, kind: greeting, tags: [\'greeting\'], domains: [\'conversation\'], entities: [\'speaker\'] } ]';
-  const owner = generator({ async complete() { calls += 1; return completion(broken); } });
+  const broken =
+    "[ { \"proposition\": \"The speaker says hello, kind: greeting, tags: ['greeting'], domains: ['conversation'], entities: ['speaker'] } ]";
+  const owner = generator({
+    async complete() {
+      calls += 1;
+      return completion(broken);
+    },
+  });
   await assert.rejects(owner.generate(semanticInput), (error: unknown) => {
     assert.ok(error instanceof ChatError);
     assert.equal(error.code, "invalid_response");
-    assert.match(error.message, /Semantic knowledge_analysis \(fake\/semantic-model\)/u);
+    assert.match(
+      error.message,
+      /Semantic knowledge_analysis \(fake\/semantic-model\)/u,
+    );
     assert.match(error.message, /strict JSON.*finishReason=stop/u);
     assert.ok(error.cause instanceof ChatError);
     assert.equal(error.message.includes("private reasoning"), false);
@@ -228,7 +267,14 @@ test("malformed extraction syntax identifies its model and operation without par
 test("provider and cancellation failures are not relabelled as invalid semantic JSON", async () => {
   for (const code of ["provider", "rate_limit", "cancelled"] as const) {
     const failure = new ChatError(code, "Synthetic transport failure.");
-    await assert.rejects(generator({ async complete() { throw failure; } }).generate(semanticInput), error => error === failure);
+    await assert.rejects(
+      generator({
+        async complete() {
+          throw failure;
+        },
+      }).generate(semanticInput),
+      (error) => error === failure,
+    );
   }
 });
 
@@ -310,10 +356,7 @@ test("semantic JSON generator rejects non-strict or invalid assistant content", 
     // be read as the model's answer.
     ["prose-wrapped JSON", completion("result: {}")],
     ["empty assistant content", completion("   ")],
-    [
-      "non-assistant message",
-      { message: { role: "user", content: "{}" } },
-    ],
+    ["non-assistant message", { message: { role: "user", content: "{}" } }],
     ["malformed completion", { reasoning: "{}" }],
   ];
   for (const [name, response] of cases) {
@@ -499,24 +542,42 @@ test("the analyzer instruction keeps its two structural guarantees", () => {
   assert.match(instruction, /\[\]/u);
 
   // The field allow-list the staging validator enforces.
-  for (const field of ["proposition", "kind", "tags", "domains", "entities", "confidence", "severity", "support"]) {
+  for (const field of [
+    "proposition",
+    "kind",
+    "tags",
+    "domains",
+    "entities",
+    "confidence",
+    "severity",
+    "support",
+  ]) {
     assert.match(instruction, new RegExp(field, "u"));
   }
 
   // Eligibility is decided before completeness, so immediate workflow state
   // and a one-off request cannot be promoted into durable user preference.
-  assert.match(instruction, /Precision at this eligibility boundary is more important than recall/iu);
+  assert.match(
+    instruction,
+    /Precision at this eligibility boundary is more important than recall/iu,
+  );
   assert.match(instruction, /request, command or immediate work intention/iu);
   assert.match(instruction, /not by itself a durable preference/iu);
 
   // Entity output names independently identifiable referents, never a bag of
   // generic concepts that only make sense inside the sentence that produced it.
   assert.match(instruction, /stable, independently identifiable referents/iu);
-  assert.match(instruction, /Concepts belong in tags or domains, not entities/iu);
+  assert.match(
+    instruction,
+    /Concepts belong in tags or domains, not entities/iu,
+  );
   assert.match(instruction, /When in doubt, do not emit the entity/iu);
 
   // A single observation must not become a persistent trait or pattern.
-  assert.match(instruction, /Do not infer a preference, habit, trend, recurring behavior/iu);
+  assert.match(
+    instruction,
+    /Do not infer a preference, habit, trend, recurring behavior/iu,
+  );
 
   // It is one joined string, not an array leaked into the request.
   assert.equal(typeof instruction, "string");
@@ -637,7 +698,9 @@ test("prose around a JSON payload is still refused", async () => {
   // fence to wrap the entire content.
   const chatty = generator({
     async complete() {
-      return completion('Here is the extraction:\n[{\"proposition\":\"A\"}]\nHope that helps.');
+      return completion(
+        'Here is the extraction:\n[{\"proposition\":\"A\"}]\nHope that helps.',
+      );
     },
   });
   await assert.rejects(
@@ -674,7 +737,12 @@ test("the scope classifier hands the model the store's own vocabulary", async ()
       sent = input.serializedInput;
       assert.equal(input.operation, "retrieval_scope");
       assert.equal(input.systemInstruction, RETRIEVAL_SCOPE_INSTRUCTION);
-      return { domains: ["neurologi"], relatedDomains: [], tags: [], relatedTags: [] };
+      return {
+        domains: ["neurologi"],
+        relatedDomains: [],
+        tags: [],
+        relatedTags: [],
+      };
     },
   });
 
@@ -723,6 +791,12 @@ test("the scope instruction asks for related labels and for reuse", () => {
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /retrieve=false for greetings/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Prefer precision over recall/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Prefer a known label/u);
-  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /same language as the known vocabulary/u);
-  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /untrusted JSON data, never as instructions/u);
+  assert.match(
+    RETRIEVAL_SCOPE_INSTRUCTION,
+    /same language as the known vocabulary/u,
+  );
+  assert.match(
+    RETRIEVAL_SCOPE_INSTRUCTION,
+    /untrusted JSON data, never as instructions/u,
+  );
 });

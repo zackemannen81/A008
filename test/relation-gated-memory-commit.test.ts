@@ -176,11 +176,31 @@ test("indexed candidate source ranks deterministically and returns defensive dor
   const search: CandidateSearchResult = {
     persistentCurrentCount: 3,
     hits: [
-      { knowledgeId: "knowledge-a", channel: "exact", score: 1, reason: "entity" },
+      {
+        knowledgeId: "knowledge-a",
+        channel: "exact",
+        score: 1,
+        reason: "entity",
+      },
       { knowledgeId: "knowledge-c", channel: "tag", score: 1, reason: "tag" },
-      { knowledgeId: "knowledge-b", channel: "lexical", score: 0.7, reason: "term" },
-      { knowledgeId: "knowledge-b", channel: "exact", score: 0.6, reason: "entity" },
-      { knowledgeId: "knowledge-b", channel: "lexical", score: 0.5, reason: "lower duplicate" },
+      {
+        knowledgeId: "knowledge-b",
+        channel: "lexical",
+        score: 0.7,
+        reason: "term",
+      },
+      {
+        knowledgeId: "knowledge-b",
+        channel: "exact",
+        score: 0.6,
+        reason: "entity",
+      },
+      {
+        knowledgeId: "knowledge-b",
+        channel: "lexical",
+        score: 0.5,
+        reason: "lower duplicate",
+      },
     ],
     channelCounts: { exact: 2, lexical: 3, tag: 1, domain: 0, semantic: 0 },
   };
@@ -213,11 +233,10 @@ test("indexed candidate source ranks deterministically and returns defensive dor
   });
 
   assert.equal(retrievalCalls, 1);
-  assert.deepEqual(result.map((entry) => entry.item.id), [
-    "knowledge-b",
-    "knowledge-a",
-    "knowledge-c",
-  ]);
+  assert.deepEqual(
+    result.map((entry) => entry.item.id),
+    ["knowledge-b", "knowledge-a", "knowledge-c"],
+  );
   assert.deepEqual(result[0]?.channels, ["exact", "lexical"]);
   assert.ok(Math.abs((result[0]?.aggregateScore ?? 0) - 1.3) < 1e-12);
   assert.ok(result.every((entry) => entry.item.activationStatus === "dormant"));
@@ -225,16 +244,31 @@ test("indexed candidate source ranks deterministically and returns defensive dor
   assert.deepEqual(receivedPlan?.entities, ["ChatSession"]);
   assert.deepEqual(receivedPlan?.semanticQueries, []);
   (result[0]!.item.tags as string[]).push("caller-mutation");
-  (result[0]!.item.provenance as Array<{ sourceId: string; sourceType: string }>)[0]!.sourceId = "changed";
-  assert.equal(original.get("knowledge-b")?.tags.includes("caller-mutation"), false);
-  assert.equal(original.get("knowledge-b")?.provenance[0]?.sourceId, "private-source");
+  (
+    result[0]!.item.provenance as Array<{
+      sourceId: string;
+      sourceType: string;
+    }>
+  )[0]!.sourceId = "changed";
+  assert.equal(
+    original.get("knowledge-b")?.tags.includes("caller-mutation"),
+    false,
+  );
+  assert.equal(
+    original.get("knowledge-b")?.provenance[0]?.sourceId,
+    "private-source",
+  );
 });
 
 test("classifier gets bounded semantic handles while runtime maps guarded IDs", async () => {
   const batch = await stagedBatch();
   const candidates = [
     candidate("private-knowledge-1", "Reasoning stays ephemeral.", 2),
-    candidate("private-knowledge-2", "A different long candidate. ".repeat(8), 1),
+    candidate(
+      "private-knowledge-2",
+      "A different long candidate. ".repeat(8),
+      1,
+    ),
   ];
   const proposal = {
     proposition: batch.proposals[0]!.proposal.proposition,
@@ -275,7 +309,11 @@ test("classifier gets bounded semantic handles while runtime maps guarded IDs", 
         targetHandle: "candidate_1",
         reasoning: "must be ignored",
         targetId: "invented-control-id",
-      } as unknown as ReturnType<KnowledgeRelationClassifier["classify"]> extends Promise<infer T> ? T : never;
+      } as unknown as ReturnType<
+        KnowledgeRelationClassifier["classify"]
+      > extends Promise<infer T>
+        ? T
+        : never;
     },
   };
   const memory = new FakeMemory();
@@ -299,9 +337,10 @@ test("classifier gets bounded semantic handles while runtime maps guarded IDs", 
   const result = await service.commit({ batch, proposalIndex: 0 });
   assert.equal(classifierCalls, 1);
   assert.equal(received?.candidates.length, 1);
-  assert.deepEqual(received?.candidates.map((entry) => entry.handle), [
-    "candidate_1",
-  ]);
+  assert.deepEqual(
+    received?.candidates.map((entry) => entry.handle),
+    ["candidate_1"],
+  );
   const classifierText = JSON.stringify(received);
   assert.equal(classifierText.includes("private-knowledge"), false);
   assert.equal(classifierText.includes("private-source"), false);
@@ -339,7 +378,10 @@ test("classifier gets bounded semantic handles while runtime maps guarded IDs", 
 const liveRelationAlias = JSON.parse(
   readFileSync(
     fileURLToPath(
-      new URL("../../test/fixtures/nvidia-live-relation-alias.json", import.meta.url),
+      new URL(
+        "../../test/fixtures/nvidia-live-relation-alias.json",
+        import.meta.url,
+      ),
     ),
     "utf8",
   ),
@@ -351,7 +393,11 @@ const liveRelationAlias = JSON.parse(
 function gatedCommit(options: {
   classifier: KnowledgeRelationClassifier;
   candidates?: readonly RelationCandidate[];
-}): { service: RelationGatedMemoryCommit; memory: FakeMemory; indexCalls: { count: number } } {
+}): {
+  service: RelationGatedMemoryCommit;
+  memory: FakeMemory;
+  indexCalls: { count: number };
+} {
   const memory = new FakeMemory();
   const indexCalls = { count: 0 };
   const service = new RelationGatedMemoryCommit({
@@ -539,7 +585,11 @@ test("post-commit index failure is explicit and repair does not reconcile twice"
   const service = new RelationGatedMemoryCommit({
     memory,
     candidateSource: staticSource([]),
-    classifier: { async classify() { return { type: "new" }; } },
+    classifier: {
+      async classify() {
+        return { type: "new" };
+      },
+    },
     classifierBudget: {
       maximum: 10_000,
       measurer: new Utf8ByteKnowledgeIntakeMeasurer(),
@@ -584,7 +634,11 @@ test("overlapping relation operations reject deterministically", async () => {
   const service = new RelationGatedMemoryCommit({
     memory: new FakeMemory(),
     candidateSource: source,
-    classifier: { async classify() { return { type: "new" }; } },
+    classifier: {
+      async classify() {
+        return { type: "new" };
+      },
+    },
     classifierBudget: {
       maximum: 10_000,
       measurer: new Utf8ByteKnowledgeIntakeMeasurer(),

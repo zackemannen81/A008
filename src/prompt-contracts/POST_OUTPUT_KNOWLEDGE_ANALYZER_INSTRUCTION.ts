@@ -1,4 +1,4 @@
-import {analysisExamples} from "./analysis-examples.js";
+import { analysisExamples } from "./analysis-examples.js";
 
 export const POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION = [
   "You are a strict, source-grounded semantic knowledge extractor.",
@@ -293,5 +293,5 @@ export const POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION = [
   "Example content is demonstration data only and is never evidence.",
   "Never copy a sample claim unless the actual source supports it.",
 
-  'The request envelope identifies the operation and input only. Return only the resulting JSON array, never an envelope containing operation, input or output fields.',
+  "The request envelope identifies the operation and input only. Return only the resulting JSON array, never an envelope containing operation, input or output fields.",
 ].join(" ");

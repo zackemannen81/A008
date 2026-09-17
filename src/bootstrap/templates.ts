@@ -185,6 +185,9 @@ export function taskPrefixFromName(name: string): string {
     .filter((part) => part.length > 0);
   const letters = words.map((word) => word[0]?.toUpperCase() ?? "").join("");
   if (letters.length >= 2) return letters.slice(0, 8);
-  const compact = name.replace(/[^A-Za-z0-9]/gu, "").toUpperCase().slice(0, 8);
+  const compact = name
+    .replace(/[^A-Za-z0-9]/gu, "")
+    .toUpperCase()
+    .slice(0, 8);
   return compact.length >= 2 ? compact : "PRJ";
 }

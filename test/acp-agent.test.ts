@@ -8,18 +8,14 @@ import {
 import { A008AcpAgent } from "../src/acp/A008-acp-agent.js";
 import { ChatSession } from "../src/core/chat-session.js";
 import { ChatError } from "../src/core/errors.js";
-import type {
-  ChatRequest,
-  ChatTransport,
-} from "../src/core/types.js";
+import type { ChatRequest, ChatTransport } from "../src/core/types.js";
 import { parseRuntimeId } from "../src/identity/runtime-id.js";
 
 const NEW_SESSION: NewSessionRequest = {
   cwd: "C:\\workspace",
   mcpServers: [],
 };
-const SESSION_ID =
-  "A008_v1_acp_session_00000000-0000-4000-8000-000000000001";
+const SESSION_ID = "A008_v1_acp_session_00000000-0000-4000-8000-000000000001";
 
 test("ACP agent advertises stable v1 and the verified model", () => {
   const agent = new A008AcpAgent({
@@ -107,9 +103,13 @@ test("ACP prompt streams thought and answer through one ChatSession", async () =
     "question\n\n[context](file:///workspace/context.md)",
   );
   assert.deepEqual(
-    notifications.map((value) =>
-      (value as { update: { sessionUpdate: string; content: { text: string } } })
-        .update,
+    notifications.map(
+      (value) =>
+        (
+          value as {
+            update: { sessionUpdate: string; content: { text: string } };
+          }
+        ).update,
     ),
     [
       {
@@ -323,7 +323,10 @@ test("ACP default session identity is canonical", () => {
   });
 
   const created = agent.newSession(NEW_SESSION);
-  assert.equal(parseRuntimeId(created.sessionId, "acp_session"), created.sessionId);
+  assert.equal(
+    parseRuntimeId(created.sessionId, "acp_session"),
+    created.sessionId,
+  );
 });
 
 test("ACP rejects malformed and duplicate injected session identities", () => {
@@ -351,10 +354,11 @@ test("ACP rejects malformed and duplicate injected session identities", () => {
   );
 });
 
-
 test("ACP exposes A007_MEMORY_V1 only when a real memory surface is composed", async () => {
   const agent = new A008AcpAgent({
-    createSession: () => { throw new Error("not needed"); },
+    createSession: () => {
+      throw new Error("not needed");
+    },
     sharedMemoryCapabilities: () => ({
       protocol: "A007_MEMORY_V1",
       version: 1,
@@ -364,20 +368,22 @@ test("ACP exposes A007_MEMORY_V1 only when a real memory surface is composed", a
       writeSemantics: "evidence",
     }),
     recallSharedMemory: async (params) => ({
-      items: [{
-        id: "utterance:0",
-        content: params.query,
-        kind: "utterance",
-        score: 0.2,
-        tags: [...(params.scopes ?? [])],
-        scope: [],
-        provenance: ["a008:memory"],
-        metadata: {
-          authority: 0.2,
-          identityKind: "projection",
-          projectId: "A008_v1_project_40000000-0000-4000-8000-000000000028",
+      items: [
+        {
+          id: "utterance:0",
+          content: params.query,
+          kind: "utterance",
+          score: 0.2,
+          tags: [...(params.scopes ?? [])],
+          scope: [],
+          provenance: ["a008:memory"],
+          metadata: {
+            authority: 0.2,
+            identityKind: "projection",
+            projectId: "A008_v1_project_40000000-0000-4000-8000-000000000028",
+          },
         },
-      }],
+      ],
       omitted: 0,
       measuredUnits: 10,
       measurementUnit: "utf8_bytes",
@@ -391,15 +397,24 @@ test("ACP exposes A007_MEMORY_V1 only when a real memory surface is composed", a
     }),
   });
 
-  const capabilities = await agent.sharedMemoryCapabilities({ protocol: "A007_MEMORY_V1", version: 1 });
+  const capabilities = await agent.sharedMemoryCapabilities({
+    protocol: "A007_MEMORY_V1",
+    version: 1,
+  });
   assert.ok(capabilities.capabilities.includes("recall"));
   assert.equal(capabilities.writeSemantics, "evidence");
 
-  const recalled = await agent.recallMemory({ query: "  external memory query  ", limit: 3, scopes: ["project"] });
+  const recalled = await agent.recallMemory({
+    query: "  external memory query  ",
+    limit: 3,
+    scopes: ["project"],
+  });
   assert.equal(recalled.items[0]?.content, "external memory query");
   assert.deepEqual(recalled.items[0]?.tags, ["project"]);
 
-  const written = await agent.writeMemory({ content: "  external memory fact  " });
+  const written = await agent.writeMemory({
+    content: "  external memory fact  ",
+  });
   assert.equal(written.status, "STORED");
   assert.equal(written.semantics, "evidence");
 
@@ -411,12 +426,109 @@ test("ACP exposes A007_MEMORY_V1 only when a real memory surface is composed", a
 
 test("ACP memory methods fail closed when no memory runtime was composed", async () => {
   const agent = new A008AcpAgent({
-    createSession: () => { throw new Error("not needed"); },
+    createSession: () => {
+      throw new Error("not needed");
+    },
   });
   await assert.rejects(
-    () => agent.sharedMemoryCapabilities({ protocol: "A007_MEMORY_V1", version: 1 }),
+    () =>
+      agent.sharedMemoryCapabilities({
+        protocol: "A007_MEMORY_V1",
+        version: 1,
+      }),
     /method/i,
   );
-  await assert.rejects(() => agent.recallMemory({ query: "anything" }), /method/i);
-  await assert.rejects(() => agent.writeMemory({ content: "anything" }), /method/i);
+  await assert.rejects(
+    () => agent.recallMemory({ query: "anything" }),
+    /method/i,
+  );
+  await assert.rejects(
+    () => agent.writeMemory({ content: "anything" }),
+    /method/i,
+  );
+});
+
+test("ACP native source image is capability-gated and stays invocation-local", async () => {
+  let captured: ChatRequest | undefined;
+  let created: ChatSession | undefined;
+  const agent = new A008AcpAgent({
+    createSession(model) {
+      created = new ChatSession({
+        model,
+        transport: {
+          async complete(request) {
+            captured = request;
+            return { message: { role: "assistant", content: "a cat" } };
+          },
+        },
+      });
+      return created;
+    },
+    resolveImageAttachment(locator) {
+      assert.match(locator, /^source:/u);
+      return { mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" };
+    },
+    createSessionId: () => SESSION_ID,
+  });
+  agent.newSession(NEW_SESSION);
+  agent.setSessionConfigOption({
+    sessionId: SESSION_ID,
+    configId: "model",
+    value: "moonshotai/kimi-k3",
+  });
+  await agent.prompt(
+    {
+      sessionId: SESSION_ID,
+      prompt: [
+        { type: "text", text: "what is shown?" },
+        {
+          type: "resource_link",
+          name: "chat-image",
+          uri: `source:${"a".repeat(64)}/photo.png`,
+          mimeType: "image/png",
+        },
+      ],
+    },
+    async () => undefined,
+  );
+  assert.deepEqual(captured?.imageAttachments, [
+    { mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" },
+  ]);
+  assert.equal(captured?.messages.at(-1)?.content, "what is shown?");
+  assert.deepEqual(created?.messages, [
+    { role: "user", content: "what is shown?" },
+    { role: "assistant", content: "a cat" },
+  ]);
+
+  const textOnlyId = "A008_v1_acp_session_00000000-0000-4000-8000-000000000002";
+  const blocked = new A008AcpAgent({
+    createSession() {
+      throw new Error("provider must not be reached");
+    },
+    resolveImageAttachment() {
+      throw new Error("resolver must not run for unsupported model");
+    },
+    createSessionId: () => textOnlyId,
+  });
+  blocked.newSession(NEW_SESSION);
+  await assert.rejects(
+    blocked.prompt(
+      {
+        sessionId: textOnlyId,
+        prompt: [
+          { type: "text", text: "look" },
+          {
+            type: "resource_link",
+            name: "chat-image",
+            uri: `source:${"b".repeat(64)}/photo.png`,
+            mimeType: "image/png",
+          },
+        ],
+      },
+      async () => undefined,
+    ),
+    (error: unknown) =>
+      error instanceof RequestError &&
+      /does not declare image input support/u.test(error.message),
+  );
 });

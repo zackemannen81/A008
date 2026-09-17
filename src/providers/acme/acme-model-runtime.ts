@@ -73,7 +73,9 @@ export class AcmeChatError extends ChatError {
   ) {
     super(code, message, {
       ...(options.status === undefined ? {} : { status: options.status }),
-      ...(options.retryable === undefined ? {} : { retryable: options.retryable }),
+      ...(options.retryable === undefined
+        ? {}
+        : { retryable: options.retryable }),
       ...(options.cause === undefined ? {} : { cause: options.cause }),
     });
     this.name = "AcmeChatError";
@@ -133,8 +135,8 @@ function messageContent(message: ChatWireMessage): unknown[] {
   }
   if ("toolCalls" in message) {
     const parts: unknown[] = [];
-    
-    if (message.content?.trim() ) {
+
+    if (message.content?.trim()) {
       parts.push({ type: "text", text: message.content });
     }
     for (const call of message.toolCalls) {
@@ -142,7 +144,10 @@ function messageContent(message: ChatWireMessage): unknown[] {
         type: "tool-call",
         toolCallId: call.id,
         name: call.name,
-        arguments: parseJsonValue(call.arguments, `Tool call ${call.id} arguments`),
+        arguments: parseJsonValue(
+          call.arguments,
+          `Tool call ${call.id} arguments`,
+        ),
       });
     }
     if (parts.length === 0) {
@@ -242,16 +247,42 @@ export function buildAcmeExecuteBody(
     readonly timeoutMs: number;
     readonly correlationId?: string;
     readonly catalog?: {
-      readonly chatModels: readonly { readonly id: string; readonly provider: string }[];
+      readonly chatModels: readonly {
+        readonly id: string;
+        readonly provider: string;
+      }[];
     };
   },
 ): Record<string, unknown> {
-  const messages = request.messages.map((message) => ({
+  let attachmentUserIndex = -1;
+  if (request.imageAttachments?.length) {
+    request.messages.forEach((message, index) => {
+      if (message.role === "user") attachmentUserIndex = index;
+    });
+    if (attachmentUserIndex < 0)
+      throw new ChatError(
+        "configuration",
+        "Native vision requires a user message.",
+      );
+  }
+  const messages = request.messages.map((message, index) => ({
     role: message.role,
-    content: messageContent(message),
+    content: [
+      ...messageContent(message),
+      ...(index === attachmentUserIndex
+        ? request.imageAttachments!.map((image) => ({
+            type: "image",
+            mediaType: image.mediaType,
+            dataRef: image.dataRef,
+          }))
+        : []),
+    ],
   }));
   if (messages.length === 0) {
-    throw new ChatError("configuration", "ACME model request requires messages.");
+    throw new ChatError(
+      "configuration",
+      "ACME model request requires messages.",
+    );
   }
   const generation = request.options ?? {};
   const acmeRequest: Record<string, unknown> = {
@@ -267,7 +298,10 @@ export function buildAcmeExecuteBody(
     }));
   }
   assignAcmeGeneration(acmeRequest, generation, request.model);
-  const executionProvider = resolveExecutionProvider(request.model, options.catalog);
+  const executionProvider = resolveExecutionProvider(
+    request.model,
+    options.catalog,
+  );
   const model: Record<string, unknown> = {
     profile: request.model,
     modelHint: request.model,
@@ -283,13 +317,18 @@ export function buildAcmeExecuteBody(
   if (options.correlationId !== undefined && options.correlationId.length > 0) {
     body.correlationId = options.correlationId;
   }
-  if (request.tools !== undefined && request.tools.length > 0) {
-    body.requiredCapabilities = { tools: true };
-  }
+  const requiredCapabilities: Record<string, boolean> = {};
+  if (request.tools !== undefined && request.tools.length > 0)
+    requiredCapabilities.tools = true;
+  if (request.imageAttachments?.length) requiredCapabilities.vision = true;
+  if (Object.keys(requiredCapabilities).length > 0)
+    body.requiredCapabilities = requiredCapabilities;
   return body;
 }
 
-export function parseAcmeDescriptor(value: unknown): AcmeModelRuntimeDescriptor {
+export function parseAcmeDescriptor(
+  value: unknown,
+): AcmeModelRuntimeDescriptor {
   if (!isRecord(value)) {
     throw new AcmeChatError(
       "configuration",
@@ -310,7 +349,10 @@ export function parseAcmeDescriptor(value: unknown): AcmeModelRuntimeDescriptor 
       { evidence: { protocolCode: "MODEL_RUNTIME_PROTOCOL_MISMATCH" } },
     );
   }
-  if (typeof value.engineBuild !== "string" || value.engineBuild.trim().length === 0) {
+  if (
+    typeof value.engineBuild !== "string" ||
+    value.engineBuild.trim().length === 0
+  ) {
     throw new AcmeChatError(
       "configuration",
       "ACME model-runtime compatibility descriptor is missing engineBuild.",
@@ -323,10 +365,12 @@ export function parseAcmeDescriptor(value: unknown): AcmeModelRuntimeDescriptor 
   };
 }
 
-export function parseRefusalEnvelope(value: unknown): {
-  readonly code: string;
-  readonly message: string;
-} | undefined {
+export function parseRefusalEnvelope(value: unknown):
+  | {
+      readonly code: string;
+      readonly message: string;
+    }
+  | undefined {
   if (!isRecord(value)) {
     return undefined;
   }
@@ -340,7 +384,9 @@ export function parseRefusalEnvelope(value: unknown): {
 }
 
 function optionalFiniteNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
 }
 
 function usageFrom(value: unknown): ChatUsage | undefined {
@@ -445,7 +491,11 @@ export function completionFromAcmeResponse(
     throw new AcmeChatError(
       "invalid_response",
       "ACME response did not contain assistant text or a tool call.",
-      { evidence: evidenceFromResult(result, { diagnosticKind: "invalid-response" }) },
+      {
+        evidence: evidenceFromResult(result, {
+          diagnosticKind: "invalid-response",
+        }),
+      },
     );
   }
   const content = text ?? "";
@@ -453,10 +503,16 @@ export function completionFromAcmeResponse(
     throw new AcmeChatError(
       "invalid_response",
       "ACME completed with no usable answer.",
-      { evidence: evidenceFromResult(result, { diagnosticKind: "invalid-response" }) },
+      {
+        evidence: evidenceFromResult(result, {
+          diagnosticKind: "invalid-response",
+        }),
+      },
     );
   }
-  const usage = usageFrom(response.usage) ?? usageFrom(isRecord(result) ? result.usage : undefined);
+  const usage =
+    usageFrom(response.usage) ??
+    usageFrom(isRecord(result) ? result.usage : undefined);
   const finishReason = finishReasonFrom(response.finishReason);
   const evidence = evidenceFromResult(result, { diagnosticKind: "completed" });
   return {
@@ -464,14 +520,17 @@ export function completionFromAcmeResponse(
     ...(calls.length > 0 ? { toolCalls: calls } : {}),
     ...(finishReason === undefined ? {} : { finishReason }),
     ...(usage === undefined ? {} : { usage }),
-    ...(evidence.modelExecutionId === undefined && evidence.replayed === undefined
+    ...(evidence.modelExecutionId === undefined &&
+    evidence.replayed === undefined
       ? {}
       : {
           execution: {
             ...(evidence.modelExecutionId === undefined
               ? {}
               : { id: evidence.modelExecutionId }),
-            ...(evidence.replayed === undefined ? {} : { replayed: evidence.replayed }),
+            ...(evidence.replayed === undefined
+              ? {}
+              : { replayed: evidence.replayed }),
             diagnosticKind: "completed",
           },
         }),
@@ -485,7 +544,9 @@ export function evidenceFromResult(
   if (!isRecord(result)) {
     return fallback;
   }
-  const diagnostic = isRecord(result.diagnostic) ? result.diagnostic : undefined;
+  const diagnostic = isRecord(result.diagnostic)
+    ? result.diagnostic
+    : undefined;
   const delivery =
     diagnostic?.delivery === "not-sent" ||
     diagnostic?.delivery === "sent" ||
@@ -493,7 +554,8 @@ export function evidenceFromResult(
       ? diagnostic.delivery
       : fallback.delivery;
   const httpStatus =
-    typeof diagnostic?.httpStatus === "number" && Number.isSafeInteger(diagnostic.httpStatus)
+    typeof diagnostic?.httpStatus === "number" &&
+    Number.isSafeInteger(diagnostic.httpStatus)
       ? diagnostic.httpStatus
       : fallback.httpStatus;
   return {
@@ -509,8 +571,12 @@ export function evidenceFromResult(
         : { diagnosticKind: fallback.diagnosticKind }),
     ...(delivery === undefined ? {} : { delivery }),
     ...(httpStatus === undefined ? {} : { httpStatus }),
-    ...(typeof result.replayed === "boolean" ? { replayed: result.replayed } : {}),
-    ...(fallback.protocolCode === undefined ? {} : { protocolCode: fallback.protocolCode }),
+    ...(typeof result.replayed === "boolean"
+      ? { replayed: result.replayed }
+      : {}),
+    ...(fallback.protocolCode === undefined
+      ? {}
+      : { protocolCode: fallback.protocolCode }),
   };
 }
 
@@ -538,7 +604,11 @@ export function chatErrorFromAcmeFailure(
   return new AcmeChatError(mapped.code, annotated, {
     ...(status === undefined ? {} : { status }),
     retryable: mapped.retryable ?? retryable,
-    evidence: { ...evidence, delivery, ...(protocolCode === undefined ? {} : { protocolCode }) },
+    evidence: {
+      ...evidence,
+      delivery,
+      ...(protocolCode === undefined ? {} : { protocolCode }),
+    },
   });
 }
 
@@ -601,7 +671,11 @@ function mapDiagnosticKind(
   if (kind === "timeout") {
     return { code: "timeout", retryable: false };
   }
-  if (kind === "cancel" || kind === "cancelled" || protocolCode === "CANCELLED") {
+  if (
+    kind === "cancel" ||
+    kind === "cancelled" ||
+    protocolCode === "CANCELLED"
+  ) {
     return { code: "cancelled", retryable: false };
   }
   if (kind === "auth" || protocolCode === "UNAUTHORIZED") {
@@ -623,7 +697,11 @@ function mapDiagnosticKind(
   if (kind === "ambiguous-delivery" || kind === "resume-evidence-unavailable") {
     return { code: "provider", retryable: false };
   }
-  if (kind === "unavailable" || kind === "internal" || (httpStatus !== undefined && httpStatus >= 500)) {
+  if (
+    kind === "unavailable" ||
+    kind === "internal" ||
+    (httpStatus !== undefined && httpStatus >= 500)
+  ) {
     return { code: "server" };
   }
   return { code: "provider", retryable: false };

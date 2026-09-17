@@ -92,7 +92,10 @@ test("dormant restatement reinforces on write; project includes it without mutat
   assert.equal(created.item?.activationStatus, "dormant");
 
   const discovered = await memory.discover(task());
-  assert.deepEqual(discovered.map((item) => item.id), ["knowledge_1"]);
+  assert.deepEqual(
+    discovered.map((item) => item.id),
+    ["knowledge_1"],
+  );
   assert.equal(discovered[0]?.activationStatus, "dormant");
 
   const restated = await memory.reconcile(
@@ -103,23 +106,28 @@ test("dormant restatement reinforces on write; project includes it without mutat
     { type: "restatement", targetId: "knowledge_1" },
   );
   assert.equal(restated.item?.id, "knowledge_1");
-  assert.equal(restated.item?.proposition, "The memory core is provider neutral.");
+  assert.equal(
+    restated.item?.proposition,
+    "The memory core is provider neutral.",
+  );
   assert.ok(Math.abs((restated.item?.relevanceScore ?? 0) - 0.3) < 1e-12);
   assert.equal(restated.item?.activationStatus, "dormant");
   const afterWrite = await memory.getKnowledge("knowledge_1");
   const auditAfterWrite = await memory.getAudit();
 
-  const projected = await memory.project(
-    task({ terms: ["continuity"] }),
-    { maximum: 2_000 },
-  );
+  const projected = await memory.project(task({ terms: ["continuity"] }), {
+    maximum: 2_000,
+  });
   assert.deepEqual(
     projected.projection.items.map((item) => item.id),
     ["knowledge_1"],
   );
   assert.deepEqual(await memory.getKnowledge("knowledge_1"), afterWrite);
   assert.deepEqual(await memory.getAudit(), auditAfterWrite);
-  assert.equal((await memory.getKnowledge("knowledge_1"))?.activationStatus, "dormant");
+  assert.equal(
+    (await memory.getKnowledge("knowledge_1"))?.activationStatus,
+    "dormant",
+  );
 });
 
 test("guarded reconciliation rejects stale revisions inside the transaction", async () => {
@@ -195,13 +203,19 @@ test("supersede separates current truth from historical state", async () => {
 
   assert.equal(replacement.item?.id, "knowledge_2");
   const history = await memory.getHistory("knowledge_1");
-  assert.deepEqual(history.map((item) => item.id), ["knowledge_1", "knowledge_2"]);
+  assert.deepEqual(
+    history.map((item) => item.id),
+    ["knowledge_1", "knowledge_2"],
+  );
   assert.equal(history[0]?.canonicalStatus, "superseded");
   assert.equal(history[0]?.activationStatus, "dormant");
   assert.equal(history[1]?.canonicalStatus, "current");
 
   const current = await memory.discover(task());
-  assert.deepEqual(current.map((item) => item.id), ["knowledge_2"]);
+  assert.deepEqual(
+    current.map((item) => item.id),
+    ["knowledge_2"],
+  );
 });
 
 test("scope isolation excludes active knowledge without decaying it", async () => {
@@ -226,8 +240,14 @@ test("scope isolation excludes active knowledge without decaying it", async () =
   );
   assert.deepEqual(await memory.getKnowledge("in-scope"), before);
   assert.equal((await memory.getKnowledge("in-scope"))?.relevanceScore, 0.6);
-  assert.equal((await memory.getKnowledge("out-of-scope"))?.relevanceScore, 0.6);
-  assert.equal((await memory.getKnowledge("out-of-scope"))?.activationStatus, "active");
+  assert.equal(
+    (await memory.getKnowledge("out-of-scope"))?.relevanceScore,
+    0.6,
+  );
+  assert.equal(
+    (await memory.getKnowledge("out-of-scope"))?.activationStatus,
+    "active",
+  );
   assert.equal((await memory.getKnowledge("out-of-scope"))?.revision, 1);
 });
 
@@ -263,37 +283,40 @@ test("keep-alive and dormant required items project without activation or mutati
     task({ requiredKnowledgeIds: ["required-dormant"] }),
     { maximum: 2_000 },
   );
-  assert.deepEqual(
-    required.projection.items.map((item) => item.id).sort(),
-    ["pinned", "required-dormant"],
-  );
+  assert.deepEqual(required.projection.items.map((item) => item.id).sort(), [
+    "pinned",
+    "required-dormant",
+  ]);
   assert.deepEqual(await memory.getKnowledge("required-dormant"), before);
   assert.deepEqual(await memory.getAudit(), auditBefore);
 });
 
 test("projection enforces exact serialized budget and excludes audit and provenance", async () => {
-  const repository = new InMemoryMemoryRepository([
-    storedItem("required", {
-      proposition: "Materialized semantic rule.",
-      keepAlive: true,
-      provenance: [
-        { sourceId: "secret-audit-source", sourceType: "private-trace" },
-      ],
-    }),
-    storedItem("optional", {
-      proposition: "Optional semantic detail.",
-      relevanceScore: 0.7,
-    }),
-  ], [
-    {
-      sequence: 1,
-      type: "knowledge_created",
-      knowledgeIds: ["secret-audit-id"],
-      taskId: null,
-      selectedKnowledgeIds: [],
-      excludedCount: 0,
-    },
-  ]);
+  const repository = new InMemoryMemoryRepository(
+    [
+      storedItem("required", {
+        proposition: "Materialized semantic rule.",
+        keepAlive: true,
+        provenance: [
+          { sourceId: "secret-audit-source", sourceType: "private-trace" },
+        ],
+      }),
+      storedItem("optional", {
+        proposition: "Optional semantic detail.",
+        relevanceScore: 0.7,
+      }),
+    ],
+    [
+      {
+        sequence: 1,
+        type: "knowledge_created",
+        knowledgeIds: ["secret-audit-id"],
+        taskId: null,
+        selectedKnowledgeIds: [],
+        excludedCount: 0,
+      },
+    ],
+  );
   const memory = engine(
     repository,
     new CodingAgentMemoryPolicy({ projectionReinforcement: 0 }),
@@ -317,7 +340,10 @@ test("projection enforces exact serialized budget and excludes audit and provena
   assert.equal(result.serialized, onlyRequired);
   assert.equal(result.measuredUnits, exactBudget);
   assert.equal(result.measurementUnit, "utf8-bytes");
-  assert.deepEqual(result.projection.items.map((item) => item.id), ["required"]);
+  assert.deepEqual(
+    result.projection.items.map((item) => item.id),
+    ["required"],
+  );
   assert.ok(result.serialized.includes("Materialized semantic rule."));
   assert.ok(!result.serialized.includes("secret-audit-source"));
   assert.ok(!result.serialized.includes("secret-audit-id"));
@@ -330,7 +356,10 @@ test("projection enforces exact serialized budget and excludes audit and provena
     (error: unknown) =>
       error instanceof MemoryError && error.code === "budget_exceeded",
   );
-  assert.deepEqual(await memory.getKnowledge("required"), canonicalBeforeFailure);
+  assert.deepEqual(
+    await memory.getKnowledge("required"),
+    canonicalBeforeFailure,
+  );
   assert.deepEqual(await memory.getAudit(), auditBeforeFailure);
 });
 
@@ -347,7 +376,9 @@ test("missing required knowledge fails explicitly", async () => {
 });
 
 test("invalid duplicate generated ID and policy failure roll back state", async () => {
-  const duplicateRepository = new InMemoryMemoryRepository([storedItem("same")]);
+  const duplicateRepository = new InMemoryMemoryRepository([
+    storedItem("same"),
+  ]);
   const duplicateMemory = new SemanticMemory({
     repository: duplicateRepository,
     policy: new CodingAgentMemoryPolicy(),
@@ -374,10 +405,10 @@ test("invalid duplicate generated ID and policy failure roll back state", async 
   const memory = engine(repository, boostingPolicy);
   const before = await memory.getKnowledge("first");
   const projected = await memory.project(task(), { maximum: 2_000 });
-  assert.deepEqual(
-    projected.projection.items.map((item) => item.id).sort(),
-    ["first", "second"],
-  );
+  assert.deepEqual(projected.projection.items.map((item) => item.id).sort(), [
+    "first",
+    "second",
+  ]);
   assert.deepEqual(await memory.getKnowledge("first"), before);
   assert.equal((await memory.getKnowledge("first"))?.relevanceScore, 0.6);
   assert.equal((await memory.getKnowledge("first"))?.revision, 1);
@@ -431,8 +462,7 @@ test("ranking is deterministic and malformed policy output is rejected", async (
   );
   await assert.rejects(
     () => malformed.project(task(), { maximum: 2_000 }),
-    (error: unknown) =>
-      error instanceof MemoryError && error.code === "policy",
+    (error: unknown) => error instanceof MemoryError && error.code === "policy",
   );
 });
 
@@ -485,11 +515,11 @@ test("selected projection preserves explicit rank without lifecycle mutation", a
   const before = await repository.read((view) => view.listAll());
   const auditBefore = await repository.readAudit();
 
-  const result = await memory.projectSelected(
-    task(),
-    { maximum: 4_000 },
-    ["second", "dormant", "first"],
-  );
+  const result = await memory.projectSelected(task(), { maximum: 4_000 }, [
+    "second",
+    "dormant",
+    "first",
+  ]);
 
   assert.deepEqual(
     result.projection.items.map((item) => item.id),
@@ -515,7 +545,10 @@ test("S6 reduced: a dormant current record is returned for a direct question", a
   const before = await memory.getKnowledge("house-color");
   const auditBefore = await memory.getAudit();
   const result = await memory.project(task(), { maximum: 2_000 });
-  assert.deepEqual(result.projection.items.map((item) => item.id), ["house-color"]);
+  assert.deepEqual(
+    result.projection.items.map((item) => item.id),
+    ["house-color"],
+  );
   assert.deepEqual(await memory.getKnowledge("house-color"), before);
   assert.deepEqual(await memory.getAudit(), auditBefore);
 });

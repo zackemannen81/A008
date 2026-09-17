@@ -3,10 +3,7 @@ import test from "node:test";
 import { IdentityError } from "../src/identity/errors.js";
 import { InMemoryAcpIdentityBindingRepository } from "../src/identity/in-memory-binding-repository.js";
 import { RuntimeIdentityFactory } from "../src/identity/runtime-id.js";
-import type {
-  AcpIdentityBinding,
-  ProjectId,
-} from "../src/identity/types.js";
+import type { AcpIdentityBinding, ProjectId } from "../src/identity/types.js";
 
 function identityFactory(): RuntimeIdentityFactory {
   let sequence = 0;
@@ -48,16 +45,13 @@ test("binding registration is idempotent and resolves every supported query", as
     }),
     "existing",
   );
-  assert.deepEqual(
-    await repository.resolveAcpSession(value.acpSessionId),
-    {
-      ...value,
-      externalReferences: [
-        { system: "agent_server", kind: "conversation", value: "server-1" },
-        { system: "canvas", kind: "conversation", value: "canvas-1" },
-      ],
-    },
-  );
+  assert.deepEqual(await repository.resolveAcpSession(value.acpSessionId), {
+    ...value,
+    externalReferences: [
+      { system: "agent_server", kind: "conversation", value: "server-1" },
+      { system: "canvas", kind: "conversation", value: "canvas-1" },
+    ],
+  });
   assert.equal(
     (
       await repository.resolveExternal({
@@ -194,8 +188,14 @@ test("concurrent external-reference claims serialize with one atomic winner", as
     repository.register(left),
     repository.register(right),
   ]);
-  assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
-  assert.equal(results.filter((result) => result.status === "rejected").length, 1);
+  assert.equal(
+    results.filter((result) => result.status === "fulfilled").length,
+    1,
+  );
+  assert.equal(
+    results.filter((result) => result.status === "rejected").length,
+    1,
+  );
   const resolved = await repository.resolveExternal(reference);
   assert.ok(
     resolved?.acpSessionId === left.acpSessionId ||

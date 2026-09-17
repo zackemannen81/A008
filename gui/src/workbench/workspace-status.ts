@@ -56,7 +56,10 @@ export function parseGitStatusShort(stdout: string): {
   const names = body.replace(/\s*\[.*$/u, "");
   const [branchPart, upstreamPart] = names.split("...");
   let branch = (branchPart ?? "").trim();
-  if (branch === "HEAD (no branch)" || branch.startsWith("No commits yet on ")) {
+  if (
+    branch === "HEAD (no branch)" ||
+    branch.startsWith("No commits yet on ")
+  ) {
     branch = branch.replace(/^No commits yet on /u, "") || "HEAD";
   }
   const changedFiles = lines.filter((line) => !line.startsWith("## ")).length;
@@ -109,7 +112,9 @@ export async function loadWorkspaceStatus(
     }
     const [unstaged, staged] = await Promise.all([
       executeShellCommand("git diff --shortstat", { fetch: fetchImpl }),
-      executeShellCommand("git diff --cached --shortstat", { fetch: fetchImpl }),
+      executeShellCommand("git diff --cached --shortstat", {
+        fetch: fetchImpl,
+      }),
     ]);
     const unstagedStat = parseGitShortstat(unstaged.stdout);
     const stagedStat = parseGitShortstat(staged.stdout);

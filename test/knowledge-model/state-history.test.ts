@@ -44,7 +44,10 @@ const RECONCILE_OUTCOMES: readonly ReconcileOutcomeKind[] = [
   "no_op",
 ];
 
-function colorSlot(entity: string, name = "color"): {
+function colorSlot(
+  entity: string,
+  name = "color",
+): {
   readonly ref: AttributeSlotRef;
   readonly definition: SlotDefinition;
 } {
@@ -85,7 +88,8 @@ function colorClaim(input: {
     id: input.id,
     slot: input.slot,
     value: input.value,
-    label: input.label ?? `${input.slot.entity}.${input.slot.name} = ${valueLabel}`,
+    label:
+      input.label ?? `${input.slot.entity}.${input.slot.name} = ${valueLabel}`,
     aboutInterval: {
       from: input.from,
       to: input.to === undefined ? null : input.to,
@@ -231,7 +235,9 @@ test("S1 — Changing house colour", () => {
     { value: "green", from: T2, to: null },
   ]);
 
-  const painted = state.events().find((event) => event.type === "house_painted");
+  const painted = state
+    .events()
+    .find((event) => event.type === "house_painted");
   assert.ok(painted);
   assert.equal(painted.who, "Brittan");
   assert.equal(painted.eventTime, T1);
@@ -240,13 +246,17 @@ test("S1 — Changing house colour", () => {
   assert.equal(state.history(ref).length, 3);
   assert.equal(state.claims(ref).length, 3);
   assert.equal(
-    state.transitions(ref).every((transition) => transition.outcome === "change"),
+    state
+      .transitions(ref)
+      .every((transition) => transition.outcome === "change"),
     true,
   );
   assert.equal(
-    state.snapshot().bindings.some(
-      (binding) => "canonicalStatus" in binding || "supersededBy" in binding,
-    ),
+    state
+      .snapshot()
+      .bindings.some(
+        (binding) => "canonicalStatus" in binding || "supersededBy" in binding,
+      ),
     false,
   );
   assertNoForbiddenFields(state.snapshot(), "s1");
@@ -425,9 +435,11 @@ test("S10 — Retraction", () => {
     { value: "green", from: T2, to: T3 },
   ]);
   assert.equal(
-    state.claims(ref).some(
-      (claim) => claim.status === "accepted" && valuesMatchGreen(claim.value),
-    ),
+    state
+      .claims(ref)
+      .some(
+        (claim) => claim.status === "accepted" && valuesMatchGreen(claim.value),
+      ),
     false,
   );
   assert.equal(state.history(ref).length, 1);

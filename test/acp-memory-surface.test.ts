@@ -17,10 +17,8 @@ const NEW_SESSION: NewSessionRequest = {
   cwd: "C:\\workspace",
   mcpServers: [],
 };
-const SESSION_ID =
-  "A008_v1_acp_session_00000000-0000-4000-8000-000000000001";
-const ASSERTION =
-  "Durable fact: the local memory project code is alpha-seven.";
+const SESSION_ID = "A008_v1_acp_session_00000000-0000-4000-8000-000000000001";
+const ASSERTION = "Durable fact: the local memory project code is alpha-seven.";
 const PROPOSITION = "the local memory project code is alpha-seven";
 
 test("ACP agent streams thought/answer then settles memory without protocol diagnostics", async () => {
@@ -34,7 +32,8 @@ test("ACP agent streams thought/answer then settles memory without protocol diag
       const raw = input as { readonly message?: unknown };
       return raw.message === ASSERTION
         ? [
-            { severity: "important",
+            {
+              severity: "important",
               proposition: PROPOSITION,
               kind: "fact",
               tags: ["memory"],
@@ -92,7 +91,10 @@ test("ACP agent streams thought/answer then settles memory without protocol diag
     const chatRequests = transport.requests.filter(
       (request) => semanticOperation(request) === undefined,
     );
-    assert.match(chatRequests[1]?.messages.at(-1)?.content ?? "", new RegExp(PROPOSITION, "u"));
+    assert.match(
+      chatRequests[1]?.messages.at(-1)?.content ?? "",
+      new RegExp(PROPOSITION, "u"),
+    );
     assert.equal(
       JSON.stringify(chatRequests[1]?.messages).includes("ACP_PRIVATE"),
       false,

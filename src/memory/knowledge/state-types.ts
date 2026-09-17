@@ -17,17 +17,10 @@ export type ReconcileOutcomeKind =
   | "no_op";
 
 export type ClaimStatus =
-  | "asserted"
-  | "accepted"
-  | "contested"
-  | "rejected"
-  | "retracted";
+  "asserted" | "accepted" | "contested" | "rejected" | "retracted";
 
 export type ClaimKind =
-  | "assertion"
-  | "event_effect"
-  | "correction"
-  | "retraction";
+  "assertion" | "event_effect" | "correction" | "retraction";
 
 export type AttributeBinding = {
   readonly kind: "attribute";

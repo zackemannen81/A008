@@ -319,3 +319,9 @@
   font-size: 0.75rem;
   color: var(--a008-chat-muted);
 }
+
+.a008-composer-file-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.a008-composer-image-chip { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: .65rem; align-items: center; margin: .55rem 0; padding: .5rem .65rem; border: 1px solid var(--a008-border); border-radius: 6px; font-size: .75rem; }
+.a008-composer-image-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a008-composer-image-chip small, .a008-composer-uploading { color: var(--a008-muted); }
+.a008-composer-image-chip button { border: 0; background: none; color: var(--a008-muted); cursor: pointer; font-size: 1rem; }

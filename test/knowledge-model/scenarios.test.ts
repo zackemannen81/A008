@@ -114,7 +114,8 @@ function colorClaim(input: {
     id: input.id,
     slot: input.slot,
     value: input.value,
-    label: input.label ?? `${input.slot.entity}.${input.slot.name} = ${valueLabel}`,
+    label:
+      input.label ?? `${input.slot.entity}.${input.slot.name} = ${valueLabel}`,
     aboutInterval: {
       from: input.from,
       to: input.to === undefined ? null : input.to,
@@ -144,7 +145,10 @@ function acceptUpdate(
   assert.deepEqual(world.state.snapshot(), before);
   assert.equal(decision.outcome, expected);
   if (expected === "retraction") {
-    world.state.setClaimStatus(proposal.retractsClaimId ?? proposal.id, "retracted");
+    world.state.setClaimStatus(
+      proposal.retractsClaimId ?? proposal.id,
+      "retracted",
+    );
   } else if (expected !== "conflict") {
     world.state.setClaimStatus(proposal.id, "accepted");
   }
@@ -188,7 +192,11 @@ function ask(
     },
     world,
   );
-  assert.deepEqual(world.state.snapshot(), stateBefore, "read path must not write state");
+  assert.deepEqual(
+    world.state.snapshot(),
+    stateBefore,
+    "read path must not write state",
+  );
   assert.deepEqual(
     world.lifecycle.snapshot(),
     lifeBefore,
@@ -222,7 +230,10 @@ function assertNoForbidden(value: unknown, path: string): void {
       false,
       `${path}.${key} must not exist`,
     );
-    assertNoForbidden((value as Record<string, unknown>)[key], `${path}.${key}`);
+    assertNoForbidden(
+      (value as Record<string, unknown>)[key],
+      `${path}.${key}`,
+    );
   }
 }
 
@@ -495,7 +506,9 @@ eachBackend("S1 — Changing house colour", (seed) => {
   assert.deepEqual(currentValues(current), ["green"]);
   assert.equal(current.projected.payload.history.length, 0);
   assert.equal(
-    current.projected.payload.state.every((entry) => entry.interval.to === null),
+    current.projected.payload.state.every(
+      (entry) => entry.interval.to === null,
+    ),
     true,
   );
 
@@ -506,7 +519,9 @@ eachBackend("S1 — Changing house colour", (seed) => {
   assert.equal(history.scope.intents.includes("history"), true);
   assert.deepEqual(historyValues(history), ["white", "red", "green"]);
   assert.equal(
-    history.projected.payload.history.every((entry) => entry.interval !== undefined),
+    history.projected.payload.history.every(
+      (entry) => entry.interval !== undefined,
+    ),
     true,
   );
   assert.deepEqual(
@@ -524,17 +539,20 @@ eachBackend("S1 — Changing house colour", (seed) => {
   assert.equal(event.projected.payload.events[0]?.type, "house_painted");
   assert.match(event.projected.payload.events[0]?.label ?? "", /Brittan/);
   assert.equal(
-    event.projected.diagnostics.records.find((record) => record.surface === "event")
-      ?.who,
+    event.projected.diagnostics.records.find(
+      (record) => record.surface === "event",
+    )?.who,
     "Brittan",
   );
 
   assert.equal(world.state.history(ref).length, 3);
   assert.equal(world.state.claims(ref).length, 3);
   assert.equal(
-    world.state.snapshot().bindings.some(
-      (binding) => "canonicalStatus" in binding || "supersededBy" in binding,
-    ),
+    world.state
+      .snapshot()
+      .bindings.some(
+        (binding) => "canonicalStatus" in binding || "supersededBy" in binding,
+      ),
     false,
   );
 });
@@ -553,7 +571,12 @@ eachBackend("S2 — Correction versus change", (seed) => {
     targetInterval: { from: T0, to: T1 },
   });
   world.state.recordClaim(correction);
-  const { decision } = acceptUpdate(world, correction, definition, "correction");
+  const { decision } = acceptUpdate(
+    world,
+    correction,
+    definition,
+    "correction",
+  );
   assert.equal(decision.outcome, "correction");
   assert.notEqual(decision.outcome, "change");
 
@@ -627,9 +650,14 @@ eachBackend("S4 — Attributed prediction", (world) => {
       to: "2026-09-04T00:00:00.000Z",
     },
   };
-  const claims = recordClaimsFromUtterance(world.evidence, utterance.id, [rain], {
-    idFactory: ids,
-  });
+  const claims = recordClaimsFromUtterance(
+    world.evidence,
+    utterance.id,
+    [rain],
+    {
+      idFactory: ids,
+    },
+  );
   const claim = claims[0];
   assert.ok(claim);
   attachEvidence(world, claim.id, "claim", T2);
@@ -645,7 +673,10 @@ eachBackend("S4 — Attributed prediction", (world) => {
   const said = ask(world, "Vad sa presentatören?");
   assert.equal(said.scope.intents.includes("attribution"), true);
   assert.equal(said.projected.payload.utterances.length, 1);
-  assert.equal(said.projected.payload.utterances[0]?.speaker, "Kanal 4 presenter");
+  assert.equal(
+    said.projected.payload.utterances[0]?.speaker,
+    "Kanal 4 presenter",
+  );
   assert.equal(said.projected.payload.utterances[0]?.act, "prediction");
 
   const weather = ask(world, "Regnar det imorgon?");
@@ -710,7 +741,9 @@ eachBackend("S6 — Dormant direct hit", (seed) => {
   const { world } = playS1(false, seed);
   dormantAll(world, T3);
   assert.equal(
-    world.lifecycle.list().every((record) => record.lifecycle.state === "dormant"),
+    world.lifecycle
+      .list()
+      .every((record) => record.lifecycle.state === "dormant"),
     true,
   );
 
@@ -850,9 +883,14 @@ eachBackend("S9 — Attribution without acceptance", (world) => {
       aboutInterval: { from: T0, to: null },
     },
   ];
-  const claims = recordClaimsFromUtterance(world.evidence, utterance.id, drafts, {
-    idFactory: ids,
-  });
+  const claims = recordClaimsFromUtterance(
+    world.evidence,
+    utterance.id,
+    drafts,
+    {
+      idFactory: ids,
+    },
+  );
   assert.equal(claims.length, 2);
   for (const claim of claims) {
     attachEvidence(world, claim.id, "claim", T0);
@@ -878,7 +916,9 @@ eachBackend("S9 — Attribution without acceptance", (world) => {
     true,
   );
   assert.equal(
-    owns.projected.payload.claims.some((claim) => claim.attributedTo === "Stefan"),
+    owns.projected.payload.claims.some(
+      (claim) => claim.attributedTo === "Stefan",
+    ),
     true,
   );
 });
@@ -914,39 +954,48 @@ eachBackend("S10 — Retraction", (seed) => {
   assert.equal(world.state.currentValue(ref), undefined);
 });
 
-eachBackend("decay sweep does not change any direct-question answer", (seed) => {
-  const { world } = playS1(false, seed);
-  let extra = 5000;
-  playS3(world, () => String((extra += 1)));
+eachBackend(
+  "decay sweep does not change any direct-question answer",
+  (seed) => {
+    const { world } = playS1(false, seed);
+    let extra = 5000;
+    playS3(world, () => String((extra += 1)));
 
-  const questions = [
-    "Vilken färg har Brittans hus?",
-    "What does main return?",
-    "Where is main defined?",
-  ];
-  const before = questions.map((question) => currentValues(ask(world, question)));
-  const stateBefore = world.state.snapshot();
+    const questions = [
+      "Vilken färg har Brittans hus?",
+      "What does main return?",
+      "Where is main defined?",
+    ];
+    const before = questions.map((question) =>
+      currentValues(ask(world, question)),
+    );
+    const stateBefore = world.state.snapshot();
 
-  decay(world.lifecycle, {
-    caller: "test:decay-sweep",
-    reason: "scheduled evidence decay",
-    at: T3,
-    elapsed: 20,
-  });
-  assert.deepEqual(world.state.snapshot(), stateBefore);
-  assert.equal(
-    world.lifecycle.list().every((record) => record.lifecycle.state === "dormant"),
-    true,
-  );
+    decay(world.lifecycle, {
+      caller: "test:decay-sweep",
+      reason: "scheduled evidence decay",
+      at: T3,
+      elapsed: 20,
+    });
+    assert.deepEqual(world.state.snapshot(), stateBefore);
+    assert.equal(
+      world.lifecycle
+        .list()
+        .every((record) => record.lifecycle.state === "dormant"),
+      true,
+    );
 
-  const after = questions.map((question) => currentValues(ask(world, question)));
-  assert.deepEqual(after, before);
-  assert.deepEqual(before[0], ["green"]);
-  assert.equal(
-    before[1]?.some((value) => value === "int"),
-    true,
-  );
-});
+    const after = questions.map((question) =>
+      currentValues(ask(world, question)),
+    );
+    assert.deepEqual(after, before);
+    assert.deepEqual(before[0], ["green"]);
+    assert.equal(
+      before[1]?.some((value) => value === "int"),
+      true,
+    );
+  },
+);
 
 test("PROJECT writes nothing and strength is not a direct-match score term", () => {
   assert.equal(
@@ -992,41 +1041,44 @@ test("PROJECT writes nothing and strength is not a direct-match score term", () 
   });
 });
 
-eachBackend("DEFINE consumes mentionsPast so closed intervals are reachable", (seed) => {
-  const { world } = playS1(false, seed);
-  const withoutHint = define(
-    {
-      message: "What color is the house?",
-      verifiedScope: verifiedScope({ entities: ["Brittans hus"] }),
-    },
-    world,
-  );
-  assert.equal(withoutHint.intents.includes("history"), false);
+eachBackend(
+  "DEFINE consumes mentionsPast so closed intervals are reachable",
+  (seed) => {
+    const { world } = playS1(false, seed);
+    const withoutHint = define(
+      {
+        message: "What color is the house?",
+        verifiedScope: verifiedScope({ entities: ["Brittans hus"] }),
+      },
+      world,
+    );
+    assert.equal(withoutHint.intents.includes("history"), false);
 
-  const withHint = define(
-    {
-      message: "What color is the house?",
-      verifiedScope: verifiedScope({ entities: ["Brittans hus"] }),
+    const withHint = define(
+      {
+        message: "What color is the house?",
+        verifiedScope: verifiedScope({ entities: ["Brittans hus"] }),
+        temporalHints: {
+          currentOnly: false,
+          mentionsPast: true,
+          mentionsFuture: false,
+        },
+      },
+      world,
+    );
+    assert.equal(withHint.intents.includes("history"), true);
+    assert.equal(withHint.temporalHints.mentionsPast, true);
+
+    const history = ask(world, "What color is the house?", {
       temporalHints: {
         currentOnly: false,
         mentionsPast: true,
         mentionsFuture: false,
       },
-    },
-    world,
-  );
-  assert.equal(withHint.intents.includes("history"), true);
-  assert.equal(withHint.temporalHints.mentionsPast, true);
-
-  const history = ask(world, "What color is the house?", {
-    temporalHints: {
-      currentOnly: false,
-      mentionsPast: true,
-      mentionsFuture: false,
-    },
-  });
-  assert.deepEqual(historyValues(history), ["white", "red", "green"]);
-});
+    });
+    assert.deepEqual(historyValues(history), ["white", "red", "green"]);
+  },
+);
 
 eachBackend("tags do not gate a direct slot match", (seed) => {
   const { world } = playS1(false, seed);
@@ -1037,76 +1089,85 @@ eachBackend("tags do not gate a direct slot match", (seed) => {
   assert.deepEqual(currentValues(result), ["green"]);
 });
 
-eachBackend("closed intervals are unreachable without history intent", (seed) => {
-  const { world } = playS1(false, seed);
-  const current = ask(world, "Vilken färg har Brittans hus?");
-  assert.equal(current.projected.payload.history.length, 0);
-  assert.equal(
-    current.retrieved.some(
-      (record) =>
-        record.surface === "history" && record.interval?.to !== null,
-    ),
-    false,
-  );
-  assert.equal(
-    currentValues(current).includes("white") || currentValues(current).includes("red"),
-    false,
-  );
-});
+eachBackend(
+  "closed intervals are unreachable without history intent",
+  (seed) => {
+    const { world } = playS1(false, seed);
+    const current = ask(world, "Vilken färg har Brittans hus?");
+    assert.equal(current.projected.payload.history.length, 0);
+    assert.equal(
+      current.retrieved.some(
+        (record) =>
+          record.surface === "history" && record.interval?.to !== null,
+      ),
+      false,
+    );
+    assert.equal(
+      currentValues(current).includes("white") ||
+        currentValues(current).includes("red"),
+      false,
+    );
+  },
+);
 
-eachBackend("DECAY / WEAKEN / REINFORCE / REACTIVATE write evidence lifecycle only", (seed) => {
-  const { world, ref } = playS1(false, seed);
-  const stateBefore = world.state.snapshot();
-  const claim = world.lifecycle.list().find((record) => record.evidenceKind === "claim");
-  assert.ok(claim);
+eachBackend(
+  "DECAY / WEAKEN / REINFORCE / REACTIVATE write evidence lifecycle only",
+  (seed) => {
+    const { world, ref } = playS1(false, seed);
+    const stateBefore = world.state.snapshot();
+    const claim = world.lifecycle
+      .list()
+      .find((record) => record.evidenceKind === "claim");
+    assert.ok(claim);
 
-  weaken(world.lifecycle, {
-    evidenceIds: [claim.evidenceId],
-    caller: "test:lifecycle",
-    reason: "explicit weaken",
-    at: T3,
-    amount: 0.2,
-  });
-  decay(world.lifecycle, {
-    evidenceIds: [claim.evidenceId],
-    caller: "test:lifecycle",
-    reason: "explicit decay",
-    at: T3,
-    elapsed: 1,
-  });
-  reactivate(world.lifecycle, {
-    evidenceIds: [claim.evidenceId],
-    caller: "test:lifecycle",
-    reason: "explicit reactivate",
-    at: T3,
-  });
-  const reinforced = world.lifecycle.list().find(
-    (record) => record.evidenceId === claim.evidenceId,
-  );
-  assert.ok(reinforced);
-  assert.equal(reinforced.lifecycle.state, "active");
+    weaken(world.lifecycle, {
+      evidenceIds: [claim.evidenceId],
+      caller: "test:lifecycle",
+      reason: "explicit weaken",
+      at: T3,
+      amount: 0.2,
+    });
+    decay(world.lifecycle, {
+      evidenceIds: [claim.evidenceId],
+      caller: "test:lifecycle",
+      reason: "explicit decay",
+      at: T3,
+      elapsed: 1,
+    });
+    reactivate(world.lifecycle, {
+      evidenceIds: [claim.evidenceId],
+      caller: "test:lifecycle",
+      reason: "explicit reactivate",
+      at: T3,
+    });
+    const reinforced = world.lifecycle
+      .list()
+      .find((record) => record.evidenceId === claim.evidenceId);
+    assert.ok(reinforced);
+    assert.equal(reinforced.lifecycle.state, "active");
 
-  reinforce(world.lifecycle, {
-    evidenceIds: [claim.evidenceId],
-    caller: "test:lifecycle",
-    reason: "explicit reinforce",
-    at: T3,
-  });
-  assert.deepEqual(world.state.snapshot(), stateBefore);
-  assert.equal(world.state.currentValue(ref), "green");
-  assert.equal(
-    world.lifecycle
-      .transitions()
-      .some((transition) => transition.kind === "decayed"),
-    true,
-  );
-  assert.equal(
-    world.lifecycle
-      .transitions()
-      .every((transition) => transition.caller.length > 0),
-    true,
-  );
-});
+    reinforce(world.lifecycle, {
+      evidenceIds: [claim.evidenceId],
+      caller: "test:lifecycle",
+      reason: "explicit reinforce",
+      at: T3,
+    });
+    assert.deepEqual(world.state.snapshot(), stateBefore);
+    assert.equal(world.state.currentValue(ref), "green");
+    assert.equal(
+      world.lifecycle
+        .transitions()
+        .some((transition) => transition.kind === "decayed"),
+      true,
+    );
+    assert.equal(
+      world.lifecycle
+        .transitions()
+        .every((transition) => transition.caller.length > 0),
+      true,
+    );
+  },
+);
 
 test("S1–S10 sqlite payloads are identical to the in-memory reference", () => {
   const memory = playS1();
@@ -1150,14 +1211,14 @@ test("sqlite close/reopen preserves S1 current and history answers", () => {
     projectId: sqliteKnowledgeTestProjectId(),
   });
   try {
-    assert.deepEqual(currentValues(ask(second.context, "Vilken färg har Brittans hus?")), [
-      "green",
-    ]);
-    assert.deepEqual(historyValues(ask(second.context, "Vilka färger har huset haft?")), [
-      "white",
-      "red",
-      "green",
-    ]);
+    assert.deepEqual(
+      currentValues(ask(second.context, "Vilken färg har Brittans hus?")),
+      ["green"],
+    );
+    assert.deepEqual(
+      historyValues(ask(second.context, "Vilka färger har huset haft?")),
+      ["white", "red", "green"],
+    );
   } finally {
     second.close();
     rmSync(directory, { recursive: true, force: true });
