@@ -1,8 +1,9 @@
 # Multimodal chat content
 
-Status: Open
+Status: Activated by A008-0124
 Source: A008-0055; owner diagram of the vision upload path
 Recorded: 2026-09-04
+Activated: 2026-09-17; ADR 0044 owns the accepted invocation-local vision boundary.
 
 ## Context
 

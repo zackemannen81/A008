@@ -8,6 +8,8 @@ replacement.
 
 ## Records
 
+- [0044-native-vision-input.md](0044-native-vision-input.md) — Accepted; invocation-local native image input over existing upload locators while committed chat remains text-only; capability-gated direct/ACME execution and model metadata projection.
+
 - [0043-acme-execution-boundary.md](0043-acme-execution-boundary.md) — Accepted; immutable non-cognitive ACME execution boundary plus Stage-3.5 evidence gate before default adoption.
 
 - [0042-existing-project-registration.md](0042-existing-project-registration.md) — Accepted; host-owned registration/open of existing roots with no project-tree mutation or heuristic legacy-memory migration.
