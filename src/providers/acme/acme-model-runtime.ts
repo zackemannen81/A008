@@ -133,7 +133,8 @@ function messageContent(message: ChatWireMessage): unknown[] {
   }
   if ("toolCalls" in message) {
     const parts: unknown[] = [];
-    if (message.content.length > 0) {
+    
+    if (message.content?.trim() ) {
       parts.push({ type: "text", text: message.content });
     }
     for (const call of message.toolCalls) {
