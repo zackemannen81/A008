@@ -139,3 +139,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0123 | Visual improvement on the memory-map graph | mrWhite81 (sucessor) | 2026-09-17 | gui/src/memory |
 | A008-0124 | native vision input and model capability metadata | ChatGPT (operator) | 2026-09-17 | expose verified model specs in UI and route uploaded images as native vision input before Stage 4 |
 | A008-0125 | Code prettier and lint | mrWhite (operator) | 2026-09-17 | Cleaning up |
+| A008-0126 | post-0120 operator journal and handoff hygiene | ChatGPT (operator) | 2026-09-18 | restore missing 0122/0124 operator records and clear stale 0124 current-task state before embedded-ACME migration |
