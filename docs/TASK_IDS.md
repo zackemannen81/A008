@@ -137,4 +137,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0121 | harden post-output knowledge extraction eligibility | ChatGPT (operator) | 2026-09-16 | durable-claim filtering, entity hygiene and prompt regressions |
 | A008-0122 | repair entity graph and relation/provenance contracts | Brittan (sucessor) | 2026-09-17 | identity, topology, relation semantics and graph/provenance projection |
 | A008-0123 | Visual improvement on the memory-map graph | mrWhite81 (sucessor) | 2026-09-17 | gui/src/memory |
-| A008-0123 | native vision input and model capability metadata | ChatGPT (operator) | 2026-09-17 | expose verified model specs in UI and route uploaded images as native vision input before Stage 4 |
+| A008-0124 | native vision input and model capability metadata | ChatGPT (operator) | 2026-09-17 | expose verified model specs in UI and route uploaded images as native vision input before Stage 4 |
