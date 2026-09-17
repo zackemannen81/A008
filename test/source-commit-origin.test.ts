@@ -201,14 +201,12 @@ test("the commit path refuses source acceptance even if staging got it wrong", a
   });
 });
 
-test("a classifier conflict is applied even when cardinality allows both", async () => {
-  // A008-0062 made `<entity>.statement` a set, so `reconcile` no longer calls a
-  // second distinct value a conflict — it opens another member. The classifier
-  // still can, and when it does its judgement is the one that counts.
-  //
-  // Before this was handled, `applyConflict` was handed the `change` decision
-  // `reconcile` had returned and threw "applyConflict requires a conflict
-  // decision", turning a genuine contradiction into a crash.
+test("a classifier conflict aligns unstructured fallback ownership without using entities[0]", async () => {
+  // A008-0122 makes `entities[]` referential, so an unstructured claim starts
+  // from a statement-specific fallback instead of `<entities[0]>.statement`.
+  // When the semantic classifier identifies a conflict with one existing
+  // carrier, the new fallback may align to that target slot so both claims can
+  // be contested mechanically without reviving array-position ownership.
   await withContext(async (handle) => {
     const message = "Zorros häst heter Fresca. Zorros häst heter Tornado.";
     const proposals = [
@@ -249,11 +247,13 @@ test("a classifier conflict is applied even when cardinality allows both", async
     await committer.commit({ batch: staged, proposalIndex: 1 });
 
     const snapshot = handle.context.state.snapshot();
-    assert.deepEqual(
-      snapshot.contestedSlotKeys,
-      ["attribute:zorro:statement"],
-      "a classifier conflict did not contest the slot",
+    assert.equal(snapshot.contestedSlotKeys.length, 1);
+    assert.match(
+      snapshot.contestedSlotKeys[0]!,
+      /^attribute:statement_[0-9a-f]{12}:statement$/u,
+      "classifier conflict did not align to the existing statement fallback slot",
     );
+    assert.notEqual(snapshot.contestedSlotKeys[0], "attribute:zorro:statement");
     const contested = snapshot.claims.filter(
       (claim) => claim.status === "contested",
     );

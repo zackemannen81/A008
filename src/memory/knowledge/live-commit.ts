@@ -31,9 +31,10 @@ import { asUtteranceId, recordClaimsFromUtterance } from "./evidence.js";
 import {
   USER_ASSERTION_POLICY_ID,
   type ClaimDraft,
+  type ClaimProposition,
 } from "./evidence-types.js";
 import { asEntityId } from "./ids.js";
-import { entitySlug } from "./registry.js";
+import { entitySlug, slotKey } from "./registry.js";
 import type { KnowledgeState } from "./state.js";
 import type { ReconcileDecision } from "./state-types.js";
 import { ingest } from "./ingest.js";
@@ -125,20 +126,33 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       span.source === (origin.kind === "source" ? "source" : "message") &&
       (origin.kind !== "source" || sourceArtifact?.locator === input.batch.sourceMessage) &&
       Number.isSafeInteger(span.start) && Number.isSafeInteger(span.end) && span.start >= 0 && span.end > span.start && span.end <= source.length;
+    const inferredMessageSpan = origin.kind === "dialogue"
+      ? exactUniqueSpan(input.batch.sourceMessage, staged.proposal.proposition)
+      : undefined;
+    const claimSourceSpan = validSupport
+      ? { start: span.start, end: span.end }
+      : inferredMessageSpan;
+    const claimOrigin: "source" | "message" | "answer" =
+      origin.kind === "source" ? "source" : claimSourceSpan !== undefined ? "message" : "answer";
     const occurrenceId = origin.kind === "source"
       ? "source:" + createHash("sha256").update(JSON.stringify([input.batch.sourceMessage, source])).digest("hex")
       : `turn:${input.batch.conversationId}:${input.batch.taskId}`;
+    const associationEntities = this.#previewBatchEntities(input.batch.proposals);
     const associations = prepareAssociations(this.#context, targets,
       source !== undefined && (origin.kind !== "source" || sourceArtifact?.locator === input.batch.sourceMessage)
         ? { origin: origin.kind === "source" ? "source" : "message", content: source } : undefined,
       origin.kind === "source" ? input.batch.sourceMessage : occurrenceId,
       staged.proposal.scope,
+      associationEntities,
     );
     const classifierInput = {
       ...(associations.associationContext === undefined ? {} : { associationContext: associations.associationContext }),
       ...(validSupport ? { sourceSupport: { origin: span.source, content: source, start: span.start, end: span.end } } : {}),
       proposal: {
         proposition: staged.proposal.proposition,
+        ...(staged.proposal.structuredProposition === undefined
+          ? {}
+          : { structuredProposition: structuredClone(staged.proposal.structuredProposition) }),
         kind: staged.proposal.kind,
         tags: [...(staged.proposal.tags ?? [])],
         scope: [...staged.proposal.scope],
@@ -156,16 +170,26 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     if (!classifierDecision || !["new", "restatement", "extend", "supersede", "conflict"].includes(classifierDecision.type)) throw new Error("Invalid live relation decision");
     return atomicKnowledge(this.#context, () => {
       operation.signal?.throwIfAborted();
-      const applyAssociations = (claimId: string, utteranceId: string): readonly string[] => {
-        const result = associations.apply(classifierDecision.associations, claimId, utteranceId, occurrenceId, at, this.#policy);
+      // Entity identity is referential, not truth-bearing. Materialize the
+      // validated batch identities before applying preclassified associations
+      // so current-batch opaque entity handles resolve deterministically.
+      this.#materializeBatchEntities(input.batch.proposals);
+      const structuralEntities = this.#materializeEntities(staged.entities);
+      const applyAssociations = (claimId: string): readonly string[] => {
+        if (classifierDecision.associations === undefined) return [];
+        const evidenceUtteranceId = origin.kind === "source"
+          ? this.#ingestOnce(input, at, "source")
+          : this.#ingestOnce(input, at, "message");
+        const result = associations.apply(classifierDecision.associations, claimId, evidenceUtteranceId, occurrenceId, at, this.#policy);
         operation.signal?.throwIfAborted();
         return result;
       };
       const priorCreation = this.#context.evidence.listClaims().find(claim => claim.label === staged.proposal.proposition && this.#context.lifecycle.get(claim.id)?.lifecycle.creationOccurrenceId === occurrenceId);
       if (priorCreation !== undefined) {
-        return this.#reusedClaimResult(classifierDecision, priorCreation.id, "duplicate_creation", candidates, serialized, classifierDecision.associations === undefined ? [] : applyAssociations(priorCreation.id, this.#ingestOnce(input, at)));
+        this.#context.entityReferences.attach(priorCreation.id, structuralEntities.map((entity) => entity.id));
+        return this.#reusedClaimResult(classifierDecision, priorCreation.id, "duplicate_creation", candidates, serialized, applyAssociations(priorCreation.id));
       }
-      const utteranceId = this.#ingestOnce(input, at);
+      const utteranceId = this.#ingestOnce(input, at, claimOrigin);
       const selected = "targetHandle" in classifierDecision ? targets.get(classifierDecision.targetHandle) : undefined;
       const currentTarget = selected === undefined ? undefined : this.#context.evidence.listClaims().find(c => c.id === selected.id);
       const resolved = selected !== undefined && currentTarget !== undefined && JSON.stringify(selected) === JSON.stringify(currentTarget) && this.#context.lifecycle.get(selected.id)?.evidenceKind === "claim";
@@ -182,7 +206,8 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         reinforcement = !validSupport || classifierDecision.supportsTarget !== true || committedSource?.content !== source
           ? "skipped_unproven_source"
           : this.#context.lifecycle.reinforceOccurrence({ occurrenceId, evidenceId: selected.id, at, support: { utteranceId, start: span.start, end: span.end } }) ? "applied" : "duplicate_or_creation";
-        return this.#reusedClaimResult(classifierDecision, selected.id, reinforcement, candidates, serialized, applyAssociations(selected.id, utteranceId));
+        this.#context.entityReferences.attach(selected.id, structuralEntities.map((entity) => entity.id));
+        return this.#reusedClaimResult(classifierDecision, selected.id, reinforcement, candidates, serialized, applyAssociations(selected.id));
       }
 
       const drafts: readonly ClaimDraft[] = [
@@ -192,7 +217,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
             staged.proposal.structuredProposition ??
             {
               kind: "attribute_binding",
-              entityLabel: statementEntityLabel(staged.entities, staged.proposal.proposition),
+              entityLabel: statementEntityLabel(staged.proposal.proposition),
               attribute: STATEMENT_SLOT,
               value: staged.proposal.proposition,
             },
@@ -224,6 +249,10 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         domains: [...utteranceDomains],
       });
       if (evidenceClaim !== undefined) {
+        this.#context.entityReferences.attach(
+          evidenceClaim.id,
+          structuralEntities.map((entity) => entity.id),
+        );
         this.#context.labels.attach({
           recordId: evidenceClaim.id,
           recordKind: "claim",
@@ -238,22 +267,20 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           at,
           caller: "knowledge-commit",
         });
-        // `user-assertion-v1` applies only to something the user actually said.
-        // An uploaded document is not a user assertion, and its text contains
-        // every proposition extracted from it, so running the policy over a
-        // source batch would accept the whole document as though the user had
-        // stated each claim. Source claims stay `asserted`, attributed to the
-        // source.
-        if (input.batch.origin.kind !== "source") {
+        // `user-assertion-v1` applies only to a claim with runtime-verified
+        // support in the original user message. Dialogue proposals without
+        // that span are assistant-answer discoveries and must remain asserted
+        // under assistant provenance rather than inheriting user authority.
+        if (claimOrigin === "message") {
           accept(
             {
               claimId: evidenceClaim.id,
               policy: ACCEPT_POLICY,
               authority: { verified: true, speakerRole: "user" },
               sourceMessage: input.batch.sourceMessage,
-              ...(validSupport
-                ? { sourceSpan: { start: span.start, end: span.end } }
-                : {}),
+              ...(claimSourceSpan === undefined
+                ? {}
+                : { sourceSpan: claimSourceSpan }),
             },
             this.#context.evidence,
           );
@@ -263,12 +290,36 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       const accepted =
         evidenceClaim !== undefined &&
         this.#context.evidence.requireClaim(evidenceClaim.id).status === "accepted";
-      const slot = this.#ensureSlot(staged.entities, staged.proposal.proposition);
+      const conflictTargetBindings = classifierDecision.type === "conflict"
+        ? classifierDecision.targetHandles.map((handle) => {
+            const target = targets.get(handle);
+            return target === undefined
+              ? undefined
+              : this.#context.state.snapshot().bindings.find(
+                  (binding) => binding.claimId === target.id && binding.interval.to === null,
+                );
+          })
+        : [];
+      const firstConflictBinding = conflictTargetBindings[0];
+      const conflictTargetSlot =
+        staged.proposal.structuredProposition === undefined &&
+        firstConflictBinding !== undefined &&
+        conflictTargetBindings.every(
+          (binding) => binding !== undefined && slotKey(binding.slot) === slotKey(firstConflictBinding.slot),
+        )
+          ? this.#context.slots.get(firstConflictBinding.slot)
+          : undefined;
+      const slot = conflictTargetSlot ?? this.#ensureSlot(
+        staged.proposal.structuredProposition,
+        staged.proposal.proposition,
+      );
       const slotClaim = statementClaim({
         id: evidenceClaim?.id ?? `slot:${this.#idFactory()}`,
         slot: slot.ref,
         value: staged.proposal.proposition,
         causedBy: utteranceId,
+        attributedTo: evidenceClaim?.attributedTo ?? claimOrigin,
+        acceptanceEligible: claimOrigin === "message",
       });
       if (this.#context.state.claim(slotClaim.id) === undefined) {
         this.#context.state.recordClaim(slotClaim);
@@ -332,7 +383,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           else reinforcement = this.#context.lifecycle.reinforceOccurrence({ occurrenceId, evidenceId: selected.id, at, support: { utteranceId, start: span.start, end: span.end } }) ? "applied" : "duplicate_or_creation";
         }
       }
-      const associationResults = applyAssociations(evidenceClaim?.id ?? "", utteranceId);
+      const associationResults = applyAssociations(evidenceClaim?.id ?? "");
       operation.signal?.throwIfAborted();
       const mappedDecision = mappedReconciliation(classifierDecision, relation);
       return {
@@ -419,6 +470,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         : undefined,
       origin.kind === "source" ? batch.sourceMessage : occurrenceId,
       batch.proposals[start]?.proposal.scope ?? [],
+      this.#previewBatchEntities(batch.proposals.slice(start)),
     ).associationContext;
     const items = batch.proposals.slice(start).map((staged, offset) => {
       if (!isKnowledgeSeverity(staged.severity)) {
@@ -448,6 +500,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           : {}),
         proposal: {
           proposition: staged.proposal.proposition,
+          ...(staged.proposal.structuredProposition === undefined
+            ? {}
+            : { structuredProposition: structuredClone(staged.proposal.structuredProposition) }),
           kind: staged.proposal.kind,
           tags: [...(staged.proposal.tags ?? [])],
           scope: [...staged.proposal.scope],
@@ -654,27 +709,34 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     return { status: "updated", document: pending.document };
   }
 
-  #ingestOnce(input: RelationCommitInput, at: string): string {
+  #ingestOnce(
+    input: RelationCommitInput,
+    at: string,
+    claimOrigin: "source" | "message" | "answer",
+  ): string {
     // A source was already ingested by `LocalMemoryRuntime.ingestSource`, with
-    // the extractor's own speaker, relation and locator. Re-ingesting it here
-    // would duplicate the utterance and replace that provenance with
-    // `speaker: "user"` and a fabricated `turn:` locator.
+    // the extractor's own speaker, relation and locator.
     if (input.batch.origin.kind === "source") {
       const sourceId = input.batch.origin.utteranceId;
       if (!this.#context.evidence.listUtterances().some(u => u.id === sourceId)) throw new Error("Source utterance does not belong to this namespace");
       if (!this.#context.lifecycle.get(sourceId)) this.#context.lifecycle.attach({ evidenceId: sourceId, evidenceKind: "utterance", at });
       return sourceId;
     }
-    const locator = `turn:${input.batch.conversationId}:${input.batch.taskId}`;
-    const artifact = this.#context.evidence.listArtifacts().find(a => a.locator === locator);
-    const existing = artifact === undefined ? undefined : this.#context.evidence.listUtterances().find(u => u.artifactId === artifact.id && u.content === input.batch.sourceMessage)?.id;
-    if (existing !== undefined) {
-      return existing;
+    const assistant = claimOrigin === "answer";
+    const content = assistant ? input.batch.answerMessage : input.batch.sourceMessage;
+    if (typeof content !== "string" || content.trim().length === 0) {
+      throw new Error(assistant ? "Dialogue batch is missing its final answer" : "Dialogue batch is missing its user message");
     }
+    const baseLocator = `turn:${input.batch.conversationId}:${input.batch.taskId}`;
+    const locator = assistant ? `${baseLocator}:assistant` : baseLocator;
+    const speaker = assistant ? "assistant" : "user";
+    const artifact = this.#context.evidence.listArtifacts().find(a => a.locator === locator);
+    const existing = artifact === undefined ? undefined : this.#context.evidence.listUtterances().find(u => u.artifactId === artifact.id && u.content === content && u.speaker === speaker)?.id;
+    if (existing !== undefined) return existing;
     const ingested = ingest(
       {
-        content: input.batch.sourceMessage,
-        speaker: "user",
+        content,
+        speaker,
         locator,
         assertedAt: UNKNOWN_INSTANT,
         ingestedAt: UNKNOWN_INSTANT,
@@ -688,21 +750,64 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       { store: this.#context.evidence, idFactory: this.#idFactory },
     );
     const utterance = ingested.utterances[0];
-    if (utterance === undefined) {
-      throw new Error("INGEST did not record an utterance");
-    }
+    if (utterance === undefined) throw new Error("INGEST did not record an utterance");
     this.#context.lifecycle.attach({
       evidenceId: utterance.id,
       evidenceKind: "utterance",
       at,
       caller: "knowledge-commit",
     });
-
     return utterance.id;
   }
 
+  #materializeEntities(labels: readonly string[]): readonly Entity[] {
+    const byId = new Map<string, Entity>();
+    for (const label of labels) {
+      const entity = this.#context.entities.ensure(label, "entity");
+      byId.set(String(entity.id), entity);
+    }
+    return [...byId.values()];
+  }
+
+  #materializeBatchEntities(
+    proposals: RelationCommitInput["batch"]["proposals"],
+  ): void {
+    for (const staged of proposals) {
+      this.#materializeEntities(this.#proposalEntityLabels(staged));
+    }
+  }
+
+  #previewBatchEntities(
+    proposals: RelationCommitInput["batch"]["proposals"],
+  ): readonly Entity[] {
+    const byId = new Map<string, Entity>();
+    for (const staged of proposals) {
+      for (const label of this.#proposalEntityLabels(staged)) {
+        const trimmed = label.trim();
+        const slug = entitySlug(trimmed);
+        if (trimmed.length === 0 || slug.length === 0) continue;
+        const existing = this.#context.entities.findByIdentity(trimmed);
+        const entity = existing ?? {
+          id: asEntityId(slug),
+          type: "entity",
+          labels: [trimmed],
+          preferredLabel: trimmed,
+        };
+        if (!byId.has(String(entity.id))) byId.set(String(entity.id), entity);
+      }
+    }
+    return [...byId.values()];
+  }
+
+  #proposalEntityLabels(
+    staged: RelationCommitInput["batch"]["proposals"][number],
+  ): readonly string[] {
+    const owner = propositionOwnerLabel(staged.proposal.structuredProposition);
+    return owner === undefined ? [...staged.entities] : [...staged.entities, owner];
+  }
+
   #ensureSlot(
-    entities: readonly string[],
+    structuredProposition: ClaimProposition | undefined,
     proposition: string,
   ): SlotDefinition {
     const currentMatch = this.#context.state
@@ -719,29 +824,12 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         return existingSlot;
       }
     }
-    const label = statementEntityLabel(entities, proposition);
-    const existing = this.#context.entities.findByIdentity(label);
-    const entity: Entity =
-      existing ??
-      ({
-        id: asEntityId(slugEntityId(label)),
-        type: "fact",
-        // No `tokenize(proposition)`. It split the whole proposition and kept
-        // every word of four characters or more, so "Zorros häst heter Fresca"
-        // made `heter` an alias of that fact and "Vad heter du?" matched it.
-        //
-        // Lexical search terms are not semantic identity. Entity labels answer
-        // "what is this thing called"; finding a record by the words in it is
-        // what tags and domains are for, and until A008-0060 they were extracted
-        // and then dropped, which left entity labels as the only retrieval
-        // signal that varied with the message. That is why the pollution was
-        // load-bearing rather than merely untidy, and why removing it had to
-        // wait until there was something to replace it.
-        labels: uniqueLabels([label, ...entities]),
-      } as Entity);
-    if (existing === undefined) {
-      this.#context.entities.register(entity);
-    }
+    const structuredOwner = propositionOwnerLabel(structuredProposition);
+    const label = structuredOwner ?? statementEntityLabel(proposition);
+    const entity = this.#context.entities.ensure(
+      label,
+      structuredOwner === undefined ? "statement" : "entity",
+    );
     const ref = {
       kind: "attribute" as const,
       entity: entity.id,
@@ -786,7 +874,14 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
   #classifierCandidates(claims: ReturnType<KnowledgeReadContext["evidence"]["listClaims"]>, at: string) {
     // Comparison includes dormant and source-attributed claims; activation is not truth.
     return claims.map((claim, index) => ({
-      handle: `candidate_${index + 1}`, proposition: claim.label, kind: "fact", tags: [], scope: ["local"], authority: 1, confidence: 0.5,
+      handle: `candidate_${index + 1}`,
+      proposition: claim.label,
+      structuredProposition: structuredClone(claim.proposition),
+      kind: "fact",
+      tags: [],
+      scope: ["local"],
+      authority: 1,
+      confidence: 0.5,
       activationStatus: viewLifecycle(this.#context.lifecycle, claim.id, at).memoryState,
     }));
   }
@@ -798,6 +893,8 @@ function statementClaim(input: {
   readonly slot: SlotDefinition["ref"];
   readonly value: string;
   readonly causedBy: string;
+  readonly attributedTo: string;
+  readonly acceptanceEligible: boolean;
 }): SlotClaim {
   if (input.slot.kind !== "attribute") {
     throw new Error("live commit writes attribute statement slots only");
@@ -809,10 +906,10 @@ function statementClaim(input: {
     label: input.value,
     aboutInterval: { from: UNKNOWN_INSTANT, to: null },
     status: "asserted",
-    attributedTo: "user",
+    attributedTo: input.attributedTo,
     causedBy: input.causedBy,
     kind: "assertion",
-    acceptanceEligible: true,
+    acceptanceEligible: input.acceptanceEligible,
   };
 }
 
@@ -856,21 +953,23 @@ function asClassifierConflict(
   };
 }
 
-function slugEntityId(label: string): string {
-  const slug = entitySlug(label);
-  return slug.length > 0 ? slug : `entity_${randomUUID()}`;
+function exactUniqueSpan(
+  source: string,
+  proposition: string,
+): { readonly start: number; readonly end: number } | undefined {
+  const start = source.indexOf(proposition);
+  if (start < 0) return undefined;
+  const next = source.indexOf(proposition, start + proposition.length);
+  if (next >= 0) return undefined;
+  return { start, end: start + proposition.length };
 }
 
-function uniqueLabels(values: readonly string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const value of values) {
-    const trimmed = value.trim();
-    if (trimmed.length === 0 || seen.has(trimmed)) {
-      continue;
-    }
-    seen.add(trimmed);
-    result.push(trimmed);
-  }
-  return result;
+function propositionOwnerLabel(
+  proposition: ClaimProposition | undefined,
+): string | undefined {
+  if (proposition === undefined) return undefined;
+  if (proposition.kind === "attribute_binding") return proposition.entityLabel;
+  if (proposition.kind === "relationship_binding") return proposition.subjectLabel;
+  if (proposition.kind === "negation") return propositionOwnerLabel(proposition.of);
+  return undefined;
 }

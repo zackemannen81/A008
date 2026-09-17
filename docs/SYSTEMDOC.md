@@ -650,6 +650,18 @@ Offline acceptance and regression evidence is in
 and the [L3 charter](tasks/A008-0082_association-lifecycle.md). No live model
 judgment, user-data upgrade or running-application restart is claimed.
 
+## Structural entity references and relation contract (A008-0122)
+
+`entities[]` from post-output extraction denotes distinct referents. The entity registry resolves each label independently through deterministic lexical identity, so slug-equivalent forms such as `React` and `react` reuse one entity while co-mentioned values such as `gui/package.json`, `gui/package-lock.json`, and `React` remain separate identities. Preferred display spelling is stored independently from the canonical ID. Structured proposition ownership determines statement-slot ownership where present; unstructured fallback uses a proposition-specific statement identity and never `entities[0]`.
+
+`ClaimEntityReferenceStore` owns structural claim↔entity membership. Schema 5 persists it in `A008_knowledge_claim_entities`; the inspection graph projects it as `entity_ref`. These links are referential topology only: they have no semantic relation type, support span, strength, reinforcement, decay, or association lifecycle. `RelationIndex` remains the sole owner of independently classified L3 semantic associations.
+
+Batch relation classification receives deterministic handles for current-batch entities before proposal commit, plus `structuredProposition` for new proposals and stored candidates when available. Single and batch classifier instructions compose the same explicit relation-type and association-evidence fragments; neither refers to an unseen prompt. Severity remains absent from relation comparison and continues to be lifecycle-only.
+
+Inspection exposes each record's direct `storedDomains` plus projection-only `effectiveDomains` and `primaryEffectiveDomain`. Entity effective domains derive from connected claims; utterance/artifact/provenance display grouping derives from supporting claims. Derived domains are never persisted back onto entity semantics.
+
+Dialogue staging carries the final assistant answer separately from the original user message. A dialogue proposal is eligible for `user-assertion-v1` only when runtime verified support resolves inside the original message. Answer-only discoveries are ingested as assistant utterances, remain asserted rather than user-accepted, and preserve assistant attribution/provenance. Existing development stores with pre-0122 alias-collapsed topology are not migrated or backfilled.
+
 ## Semantic-memory core
 
 ### GUI memory diagnostics (A008-0064)

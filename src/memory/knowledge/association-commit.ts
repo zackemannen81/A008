@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { MemoryLifecyclePolicy } from "../../core/memory-lifecycle-policy.js";
 import type { AssociationClassifierContext } from "../../orchestration/relation-gated-memory-commit.js";
 import type { Claim } from "./evidence-types.js";
@@ -12,8 +13,15 @@ export function prepareAssociations(
   source: AssociationClassifierContext["source"] | undefined,
   locator: string,
   scope: readonly string[],
+  additionalEntities: readonly Entity[] = [],
 ) {
-  const entities = new Map(context.entities.list().map((entity, i) => [`entity_${i + 1}`, entity]));
+  const entityById = new Map(context.entities.list().map((entity) => [String(entity.id), entity]));
+  for (const entity of additionalEntities) {
+    if (!entityById.has(String(entity.id))) entityById.set(String(entity.id), entity);
+  }
+  const entities = new Map(
+    [...entityById.values()].map((entity) => [associationEntityHandle(entity.id), entity]),
+  );
   const byId = new Map<string, string>();
   candidates.forEach((claim, handle) => byId.set(claim.id, handle));
   entities.forEach((entity, handle) => byId.set(entity.id, handle));
@@ -42,7 +50,7 @@ export function prepareAssociations(
         const claim = candidates.get(handle);
         if (claim && JSON.stringify(currentClaims.get(claim.id)) === JSON.stringify(claim)) return claim.id;
         const entity = entities.get(handle);
-        if (entity && JSON.stringify(currentEntities.get(entity.id)) === JSON.stringify(entity)) return entity.id;
+        if (entity && currentEntities.has(entity.id)) return entity.id;
         return undefined;
       };
       const utterance = context.evidence.listUtterances().find(u => u.id === utteranceId);
@@ -61,4 +69,9 @@ export function prepareAssociations(
       });
     },
   };
+}
+
+function associationEntityHandle(id: string): string {
+  const digest = createHash("sha256").update(id).digest("hex").slice(0, 16);
+  return `entity_${digest}`;
 }

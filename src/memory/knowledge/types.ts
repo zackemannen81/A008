@@ -34,6 +34,8 @@ export interface Entity {
   readonly id: EntityId;
   readonly type: string;
   readonly labels: readonly string[];
+  /** Human-facing canonical spelling; identity remains the deterministic id. */
+  readonly preferredLabel?: string;
 }
 
 export type AttributeSlotRef = {

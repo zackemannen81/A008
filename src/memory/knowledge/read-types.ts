@@ -1,4 +1,5 @@
 import type { EvidenceStore } from "./evidence.js";
+import type { ClaimEntityReferenceStore } from "./entity-references.js";
 import type {
   ClaimCertainty,
   ClaimProposition,
@@ -80,6 +81,8 @@ export interface KnowledgeReadContext {
   readonly slots: SlotRegistry;
   readonly state: KnowledgeState;
   readonly evidence: EvidenceStore;
+  /** Structural claim↔entity membership; not an L3 semantic association. */
+  readonly entityReferences: ClaimEntityReferenceStore;
   /** Tags and domains, stored beside the record rather than inside it. */
   readonly labels: KnowledgeLabelStore;
   readonly lifecycle: EvidenceLifecycleStore;

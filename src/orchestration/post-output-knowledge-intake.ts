@@ -286,6 +286,8 @@ export interface StagedKnowledgeBatch {
    * `isExplicitUserAssertion` true for all of them.
    */
   readonly sourceMessage: string;
+  /** Final assistant answer for dialogue batches; never user evidence. */
+  readonly answerMessage?: string;
   readonly proposals: readonly StagedKnowledgeProposal[];
   readonly serialized: string;
   readonly measuredUnits: number;
@@ -718,6 +720,7 @@ export class PostOutputKnowledgeIntake {
         analyzerInput.kind === "source"
           ? analyzerInput.locator
           : analyzerInput.message,
+      ...(analyzerInput.kind === "dialogue" ? { answerMessage: analyzerInput.answer } : {}),
       proposals,
       serialized,
       measuredUnits,

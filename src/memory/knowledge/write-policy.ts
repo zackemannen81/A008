@@ -31,14 +31,7 @@ export function certaintyFromConfidence(
   return "unlikely";
 }
 
-export function statementEntityLabel(
-  entities: readonly string[],
-  proposition: string,
-): string {
-  const first = entities.find((entry) => entry.trim().length > 0);
-  if (first !== undefined) {
-    return first.trim();
-  }
+export function statementEntityLabel(proposition: string): string {
   const digest = createHash("sha256").update(proposition).digest("hex").slice(0, 12);
   return `statement_${digest}`;
 }

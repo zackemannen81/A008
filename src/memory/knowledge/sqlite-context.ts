@@ -2,6 +2,7 @@ import { captureSnapshot, loadSnapshot } from "./knowledge-transaction.js";
 import type { Database as BetterSqliteDatabase } from "better-sqlite3";
 import type { ProjectId } from "../../identity/types.js";
 import { EvidenceStore } from "./evidence.js";
+import { ClaimEntityReferenceStore } from "./entity-references.js";
 import { RelationIndex } from "./expand.js";
 import { KnowledgeLabelStore } from "./labels.js";
 import { EvidenceLifecycleStore } from "./lifecycle.js";
@@ -53,6 +54,7 @@ export function createSqliteKnowledgeContext(
   const slots = new SlotRegistry();
   const state = new KnowledgeState();
   const evidence = new EvidenceStore();
+  const entityReferences = new ClaimEntityReferenceStore();
   const labels = new KnowledgeLabelStore();
   const lifecycle = new EvidenceLifecycleStore(options.clock);
   const relations = new RelationIndex();
@@ -61,7 +63,7 @@ export function createSqliteKnowledgeContext(
   const hydrate = (): void => {
     const snapshot = store.load();
     loadSnapshot(
-      { entities, slots, state, evidence, labels, lifecycle, relations },
+      { entities, slots, state, evidence, entityReferences, labels, lifecycle, relations },
       snapshot,
     );
     loadedRevision = store.revision();
@@ -110,7 +112,7 @@ export function createSqliteKnowledgeContext(
   };
   const inner: KnowledgeReadContext = {
     atomic: safeAtomic,
-    entities: persisting(entities, safeAtomic, ["register"]),
+    entities: persisting(entities, safeAtomic, ["register", "ensure"]),
     slots: persisting(slots, safeAtomic, ["register", "widenToSet"]),
     state: persisting(state, safeAtomic, [
       "recordClaim",
@@ -128,6 +130,7 @@ export function createSqliteKnowledgeContext(
       "applyAcceptance",
       "hydrate",
     ]),
+    entityReferences: persisting(entityReferences, safeAtomic, ["attach", "hydrate"]),
     labels: persisting(labels, safeAtomic, ["attach", "hydrate"]),
     lifecycle: persisting(lifecycle, safeAtomic, [
       "attach",

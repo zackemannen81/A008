@@ -365,6 +365,9 @@ function validatedBatch(batch: StagedKnowledgeBatch): StagedKnowledgeBatch {
         )
       : [],
     sourceMessage,
+    ...(origin.kind === "dialogue" && typeof batch.answerMessage === "string" && batch.answerMessage.trim().length > 0
+      ? { answerMessage: nonEmpty(batch.answerMessage, "staged answerMessage") }
+      : {}),
     proposals,
     serialized: expectedSerialized,
     measuredUnits,

@@ -4,6 +4,7 @@ import { MemoryError } from "../memory/errors.js";
 import type {
   RetrievalDocument,
 } from "../memory/retrieval-types.js";
+import type { ClaimProposition } from "../memory/knowledge/evidence-types.js";
 import type {
   KnowledgeProposal,
   ReconciliationDecision,
@@ -24,6 +25,7 @@ import type { SemanticOperationContext } from "./semantic-operation.js";
 
 export interface RelationClassifierProposal {
   readonly proposition: string;
+  readonly structuredProposition?: ClaimProposition;
   readonly kind: string;
   readonly tags: readonly string[];
   readonly scope: readonly string[];
@@ -35,6 +37,7 @@ export interface RelationClassifierProposal {
 export interface RelationClassifierCandidate {
   readonly handle: string;
   readonly proposition: string;
+  readonly structuredProposition?: ClaimProposition;
   readonly kind: string;
   readonly tags: readonly string[];
   readonly scope: readonly string[];
@@ -265,6 +268,9 @@ function validatedStagedProposal(
   return {
     proposal: {
       proposition: nonEmpty(proposal.proposition, "proposal proposition"),
+      ...(staged.proposal.structuredProposition === undefined
+        ? {}
+        : { structuredProposition: structuredClone(staged.proposal.structuredProposition) }),
       kind: nonEmpty(proposal.kind, "proposal kind"),
       tags: normalizedStrings(proposal.tags, "proposal tags"),
       scope: normalizedStrings(proposal.scope, "proposal scope"),
@@ -304,6 +310,9 @@ function classifierProposal(
 ): RelationClassifierProposal {
   return {
     proposition: staged.proposal.proposition,
+    ...(staged.proposal.structuredProposition === undefined
+      ? {}
+      : { structuredProposition: structuredClone(staged.proposal.structuredProposition) }),
     kind: staged.proposal.kind,
     tags: [...(staged.proposal.tags ?? [])],
     scope: [...staged.proposal.scope],
@@ -341,6 +350,9 @@ export function serializeRelationClassifierInput(
     ...(input.sourceSupport === undefined ? {} : { sourceSupport: input.sourceSupport }),
     proposal: {
       proposition: input.proposal.proposition,
+      ...(input.proposal.structuredProposition === undefined
+        ? {}
+        : { structuredProposition: input.proposal.structuredProposition }),
       kind: input.proposal.kind,
       tags: [...input.proposal.tags],
       scope: [...input.proposal.scope],
@@ -351,6 +363,9 @@ export function serializeRelationClassifierInput(
     candidates: input.candidates.map((candidate) => ({
       handle: candidate.handle,
       proposition: candidate.proposition,
+      ...(candidate.structuredProposition === undefined
+        ? {}
+        : { structuredProposition: candidate.structuredProposition }),
       kind: candidate.kind,
       tags: [...candidate.tags],
       scope: [...candidate.scope],
@@ -377,6 +392,9 @@ export function serializeRelationClassifierBatchInput(
     candidates: input.candidates.map((candidate) => ({
       handle: candidate.handle,
       proposition: candidate.proposition,
+      ...(candidate.structuredProposition === undefined
+        ? {}
+        : { structuredProposition: candidate.structuredProposition }),
       kind: candidate.kind,
       tags: [...candidate.tags],
       scope: [...candidate.scope],
@@ -389,6 +407,9 @@ export function serializeRelationClassifierBatchInput(
       ...(item.sourceSupport === undefined ? {} : { sourceSupport: item.sourceSupport }),
       proposal: {
         proposition: item.proposal.proposition,
+        ...(item.proposal.structuredProposition === undefined
+          ? {}
+          : { structuredProposition: item.proposal.structuredProposition }),
         kind: item.proposal.kind,
         tags: [...item.proposal.tags],
         scope: [...item.proposal.scope],

@@ -154,6 +154,10 @@ function projectSnapshot(namespace: string, snapshot: KnowledgeNamespaceSnapshot
       JSON.stringify(claim),
     );
   }
+  const insertClaimEntity = table("A008_knowledge_claim_entities", ["namespace", "claim_id", "entity_id"], ["namespace", "claim_id", "entity_id"]);
+  for (const reference of snapshot.entityReferences ?? []) {
+    insertClaimEntity.add(namespace, reference.claimId, reference.entityId);
+  }
   const insertProvenance = table("A008_knowledge_provenance", ["namespace", "id", "payload_json"], ["namespace", "id"]);
   for (const record of snapshot.provenance) {
     insertProvenance.add(namespace, record.id, JSON.stringify(record));

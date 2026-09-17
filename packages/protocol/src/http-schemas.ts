@@ -22,7 +22,9 @@ export const memoryQuerySchema = z.strictObject({
 export type MemoryInspectionQuery = z.infer<typeof memoryQuerySchema>;
 export const memoryRecordSchema = z.object({
   id: text, sourceId: text, kind: memoryKindSchema, label: text, status: text, activation: text,
-  tags: strings, domains: strings, detail: text, truncated: z.boolean(),
+  tags: strings, domains: strings,
+  storedDomains: strings.optional(), effectiveDomains: strings.optional(), primaryEffectiveDomain: text.nullable().optional(),
+  detail: text, truncated: z.boolean(),
 });
 export type MemoryRecord = z.infer<typeof memoryRecordSchema>;
 export const memoryEdgeSchema = z.object({ from: text, to: text, relation: text });

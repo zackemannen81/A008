@@ -12,7 +12,7 @@ export function entitySlug(label: string): string {
   return label
     .trim()
     .toLocaleLowerCase("und")
-    .replace(/[^a-z0-9]+/gu, "_")
+    .replace(/[^\p{L}\p{N}]+/gu, "_")
     .replace(/^_+|_+$/gu, "");
 }
 
@@ -104,6 +104,33 @@ export class EntityRegistry {
     this.#byId.set(entity.id, cloneEntity(entity));
   }
 
+  /** Deterministically resolve or create one referent without aliasing co-mentioned entities. */
+  ensure(label: string, type = "entity"): Entity {
+    const trimmed = label.trim();
+    const slug = entitySlug(trimmed);
+    if (trimmed.length === 0 || slug.length === 0) {
+      throw new KnowledgeModelError("invalid_input", "entity label must have a deterministic identity");
+    }
+    const existing = this.findByIdentity(trimmed);
+    if (existing !== undefined) {
+      const stored = this.#byId.get(existing.id)!;
+      const sameIdentityLabel = stored.labels.some((item) => entitySlug(item) === slug);
+      const labels = sameIdentityLabel ? [...stored.labels] : [...stored.labels, trimmed];
+      const preferredLabel = preferredEntityLabel(stored.preferredLabel ?? stored.labels[0] ?? trimmed, trimmed);
+      const updated: Entity = { ...stored, labels, preferredLabel };
+      this.#byId.set(updated.id, updated);
+      return cloneEntity(updated);
+    }
+    const entity: Entity = {
+      id: asEntityId(slug),
+      type,
+      labels: [trimmed],
+      preferredLabel: trimmed,
+    };
+    this.#byId.set(entity.id, entity);
+    return cloneEntity(entity);
+  }
+
   hydrate(entities: readonly Entity[]): void {
     this.#byId.clear();
     for (const entity of entities) {
@@ -171,11 +198,19 @@ export class SlotRegistry {
   }
 }
 
+function preferredEntityLabel(current: string, incoming: string): string {
+  if (entitySlug(current) !== entitySlug(incoming)) return current;
+  const currentHasCase = current.toLocaleLowerCase("und") !== current;
+  const incomingHasCase = incoming.toLocaleLowerCase("und") !== incoming;
+  return !currentHasCase && incomingHasCase ? incoming : current;
+}
+
 function cloneEntity(entity: Entity): Entity {
   return {
     id: entity.id,
     type: entity.type,
     labels: [...entity.labels],
+    ...(entity.preferredLabel === undefined ? {} : { preferredLabel: entity.preferredLabel }),
   };
 }
 
