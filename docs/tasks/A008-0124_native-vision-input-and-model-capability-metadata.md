@@ -2,10 +2,10 @@
 
 Task ID: A008-0124
 Parent Task: None
-Status: Ready
+Status: Superseded
 Owner: ChatGPT (operator)
 Created: 2026-09-17
-Last updated: 2026-09-17
+Last updated: 2026-09-18
 Charter frozen at: 2026-09-17; contract revision `79f0274b6ab62dc985ed1fe5f4b52ff155052b47`
 
 ## Read First
@@ -162,3 +162,9 @@ Contract revision: `79f0274b6ab62dc985ed1fe5f4b52ff155052b47`.
 - Write `docs/handoffs/A008-0124.md`.
 - Append the signed `docs/JOURNAL.md` entry on merge.
 - Only after A008-0124 is Complete may the operator resume A008-0103 Stage 4.
+
+## Supersession Note — 2026-09-18
+
+The implementation landed on main, but the frozen Definition of Done required one owner-authorized live image turn through the active external ACME path. That live gate did not complete successfully. The owner subsequently chose to migrate A008 to embedded in-process `@acme-engine/model-runtime` before Step 4, making the remaining sidecar-specific live proof no longer the chosen completion path.
+
+A008-0124 is therefore **Superseded, not Complete**. Its integrated model-metadata/native-vision implementation remains valid input to the upcoming embedded-ACME migration. No frozen charter requirement is rewritten or retroactively waived.
