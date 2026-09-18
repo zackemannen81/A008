@@ -262,7 +262,7 @@ test("maps prepared A008 text, tools and Luna controls onto acme-model-runtime/2
   assert.deepEqual(acmeRequest.output, { mode: "text" });
   assert.equal(acmeRequest.maxOutputTokens, 128);
   assert.equal(acmeRequest.temperature, 0.2);
-  assert.equal(acmeRequest.reasoningEffort, "medium");
+  assert.equal(acmeRequest.reasoningEffort, "none");
   assert.equal(Object.hasOwn(acmeRequest, "topP"), false);
   assert.equal(Object.hasOwn(acmeRequest, "reasoningBudget"), false);
   assert.equal(Object.hasOwn(acmeRequest, "enableThinking"), false);
@@ -682,6 +682,65 @@ test("ACME token is a composition header and is not copied into model content", 
   assert.equal(authorization, "Bearer acme-runtime-secret");
   assert.equal(body.includes("acme-runtime-secret"), false);
   assert.equal(body.includes("NVIDIA_API_KEY"), false);
+});
+
+test("Luna function tools force effective ACME reasoningEffort none without mutating the request", () => {
+  const request: ChatRequest = {
+    model: "gpt-5.6-luna",
+    messages: [{ role: "user", content: "hi" }],
+    tools: [
+      {
+        name: "read_file",
+        description: "Read",
+        parameters: { type: "object" },
+      },
+    ],
+    options: { reasoningEffort: "medium" },
+  };
+  const body = buildAcmeExecuteBody(request, {
+    requestKey: "k",
+    timeoutMs: 1_000,
+  });
+  assert.equal(
+    (body.request as Record<string, unknown>).reasoningEffort,
+    "none",
+  );
+  assert.equal(request.options?.reasoningEffort, "medium");
+});
+
+test("ACME mapping keeps selected reasoningEffort except Luna with tools", () => {
+  const luna = buildAcmeExecuteBody(
+    {
+      model: "gpt-5.6-luna",
+      messages: [{ role: "user", content: "hi" }],
+      options: { reasoningEffort: "medium" },
+    },
+    { requestKey: "k", timeoutMs: 1_000 },
+  );
+  assert.equal(
+    (luna.request as Record<string, unknown>).reasoningEffort,
+    "medium",
+  );
+
+  const kimi = buildAcmeExecuteBody(
+    {
+      model: "moonshotai/kimi-k3",
+      messages: [{ role: "user", content: "hi" }],
+      tools: [
+        {
+          name: "read_file",
+          description: "Read",
+          parameters: { type: "object" },
+        },
+      ],
+      options: { reasoningEffort: "max" },
+    },
+    { requestKey: "k", timeoutMs: 1_000 },
+  );
+  assert.equal(
+    (kimi.request as Record<string, unknown>).reasoningEffort,
+    "max",
+  );
 });
 
 test("buildAcmeExecuteBody omits empty tools and maps NVIDIA model identity", () => {

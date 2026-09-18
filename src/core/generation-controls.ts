@@ -78,6 +78,18 @@ export function generationCapabilities(model: string): GenerationCapabilities {
   }
 }
 
+// Luna Chat Completions rejects function tools when reasoning effort is above
+// none. Override only the effective request; callers must not rewrite session
+// state.
+export function effectiveReasoningEffort(
+  model: string,
+  toolCount: number,
+  selected: string | null | undefined,
+): string | null | undefined {
+  if (model === "gpt-5.6-luna" && toolCount > 0) return "none";
+  return selected;
+}
+
 export function defaultSessionParameters(
   profile: ModelProfile,
   overrides: ChatGenerationOptions = {},
