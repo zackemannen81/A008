@@ -1,83 +1,111 @@
-# A008-0127 — embedded ACME model-runtime migration
+# Current Task
 
-Task ID: A008-0127
+Task ID:
 Parent Task: None
-Status: In Progress
-Owner: ChatGPT (operator)
-Created: 2026-09-18
-Last updated: 2026-09-18
-Charter frozen at: 2026-09-18; claim revision `c975a28`
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
+
+## Read First
+
+- `AGENTS.md`
+- `docs/TASK_WORKFLOW.md`
+- `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/SYSTEMDOC.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant records under `docs/adr/`
 
 ## Task Summary
 
-Replace A008's default external ACME HTTP/SSE sidecar execution path with the published `acme-engine@0.1.1` library in-process, while preserving A008 as the sole owner of cognition, memory, prompts, tools, model selection and provider strategy.
+Describe why this bounded task is active now and its intended outcome.
 
-## Goal
+## Task Charter
 
-Normal A008 startup must require no separately started ACME process, URL, token or sidecar profile environment. A008 must prepare the model selection and dynamically compose the embedded ACME runtime from its own current model registry/catalog and provider credentials.
+### Goal
 
-## Primary Deliverable
+Define one primary outcome.
 
-An embedded ACME `ChatTransport` used by default that maps the existing A008 request contract directly to `createAcmeModelRuntime().execute()`, preserves streaming/tool/error/evidence semantics, and rebuilds its runtime composition when the A008 user model catalog changes without restarting A008.
+### Primary Deliverable
 
-## In Scope
+Name the concrete artifact or behavior.
 
-- Consume registry-published `acme-engine@0.1.1`.
-- Add an embedded ACME transport/runtime composition under `src/providers/acme`.
-- Reuse the existing A008→ACME request/result/error mapping rather than creating a second semantic contract.
-- Derive ACME OpenAI/NVIDIA/OpenAI-compatible profiles from A008 built-in model registry plus current user catalog.
-- Derive vision capability from declared A008 input modalities; preserve existing tool/generation-control behavior.
-- Use A008-owned provider credentials/endpoints; ACME receives only execution configuration.
-- Make embedded ACME the default chat execution mode.
-- Preserve current direct transport as an explicit reference/debug path.
-- Preserve the existing remote ACME sidecar path as an explicit compatibility/deployment option; it is no longer the default.
-- Detect user-catalog changes and rebuild/swap embedded runtime composition for subsequent calls without process restart.
-- Preserve same-turn image/tool behavior and text-only durable history from A008-0124.
-- Preserve A008 error classification and model execution evidence projection.
-- Update runtime config/docs/tests for the new ownership/deployment boundary.
-- Verify Node engine compatibility explicitly; do not silently widen/narrow A008 support without evidence.
+### In Scope
 
-## Out of Scope
+- List work required for the deliverable.
 
-- Changing A008 memory, extraction, relation, provenance or knowledge semantics.
-- Moving model selection/fallback policy into ACME.
-- Automatic cross-model fallback.
-- Step 4/V2 client protocol work.
-- Removing the optional remote sidecar implementation entirely.
-- Changing ACME package runtime semantics or publishing another ACME release unless a proven package defect blocks this task.
-- Changing image generation or KIE product semantics beyond routing existing chat calls through embedded ACME where supported.
+### Out of Scope
 
-## Definition of Done
+- List adjacent work that must not be absorbed.
 
-- Starting normal A008 with provider credentials requires no ACME sidecar process and no ACME URL/token/build env.
-- A normal text turn executes through embedded `acme-engine` and returns the same A008 completion/error/evidence contract.
-- OpenAI and NVIDIA selections are routed from A008-owned model metadata, not sidecar env profiles.
-- Adding/removing a user model updates the embedded execution composition for subsequent calls without restarting the A008 process.
-- Tool-call continuation and streaming callbacks preserve current behavior.
-- Native image input reaches the embedded ACME model request and image-capable models execute with `requiredCapabilities.vision=true`; text-only models still fail before dispatch.
-- Explicit remote-sidecar and direct modes remain available and existing compatibility/reference tests continue to pass or are deliberately updated for the new default.
-- No A008 cognitive/memory semantics change.
-- Full relevant core/GUI/protocol/typecheck/build/diff checks pass.
-- Owner-authorized live smoke proves at least one OpenAI or NVIDIA text turn through embedded ACME; if a stable vision-capable endpoint is available, the A008-0124 live image proof is also closed here.
+### Definition of Done
 
-## Minimum Verification Gates
+- State objective completion conditions.
 
-- [ ] Embedded runtime composition/profile derivation unit tests.
-- [ ] Dynamic catalog rebuild/no-process-restart regression.
-- [ ] Text + tools + stream callback parity regression.
-- [ ] Native vision mapping/capability regression.
-- [ ] Error/evidence mapping regression.
-- [ ] Remote sidecar compatibility regression.
-- [ ] Direct reference path regression.
-- [ ] Local runtime default-mode/config regression.
-- [ ] Node engine compatibility decision recorded.
-- [ ] Full core/typecheck/build/diff checks.
-- [ ] Owner-authorized embedded live smoke.
+### Necessity Gate
 
-## Architecture Invariants
+Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
+Contract revision: <Git commit containing the reviewed contract>
 
-- A008 decides; ACME executes; providers compute.
-- A008's model registry/catalog is authoritative.
-- ACME must not become a second model catalog or memory/cognition owner.
-- Embedded ACME is an implementation behind A008's existing `ChatTransport` boundary.
-- Durable A008 conversation/memory remains independent of ACME execution repository lifetime.
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
+
+| Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
+| --- | --- | --- | --- | --- |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
+
+### Minimum Verification Gates
+
+- [ ] Define checks that may be strengthened but not removed after Ready.
+
+## References
+
+- Add owned documents, source revisions, contracts, and decisions.
+
+## Checklist
+
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
+
+## Decisions and Notes
+
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+
+## Charter Amendment Log
+
+- none
+
+## Verification
+
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
+
+## Documentation Updates
+
+- [ ] `docs/CURRENT_STATUS.md`
+- [ ] `docs/SYSTEMDOC.md`
+- [ ] `docs/JOURNAL.md`
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
+
+## Handoff and Follow-ups
+
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.

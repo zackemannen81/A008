@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
-import {
-  createAcmeModelRuntime,
-  type AcmeModelRuntime,
-} from "acme-engine";
+import { createAcmeModelRuntime, type AcmeModelRuntime } from "acme-engine";
 import { ChatError, isChatError } from "../../core/errors.js";
-import { acmeProviderHint, resolveExecutionProvider } from "../../core/execution-provider.js";
+import {
+  acmeProviderHint,
+  resolveExecutionProvider,
+} from "../../core/execution-provider.js";
 import { generationCapabilities } from "../../core/generation-controls.js";
 import {
   defaultModelRegistry,
@@ -33,7 +33,9 @@ import {
 type RuntimeOptions = Parameters<typeof createAcmeModelRuntime>[0];
 type RuntimeConfig = RuntimeOptions["config"];
 type RuntimeFactory = (options: RuntimeOptions) => AcmeModelRuntime;
-type ProviderTransport = NonNullable<RuntimeOptions["chatCompletionsTransport"]>;
+type ProviderTransport = NonNullable<
+  RuntimeOptions["chatCompletionsTransport"]
+>;
 type ProviderTransportRequest = Parameters<ProviderTransport["send"]>[0];
 
 export interface EmbeddedAcmeChatTransportOptions {
@@ -57,16 +59,16 @@ function mergedProfiles(
     .map(userModelProfile)
     .filter((profile) => !seen.has(profile.id));
   for (const profile of extras) seen.add(profile.id);
-  const kie = KIE_MARKET_MODELS
-    .filter((model) => model.kind === "chat" && !seen.has(model.id))
-    .map<ModelProfile>((model) => ({
-      id: model.id,
-      name: model.name,
-      provider: "kie",
-      executionProvider: "kie",
-      defaults: { temperature: 1, topP: 0.95, maxTokens: 16_384, stream: true },
-      inputModalities: ["text"],
-    }));
+  const kie = KIE_MARKET_MODELS.filter(
+    (model) => model.kind === "chat" && !seen.has(model.id),
+  ).map<ModelProfile>((model) => ({
+    id: model.id,
+    name: model.name,
+    provider: "kie",
+    executionProvider: "kie",
+    defaults: { temperature: 1, topP: 0.95, maxTokens: 16_384, stream: true },
+    inputModalities: ["text"],
+  }));
   return [...shipped, ...extras, ...kie];
 }
 
@@ -81,8 +83,7 @@ function modelCapabilities(profile: ModelProfile): {
     structuredOutput: false,
     tools: executionProvider !== "kie",
     vision:
-      executionProvider !== "kie" &&
-      profile.inputModalities.includes("image"),
+      executionProvider !== "kie" && profile.inputModalities.includes("image"),
     maxOutputTokens: generationCapabilities(profile.id).maxTokens,
   };
 }
@@ -172,7 +173,8 @@ export function buildEmbeddedAcmeRuntimeConfig(options: {
     }));
 
   const kieProfiles = profiles.filter(
-    (profile) => resolveExecutionProvider(profile.id, options.catalog) === "kie",
+    (profile) =>
+      resolveExecutionProvider(profile.id, options.catalog) === "kie",
   );
 
   const openAiCompatible =
@@ -384,11 +386,9 @@ function catalogFingerprint(
 function executionRequest(
   body: Record<string, unknown>,
 ): Parameters<AcmeModelRuntime["execute"]>[0] {
-  const {
-    protocolVersion: _protocolVersion,
-    correlationId: _correlationId,
-    ...request
-  } = body;
+  const request = { ...body };
+  delete request.protocolVersion;
+  delete request.correlationId;
   return request as unknown as Parameters<AcmeModelRuntime["execute"]>[0];
 }
 
@@ -489,9 +489,7 @@ export class EmbeddedAcmeChatTransport implements ChatTransport {
         throw chatErrorFromAcmeFailure(result.error, result, true);
       }
       const completion = completionFromAcmeResponse(result.response, result);
-      return reasoning.length === 0
-        ? completion
-        : { ...completion, reasoning };
+      return reasoning.length === 0 ? completion : { ...completion, reasoning };
     } catch (cause) {
       if (isChatError(cause)) throw cause;
       throw new ChatError(

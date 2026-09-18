@@ -85,7 +85,9 @@ export function createEmbeddedAcmeRuntimeChatTransport(options: {
     ...(nvidiaEndpoint ? { nvidiaEndpoint } : {}),
     ...(options.registry === undefined ? {} : { registry: options.registry }),
     ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
-    ...(options.requestKey === undefined ? {} : { requestKey: options.requestKey }),
+    ...(options.requestKey === undefined
+      ? {}
+      : { requestKey: options.requestKey }),
   });
 }
 

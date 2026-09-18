@@ -79,8 +79,7 @@ test("embedded ACME config is derived from A008 model ownership", () => {
     assert.equal(kimi.controls?.enableThinking, false);
 
     const nemotron = config.nvidia?.profiles.find(
-      (profile) =>
-        profile.model === "nvidia/nemotron-3.5-lightning-30b-a3b",
+      (profile) => profile.model === "nvidia/nemotron-3.5-lightning-30b-a3b",
     );
     assert.ok(nemotron);
     assert.equal(nemotron.controls?.enableThinking, "enable_thinking");
@@ -210,7 +209,9 @@ test("same embedded transport rebuilds runtime after catalog change", async () =
   const { directory, path } = tempCatalog();
   const configs: Parameters<
     NonNullable<
-      ConstructorParameters<typeof EmbeddedAcmeChatTransport>[0]["runtimeFactory"]
+      ConstructorParameters<
+        typeof EmbeddedAcmeChatTransport
+      >[0]["runtimeFactory"]
     >
   >[0]["config"][] = [];
   try {
@@ -262,22 +263,23 @@ test("embedded transport preserves ACME failure classification", async () => {
       env: { NVIDIA_API_KEY: "nvapi-fixture" },
       catalogPath: path,
       runtimeFactory: () =>
-        fixtureRuntime(async () =>
-          ({
-            status: "failed",
-            modelExecutionId: "model_execution_rate",
-            error: {
-              code: "MODEL_RATE_LIMIT",
-              message: "busy",
-              stage: "calling-model",
-              retryable: true,
-            },
-            diagnostic: {
-              kind: "rate-limit",
-              delivery: "sent",
-              httpStatus: 429,
-            },
-          }) as Awaited<ReturnType<AcmeModelRuntime["execute"]>>,
+        fixtureRuntime(
+          async () =>
+            ({
+              status: "failed",
+              modelExecutionId: "model_execution_rate",
+              error: {
+                code: "MODEL_RATE_LIMIT",
+                message: "busy",
+                stage: "calling-model",
+                retryable: true,
+              },
+              diagnostic: {
+                kind: "rate-limit",
+                delivery: "sent",
+                httpStatus: 429,
+              },
+            }) as Awaited<ReturnType<AcmeModelRuntime["execute"]>>,
         ),
     });
 
@@ -299,8 +301,6 @@ test("embedded transport preserves ACME failure classification", async () => {
   }
 });
 
-
-
 test("embedded transport calls the provider directly through real acme-engine", async () => {
   const { directory, path } = tempCatalog();
   const urls: string[] = [];
@@ -312,7 +312,9 @@ test("embedded transport calls the provider directly through real acme-engine", 
       requestKey: () => "real-runtime-fixture",
       fetch: async (input, init) => {
         urls.push(String(input));
-        bodies.push(JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>);
+        bodies.push(
+          JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>,
+        );
         const lines = [
           `data: ${JSON.stringify({
             id: "chatcmpl_embedded",
@@ -354,10 +356,7 @@ test("embedded transport calls the provider directly through real acme-engine", 
       ),
       false,
     );
-    assert.equal(
-      bodies[0]?.model,
-      "nvidia/nemotron-3.5-lightning-30b-a3b",
-    );
+    assert.equal(bodies[0]?.model, "nvidia/nemotron-3.5-lightning-30b-a3b");
     assert.equal(bodies[0]?.stream, true);
     assert.equal(completion.message.content, "Hello");
     assert.equal(completion.reasoning, "plan");
@@ -366,4 +365,3 @@ test("embedded transport calls the provider directly through real acme-engine", 
     rmSync(directory, { recursive: true, force: true });
   }
 });
-
