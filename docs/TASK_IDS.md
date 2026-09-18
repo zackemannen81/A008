@@ -144,3 +144,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0128 | embedded OpenAI output-token wire compatibility | ChatGPT (operator) | 2026-09-18 | consume acme-engine 0.1.4 and select max_completion_tokens for embedded OpenAI Chat Completions profiles |
 | A008-0129 | Luna function-tools reasoning compatibility | ChatGPT (operator) | 2026-09-18 | force effective reasoning_effort none for GPT-5.6 Luna Chat Completions turns that include function tools |
 | A008-0130 | unified attachments | ChatGPT (operator) | 2026-09-18 | Unified prompt attachments: clipboard paste, file picker, drag/drop och local filepath → same source locator pipeline.|
+| A008-0131 | native OpenAI Responses routing for Luna | ChatGPT (operator) | 2026-09-18 | consume acme-engine 0.1.5 and route OpenAI/Luna through native Responses while leaving NVIDIA/KIE compatible routes unchanged |
