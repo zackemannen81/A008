@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { effectiveReasoningEffort } from "../src/core/generation-controls.js";
 import {
   OPENAI_CHAT_COMPLETIONS_URL,
   OpenAiChatTransport,
@@ -17,6 +18,22 @@ function sseResponse(events: readonly string[]): Response {
     headers: { "content-type": "text/event-stream" },
   });
 }
+
+test("effectiveReasoningEffort forces none only for Luna with tools", () => {
+  assert.equal(effectiveReasoningEffort("gpt-5.6-luna", 1, "medium"), "none");
+  assert.equal(effectiveReasoningEffort("gpt-5.6-luna", 2, "high"), "none");
+  assert.equal(effectiveReasoningEffort("gpt-5.6-luna", 0, "medium"), "medium");
+  assert.equal(effectiveReasoningEffort("gpt-5.6-luna", 0, null), null);
+  assert.equal(effectiveReasoningEffort("moonshotai/kimi-k3", 3, "max"), "max");
+  assert.equal(
+    effectiveReasoningEffort(
+      "nvidia/nemotron-3.5-lightning-30b-a3b",
+      1,
+      undefined,
+    ),
+    undefined,
+  );
+});
 
 test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async () => {
   let url = "";
@@ -41,6 +58,12 @@ test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async 
       });
     },
   });
+  const options = {
+    stream: false,
+    maxTokens: 1234,
+    reasoningEffort: "medium",
+    temperature: 0.7,
+  };
   const completion = await transport.complete({
     model: "gpt-5.6-luna",
     messages: [{ role: "user", content: "hi" }],
@@ -51,12 +74,7 @@ test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async 
         parameters: { type: "object" },
       },
     ],
-    options: {
-      stream: false,
-      maxTokens: 1234,
-      reasoningEffort: "medium",
-      temperature: 0.7,
-    },
+    options,
   });
   assert.equal(url, OPENAI_CHAT_COMPLETIONS_URL);
   assert.equal(auth, "Bearer sk-test-secret");
@@ -65,6 +83,7 @@ test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async 
   assert.equal(payload.model, "gpt-5.6-luna");
   assert.equal(payload.max_completion_tokens, 1234);
   assert.equal(payload.reasoning_effort, "none");
+  assert.equal(options.reasoningEffort, "medium");
   assert.equal(Object.hasOwn(payload, "temperature"), false);
   assert.equal(Array.isArray(payload.tools), true);
   assert.equal(payload.tool_choice, "auto");
@@ -74,6 +93,32 @@ test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async 
     completionTokens: 2,
     totalTokens: 6,
   });
+});
+
+test("OpenAI Luna without tools keeps selected reasoning effort", async () => {
+  let body = "";
+  const transport = new OpenAiChatTransport({
+    apiKey: "sk-test",
+    fetch: async (_input, init) => {
+      body = String(init?.body ?? "");
+      return jsonResponse({
+        choices: [
+          {
+            message: { role: "assistant", content: "ok" },
+            finish_reason: "stop",
+          },
+        ],
+      });
+    },
+  });
+  await transport.complete({
+    model: "gpt-5.6-luna",
+    messages: [{ role: "user", content: "hi" }],
+    options: { stream: false, reasoningEffort: "medium" },
+  });
+  const payload = JSON.parse(body) as Record<string, unknown>;
+  assert.equal(payload.reasoning_effort, "medium");
+  assert.equal(Object.hasOwn(payload, "tools"), false);
 });
 
 test("OpenAI tool calls map back into A008 structured calls", async () => {

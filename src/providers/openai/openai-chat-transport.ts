@@ -1,4 +1,5 @@
 import { ChatError, isChatError } from "../../core/errors.js";
+import { effectiveReasoningEffort } from "../../core/generation-controls.js";
 import type {
   ChatCallbacks,
   ChatCompletion,
@@ -181,12 +182,11 @@ function buildPayload(request: ChatRequest): Record<string, unknown> {
   }
   if (options.maxTokens != null)
     payload.max_completion_tokens = options.maxTokens;
-  // GPT-5.6 Luna Chat Completions rejects function tools with reasoning_effort > none.
-  // Keep A008 tools available by lowering only the effective tool-call request.
-  const reasoningEffort =
-    request.model === "gpt-5.6-luna" && request.tools?.length
-      ? "none"
-      : options.reasoningEffort;
+  const reasoningEffort = effectiveReasoningEffort(
+    request.model,
+    request.tools?.length ?? 0,
+    options.reasoningEffort,
+  );
   if (reasoningEffort != null) payload.reasoning_effort = reasoningEffort;
   if (request.model !== "gpt-5.6-luna" && options.temperature != null) {
     payload.temperature = options.temperature;

@@ -164,8 +164,11 @@ only execution. Any one of `NVIDIA_API_KEY`, `KIE_API_KEY`, or
 `OPENAI_API_KEY` is enough to compose the relevant embedded route.
 `A008_CHAT_TRANSPORT=direct` selects the prior direct dispatch path;
 `A008_CHAT_TRANSPORT=acme` selects the remote sidecar path and requires its
-runtime URL. Luna Chat Completions control restrictions, stream usage handling
-and all existing provider-specific payload rules remain in the provider
+runtime URL. Luna Chat Completions control restrictions remain A008-owned:
+when `gpt-5.6-luna` carries function tools, the effective request uses
+`reasoningEffort: "none"` on both the direct OpenAI adapter and the ACME-mapped
+Chat Completions path. Selected session effort is not rewritten. Stream usage
+handling and other provider-specific payload rules remain in the provider
 adapters. Image generation on the host
 follows `imageProvider`: NVIDIA NIMs or kie Market jobs
 (`POST /api/v1/jobs/createTask` then poll `GET /api/v1/jobs/recordInfo`).
