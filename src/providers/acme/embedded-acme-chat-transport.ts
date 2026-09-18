@@ -170,6 +170,7 @@ export function buildEmbeddedAcmeRuntimeConfig(options: {
       model: profile.id,
       capabilities: modelCapabilities(profile),
       controls: chatControls(profile),
+      maxOutputTokensParameter: "max_completion_tokens" as const,
     }));
 
   const kieProfiles = profiles.filter(

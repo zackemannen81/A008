@@ -94,6 +94,10 @@ test("embedded ACME config is derived from A008 model ownership", () => {
     assert.ok(luna);
     assert.equal(luna.selection.providerHint, "openai");
     assert.equal(luna.capabilities?.vision, true);
+    assert.equal(
+      luna.maxOutputTokensParameter,
+      "max_completion_tokens",
+    );
 
     const kie = config.compatible?.find(
       (route) => route.providerHint === "kie:gemini-3-flash",
@@ -361,6 +365,55 @@ test("embedded transport calls the provider directly through real acme-engine", 
     assert.equal(completion.message.content, "Hello");
     assert.equal(completion.reasoning, "plan");
     assert.equal(completion.usage?.totalTokens, 9);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("embedded OpenAI route uses max_completion_tokens through ACME 0.1.4", async () => {
+  const { directory, path } = tempCatalog();
+  const bodies: Record<string, unknown>[] = [];
+  const urls: string[] = [];
+  try {
+    const transport = new EmbeddedAcmeChatTransport({
+      env: { OPENAI_API_KEY: "sk-fixture" },
+      catalogPath: path,
+      requestKey: () => "openai-wire-field-fixture",
+      fetch: async (input, init) => {
+        urls.push(String(input));
+        bodies.push(
+          JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>,
+        );
+        const lines = [
+          `data: ${JSON.stringify({
+            id: "chatcmpl_openai_fixture",
+            model: "gpt-5.6-luna",
+            choices: [{ index: 0, delta: { content: "OK" } }],
+          })}`,
+          `data: ${JSON.stringify({
+            choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+            usage: { prompt_tokens: 4, completion_tokens: 1, total_tokens: 5 },
+          })}`,
+          "data: [DONE]",
+          "",
+        ].join("\n\n");
+        return new Response(lines, {
+          status: 200,
+          headers: { "content-type": "text/event-stream; charset=utf-8" },
+        });
+      },
+    });
+
+    const completion = await transport.complete({
+      model: "gpt-5.6-luna",
+      messages: [{ role: "user", content: "hello" }],
+      options: { maxTokens: 321, stream: true },
+    });
+
+    assert.deepEqual(urls, ["https://api.openai.com/v1/chat/completions"]);
+    assert.equal(bodies[0]?.max_completion_tokens, 321);
+    assert.equal(Object.hasOwn(bodies[0] ?? {}, "max_tokens"), false);
+    assert.equal(completion.message.content, "OK");
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

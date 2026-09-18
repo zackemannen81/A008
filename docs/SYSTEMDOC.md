@@ -101,7 +101,7 @@ CLI / A008-acp -> createLocalMemoryRuntime
                  v
           ChatTransport
             -> EmbeddedAcmeChatTransport (default)
-               -> acme-engine@0.1.3 createAcmeModelRuntime().execute()
+               -> acme-engine@0.1.4 createAcmeModelRuntime().execute()
                -> ACME provider adapter -> selected provider endpoint
             -> explicit direct dispatch (A008_CHAT_TRANSPORT=direct)
                |- NvidiaChatTransport
@@ -114,14 +114,14 @@ CLI / A008-acp -> createLocalMemoryRuntime
 
 A008-0118 established the remote `acme-model-runtime/2` contract and Stage
 3.5 GO. A008-0127 moves the normal execution path in-process: the default
-`EmbeddedAcmeChatTransport` consumes registry-published `acme-engine@0.1.3`,
+`EmbeddedAcmeChatTransport` consumes registry-published `acme-engine@0.1.4`,
 derives runtime profiles from A008's registry/catalog and credentials, and calls
 `createAcmeModelRuntime().execute()` without a sidecar process, URL, token or
 sidecar profile environment. `A008_CHAT_TRANSPORT=direct` retains direct
 NVIDIA/kie/OpenAI dispatch for reference/debug work; `A008_CHAT_TRANSPORT=acme`
 retains the remote model-runtime/2 path for compatibility/deployment. There is
 no post-dispatch fallback. A008 remains the owner of model selection, provider
-strategy, prompts, tools, memory and cognition. Invocation-local images map to
+strategy, prompts, tools, memory and cognition. A008-0128 consumes ACME 0.1.4 and marks embedded OpenAI Chat Completions profiles with `maxOutputTokensParameter="max_completion_tokens"`, while NVIDIA/KIE retain their existing output-token wire semantics. Invocation-local images map to
 ACME image parts with `requiredCapabilities.vision=true`; committed conversation
 history remains text-only.
 
@@ -972,7 +972,7 @@ guarantees.
 `createLocalMemoryRuntime` is the live local composition root. By default it
 constructs `EmbeddedAcmeChatTransport` and passes A008-owned registry/catalog
 metadata, credentials, endpoints and execution controls into
-`acme-engine@0.1.3`; no separately started ACME process or
+`acme-engine@0.1.4`; no separately started ACME process or
 `A008_ACME_MODEL_RUNTIME_URL`/token/build configuration is needed. The embedded
 runtime is rebuilt for subsequent calls when the user catalog fingerprint
 changes. Explicit `A008_CHAT_TRANSPORT=direct` uses the existing direct provider

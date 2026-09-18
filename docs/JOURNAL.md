@@ -2434,3 +2434,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Verification recorded during implementation: 651/651 core, 4/4 membership, 165/165 GUI, protocol package/offline consumer proof, root/GUI typecheck, GUI production build and `git diff --check` all passed.
 - The frozen required live image turn through the external ACME runtime did **not** complete successfully. The owner has since selected embedded in-process `@acme-engine/model-runtime` before Step 4, so the remaining sidecar-specific proof is superseded rather than waived.
 - A008-0124 is therefore recorded as **Superseded, not Complete**. [Handoff](handoffs/A008-0124.md). Signature: ChatGPT
+
+## 2026-09-18 — A008-0128 embedded OpenAI output-token wire compatibility
+
+- Operator: ChatGPT. Updated A008 to consume registry `acme-engine@0.1.4` and mark embedded OpenAI Chat Completions profiles with `maxOutputTokensParameter: "max_completion_tokens"`.
+- NVIDIA and KIE profile behavior is unchanged. Added regression coverage proving the OpenAI request emits `max_completion_tokens` and omits `max_tokens`.
+- Per owner request, ChatGPT did not run build/test suites through Remote Desktop Commander. Owner reports build, focused embedded tests and full `npm run test:core` all green.
+- Owner live GUI proof confirms GPT-5.6 Luna now works through embedded ACME when reasoning effort is `none`; the prior unsupported `max_tokens` provider error is gone.
+- A separate provider constraint was observed: Luna Chat Completions with function tools requires `reasoning_effort=none`. That fix is intentionally routed to A008-0129 instead of widening this frozen charter.
+- Signature: ChatGPT (operator)
