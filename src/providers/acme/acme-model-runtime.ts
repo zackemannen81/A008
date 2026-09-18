@@ -3,10 +3,7 @@ import {
   acmeProviderHint,
   resolveExecutionProvider,
 } from "../../core/execution-provider.js";
-import {
-  effectiveReasoningEffort,
-  generationCapabilities,
-} from "../../core/generation-controls.js";
+import { generationCapabilities } from "../../core/generation-controls.js";
 import type {
   ChatCompletion,
   ChatGenerationOptions,
@@ -191,7 +188,6 @@ function assignAcmeGeneration(
   target: Record<string, unknown>,
   generation: ChatGenerationOptions,
   model: string,
-  toolCount: number,
 ): void {
   const caps = generationCapabilities(model);
   if (
@@ -226,7 +222,7 @@ function assignAcmeGeneration(
   assignSupportedControl(
     target,
     "reasoningEffort",
-    effectiveReasoningEffort(model, toolCount, generation.reasoningEffort),
+    generation.reasoningEffort,
     caps.reasoningEfforts.length > 0,
     model,
   );
@@ -304,12 +300,7 @@ export function buildAcmeExecuteBody(
       parameters: tool.parameters,
     }));
   }
-  assignAcmeGeneration(
-    acmeRequest,
-    generation,
-    request.model,
-    request.tools?.length ?? 0,
-  );
+  assignAcmeGeneration(acmeRequest, generation, request.model);
   const executionProvider = resolveExecutionProvider(
     request.model,
     options.catalog,

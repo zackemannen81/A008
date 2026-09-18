@@ -101,7 +101,7 @@ CLI / A008-acp -> createLocalMemoryRuntime
                  v
           ChatTransport
             -> EmbeddedAcmeChatTransport (default)
-               -> acme-engine@0.1.4 createAcmeModelRuntime().execute()
+               -> acme-engine@0.1.5 createAcmeModelRuntime().execute()
                -> ACME provider adapter -> selected provider endpoint
             -> explicit direct dispatch (A008_CHAT_TRANSPORT=direct)
                |- NvidiaChatTransport
@@ -114,16 +114,19 @@ CLI / A008-acp -> createLocalMemoryRuntime
 
 A008-0118 established the remote `acme-model-runtime/2` contract and Stage
 3.5 GO. A008-0127 moves the normal execution path in-process: the default
-`EmbeddedAcmeChatTransport` consumes registry-published `acme-engine@0.1.4`,
+`EmbeddedAcmeChatTransport` consumes registry-published `acme-engine@0.1.5`,
 derives runtime profiles from A008's registry/catalog and credentials, and calls
 `createAcmeModelRuntime().execute()` without a sidecar process, URL, token or
 sidecar profile environment. `A008_CHAT_TRANSPORT=direct` retains direct
 NVIDIA/kie/OpenAI dispatch for reference/debug work; `A008_CHAT_TRANSPORT=acme`
 retains the remote model-runtime/2 path for compatibility/deployment. There is
 no post-dispatch fallback. A008 remains the owner of model selection, provider
-strategy, prompts, tools, memory and cognition. A008-0128 consumes ACME 0.1.4 and marks embedded OpenAI Chat Completions profiles with `maxOutputTokensParameter="max_completion_tokens"`, while NVIDIA/KIE retain their existing output-token wire semantics. Invocation-local images map to
-ACME image parts with `requiredCapabilities.vision=true`; committed conversation
-history remains text-only.
+strategy, prompts, tools, memory and cognition. A008-0131 composes embedded
+OpenAI profiles under ACME's native `openAi` route so Luna executes through
+the Responses API; NVIDIA retains its existing Chat Completions route and KIE
+retains its compatible routes. Invocation-local images map to ACME image parts
+with `requiredCapabilities.vision=true`; committed conversation history remains
+text-only.
 
 `ChatSession` owns in-memory conversation history. It constructs a pending turn,
 calls the transport, and commits user plus assistant messages only after a valid
@@ -164,12 +167,12 @@ only execution. Any one of `NVIDIA_API_KEY`, `KIE_API_KEY`, or
 `OPENAI_API_KEY` is enough to compose the relevant embedded route.
 `A008_CHAT_TRANSPORT=direct` selects the prior direct dispatch path;
 `A008_CHAT_TRANSPORT=acme` selects the remote sidecar path and requires its
-runtime URL. Luna Chat Completions control restrictions remain A008-owned:
-when `gpt-5.6-luna` carries function tools, the effective request uses
-`reasoningEffort: "none"` on both the direct OpenAI adapter and the ACME-mapped
-Chat Completions path. Selected session effort is not rewritten. Stream usage
-handling and other provider-specific payload rules remain in the provider
-adapters. Image generation on the host
+runtime URL. The Luna function-tools restriction is specific to the direct
+OpenAI Chat Completions reference path: that adapter keeps the A008-owned
+effective `reasoningEffort: "none"` guard without rewriting selected session
+state. Embedded ACME OpenAI execution uses native Responses and preserves the
+selected reasoning effort, including function-tool turns. Stream usage handling
+and other provider-specific payload rules remain in the provider adapters. Image generation on the host
 follows `imageProvider`: NVIDIA NIMs or kie Market jobs
 (`POST /api/v1/jobs/createTask` then poll `GET /api/v1/jobs/recordInfo`).
 
@@ -976,14 +979,15 @@ guarantees.
 `createLocalMemoryRuntime` is the live local composition root. By default it
 constructs `EmbeddedAcmeChatTransport` and passes A008-owned registry/catalog
 metadata, credentials, endpoints and execution controls into
-`acme-engine@0.1.4`; no separately started ACME process or
+`acme-engine@0.1.5`; no separately started ACME process or
 `A008_ACME_MODEL_RUNTIME_URL`/token/build configuration is needed. The embedded
 runtime is rebuilt for subsequent calls when the user catalog fingerprint
 changes. Explicit `A008_CHAT_TRANSPORT=direct` uses the existing direct provider
 dispatch. Explicit `A008_CHAT_TRANSPORT=acme` retains the remote compatibility
 mode, where `A008_ACME_MODEL_RUNTIME_URL` is required and optional token/build
 settings describe that remote runtime. NVIDIA-hosted embedded profiles share the
-A008 NVIDIA endpoint; OpenAI and KIE-compatible routes use their A008-owned
+A008 NVIDIA endpoint; embedded OpenAI uses ACME's native Responses route with
+the A008-owned OpenAI key, while KIE-compatible routes retain their A008-owned
 endpoints and keys. The A008 runtime then opens a SQLite file outside the repository,
 resolves a stable project ID, migrates any v0 supersede chains into intervals
 with unknown boundaries, and wraps one transport for both chat and stateless

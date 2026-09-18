@@ -262,7 +262,7 @@ test("maps prepared A008 text, tools and Luna controls onto acme-model-runtime/2
   assert.deepEqual(acmeRequest.output, { mode: "text" });
   assert.equal(acmeRequest.maxOutputTokens, 128);
   assert.equal(acmeRequest.temperature, 0.2);
-  assert.equal(acmeRequest.reasoningEffort, "none");
+  assert.equal(acmeRequest.reasoningEffort, "medium");
   assert.equal(Object.hasOwn(acmeRequest, "topP"), false);
   assert.equal(Object.hasOwn(acmeRequest, "reasoningBudget"), false);
   assert.equal(Object.hasOwn(acmeRequest, "enableThinking"), false);
@@ -684,7 +684,7 @@ test("ACME token is a composition header and is not copied into model content", 
   assert.equal(body.includes("NVIDIA_API_KEY"), false);
 });
 
-test("Luna function tools force effective ACME reasoningEffort none without mutating the request", () => {
+test("Luna function tools preserve selected ACME reasoningEffort without mutating the request", () => {
   const request: ChatRequest = {
     model: "gpt-5.6-luna",
     messages: [{ role: "user", content: "hi" }],
@@ -703,16 +703,23 @@ test("Luna function tools force effective ACME reasoningEffort none without muta
   });
   assert.equal(
     (body.request as Record<string, unknown>).reasoningEffort,
-    "none",
+    "medium",
   );
   assert.equal(request.options?.reasoningEffort, "medium");
 });
 
-test("ACME mapping keeps selected reasoningEffort except Luna with tools", () => {
+test("ACME mapping keeps selected reasoningEffort including Luna with tools", () => {
   const luna = buildAcmeExecuteBody(
     {
       model: "gpt-5.6-luna",
       messages: [{ role: "user", content: "hi" }],
+      tools: [
+        {
+          name: "read_file",
+          description: "Read",
+          parameters: { type: "object" },
+        },
+      ],
       options: { reasoningEffort: "medium" },
     },
     { requestKey: "k", timeoutMs: 1_000 },

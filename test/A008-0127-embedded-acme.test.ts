@@ -84,19 +84,15 @@ test("embedded ACME config is derived from A008 model ownership", () => {
     assert.ok(nemotron);
     assert.equal(nemotron.controls?.enableThinking, "enable_thinking");
 
-    const openAi = config.compatible?.find(
-      (provider) => provider.providerHint === "openai",
-    );
-    assert.ok(openAi);
-    const luna = openAi.profiles.find(
+    const luna = config.openAi?.profiles.find(
       (profile) => profile.model === "gpt-5.6-luna",
     );
     assert.ok(luna);
     assert.equal(luna.selection.providerHint, "openai");
     assert.equal(luna.capabilities?.vision, true);
     assert.equal(
-      luna.maxOutputTokensParameter,
-      "max_completion_tokens",
+      config.compatible?.some((provider) => provider.providerHint === "openai"),
+      false,
     );
 
     const kie = config.compatible?.find(
@@ -370,7 +366,7 @@ test("embedded transport calls the provider directly through real acme-engine", 
   }
 });
 
-test("embedded OpenAI route uses max_completion_tokens through ACME 0.1.4", async () => {
+test("embedded OpenAI route uses native Responses with vision, tools and selected reasoning through ACME 0.1.5", async () => {
   const { directory, path } = tempCatalog();
   const bodies: Record<string, unknown>[] = [];
   const urls: string[] = [];
@@ -378,42 +374,77 @@ test("embedded OpenAI route uses max_completion_tokens through ACME 0.1.4", asyn
     const transport = new EmbeddedAcmeChatTransport({
       env: { OPENAI_API_KEY: "sk-fixture" },
       catalogPath: path,
-      requestKey: () => "openai-wire-field-fixture",
+      requestKey: () => "openai-responses-fixture",
       fetch: async (input, init) => {
         urls.push(String(input));
         bodies.push(
           JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>,
         );
-        const lines = [
-          `data: ${JSON.stringify({
-            id: "chatcmpl_openai_fixture",
+        return new Response(
+          JSON.stringify({
+            id: "resp_openai_fixture",
             model: "gpt-5.6-luna",
-            choices: [{ index: 0, delta: { content: "OK" } }],
-          })}`,
-          `data: ${JSON.stringify({
-            choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
-            usage: { prompt_tokens: 4, completion_tokens: 1, total_tokens: 5 },
-          })}`,
-          "data: [DONE]",
-          "",
-        ].join("\n\n");
-        return new Response(lines, {
-          status: 200,
-          headers: { "content-type": "text/event-stream; charset=utf-8" },
-        });
+            status: "completed",
+            output: [
+              {
+                type: "message",
+                content: [{ type: "output_text", text: "OK" }],
+              },
+              {
+                type: "function_call",
+                id: "fc_1",
+                call_id: "call_1",
+                name: "inspect",
+                arguments: '{"target":"image"}',
+              },
+            ],
+            usage: { input_tokens: 4, output_tokens: 1, total_tokens: 5 },
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        );
       },
     });
 
     const completion = await transport.complete({
       model: "gpt-5.6-luna",
       messages: [{ role: "user", content: "hello" }],
-      options: { maxTokens: 321, stream: true },
+      imageAttachments: [
+        { mediaType: "image/png", dataRef: "data:image/png;base64,AAAA" },
+      ],
+      tools: [
+        {
+          name: "inspect",
+          description: "Inspect the image.",
+          parameters: { type: "object", properties: {} },
+        },
+      ],
+      options: {
+        maxTokens: 321,
+        reasoningEffort: "medium",
+        stream: false,
+      },
     });
 
-    assert.deepEqual(urls, ["https://api.openai.com/v1/chat/completions"]);
-    assert.equal(bodies[0]?.max_completion_tokens, 321);
-    assert.equal(Object.hasOwn(bodies[0] ?? {}, "max_tokens"), false);
+    assert.deepEqual(urls, ["https://api.openai.com/v1/responses"]);
+    assert.equal(bodies[0]?.max_output_tokens, 321);
+    assert.deepEqual(bodies[0]?.reasoning, { effort: "medium" });
+    assert.equal(Object.hasOwn(bodies[0] ?? {}, "max_completion_tokens"), false);
+    assert.deepEqual((bodies[0]?.input as any[])[0]?.content, [
+      { type: "input_text", text: "hello" },
+      { type: "input_image", image_url: "data:image/png;base64,AAAA" },
+    ]);
+    assert.equal(Array.isArray(bodies[0]?.tools), true);
     assert.equal(completion.message.content, "OK");
+    assert.deepEqual(completion.toolCalls, [
+      {
+        id: "call_1",
+        name: "inspect",
+        arguments: '{"target":"image"}',
+      },
+    ]);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

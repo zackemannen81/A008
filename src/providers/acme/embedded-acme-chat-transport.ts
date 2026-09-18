@@ -23,7 +23,6 @@ import type {
   ModelProfile,
 } from "../../core/types.js";
 import { KIE_MARKET_MODELS, kieChatCompletionsUrl } from "../kie/kie-models.js";
-import { OPENAI_CHAT_COMPLETIONS_URL } from "../openai/openai-chat-transport.js";
 import {
   buildAcmeExecuteBody,
   chatErrorFromAcmeFailure,
@@ -169,8 +168,6 @@ export function buildEmbeddedAcmeRuntimeConfig(options: {
       selection: selection(profile),
       model: profile.id,
       capabilities: modelCapabilities(profile),
-      controls: chatControls(profile),
-      maxOutputTokensParameter: "max_completion_tokens" as const,
     }));
 
   const kieProfiles = profiles.filter(
@@ -178,18 +175,6 @@ export function buildEmbeddedAcmeRuntimeConfig(options: {
       resolveExecutionProvider(profile.id, options.catalog) === "kie",
   );
 
-  const openAiCompatible =
-    openAiKey === undefined || openAiProfiles.length === 0
-      ? []
-      : [
-          {
-            providerHint: "openai",
-            endpoint: OPENAI_CHAT_COMPLETIONS_URL,
-            apiKey: openAiKey,
-            provider: "openai",
-            profiles: openAiProfiles,
-          },
-        ];
   const kieCompatible =
     kieKey === undefined
       ? []
@@ -219,9 +204,17 @@ export function buildEmbeddedAcmeRuntimeConfig(options: {
             },
           ],
         }));
-  const compatible = [...openAiCompatible, ...kieCompatible];
+  const compatible = [...kieCompatible];
 
   const config: RuntimeConfig = {
+    ...(openAiKey !== undefined && openAiProfiles.length > 0
+      ? {
+          openAi: {
+            apiKey: openAiKey,
+            profiles: openAiProfiles,
+          },
+        }
+      : {}),
     ...(nvidiaKey !== undefined && nvidiaProfiles.length > 0
       ? {
           nvidia: {
@@ -236,7 +229,11 @@ export function buildEmbeddedAcmeRuntimeConfig(options: {
     ...(compatible.length > 0 ? { compatible } : {}),
   };
 
-  if (config.nvidia === undefined && config.compatible === undefined) {
+  if (
+    config.openAi === undefined &&
+    config.nvidia === undefined &&
+    config.compatible === undefined
+  ) {
     throw new ChatError(
       "configuration",
       "NVIDIA_API_KEY, OPENAI_API_KEY, or KIE_API_KEY is required for embedded ACME chat.",
