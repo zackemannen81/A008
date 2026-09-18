@@ -99,11 +99,19 @@
   font-size: 1.15rem; line-height: 1; padding: 0;
 }
 .a008-composer-attach summary::-webkit-details-marker { display: none; }
-.a008-composer-attach[open] > button {
+.a008-composer-attach-menu {
   position: absolute; bottom: 2.3rem; left: 0; z-index: 3;
+  display: grid; gap: .2rem; min-width: 10.5rem; padding: .35rem;
   background: var(--a008-surface-2, var(--a008-panel)); border: 1px solid var(--a008-border);
-  border-radius: .6rem; padding: .55rem .8rem; color: inherit; font: inherit;
+  border-radius: .7rem; box-shadow: var(--a008-shadow-panel);
 }
+.a008-composer-attach-menu button {
+  width: 100%; border: 0; border-radius: .45rem; padding: .5rem .65rem;
+  background: transparent; color: inherit; font: inherit; text-align: left;
+  cursor: pointer; white-space: nowrap;
+}
+.a008-composer-attach-menu button:hover:not(:disabled) { background: var(--a008-surface-hover, rgba(255,255,255,.06)); }
+.a008-composer-attach-menu button:disabled { opacity: .45; cursor: default; }
 .a008-tools-panel { grid-column: 2; grid-row: 2; display: flex; overflow: hidden; min-width: 0; min-height: 0; padding: .5rem 1rem 1rem; }
 .a008-app .a008-workbench { display: flex; flex: 1; border: 1px solid var(--a008-border); border-radius: 1rem; background: var(--a008-panel); }
 .a008-workbench-tabs { padding: .6rem .7rem 0; }

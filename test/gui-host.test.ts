@@ -1467,3 +1467,89 @@ test("a named origin reaches the shell route and the WebSocket upgrade", async (
     assert.equal(stillRefused.status, 403);
   });
 });
+
+test("POST /v1/upload imports an absolute local image path through the same source store", async () => {
+  const storeRoot = uploadStore();
+  const localRoot = mkdtempSync(join(tmpdir(), "A008-local-upload-"));
+  const localPath = join(localRoot, "photo.png");
+  const png = Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x00,
+  ]);
+  writeFileSync(localPath, png);
+
+  await withHost({ sourceStorePath: storeRoot }, async (host) => {
+    const result = await httpJson(host, "/v1/upload", {
+      method: "POST",
+      headers: {
+        "content-type": "application/octet-stream",
+        "x-a008-local-path": encodeURIComponent(localPath),
+      },
+    });
+    assert.equal(result.status, 200);
+    const body = result.body as Record<string, unknown>;
+    assert.equal(body.mediaType, "image/png");
+    assert.equal(body.bytes, png.length);
+    assert.equal(body.locator, `source:${String(body.sha256)}/photo.png`);
+    assert.deepEqual(
+      readFileSync(join(storeRoot, String(body.sha256), "photo.png")),
+      png,
+    );
+  });
+});
+
+test("POST /v1/upload local path mode requires an absolute regular file", async () => {
+  const storeRoot = uploadStore();
+  await withHost({ sourceStorePath: storeRoot }, async (host) => {
+    const relativeResult = await httpJson(host, "/v1/upload", {
+      method: "POST",
+      headers: {
+        "content-type": "application/octet-stream",
+        "x-a008-local-path": encodeURIComponent("photo.png"),
+      },
+    });
+    assert.equal(relativeResult.status, 400);
+    assert.match(
+      String((relativeResult.body as { message?: string }).message ?? ""),
+      /absolute file path/iu,
+    );
+
+    const directoryResult = await httpJson(host, "/v1/upload", {
+      method: "POST",
+      headers: {
+        "content-type": "application/octet-stream",
+        "x-a008-local-path": encodeURIComponent(storeRoot),
+      },
+    });
+    assert.equal(directoryResult.status, 400);
+    assert.match(
+      String((directoryResult.body as { message?: string }).message ?? ""),
+      /regular file/iu,
+    );
+  });
+});
+
+test("POST /v1/upload local path mode enforces the existing byte cap", async () => {
+  const storeRoot = uploadStore();
+  const localRoot = mkdtempSync(join(tmpdir(), "A008-local-upload-large-"));
+  const localPath = join(localRoot, "large.png");
+  writeFileSync(localPath, Buffer.alloc(64, 1));
+
+  await withHost(
+    { sourceStorePath: storeRoot, maxUploadBytes: 16 },
+    async (host) => {
+      const result = await httpJson(host, "/v1/upload", {
+        method: "POST",
+        headers: {
+          "content-type": "application/octet-stream",
+          "x-a008-local-path": encodeURIComponent(localPath),
+        },
+      });
+      assert.equal(result.status, 413);
+      assert.match(
+        String((result.body as { message?: string }).message ?? ""),
+        /maximum allowed size/iu,
+      );
+      assert.deepEqual(readdirSync(storeRoot), []);
+    },
+  );
+});
