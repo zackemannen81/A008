@@ -141,3 +141,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0125 | Code prettier and lint | mrWhite (operator) | 2026-09-17 | Cleaning up |
 | A008-0126 | post-0120 operator journal and handoff hygiene | ChatGPT (operator) | 2026-09-18 | restore missing 0122/0124 operator records and clear stale 0124 current-task state before embedded-ACME migration |
 | A008-0127 | embedded ACME model-runtime migration | ChatGPT (operator) | 2026-09-18 | replace default HTTP sidecar execution with in-process acme-engine while preserving A008 ownership of model selection, memory, prompts and tools |
+| A008-0128 | embedded OpenAI output-token wire compatibility | ChatGPT (operator) | 2026-09-18 | consume acme-engine 0.1.4 and select max_completion_tokens for embedded OpenAI Chat Completions profiles |
