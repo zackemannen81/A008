@@ -1,4 +1,4 @@
-A008-0118 keeps `src/providers/acme/` as an explicit opt-in `ChatTransport` against `acme-model-runtime/2`. `src/core/execution-provider.ts` owns `executionProvider` resolution and the ACME `providerHint`. `src/runtime/chat-dispatch.ts` and `local-runtime-config.ts` select ACME only when `A008_CHAT_TRANSPORT=acme`. Direct NVIDIA/kie/OpenAI transports remain the default. No memory/knowledge/orchestration module imports ACME types.
+A008-0127 makes `src/providers/acme/embedded-acme-chat-transport.ts` the default in-process `ChatTransport` over registry-published `acme-engine@0.1.3`. `src/core/execution-provider.ts` still owns `executionProvider` resolution and ACME provider hints. `src/runtime/chat-dispatch.ts` and `local-runtime-config.ts` default to embedded ACME, preserve direct NVIDIA/kie/OpenAI dispatch behind `A008_CHAT_TRANSPORT=direct`, and preserve the remote `acme-model-runtime/2` transport behind `A008_CHAT_TRANSPORT=acme`. No memory/knowledge/orchestration module imports ACME types.
 
 Standalone GUI authentication remains inside the existing host boundary: `src/gui-host/pin-auth.ts` adds an optional six-digit browser gate, random cookie session and failed-attempt throttle without adding a renderer dependency or second credential owner. `gui/src/session/engine-access.ts` also owns the bundled renderer's exact-match recovery from an expired standalone PIN cookie back to the existing login gate; native engine capability auth remains separate.
 
@@ -321,13 +321,14 @@ A008/
 |  |  |- openai/
 |  |  |  `- openai-chat-transport.ts  GPT-5.6 Luna Chat Completions + tools/SSE
 |  |  `- acme/
-|  |     |- acme-model-runtime.ts     acme-model-runtime/2 constants, mapping, evidence errors
-|  |     |- acme-sse.ts               SSE event-name + data parser
-|  |     `- acme-chat-transport.ts    opt-in ChatTransport against ACME model-only runtime
+|  |     |- acme-model-runtime.ts            shared request/result/error/evidence mapping
+|  |     |- embedded-acme-chat-transport.ts  default in-process acme-engine ChatTransport
+|  |     |- acme-sse.ts                      remote SSE event-name + data parser
+|  |     `- acme-chat-transport.ts           explicit remote acme-model-runtime/2 compatibility transport
 |  `- runtime/
-|     |- nvidia-session.ts            NVIDIA credential and transport owner
-|     |- chat-dispatch.ts            NVIDIA/kie/OpenAI dispatch plus explicit ACME selection
-|     |- local-runtime-config.ts      SQLite, identity, and debug settings
+|     |- nvidia-session.ts            NVIDIA credential and direct transport owner
+|     |- chat-dispatch.ts             embedded default plus explicit direct/remote selection
+|     |- local-runtime-config.ts      SQLite, identity, debug and chat-transport mode settings
 |     |- debug-trace.ts               opt-in secret-safe JSONL observer
 |     |- user-assertion-gate.ts       runtime-owned new-memory activation
 |     `- local-memory-runtime.ts      CLI/ACP memory composition root

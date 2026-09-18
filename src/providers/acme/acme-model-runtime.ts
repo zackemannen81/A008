@@ -288,6 +288,9 @@ export function buildAcmeExecuteBody(
   const acmeRequest: Record<string, unknown> = {
     messages,
     output: { mode: "text" },
+    ...(typeof generation.stream === "boolean"
+      ? { stream: generation.stream }
+      : {}),
   };
   if (request.tools !== undefined && request.tools.length > 0) {
     acmeRequest.tools = request.tools.map((tool) => ({

@@ -1362,6 +1362,7 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
   ].filter(
     (value): value is string => typeof value === "string" && value.length >= 8,
   );
+  const registry = options.registry ?? defaultModelRegistry;
   const tracer = createDebugTracer({
     mode: config.debugTrace,
     surface,
@@ -1385,6 +1386,7 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
       env: options.env,
       catalogPath: defaultCatalogPath(options.env),
       timeoutMs,
+      registry,
       acme: config.chatTransport,
       fetch: tracedFetch(
         options.fetch ?? globalThis.fetch.bind(globalThis),
@@ -1414,7 +1416,6 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
     projectId,
     migrateV0: true,
   });
-  const registry = options.registry ?? defaultModelRegistry;
   const semanticModelId = nvidiaOptions
     ? DEFAULT_MODEL_ID
     : openAiKey

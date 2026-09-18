@@ -121,8 +121,12 @@ test("chat generation options are overridable without editing the model profile"
   assert.throws(() => config({ [CHAT_THINKING_ENV]: "maybe" }), ChatError);
 });
 
-test("ACME transport is explicit and requires an http(s) runtime URL", () => {
-  assert.equal(config().chatTransport.mode, "direct");
+test("embedded ACME is default while remote ACME still requires an http(s) runtime URL", () => {
+  assert.equal(config().chatTransport.mode, "embedded-acme");
+  assert.equal(
+    config({ [CHAT_TRANSPORT_ENV]: "direct" }).chatTransport.mode,
+    "direct",
+  );
   assert.throws(() => config({ [CHAT_TRANSPORT_ENV]: "fallback" }), ChatError);
   assert.throws(
     () => config({ [CHAT_TRANSPORT_ENV]: "acme" }),

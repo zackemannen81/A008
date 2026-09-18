@@ -22,7 +22,7 @@ export const ACME_MODEL_RUNTIME_URL_ENV = "A008_ACME_MODEL_RUNTIME_URL";
 export const ACME_MODEL_RUNTIME_TOKEN_ENV = "A008_ACME_MODEL_RUNTIME_TOKEN";
 export const ACME_ENGINE_BUILD_ENV = "A008_ACME_ENGINE_BUILD";
 
-export type ChatTransportMode = "direct" | "acme";
+export type ChatTransportMode = "embedded-acme" | "direct" | "acme";
 
 export interface AcmeRuntimeSelection {
   readonly mode: ChatTransportMode;
@@ -344,15 +344,15 @@ export function parseLocalRuntimeConfig(
 
 function resolvedChatTransport(env: NodeJS.ProcessEnv): AcmeRuntimeSelection {
   const modeRaw = optionalText(env, CHAT_TRANSPORT_ENV);
-  const mode = (modeRaw ?? "direct").toLowerCase();
-  if (mode !== "direct" && mode !== "acme") {
+  const mode = (modeRaw ?? "embedded-acme").toLowerCase();
+  if (mode !== "embedded-acme" && mode !== "direct" && mode !== "acme") {
     throw new ChatError(
       "configuration",
-      `${CHAT_TRANSPORT_ENV} must be direct or acme.`,
+      `${CHAT_TRANSPORT_ENV} must be embedded-acme, direct, or acme.`,
     );
   }
-  if (mode === "direct") {
-    return { mode: "direct" };
+  if (mode === "embedded-acme" || mode === "direct") {
+    return { mode };
   }
   const baseUrlRaw = optionalText(env, ACME_MODEL_RUNTIME_URL_ENV);
   if (baseUrlRaw === undefined) {

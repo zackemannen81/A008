@@ -1,4 +1,5 @@
 import { ChatError } from "../core/errors.js";
+import type { ModelRegistry } from "../core/model-registry.js";
 import type {
   ChatCallbacks,
   ChatCompletion,
@@ -10,6 +11,10 @@ import {
   AcmeChatTransport,
   type AcmeChatTransportOptions,
 } from "../providers/acme/acme-chat-transport.js";
+import {
+  createEmbeddedAcmeChatTransport,
+  type EmbeddedAcmeChatTransportOptions,
+} from "../providers/acme/embedded-acme-chat-transport.js";
 import {
   KieChatTransport,
   type FetchLike,
@@ -56,8 +61,34 @@ export function usesOpenAiChat(model: string, catalogPath: string): boolean {
   return isKnownOpenAiChatModel(model, catalog);
 }
 
+export function usesEmbeddedAcmeChat(selection: AcmeRuntimeSelection): boolean {
+  return selection.mode === "embedded-acme";
+}
+
 export function usesAcmeChat(selection: AcmeRuntimeSelection): boolean {
   return selection.mode === "acme";
+}
+
+export function createEmbeddedAcmeRuntimeChatTransport(options: {
+  readonly env: NodeJS.ProcessEnv;
+  readonly catalogPath: string;
+  readonly timeoutMs: number;
+  readonly registry?: ModelRegistry;
+  readonly fetch?: FetchLike;
+  readonly requestKey?: EmbeddedAcmeChatTransportOptions["requestKey"];
+}): ChatTransport {
+  const nvidiaEndpoint = options.env[NVIDIA_ENDPOINT_ENV]?.trim();
+  return createEmbeddedAcmeChatTransport({
+    env: options.env,
+    catalogPath: options.catalogPath,
+    timeoutMs: options.timeoutMs,
+    ...(nvidiaEndpoint ? { nvidiaEndpoint } : {}),
+    ...(options.registry === undefined ? {} : { registry: options.registry }),
+    ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+    ...(options.requestKey === undefined
+      ? {}
+      : { requestKey: options.requestKey }),
+  });
 }
 
 export function createAcmeRuntimeChatTransport(options: {
@@ -104,8 +135,18 @@ export function createConfiguredChatTransport(options: {
   readonly catalogPath: string;
   readonly timeoutMs: number;
   readonly fetch?: FetchLike;
+  readonly registry?: ModelRegistry;
   readonly acme: AcmeRuntimeSelection;
 }): ChatTransport {
+  if (usesEmbeddedAcmeChat(options.acme)) {
+    return createEmbeddedAcmeRuntimeChatTransport({
+      env: options.env,
+      catalogPath: options.catalogPath,
+      timeoutMs: options.timeoutMs,
+      ...(options.fetch === undefined ? {} : { fetch: options.fetch }),
+      ...(options.registry === undefined ? {} : { registry: options.registry }),
+    });
+  }
   if (usesAcmeChat(options.acme)) {
     return createAcmeRuntimeChatTransport({
       selection: options.acme,
