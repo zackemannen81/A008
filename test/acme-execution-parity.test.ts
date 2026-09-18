@@ -21,6 +21,7 @@ import { createLocalMemoryRuntime } from "../src/runtime/local-memory-runtime.js
 import {
   createConfiguredChatTransport,
   usesAcmeChat,
+  usesEmbeddedAcmeChat,
 } from "../src/runtime/chat-dispatch.js";
 import { parseLocalRuntimeConfig } from "../src/runtime/local-runtime-config.js";
 import {
@@ -759,13 +760,14 @@ test("Luna semantic retrieval and extraction omit unsupported temperature throug
   }
 });
 
-test("explicit ACME composition does not require provider keys and does not default on", () => {
-  const direct = parseLocalRuntimeConfig(
+test("embedded ACME defaults on while explicit remote ACME remains sidecar-compatible", () => {
+  const embedded = parseLocalRuntimeConfig(
     { A008_PROJECT_ID: TEST_PROJECT_ID },
     { surface: "cli" },
   );
-  assert.equal(direct.chatTransport.mode, "direct");
-  assert.equal(usesAcmeChat(direct.chatTransport), false);
+  assert.equal(embedded.chatTransport.mode, "embedded-acme");
+  assert.equal(usesEmbeddedAcmeChat(embedded.chatTransport), true);
+  assert.equal(usesAcmeChat(embedded.chatTransport), false);
 
   const acme = parseLocalRuntimeConfig(
     {

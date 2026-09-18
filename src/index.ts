@@ -127,9 +127,11 @@ export type {
 } from "./runtime/local-runtime-config.js";
 export {
   createAcmeRuntimeChatTransport,
+  createEmbeddedAcmeRuntimeChatTransport,
   createConfiguredChatTransport,
   createDispatchingChatTransport,
   usesAcmeChat,
+  usesEmbeddedAcmeChat,
 } from "./runtime/chat-dispatch.js";
 export {
   applyUserAssertionActivation,
