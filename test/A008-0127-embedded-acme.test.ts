@@ -85,7 +85,11 @@ test("embedded ACME config is derived from A008 model ownership", () => {
     assert.ok(nemotron);
     assert.equal(nemotron.controls?.enableThinking, "enable_thinking");
 
-    const luna = config.openAi?.profiles.find(
+    const openAi = config.compatible?.find(
+      (provider) => provider.providerHint === "openai",
+    );
+    assert.ok(openAi);
+    const luna = openAi.profiles.find(
       (profile) => profile.model === "gpt-5.6-luna",
     );
     assert.ok(luna);
