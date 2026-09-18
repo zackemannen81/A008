@@ -103,6 +103,61 @@ export async function uploadSource(
 }
 
 /**
+ * Ask the local A008 GUI host to import an existing host file through the
+ * same `POST /v1/upload` source-store boundary used by browser-picked files.
+ * The renderer sends only the explicit path string; it never reads host bytes.
+ */
+export async function uploadSourcePath(
+  localPath: string,
+  options: UploadSourceOptions = {},
+): Promise<UploadedSource> {
+  const path = localPath.trim();
+  if (path.length === 0) {
+    throw new UploadError("Enter an absolute local file path.");
+  }
+
+  const fetchImpl = options.fetch ?? globalThis.fetch;
+  if (typeof fetchImpl !== "function") {
+    throw new UploadError(
+      "fetch is not available to reach the A008 GUI host upload route.",
+    );
+  }
+  const endpoint = options.endpoint ?? UPLOAD_ENDPOINT;
+
+  let response: Response;
+  try {
+    response = await fetchImpl(endpoint, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        ...engineHeaders(),
+        accept: "application/json",
+        "content-type": "application/octet-stream",
+        "x-a008-local-path": encodeURIComponent(path),
+      },
+    });
+  } catch (cause) {
+    throw new UploadError("Failed to reach the A008 GUI host upload route.", {
+      cause,
+    });
+  }
+
+  if (!response.ok) {
+    throw new UploadError(await failureMessage(response));
+  }
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch (cause) {
+    throw new UploadError("A008 GUI host upload route returned non-JSON.", {
+      cause,
+    });
+  }
+  return parseUploadedSource(payload);
+}
+
+/**
  * Reads the host's JSON error body and surfaces its `message` field, so an
  * unsupported media type or an oversized file shows the server's named
  * reason instead of a generic "upload failed" (ADR 0020 D3/D5, definition

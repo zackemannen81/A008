@@ -1,8 +1,31 @@
-import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useId, useRef, useState, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent } from "react";
 import type { GuiSession, PromptImageAttachment } from "../session/types.js";
-import { uploadSource } from "../upload/upload-source.js";
+import { uploadSource, uploadSourcePath, type UploadedSource } from "../upload/upload-source.js";
 import { runShellCommand } from "../terminal/terminal-pane.js";
 import { submitComposer } from "./submit.js";
+
+const CHAT_IMAGE_MEDIA_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+
+export function firstImageFile(files: ArrayLike<File>): File | undefined {
+  return Array.from(files).find((file) => CHAT_IMAGE_MEDIA_TYPES.has(file.type.toLowerCase()));
+}
+
+export function imageFileFromTransfer(transfer: Pick<DataTransfer, "files" | "items">): File | undefined {
+  const file = firstImageFile(transfer.files);
+  if (file !== undefined) return file;
+  for (const item of Array.from(transfer.items)) {
+    if (item.kind === "file" && CHAT_IMAGE_MEDIA_TYPES.has(item.type.toLowerCase())) {
+      const fromItem = item.getAsFile();
+      if (fromItem !== null) return fromItem;
+    }
+  }
+  return undefined;
+}
+
+export function displayNameFromPath(path: string): string {
+  const parts = path.split(/[\\/]/u).filter((part) => part.length > 0);
+  return parts.at(-1) ?? path;
+}
 
 /** A008 composer. Keep the Composer export. */
 export function Composer(props: {
@@ -12,8 +35,11 @@ export function Composer(props: {
 }) {
   const inputId = useId();
   const fileInput = useRef<HTMLInputElement>(null);
+  const attachMenu = useRef<HTMLDetailsElement>(null);
   const [draft, setDraft] = useState("");
   const [attachment, setAttachment] = useState<(PromptImageAttachment & { readonly name: string })>();
+  const [localPath, setLocalPath] = useState("");
+  const [showPathInput, setShowPathInput] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -79,22 +105,75 @@ export function Composer(props: {
     }
   }
 
+  function acceptUploadedImage(uploaded: UploadedSource, name: string): void {
+    if (!uploaded.mediaType.startsWith("image/")) {
+      throw new Error(`Selected source is ${uploaded.mediaType}, not an image.`);
+    }
+    setAttachment({ type: "image", locator: uploaded.locator, mediaType: uploaded.mediaType, name });
+  }
+
   async function attachImage(file: File | undefined): Promise<void> {
     if (file === undefined) return;
     setUploading(true);
     setError("");
     try {
-      const uploaded = await uploadSource(file);
-      if (!uploaded.mediaType.startsWith("image/")) {
-        throw new Error(`Selected source is ${uploaded.mediaType}, not an image.`);
-      }
-      setAttachment({ type: "image", locator: uploaded.locator, mediaType: uploaded.mediaType, name: file.name });
+      const uploadable = file.name.trim().length > 0
+        ? file
+        : new File([file], "clipboard-image", { type: file.type });
+      acceptUploadedImage(await uploadSource(uploadable), uploadable.name);
+      if (attachMenu.current) attachMenu.current.open = false;
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Image upload failed.");
     } finally {
       setUploading(false);
       if (fileInput.current) fileInput.current.value = "";
     }
+  }
+
+  async function attachLocalPath(): Promise<void> {
+    const path = localPath.trim();
+    if (path.length === 0) {
+      setError("Enter an absolute local file path.");
+      return;
+    }
+    setUploading(true);
+    setError("");
+    try {
+      const uploaded = await uploadSourcePath(path);
+      acceptUploadedImage(uploaded, displayNameFromPath(path));
+      setLocalPath("");
+      setShowPathInput(false);
+      if (attachMenu.current) attachMenu.current.open = false;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Image upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function onPaste(event: ClipboardEvent<HTMLTextAreaElement>): void {
+    const image = imageFileFromTransfer(event.clipboardData);
+    if (image === undefined) return;
+    event.preventDefault();
+    void attachImage(image);
+  }
+
+  function onDragOver(event: DragEvent<HTMLElement>): void {
+    if (event.dataTransfer.types.includes("Files")) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+    }
+  }
+
+  function onDrop(event: DragEvent<HTMLElement>): void {
+    if (!event.dataTransfer.types.includes("Files")) return;
+    event.preventDefault();
+    const image = imageFileFromTransfer(event.dataTransfer);
+    if (image === undefined) {
+      setError("Drop a PNG, JPEG, WebP or GIF image.");
+      return;
+    }
+    void attachImage(image);
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>): void {
@@ -113,7 +192,7 @@ export function Composer(props: {
   }
 
   return (
-    <section className="a008-composer">
+    <section className="a008-composer" onDragOver={onDragOver} onDrop={onDrop}>
       <div className="a008-composer-card">
       <form className="a008-composer-form" onSubmit={onSubmit}>
         <div className="a008-composer-top">
@@ -131,6 +210,7 @@ export function Composer(props: {
           onChange={(event) => {
             setDraft(event.target.value);
           }}
+          onPaste={onPaste}
           onKeyDown={onKeyDown}
         />
         <button
@@ -153,7 +233,26 @@ export function Composer(props: {
             <small>{attachment.mediaType}</small>
             <button type="button" aria-label="Remove image attachment" onClick={() => setAttachment(undefined)}>×</button>
           </div>
-        ) : uploading ? <p className="a008-composer-uploading" role="status">Uploading image…</p> : null}
+        ) : uploading ? <p className="a008-composer-uploading" role="status">Attaching image…</p> : null}
+        {showPathInput ? (
+          <div className="a008-composer-path-row">
+            <input
+              type="text"
+              value={localPath}
+              aria-label="Local image path"
+              placeholder="C:\\path\\to\\image.png"
+              disabled={uploading || pending || props.session.busy}
+              onChange={(event) => setLocalPath(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                void attachLocalPath();
+              }}
+            />
+            <button type="button" disabled={uploading || pending || props.session.busy} onClick={() => void attachLocalPath()}>Attach</button>
+            <button type="button" disabled={uploading} onClick={() => { setShowPathInput(false); setLocalPath(""); }}>Cancel</button>
+          </div>
+        ) : null}
         <div className="a008-composer-tools">
           <input
             ref={fileInput}
@@ -163,26 +262,34 @@ export function Composer(props: {
             aria-label="Choose image attachment"
             onChange={(event) => { void attachImage(event.currentTarget.files?.[0]); }}
           />
-          <details className="a008-composer-attach">
+          <details ref={attachMenu} className="a008-composer-attach">
             <summary aria-label="Add">+</summary>
-            <button type="button" disabled={uploading || pending || props.session.busy} onClick={() => fileInput.current?.click()}>
-              Attach image
-            </button>
-            {props.onImage ? (
-              <button
-                type="button"
-                onClick={() => {
-                  if (draft.trim().length === 0) {
-                    setError("Describe the image in the composer first.");
-                    return;
-                  }
-                  props.onImage?.(draft.trim());
-                  setDraft("");
-                }}
-              >
-                Generate image
-              </button>
-            ) : null}
+            <div className="a008-composer-attach-menu">
+              <button type="button" disabled={uploading || pending || props.session.busy} onClick={() => {
+                if (attachMenu.current) attachMenu.current.open = false;
+                fileInput.current?.click();
+              }}>Attach image</button>
+              <button type="button" disabled={uploading || pending || props.session.busy} onClick={() => {
+                setShowPathInput(true);
+                if (attachMenu.current) attachMenu.current.open = false;
+              }}>Attach from path</button>
+              {props.onImage ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (draft.trim().length === 0) {
+                      setError("Describe the image in the composer first.");
+                      return;
+                    }
+                    if (attachMenu.current) attachMenu.current.open = false;
+                    props.onImage?.(draft.trim());
+                    setDraft("");
+                  }}
+                >
+                  Generate image
+                </button>
+              ) : null}
+            </div>
           </details>
       <div className="a008-session-toolbar" aria-label="Session controls">
         <select

@@ -4,6 +4,7 @@ import {
   UPLOAD_ENDPOINT,
   UploadError,
   uploadSource,
+  uploadSourcePath,
   type UploadableFile,
 } from "./upload-source.js";
 
@@ -272,4 +273,63 @@ test("sends only the documented headers, no credential", async () => {
     "accept,content-type,x-a008-filename",
   );
   assert.equal(call.headers["authorization"], undefined);
+});
+
+test("local path import uses the existing upload endpoint without renderer file bytes", async () => {
+  const host = fakeHost(() =>
+    jsonResponse(
+      uploadedSource({
+        locator: "source:deadbeef/photo.png",
+        mediaType: "image/png",
+      }),
+    ),
+  );
+  const result = await uploadSourcePath("C:\\shots\\photo.png", {
+    fetch: host.fetch,
+  });
+
+  assert.equal(result.mediaType, "image/png");
+  assert.equal(host.calls.length, 1);
+  const call = host.calls[0];
+  assert.ok(call);
+  assert.equal(call.input, UPLOAD_ENDPOINT);
+  assert.equal(call.method, "POST");
+  assert.equal(call.credentials, "same-origin");
+  assert.equal(call.headers["content-type"], "application/octet-stream");
+  assert.equal(
+    call.headers["x-a008-local-path"],
+    encodeURIComponent("C:\\shots\\photo.png"),
+  );
+  assert.equal(call.headers["x-a008-filename"], undefined);
+  assert.equal(call.bodyBytes, undefined);
+});
+
+test("local path import refuses an empty path before fetching", async () => {
+  const host = fakeHost(() => jsonResponse(uploadedSource()));
+
+  await assert.rejects(
+    () => uploadSourcePath("   ", { fetch: host.fetch }),
+    (error: unknown) =>
+      error instanceof UploadError &&
+      error.message === "Enter an absolute local file path.",
+  );
+  assert.equal(host.calls.length, 0);
+});
+
+test("local path import surfaces the host path validation reason", async () => {
+  const host = fakeHost(() =>
+    jsonResponse(
+      { message: "Local upload path must be an absolute file path." },
+      400,
+      "Bad Request",
+    ),
+  );
+
+  await assert.rejects(
+    () => uploadSourcePath("relative.png", { fetch: host.fetch }),
+    (error: unknown) =>
+      error instanceof UploadError &&
+      error.message ===
+        "A008 GUI host upload failed (400): Local upload path must be an absolute file path.",
+  );
 });

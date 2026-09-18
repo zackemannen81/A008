@@ -325,3 +325,8 @@
 .a008-composer-image-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .a008-composer-image-chip small, .a008-composer-uploading { color: var(--a008-muted); }
 .a008-composer-image-chip button { border: 0; background: none; color: var(--a008-muted); cursor: pointer; font-size: 1rem; }
+
+.a008-composer-path-row { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: .4rem; align-items: center; margin: .4rem 0; }
+.a008-composer-path-row input { min-width: 0; padding: .45rem .55rem; border: 1px solid var(--a008-border); border-radius: .45rem; background: var(--a008-panel-quiet); color: var(--a008-fg); font: .75rem var(--a008-mono, monospace); }
+.a008-composer-path-row button { border: 1px solid var(--a008-border); border-radius: .45rem; padding: .4rem .6rem; background: transparent; color: var(--a008-fg-soft); font: inherit; cursor: pointer; }
+.a008-composer-path-row button:disabled { opacity: .45; cursor: default; }

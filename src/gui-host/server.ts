@@ -6,14 +6,28 @@ import type {
 } from "../../packages/protocol/src/index.js";
 
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { createReadStream, existsSync, realpathSync, statSync } from "node:fs";
+import {
+  createReadStream,
+  existsSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} from "node:fs";
 import {
   createServer,
   type IncomingMessage,
   type Server,
   type ServerResponse,
 } from "node:http";
-import { extname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import {
+  basename,
+  extname,
+  isAbsolute,
+  join,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { ChatError, isChatError } from "../core/errors.js";
 import { parseMemoryInspectionQuery } from "../memory/knowledge/inspection.js";
@@ -1066,13 +1080,27 @@ async function handleUpload(input: {
     );
     return;
   }
-  const declaredFilename = firstHeaderValue(request.headers["x-a008-filename"]);
-  const { buffer, sha256 } = await readUploadBody(
-    request,
-    input.maxUploadBytes,
+  const localPathHeader = firstHeaderValue(
+    request.headers["x-a008-local-path"],
   );
+  const declaredFilename = firstHeaderValue(request.headers["x-a008-filename"]);
+  if (localPathHeader !== undefined && declaredFilename !== undefined) {
+    throw new ChatError(
+      "configuration",
+      "Upload must use either x-a008-local-path or x-a008-filename, not both.",
+      { status: 400 },
+    );
+  }
+
+  const prepared =
+    localPathHeader === undefined
+      ? {
+          ...(await readUploadBody(request, input.maxUploadBytes)),
+          filename: sanitiseUploadFilename(declaredFilename),
+        }
+      : readLocalUploadPath(localPathHeader, input.maxUploadBytes);
+  const { buffer, sha256, filename } = prepared;
   const mediaType = sniffSourceMediaType(buffer);
-  const filename = sanitiseUploadFilename(declaredFilename);
   const stored = writeBlob(input.storeRoot, sha256, filename, buffer);
 
   let extracted = false;
@@ -1098,6 +1126,83 @@ async function handleUpload(input: {
     extracted,
     ...(artifactId === undefined ? {} : { artifactId }),
   } satisfies UploadedSource);
+}
+
+function readLocalUploadPath(
+  encodedPath: string,
+  maxBytes: number,
+): {
+  readonly buffer: Buffer;
+  readonly sha256: string;
+  readonly filename: string;
+} {
+  let decodedPath: string;
+  try {
+    decodedPath = decodeURIComponent(encodedPath).trim();
+  } catch (cause) {
+    throw new ChatError(
+      "configuration",
+      "Local upload path header is not valid URI-encoded text.",
+      { status: 400, cause },
+    );
+  }
+  if (decodedPath.length === 0 || !isAbsolute(decodedPath)) {
+    throw new ChatError(
+      "configuration",
+      "Local upload path must be an absolute file path.",
+      { status: 400 },
+    );
+  }
+
+  let target: string;
+  let stats: ReturnType<typeof statSync>;
+  try {
+    target = realpathSync(decodedPath);
+    stats = statSync(target);
+  } catch (cause) {
+    throw new ChatError(
+      "configuration",
+      "Local upload path does not exist or cannot be read.",
+      { status: 400, cause },
+    );
+  }
+  if (!stats.isFile()) {
+    throw new ChatError(
+      "configuration",
+      "Local upload path must point to a regular file.",
+      { status: 400 },
+    );
+  }
+  if (stats.size > maxBytes) {
+    throw new ChatError(
+      "configuration",
+      "Upload exceeds the maximum allowed size.",
+      { status: 413 },
+    );
+  }
+
+  let buffer: Buffer;
+  try {
+    buffer = readFileSync(target);
+  } catch (cause) {
+    throw new ChatError(
+      "configuration",
+      "Local upload path could not be read.",
+      { status: 400, cause },
+    );
+  }
+  if (buffer.length > maxBytes) {
+    throw new ChatError(
+      "configuration",
+      "Upload exceeds the maximum allowed size.",
+      { status: 413 },
+    );
+  }
+  return {
+    buffer,
+    sha256: createHash("sha256").update(buffer).digest("hex"),
+    filename: sanitiseUploadFilename(basename(target)),
+  };
 }
 
 function isOctetStreamContentType(request: IncomingMessage): boolean {
