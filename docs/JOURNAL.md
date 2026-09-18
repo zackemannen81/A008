@@ -2418,3 +2418,19 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Verification: 637/637 core tests, typecheck, build and `git diff --check` pass. No completion-time live provider call was required.
 - Owner-run live comparison exposed separate follow-ups: `entities[]` write-path alias collapse, missing structural claim↔entity links/current-batch entity handles, non-self-contained batch relation prompt, effective-domain projection and assistant-answer provenance. These were intentionally not absorbed into frozen A008-0121.
 - Signature: ChatGPT
+
+## 2026-09-17 — A008-0122 memory contract repair
+
+- Operator takeover: ChatGPT. Repaired the entity/write-path contract so distinct `entities[]` remain distinct identities, current-batch entities are addressable during relation classification, and claims persist structural claim↔entity references separately from L3 semantic associations.
+- Added structured proposition parity for relation comparison/slot ownership, shared self-contained single/batch relation semantics, projection-only stored/effective/primary-effective domains, and assistant-answer provenance that cannot inherit user authority.
+- SQLite schema 5 stores structural claim/entity membership. Old alias-collapsed development stores are intentionally disposable rather than migrated/backfilled.
+- Verification: focused A008-0122 regressions 7/7; `npm run test:core` 644/644; typecheck/build and `git diff --check` passed.
+- [Handoff](handoffs/A008-0122.md). Signature: ChatGPT
+
+## 2026-09-18 — A008-0124 native vision implementation superseded at live sidecar gate
+
+- Operator: ChatGPT. The model-metadata and invocation-local native-vision implementation is integrated on main (implementation commit `acdeee9` is an ancestor of main).
+- Integrated behavior includes declared model specs/badges, existing-upload composer image attachment, source-store containment/media validation, pre-dispatch image-capability gating, same-turn attachment retention, text-only committed dialogue, direct provider image mapping and ACME `vision` capability mapping.
+- Verification recorded during implementation: 651/651 core, 4/4 membership, 165/165 GUI, protocol package/offline consumer proof, root/GUI typecheck, GUI production build and `git diff --check` all passed.
+- The frozen required live image turn through the external ACME runtime did **not** complete successfully. The owner has since selected embedded in-process `@acme-engine/model-runtime` before Step 4, so the remaining sidecar-specific proof is superseded rather than waived.
+- A008-0124 is therefore recorded as **Superseded, not Complete**. [Handoff](handoffs/A008-0124.md). Signature: ChatGPT
