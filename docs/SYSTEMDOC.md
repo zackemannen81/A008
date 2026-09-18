@@ -365,7 +365,7 @@ subprocess, the real local memory runtime, and a loopback fake endpoint. See
 `POST /v1/upload` is how a document or an image becomes evidence. The path is
 split across host intake and runtime ingest. ADR 0041/A008-0109 now routes the
 in-process bridge through the shared registry owner; it never creates a competing
-SQLite runtime. The locator-only boundary from ADR 0020 D1 remains. A008-0130 adds no second store or attachment wire: clipboard paste, file picker, drag/drop and explicit absolute local filepath all converge on this same host/source-store boundary before the composer sends its bounded native-image attachment descriptor. The local-path mode never asks the renderer to read host file bytes.
+SQLite runtime. The locator-only boundary from ADR 0020 D1 remains. A008-0130 adds no second store or attachment wire: clipboard paste, file picker, drag/drop and explicit absolute local filepath all converge on this same host/source-store boundary before the composer sends its bounded native-image attachment descriptor. The local-path mode never asks the renderer to read host file bytes. On the V1 WebSocket boundary, `encodeClientMessage()` serializes the optional prompt attachment and `parseClientMessage()` must validate and preserve it; stripping that field would downgrade the turn to text-only before ACP can build its `resource_link` image block.
 
 ```text
 browser file/paste/drop -> POST /v1/upload (raw bytes, x-a008-filename)

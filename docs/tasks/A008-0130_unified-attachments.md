@@ -96,6 +96,8 @@ Accepted constraint: ADR 0044 D2 reuses the existing upload/source boundary and 
 
 ## Decisions and Notes
 
+- Live owner smoke exposed a protocol-boundary defect after image acquisition: two JPG uploads were durably present in the source store at 18:34, but the 18:35 Luna chat trace contained no image content parts. The GUI encoder and schema carried `attachment`, while `packages/protocol/src/host-parser.ts` reconstructed prompt frames without it. A008-0130 now validates and preserves the optional image attachment through the host parser before ACP dispatch.
+- `CLIENT_MESSAGE_KEYS` includes `attachment` so the advertised V1 client contract matches the actual prompt schema.
 - One active attachment is intentionally retained. A new acquisition replaces the old one.
 - Local path must be absolute and point to a regular file. The host, not the renderer, reads it.
 - The actual media type is sniffed from bytes; filename/extension never grants image capability.
@@ -107,9 +109,12 @@ Accepted constraint: ADR 0044 D2 reuses the existing upload/source boundary and 
 
 ## Verification
 
-- Root TypeScript typecheck passed after implementation.
-- GUI TypeScript typecheck passed after implementation.
-- `git diff --check` passed.
+- Root TypeScript typecheck passed after the initial implementation.
+- GUI TypeScript typecheck passed after the initial implementation.
+- Live owner smoke proved image acquisition/store write succeeded but exposed host-parser attachment loss before ACP/provider dispatch.
+- Debug trace for the failing 18:35 Luna turn showed the chat/provider request contained no image content part, matching the parser defect.
+- Regression coverage now asserts valid prompt attachments survive `parseClientMessage` and malformed attachments are rejected.
+- `git diff --check` passed before the correction; final static checks are rerun after the parser fix.
 - No automated test suite was run through Remote Desktop Commander; owner will run focused/full tests locally.
 - No live provider call was made.
 

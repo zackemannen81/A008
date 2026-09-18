@@ -1,81 +1,107 @@
-# Current Task
+# A008-0130 — unified prompt attachments
 
-Task ID:
-Parent Task: None
-Status: Draft
-Owner:
-Created:
-Last updated:
-Charter frozen at:
+Task ID: A008-0130
+Parent Task: A008-0124
+Status: In Progress
+Owner: ChatGPT (operator)
+Created: 2026-09-18
+Last updated: 2026-09-18
+Charter frozen at: 2026-09-18; task identity claim merged in `c5b04c5`
 
 ## Read First
 
 - `AGENTS.md`
 - `docs/TASK_WORKFLOW.md`
 - `docs/PROJECT_BRIEF.md`
-- `docs/CONTRIBUTING.md`
 - `docs/CURRENT_STATUS.md`
 - `docs/SYSTEMDOC.md`
-- `docs/JOURNAL.md`
-- `docs/FILESTRUCTURE.md`
-- Relevant records under `docs/adr/`
+- `docs/adr/0020-source-upload-ingest.md`
+- `docs/adr/0044-native-vision-input.md`
 
 ## Task Summary
 
-Describe why this bounded task is active now and its intended outcome.
+Native image input already exists end-to-end once the composer owns a validated source locator, but the current product GUI does not provide one consistent acquisition experience. A008-0130 unifies clipboard paste, file picker, drag/drop and an explicit local filepath into the existing source-store/locator pipeline.
 
 ## Task Charter
 
 ### Goal
 
-Define one primary outcome.
+Let the user acquire one invocation-local native image attachment from clipboard, file picker, drag/drop or an explicit local filesystem path without creating a second attachment/storage/provider path.
 
 ### Primary Deliverable
 
-Name the concrete artifact or behavior.
+The product composer exposes four image-acquisition routes that all resolve to the existing bounded `PromptImageAttachment { locator, mediaType }` representation before normal ACP/native-vision dispatch.
 
 ### In Scope
 
-- List work required for the deliverable.
+- Clipboard image paste into the composer.
+- File-picker image attachment through the existing upload route.
+- Drag/drop image attachment onto the composer.
+- Explicit absolute local filepath import owned by the GUI host and stored through the same content-addressed source store.
+- Reuse the existing `POST /v1/upload` host boundary; local-path import is an additive request mode on that endpoint, not a second blob store.
+- Keep one active attachment slot, replacing the previous attachment when another is acquired.
+- Small composer affordance for entering a local path and clear attachment/error state.
+- Regression coverage for all acquisition modes and host path import.
 
 ### Out of Scope
 
-- List adjacent work that must not be absorbed.
+- Multiple simultaneous prompt attachments.
+- Native PDF/DOCX/text-file model attachments.
+- V2/SDK attachment transport.
+- OCR, automatic image memory ingest or image-to-memory extraction.
+- Provider/model fallback or auto-switching.
+- Changes to ACME, direct provider multimodal mapping or durable chat representation.
 
 ### Definition of Done
 
-- State objective completion conditions.
+- Pasting an image attaches it through the existing upload/source locator flow.
+- Picking or dropping a supported image attaches it through the same flow.
+- Supplying an absolute local image path causes the host to read it under the existing upload byte cap, sniff its real media type, write the same content-addressed store and return the same `UploadedSource` shape.
+- Unsupported/non-image inputs fail explicitly without dispatching a model call.
+- Normal prompt send continues to carry only the bounded attachment descriptor and committed chat remains text-only.
+- Existing model capability gating remains authoritative.
 
 ### Necessity Gate
 
-Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
-Contract revision: <Git commit containing the reviewed contract>
+Contract: `docs/PROJECT_BRIEF.md`, PC-06 — Supported user controls and content.
+Contract revision: `c5b04c5`
+Accepted constraint: ADR 0044 D2 reuses the existing upload/source boundary and keeps only bounded attachment metadata in the composer; ADR 0044 D1/D5 keep chat history and durable memory text/provenance semantics unchanged.
 
-One row per coherent change or group serving one outcome. Apply the Necessity
-Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
-intended outcomes and planned checks freeze with the charter. Record refinements
-of the initial approach in mutable notes within those bounds.
-
-| Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
-| --- | --- | --- | --- | --- |
-| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
+| Change                    | Clause and constraint                     | Outcome; consequence if omitted                                                         | Smallest sufficient change                                                           | Planned check                                           |
+| ------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| Unified image acquisition | PC-06 + ADR 0044 D2                       | Native vision exists but ordinary clipboard/path workflows cannot reach it consistently | route all acquisition modes to one active locator-backed attachment                  | focused GUI/upload/host regressions                     |
+| Local filepath import     | PC-06 + ADR 0044 D2 + PC-05 host boundary | Browser cannot safely read an arbitrary typed host path                                 | host-owned additive mode on existing `POST /v1/upload`, same byte cap/store/sniffing | host route regression + containment/source-store checks |
 
 ### Minimum Verification Gates
 
-- [ ] Define checks that may be strengthened but not removed after Ready.
-
-## References
-
-- Add owned documents, source revisions, contracts, and decisions.
+- [ ] Composer paste regression.
+- [ ] Composer picker regression.
+- [ ] Composer drag/drop regression.
+- [ ] Local-path upload client regression.
+- [ ] GUI-host absolute-path import regression including size/type failure.
+- [ ] Existing native-vision prompt regression remains green.
+- [ ] GUI typecheck/build and diff check.
+- [ ] Owner manual smoke: paste, picker/path and live image prompt.
 
 ## Checklist
 
-- [ ] Break work into ordered steps and keep them truthful.
-- [ ] Include verification and documentation updates.
+- [x] Claim task id.
+- [x] Freeze charter.
+- [x] Add host local-path upload mode.
+- [x] Add renderer upload-path client.
+- [x] Add paste/drop/path composer UX.
+- [x] Add regressions.
+- [ ] Owner verification.
+- [ ] Archive/handoff.
 
 ## Decisions and Notes
 
-- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+- Live owner smoke exposed a protocol-boundary defect after image acquisition: two JPG uploads were durably present in the source store at 18:34, but the 18:35 Luna chat trace contained no image content parts. The GUI encoder and schema carried `attachment`, while `packages/protocol/src/host-parser.ts` reconstructed prompt frames without it. A008-0130 now validates and preserves the optional image attachment through the host parser before ACP dispatch.
+- `CLIENT_MESSAGE_KEYS` includes `attachment` so the advertised V1 client contract matches the actual prompt schema.
+- One active attachment is intentionally retained. A new acquisition replaces the old one.
+- Local path must be absolute and point to a regular file. The host, not the renderer, reads it.
+- The actual media type is sniffed from bytes; filename/extension never grants image capability.
+- No live provider call is authorized by this task.
 
 ## Charter Amendment Log
 
@@ -83,29 +109,26 @@ of the initial approach in mutable notes within those bounds.
 
 ## Verification
 
-- [ ] Review actual changes against the necessity arguments and frozen scope.
-- [ ] Record exact checks and outputs.
-- [ ] Record skipped checks and reasons.
+- Root TypeScript typecheck passed after the initial implementation.
+- GUI TypeScript typecheck passed after the initial implementation.
+- Live owner smoke proved image acquisition/store write succeeded but exposed host-parser attachment loss before ACP/provider dispatch.
+- Debug trace for the failing 18:35 Luna turn showed the chat/provider request contained no image content part, matching the parser defect.
+- Regression coverage now asserts valid prompt attachments survive `parseClientMessage` and malformed attachments are rejected.
+- `git diff --check` passed before the correction; final static checks are rerun after the parser fix.
+- No automated test suite was run through Remote Desktop Commander; owner will run focused/full tests locally.
+- No live provider call was made.
 
 ## Documentation Updates
 
-- [ ] `docs/CURRENT_STATUS.md`
-- [ ] `docs/SYSTEMDOC.md`
-- [ ] `docs/JOURNAL.md`
-- [ ] `docs/FILESTRUCTURE.md` when structure changes
-- [ ] ADRs and collection indexes when needed
+- [x] `docs/CURRENT_STATUS.md`
+- [x] `docs/SYSTEMDOC.md`
+- [ ] `docs/JOURNAL.md` — operator merge record pending.
 
 ## Handoff and Follow-ups
 
-- Current state:
-- Next recommended step:
-- Blockers:
-- Child tasks:
-- Resume condition:
-- Open questions:
-
-## Finalize When Complete
-
-- Archive this task under `docs/finished/`.
-- Restore this template or activate the next approved task.
-- Append a signed `docs/JOURNAL.md` entry.
+- Current state: implementation complete; owner verification pending.
+- Next recommended step: owner runs focused GUI/upload/host tests and manual paste/file/drop/path smoke.
+- Blockers: none.
+- Child tasks: none.
+- Resume condition: n/a.
+- Open questions: none.

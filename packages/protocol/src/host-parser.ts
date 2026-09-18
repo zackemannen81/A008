@@ -1,7 +1,8 @@
-import type {
-  ClientMessage,
-  HostServerMessage,
-  SessionControlInput,
+import {
+  promptImageAttachmentSchema,
+  type ClientMessage,
+  type HostServerMessage,
+  type SessionControlInput,
 } from "./schemas.js";
 export function parseSessionControlInput(
   value: unknown,
@@ -152,7 +153,24 @@ export function parseClientMessage(
     if (typeof parsed.text !== "string") {
       return { error: "prompt text must be a string.", requestId, sessionId };
     }
-    return { type: "prompt", requestId, sessionId, text: parsed.text };
+    if (parsed.attachment === undefined) {
+      return { type: "prompt", requestId, sessionId, text: parsed.text };
+    }
+    const attachment = promptImageAttachmentSchema.safeParse(parsed.attachment);
+    if (!attachment.success) {
+      return {
+        error: "prompt attachment must be a valid image attachment.",
+        requestId,
+        sessionId,
+      };
+    }
+    return {
+      type: "prompt",
+      requestId,
+      sessionId,
+      text: parsed.text,
+      attachment: attachment.data,
+    };
   }
   if (type === "cancel") {
     if (requestId === undefined || sessionId === undefined) {

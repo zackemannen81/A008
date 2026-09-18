@@ -272,6 +272,42 @@ test("parseClientMessage accepts host protocol v1 client frames", () => {
     ),
     { type: "prompt", requestId: "r2", sessionId: "s", text: "hi" },
   );
+  const attachment = {
+    type: "image" as const,
+    locator: `source:${"a".repeat(64)}/photo.png`,
+    mediaType: "image/png",
+  };
+  assert.deepEqual(
+    parseClientMessage(
+      JSON.stringify({
+        type: "prompt",
+        requestId: "r2-image",
+        sessionId: "s",
+        text: "describe this",
+        attachment,
+      }),
+    ),
+    {
+      type: "prompt",
+      requestId: "r2-image",
+      sessionId: "s",
+      text: "describe this",
+      attachment,
+    },
+  );
+  assert.equal(
+    "error" in
+      parseClientMessage(
+        JSON.stringify({
+          type: "prompt",
+          requestId: "r2-bad-image",
+          sessionId: "s",
+          text: "describe this",
+          attachment: { type: "image", locator: "", mediaType: "image/png" },
+        }),
+      ),
+    true,
+  );
   assert.deepEqual(
     parseClientMessage(
       JSON.stringify({
