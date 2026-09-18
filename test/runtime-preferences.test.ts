@@ -513,34 +513,62 @@ test("Kimi extraction and relation commit reach the NVIDIA payload without immut
   }
 });
 
-test("OpenAI-only Luna runtime keeps chat and semantic scope off NVIDIA", async () => {
+test("OpenAI-only Luna runtime keeps chat and semantic scope on native Responses and off NVIDIA", async () => {
   const isolated = isolatedMemoryEnv({
     NVIDIA_API_KEY: undefined,
     OPENAI_API_KEY: "sk-openai-fixture",
   });
   const originalFetch = globalThis.fetch;
-  const calls: Array<{ url: string; body: any }> = [];
+  const calls: Array<{ url: string; body: any; operation?: string }> = [];
   globalThis.fetch = async (input, init) => {
     const url = String(input);
     const body = JSON.parse(String(init?.body ?? "{}"));
-    calls.push({ url, body });
+    const userInput = Array.isArray(body.input)
+      ? [...body.input]
+          .reverse()
+          .find((item: any) => item?.role === "user")
+      : undefined;
+    const inputText = Array.isArray(userInput?.content)
+      ? userInput.content.find((part: any) => part?.type === "input_text")?.text
+      : undefined;
     let op: string | undefined;
-    try {
-      op = JSON.parse(body.messages.at(-1).content).operation;
-    } catch {
-      /* chat */
+    if (typeof inputText === "string") {
+      try {
+        op = JSON.parse(inputText).operation;
+      } catch {
+        /* chat */
+      }
     }
-    if (body.stream === true) {
-      return new Response(
-        `data: ${JSON.stringify({ choices: [{ delta: { content: "Luna answer." }, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`,
-        { status: 200, headers: { "content-type": "text/event-stream" } },
-      );
-    }
+    calls.push({ url, body, ...(op === undefined ? {} : { operation: op }) });
     const content =
-      op === "retrieval_scope" ? '{"domains":[],"relatedDomains":[]}' : "[]";
+      op === "retrieval_scope"
+        ? '{"domains":[],"relatedDomains":[]}'
+        : op === "knowledge_analysis"
+          ? JSON.stringify([
+              {
+                proposition: "The fixture box is blue.",
+                kind: "fact",
+                tags: ["box"],
+                domains: ["fixture"],
+                entities: ["box"],
+                severity: "minor",
+              },
+            ])
+          : op === "relation_classification"
+            ? '{"type":"new"}'
+            : "Luna answer.";
     return new Response(
       JSON.stringify({
-        choices: [{ message: { content }, finish_reason: "stop" }],
+        id: `resp_${calls.length}`,
+        model: "gpt-5.6-luna",
+        status: "completed",
+        output: [
+          {
+            type: "message",
+            content: [{ type: "output_text", text: content }],
+          },
+        ],
+        usage: { input_tokens: 4, output_tokens: 1, total_tokens: 5 },
       }),
       { status: 200, headers: { "content-type": "application/json" } },
     );
@@ -552,19 +580,20 @@ test("OpenAI-only Luna runtime keeps chat and semantic scope off NVIDIA", async 
   try {
     const result = await runtime
       .openSession({ model: "gpt-5.6-luna" })
-      .turn("hello");
+      .turn("The fixture box is blue.");
     assert.equal(result.completion.message.content, "Luna answer.");
+    assert.equal(result.postOutput.status, "completed");
     assert.deepEqual(
-      calls.map(
-        (call) =>
-          operation({ messages: call.body.messages } as ChatRequest) ?? "chat",
-      ),
-      ["retrieval_scope", "chat", "knowledge_analysis"],
+      calls.map((call) => call.operation ?? "chat"),
+      [
+        "retrieval_scope",
+        "chat",
+        "knowledge_analysis",
+        "relation_classification",
+      ],
     );
     assert.equal(
-      calls.every(
-        (call) => call.url === "https://api.openai.com/v1/chat/completions",
-      ),
+      calls.every((call) => call.url === "https://api.openai.com/v1/responses"),
       true,
     );
     assert.equal(
@@ -573,13 +602,17 @@ test("OpenAI-only Luna runtime keeps chat and semantic scope off NVIDIA", async 
     );
     assert.equal(
       calls
-        .filter((call) => call.body.stream === false)
-        .every((call) => call.body.reasoning_effort === "none"),
+        .filter((call) => call.operation !== undefined)
+        .every((call) => call.body.reasoning?.effort === "none"),
       true,
     );
     assert.equal(
-      calls.find((call) => call.body.stream === true)?.body.reasoning_effort,
+      calls.find((call) => call.operation === undefined)?.body.reasoning?.effort,
       "medium",
+    );
+    assert.equal(
+      "records" in result.postOutput && result.postOutput.records.length > 0,
+      true,
     );
   } finally {
     runtime.close();

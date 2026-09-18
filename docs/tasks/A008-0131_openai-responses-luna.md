@@ -2,7 +2,7 @@
 
 Task ID: A008-0131
 Parent Task: A008-0127
-Status: Ready
+Status: In Progress
 Owner: ChatGPT (operator)
 Created: 2026-09-18
 Last updated: 2026-09-18
@@ -78,24 +78,25 @@ Accepted constraint: ADR 0043 — ACME may replace only A008's provider executio
 
 ### Minimum Verification Gates
 
-- [ ] Embedded config regression: OpenAI native profile; NVIDIA/KIE unchanged.
-- [ ] Embedded real-runtime fake transport proves `/v1/responses` text call.
-- [ ] Embedded Responses vision regression proves ordered `input_text` + `input_image`.
-- [ ] Function-tool/reasoning parity regression.
-- [ ] Semantic-operation regression proves Luna semantic calls use Responses while retaining `reasoningEffort: none`.
-- [ ] Direct OpenAI Chat Completions Luna+tools regression remains green.
-- [ ] Root TypeScript typecheck, build and `git diff --check`.
+- [x] Embedded config regression: OpenAI native profile; NVIDIA/KIE unchanged.
+- [x] Embedded real-runtime fake transport proves `/v1/responses` text call.
+- [x] Embedded Responses vision regression proves ordered `input_text` + `input_image`.
+- [x] Function-tool/reasoning parity regression.
+- [x] Semantic-operation regression proves Luna semantic calls use Responses while retaining `reasoningEffort: none`.
+- [x] Direct OpenAI Chat Completions Luna+tools regression remains green.
+- [x] Root TypeScript typecheck, build and `git diff --check`.
 - [ ] Owner manual A/B smoke after integration; no operator-paid call.
 
 ## Checklist
 
 - [x] Claim task id.
 - [x] Freeze charter.
-- [ ] Upgrade ACME dependency to 0.1.5.
-- [ ] Route embedded OpenAI through native Responses.
-- [ ] Restore provider-neutral ACME reasoning semantics.
-- [ ] Update focused regressions.
-- [ ] Run bounded verification.
+- [x] Upgrade ACME dependency to 0.1.5.
+- [x] Route embedded OpenAI through native Responses.
+- [x] Restore provider-neutral ACME reasoning semantics.
+- [x] Update focused regressions.
+- [x] Run bounded verification.
+- [ ] Owner manual A/B smoke.
 - [ ] Update docs and handoff.
 - [ ] Archive task and restore CURRENT_TASK template.
 
@@ -111,19 +112,28 @@ Accepted constraint: ADR 0043 — ACME may replace only A008's provider executio
 
 ## Verification
 
-- Pending implementation.
+- Registry dependency resolves `acme-engine@0.1.5 -> @acme-engine/model-runtime@0.1.5 -> @acme-engine/adapter-model-openai@0.1.5`.
+- Root TypeScript typecheck and build passed.
+- Focused A008-0127 embedded ACME, ACME transport, runtime-preferences and direct OpenAI suites passed 51/51.
+- Embedded native OpenAI proof emitted `https://api.openai.com/v1/responses` with ordered `input_text` + `input_image`, function tools, `max_output_tokens` and selected `reasoning.effort: "medium"`.
+- Runtime semantic proof executed `retrieval_scope -> chat -> knowledge_analysis -> relation_classification -> commit`; every Luna call used `/v1/responses`, semantic operations retained `reasoning.effort: "none"`, and chat retained `"medium"`.
+- Direct `OpenAiChatTransport` regressions remain green and still force Luna+tools reasoning to `none` on Chat Completions.
+- NVIDIA embedded route regression remains on `https://integrate.api.nvidia.com/v1/chat/completions`; KIE config remains in compatible routes.
+- `git diff --check` passed.
+- Full core/GUI suites were not run through Remote Desktop Commander; owner manual A/B smoke remains pending.
+- No paid/live provider call was initiated by the operator.
 
 ## Documentation Updates
 
-- [ ] `docs/CURRENT_STATUS.md`
-- [ ] `docs/SYSTEMDOC.md`
+- [x] `docs/CURRENT_STATUS.md`
+- [x] `docs/SYSTEMDOC.md`
 - [ ] `docs/JOURNAL.md` — operator merge record
 - [ ] `docs/handoffs/A008-0131.md`
 
 ## Handoff and Follow-ups
 
-- Current state: charter frozen; implementation pending.
-- Next recommended step: compose OpenAI under native ACME `openAi` and replace the existing embedded Chat Completions wire regression with Responses parity.
+- Current state: implementation and focused offline verification complete; owner live A/B smoke pending.
+- Next recommended step: restart the GUI host on this branch and compare Luna extraction/classification behavior and latency against the prior nesdemo observation.
 - Blockers: none.
 - Child tasks: none.
 - Resume condition: n/a.
