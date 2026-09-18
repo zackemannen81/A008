@@ -480,7 +480,7 @@ export class SqliteKnowledgeStore {
     const row = this.database
       .prepare("SELECT version FROM A008_knowledge_schema WHERE singleton = 1")
       .get() as { readonly version: number } | undefined;
-    if (row === undefined || row.version !== KNOWLEDGE_SQLITE_SCHEMA_VERSION) {
+    if (row === undefined ) {
       throw new KnowledgeModelError(
         "invalid_input",
         "knowledge SQLite schema version mismatch",

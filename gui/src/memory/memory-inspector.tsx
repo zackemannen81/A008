@@ -45,9 +45,16 @@ function textField(value: unknown): string | undefined {
 }
 
 function numberField(value: unknown): string | undefined {
-  return typeof value === "number" && Number.isFinite(value)
-    ? String(value)
-    : undefined;
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : undefined;
+}
+
+function provenanceDepth(value: unknown, depth = 0, seen = new Set<unknown>()): number {
+  if (!value || typeof value !== "object" || seen.has(value)) return depth;
+  seen.add(value);
+  if (Array.isArray(value)) return Math.max(depth, ...value.map((item) => provenanceDepth(item, depth, seen)));
+  const object = value as Record<string, unknown>;
+  const nested = [object.provenance, object.parent, object.source, object.derivedFrom].filter(Boolean);
+  return nested.length ? Math.max(...nested.map((item) => provenanceDepth(item, depth + 1, seen))) : depth;
 }
 
 export function MemoryInspector({
@@ -69,6 +76,14 @@ export function MemoryInspector({
     textField(parsed?.proposition) ??
     textField(parsed?.text) ??
     record?.label;
+  const summary = record
+    ? {
+        incoming: connections?.filter((connection) => connection.direction === "incoming").length ?? 0,
+        outgoing: connections?.filter((connection) => connection.direction === "outgoing").length ?? 0,
+        contested: connections?.filter((connection) => connection.relation.toLowerCase().includes("contest")).length ?? 0,
+      }
+    : { incoming: 0, outgoing: 0, contested: 0 };
+  const depth = record ? provenanceDepth(parsed) : 0;
   const rows = record
     ? [
         ["Type", KIND_LABEL[record.kind]],
@@ -109,6 +124,16 @@ export function MemoryInspector({
       </div>
       {record ? (
         <>
+          <div className="memory-inspector-summary">
+            <div className="memory-inspector-summary-status">
+              <span className={`memory-badge memory-kind-${record.kind}`}>{KIND_LABEL[record.kind]}</span>
+              <span className="memory-chip">{record.status} · {record.activation}</span>
+            </div>
+            <h3>{content}</h3>
+            <p className="memory-inspector-summary-relations">
+              Incoming: {summary.incoming} · Outgoing: {summary.outgoing} · Contested: {summary.contested} · Provenance depth: {depth}
+            </p>
+          </div>
           <span className={`memory-badge memory-kind-${record.kind}`}>
             {KIND_LABEL[record.kind]}
           </span>

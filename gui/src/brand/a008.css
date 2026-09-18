@@ -56,6 +56,7 @@ body {
  * pushing the window.
  */
 .a008-app {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-columns:
@@ -477,3 +478,45 @@ body {
 .a008-tool-permission { width: min(44rem, 90vw); max-height: 85vh; overflow: auto; background: var(--a008-surface-2); color: var(--a008-text-primary); border: 1px solid var(--a008-border-default); padding: 1.5rem; }
 .a008-tool-permission::backdrop { background: var(--a008-overlay); }
 .a008-tool-permission footer { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: flex-end; }
+
+/* CRT scanlines and phosphor glow stay opt-in at the application boundary. */
+.a008-app[data-crt="true"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: var(--a008-crt-opacity, 0.75);
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.35) 50%
+  );
+  background-size: 100% 4px;
+}
+
+.a008-app[data-crt="true"] {
+  text-shadow: 0 0 3px color-mix(in srgb, var(--a008-fg) 30%, transparent);
+}
+
+.a008-app[data-crt="true"] .a008-brand-name,
+.a008-app[data-crt="true"] .a008-settings-title {
+  text-shadow: 0 0 8px var(--a008-cyan);
+}
+
+/* CRT bloom for primary actions: success-colored phosphor controls. */
+.a008-app[data-crt="true"] .a008-composer-send {
+  background: var(--a008-success);
+  color: var(--a008-on-accent, var(--a008-bg));
+  text-shadow: 0 0 7px color-mix(in srgb, var(--a008-success) 72%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--a008-success) 42%, transparent);
+}
+
+.a008-app[data-crt="true"] .a008-composer-send:hover:not(:disabled),
+.a008-app[data-crt="true"] .a008-composer-send:focus-visible {
+  background: var(--a008-success);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--a008-success) 68%, transparent);
+}
+
+.a008-app[data-crt="true"] .a008-connection-ready {
+  box-shadow: 0 0 8px var(--a008-ready), 0 0 16px color-mix(in srgb, var(--a008-ready) 42%, transparent);
+}

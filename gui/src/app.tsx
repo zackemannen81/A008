@@ -203,6 +203,7 @@ export function App() {
   return (
     <div
       className={`a008-app a008-${page}-workspace${toolsOpen ? " a008-panel-open" : ""}${navigationOpen ? " a008-navigation-open" : ""}`}
+      data-crt="true"
     >
       <ToolPermissionDialog session={session} />
       <aside className="a008-rail" id="a008-navigation" aria-label="Workspace navigation">

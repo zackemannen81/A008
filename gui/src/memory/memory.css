@@ -9,6 +9,42 @@
   color: var(--a008-fg);
   font-size: 0.82rem;
 }
+
+.memory-projection-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--a008-muted);
+  font-size: 0.72rem;
+}
+.memory-projection-select select {
+  color: var(--a008-fg-soft);
+  background: var(--a008-bg);
+  border: 1px solid var(--a008-border);
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+}
+.memory-inspector-summary {
+  padding: 0.7rem;
+  margin-bottom: 0.9rem;
+  border: 1px solid var(--a008-border-strong);
+  border-radius: 5px;
+  background: var(--a008-bg-raised);
+}
+.memory-inspector-summary-status {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+.memory-inspector-summary h3 { margin-top: 0.65rem; }
+.memory-inspector-summary-relations {
+  margin: 0.5rem 0 0;
+  color: var(--a008-muted);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
 .memory-page * {
   box-sizing: border-box;
 }
@@ -78,9 +114,22 @@
   background: var(--a008-panel);
   white-space: nowrap;
 }
+.a008-app[data-crt="true"] .memory-button:not(.memory-button-quiet) {
+  border-color: var(--a008-success);
+  color: var(--a008-success);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--a008-success) 64%, transparent);
+  box-shadow: 0 0 9px color-mix(in srgb, var(--a008-success) 30%, transparent);
+}
 .memory-button:hover:not(:disabled) {
   border-color: var(--a008-accent);
   background: var(--a008-accent-soft);
+}
+.a008-app[data-crt="true"] .memory-button:not(.memory-button-quiet):hover:not(:disabled),
+.a008-app[data-crt="true"] .memory-button:not(.memory-button-quiet):focus-visible {
+  border-color: var(--a008-success);
+  color: var(--a008-success);
+  background: color-mix(in srgb, var(--a008-success) 12%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--a008-success) 56%, transparent);
 }
 .memory-button-quiet {
   color: var(--a008-muted);
@@ -677,6 +726,19 @@
 }
 .memory-node {
   cursor: pointer;
+}
+.memory-node > :is(circle, rect, polygon, path):not(.memory-node-hit):not(.memory-node-ring) {
+  fill: var(--memory-kind-color);
+  stroke: var(--a008-viz-canvas-outer);
+  stroke-width: 2;
+}
+.memory-node > .shape-entity {
+  fill: var(--memory-kind-color);
+}
+.memory-node > circle[fill=\"none\"] {
+  fill: none;
+  stroke: var(--memory-kind-color);
+  stroke-width: 2;
 }
 .memory-node .memory-node-hit {
   fill: transparent;

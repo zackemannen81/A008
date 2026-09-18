@@ -136,3 +136,6 @@ never whether work is active or complete. Task state belongs in
 | A008-0120 | re-factoring prompts | mrwhite81 (operator) | 2026-09-16 | prompts in /src/prompt-contracts |
 | A008-0121 | harden post-output knowledge extraction eligibility | ChatGPT (operator) | 2026-09-16 | durable-claim filtering, entity hygiene and prompt regressions |
 | A008-0122 | repair entity graph and relation/provenance contracts | Grok (delegated) | 2026-09-17 | identity, topology, relation semantics and graph/provenance projection |
+| A008-0120 | re-factoring prompts | mrwhite81 (operator) | 2026-09-16 | prompts in /src/prompt-contracts |
+| A008-0124 | integrate CRT scanline overlay | mrWhite81 (operator) | 2026-09-17 | GUI shell CRT presentation overlay |
+| A008-0125 | reproduce bloom and green action controls | mrWhite81 (operator) | 2026-09-17 | CRT-scoped bloom and success-colored primary controls |

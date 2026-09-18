@@ -1,111 +1,82 @@
-# Current Task
+﻿# A008-0125 — reproduce bloom and green action controls
 
-Task ID:
-Parent Task: None
-Status: Draft
-Owner:
-Created:
-Last updated:
-Charter frozen at:
-
-## Read First
-
-- `AGENTS.md`
-- `docs/TASK_WORKFLOW.md`
-- `docs/PROJECT_BRIEF.md`
-- `docs/CONTRIBUTING.md`
-- `docs/CURRENT_STATUS.md`
-- `docs/SYSTEMDOC.md`
-- `docs/JOURNAL.md`
-- `docs/FILESTRUCTURE.md`
-- Relevant records under `docs/adr/`
+Task ID: A008-0125
+Parent Task: A008-0124
+Status: In Progress
+Owner: mrWhite81 (operator)
+Created: 2026-09-17
+Last updated: 2026-09-17
+Charter frozen at: 2026-09-17
 
 ## Task Summary
 
-Describe why this bounded task is active now and its intended outcome.
+Extend the completed CRT presentation with the visible bloom and green action-control treatment requested from `docs/concepts_sandbox/concept.jpg`, while preserving existing interaction behavior and avoiding global recoloring of navigation or quiet buttons.
 
 ## Task Charter
 
 ### Goal
 
-Define one primary outcome.
+Make primary action controls read as phosphor-green CRT controls and add a restrained bloom around their text and borders.
 
 ### Primary Deliverable
 
-Name the concrete artifact or behavior.
+CRT-scoped CSS tokens/selectors that style primary composer and memory action buttons with the existing success color.
 
 ### In Scope
 
-- List work required for the deliverable.
+- Add CRT-scoped bloom to primary action controls.
+- Use existing theme success tokens so Neutral and Deep Space remain distinct.
+- Keep quiet, navigation, and text-link buttons unchanged.
+- Update the task record and handoff documentation.
 
 ### Out of Scope
 
-- List adjacent work that must not be absorbed.
+- Image assets, canvas filters, global button recoloring, or new runtime settings.
+- Changes to memory behavior, graph data, or interaction handlers.
 
 ### Definition of Done
 
-- State objective completion conditions.
+- Primary composer and memory action buttons are green in CRT mode.
+- Hover/focus states retain visible contrast and bloom.
+- Quiet buttons and navigation controls are not recolored.
+- GUI typecheck/build and `git diff --check` are run when dependencies permit.
 
 ### Necessity Gate
 
-Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
-Contract revision: <Git commit containing the reviewed contract>
-
-One row per coherent change or group serving one outcome. Apply the Necessity
-Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
-intended outcomes and planned checks freeze with the charter. Record refinements
-of the initial approach in mutable notes within those bounds.
+Contract: `docs/PROJECT_BRIEF.md`, PC-06 — supported user controls and content
+Contract revision: current repository revision reviewed 2026-09-17
 
 | Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
 | --- | --- | --- | --- | --- |
-| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
+| CRT primary controls | PC-06; preserve existing GUI boundaries and supported presentation controls | The requested concept-image presentation lacks the intended action hierarchy and bloom treatment | Existing success token plus CRT-scoped selectors in brand/memory CSS | CSS review, typecheck/build, diff check |
 
-### Minimum Verification Gates
+## Minimum Verification Gates
 
-- [ ] Define checks that may be strengthened but not removed after Ready.
+- [ ] Confirm only primary controls receive green styling.
+- [ ] Confirm bloom and focus visibility.
+- [ ] Run GUI validation and `git diff --check`.
 
 ## References
 
-- Add owned documents, source revisions, contracts, and decisions.
+- `docs/concepts_sandbox/concept.jpg`
+- `gui/src/brand/a008.css`
+- `gui/src/brand/themes.css`
+- `gui/src/brand/workspace.css`
+- `gui/src/memory/memory.css`
 
 ## Checklist
 
-- [ ] Break work into ordered steps and keep them truthful.
-- [ ] Include verification and documentation updates.
-
-## Decisions and Notes
-
-- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
-
-## Charter Amendment Log
-
-- none
+- [x] Archive A008-0124 and write its handoff.
+- [x] Allocate A008-0125.
+- [x] Add CRT-scoped green primary controls and bloom.
+- [ ] Validate and record results.
 
 ## Verification
 
-- [ ] Review actual changes against the necessity arguments and frozen scope.
-- [ ] Record exact checks and outputs.
-- [ ] Record skipped checks and reasons.
-
-## Documentation Updates
-
-- [ ] `docs/CURRENT_STATUS.md`
-- [ ] `docs/SYSTEMDOC.md`
-- [ ] `docs/JOURNAL.md`
-- [ ] `docs/FILESTRUCTURE.md` when structure changes
-- [ ] ADRs and collection indexes when needed
+- Pending validation.
 
 ## Handoff and Follow-ups
 
-- Current state:
-- Next recommended step:
-- Blockers:
-- Child tasks:
-- Resume condition:
-- Open questions:
-
-## Finalize When Complete
-
-- Archive this task under `docs/finished/`.
-- Restore this template or activate the next approved task.
-- Append a signed `docs/JOURNAL.md` entry.
+- Current state: implementation complete; validation pending.
+- Next recommended step: run GUI checks and inspect the final diff.
+- Blockers: the image is available as a reference asset but not rendered by the repository file reader.

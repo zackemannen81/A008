@@ -1,5 +1,5 @@
 import { useId, useMemo, useRef, useState } from "react";
-import { NodeShape } from "./memory-graph-shape.jsx";
+import { NodeShape } from "./memory-graph-shape.js";
 import {
   KIND_LABEL,
   MEMORY_KINDS,
@@ -7,11 +7,12 @@ import {
   type MemorySnapshot,
 } from "./memory-client.js";
 import {
-  degreeMap,
   edgePath,
+  getEdgeStyle,
   layoutGraph,
   layoutLabels,
   shorten,
+  type GraphProjection,
 } from "./memory-graph-layout.js";
 export { layoutGraph, primaryDomain } from "./memory-graph-layout.js";
 
@@ -25,22 +26,19 @@ export function MemoryGraph({
   onSelect: (record: MemoryRecord) => void;
 }) {
   const [zoom, setZoom] = useState(1);
+  const [projection, setProjection] = useState<GraphProjection>("cluster");
   const [focusMode, setFocusMode] = useState(false);
   const [hovered, setHovered] = useState<string>();
   const viewport = useRef<HTMLDivElement>(null);
   const id = useId();
   // Selection changes emphasis, never the map's spatial reference.
   const layout = useMemo(
-    () => layoutGraph(graph.nodes, graph.edges),
-    [graph.nodes, graph.edges],
+    () => layoutGraph(graph.nodes, graph.edges, projection),
+    [graph.nodes, graph.edges, projection],
   );
   const points = useMemo(
     () => new Map(layout.points.map((point) => [point.id, point])),
     [layout],
-  );
-  const degree = useMemo(
-    () => degreeMap(graph.nodes, graph.edges),
-    [graph.nodes, graph.edges],
   );
   const connected = new Set(
     graph.edges
@@ -50,13 +48,10 @@ export function MemoryGraph({
   const focused = focusMode && selected !== undefined;
   const visible = (nodeId: string) =>
     !focused || nodeId === selected || connected.has(nodeId);
-  const priority = [
-    selected,
-    hovered,
-    ...(selected ? [...connected] : []),
-    layout.hubId,
-    ...layout.clusters.slice(0, 10).map((cluster) => cluster.leadId),
-  ].filter((value): value is string => value !== undefined && visible(value));
+  const priority = (zoom < 1.5
+    ? [selected, hovered, ...(selected ? [...connected] : []), layout.hubId]
+    : [selected, hovered, ...(selected ? [...connected] : []), layout.hubId, ...layout.points.map((point) => point.id)])
+    .filter((value): value is string => value !== undefined && visible(value));
   const labels = layoutLabels(layout, graph.nodes, priority);
   const visiblePoints = layout.points.filter((point) => visible(point.id));
   // Focus changes the camera, not record positions. Include labels in the frame
@@ -81,6 +76,8 @@ export function MemoryGraph({
     focused && visiblePoints.length
       ? `${left - 25} ${top - 25} ${right - left + 50} ${bottom - top + 50}`
       : `0 0 ${layout.width} ${layout.height}`;
+  const canvasWidth = Math.max(layout.width, 1000);
+  const canvasHeight = Math.max(layout.height, 680);
   const hub = layout.hubId ? points.get(layout.hubId) : undefined;
   const active = graph.nodes.find((node) => node.id === (hovered ?? selected));
   function fit() {
@@ -101,6 +98,15 @@ export function MemoryGraph({
           </p>
         </div>
         <div className="memory-graph-toolbar">
+          <label className="memory-projection-select">
+            Projection
+            <select value={projection} onChange={(event) => setProjection(event.target.value as GraphProjection)}>
+              <option value="cluster">Cluster</option>
+              <option value="force">Force</option>
+              <option value="hierarchy">Hierarchy</option>
+            </select>
+          </label>
+
           <label
             className="memory-focus-toggle"
             title={
@@ -172,7 +178,12 @@ export function MemoryGraph({
         >
           <svg
             viewBox={frame}
-            style={{ width: `${zoom * 100}%`, height: `${zoom * 100}%` }}
+            width={canvasWidth}
+            height={canvasHeight}
+            style={{
+              width: `${canvasWidth * zoom}px`,
+              height: `${canvasHeight * zoom}px`,
+            }}
             aria-label="Stored record connections"
           >
             <defs>
@@ -228,6 +239,7 @@ export function MemoryGraph({
               const highlighted =
                 edge.from === selected || edge.to === selected;
               if (!a || !b || (focused && !highlighted)) return null;
+                  const style = getEdgeStyle(edge, highlighted);
               return (
                 <g
                   key={JSON.stringify(edge)}
@@ -235,6 +247,9 @@ export function MemoryGraph({
                 >
                   <path
                     d={edgePath(a, b)}
+                    strokeWidth={style.strokeWidth}
+                    strokeDasharray={style.strokeDasharray}
+                    strokeOpacity={style.opacity}
                     markerEnd={highlighted ? `url(#${id}-arrow)` : undefined}
                   />
                   <title>{edge.relation}</title>
@@ -248,7 +263,7 @@ export function MemoryGraph({
                 const isHub = node.id === layout.hubId,
                   isSelected = node.id === selected;
                 const dimmed =
-                  selected !== undefined &&
+                  focusMode && selected !== undefined &&
                   !isSelected &&
                   !connected.has(node.id);
                 return (
@@ -277,17 +292,6 @@ export function MemoryGraph({
                     <NodeShape kind={node.kind} size={isHub ? 23 : 16} />
                     <circle className="memory-node-hit" r="20" />
                     <circle className="memory-node-ring" r={isHub ? 23 : 16} />
-                    <circle
-                      className="memory-node-dot"
-                      r={
-                        isHub
-                          ? 16
-                          : Math.min(
-                              11,
-                              7 + Math.sqrt(degree.get(node.id) ?? 0),
-                            )
-                      }
-                    />
                   </g>
                 );
               })}

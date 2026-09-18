@@ -51,6 +51,7 @@
   --a008-viz-edge: #b8c9bd;
   --a008-viz-label: #e4e8e2;
   --a008-viz-highlight: #fff1b4;
+  --a008-crt-opacity: 0.6;
 }
 
 [data-a008-theme="deep-space"] {
@@ -103,4 +104,5 @@
   --a008-viz-edge: #5a738c;
   --a008-viz-label: #edf5ff;
   --a008-viz-highlight: #cfe6ff;
+  --a008-crt-opacity: 0.85;
 }
