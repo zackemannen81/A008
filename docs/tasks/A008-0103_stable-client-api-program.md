@@ -30,7 +30,7 @@ existing client silently breaks and no project silently receives empty memory.
 | 2. Project/session ownership | Complete | A008-0107/0108/0109 shared registry, facade, exact binding and process ownership proof |
 | 3. V2 and auth | Complete | A008-0110/0112: scoped device auth, tickets, authenticated WS dispatch and live revoke/expiry |
 | 3.5 ACME execution evaluation | Complete; GO | A008-0118: `AcmeChatTransport` on `acme-model-runtime/2`; live chat matrix and owner client loop passed; images remain direct; Stage 4 may start |
-| 4. Turns and recovery | Not started; A008-0132 Draft | First child will establish application turn/message identity, monotonic events, snapshot boundary and terminal outcomes; receipts/idempotency and reconnect/restart remain later Stage-4 children |
+| 4. Turns and recovery | In Progress — A008-0132 Ready | First child establishes application turn/message identity, monotonic events, snapshot boundary and terminal outcomes; receipts/idempotency and reconnect/restart remain later Stage-4 children |
 | 5. SDK and web migration | Not started | Independent package and complete web coverage |
 | 6. Independent Expo proof | Not started | Real platform/remote auth and background-return checks |
 | 7. Compatibility release | Not started | Frozen client vs compatible future server gate |
