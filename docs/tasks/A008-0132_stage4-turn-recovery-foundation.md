@@ -2,11 +2,11 @@
 
 Task ID: A008-0132
 Parent Task: A008-0103
-Status: Draft
+Status: Ready
 Owner: ChatGPT (operator)
 Created: 2026-09-18
 Last updated: 2026-09-18
-Charter frozen at:
+Charter frozen at: 2026-09-18; task-ID claim merged via PR #70
 
 ## Read First
 
@@ -119,8 +119,8 @@ These are already accepted by A008-0103/ADR 0041 but remain separate bounded chi
 ## Checklist
 
 - [x] Draft bounded first Stage-4 child.
-- [ ] Merge task-ID claim to main.
-- [ ] Freeze Draft -> Ready on a fresh implementation branch from main.
+- [x] Merge task-ID claim to main.
+- [x] Freeze Draft -> Ready on a fresh implementation branch from main.
 - [ ] Implement identities/events/snapshot boundary/terminal outcomes.
 - [ ] Run bounded verification.
 - [ ] Update A008-0103 observed progress.
@@ -139,7 +139,9 @@ These are already accepted by A008-0103/ADR 0041 but remain separate bounded chi
 
 ## Verification
 
-- Draft only. Implementation must not begin until the A008-0132 identity claim is merged to main and this charter is frozen Ready on the implementation branch.
+- Task-ID claim merged to `main` via PR #70.
+- Charter frozen Ready on fresh implementation branch `chatGPT/A008-0132-stage4-turn-recovery-foundation` from updated `main`.
+- Product implementation has not begun yet.
 
 ## Documentation Updates
 
@@ -151,9 +153,9 @@ These are already accepted by A008-0103/ADR 0041 but remain separate bounded chi
 
 ## Handoff and Follow-ups
 
-- Current state: Draft claim/charter prepared.
-- Next recommended step: merge docs-only A008-0132 claim, then freeze this charter Ready from updated main.
-- Blockers: claim not yet on main.
+- Current state: Ready; charter frozen on implementation branch.
+- Next recommended step: implement stable turn/message identity and the ordered event/snapshot foundation.
+- Blockers: none.
 - Child tasks: none allocated yet; follow-up Stage-4 slices are listed above without IDs.
 - Resume condition: claim merged.
 - Open questions: none.
