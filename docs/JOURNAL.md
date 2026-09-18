@@ -2443,3 +2443,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Owner live GUI proof confirms GPT-5.6 Luna now works through embedded ACME when reasoning effort is `none`; the prior unsupported `max_tokens` provider error is gone.
 - A separate provider constraint was observed: Luna Chat Completions with function tools requires `reasoning_effort=none`. That fix is intentionally routed to A008-0129 instead of widening this frozen charter.
 - Signature: ChatGPT (operator)
+
+## 2026-09-18 — A008-0130 unified attachments
+
+- Operator: ChatGPT. Unified one invocation-local image attachment across clipboard paste, file picker, drag/drop and explicit absolute local filepath, all through the existing bounded source-store/locator pipeline.
+- Local filepath import is host-owned on the existing `POST /v1/upload` boundary: absolute regular-file validation, byte cap, byte-sniffed media type and the same content-addressed blob store; the renderer retains only locator/media-type/display-name metadata.
+- Owner smoke exposed and then verified the protocol repair: the V1 host parser had stripped the optional prompt `attachment` even though upload, schema and encoder were correct. The parser now validates/preserves it and the advertised client-key allowlist includes `attachment`.
+- Static verification passed: root/GUI typecheck, GUI production build and diff hygiene. Focused/full automated suites were not rerun through Remote Desktop Commander and are not claimed.
+- Owner live proof passed after the fix: paste, file attach and explicit path all produced active attachments, and GPT-5.6 Luna demonstrably received and described the image end-to-end.
+- Signature: ChatGPT (operator)
