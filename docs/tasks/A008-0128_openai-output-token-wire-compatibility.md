@@ -1,4 +1,4 @@
-# Current Task
+# A008-0128 — embedded OpenAI output-token wire compatibility
 
 Task ID: A008-0128
 Parent Task: A008-0127
