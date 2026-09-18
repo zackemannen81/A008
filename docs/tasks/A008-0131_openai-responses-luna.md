@@ -2,7 +2,7 @@
 
 Task ID: A008-0131
 Parent Task: A008-0127
-Status: In Progress
+Status: Complete
 Owner: ChatGPT (operator)
 Created: 2026-09-18
 Last updated: 2026-09-18
@@ -85,7 +85,7 @@ Accepted constraint: ADR 0043 — ACME may replace only A008's provider executio
 - [x] Semantic-operation regression proves Luna semantic calls use Responses while retaining `reasoningEffort: none`.
 - [x] Direct OpenAI Chat Completions Luna+tools regression remains green.
 - [x] Root TypeScript typecheck, build and `git diff --check`.
-- [ ] Owner manual A/B smoke after integration; no operator-paid call.
+- [x] Owner manual A/B smoke after integration; no operator-paid call.
 
 ## Checklist
 
@@ -96,9 +96,9 @@ Accepted constraint: ADR 0043 — ACME may replace only A008's provider executio
 - [x] Restore provider-neutral ACME reasoning semantics.
 - [x] Update focused regressions.
 - [x] Run bounded verification.
-- [ ] Owner manual A/B smoke.
-- [ ] Update docs and handoff.
-- [ ] Archive task and restore CURRENT_TASK template.
+- [x] Owner manual A/B smoke.
+- [x] Update docs and handoff.
+- [x] Archive task and restore CURRENT_TASK template.
 
 ## Decisions and Notes
 
@@ -123,17 +123,19 @@ Accepted constraint: ADR 0043 — ACME may replace only A008's provider executio
 - Full core/GUI suites were not run through Remote Desktop Commander; owner manual A/B smoke remains pending.
 - No paid/live provider call was initiated by the operator.
 
+- Owner live proof after integration: Responses entries reappeared in OpenAI logs; a NES debugging turn completed chat/tool work followed by 7 knowledge proposals, relation classification and commit; CisOP then built a substantially cleaner graph under the restored route.
+
 ## Documentation Updates
 
 - [x] `docs/CURRENT_STATUS.md`
 - [x] `docs/SYSTEMDOC.md`
-- [ ] `docs/JOURNAL.md` — operator merge record
-- [ ] `docs/handoffs/A008-0131.md`
+- [ ] `docs/JOURNAL.md` — operator merge record after this docs transition
+- [x] `docs/handoffs/A008-0131.md`
 
 ## Handoff and Follow-ups
 
-- Current state: implementation and focused offline verification complete; owner live A/B smoke pending.
-- Next recommended step: restart the GUI host on this branch and compare Luna extraction/classification behavior and latency against the prior nesdemo observation.
+- Current state: complete. Owner live proof confirmed native Responses in OpenAI logs, successful image/tool turns, and post-output extraction/relation/commit; a fresh CisOP project produced materially cleaner memory behavior.
+- Next recommended step: A008-0103 Stage 4. Keep application command/turn/message/event identities separate from ACME execution identity.
 - Blockers: none.
 - Child tasks: none.
 - Resume condition: n/a.
