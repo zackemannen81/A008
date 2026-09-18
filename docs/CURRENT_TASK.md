@@ -1,88 +1,81 @@
 # Current Task
 
-Task ID: A008-0128
-Parent Task: A008-0127
-Status: In Progress
-Owner: ChatGPT (operator)
-Created: 2026-09-18
-Last updated: 2026-09-18
-Charter frozen at: 2026-09-18; claim revision `71badcf`
+Task ID:
+Parent Task: None
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
 
 ## Read First
 
 - `AGENTS.md`
 - `docs/TASK_WORKFLOW.md`
 - `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
 - `docs/CURRENT_STATUS.md`
 - `docs/SYSTEMDOC.md`
 - `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant records under `docs/adr/`
 
 ## Task Summary
 
-A008-0127 embedded OpenAI execution reaches the provider, but OpenAI chat models reject `max_tokens` and require `max_completion_tokens`. ACME-0187 published `acme-engine@0.1.4` with an explicit profile-level wire-field option.
+Describe why this bounded task is active now and its intended outcome.
 
 ## Task Charter
 
 ### Goal
 
-Consume ACME 0.1.4 and explicitly select `max_completion_tokens` for A008-owned embedded OpenAI Chat Completions profiles.
+Define one primary outcome.
 
 ### Primary Deliverable
 
-A008 embedded OpenAI runtime config emits `max_completion_tokens` for its output budget while NVIDIA/KIE behavior remains unchanged.
+Name the concrete artifact or behavior.
 
 ### In Scope
 
-- Bump `acme-engine` dependency to `^0.1.4`.
-- Set `maxOutputTokensParameter: "max_completion_tokens"` only on embedded OpenAI profiles.
-- Add regression coverage for config derivation and OpenAI wire body.
+- List work required for the deliverable.
 
 ### Out of Scope
 
-- Any memory/cognition/model-selection change.
-- Provider-name/model-name inference inside ACME.
-- Changes to NVIDIA or KIE generation-control semantics.
-- Sidecar protocol changes.
+- List adjacent work that must not be absorbed.
 
 ### Definition of Done
 
-- A008 installs registry `acme-engine@0.1.4`.
-- Embedded OpenAI profile config selects `max_completion_tokens`.
-- Regression verifies `max_tokens` is absent from the OpenAI body.
-- Owner-run verification passes.
+- State objective completion conditions.
 
 ### Necessity Gate
 
 Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
-Contract revision: `203aa99`
+Contract revision: <Git commit containing the reviewed contract>
+
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
 
 | Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
 | --- | --- | --- | --- | --- |
-| OpenAI output-token compatibility | A008 owns provider strategy; ACME executes prepared requests | OpenAI embedded chat stops failing HTTP 400 | dependency bump + one profile flag | focused embedded ACME tests + build |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
 
 ### Minimum Verification Gates
 
-- [ ] Owner runs build.
-- [ ] Owner runs focused A008-0127/0128 embedded tests.
-- [ ] Owner confirms GUI OpenAI chat no longer returns unsupported `max_tokens`.
+- [ ] Define checks that may be strengthened but not removed after Ready.
 
 ## References
 
-- ACME-0187 / `acme-engine@0.1.4`
-- A008-0127 embedded runtime boundary
+- Add owned documents, source revisions, contracts, and decisions.
 
 ## Checklist
 
-- [x] Claim task id.
-- [x] Bump ACME dependency.
-- [x] Set OpenAI profile wire field.
-- [x] Add regression.
-- [ ] Owner verification.
-- [ ] Close docs and handoff.
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
 
 ## Decisions and Notes
 
-- Verification is intentionally delegated to the owner because long test processes are unreliable through Remote Desktop Commander.
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
 
 ## Charter Amendment Log
 
@@ -90,21 +83,29 @@ Contract revision: `203aa99`
 
 ## Verification
 
-- Implementation-only inspection: package manifest resolves `acme-engine ^0.1.4`; installed chain is `acme-engine@0.1.4 -> @acme-engine/model-runtime@0.1.4 -> @acme-engine/adapter-model-chat-completions@0.1.4`.
-- Automated build/tests intentionally not run by ChatGPT per owner request; owner will run them locally.
-- GUI live verification remains pending owner execution.
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
 
 ## Documentation Updates
 
 - [ ] `docs/CURRENT_STATUS.md`
 - [ ] `docs/SYSTEMDOC.md`
 - [ ] `docs/JOURNAL.md`
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
 
 ## Handoff and Follow-ups
 
-- Current state: implementation complete; owner verification pending.
-- Next recommended step: owner runs focused build/tests and GUI OpenAI smoke.
-- Blockers: none.
-- Child tasks: none.
-- Resume condition: owner verification results.
-- Open questions: none.
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.
