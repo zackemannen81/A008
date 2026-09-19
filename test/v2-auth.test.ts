@@ -426,14 +426,29 @@ test(
       const result = await client.until("result", "prompt_1");
       assert.equal(result.state.messages.at(-1).role, "assistant");
       assert.match(result.state.messages.at(-1).content, /Fixture answer/u);
+      assert.equal(result.state.messages.length, 2);
+      assert.ok(result.state.messages.every((message: any) => /^message_/u.test(message.messageId)));
+      const turnEvents = client.frames.filter(
+        (frame) => frame.type === "event" && frame.sessionId === sessionId,
+      );
+      assert.ok(turnEvents.some((frame) => frame.event === "answer/delta"));
+      const started = turnEvents.find((frame) => frame.event === "turn/started");
+      const terminal = turnEvents.find((frame) => frame.event === "turn/terminal");
+      assert.ok(started);
+      assert.equal(terminal?.turnId, started.turnId);
+      assert.equal(terminal?.outcome, "completed");
+      assert.equal(terminal?.answerStatus, "completed");
+      assert.equal(terminal?.memoryStatus, "completed");
+      assert.deepEqual(
+        turnEvents.map((frame) => frame.sequence),
+        turnEvents.map((_: any, index: number) => index + 1),
+      );
       assert.ok(
-        client.frames.some(
-          (frame) =>
-            frame.type === "signal" &&
-            frame.signal === "answer" &&
-            frame.sessionId === sessionId,
+        turnEvents.every(
+          (frame) => frame.serverInstanceId === result.serverInstanceId,
         ),
       );
+      const messageIds = result.state.messages.map((message: any) => message.messageId);
 
       client.send({
         type: "command",
@@ -444,6 +459,11 @@ test(
       });
       const inspected = await client.until("result", "inspect_1");
       assert.equal(inspected.state.messages.length, 2);
+      assert.deepEqual(
+        inspected.state.messages.map((message: any) => message.messageId),
+        messageIds,
+      );
+      assert.equal(inspected.state.sequence, terminal.sequence);
     } finally {
       client?.close();
       await host.close();
@@ -633,12 +653,18 @@ async function nextV2Signal(
   signal: string,
   timeoutMs = 8000,
 ): Promise<any> {
+  const event =
+    signal === "thought"
+      ? "thought/delta"
+      : signal === "answer"
+        ? "answer/delta"
+        : signal;
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const frame = await client.next(Math.max(1, deadline - Date.now()));
-    if (frame.type === "signal" && frame.signal === signal) return frame;
+    if (frame.type === "event" && frame.event === event) return frame;
   }
-  throw new Error(`Timed out waiting for V2 signal ${signal}.`);
+  throw new Error(`Timed out waiting for V2 event ${event}.`);
 }
 
 test(
@@ -656,7 +682,9 @@ test(
       if (!String(user).includes("WRITE")) return undefined;
       const filename = String(user).includes("REVOKE")
         ? "revoked.txt"
-        : "approved.txt";
+        : String(user).includes("CANCEL")
+          ? "cancelled.txt"
+          : "approved.txt";
       return {
         role: "assistant",
         content: null,
@@ -722,6 +750,57 @@ test(
         readFileSync(join(project.rootFolder, "approved.txt"), "utf8"),
         "approved.txt",
       );
+
+      client.send({
+        type: "command",
+        requestId: "prompt_cancel_permission",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "WRITE CANCEL" },
+      });
+      const cancelledPermission = await nextV2Signal(client, "tool/permission");
+      assert.equal(existsSync(join(project.rootFolder, "cancelled.txt")), false);
+      client.send({
+        type: "command",
+        requestId: "cancel_permission_turn",
+        action: "session/cancel",
+        projectId: project.projectId,
+        sessionId,
+      });
+      await client.until("result", "cancel_permission_turn");
+      client.send({
+        type: "command",
+        requestId: "stale_permission",
+        action: "tool/permission",
+        projectId: project.projectId,
+        sessionId,
+        payload: { permissionId: cancelledPermission.permissionId, allow: true },
+      });
+      let staleError: any;
+      let cancelledPromptResult: any;
+      const raceDeadline = Date.now() + 8000;
+      while ((!staleError || !cancelledPromptResult) && Date.now() < raceDeadline) {
+        const frame = await client.next(Math.max(1, raceDeadline - Date.now()));
+        if (frame.type === "error" && frame.requestId === "stale_permission")
+          staleError = frame;
+        if (
+          frame.type === "result" &&
+          frame.requestId === "prompt_cancel_permission"
+        )
+          cancelledPromptResult = frame;
+      }
+      assert.equal(staleError?.code, "INVALID_REQUEST");
+      assert.ok(cancelledPromptResult);
+      assert.equal(existsSync(join(project.rootFolder, "cancelled.txt")), false);
+      const cancelledTerminals = client.frames.filter(
+        (frame) =>
+          frame.type === "event" &&
+          frame.event === "turn/terminal" &&
+          frame.turnId === cancelledPermission.turnId,
+      );
+      assert.equal(cancelledTerminals.length, 1);
+      assert.equal(cancelledTerminals[0].outcome, "cancelled");
 
       client.send({
         type: "command",
@@ -812,6 +891,15 @@ test(
         ) ?? (await client.until("result", "wait_prompt"));
       assert.equal(promptResult.sessionId, sessionId);
       assert.equal(promptResult.state.active, false);
+      const terminals = client.frames.filter(
+        (frame) =>
+          frame.type === "event" &&
+          frame.event === "turn/terminal" &&
+          frame.sessionId === sessionId,
+      );
+      assert.equal(terminals.length, 1);
+      assert.equal(terminals[0].outcome, "cancelled");
+      assert.equal(terminals[0].answerStatus, "cancelled");
     } finally {
       client?.close();
       await host.close();

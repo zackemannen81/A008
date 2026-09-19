@@ -204,7 +204,11 @@ async function dispatch(
       sessionId: state.sessionId,
       state,
     });
+    if (command.action === "session/inspect")
+      sessions.finishSnapshot(state.sessionId, connectionId);
   } catch (error) {
+    if (command.action === "session/inspect" && "sessionId" in command)
+      sessions.finishSnapshot(command.sessionId, connectionId);
     send(
       toFailure(
         auth,

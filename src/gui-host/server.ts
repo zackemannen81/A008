@@ -5,7 +5,7 @@ import type {
   ShellHostResult,
 } from "../../packages/protocol/src/index.js";
 
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import {
   createReadStream,
   existsSync,
@@ -286,18 +286,23 @@ export async function startGuiHost(
       ? { [SQLITE_PATH_ENV]: defaultSqlitePath() }
       : {}),
   });
+  const v2ServerInstanceId = options.accessToken
+    ? undefined
+    : `server_${randomUUID()}`;
   const v2Sessions = options.accessToken
     ? undefined
     : new V2SessionService({
         env: runtimeBaseEnv(),
         projectsPath,
         registry: projectRegistry,
+        serverInstanceId: v2ServerInstanceId!,
         ...(options.stderr ? { stderr: options.stderr } : {}),
       });
   const v2Auth = options.accessToken
     ? undefined
     : new V2Auth({
         devices: new DeviceRegistry(env),
+        serverInstanceId: v2ServerInstanceId!,
         pin: pinAuth,
         projectExists: (id) =>
           readProjectRegistry(projectsPath).projects.some(

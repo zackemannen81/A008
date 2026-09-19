@@ -66,6 +66,7 @@ export interface AcpTurnSession {
   enableSessionControls?(): void;
   send(content: string, options?: SendMessageOptions): Promise<ChatCompletion>;
   consumeMemoryDiagnostic?(): string | undefined;
+  consumeMemoryStatus?(): string | undefined;
 }
 
 interface AcpSessionState {
@@ -564,6 +565,7 @@ export class A008AcpAgent {
       if (diagnostic !== undefined && diagnostic.length > 0) {
         this.#onMemoryDiagnostic?.(diagnostic);
       }
+      const memoryStatus = state.chat.consumeMemoryStatus?.() ?? "unreported";
 
       return {
         stopReason:
@@ -580,6 +582,7 @@ export class A008AcpAgent {
                     (completion.usage.completionTokens ?? 0),
               },
             }),
+        _meta: { "a008.memoryStatus": memoryStatus },
       };
     } catch (error) {
       await pendingNotifications;

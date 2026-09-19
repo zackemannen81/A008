@@ -12,6 +12,11 @@
       "maxLength": 160,
       "pattern": "^[A-Za-z0-9_-]+$"
     },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
     "model": {
       "type": "string"
     },
@@ -22,25 +27,43 @@
           "type": "boolean"
         },
         "temperature": {
-          "type": ["number", "null"]
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "topP": {
-          "type": ["number", "null"]
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "maxTokens": {
           "type": "number"
         },
         "enableThinking": {
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "reasoningBudget": {
-          "type": ["number", "null"]
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "reasoningEffort": {
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "seed": {
-          "type": ["number", "null"]
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "stop": {
           "anyOf": [
@@ -76,20 +99,53 @@
       "items": {
         "type": "object",
         "properties": {
+          "messageId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
           "role": {
             "type": "string",
-            "enum": ["user", "assistant"]
+            "enum": [
+              "user",
+              "assistant"
+            ]
           },
           "content": {
             "type": "string"
           }
         },
-        "required": ["role", "content"],
+        "required": [
+          "messageId",
+          "role",
+          "content"
+        ],
         "additionalProperties": false
       }
     },
     "active": {
       "type": "boolean"
+    },
+    "activeTurn": {
+      "type": "object",
+      "properties": {
+        "turnId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "status": {
+          "type": "string",
+          "const": "running"
+        }
+      },
+      "required": [
+        "turnId",
+        "status"
+      ],
+      "additionalProperties": false
     },
     "tools": {
       "readOnly": true,
@@ -104,7 +160,10 @@
             "type": "string"
           }
         },
-        "required": ["name", "description"],
+        "required": [
+          "name",
+          "description"
+        ],
         "additionalProperties": false
       }
     },
@@ -118,6 +177,7 @@
   "required": [
     "projectId",
     "sessionId",
+    "sequence",
     "model",
     "parameters",
     "messages",

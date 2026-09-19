@@ -25,7 +25,11 @@
           "pattern": "^[A-Za-z0-9_-]+$"
         }
       },
-      "required": ["type", "serverInstanceId", "projectId"],
+      "required": [
+        "type",
+        "serverInstanceId",
+        "projectId"
+      ],
       "additionalProperties": false
     },
     {
@@ -81,6 +85,11 @@
               "maxLength": 160,
               "pattern": "^[A-Za-z0-9_-]+$"
             },
+            "sequence": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
             "model": {
               "type": "string"
             },
@@ -91,25 +100,43 @@
                   "type": "boolean"
                 },
                 "temperature": {
-                  "type": ["number", "null"]
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "topP": {
-                  "type": ["number", "null"]
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "maxTokens": {
                   "type": "number"
                 },
                 "enableThinking": {
-                  "type": ["boolean", "null"]
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
                 },
                 "reasoningBudget": {
-                  "type": ["number", "null"]
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "reasoningEffort": {
-                  "type": ["string", "null"]
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "seed": {
-                  "type": ["number", "null"]
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "stop": {
                   "anyOf": [
@@ -145,20 +172,53 @@
               "items": {
                 "type": "object",
                 "properties": {
+                  "messageId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "pattern": "^[A-Za-z0-9_-]+$"
+                  },
                   "role": {
                     "type": "string",
-                    "enum": ["user", "assistant"]
+                    "enum": [
+                      "user",
+                      "assistant"
+                    ]
                   },
                   "content": {
                     "type": "string"
                   }
                 },
-                "required": ["role", "content"],
+                "required": [
+                  "messageId",
+                  "role",
+                  "content"
+                ],
                 "additionalProperties": false
               }
             },
             "active": {
               "type": "boolean"
+            },
+            "activeTurn": {
+              "type": "object",
+              "properties": {
+                "turnId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 160,
+                  "pattern": "^[A-Za-z0-9_-]+$"
+                },
+                "status": {
+                  "type": "string",
+                  "const": "running"
+                }
+              },
+              "required": [
+                "turnId",
+                "status"
+              ],
+              "additionalProperties": false
             },
             "tools": {
               "readOnly": true,
@@ -173,7 +233,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["name", "description"],
+                "required": [
+                  "name",
+                  "description"
+                ],
                 "additionalProperties": false
               }
             },
@@ -187,6 +250,7 @@
           "required": [
             "projectId",
             "sessionId",
+            "sequence",
             "model",
             "parameters",
             "messages",
@@ -211,11 +275,13 @@
           "properties": {
             "type": {
               "type": "string",
-              "const": "signal"
+              "const": "event"
             },
-            "signal": {
+            "serverInstanceId": {
               "type": "string",
-              "enum": ["thought", "answer"]
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
             },
             "sessionId": {
               "type": "string",
@@ -223,11 +289,30 @@
               "maxLength": 160,
               "pattern": "^[A-Za-z0-9_-]+$"
             },
-            "text": {
-              "type": "string"
+            "sequence": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "turnId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "event": {
+              "type": "string",
+              "const": "turn/started"
             }
           },
-          "required": ["type", "signal", "sessionId", "text"],
+          "required": [
+            "type",
+            "serverInstanceId",
+            "sessionId",
+            "sequence",
+            "turnId",
+            "event"
+          ],
           "additionalProperties": false
         },
         {
@@ -235,17 +320,132 @@
           "properties": {
             "type": {
               "type": "string",
-              "const": "signal"
+              "const": "event"
             },
-            "signal": {
+            "serverInstanceId": {
               "type": "string",
-              "const": "tool"
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
             },
             "sessionId": {
               "type": "string",
               "minLength": 1,
               "maxLength": 160,
               "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sequence": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "turnId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "event": {
+              "type": "string",
+              "const": "answer/delta"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "serverInstanceId",
+            "sessionId",
+            "sequence",
+            "turnId",
+            "event",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "event"
+            },
+            "serverInstanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sequence": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "turnId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "event": {
+              "type": "string",
+              "const": "thought/delta"
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "serverInstanceId",
+            "sessionId",
+            "sequence",
+            "turnId",
+            "event",
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "event"
+            },
+            "serverInstanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sequence": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "turnId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "event": {
+              "type": "string",
+              "const": "tool"
             },
             "id": {
               "type": "string",
@@ -264,8 +464,11 @@
           },
           "required": [
             "type",
-            "signal",
+            "serverInstanceId",
             "sessionId",
+            "sequence",
+            "turnId",
+            "event",
             "id",
             "title",
             "status",
@@ -278,17 +481,34 @@
           "properties": {
             "type": {
               "type": "string",
-              "const": "signal"
+              "const": "event"
             },
-            "signal": {
+            "serverInstanceId": {
               "type": "string",
-              "const": "tool/permission"
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
             },
             "sessionId": {
               "type": "string",
               "minLength": 1,
               "maxLength": 160,
               "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sequence": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "turnId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "event": {
+              "type": "string",
+              "const": "tool/permission"
             },
             "permissionId": {
               "type": "string",
@@ -305,11 +525,129 @@
           },
           "required": [
             "type",
-            "signal",
+            "serverInstanceId",
             "sessionId",
+            "sequence",
+            "turnId",
+            "event",
             "permissionId",
             "title",
             "text"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "event"
+            },
+            "serverInstanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sequence": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "event": {
+              "type": "string",
+              "const": "state/changed"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "type",
+            "serverInstanceId",
+            "sessionId",
+            "sequence",
+            "event",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "event"
+            },
+            "serverInstanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sequence": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "turnId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "event": {
+              "type": "string",
+              "const": "turn/terminal"
+            },
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "completed",
+                "cancelled",
+                "interrupted",
+                "failed"
+              ]
+            },
+            "answerStatus": {
+              "type": "string",
+              "enum": [
+                "completed",
+                "cancelled",
+                "interrupted",
+                "failed"
+              ]
+            },
+            "memoryStatus": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "type",
+            "serverInstanceId",
+            "sessionId",
+            "sequence",
+            "turnId",
+            "event",
+            "outcome",
+            "answerStatus",
+            "memoryStatus"
           ],
           "additionalProperties": false
         }
@@ -370,7 +708,13 @@
           "pattern": "^[A-Za-z0-9_-]+$"
         }
       },
-      "required": ["type", "serverInstanceId", "code", "message", "retryable"],
+      "required": [
+        "type",
+        "serverInstanceId",
+        "code",
+        "message",
+        "retryable"
+      ],
       "additionalProperties": false
     }
   ]

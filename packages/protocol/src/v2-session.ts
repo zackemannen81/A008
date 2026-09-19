@@ -68,18 +68,36 @@ export const v2SessionClientFrameSchema = z.union([
   v2AuthenticateSchema,
   v2SessionCommandSchema,
 ]);
+export const v2TurnOutcomeSchema = z.enum([
+  "completed",
+  "cancelled",
+  "interrupted",
+  "failed",
+]);
+export type V2TurnOutcome = z.infer<typeof v2TurnOutcomeSchema>;
+
+export const v2SessionMessageSchema = z
+  .object({
+    messageId: v2IdSchema,
+    role: z.enum(["user", "assistant"]),
+    content: z.string(),
+  })
+  .strict();
+
+export const v2ActiveTurnSchema = z
+  .object({ turnId: v2IdSchema, status: z.literal("running") })
+  .strict();
+
 export const v2SessionStateSchema = z
   .object({
     projectId: v2ProjectIdSchema,
     sessionId: v2IdSchema,
+    sequence: z.number().int().nonnegative(),
     model: z.string(),
     parameters: sessionParametersSchema,
-    messages: z
-      .array(
-        z.object({ role: z.enum(["user", "assistant"]), content: z.string() }),
-      )
-      .readonly(),
+    messages: z.array(v2SessionMessageSchema).readonly(),
     active: z.boolean(),
+    activeTurn: v2ActiveTurnSchema.optional(),
     tools: z
       .array(z.object({ name: z.string(), description: z.string() }))
       .readonly()
@@ -111,20 +129,34 @@ export const v2SessionResultSchema = z
   })
   .strict();
 
-export const v2SessionSignalSchema = z.discriminatedUnion("signal", [
+const v2EventBase = {
+  type: z.literal("event"),
+  serverInstanceId: v2IdSchema,
+  sessionId: v2IdSchema,
+  sequence: z.number().int().positive(),
+};
+const v2TurnEventBase = { ...v2EventBase, turnId: v2IdSchema };
+
+export const v2SessionEventSchema = z.discriminatedUnion("event", [
+  z.object({ ...v2TurnEventBase, event: z.literal("turn/started") }).strict(),
   z
     .object({
-      type: z.literal("signal"),
-      signal: z.enum(["thought", "answer"]),
-      sessionId: v2IdSchema,
+      ...v2TurnEventBase,
+      event: z.literal("answer/delta"),
       text: z.string(),
     })
     .strict(),
   z
     .object({
-      type: z.literal("signal"),
-      signal: z.literal("tool"),
-      sessionId: v2IdSchema,
+      ...v2TurnEventBase,
+      event: z.literal("thought/delta"),
+      text: z.string(),
+    })
+    .strict(),
+  z
+    .object({
+      ...v2TurnEventBase,
+      event: z.literal("tool"),
       id: z.string().min(1).max(512),
       title: z.string(),
       status: z.string(),
@@ -133,20 +165,44 @@ export const v2SessionSignalSchema = z.discriminatedUnion("signal", [
     .strict(),
   z
     .object({
-      type: z.literal("signal"),
-      signal: z.literal("tool/permission"),
-      sessionId: v2IdSchema,
+      ...v2TurnEventBase,
+      event: z.literal("tool/permission"),
       permissionId: v2IdSchema,
       title: z.string(),
       text: z.string(),
     })
     .strict(),
+  z
+    .object({
+      ...v2EventBase,
+      event: z.literal("state/changed"),
+      reason: z.string().min(1).max(64),
+    })
+    .strict(),
+  z
+    .object({
+      ...v2TurnEventBase,
+      event: z.literal("turn/terminal"),
+      outcome: v2TurnOutcomeSchema,
+      answerStatus: v2TurnOutcomeSchema,
+      memoryStatus: z.string().min(1).max(64),
+    })
+    .strict(),
 ]);
+export type V2SessionEvent = z.infer<typeof v2SessionEventSchema>;
+
+/** Clients apply only strictly newer events after replacing state from a snapshot. */
+export function isV2SessionEventNewer(
+  lastAppliedSequence: number,
+  event: Pick<V2SessionEvent, "sequence">,
+): boolean {
+  return event.sequence > lastAppliedSequence;
+}
 
 export const v2SessionServerFrameSchema = z.union([
   v2SessionAuthenticatedSchema,
   v2SessionResultSchema,
-  v2SessionSignalSchema,
+  v2SessionEventSchema,
   v2ErrorSchema,
 ]);
 export type V2SessionServerFrame = z.infer<typeof v2SessionServerFrameSchema>;
@@ -159,7 +215,7 @@ export function v2SessionJsonSchemas() {
       "v2-session-state": v2SessionStateSchema,
       "v2-session-authenticated": v2SessionAuthenticatedSchema,
       "v2-session-result": v2SessionResultSchema,
-      "v2-session-signal": v2SessionSignalSchema,
+      "v2-session-event": v2SessionEventSchema,
       "v2-session-server-frame": v2SessionServerFrameSchema,
     }).map(([name, schema]) => [name, z.toJSONSchema(schema)]),
   );
