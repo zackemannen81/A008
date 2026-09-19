@@ -47,7 +47,9 @@ a bounded child, backlog, or concepts sandbox.
 ```text
 A008 repository authority
   |- tracked docs and decisions
-  |- provider-neutral chat core, NVIDIA adapter, CLI, and ACP bridge
+  |- provider-neutral chat core, direct/reference provider adapters, embedded
+  |  ACME model execution, CLI, and ACP bridge
+  |- A008-owned GUI host/client plus stable-client V2 contracts
   |- semantic-memory contracts, service, hybrid reader, and repositories
   |- memory-aware application orchestration and bounded prompt composition
   |- post-output staging, stateless semantic calls, sequential coordination,
@@ -59,7 +61,8 @@ local/external evidence (not A008 authority)
   |- docs/_legacy/agenten007  raw CLI, ignored and secret-bearing
   |- C:\code\OpenHands         MIT Agent Canvas source clone
   |- owner Context-First doc   source input; A008 memory v0 now exists
-  |- C:\code\acme             related prior work; not an adopted baseline
+  |- C:\code\acme             external source repo; not an adopted baseline
+  |                             (published acme-engine@0.1.5 is a bounded dependency)
   `- bootstrap/protocol/add-on reference packages
 ```
 

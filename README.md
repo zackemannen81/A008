@@ -33,7 +33,7 @@ See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_s
   on failed turns and model-aware generation controls.
 - One runtime/provider/memory ownership model shared by CLI, ACP, standalone GUI,
   portable engine and V2 session transport.
-- Seven built-in chat profiles plus a user catalog. Live dispatch selects NVIDIA
+- Eight built-in chat profiles plus a user catalog. Live dispatch selects NVIDIA
   Build, kie.ai or OpenAI from the selected model/provider configuration.
 - Persistent semantic memory with exact/entity/lexical/tag/domain retrieval,
   accumulated semantic discussion scope, bounded provider context, current/history
@@ -60,7 +60,7 @@ For the detailed observed state, use
 
 ## Requirements
 
-- Node.js `>=22.13.0`
+- Node.js `>=24.0.0 <25`
 - npm
 - At least one provider credential for live chat: `NVIDIA_API_KEY`, `KIE_API_KEY`
   or `OPENAI_API_KEY`
@@ -80,9 +80,9 @@ npm run verify:protocol
 npm --prefix gui run build
 ```
 
-The latest Stage-3 closure passed **602 core + 4 membership + 162 GUI = 768
-tests** with zero failures/skips. The independently packed `@a008/protocol`
-consumer and portable-engine V2 discovery proof also passed.
+The latest merged Stage-4 foundation proof passed **671 core + 4 membership +
+171 GUI = 846 tests** with zero failures/skips. Root typecheck/build and the
+independently packed `@a008/protocol` consumer proof also passed.
 
 Useful additional checks:
 
@@ -225,13 +225,19 @@ V2 now has stable application turn/message identity, per-session event sequencin
 
 ## Providers and models
 
-A008 dispatches chat through the existing shared provider boundary:
+A008 dispatches chat through the shared `ChatTransport` boundary. The default
+composition is `EmbeddedAcmeChatTransport` over `acme-engine@0.1.5`, with A008
+supplying model/provider configuration and ACME owning model execution. Explicit
+`A008_CHAT_TRANSPORT=direct` keeps the provider-native reference/debug paths:
 
 - NVIDIA Build through `NvidiaChatTransport`
 - kie.ai through `KieChatTransport`
 - OpenAI through `OpenAiChatTransport`
 
-The built-in registry currently contains seven verified profiles. User-added chat
+`A008_CHAT_TRANSPORT=acme` keeps the remote `acme-model-runtime/2` sidecar as an
+explicit compatibility/deployment route; it is not the default.
+
+The built-in registry currently contains eight verified profiles. User-added chat
 models and provider/image settings live in the A008 user catalog rather than in
 project source. Explicit model identity owns routing, so a saved provider
 preference cannot silently hijack a selected model from another provider.

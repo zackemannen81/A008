@@ -1,6 +1,6 @@
 # V2 authentication and session transport
 
-A008-0110 implements public `GET /v2/info`, authenticated `POST /v2/auth/ticket` and local device grants. A008-0112 adds the usable authenticated `WS /v2/session` transport. V1 and fixed-session ACP panels retain their existing authentication behavior. Stage 4 recovery/idempotency semantics are not implemented yet.
+A008-0110 implements public `GET /v2/info`, authenticated `POST /v2/auth/ticket` and local device grants. A008-0112 adds the usable authenticated `WS /v2/session` transport. V1 and fixed-session ACP panels retain their existing authentication behavior. A008-0132 adds the first Stage-4 state/recovery foundation: stable turn/message identity, monotonic session-event sequencing, authoritative snapshot boundaries and explicit terminal turn outcomes. Command idempotency/receipts, reconnect/resume leases and restart uncertainty remain later Stage-4 work.
 
 ## Owner-local device management
 
@@ -20,6 +20,6 @@ Connect to `/v2/session` with WebSocket subprotocol `a008.v2`; credentials never
 
 After authentication one socket is bound to one principal/project and at most one attached session. Supported Stage-3 commands are `session/new`, `session/inspect`, `session/prompt`, `session/cancel`, `session/control` and `tool/permission`. Project scope, device existence/expiry and `session` capability are rechecked on every operation. Foreign principal/project/session references and a second writer fail before runtime work. Concurrent session creation on one socket is fenced.
 
-Revocation or credential expiry closes the live socket, cancels owned active work and resolves pending tool permissions denied. Tool permission IDs are one-use and connection/session-bound. Outgoing V2 text passes the existing credential redactor. No reconnect/resume capability, event sequence/snapshot boundary, terminal turn outcome protocol or command-idempotency receipt is claimed until Stage 4.
+Revocation or credential expiry closes the live socket, cancels owned active work and resolves pending tool permissions denied. Tool permission IDs are one-use and connection/session-bound. Outgoing V2 text passes the existing credential redactor. A008-0132 now defines event sequence/snapshot ordering and terminal turn outcomes. V2 still does not claim reconnect/resume leases, command-idempotency receipts/replay or restart uncertainty handling.
 
 Schemas live in `packages/protocol/src/v2-auth.ts` and `v2-session.ts`; generated JSON schemas/OpenAPI live under `packages/protocol/schemas`. `npm run verify:protocol` packs and installs the contract outside A008 and compiles/runs an independent TypeScript consumer.

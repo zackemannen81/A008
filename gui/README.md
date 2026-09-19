@@ -7,7 +7,9 @@ shared conversation. Model tool requests appear as activity, with execution
 approval in the surrounding client (or an A008 dialog when running standalone).
 See [engine integration](../docs/ENGINE.md) and [global settings](../docs/RUNTIME_SETTINGS.md).
 
-A008-owned diagnostic GUI (ADR 0022). Not OpenHands Agent Canvas.
+This is the A008-owned product GUI/host client (ADR 0019, 0029 and 0030), not
+OpenHands Agent Canvas. The same built assets may also be served as bounded
+engine panels; Agent Canvas remains a separate ACP compatibility/operator path.
 
 Dev: start `gui-host` on port 8787, then `npm run dev` in this directory.
 Vite proxies `/health` and `/v1` to the host.
