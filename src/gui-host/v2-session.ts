@@ -7,6 +7,8 @@ import type {
   RegisteredProject,
   SessionControlInput,
   SessionSnapshot,
+  V2CommandReceipt,
+  V2SessionCommand,
   V2SessionEvent,
   V2SessionServerFrame,
   V2SessionState,
@@ -24,7 +26,11 @@ import {
   SQLITE_PATH_ENV,
 } from "../runtime/local-runtime-config.js";
 import type { V2Principal } from "./v2-auth.js";
-import { V2AuthError } from "./v2-auth.js";
+import { V2AuthError, V2_LIMITS } from "./v2-auth.js";
+import {
+  V2CommandReceiptStore,
+  type V2CommandBegin,
+} from "./v2-command-receipts.js";
 
 interface CommittedMessage {
   readonly messageId: string;
@@ -68,6 +74,7 @@ export class V2SessionService {
   readonly #host: EngineHost;
   readonly #sessions = new Map<string, OwnedSession>();
   readonly #permissions = new Map<string, PendingPermission>();
+  readonly #receipts: V2CommandReceiptStore;
 
   constructor(options: {
     env: NodeJS.ProcessEnv;
@@ -75,11 +82,21 @@ export class V2SessionService {
     registry: ProjectRuntimeRegistry;
     serverInstanceId: string;
     stderr?: NodeJS.WritableStream;
+    now?: () => number;
+    commandReceiptLimitPerPrincipal?: number;
   }) {
     this.#env = { ...options.env };
     this.#projectsPath = options.projectsPath;
     this.#registry = options.registry;
     this.#serverInstanceId = options.serverInstanceId;
+    this.#receipts = new V2CommandReceiptStore({
+      serverInstanceId: options.serverInstanceId,
+      ...(options.now ? { now: options.now } : {}),
+      retentionMs: V2_LIMITS.commandReceiptRetentionMs,
+      limitPerPrincipal:
+        options.commandReceiptLimitPerPrincipal ??
+        V2_LIMITS.commandReceiptLimitPerPrincipal,
+    });
     this.#host = new EngineHost({
       env: this.#env,
       registry: this.#registry,
@@ -115,6 +132,59 @@ export class V2SessionService {
       session.principalId === principal.id &&
       session.projectId === projectId
     );
+  }
+
+  beginCommand(
+    principal: V2Principal,
+    command: V2SessionCommand,
+  ): V2CommandBegin {
+    return this.#receipts.begin(principal.id, command);
+  }
+
+  noteCommandSession(
+    principal: V2Principal,
+    commandId: string,
+    sessionId: string,
+  ): V2CommandReceipt {
+    return this.#receipts.noteSession(principal.id, commandId, sessionId);
+  }
+
+  noteCommandTurn(
+    principal: V2Principal,
+    commandId: string,
+    turnId: string,
+  ): V2CommandReceipt {
+    return this.#receipts.noteTurn(principal.id, commandId, turnId);
+  }
+
+  settleCommandSuccess(
+    principal: V2Principal,
+    commandId: string,
+    details: { sessionId?: string; turnId?: string } = {},
+  ): V2CommandReceipt {
+    return this.#receipts.succeed(principal.id, commandId, details);
+  }
+
+  settleCommandFailure(
+    principal: V2Principal,
+    commandId: string,
+    failure: {
+      code: import("../../packages/protocol/src/index.js").V2ErrorCode;
+      message: string;
+      retryable: boolean;
+      sessionId?: string;
+      turnId?: string;
+    },
+  ): V2CommandReceipt {
+    return this.#receipts.fail(principal.id, commandId, failure);
+  }
+
+  commandReceipt(
+    principal: V2Principal,
+    projectId: string,
+    commandId: string,
+  ): V2CommandReceipt {
+    return this.#receipts.lookup(principal.id, projectId, commandId);
   }
 
   async newSession(input: {
@@ -224,6 +294,7 @@ export class V2SessionService {
     sessionId: string,
     connectionId: string,
     text: string,
+    onTurnStarted?: (turnId: string) => void,
   ): Promise<V2SessionState> {
     const owned = this.#require(principal, projectId, sessionId, connectionId);
     if (owned.active)
@@ -238,6 +309,7 @@ export class V2SessionService {
     };
     owned.active = true;
     owned.activeTurn = turn;
+    onTurnStarted?.(turn.turnId);
     this.#emitEvent(owned, { event: "turn/started", turnId: turn.turnId });
     try {
       const result = await this.#host.prompt(
@@ -252,7 +324,8 @@ export class V2SessionService {
           : "completed";
       const reportedMemoryStatus = result._meta?.["a008.memoryStatus"];
       const memoryStatus =
-        typeof reportedMemoryStatus === "string" && reportedMemoryStatus.length > 0
+        typeof reportedMemoryStatus === "string" &&
+        reportedMemoryStatus.length > 0
           ? reportedMemoryStatus
           : "unreported";
       this.#settleTurn(owned, turn, outcome, memoryStatus);
@@ -443,7 +516,12 @@ export class V2SessionService {
       messages,
       active: owned.active,
       ...(owned.activeTurn && !owned.activeTurn.terminal
-        ? { activeTurn: { turnId: owned.activeTurn.turnId, status: "running" as const } }
+        ? {
+            activeTurn: {
+              turnId: owned.activeTurn.turnId,
+              status: "running" as const,
+            },
+          }
         : {}),
       ...(snapshot.runtime.tools ? { tools: snapshot.runtime.tools } : {}),
       ...(snapshot.undone === undefined ? {} : { undone: snapshot.undone }),

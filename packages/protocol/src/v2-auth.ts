@@ -54,15 +54,41 @@ export const V2_ERROR_CODES = [
   "SNAPSHOT_TOO_LARGE",
   "RUNTIME_FAILED",
 ] as const;
+
+export const v2CommandReceiptSchema = z
+  .object({
+    serverInstanceId: v2IdSchema,
+    commandId: v2IdSchema,
+    action: z.string().min(1).max(64),
+    projectId: v2ProjectIdSchema,
+    sessionId: v2IdSchema.optional(),
+    turnId: v2IdSchema.optional(),
+    status: z.enum(["running", "succeeded", "failed"]),
+    startedAt: z.number().int().nonnegative(),
+    settledAt: z.number().int().nonnegative().optional(),
+    error: z
+      .object({
+        code: z.enum(V2_ERROR_CODES),
+        message: z.string(),
+        retryable: z.boolean(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+export type V2CommandReceipt = z.infer<typeof v2CommandReceiptSchema>;
+
 export const v2ErrorSchema = z.object({
   type: z.literal("error"),
   serverInstanceId: v2IdSchema,
   requestId: v2IdSchema.optional(),
+  commandId: v2IdSchema.optional(),
   code: z.enum(V2_ERROR_CODES),
   message: z.string(),
   retryable: z.boolean(),
   projectId: v2ProjectIdSchema.optional(),
   sessionId: v2IdSchema.optional(),
+  receipt: v2CommandReceiptSchema.optional(),
 });
 export const v2InfoSchema = z.object({
   protocol: z.literal("a008.v2"),
@@ -77,6 +103,8 @@ export const v2InfoSchema = z.object({
     inputFrameBytes: z.number().int(),
     outputFrameBytes: z.number().int(),
     promptBytes: z.number().int(),
+    commandReceiptRetentionMs: z.number().int(),
+    commandReceiptLimitPerPrincipal: z.number().int(),
   }),
 });
 export type V2Info = z.infer<typeof v2InfoSchema>;
@@ -97,6 +125,7 @@ export function v2AuthJsonSchemas() {
     Object.entries({
       "v2-info": v2InfoSchema,
       "v2-error": v2ErrorSchema,
+      "v2-command-receipt": v2CommandReceiptSchema,
       "v2-ticket-request": v2TicketRequestSchema,
       "v2-ticket-response": v2TicketResponseSchema,
       "v2-authenticate": v2AuthenticateSchema,
@@ -138,6 +167,32 @@ export function v2AuthOpenApiDocument() {
             200: {
               description: "One-use scoped ticket",
               content: json("v2-ticket-response"),
+            },
+            ...errors,
+          },
+        },
+      },
+      "/v2/projects/{projectId}/commands/{commandId}": {
+        get: {
+          security: [{ device: [] }, { browserPin: [] }],
+          parameters: [
+            {
+              name: "projectId",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+            {
+              name: "commandId",
+              in: "path",
+              required: true,
+              schema: { type: "string" },
+            },
+          ],
+          responses: {
+            200: {
+              description: "Principal-owned bounded command receipt",
+              content: json("v2-command-receipt"),
             },
             ...errors,
           },

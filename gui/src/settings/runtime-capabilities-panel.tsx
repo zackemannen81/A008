@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { V2Info } from "../../../packages/protocol/src/index.js";
 import {
   loadRuntimeCapabilities,
-  STAGE4_FOUNDATION_FEATURES,
+  STAGE4_IMPLEMENTED_FEATURES,
   STAGE4_REMAINING,
   stage4FoundationComplete,
 } from "./runtime-capabilities.js";
@@ -100,9 +100,9 @@ export function RuntimeCapabilitiesPanel() {
           <dd>{info.authProfiles.join(" · ")}</dd>
         </div>
       </dl>
-      <h4>Stage 4 foundation</h4>
+      <h4>Implemented Stage 4 slices</h4>
       <ul className="a008-runtime-features">
-        {STAGE4_FOUNDATION_FEATURES.map((feature) => (
+        {STAGE4_IMPLEMENTED_FEATURES.map((feature) => (
           <li key={feature} data-available={available.has(feature)}>
             <span aria-hidden="true">{available.has(feature) ? "✓" : "–"}</span>
             <code>{feature}</code>
@@ -132,6 +132,14 @@ export function RuntimeCapabilitiesPanel() {
         <div>
           <dt>Ticket TTL</dt>
           <dd>{Math.round(info.limits.ticketLifetimeMs / 1000)} s</dd>
+        </div>
+        <div>
+          <dt>Receipt TTL</dt>
+          <dd>{Math.round(info.limits.commandReceiptRetentionMs / 1000)} s</dd>
+        </div>
+        <div>
+          <dt>Receipts / principal</dt>
+          <dd>{info.limits.commandReceiptLimitPerPrincipal}</dd>
         </div>
       </dl>
       <details className="a008-runtime-all-features">
