@@ -2,11 +2,11 @@
 
 Task ID: A008-0132
 Parent Task: A008-0103
-Status: Draft
+Status: Ready
 Owner: ChatGPT (operator)
 Created: 2026-09-18
-Last updated: 2026-09-18
-Charter frozen at:
+Last updated: 2026-09-19
+Charter frozen at: 2026-09-19; contract revision `c1aef5d`
 
 ## Read First
 
@@ -77,6 +77,7 @@ A shared V2 contract and host implementation in which accepted prompts have stab
 ### Necessity Gate
 
 Contract: `docs/PROJECT_BRIEF.md`, PC-01/04/05/06.
+Contract revision: `c1aef5d`.
 Accepted constraints: ADR 0040 program staging; ADR 0041 D5/D8; CLIENT_API_V2 sessions/turns/events/snapshots; ADR 0043 execution identity separation.
 
 | Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
@@ -119,8 +120,8 @@ These are already accepted by A008-0103/ADR 0041 but remain separate bounded chi
 ## Checklist
 
 - [x] Draft bounded first Stage-4 child.
-- [ ] Merge task-ID claim to main.
-- [ ] Freeze Draft -> Ready on a fresh implementation branch from main.
+- [x] Merge task-ID claim to main.
+- [x] Freeze Draft -> Ready on a fresh implementation branch from main.
 - [ ] Implement identities/events/snapshot boundary/terminal outcomes.
 - [ ] Run bounded verification.
 - [ ] Update A008-0103 observed progress.
@@ -139,7 +140,8 @@ These are already accepted by A008-0103/ADR 0041 but remain separate bounded chi
 
 ## Verification
 
-- Draft only. Implementation must not begin until the A008-0132 identity claim is merged to main and this charter is frozen Ready on the implementation branch.
+- Ready gate passed on 2026-09-19 from `main` revision `c1aef5d`; A008-0132 identity was already merged through PR #70.
+- Implementation verification pending.
 
 ## Documentation Updates
 
@@ -151,11 +153,11 @@ These are already accepted by A008-0103/ADR 0041 but remain separate bounded chi
 
 ## Handoff and Follow-ups
 
-- Current state: Draft claim/charter prepared.
-- Next recommended step: merge docs-only A008-0132 claim, then freeze this charter Ready from updated main.
-- Blockers: claim not yet on main.
+- Current state: Ready on implementation branch; source work may begin.
+- Next recommended step: implement stable application identities, ordered events/snapshot boundary and terminal outcomes.
+- Blockers: none.
 - Child tasks: none allocated yet; follow-up Stage-4 slices are listed above without IDs.
-- Resume condition: claim merged.
+- Resume condition: Ready gate remains valid against current contract revision.
 - Open questions: none.
 
 ## Finalize When Complete
