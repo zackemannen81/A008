@@ -65,9 +65,10 @@ replacement.
 - [0025-memory-inspection-gui.md](0025-memory-inspection-gui.md) — Accepted;
   read-only GUI memory overview, relationship graph and knowledge inspection.
 
-- [`0001-product-composition.md`](0001-product-composition.md) — Accepted;
-  A008 combines a shared core, CLI, Agent Canvas-derived GUI, and optional
-  add-ons including semantic memory.
+- [`0001-product-composition.md`](0001-product-composition.md) — Accepted historical
+  composition baseline; later ADR 0019/0029/0030 replace the Agent Canvas-derived
+  GUI assumption with the A008-owned product GUI/host. Agent Canvas remains an
+  operator ACP compatibility path.
 - [`0002-license-and-source-boundaries.md`](0002-license-and-source-boundaries.md)
   — Accepted; Apache-2.0 for A008-owned content with preserved third-party
   license/provenance boundaries.

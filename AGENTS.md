@@ -8,8 +8,10 @@ authority.
 
 - Project: A008
 - Task prefix: `A008`
-- Purpose: build one AI client with a shared core, a CLI, an Agent
-  Canvas-derived GUI/client, and optional add-ons such as semantic memory.
+- Purpose: build one AI client with a shared engine, CLI, A008-owned GUI/host,
+  stable external-client surfaces, and optional capabilities such as semantic
+  memory. Agent Canvas remains a supported ACP compatibility/operator path,
+  not the product GUI.
 - Phase: product implementation. Shared core, CLI, A008-owned GUI host/client,
   and local semantic memory exist. Remaining work is bounded product slices.
 - License: Apache-2.0 for A008-owned repository contents. Imported or adapted
@@ -55,9 +57,9 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
   Its repository instructions govern changes made there; it is not A008 truth.
 - The A008 memory engine lives in `src/memory/` with SQLite persistence and
   local CLI/ACP composition. The owner-supplied Context-First document remains
-  architecture input, not an external code baseline. Related repositories such
-  as `C:\code\acme` are not a dependency unless a future owner decision
-  explicitly adopts a bounded part.
+  architecture input, not an external code baseline. `C:\code\acme` is not an
+  adopted source baseline; A008 does, however, deliberately consume the bounded
+  published `acme-engine@0.1.5` package surface for default model execution.
 - Bootstrap and protocol/add-on copies in the repository root are ignored
   reference inputs, not shipped A008 content.
 
