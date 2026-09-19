@@ -121,7 +121,7 @@ Accepted constraints: ADR 0041 decisions 5/7/8; `CLIENT_API_V2.md` Sessions, tur
 
 - Implementation started from integration main `ef2c316` after A008-0138 merged through PR #79 and was journaled on main.
 - Focused reconnect/V2 verification: 18/18 passed, covering deterministic 45-second lease expiry, wrong principal/capability, second writer, explicit close, disconnect during active work, no provider replay and stale approval denial.
-- Full `npm test` clean rerun: 681 core + 4 membership + 176 GUI = 861 passed, 0 failed, 0 skipped.
+- Full `npm test` clean rerun after rebasing onto integration main with A008-0141: 681 core + 4 membership + 177 GUI = 862 passed, 0 failed, 0 skipped.
 - One pre-existing V1 heartbeat timing test flaked once under full-suite load; it passed 3/3 isolated immediately afterward and passed in the clean full-suite rerun. No code change was made for the flake.
 - `npm run verify:protocol`: passed; packed protocol/dependency installed outside A008 and an independent TypeScript consumer compiled/ran with `session/resume`, resume capability schema and updated discovery limit.
 - Root and GUI typecheck/build plus `git diff --check`: passed.
