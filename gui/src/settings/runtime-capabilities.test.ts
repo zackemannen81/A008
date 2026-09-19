@@ -7,6 +7,7 @@ import {
   STAGE4_FOUNDATION_FEATURES,
   STAGE4_RECOVERY_FEATURES,
   STAGE4_REMAINING,
+  stage4Complete,
   stage4FoundationComplete,
 } from "./runtime-capabilities.js";
 
@@ -45,11 +46,25 @@ test("runtime discovery recognizes the Stage 4 foundation", async () => {
       }),
   );
   assert.equal(stage4FoundationComplete(loaded), true);
+  assert.equal(stage4Complete(loaded), true);
+  assert.deepEqual(STAGE4_REMAINING, []);
 });
 
 test("Stage 4 foundation requires every advertised foundation feature", () => {
   assert.equal(
     stage4FoundationComplete({ ...info, features: ["session.turn-identity"] }),
+    false,
+  );
+});
+
+test("Stage 4 completion requires restart uncertainty in addition to the earlier slices", () => {
+  assert.equal(
+    stage4Complete({
+      ...info,
+      features: info.features.filter(
+        (feature) => feature !== "session.restart-uncertainty",
+      ),
+    }),
     false,
   );
 });

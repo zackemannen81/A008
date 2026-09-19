@@ -216,6 +216,10 @@ test("real V2 discovery/ticket routes require app auth, registered scope and Ori
         parsedInfo.data.features.includes("session.reconnect-resume"),
         true,
       );
+      assert.equal(
+        parsedInfo.data.features.includes("session.restart-uncertainty"),
+        true,
+      );
       assert.equal(parsedInfo.data.limits.sessionResumeLeaseMs, 45_000);
     }
     assert.ok(!JSON.stringify(info).includes(f.directory));

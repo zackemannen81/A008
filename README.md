@@ -25,7 +25,7 @@ current Single Source of Truth.
 | Tools | Approved repository/file/Git/shell tools plus approved stdio MCP tools |
 | Compatibility | Stable V1 web/ACP paths remain covered while V2 is built out |
 
-The stable-client API programme has completed Stages 1–3 and Stage 4 is now in progress. Stable application turn/message identity, event ordering, snapshot boundaries, terminal outcomes, bounded command receipts/idempotency and a 45-second same-process reconnect/resume lease are implemented; restart uncertainty is the final Stage-4 boundary.
+The stable-client API programme has completed Stages 1–4. Stable application turn/message identity, event ordering, snapshot boundaries, terminal outcomes, bounded command receipts/idempotency, same-process reconnect/resume and explicit restart uncertainty are verified. Stage 5 — independent SDK + bundled web migration — is next.
 See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_stable-client-api-program.md).
 
 ## What works now
@@ -224,7 +224,7 @@ target.
 
 ### Important Stage-4 boundary
 
-V2 now has stable application turn/message identity, per-session event sequencing, authoritative snapshot capture/drain ordering and explicit terminal turn outcomes from A008-0132, process-local bounded command receipts/idempotency from A008-0138, and a same-process 45-second reconnect/resume lease from A008-0139. Transport loss interrupts active work and denies approvals before detach; a scoped opaque capability rebinds the same surviving session and returns an authoritative snapshot without replaying provider/tool work. It does **not yet** promise restart survival or durable uncertainty resolution; that final Stage-4 boundary belongs to A008-0140.
+V2 now has stable application turn/message identity, per-session event sequencing, authoritative snapshot capture/drain ordering and explicit terminal turn outcomes from A008-0132, process-local bounded command receipts/idempotency from A008-0138, a same-process 45-second reconnect/resume lease from A008-0139, and explicit restart uncertainty from A008-0140. Process restart changes `serverInstanceId`, invalidates process-local receipt/resume state and surfaces lost work as unknown rather than replaying or inventing a result. These are bounded process-local guarantees, not durable exactly-once execution or durable sessions.
 
 ## Providers and models
 
@@ -340,12 +340,12 @@ part of verification.
 | 1. Current contract | Complete |
 | 2. Project/session ownership | Complete |
 | 3. V2 and authentication | Complete |
-| 4. Turns and recovery | In progress — identity/order/snapshot/terminal + receipts + reconnect lease complete |
+| 4. Turns and recovery | Complete — identity/order/snapshot/terminal + receipts + reconnect + restart uncertainty verified |
 | 5. SDK and web migration | Not started |
 | 6. Independent Expo proof | Not started |
 | 7. Compatibility release | Not started |
 
-Stage 4 is in progress. A008-0132 stabilizes turn/message identity, snapshot/event ordering and terminal outcomes; A008-0138 adds bounded command receipts/idempotency; A008-0139 adds the same-process reconnect/resume lease. A008-0140 now owns only restart uncertainty plus the final combined Stage-4 closure proof. Stage 5 then moves the completed shared contracts into an independent SDK and migrates the bundled web client.
+Stage 4 is complete. A008-0132 stabilizes turn/message identity, snapshot/event ordering and terminal outcomes; A008-0138 adds bounded command receipts/idempotency; A008-0139 adds the same-process reconnect/resume lease; A008-0140 proves restart uncertainty and the combined recovery matrix. Stage 5 is now the active next gate: move the completed shared contracts into an independent SDK and migrate the bundled web client.
 
 ## Security boundaries
 
