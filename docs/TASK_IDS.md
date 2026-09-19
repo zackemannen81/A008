@@ -149,3 +149,5 @@ never whether work is active or complete. Task state belongs in
 | A008-0133 | OpenAI GPT-5.6 Terra selectable profile | ChatGPT (operator) | 2026-09-19 | add Terra beside Luna through the existing OpenAI/Responses model-selection path without changing defaults |
 | A008-0134 | validated zero-cost model catalog | ChatGPT (operator) | 2026-09-19 | verify currently available zero-cost/free-tier model routes and add a data-only importable source catalog without changing routing |
 | A008-0135 | docs-first reality sync | ChatGPT (operator) | 2026-09-19 | reconcile README and current governing docs with merged runtime/product reality |
+
+| A008-0136 | GUI capability sync and ZeroCostRadar | ChatGPT (operator) | 2026-09-19 | expose Stage-4 discovery/current capability and validated zero-cost model catalog in the bundled GUI without changing routing |
