@@ -2,7 +2,7 @@
 
 Task ID: A008-0134
 Parent Task: None
-Status: In Progress
+Status: Complete
 Owner: ChatGPT (operator)
 Created: 2026-09-19
 Last updated: 2026-09-19
@@ -66,10 +66,10 @@ Contract revision: `cb7a4548c944efc539dcac853d407818b9f58fbe`
 
 ### Minimum Verification Gates
 
-- [ ] Provider-owned current-source review completed.
-- [ ] `npm run typecheck` passes.
-- [ ] Catalog contains no credentials and introduces no executable network call.
-- [ ] No runtime/model-registry/dispatch/ACME file changed.
+- [x] Provider-owned current-source review completed.
+- [x] `npm run typecheck` passes.
+- [x] Catalog contains no credentials and introduces no executable network call.
+- [x] No runtime/model-registry/dispatch/ACME file changed.
 
 ## References
 
@@ -82,10 +82,10 @@ Contract revision: `cb7a4548c944efc539dcac853d407818b9f58fbe`
 - [x] Create isolated task branch.
 - [x] Review repository authority and provider ownership boundaries.
 - [x] Validate candidate routes against current provider-owned sources.
-- [ ] Add typed data-only catalog.
-- [ ] Update owning documentation.
-- [ ] Run verification.
-- [ ] Archive task, write handoff and restore `docs/CURRENT_TASK.md`.
+- [x] Add typed data-only catalog.
+- [x] Update owning documentation.
+- [x] Run verification.
+- [x] Archive task, write handoff and restore `docs/CURRENT_TASK.md`.
 
 ## Decisions and Notes
 
@@ -100,18 +100,24 @@ Contract revision: `cb7a4548c944efc539dcac853d407818b9f58fbe`
 
 ## Verification
 
-- pending
+- Provider-owned current-source review completed on 2026-09-19 for NVIDIA Build, OpenCode Zen, OpenRouter, Groq and Google Gemini.
+- Isolated clone `C:\\code\\A008-workers\\A008-0134-validation-20260919`: `npm run typecheck` passed.
+- `npx prettier --check src/providers/zero-cost-model-catalog.ts` passed after formatting.
+- `npm run build --silent` passed and the compiled catalog imported successfully.
+- Runtime invariant check reported 26 routes across 5 providers with unique route keys and unique provider/model pairs.
+- Review confirmed the catalog contains no credentials, performs no network calls and is not imported by runtime/model-registry/dispatch/ACME owners.
+- No live provider inference and no paid call was performed; validation used current provider-owned catalog, pricing, model and API documentation.
 
 ## Documentation Updates
 
-- [ ] `docs/CURRENT_STATUS.md`
-- [ ] `docs/FILESTRUCTURE.md`
-- [ ] archive + handoff
+- [x] `docs/CURRENT_STATUS.md`
+- [x] `docs/FILESTRUCTURE.md`
+- [x] archive + handoff
 
 ## Handoff and Follow-ups
 
-- Current state: implementation pending.
-- Next recommended step: consume selected entries only in a separately authorized provider/routing task.
+- Current state: complete; the importable catalog is present and remains data-only.
+- Next recommended step: consume selected entries only in a separately authorized provider/routing task; revalidate dynamic/preview/trial entries at consumption time.
 - Blockers: none.
 - Child tasks: none.
 - Resume condition: n/a.
