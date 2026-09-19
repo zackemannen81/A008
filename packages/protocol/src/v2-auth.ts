@@ -79,6 +79,7 @@ export const v2InfoSchema = z.object({
     promptBytes: z.number().int(),
   }),
 });
+export type V2Info = z.infer<typeof v2InfoSchema>;
 export const v2DeviceGrantSchema = z
   .object({
     name: z.string().trim().min(1).max(80),

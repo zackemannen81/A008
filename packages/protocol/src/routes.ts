@@ -11,6 +11,12 @@ export const v1HttpRoutes = [
   ],
   ["GET", "/v1/browser/frame-check", "host network probe", "browser-frame"],
   ["GET", "/v1/catalog/kie", "host catalog", "provider-routes"],
+  [
+    "GET",
+    "/v1/catalog/zero-cost",
+    "validated zero-cost model discovery",
+    "zero-cost-catalog",
+  ],
   ["GET", "/v1/catalog/nvidia", "host upstream catalog", "provider-routes"],
   ["POST", "/v1/catalog/nvidia", "host catalog mutation", "provider-routes"],
   ["DELETE", "/v1/catalog/nvidia", "host catalog mutation", "provider-routes"],

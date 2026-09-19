@@ -10,10 +10,14 @@ import "./parameters.css";
 import { AppearancePanel } from "./appearance-panel.js";
 import { GlobalSettingsForm } from "./global-settings-form.js";
 import { NvidiaCatalogPanel } from "./nvidia-catalog-panel.js";
+import { ZeroCostRadarPanel } from "./zero-cost-radar-panel.js";
+import { RuntimeCapabilitiesPanel } from "./runtime-capabilities-panel.js";
 
 type ParameterPage =
   | "model"
   | "provider"
+  | "radar"
+  | "runtime"
   | "budgets"
   | "instructions"
   | "appearance";
@@ -21,6 +25,8 @@ type ParameterPage =
 const PARAMETER_TABS: readonly { id: ParameterPage; label: string }[] = [
   { id: "model", label: "Model" },
   { id: "provider", label: "Provider" },
+  { id: "radar", label: "Zero Cost" },
+  { id: "runtime", label: "Runtime" },
   { id: "budgets", label: "Budgets" },
   { id: "instructions", label: "Instructions" },
   { id: "appearance", label: "Appearance" },
@@ -70,7 +76,11 @@ function Sampling(props: {
           min="0"
           max="1"
           step="0.01"
-          value={props.value !== null && Number.isFinite(props.value) ? props.value : props.fallback}
+          value={
+            props.value !== null && Number.isFinite(props.value)
+              ? props.value
+              : props.fallback
+          }
           disabled={props.value === null}
           onChange={(event) => props.onChange(Number(event.target.value))}
         />
@@ -96,12 +106,15 @@ function Sampling(props: {
   );
 }
 
-
 export function modelCapabilityBadges(model: GuiModel): readonly string[] {
   const badges: string[] = [];
   if (model.inputModalities.includes("image")) badges.push("Vision");
   if (model.inputModalities.length > 1) badges.push("Multimodal");
-  if (model.capabilities.thinking || model.capabilities.reasoningEfforts.length > 0) badges.push("Reasoning");
+  if (
+    model.capabilities.thinking ||
+    model.capabilities.reasoningEfforts.length > 0
+  )
+    badges.push("Reasoning");
   return badges;
 }
 
@@ -110,14 +123,38 @@ function ModelSpecifications(props: { readonly model: GuiModel }) {
   const badges = modelCapabilityBadges(model);
   return (
     <section className="a008-model-specs" aria-label="Model specifications">
-      {badges.length ? <div className="a008-model-badges">{badges.map((badge) => <span key={badge}>{badge}</span>)}</div> : null}
+      {badges.length ? (
+        <div className="a008-model-badges">
+          {badges.map((badge) => (
+            <span key={badge}>{badge}</span>
+          ))}
+        </div>
+      ) : null}
       <dl>
-        <div><dt>Provider</dt><dd>{model.provider}</dd></div>
-        <div><dt>Execution</dt><dd>{model.executionProvider}</dd></div>
-        <div><dt>Input</dt><dd>{model.inputModalities.join(" · ")}</dd></div>
-        <div><dt>Max output</dt><dd>{model.capabilities.maxTokens.toLocaleString()} tokens</dd></div>
-        <div><dt>Profile verified</dt><dd>{model.verifiedOn ?? "Unverified"}</dd></div>
-        <div><dt>Controls verified</dt><dd>{model.capabilities.verifiedOn}</dd></div>
+        <div>
+          <dt>Provider</dt>
+          <dd>{model.provider}</dd>
+        </div>
+        <div>
+          <dt>Execution</dt>
+          <dd>{model.executionProvider}</dd>
+        </div>
+        <div>
+          <dt>Input</dt>
+          <dd>{model.inputModalities.join(" · ")}</dd>
+        </div>
+        <div>
+          <dt>Max output</dt>
+          <dd>{model.capabilities.maxTokens.toLocaleString()} tokens</dd>
+        </div>
+        <div>
+          <dt>Profile verified</dt>
+          <dd>{model.verifiedOn ?? "Unverified"}</dd>
+        </div>
+        <div>
+          <dt>Controls verified</dt>
+          <dd>{model.capabilities.verifiedOn}</dd>
+        </div>
       </dl>
     </section>
   );
@@ -460,35 +497,38 @@ export function ParametersPanel(props: {
           ))}
         </nav>
         <div hidden={page !== "model"}>
-        <label className="a008-model-select">
-          Model
-          <select
-            aria-label="Selected model"
-            value={session.model}
-            disabled={
-              session.status !== "ready" || session.busy || models.length === 0
-            }
-            onChange={(event) => {
-              void changeModel(event.target.value);
-            }}
-          >
-            {models.length === 0 ? (
-              <option value={session.model}>{session.model}</option>
-            ) : (
-              models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))
-            )}
-          </select>
-        </label>
-        <p className="a008-parameter-footnote">
-          Changing model starts a new conversation.
-        </p>
-        {model ? <ModelSpecifications model={model} /> : null}
+          <label className="a008-model-select">
+            Model
+            <select
+              aria-label="Selected model"
+              value={session.model}
+              disabled={
+                session.status !== "ready" ||
+                session.busy ||
+                models.length === 0
+              }
+              onChange={(event) => {
+                void changeModel(event.target.value);
+              }}
+            >
+              {models.length === 0 ? (
+                <option value={session.model}>{session.model}</option>
+              ) : (
+                models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+          <p className="a008-parameter-footnote">
+            Changing model starts a new conversation.
+          </p>
+          {model ? <ModelSpecifications model={model} /> : null}
         </div>
-        {session.status !== "ready" && page !== "appearance" ? (
+        {session.status !== "ready" &&
+        (page === "model" || page === "budgets" || page === "instructions") ? (
           <div className="a008-parameter-connect">
             <p>Connect to inspect and change the active session.</p>
             <button
@@ -510,25 +550,44 @@ export function ParametersPanel(props: {
         <div hidden={page !== "provider"}>
           <NvidiaCatalogPanel />
         </div>
+        <div hidden={page !== "radar"}>
+          <ZeroCostRadarPanel />
+        </div>
+        <div hidden={page !== "runtime"}>
+          <RuntimeCapabilitiesPanel />
+        </div>
         <div hidden={page !== "model"}>
-        {model ? (
-          <ParameterForm
-            key={`${session.sessionId ?? "idle"}/${model.id}`}
-            session={session}
-            model={model}
-            initial={session.details?.parameters ?? model.defaults}
-          />
-        ) : !error ? (
-          <p role="status">Loading model parameters…</p>
-        ) : null}
+          {model ? (
+            <ParameterForm
+              key={`${session.sessionId ?? "idle"}/${model.id}`}
+              session={session}
+              model={model}
+              initial={session.details?.parameters ?? model.defaults}
+            />
+          ) : !error ? (
+            <p role="status">Loading model parameters…</p>
+          ) : null}
         </div>
         <div hidden={page !== "appearance"}>
           <AppearancePanel />
         </div>
-        {session.details?.runtimePreferences && (page === "budgets" || page === "instructions") ? (
-          <GlobalSettingsForm key={session.sessionId} session={session} initial={session.details.runtimePreferences} page={page} />
-        ) : page !== "model" && page !== "provider" && page !== "appearance" && session.status === "ready" ? (
-          <p role="status">Global settings are unavailable. Restart the current A008 host.</p>
+        {session.details?.runtimePreferences &&
+        (page === "budgets" || page === "instructions") ? (
+          <GlobalSettingsForm
+            key={session.sessionId}
+            session={session}
+            initial={session.details.runtimePreferences}
+            page={page}
+          />
+        ) : page !== "model" &&
+          page !== "provider" &&
+          page !== "radar" &&
+          page !== "runtime" &&
+          page !== "appearance" &&
+          session.status === "ready" ? (
+          <p role="status">
+            Global settings are unavailable. Restart the current A008 host.
+          </p>
         ) : null}
       </div>
     </dialog>

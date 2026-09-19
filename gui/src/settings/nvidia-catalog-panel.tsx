@@ -20,8 +20,12 @@ export function NvidiaCatalogPanel() {
   const [openAiKey, setOpenAiKey] = useState("");
   const [imageModel, setImageModel] = useState("");
   const [imageEndpoint, setImageEndpoint] = useState("");
-  const [chatProvider, setChatProvider] = useState<"nvidia" | "kie" | "openai">("nvidia");
-  const [imageProvider, setImageProvider] = useState<"nvidia" | "kie">("nvidia");
+  const [chatProvider, setChatProvider] = useState<"nvidia" | "kie" | "openai">(
+    "nvidia",
+  );
+  const [imageProvider, setImageProvider] = useState<"nvidia" | "kie">(
+    "nvidia",
+  );
   const [kieChatModel, setKieChatModel] = useState("");
   const [kieChatEndpoint, setKieChatEndpoint] = useState("");
   const [kieImageModel, setKieImageModel] = useState("");
@@ -49,7 +53,9 @@ export function NvidiaCatalogPanel() {
     } catch (reason) {
       setCatalog(undefined);
       if (!signal?.aborted) {
-        setError(reason instanceof Error ? reason.message : "Catalog unavailable.");
+        setError(
+          reason instanceof Error ? reason.message : "Catalog unavailable.",
+        );
       }
     }
   }
@@ -58,7 +64,11 @@ export function NvidiaCatalogPanel() {
     const controller = new AbortController();
     void refresh(controller.signal).catch((reason) => {
       if (!controller.signal.aborted) {
-        setError(reason instanceof Error ? reason.message : "Provider settings failed.");
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : "Provider settings failed.",
+        );
       }
     });
     return () => controller.abort();
@@ -66,7 +76,9 @@ export function NvidiaCatalogPanel() {
 
   const visible =
     catalog?.models.filter((model) =>
-      query.trim() ? model.id.toLowerCase().includes(query.trim().toLowerCase()) : true,
+      query.trim()
+        ? model.id.toLowerCase().includes(query.trim().toLowerCase())
+        : true,
     ) ?? [];
 
   return (
@@ -77,8 +89,8 @@ export function NvidiaCatalogPanel() {
         <a href="https://build.nvidia.com/models?filters=nimType%3Anim_type_preview">
           NVIDIA Build
         </a>
-        . Free Endpoint is hosted inference against NGC credits, not an unlimited
-        free quota.
+        . Free Endpoint is hosted inference against NGC credits, not an
+        unlimited free quota.
       </p>
       <p>
         API key:{" "}
@@ -99,9 +111,9 @@ export function NvidiaCatalogPanel() {
       <h3>kie.ai</h3>
       <p>
         Aggregator for chat, image and video models. Docs:{" "}
-        <a href="https://docs.kie.ai/">docs.kie.ai</a>. Chat uses OpenAI-compatible
-        completions; images use async Market jobs. Video is listed but not wired
-        in this slice.
+        <a href="https://docs.kie.ai/">docs.kie.ai</a>. Chat uses
+        OpenAI-compatible completions; images use async Market jobs. Video is
+        listed but not wired in this slice.
       </p>
       <p>
         kie.ai API key:{" "}
@@ -121,8 +133,9 @@ export function NvidiaCatalogPanel() {
       </label>
       <h3>OpenAI</h3>
       <p>
-        GPT-5.6 Luna is built in as a chat model. The key stays on the A008 host
-        and is write-only from this panel.
+        GPT-5.6 Luna and GPT-5.6 Terra are built-in chat profiles on the native
+        embedded OpenAI Responses route. The key stays on the A008 host and is
+        write-only from this panel.
       </p>
       <p>
         OpenAI API key:{" "}
@@ -146,7 +159,13 @@ export function NvidiaCatalogPanel() {
           value={chatProvider}
           onChange={(event) => {
             const value = event.target.value;
-            setChatProvider(value === "openai" ? "openai" : value === "kie" ? "kie" : "nvidia");
+            setChatProvider(
+              value === "openai"
+                ? "openai"
+                : value === "kie"
+                  ? "kie"
+                  : "nvidia",
+            );
           }}
         >
           <option value="nvidia">NVIDIA</option>
@@ -158,7 +177,9 @@ export function NvidiaCatalogPanel() {
         Image provider
         <select
           value={imageProvider}
-          onChange={(event) => setImageProvider(event.target.value === "kie" ? "kie" : "nvidia")}
+          onChange={(event) =>
+            setImageProvider(event.target.value === "kie" ? "kie" : "nvidia")
+          }
         >
           <option value="nvidia">NVIDIA</option>
           <option value="kie">kie.ai</option>
@@ -166,23 +187,38 @@ export function NvidiaCatalogPanel() {
       </label>
       <label>
         kie.ai chat model
-        <input value={kieChatModel} onChange={(event) => setKieChatModel(event.target.value)} />
+        <input
+          value={kieChatModel}
+          onChange={(event) => setKieChatModel(event.target.value)}
+        />
       </label>
       <label>
         kie.ai chat endpoint
-        <input value={kieChatEndpoint} onChange={(event) => setKieChatEndpoint(event.target.value)} />
+        <input
+          value={kieChatEndpoint}
+          onChange={(event) => setKieChatEndpoint(event.target.value)}
+        />
       </label>
       <label>
         kie.ai image model
-        <input value={kieImageModel} onChange={(event) => setKieImageModel(event.target.value)} />
+        <input
+          value={kieImageModel}
+          onChange={(event) => setKieImageModel(event.target.value)}
+        />
       </label>
       <label>
         NVIDIA image model
-        <input value={imageModel} onChange={(event) => setImageModel(event.target.value)} />
+        <input
+          value={imageModel}
+          onChange={(event) => setImageModel(event.target.value)}
+        />
       </label>
       <label>
         NVIDIA image endpoint
-        <input value={imageEndpoint} onChange={(event) => setImageEndpoint(event.target.value)} />
+        <input
+          value={imageEndpoint}
+          onChange={(event) => setImageEndpoint(event.target.value)}
+        />
       </label>
       <button
         type="button"
@@ -215,7 +251,9 @@ export function NvidiaCatalogPanel() {
               );
             })
             .catch((reason) => {
-              setError(reason instanceof Error ? reason.message : "Save failed.");
+              setError(
+                reason instanceof Error ? reason.message : "Save failed.",
+              );
             })
             .finally(() => setBusy(false));
         }}
@@ -239,7 +277,9 @@ export function NvidiaCatalogPanel() {
           setError("");
           void refresh()
             .catch((reason) => {
-              setError(reason instanceof Error ? reason.message : "Refresh failed.");
+              setError(
+                reason instanceof Error ? reason.message : "Refresh failed.",
+              );
             })
             .finally(() => setBusy(false));
         }}
@@ -260,9 +300,15 @@ export function NvidiaCatalogPanel() {
                 setError("");
                 void addNvidiaModel(model.id)
                   .then(() => refresh())
-                  .then(() => setNotice(`Added ${model.id}. It appears in the Model list.`))
+                  .then(() =>
+                    setNotice(
+                      `Added ${model.id}. It appears in the Model list.`,
+                    ),
+                  )
                   .catch((reason) => {
-                    setError(reason instanceof Error ? reason.message : "Add failed.");
+                    setError(
+                      reason instanceof Error ? reason.message : "Add failed.",
+                    );
                   })
                   .finally(() => setBusy(false));
               }}
@@ -272,7 +318,9 @@ export function NvidiaCatalogPanel() {
           </li>
         ))}
       </ul>
-      {visible.length > 80 ? <p>Showing 80 of {visible.length}. Filter to narrow.</p> : null}
+      {visible.length > 80 ? (
+        <p>Showing 80 of {visible.length}. Filter to narrow.</p>
+      ) : null}
       {kieCatalog ? (
         <>
           <h3>kie.ai market (curated)</h3>
@@ -295,7 +343,11 @@ export function NvidiaCatalogPanel() {
                             kieImageModel: model.id,
                           })
                         : model.kind === "video"
-                          ? Promise.reject(new Error("Video models are listed but not wired yet."))
+                          ? Promise.reject(
+                              new Error(
+                                "Video models are listed but not wired yet.",
+                              ),
+                            )
                           : addNvidiaModel(model.id, fetch, "kie").then(() =>
                               saveProviderSettings({
                                 chatProvider: "kie",
@@ -307,12 +359,20 @@ export function NvidiaCatalogPanel() {
                       .then(() => refresh())
                       .then(() => setNotice(`Selected ${model.id}.`))
                       .catch((reason) => {
-                        setError(reason instanceof Error ? reason.message : "Add failed.");
+                        setError(
+                          reason instanceof Error
+                            ? reason.message
+                            : "Add failed.",
+                        );
                       })
                       .finally(() => setBusy(false));
                   }}
                 >
-                  {model.kind === "video" ? "Not wired" : model.added ? "Added" : "Use"}
+                  {model.kind === "video"
+                    ? "Not wired"
+                    : model.added
+                      ? "Added"
+                      : "Use"}
                 </button>
               </li>
             ))}

@@ -34,6 +34,16 @@ not input tokens or memory processing. Seed/stop appear where supported.
 **Model defaults** loads the profile values for review before applying them.
 Settings and chat history are not persisted across reconnects.
 
+Parameters also exposes two read-only current-capability views. **Zero Cost**
+loads the A008-0134 catalog from `GET /v1/catalog/zero-cost`, distinguishes
+existing A008 profiles from discovery-only candidates, shows lifecycle/quota/
+data-policy/source metadata, and never registers or routes a model. **Runtime**
+loads public `GET /v2/info` and shows the running host's implemented Stage-4
+identity/order/snapshot/terminal foundation plus the still-unimplemented
+idempotency/reconnect/restart boundaries. The bundled GUI itself continues to
+speak V1 until Stage 5; its existing 45-second V1 reconnect behavior is not a
+V2 recovery claim.
+
 Chat, Memory and **Tools** remain accessible on a narrow screen; Tools contains
 Terminal and Upload. The parameter dialog supports Tab/Escape and restores focus.
 Restart the host after building so the ACP process registers the new controls.

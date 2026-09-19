@@ -26,6 +26,7 @@ import { parseClientMessage } from "../src/gui-host/protocol.js";
 import {
   hostServerMessageSchema,
   modelsResponseSchema,
+  zeroCostCatalogSchema,
 } from "../packages/protocol/src/index.js";
 import { redactWireText } from "../src/gui-host/redact.js";
 import {
@@ -387,6 +388,20 @@ test("GET /health and /v1/models do not require a credential", async () => {
         (entry) => entry.id === "nvidia/nemotron-3.5-lightning-30b-a3b",
       ),
     );
+    const zeroCost = await httpJson(host, "/v1/catalog/zero-cost");
+    assert.equal(zeroCost.status, 200);
+    const parsedZeroCost = zeroCostCatalogSchema.safeParse(zeroCost.body);
+    assert.equal(parsedZeroCost.success, true);
+    if (parsedZeroCost.success) {
+      assert.equal(parsedZeroCost.data.routes.length, 26);
+      assert.equal(parsedZeroCost.data.verifiedAt, "2026-09-19");
+      assert.ok(
+        parsedZeroCost.data.routes.some((route) => route.a008ProfileId),
+      );
+      assert.ok(
+        parsedZeroCost.data.routes.some((route) => !route.a008ProfileId),
+      );
+    }
     for (const entry of listed) {
       assert.equal(typeof entry.id, "string");
       assert.equal(typeof entry.name, "string");
@@ -415,7 +430,7 @@ test("GET /health and /v1/models do not require a credential", async () => {
       const verifiedOn = (entry as { verifiedOn?: unknown }).verifiedOn;
       assert.ok(verifiedOn === undefined || typeof verifiedOn === "string");
     }
-    assertWireClean([health.raw, models.raw]);
+    assertWireClean([health.raw, models.raw, zeroCost.raw]);
   });
 });
 

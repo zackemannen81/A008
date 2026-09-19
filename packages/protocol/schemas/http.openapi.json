@@ -312,6 +312,48 @@
         ]
       }
     },
+    "/v1/catalog/zero-cost": {
+      "get": {
+        "summary": "validated zero-cost model discovery",
+        "x-a008-owner": "zero-cost-catalog",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/zeroCostCatalog"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
     "/v1/catalog/nvidia": {
       "get": {
         "summary": "host upstream catalog",
@@ -2239,6 +2281,141 @@
         "$defs": {
           "__schema0": {
             "type": "string"
+          }
+        }
+      },
+      "zeroCostCatalog": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "verifiedAt": {
+            "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema0"
+          },
+          "routes": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema0"
+                },
+                "provider": {
+                  "type": "string",
+                  "enum": ["nvidia", "opencode", "openrouter", "groq", "google"]
+                },
+                "modelId": {
+                  "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema0"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema0"
+                },
+                "baseUrl": {
+                  "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema0"
+                },
+                "apiStyle": {
+                  "type": "string",
+                  "enum": ["openai-chat-completions", "openai-responses"]
+                },
+                "access": {
+                  "type": "string",
+                  "enum": ["free-endpoint", "free-model", "free-tier"]
+                },
+                "lifecycle": {
+                  "type": "string",
+                  "enum": ["recurring", "dynamic", "preview", "trial"]
+                },
+                "contextWindow": {
+                  "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema2"
+                },
+                "maxOutputTokens": {
+                  "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema2"
+                },
+                "inputModalities": {
+                  "readOnly": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": ["text", "image", "audio", "video", "pdf"]
+                  }
+                },
+                "capabilities": {
+                  "readOnly": true,
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "agentic",
+                      "coding",
+                      "reasoning",
+                      "tools",
+                      "structured-output",
+                      "code-execution",
+                      "long-context",
+                      "multimodal"
+                    ]
+                  }
+                },
+                "quota": {
+                  "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema1"
+                },
+                "expiresAt": {
+                  "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema1"
+                },
+                "dataPolicy": {
+                  "type": "string",
+                  "enum": [
+                    "review-before-sensitive-use",
+                    "do-not-send-sensitive-data"
+                  ]
+                },
+                "a008ProfileId": {
+                  "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema1"
+                },
+                "note": {
+                  "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema1"
+                },
+                "verifiedAt": {
+                  "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema0"
+                },
+                "sourceUrls": {
+                  "readOnly": true,
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema0"
+                  }
+                }
+              },
+              "required": [
+                "key",
+                "provider",
+                "modelId",
+                "name",
+                "baseUrl",
+                "apiStyle",
+                "access",
+                "lifecycle",
+                "dataPolicy",
+                "verifiedAt",
+                "sourceUrls"
+              ]
+            }
+          }
+        },
+        "required": ["verifiedAt", "routes"],
+        "$defs": {
+          "__schema0": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema1"
+          },
+          "__schema1": {
+            "type": "string"
+          },
+          "__schema2": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
           }
         }
       },

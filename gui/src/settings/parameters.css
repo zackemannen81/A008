@@ -431,3 +431,197 @@
 .a008-model-specs dl div { display: grid; grid-template-columns: 7.5rem minmax(0,1fr); gap: .75rem; font-size: .74rem; }
 .a008-model-specs dt { color: var(--a008-muted); }
 .a008-model-specs dd { margin: 0; overflow-wrap: anywhere; }
+
+.a008-radar-heading,
+.a008-runtime-heading,
+.a008-radar-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: .8rem;
+}
+.a008-radar-heading h3,
+.a008-runtime-heading h3 {
+  margin: .1rem 0 0;
+}
+.a008-radar-kicker {
+  margin: 0 !important;
+  color: var(--a008-accent) !important;
+  font-size: .62rem !important;
+  letter-spacing: .14em;
+}
+.a008-radar-heading > span {
+  color: var(--a008-muted);
+  font-size: .68rem;
+}
+.a008-radar-intro {
+  color: var(--a008-muted);
+  font-size: .75rem;
+  line-height: 1.55;
+}
+.a008-radar-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .55rem;
+  margin: 1rem 0;
+}
+.a008-radar-summary > div {
+  border: 1px solid var(--a008-border);
+  border-radius: .5rem;
+  padding: .7rem;
+  background: var(--a008-bg);
+}
+.a008-radar-summary strong,
+.a008-radar-summary span {
+  display: block;
+}
+.a008-radar-summary strong {
+  font-size: 1.15rem;
+}
+.a008-radar-summary span {
+  margin-top: .2rem;
+  color: var(--a008-muted);
+  font-size: .65rem;
+}
+.a008-radar-search {
+  display: block;
+  margin: 1rem 0;
+}
+.a008-radar-list {
+  display: grid;
+  gap: .65rem;
+}
+.a008-radar-card {
+  border: 1px solid var(--a008-border);
+  border-radius: .55rem;
+  padding: .8rem;
+  background: var(--a008-bg);
+}
+.a008-radar-card-heading strong,
+.a008-radar-card-heading code {
+  display: block;
+}
+.a008-radar-card-heading code {
+  margin-top: .25rem;
+  color: var(--a008-muted);
+  font-size: .67rem;
+  overflow-wrap: anywhere;
+}
+.a008-radar-ready,
+.a008-radar-discovery {
+  flex: none;
+  border: 1px solid var(--a008-border-strong);
+  border-radius: 999px;
+  padding: .25rem .45rem;
+  font-size: .56rem;
+  letter-spacing: .08em;
+}
+.a008-radar-ready {
+  color: var(--a008-accent);
+  border-color: var(--a008-accent);
+}
+.a008-radar-discovery {
+  color: var(--a008-muted);
+}
+.a008-radar-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+  margin: .65rem 0;
+}
+.a008-radar-badges span {
+  border: 1px solid var(--a008-border);
+  border-radius: 999px;
+  padding: .2rem .4rem;
+  color: var(--a008-fg-soft);
+  font-size: .6rem;
+}
+.a008-radar-meta,
+.a008-runtime-meta {
+  display: grid;
+  gap: .35rem;
+  margin: .65rem 0;
+}
+.a008-radar-meta > div,
+.a008-runtime-meta > div {
+  display: grid;
+  grid-template-columns: 5.2rem minmax(0, 1fr);
+  gap: .55rem;
+  font-size: .68rem;
+}
+.a008-radar-meta dt,
+.a008-runtime-meta dt {
+  color: var(--a008-muted);
+}
+.a008-radar-meta dd,
+.a008-runtime-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.a008-radar-card > p,
+.a008-radar-capabilities {
+  color: var(--a008-muted);
+  font-size: .68rem;
+  line-height: 1.5;
+}
+.a008-radar-policy {
+  border-left: 2px solid var(--a008-border-strong);
+  padding-left: .55rem;
+}
+.a008-radar-policy-danger {
+  color: var(--a008-danger) !important;
+}
+.a008-radar-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+}
+.a008-radar-sources a {
+  color: var(--a008-accent);
+  font-size: .66rem;
+}
+.a008-runtime-capabilities h4 {
+  margin: 1.2rem 0 .55rem;
+  font-size: .75rem;
+}
+.a008-runtime-features,
+.a008-runtime-pending {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.a008-runtime-features li,
+.a008-runtime-pending li {
+  display: flex;
+  gap: .5rem;
+  align-items: baseline;
+  padding: .35rem 0;
+  border-top: 1px solid var(--a008-border);
+  color: var(--a008-muted);
+  font-size: .68rem;
+}
+.a008-runtime-features li[data-available="true"] {
+  color: var(--a008-fg-soft);
+}
+.a008-runtime-features li[data-available="true"] > span {
+  color: var(--a008-accent);
+}
+.a008-runtime-all-features {
+  margin-top: 1rem;
+  color: var(--a008-muted);
+  font-size: .68rem;
+}
+.a008-runtime-all-features code {
+  display: block;
+  margin-top: .55rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 520px) {
+  .a008-radar-summary {
+    grid-template-columns: 1fr;
+  }
+  .a008-radar-card-heading {
+    align-items: flex-start;
+  }
+}
