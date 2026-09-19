@@ -136,11 +136,11 @@
   --a008-warning: #f3b65b;
   --a008-danger: #ef7964;
 
-  --a008-glow-accent: 0 0 6px rgba(132, 255, 105, 0.72), 0 0 20px rgba(132, 255, 105, 0.22);
+  --a008-glow-accent: 0 0 8px rgba(132, 255, 105, 0.78), 0 0 28px rgba(132, 255, 105, 0.3);
   --a008-shadow-panel: 0 16px 40px rgba(0, 0, 0, 0.62), 0 0 18px rgba(212, 136, 55, 0.08);
   --a008-overlay: rgba(7, 8, 4, 0.8);
   --a008-crt-scanline: rgba(6, 17, 7, 0.2);
-  --a008-crt-bloom: rgba(132, 255, 105, 0.42);
+  --a008-crt-bloom: rgba(132, 255, 105, 0.5);
   --a008-grid: rgba(222, 176, 102, 0.045);
 
   --a008-viz-identity: #f0c66b;
