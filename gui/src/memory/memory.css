@@ -82,6 +82,16 @@
   border-color: var(--a008-accent);
   background: var(--a008-accent-soft);
 }
+html[data-a008-theme="oldscool"] .memory-button:not(.memory-button-quiet) {
+  border-color: color-mix(in srgb, var(--a008-success) 62%, var(--a008-border-strong));
+  color: var(--a008-success);
+  text-shadow: 0 0 0.35rem var(--a008-crt-bloom);
+  box-shadow: var(--a008-glow-accent);
+}
+html[data-a008-theme="oldscool"] .memory-button:not(.memory-button-quiet):hover:not(:disabled),
+html[data-a008-theme="oldscool"] .memory-button:not(.memory-button-quiet):focus-visible {
+  box-shadow: 0 0 8px var(--a008-crt-bloom), 0 0 24px var(--a008-crt-bloom);
+}
 .memory-button-quiet {
   color: var(--a008-muted);
   background: transparent;

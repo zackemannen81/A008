@@ -5,6 +5,8 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0141 adds Oldscool as a third renderer-local app theme. Parameters → Appearance persists `oldscool` under the existing `a008.preferences.appearance.theme` value and applies it before React loads. Oldscool uses dark olive-black surfaces, warm amber/cream text and borders, phosphor-green controls, a static pointer-inert CRT scanline layer, and restrained phosphor bloom on selected chrome and primary controls. All effects are scoped to `html[data-a008-theme="oldscool"]`; Neutral and Deep Space retain their existing presentation. The effect does not alter sessions, models, memory, tools, providers, host/API behavior or the sandboxed Code Canvas preview. Verification: 177 GUI tests passed with 0 failures/skips; GUI typecheck, production build and diff hygiene passed. The build retains only the existing Zod annotation and >500 kB bundle warnings.
+
 A008-0138 implements the second Stage-4 slice: bounded process-local command receipts and mutation idempotency for V2. Mutating session commands carry a stable application `commandId` distinct from request/turn/session/execution identity; the host binds `(principal, commandId)` to a canonical digest of action/project/session/payload before side effects. Same-ID/same-payload retries observe the existing running or terminal receipt without repeating provider/tool/approval work; changed content returns `COMMAND_CONFLICT`. Receipts retain only bounded metadata/digest-derived identity, not prompt/tool payloads, remain authorized to the originating principal/project, expire five minutes after settlement, and are capped at 1,024 entries per principal without evicting running or unexpired work. Unknown/expired lookup returns `COMMAND_UNKNOWN` through authenticated `GET /v2/projects/{projectId}/commands/{commandId}`. `session/inspect` and `session/control` with `control.action=inspect` remain read-only and require no command ID. Discovery now advertises `session.command-receipts` and `session.command-idempotency` plus their limits; the bundled GUI reports reconnect/resume lease and restart uncertainty as the remaining Stage-4 gaps. Verification: 677 core + 4 membership + 176 GUI = 857 tests, 0 failures/skips; focused receipt/V2 19/19; root/GUI typecheck, build, packed independent protocol consumer and diff hygiene pass. Stage 4 remains In Progress; A008-0139 reconnect/resume lease is next.
 
 A008-0137 refines the existing read-only Memory Relationship Map presentation without changing memory semantics or runtime authority. Kind-specific neon forms/colours, directed arrows, selected stored-relation labels and parallel displayed-link width make the bounded graph easier to inspect. Focus mode keeps unrelated graph context visible but subdued/dashed while emphasizing the selected neighbourhood. Visual width represents only duplicate displayed stored topology, never evidence strength, confidence, relevance or semantic similarity. Verification: GUI typecheck passed; 176 GUI tests passed with 0 failures/skips; GUI production build and diff hygiene passed.
@@ -131,8 +133,11 @@ JSON only. Opening a project starts a new ACP session in that root.
 
 A008-0093 adds a persistent global app theme. The GUI starts as Neutral, the
 extracted current charcoal palette. Parameters → Appearance → App theme can
-switch to Deep Space immediately without reload, a new session, a provider call
-or memory/tool changes. Theme identity is renderer-local
+switch to Deep Space or Oldscool immediately without reload, a new session, a
+provider call or memory/tool changes. Deep Space uses blue-black/navy with
+restrained electric-blue interaction; Oldscool uses dark CRT surfaces,
+phosphor-green controls and warm retro highlights. Theme identity is
+renderer-local
 (`localStorage` `a008.preferences.appearance.theme`); missing or unknown values
 default to Neutral. CSS custom properties on `html[data-a008-theme]` own colour
 values; existing `--a008-*` names alias that model. Visualization colours are a

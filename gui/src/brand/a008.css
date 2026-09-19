@@ -64,6 +64,7 @@ body {
     minmax(0, 28rem);
   height: 100%;
   overflow: hidden;
+  position: relative;
   font-family: var(--a008-sans);
   color: var(--a008-fg);
   background-color: var(--a008-bg);
@@ -71,6 +72,49 @@ body {
     linear-gradient(var(--a008-grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--a008-grid) 1px, transparent 1px);
   background-size: 26px 26px;
+}
+
+/* Oldscool only: a static, input-transparent CRT texture over the host chrome. */
+.a008-crt-overlay {
+  display: none;
+}
+
+html[data-a008-theme="oldscool"] .a008-crt-overlay {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 2px,
+    var(--a008-crt-scanline) 3px,
+    var(--a008-crt-scanline) 4px
+  );
+  mix-blend-mode: multiply;
+}
+
+html[data-a008-theme="oldscool"] .a008-brand,
+html[data-a008-theme="oldscool"] .a008-header-status,
+html[data-a008-theme="oldscool"] .a008-settings-title,
+html[data-a008-theme="oldscool"] .a008-settings-row[data-field="product"] dd {
+  text-shadow: 0 0 0.4rem var(--a008-crt-bloom);
+}
+
+html[data-a008-theme="oldscool"] .a008-composer-send,
+html[data-a008-theme="oldscool"] .a008-settings-connect,
+html[data-a008-theme="oldscool"] .a008-header-tabs button[aria-current] {
+  border-color: var(--a008-success);
+  box-shadow: var(--a008-glow-accent);
+  text-shadow: 0 0 0.35rem var(--a008-crt-bloom);
+}
+
+html[data-a008-theme="oldscool"] .a008-composer-send:hover:not(:disabled),
+html[data-a008-theme="oldscool"] .a008-composer-send:focus-visible,
+html[data-a008-theme="oldscool"] .a008-settings-connect:hover,
+html[data-a008-theme="oldscool"] .a008-settings-connect:focus-visible {
+  box-shadow: 0 0 8px var(--a008-crt-bloom), 0 0 24px var(--a008-crt-bloom);
 }
 
 /* Identity left, workspace tabs centre, runtime status right. */

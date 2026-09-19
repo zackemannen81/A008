@@ -1,3 +1,5 @@
+A008-0141 adds the renderer-local Oldscool CRT presentation to the existing theme owner: `gui/src/brand/{theme,themes,a008}.ts*` owns identity, complete semantic tokens, static pointer-inert scanlines and chrome/control phosphor bloom; `gui/src/memory/memory.css` adds Oldscool-only bloom for primary Memory buttons. `gui/src/app.tsx` renders the inert overlay, while `gui/index.html` applies the persisted identity before React mounts. No host/runtime/session/provider/memory or sandboxed Code Canvas preview behavior changes.
+
 A008-0137 refines that existing read-only SVG presentation in `gui/src/memory/{memory-graph,memory-graph-shape,memory-graph-layout,memory.css}.tsx`: kind-specific neon forms and colours, directed arrows, selected stored-relation labels and parallel-topology width now make the bounded stored graph easier to inspect. Focus preserves the whole graph as dark dashed context while framing/emphasizing the selected neighbourhood. Arrow width is only the count of parallel displayed stored links in the same direction; it is never evidence strength or another memory semantic.
 
 A008-0138 adds `src/gui-host/v2-command-receipts.ts` as the bounded process-local receipt owner used by the existing V2 session/WebSocket boundary. `packages/protocol/src/{v2-auth,v2-session}.ts` and generated V2 schemas/OpenAPI expose command IDs, receipt metadata, command conflict/unknown/capacity outcomes and authenticated receipt lookup. `test/A008-0138-stage4-command-receipts.test.ts` owns deterministic digest/retention/capacity/principal-isolation coverage; `test/v2-auth.test.ts` owns real-host retry, conflict, tool-permission dedupe and HTTP lookup coverage. `gui/src/settings/runtime-capabilities*.ts*` presents the implemented receipt slice and leaves reconnect/restart pending.
@@ -199,7 +201,7 @@ A008/
 |  |  |  |- nvidia-catalog.ts        NVIDIA/kie/OpenAI provider-settings client
 |  |  |  `- nvidia-catalog-panel.tsx Provider keys, NVIDIA Build, kie market, OpenAI
 |  |  |- brand/                      A008-0037 identity; A008-0093 theme tokens
-|  |  |  |- themes.css               Neutral and Deep Space semantic token values
+|  |  |  |- themes.css               Neutral, Deep Space and Oldscool semantic token values
 |  |  |  |- theme.ts                 theme identity and root attribute
 |  |  |  |- theme-storage.ts         renderer-local appearance preference
 |  |  |  |- a008-ascii.ts            A008-0074 owner ASCII source

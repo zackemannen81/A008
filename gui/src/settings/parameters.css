@@ -363,7 +363,7 @@
 }
 .a008-theme-choices {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.85rem;
   margin-top: 1.2rem;
 }
@@ -417,6 +417,29 @@
   right: 1.4rem;
   bottom: 0.7rem;
   letter-spacing: 0.35em;
+}
+.a008-theme-card[data-a008-theme="oldscool"]::before,
+.a008-theme-card[data-a008-theme="oldscool"]::after {
+  position: absolute;
+  color: #84ff69;
+  opacity: 0.75;
+  pointer-events: none;
+  font-family: var(--a008-mono);
+  text-shadow: 0 0 0.45rem rgba(132, 255, 105, 0.8);
+}
+.a008-theme-card[data-a008-theme="oldscool"]::before {
+  content: "▰ ▰ ▰";
+  top: 0.75rem;
+  right: 0.8rem;
+  font-size: 0.45rem;
+  letter-spacing: 0.2rem;
+}
+.a008-theme-card[data-a008-theme="oldscool"]::after {
+  content: "READY";
+  right: 0.85rem;
+  bottom: 0.75rem;
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
 }
 @media (max-width: 640px) {
   .a008-theme-choices {

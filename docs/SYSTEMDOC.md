@@ -529,12 +529,17 @@ panes. The Browser pane is a sandboxed iframe; sites that set
 `frame-ancestors` or `X-Frame-Options` (ChatGPT, NVIDIA Build, …) are not
 framed. The host probes those headers and the pane offers Open in the system
 browser instead. On a narrow screen the workbench card occupies the main area; the same
-button closes it. `brand/themes.css` defines Neutral (the extracted current charcoal palette) and
-Deep Space (blue-black/navy with restrained electric-blue interaction) as semantic
-custom properties on `html[data-a008-theme]`. `brand/a008.css` aliases the older
+button closes it. `brand/themes.css` defines Neutral (the extracted current charcoal palette),
+Deep Space (blue-black/navy with restrained electric-blue interaction), and
+Oldscool (dark CRT surfaces, phosphor-green controls, warm retro highlights, a static
+pointer-inert scanline layer, and selected-control phosphor bloom)
+as semantic custom properties on `html[data-a008-theme]`. `brand/a008.css` aliases the older
 `--a008-*` names onto that model so unmigrated feature CSS follows the selected
 theme; `brand/workspace.css` is loaded last for shell and responsive composition.
-Parameters → Appearance → App theme switches immediately. The choice is stored in
+Parameters → Appearance → App theme switches immediately. Oldscool alone also adds a static
+pointer-inert scanline layer plus restrained phosphor bloom to selected chrome and primary
+controls; it does not affect input, runtime/session state, Neutral/Deep Space, or the sandboxed
+Code Canvas preview. The choice is stored in
 renderer-local `a008.preferences` as `{ appearance: { theme } }`, not in runtime
 settings or session state. Missing or unknown values default to Neutral. Graph
 and Memory kind colours use a separate `--a008-viz-*` family. The Code Canvas
@@ -551,8 +556,8 @@ undo removes a committed pair, and model switch opens a fresh local-memory
 conversation within the owned ACP session. End session releases it and leaves
 the page running. These operations do not delete saved memory.
 
-The header Parameters dialog includes Appearance, which selects Neutral or Deep
-Space without a connected session. Model, Provider, Budgets and Instructions
+The header Parameters dialog includes Appearance, which selects Neutral, Deep
+Space, or Oldscool without a connected session. Model, Provider, Budgets and Instructions
 remain session/runtime controls. Appearance is renderer-local only.
 
 The header Parameters dialog uses endpoint capability metadata from GET

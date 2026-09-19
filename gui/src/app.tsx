@@ -204,6 +204,7 @@ export function App() {
     <div
       className={`a008-app a008-${page}-workspace${toolsOpen ? " a008-panel-open" : ""}${navigationOpen ? " a008-navigation-open" : ""}`}
     >
+      <div className="a008-crt-overlay" aria-hidden="true" />
       <ToolPermissionDialog session={session} />
       <aside className="a008-rail" id="a008-navigation" aria-label="Workspace navigation">
         <div className="a008-sidebar-brand">
