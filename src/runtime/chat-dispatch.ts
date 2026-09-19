@@ -50,6 +50,7 @@ function isKnownKieChatModel(model: string, catalog: UserCatalog): boolean {
 function isKnownOpenAiChatModel(model: string, catalog: UserCatalog): boolean {
   return (
     model === "gpt-5.6-luna" ||
+    model === "gpt-5.6-terra" ||
     catalog.chatModels.some(
       (entry) => entry.id === model && entry.provider === "openai",
     )

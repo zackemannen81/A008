@@ -87,9 +87,15 @@ test("embedded ACME config is derived from A008 model ownership", () => {
     const luna = config.openAi?.profiles.find(
       (profile) => profile.model === "gpt-5.6-luna",
     );
+    const terra = config.openAi?.profiles.find(
+      (profile) => profile.model === "gpt-5.6-terra",
+    );
     assert.ok(luna);
+    assert.ok(terra);
     assert.equal(luna.selection.providerHint, "openai");
+    assert.equal(terra.selection.providerHint, "openai");
     assert.equal(luna.capabilities?.vision, true);
+    assert.equal(terra.capabilities?.vision, true);
     assert.equal(
       config.compatible?.some((provider) => provider.providerHint === "openai"),
       false,

@@ -60,6 +60,16 @@ export function generationCapabilities(model: string): GenerationCapabilities {
       };
     case "poolside/laguna-xs-2.1":
       return { ...common, maxTokens: 16384, seed: false };
+
+    case "gpt-5.6-terra":
+      return {
+        ...common,
+        maxTokens: 128000,
+        topP: false,
+        reasoningEfforts: ["none", "low", "medium", "high", "xhigh", "max"],
+        seed: false,
+        verifiedOn: "2026-09-19",
+      };
     case "gpt-5.6-luna":
       return {
         ...common,
