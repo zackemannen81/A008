@@ -2470,3 +2470,18 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Final verification after merging current main: root typecheck/build passed; packed protocol and independent offline consumer passed; `npm test` passed 671 core + 4 membership + 171 GUI = 846 tests, 0 failures/skips. No live or paid provider call was required.
 - Stage 4 remains In Progress. Command receipts/idempotency, reconnect/resume/lease and restart uncertainty remain separate unclaimed children. `origin/chatGPT/A008-0135-stage4` is only an owner-created safety snapshot of `88afae6`, not a claimed task.
 - [Handoff](handoffs/A008-0132.md). Signature: ChatGPT (operator)
+
+## 2026-09-19 — A008-0136 GUI capability sync closure repair
+
+- A008-0136 merged through PR #77 at `ffd286c` with the read-only ZeroCostRadar, runtime capability view and truthful A008-0132 V2 discovery metadata.
+- Recorded verification remains 671 core + 4 membership + 175 GUI = 850 tests, plus focused 58/58 host/protocol/V2 checks, root typecheck/build, GUI production build and packed independent protocol consumer.
+- The implementation was already complete; this repair archives the completed charter, writes the missing handoff and restores `docs/CURRENT_TASK.md` byte-for-byte to the empty template. No product code or runtime behavior changed.
+- [Handoff](handoffs/A008-0136.md). Signature: ChatGPT (operator, retrospective closure)
+
+## 2026-09-19 — A008-0137 neon memory-map topology presentation
+
+- Operator: Rickard. The read-only Memory Relationship Map now uses kind-specific neon forms/colours, directed arrows, selected stored-relation labels and parallel-topology visual width while preserving unrelated context as subdued/dashed content in focus mode.
+- Visual width represents only the count of parallel displayed stored links; it does not claim evidence strength, confidence, relevance or semantic distance.
+- Verification recorded by the merged task: GUI typecheck passed; 176 GUI tests passed with 0 failures/skips; GUI production build and `git diff --check` passed.
+- The implementation merged through PR #78 before its ID claim/archive/handoff was completed. The identity is claimed retrospectively to match merged reality; the completed record is archived without changing scope or product behavior.
+- [Handoff](handoffs/A008-0137.md). Signature: ChatGPT (operator, retrospective closure)
