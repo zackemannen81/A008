@@ -30,7 +30,7 @@ existing client silently breaks and no project silently receives empty memory.
 | 2. Project/session ownership | Complete | A008-0107/0108/0109 shared registry, facade, exact binding and process ownership proof |
 | 3. V2 and auth | Complete | A008-0110/0112: scoped device auth, tickets, authenticated WS dispatch and live revoke/expiry |
 | 3.5 ACME execution evaluation | Complete; GO | A008-0118: `AcmeChatTransport` on `acme-model-runtime/2`; live chat matrix and owner client loop passed; images remain direct; Stage 4 may start |
-| 4. Turns and recovery | Not started; A008-0132 Draft | First child will establish application turn/message identity, monotonic events, snapshot boundary and terminal outcomes; receipts/idempotency and reconnect/restart remain later Stage-4 children |
+| 4. Turns and recovery | In progress; A008-0132 complete | Stable application turn/message identity, per-session monotonic events, ordered snapshot boundary and terminal outcomes are implemented; command receipts/idempotency, reconnect/resume and restart uncertainty remain later Stage-4 children |
 | 5. SDK and web migration | Not started | Independent package and complete web coverage |
 | 6. Independent Expo proof | Not started | Real platform/remote auth and background-return checks |
 | 7. Compatibility release | Not started | Frozen client vs compatible future server gate |
@@ -70,9 +70,11 @@ shared schemas, public discovery and one-use tickets. V2 session/HTTP business
 operations and live-socket revocation are not delivered. The owner requested
 stopping at this completed-task boundary; do not allocate another child in this
 run. Resume by reviewing ADR 0041/CLIENT_API_V2 and freezing the next stage-3
-child on main. Later stages 4 through 7 remain unstarted.
+child on main. At that A008-0110 completion boundary, later stages 4 through 7 were still unstarted.
 
 A008-0111 is a separate owner-requested prerequisite after the A008-0110 stop: Projects can now register/open an already-existing root without project-tree mutation or heuristic legacy-memory migration. It does not advance the stage-3 checklist.
 
 A008-0112 completes stage 3: `/v2/session` authenticates one-use tickets on first frame, binds principal/project/session authority, dispatches session and tool-permission operations through the shared runtime owner, rechecks capability/expiry per operation and closes/cancels/denies on revoke or expiry. Stage 4 now owns sequence/snapshot boundaries, terminal turn outcomes, reconnect/resume and mutation idempotency.
 A008-0114 completed the first Stage 3.5 evaluation against `acme-model-runtime/1` and recorded **NO-GO** because that wire could not carry A008 thinking/reasoning/topP/seed controls. A008-0118 consumes `acme-model-runtime/2`, maps those controls, and records **GO** after live chat matrix and owner client-loop evidence. Selection remains `A008_CHAT_TRANSPORT=acme`. Direct chat transports remain reference composition. Image/audio/video stay on their current owners. Stage 4 may start and must keep application `commandId`/`turnId`/event sequence distinct from ACME `modelExecutionId`.
+
+A008-0132 completes the first Stage-4 child: V2 now owns stable application `turnId`/`messageId`, per-session monotonic sequence under one `serverInstanceId`, an ordered snapshot capture/drain boundary and exactly-one terminal turn settlement with separate answer/memory status. Stage 4 remains In Progress; command receipts/idempotency, reconnect/resume/lease and restart uncertainty are intentionally separate later children.

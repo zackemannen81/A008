@@ -2461,3 +2461,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Static verification passed: root/GUI typecheck, GUI production build and diff hygiene. Focused/full automated suites were not rerun through Remote Desktop Commander and are not claimed.
 - Owner live proof passed after the fix: paste, file attach and explicit path all produced active attachments, and GPT-5.6 Luna demonstrably received and described the image end-to-end.
 - Signature: ChatGPT (operator)
+
+## 2026-09-19 — A008-0132 Stage 4 turn identity and ordered snapshot foundation
+
+- Operator: ChatGPT. Completed the first Stage-4 child on `chatGPT/A008-0132-stage4-turn-recovery-foundation`; implementation commit `88afae6` was preserved and current `main` was merged before final verification.
+- V2 now exposes stable application `turnId`/`messageId`, per-session monotonic event sequence under `serverInstanceId`, an ordered snapshot capture/drain boundary and exactly-one terminal turn outcomes with separate answer/memory status. Application identity remains distinct from ACME `modelExecutionId`.
+- Focused regressions prove no-gap snapshot delivery, deterministic stale/duplicate event discard, failed/interrupted settlement, message-ID survival/retirement and multi-project/session isolation; existing V2 authority/tool-permission/cancel coverage remains green.
+- Final verification after merging current main: root typecheck/build passed; packed protocol and independent offline consumer passed; `npm test` passed 671 core + 4 membership + 171 GUI = 846 tests, 0 failures/skips. No live or paid provider call was required.
+- Stage 4 remains In Progress. Command receipts/idempotency, reconnect/resume/lease and restart uncertainty remain separate unclaimed children. `origin/chatGPT/A008-0135-stage4` is only an owner-created safety snapshot of `88afae6`, not a claimed task.
+- [Handoff](handoffs/A008-0132.md). Signature: ChatGPT (operator)

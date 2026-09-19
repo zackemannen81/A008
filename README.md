@@ -24,8 +24,7 @@ current Single Source of Truth.
 | Tools | Approved repository/file/Git/shell tools plus approved stdio MCP tools |
 | Compatibility | Stable V1 web/ACP paths remain covered while V2 is built out |
 
-The stable-client API programme has completed Stages 1–3. Stage 4 — authoritative
-turn/event recovery and idempotency semantics — is the next backend boundary.
+The stable-client API programme has completed Stages 1–3 and Stage 4 is now in progress. Its first child establishes stable application turn/message identity, event ordering, snapshot boundaries and terminal turn outcomes; command idempotency and reconnect/restart recovery remain later Stage-4 boundaries.
 See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_stable-client-api-program.md).
 
 ## What works now
@@ -222,10 +221,7 @@ target.
 
 ### Important Stage-4 boundary
 
-V2 does **not yet** promise reconnect/resume, event sequencing plus authoritative
-snapshot boundaries, stable terminal turn outcomes or command-idempotency
-receipts. Native clients should not invent those semantics independently; they
-belong to Stage 4 of A008-0103.
+V2 now has stable application turn/message identity, per-session event sequencing, authoritative snapshot capture/drain ordering and explicit terminal turn outcomes from A008-0132. It does **not yet** promise reconnect/resume leases, command-idempotency receipts/replay or restart uncertainty handling. Native clients should not invent those remaining semantics independently; they belong to later Stage-4 children of A008-0103.
 
 ## Providers and models
 
@@ -335,15 +331,12 @@ part of verification.
 | 1. Current contract | Complete |
 | 2. Project/session ownership | Complete |
 | 3. V2 and authentication | Complete |
-| 4. Turns and recovery | Next |
+| 4. Turns and recovery | In progress — identity/order/snapshot/terminal foundation complete |
 | 5. SDK and web migration | Not started |
 | 6. Independent Expo proof | Not started |
 | 7. Compatibility release | Not started |
 
-The current V2 transport is deliberately useful before Stage 4, but Stage 4 is
-where reconnect uncertainty, snapshot/event ordering and mutation replay become
-stable shared semantics. Stage 5 then moves those contracts into an independent
-SDK and migrates the bundled web client.
+Stage 4 is in progress. A008-0132 stabilizes turn/message identity, snapshot/event ordering and terminal outcomes; later children still own command replay/idempotency, reconnect/lease and restart uncertainty. Stage 5 then moves the completed shared contracts into an independent SDK and migrates the bundled web client.
 
 ## Security boundaries
 
