@@ -197,8 +197,20 @@ test("real V2 discovery/ticket routes require app auth, registered scope and Ori
       ])
         assert.ok(parsedInfo.data.features.includes(feature));
       assert.equal(
+        parsedInfo.data.features.includes("session.command-receipts"),
+        true,
+      );
+      assert.equal(
         parsedInfo.data.features.includes("session.command-idempotency"),
-        false,
+        true,
+      );
+      assert.equal(
+        parsedInfo.data.limits.commandReceiptRetentionMs,
+        5 * 60_000,
+      );
+      assert.equal(
+        parsedInfo.data.limits.commandReceiptLimitPerPrincipal,
+        1_024,
       );
       assert.equal(
         parsedInfo.data.features.includes("session.reconnect-resume"),
@@ -318,7 +330,30 @@ class V2WireClient {
     return client;
   }
   send(frame: unknown): void {
-    this.socket.send(JSON.stringify(frame));
+    let outgoing = frame;
+    if (
+      frame &&
+      typeof frame === "object" &&
+      (frame as { type?: unknown }).type === "command" &&
+      typeof (frame as { requestId?: unknown }).requestId === "string" &&
+      !("commandId" in frame)
+    ) {
+      const command = frame as {
+        requestId: string;
+        action?: unknown;
+        payload?: { control?: { action?: unknown } };
+      };
+      const readOnly =
+        command.action === "session/inspect" ||
+        (command.action === "session/control" &&
+          command.payload?.control?.action === "inspect");
+      if (!readOnly)
+        outgoing = {
+          ...frame,
+          commandId: `command_${command.requestId}`,
+        };
+    }
+    this.socket.send(JSON.stringify(outgoing));
   }
 
   next(timeoutMs = 4000): Promise<any> {
@@ -774,6 +809,18 @@ test(
         payload: { permissionId: permission.permissionId, allow: true },
       });
       await client.until("result", "allow_1");
+      client.send({
+        type: "command",
+        requestId: "allow_1_retry",
+        commandId: "command_allow_1",
+        action: "tool/permission",
+        projectId: project.projectId,
+        sessionId,
+        payload: { permissionId: permission.permissionId, allow: true },
+      });
+      const duplicateApproval = await client.until("result", "allow_1_retry");
+      assert.equal(duplicateApproval.receipt.status, "succeeded");
+      assert.equal(duplicateApproval.receipt.commandId, "command_allow_1");
       await client.until("result", "prompt_allow");
       assert.equal(
         readFileSync(join(project.rootFolder, "approved.txt"), "utf8"),
@@ -1137,6 +1184,191 @@ test(
       const wire = JSON.stringify(client.frames);
       assert.equal(wire.includes(secret), false);
       assert.equal(wire.includes("[redacted]"), true);
+    } finally {
+      client?.close();
+      await host.close();
+      await provider.close();
+      rmSync(f.directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "A008-0138 real V2 command receipts deduplicate running/terminal prompt attempts and isolate lookup",
+  { timeout: 30000 },
+  async () => {
+    const provider = await startSessionControlProvider();
+    const f = fixture();
+    f.env.NVIDIA_CHAT_COMPLETIONS_URL = provider.endpoint;
+    f.env.PATH = process.env.PATH;
+    const project = createRegisteredFixtureProject(f, "V2 receipts");
+    const devices = new DeviceRegistry(f.env);
+    const owner = devices.grant({
+      name: "Receipt owner",
+      projects: [project.projectId],
+      capabilities: ["session"],
+    });
+    const foreign = devices.grant({
+      name: "Receipt foreign",
+      projects: [project.projectId],
+      capabilities: ["session"],
+    });
+    const host = await startGuiHost({ env: f.env, port: 0, cwd: f.directory });
+    let client: V2WireClient | undefined;
+    try {
+      client = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(host.port, owner.credential, project.projectId),
+      );
+      client.send({
+        type: "command",
+        requestId: "receipt_new",
+        commandId: "receipt_new_command",
+        action: "session/new",
+        projectId: project.projectId,
+      });
+      const opened = await client.until("result", "receipt_new");
+      const sessionId = opened.sessionId as string;
+      assert.equal(opened.receipt.status, "succeeded");
+      assert.equal(opened.receipt.commandId, "receipt_new_command");
+
+      client.send({
+        type: "command",
+        requestId: "prompt_attempt_1",
+        commandId: "stable_prompt_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "WAIT-TURN" },
+      });
+      await nextV2Signal(client, "thought");
+
+      const userRequestCount = () =>
+        provider.requests.filter(
+          (payload) =>
+            !String(payload.messages?.at(-1)?.content ?? "").includes(
+              '"operation"',
+            ),
+        ).length;
+      assert.equal(userRequestCount(), 1);
+
+      client.send({
+        type: "command",
+        requestId: "prompt_attempt_2",
+        commandId: "stable_prompt_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "WAIT-TURN" },
+      });
+      const runningDuplicate = await client.until("result", "prompt_attempt_2");
+      assert.equal(runningDuplicate.receipt.status, "running");
+      assert.match(runningDuplicate.receipt.turnId, /^turn_/u);
+      assert.equal(runningDuplicate.state, undefined);
+      assert.equal(userRequestCount(), 1);
+
+      client.send({
+        type: "command",
+        requestId: "prompt_conflict",
+        commandId: "stable_prompt_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "different payload" },
+      });
+      const conflict = await expectV2Error(
+        client,
+        "COMMAND_CONFLICT",
+        "prompt_conflict",
+      );
+      assert.equal(conflict.commandId, "stable_prompt_command");
+      assert.equal(userRequestCount(), 1);
+
+      client.send({
+        type: "command",
+        requestId: "receipt_cancel",
+        commandId: "receipt_cancel_command",
+        action: "session/cancel",
+        projectId: project.projectId,
+        sessionId,
+      });
+      await client.until("result", "receipt_cancel");
+      const completed = await client.until("result", "prompt_attempt_1");
+      assert.equal(completed.receipt.status, "succeeded");
+      assert.equal(completed.receipt.commandId, "stable_prompt_command");
+      assert.equal(userRequestCount(), 1);
+
+      client.send({
+        type: "command",
+        requestId: "prompt_attempt_3",
+        commandId: "stable_prompt_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "WAIT-TURN" },
+      });
+      const terminalDuplicate = await client.until(
+        "result",
+        "prompt_attempt_3",
+      );
+      assert.equal(terminalDuplicate.receipt.status, "succeeded");
+      assert.equal(terminalDuplicate.state, undefined);
+      assert.equal(userRequestCount(), 1);
+
+      client.send({
+        type: "command",
+        requestId: "failed_attempt_1",
+        commandId: "stable_failed_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "FAIL-TURN" },
+      });
+      const firstFailure = await expectV2Error(
+        client,
+        "RUNTIME_FAILED",
+        "failed_attempt_1",
+      );
+      assert.equal(firstFailure.receipt.status, "failed");
+      assert.equal(firstFailure.receipt.commandId, "stable_failed_command");
+      assert.equal(userRequestCount(), 2);
+
+      client.send({
+        type: "command",
+        requestId: "failed_attempt_2",
+        commandId: "stable_failed_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "FAIL-TURN" },
+      });
+      const repeatedFailure = await expectV2Error(
+        client,
+        "RUNTIME_FAILED",
+        "failed_attempt_2",
+      );
+      assert.equal(repeatedFailure.receipt.status, "failed");
+      assert.equal(repeatedFailure.receipt.commandId, "stable_failed_command");
+      assert.equal(userRequestCount(), 2);
+
+      const lookup = await fetch(
+        `http://127.0.0.1:${host.port}/v2/projects/${project.projectId}/commands/stable_prompt_command`,
+        { headers: { authorization: `Bearer ${owner.credential}` } },
+      );
+      const receipt = (await lookup.json()) as any;
+      assert.equal(lookup.status, 200, JSON.stringify(receipt));
+      assert.equal(receipt.commandId, "stable_prompt_command");
+      assert.equal(receipt.status, "succeeded");
+      assert.equal(receipt.projectId, project.projectId);
+      assert.equal(JSON.stringify(receipt).includes("WAIT-TURN"), false);
+
+      const foreignLookup = await fetch(
+        `http://127.0.0.1:${host.port}/v2/projects/${project.projectId}/commands/stable_prompt_command`,
+        { headers: { authorization: `Bearer ${foreign.credential}` } },
+      );
+      const foreignBody = (await foreignLookup.json()) as any;
+      assert.equal(foreignLookup.status, 404, JSON.stringify(foreignBody));
+      assert.equal(foreignBody.code, "COMMAND_UNKNOWN");
     } finally {
       client?.close();
       await host.close();

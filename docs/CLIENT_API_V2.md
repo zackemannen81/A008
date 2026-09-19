@@ -179,6 +179,8 @@ return `COMMAND_UNKNOWN`. Server restart changes instance ID. In either case the
 SDK must surface uncertainty rather than inventing failure or auto-resubmitting.
 These are bounded process-local guarantees, not durable exactly-once execution.
 
+Implementation status: A008-0138 implements this receipt/idempotency slice for V2 session mutations. `session/inspect` and read-only `session/control { action: "inspect" }` do not require a command ID. Receipt lookup is authenticated at `GET /v2/projects/{projectId}/commands/{commandId}`. Reconnect/resume lease and restart uncertainty remain A008-0139/A008-0140 work.
+
 ## Implementation and release gates
 
 Stages remain ordered: shared project/session owner; V2/auth; turn/recovery;

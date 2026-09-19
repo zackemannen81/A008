@@ -87,16 +87,17 @@ try {
   );
   writeFileSync(
     join(consumer, "proof.ts"),
-    `import { parseClientMessage, parseServerMessage, clientMessageSchema, validateV1HttpResponse, parseUploadedSource, v1OpenApiDocument, v2TicketRequestSchema, v2AuthOpenApiDocument, v2SessionCommandSchema, v2SessionServerFrameSchema, type ClientMessage, type UploadedSource, type V2SessionCommand } from '@a008/protocol';
+    `import { parseClientMessage, parseServerMessage, clientMessageSchema, validateV1HttpResponse, parseUploadedSource, v1OpenApiDocument, v2TicketRequestSchema, v2AuthOpenApiDocument, v2CommandReceiptSchema, v2SessionCommandSchema, v2SessionServerFrameSchema, type ClientMessage, type UploadedSource, type V2SessionCommand } from '@a008/protocol';
 const input: ClientMessage = { type: 'prompt', requestId: 'r', sessionId: 's', text: 'fixture' };
 if (!clientMessageSchema.safeParse(input).success || 'error' in parseClientMessage(JSON.stringify(input))) throw new Error('command failed');
 if (parseServerMessage({type:'prompt/ok',requestId:'r',sessionId:'s'})?.type !== 'prompt/ok') throw new Error('reply failed');
 const upload: UploadedSource = {locator:'source:synthetic',sha256:'synthetic',bytes:0,mediaType:'text/plain',extracted:false};
 if (parseUploadedSource(upload).extracted || !validateV1HttpResponse('POST','/v1/upload',200,upload)) throw new Error('HTTP contract failed');
 if (!v1OpenApiDocument().paths['/v1/upload']?.post) throw new Error('HTTP description missing');
-if (!v2TicketRequestSchema.safeParse({projectId:'A008_v1_project_40000000-0000-4000-8000-000000000016'}).success || !v2AuthOpenApiDocument().paths['/v2/auth/ticket'].post) throw new Error('V2 auth contract missing');
-const v2: V2SessionCommand = {type:'command',requestId:'r2',action:'session/new',projectId:'A008_v1_project_40000000-0000-4000-8000-000000000016'};
-if (!v2SessionCommandSchema.safeParse(v2).success || !v2SessionServerFrameSchema.safeParse({type:'authenticated',serverInstanceId:'server_fixture',projectId:v2.projectId}).success) throw new Error('V2 session contract missing');
+const v2OpenApi = v2AuthOpenApiDocument();
+if (!v2TicketRequestSchema.safeParse({projectId:'A008_v1_project_40000000-0000-4000-8000-000000000016'}).success || !v2OpenApi.paths['/v2/auth/ticket'].post || !v2OpenApi.paths['/v2/projects/{projectId}/commands/{commandId}'].get) throw new Error('V2 auth contract missing');
+const v2: V2SessionCommand = {type:'command',requestId:'r2',commandId:'command_fixture',action:'session/new',projectId:'A008_v1_project_40000000-0000-4000-8000-000000000016'};
+if (!v2SessionCommandSchema.safeParse(v2).success || !v2CommandReceiptSchema.safeParse({serverInstanceId:'server_fixture',commandId:v2.commandId,action:v2.action,projectId:v2.projectId,status:'running',startedAt:1}).success || !v2SessionServerFrameSchema.safeParse({type:'authenticated',serverInstanceId:'server_fixture',projectId:v2.projectId}).success) throw new Error('V2 session contract missing');
 `,
   );
   execFileSync(

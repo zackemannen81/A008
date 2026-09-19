@@ -519,6 +519,12 @@ export async function startGuiHost(
         originAllowed: requestOriginAllowed(request),
         readJson: readJsonBody,
         sendJson,
+        ...(v2Sessions
+          ? {
+              lookupCommandReceipt: (principal, projectId, commandId) =>
+                v2Sessions.commandReceipt(principal, projectId, commandId),
+            }
+          : {}),
       });
       return;
     }

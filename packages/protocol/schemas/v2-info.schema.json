@@ -19,7 +19,10 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["device", "browser-pin"]
+        "enum": [
+          "device",
+          "browser-pin"
+        ]
       }
     },
     "features": {
@@ -60,6 +63,16 @@
           "type": "integer",
           "minimum": -9007199254740991,
           "maximum": 9007199254740991
+        },
+        "commandReceiptRetentionMs": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "commandReceiptLimitPerPrincipal": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
         }
       },
       "required": [
@@ -68,7 +81,9 @@
         "authenticationDeadlineMs",
         "inputFrameBytes",
         "outputFrameBytes",
-        "promptBytes"
+        "promptBytes",
+        "commandReceiptRetentionMs",
+        "commandReceiptLimitPerPrincipal"
       ],
       "additionalProperties": false
     }
