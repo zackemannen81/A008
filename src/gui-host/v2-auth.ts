@@ -41,7 +41,7 @@ export const V2_LIMITS = {
 } as const;
 
 export class V2Auth {
-  readonly serverInstanceId = `server_${randomUUID()}`;
+  readonly serverInstanceId: string;
   readonly #tickets = new Map<string, Ticket>();
   constructor(
     readonly options: {
@@ -54,8 +54,11 @@ export class V2Auth {
         sessionId: string,
       ) => boolean;
       now?: () => number;
+      serverInstanceId?: string;
     },
-  ) {}
+  ) {
+    this.serverInstanceId = options.serverInstanceId ?? `server_${randomUUID()}`;
+  }
   #now() {
     return (this.options.now ?? Date.now)();
   }

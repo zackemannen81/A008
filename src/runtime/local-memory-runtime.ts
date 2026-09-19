@@ -547,6 +547,7 @@ export class LocalMemorySession {
   readonly #identityFactory: RuntimeIdentityFactory;
   #turnActive = false;
   #lastDiagnostic: string | undefined;
+  #lastMemoryStatus: PostOutputMemoryResult["status"] | undefined;
 
   constructor(options: {
     readonly runtime: LocalMemoryRuntime;
@@ -638,6 +639,12 @@ export class LocalMemorySession {
     return diagnostic;
   }
 
+  consumeMemoryStatus(): PostOutputMemoryResult["status"] | undefined {
+    const status = this.#lastMemoryStatus;
+    this.#lastMemoryStatus = undefined;
+    return status;
+  }
+
   async send(
     content: string,
     options: SendMessageOptions = {},
@@ -653,6 +660,7 @@ export class LocalMemorySession {
           }),
     });
     this.#lastDiagnostic = result.memoryDiagnostic;
+    this.#lastMemoryStatus = result.postOutput.status;
     return result.completion;
   }
 
