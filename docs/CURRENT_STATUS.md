@@ -1,6 +1,6 @@
 # Current Status
 
-Reality as of 2026-09-18. This document records observed state; intended design
+Reality as of 2026-09-19. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
