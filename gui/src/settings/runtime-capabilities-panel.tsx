@@ -4,6 +4,7 @@ import {
   loadRuntimeCapabilities,
   STAGE4_IMPLEMENTED_FEATURES,
   STAGE4_REMAINING,
+  stage4Complete,
   stage4FoundationComplete,
 } from "./runtime-capabilities.js";
 
@@ -58,6 +59,7 @@ export function RuntimeCapabilitiesPanel() {
   if (!info) return <p role="status">Loading runtime capabilities…</p>;
 
   const foundation = stage4FoundationComplete(info);
+  const complete = stage4Complete(info);
   const available = new Set(info.features);
 
   return (
@@ -73,7 +75,11 @@ export function RuntimeCapabilitiesPanel() {
         <span
           className={foundation ? "a008-radar-ready" : "a008-radar-discovery"}
         >
-          {foundation ? "FOUNDATION ACTIVE" : "PARTIAL"}
+          {complete
+            ? "STAGE 4 COMPLETE"
+            : foundation
+              ? "FOUNDATION ACTIVE"
+              : "PARTIAL"}
         </span>
       </div>
       <p className="a008-radar-intro">
@@ -109,12 +115,21 @@ export function RuntimeCapabilitiesPanel() {
           </li>
         ))}
       </ul>
-      <h4>Still outside the implemented Stage 4 slice</h4>
-      <ul className="a008-runtime-pending">
-        {STAGE4_REMAINING.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
+      {STAGE4_REMAINING.length > 0 ? (
+        <>
+          <h4>Still outside the implemented Stage 4 slice</h4>
+          <ul className="a008-runtime-pending">
+            {STAGE4_REMAINING.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="a008-parameter-footnote">
+          Stage 4 recovery guarantees are complete. Stage 5 owns SDK and web
+          migration.
+        </p>
+      )}
       <h4>Advertised limits</h4>
       <dl className="a008-runtime-meta">
         <div>

@@ -236,6 +236,7 @@ export class V2Auth {
         "session.command-receipts",
         "session.command-idempotency",
         "session.reconnect-resume",
+        "session.restart-uncertainty",
       ],
       limits: V2_LIMITS,
     };
