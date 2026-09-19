@@ -7,11 +7,13 @@ import {
   type V2CommandReceipt,
   type V2SessionCommand,
   type V2SessionServerFrame,
+  type V2SessionState,
 } from "../../packages/protocol/src/index.js";
 import { acceptWebSocket, type GuiWebSocket } from "./websocket.js";
 import { V2Auth, V2AuthError, V2_LIMITS, type V2Principal } from "./v2-auth.js";
 import {
   isV2MutationCommand,
+  isV2ReceiptCommand,
   mutationCommandId,
 } from "./v2-command-receipts.js";
 import { V2SessionService } from "./v2-session.js";
@@ -22,6 +24,12 @@ interface AuthenticatedConnection {
   readonly ticketSessionId?: string;
   attachedSessionId?: string;
   creatingSession?: boolean;
+}
+
+interface CommandRunResult {
+  readonly state: V2SessionState;
+  readonly resumeCapability?: string;
+  readonly snapshot: boolean;
 }
 
 export function openV2SessionSocket(options: {
@@ -64,7 +72,7 @@ export function openV2SessionSocket(options: {
   const revoke = async (message: string): Promise<void> => {
     if (authorityTimer) clearInterval(authorityTimer);
     authorityTimer = undefined;
-    await options.sessions.closeConnection(connectionId);
+    await options.sessions.terminateConnection(connectionId);
     ws?.close(4003, message);
   };
   const beginAuthorityChecks = (): void => {
@@ -196,8 +204,9 @@ async function dispatch(
         "The socket is bound to another project.",
       );
 
-    if (isV2MutationCommand(command)) {
-      commandId = mutationCommandId(command);
+    if (isV2MutationCommand(command)) commandId = mutationCommandId(command);
+
+    if (isV2ReceiptCommand(command)) {
       const begun = sessions.beginCommand(connection.principal, command);
       if (begun.kind === "existing") {
         sendExistingReceipt(auth, command, begun.receipt, send);
@@ -206,13 +215,14 @@ async function dispatch(
       receiptStarted = true;
     }
 
-    const state = await runCommand(
+    const outcome = await runCommand(
       command,
       connection,
       connectionId,
       sessions,
       send,
     );
+    const state = outcome.state;
     const receipt =
       commandId && receiptStarted
         ? sessions.settleCommandSuccess(connection.principal, commandId, {
@@ -228,12 +238,19 @@ async function dispatch(
       projectId: command.projectId,
       sessionId: state.sessionId,
       state,
+      ...(outcome.resumeCapability
+        ? { resumeCapability: outcome.resumeCapability }
+        : {}),
       ...(receipt ? { receipt } : {}),
     });
-    if (command.action === "session/inspect")
+    if (outcome.snapshot)
       sessions.finishSnapshot(state.sessionId, connectionId);
   } catch (error) {
-    if (command.action === "session/inspect" && "sessionId" in command)
+    if (
+      (command.action === "session/inspect" ||
+        command.action === "session/resume") &&
+      "sessionId" in command
+    )
       sessions.finishSnapshot(command.sessionId, connectionId);
     const details = failureDetails(error);
     const receipt =
@@ -299,7 +316,7 @@ async function runCommand(
   connectionId: string,
   sessions: V2SessionService,
   send: (frame: V2SessionServerFrame) => void,
-) {
+): Promise<CommandRunResult> {
   if (command.action === "session/new") {
     if (
       connection.ticketSessionId ||
@@ -322,7 +339,16 @@ async function runCommand(
         emit: send,
       });
       connection.attachedSessionId = state.sessionId;
-      return state;
+      return {
+        state,
+        resumeCapability: sessions.resumeCapability(
+          connection.principal,
+          command.projectId,
+          state.sessionId,
+          connectionId,
+        ),
+        snapshot: false,
+      };
     } finally {
       delete connection.creatingSession;
     }
@@ -336,13 +362,46 @@ async function runCommand(
       "The connection is bound to another session.",
     );
   switch (command.action) {
-    case "session/inspect":
-      return sessions.inspect(
-        connection.principal,
-        command.projectId,
+    case "session/resume": {
+      if (
+        connection.attachedSessionId !== undefined &&
+        connection.attachedSessionId !== sessionId
+      )
+        throw new V2AuthError(
+          "SESSION_BUSY",
+          409,
+          "This connection is already scoped to another session.",
+        );
+      const state = await sessions.resumeSession({
+        principal: connection.principal,
+        projectId: command.projectId,
         sessionId,
         connectionId,
-      );
+        resumeCapability: command.payload.resumeCapability,
+        emit: send,
+      });
+      connection.attachedSessionId = sessionId;
+      return {
+        state,
+        resumeCapability: sessions.resumeCapability(
+          connection.principal,
+          command.projectId,
+          sessionId,
+          connectionId,
+        ),
+        snapshot: true,
+      };
+    }
+    case "session/inspect":
+      return {
+        state: sessions.inspect(
+          connection.principal,
+          command.projectId,
+          sessionId,
+          connectionId,
+        ),
+        snapshot: true,
+      };
     case "session/prompt": {
       if (
         Buffer.byteLength(command.payload.text, "utf8") > V2_LIMITS.promptBytes
@@ -352,27 +411,33 @@ async function runCommand(
           413,
           "Prompt exceeds the advertised byte limit.",
         );
-      return sessions.prompt(
-        connection.principal,
-        command.projectId,
-        sessionId,
-        connectionId,
-        command.payload.text,
-        (turnId) =>
-          sessions.noteCommandTurn(
-            connection.principal,
-            command.commandId,
-            turnId,
-          ),
-      );
+      return {
+        state: await sessions.prompt(
+          connection.principal,
+          command.projectId,
+          sessionId,
+          connectionId,
+          command.payload.text,
+          (turnId) =>
+            sessions.noteCommandTurn(
+              connection.principal,
+              command.commandId,
+              turnId,
+            ),
+        ),
+        snapshot: false,
+      };
     }
     case "session/cancel":
-      return sessions.cancel(
-        connection.principal,
-        command.projectId,
-        sessionId,
-        connectionId,
-      );
+      return {
+        state: sessions.cancel(
+          connection.principal,
+          command.projectId,
+          sessionId,
+          connectionId,
+        ),
+        snapshot: false,
+      };
     case "session/control": {
       const state = await sessions.control(
         connection.principal,
@@ -383,17 +448,20 @@ async function runCommand(
       );
       if (command.payload.control.action === "close")
         delete connection.attachedSessionId;
-      return state;
+      return { state, snapshot: false };
     }
     case "tool/permission":
-      return sessions.resolvePermission(
-        connection.principal,
-        command.projectId,
-        sessionId,
-        connectionId,
-        command.payload.permissionId,
-        command.payload.allow,
-      );
+      return {
+        state: sessions.resolvePermission(
+          connection.principal,
+          command.projectId,
+          sessionId,
+          connectionId,
+          command.payload.permissionId,
+          command.payload.allow,
+        ),
+        snapshot: false,
+      };
   }
 }
 

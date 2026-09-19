@@ -5,6 +5,7 @@ import {
   loadRuntimeCapabilities,
   STAGE4_COMMAND_FEATURES,
   STAGE4_FOUNDATION_FEATURES,
+  STAGE4_RECOVERY_FEATURES,
   STAGE4_REMAINING,
   stage4FoundationComplete,
 } from "./runtime-capabilities.js";
@@ -17,6 +18,7 @@ const info: V2Info = {
   features: [
     ...STAGE4_FOUNDATION_FEATURES,
     ...STAGE4_COMMAND_FEATURES,
+    ...STAGE4_RECOVERY_FEATURES,
     "auth.tickets",
     "session.websocket",
   ],
@@ -27,6 +29,7 @@ const info: V2Info = {
     inputFrameBytes: 1048576,
     outputFrameBytes: 8388608,
     promptBytes: 65536,
+    sessionResumeLeaseMs: 45000,
     commandReceiptRetentionMs: 300000,
     commandReceiptLimitPerPrincipal: 1024,
   },

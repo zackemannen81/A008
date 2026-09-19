@@ -377,6 +377,11 @@
                 "minimum": -9007199254740991,
                 "maximum": 9007199254740991
               },
+              "sessionResumeLeaseMs": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
               "commandReceiptRetentionMs": {
                 "type": "integer",
                 "minimum": -9007199254740991,
@@ -395,6 +400,7 @@
               "inputFrameBytes",
               "outputFrameBytes",
               "promptBytes",
+              "sessionResumeLeaseMs",
               "commandReceiptRetentionMs",
               "commandReceiptLimitPerPrincipal"
             ],
@@ -684,6 +690,13 @@
           "startedAt"
         ],
         "additionalProperties": false
+      },
+      "v2-resume-capability": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "minLength": 32,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9_-]+$"
       },
       "v2-ticket-request": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
