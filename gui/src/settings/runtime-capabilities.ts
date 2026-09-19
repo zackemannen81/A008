@@ -11,8 +11,17 @@ export const STAGE4_FOUNDATION_FEATURES = [
   "session.terminal-outcomes",
 ] as const;
 
+export const STAGE4_COMMAND_FEATURES = [
+  "session.command-receipts",
+  "session.command-idempotency",
+] as const;
+
+export const STAGE4_IMPLEMENTED_FEATURES = [
+  ...STAGE4_FOUNDATION_FEATURES,
+  ...STAGE4_COMMAND_FEATURES,
+] as const;
+
 export const STAGE4_REMAINING = [
-  "Command receipts / idempotency",
   "Reconnect / resume leases",
   "Restart uncertainty handling",
 ] as const;

@@ -3,7 +3,9 @@ import test from "node:test";
 import type { V2Info } from "../../../packages/protocol/src/index.js";
 import {
   loadRuntimeCapabilities,
+  STAGE4_COMMAND_FEATURES,
   STAGE4_FOUNDATION_FEATURES,
+  STAGE4_REMAINING,
   stage4FoundationComplete,
 } from "./runtime-capabilities.js";
 
@@ -14,6 +16,7 @@ const info: V2Info = {
   authProfiles: ["device"],
   features: [
     ...STAGE4_FOUNDATION_FEATURES,
+    ...STAGE4_COMMAND_FEATURES,
     "auth.tickets",
     "session.websocket",
   ],
@@ -24,6 +27,8 @@ const info: V2Info = {
     inputFrameBytes: 1048576,
     outputFrameBytes: 8388608,
     promptBytes: 65536,
+    commandReceiptRetentionMs: 300000,
+    commandReceiptLimitPerPrincipal: 1024,
   },
 } as const;
 
