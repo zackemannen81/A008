@@ -7,18 +7,24 @@ Amends: ADR 0021 D2 and ADR 0030 (single shipped palette)
 
 ## Decision
 
-The standalone A008 GUI has a named app-theme identity. The first two themes
-are **Neutral** and **Deep Space**. Neutral is the default and must preserve
+The standalone A008 GUI has a named app-theme identity. The first themes are
+**Neutral**, **Deep Space**, and **Oldscool**. Neutral is the default and must preserve
 the current charcoal look from ADR 0030. Deep Space is an additional
 owner-requested expression: near-black/navy/slate surfaces, colder blue-gray
 text, subtle blue borders, restrained electric-blue interaction, and selective
 glow. It remains A008: dense when needed, quiet outside active information,
-functional before decorative. It is not a cyberpunk, neon, or light theme, and
-it is not a return to the retired cyan HUD.
+functional before decorative. It is not a cyberpunk, neon, or light theme.
 
-TypeScript owns theme identity (`neutral` | `deep-space`). CSS owns
+Oldscool is an owner-requested dark CRT expression: phosphor-green interaction
+and success controls, restrained green glow, dark olive-black surfaces, warm
+amber/cream text and borders, a static pointer-inert scanline layer, and
+selective phosphor bloom on active chrome/primary controls. It is inspired by
+retro demo scenes without changing application layout, typography, or runtime
+behavior.
+
+TypeScript owns theme identity (`neutral` | `deep-space` | `oldscool`). CSS owns
 presentation through semantic custom properties on a root data attribute such
-as `html[data-a008-theme="deep-space"]`. Components consume tokens; they do
+as `html[data-a008-theme="oldscool"]`. Components consume tokens; they do
 not hard-code global chrome colours or branch on theme id.
 
 App-theme chrome (surfaces, text, borders, interaction, status, panel shadow)
@@ -46,8 +52,8 @@ visualization palette are compatible later work. They are not authorized here.
 
 ## Consequences
 
-A008 keeps one visual language family with more than one named expression.
-Neutral users see the current product. Deep Space can demonstrate the approved
-Memory Relationship Map material across the whole shell without a second GUI.
-Runtime, credentials, tools and preview isolation stay unchanged because theme
-never leaves renderer presentation state.
+A008 keeps one visual language family with three named expressions. Neutral users
+see the current product. Deep Space and Oldscool provide distinct owner-requested
+visual expressions across the whole shell without a second GUI. Runtime,
+credentials, tools and preview isolation stay unchanged because theme never
+leaves renderer presentation state.

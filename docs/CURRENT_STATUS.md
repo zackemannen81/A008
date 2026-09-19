@@ -5,6 +5,8 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
 
+A008-0141 adds Oldscool as a third renderer-local app theme. Parameters → Appearance persists `oldscool` under the existing `a008.preferences.appearance.theme` value and applies it before React loads. Oldscool uses dark olive-black surfaces, warm amber/cream text and borders, phosphor-green controls, a static pointer-inert CRT scanline layer, and restrained phosphor bloom on selected chrome and primary controls. All effects are scoped to `html[data-a008-theme="oldscool"]`; Neutral and Deep Space retain their existing presentation. The effect does not alter sessions, models, memory, tools, providers, host/API behavior or the sandboxed Code Canvas preview. Verification: 177 GUI tests passed with 0 failures/skips; GUI typecheck, production build and diff hygiene passed. The build retains only the existing Zod annotation and >500 kB bundle warnings.
+
 A008-0137 refines the existing read-only Memory Relationship Map presentation without changing memory semantics or runtime authority. Kind-specific neon forms/colours, directed arrows, selected stored-relation labels and parallel displayed-link width make the bounded graph easier to inspect. Focus mode keeps unrelated graph context visible but subdued/dashed while emphasizing the selected neighbourhood. Visual width represents only duplicate displayed stored topology, never evidence strength, confidence, relevance or semantic similarity. Verification: GUI typecheck passed; 176 GUI tests passed with 0 failures/skips; GUI production build and diff hygiene passed.
 
 A008-0136 exposes recent merged capability in the bundled GUI without changing runtime authority. `GET /v1/catalog/zero-cost` is a typed read-only projection of the A008-0134 catalog, and Parameters → Zero Cost renders all 26 validated routes with access/lifecycle/capability/quota/expiry/data-policy/source metadata while distinguishing existing A008 profiles from discovery-only candidates. It does not register a provider/model, mutate credentials, alter routing or authorize fallback. Parameters → Runtime reads public `GET /v2/info`; discovery now advertises the A008-0132 turn identity, message identity, event sequence, snapshot boundary and terminal-outcome features actually implemented by the running host. The UI explicitly lists command idempotency/receipts, reconnect/resume leases and restart uncertainty as still outside the implemented Stage-4 slice. Bundled chat remains on V1 until Stage 5; existing V1 45-second reconnect/resume is not presented as V2 recovery. The GUI provider copy now names both Luna and Terra on the native embedded OpenAI Responses route. Verification: 671 core + 4 membership + 175 GUI = 850 tests, 0 failures/skips; focused host/protocol/V2 58/58; root typecheck/build, production GUI build, packed independent protocol consumer and `git diff --check` pass.
@@ -129,8 +131,11 @@ JSON only. Opening a project starts a new ACP session in that root.
 
 A008-0093 adds a persistent global app theme. The GUI starts as Neutral, the
 extracted current charcoal palette. Parameters → Appearance → App theme can
-switch to Deep Space immediately without reload, a new session, a provider call
-or memory/tool changes. Theme identity is renderer-local
+switch to Deep Space or Oldscool immediately without reload, a new session, a
+provider call or memory/tool changes. Deep Space uses blue-black/navy with
+restrained electric-blue interaction; Oldscool uses dark CRT surfaces,
+phosphor-green controls and warm retro highlights. Theme identity is
+renderer-local
 (`localStorage` `a008.preferences.appearance.theme`); missing or unknown values
 default to Neutral. CSS custom properties on `html[data-a008-theme]` own colour
 values; existing `--a008-*` names alias that model. Visualization colours are a

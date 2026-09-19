@@ -9,8 +9,13 @@
         var theme = "neutral";
         try {
           var parsed = JSON.parse(localStorage.getItem("a008.preferences") || "null");
-          if (parsed && parsed.appearance && parsed.appearance.theme === "deep-space") {
-            theme = "deep-space";
+          if (
+            parsed &&
+            parsed.appearance &&
+            (parsed.appearance.theme === "deep-space" ||
+              parsed.appearance.theme === "oldscool")
+          ) {
+            theme = parsed.appearance.theme;
           }
         } catch (e) {}
         document.documentElement.setAttribute("data-a008-theme", theme);

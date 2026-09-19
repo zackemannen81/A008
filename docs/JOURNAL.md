@@ -2485,3 +2485,11 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Verification recorded by the merged task: GUI typecheck passed; 176 GUI tests passed with 0 failures/skips; GUI production build and `git diff --check` passed.
 - The implementation merged through PR #78 before its ID claim/archive/handoff was completed. The identity is claimed retrospectively to match merged reality; the completed record is archived without changing scope or product behavior.
 - [Handoff](handoffs/A008-0137.md). Signature: ChatGPT (operator, retrospective closure)
+
+## 2026-09-19 — A008-0141 Oldscool CRT scanlines and phosphor bloom
+
+- Operator: Rickard. Added the third renderer-local Oldscool app theme with dark CRT surfaces, phosphor-green controls, warm retro highlights, a static pointer-inert scanline layer and restrained phosphor bloom on selected chrome and primary controls.
+- The persisted theme remains under `a008.preferences.appearance.theme` and is applied before React mounts. Every effect is scoped to `html[data-a008-theme="oldscool"]`; Neutral, Deep Space and the sandboxed Code Canvas preview remain unchanged.
+- Verification: 177 GUI tests passed with 0 failures/skips; GUI typecheck, production build and `git diff --check` passed. The production build retains only existing Zod annotation and >500 kB chunk warnings.
+- No provider call, runtime/session/memory/tool/host/API change, remote push or PR was made. [Handoff](handoffs/A008-0141.md).
+- Signature: A008

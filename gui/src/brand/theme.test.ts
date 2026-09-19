@@ -84,6 +84,7 @@ test("unknown or missing theme identity becomes Neutral", () => {
   assert.equal(parseAppThemeId(""), "neutral");
   assert.equal(parseAppThemeId("oled"), "neutral");
   assert.equal(parseAppThemeId("deep-space"), "deep-space");
+  assert.equal(parseAppThemeId("oldscool"), "oldscool");
   assert.equal(parseAppThemeId("neutral"), "neutral");
 });
 
@@ -113,7 +114,7 @@ test("missing, invalid and unknown stored themes default to Neutral", () => {
   );
 });
 
-test("Neutral and Deep Space round-trip through preference storage", () => {
+test("Neutral, Deep Space and Oldscool round-trip through preference storage", () => {
   const store = memoryStore();
   persistAppTheme("deep-space", store);
   assert.equal(readStoredAppTheme(store), "deep-space");
@@ -123,6 +124,8 @@ test("Neutral and Deep Space round-trip through preference storage", () => {
       appearance: { theme: "deep-space" },
     },
   );
+  persistAppTheme("oldscool", store);
+  assert.equal(readStoredAppTheme(store), "oldscool");
   persistAppTheme("neutral", store);
   assert.equal(readStoredAppTheme(store), "neutral");
 });
@@ -151,22 +154,24 @@ test("selecting a theme updates the root data attribute immediately", () => {
   const store = memoryStore();
   const root = attributeRoot();
   assert.equal(
-    selectAppTheme("deep-space", { storage: store, root }),
-    "deep-space",
+    selectAppTheme("oldscool", { storage: store, root }),
+    "oldscool",
   );
-  assert.equal(root.getAttribute(APP_THEME_ATTRIBUTE), "deep-space");
+  assert.equal(root.getAttribute(APP_THEME_ATTRIBUTE), "oldscool");
   applyAppTheme("neutral", root);
   assert.equal(root.getAttribute(APP_THEME_ATTRIBUTE), "neutral");
 });
 
-test("Appearance renders Neutral and Deep Space with an accessible selected state", () => {
+test("Appearance renders all themes with an accessible selected state", () => {
   const html = renderToStaticMarkup(createElement(AppearancePanel));
   assert.match(html, /aria-label="Appearance"/u);
   assert.match(html, />App theme</u);
   assert.match(html, />Neutral</u);
   assert.match(html, />Deep Space</u);
+  assert.match(html, />Oldscool</u);
   assert.match(html, /data-a008-theme="neutral"/u);
   assert.match(html, /data-a008-theme="deep-space"/u);
+  assert.match(html, /data-a008-theme="oldscool"/u);
   assert.match(html, /aria-pressed="true"/u);
   assert.match(html, /aria-pressed="false"/u);
 });
@@ -183,6 +188,7 @@ test("Parameters exposes Appearance without requiring a connected session", () =
   assert.match(html, /aria-label="Appearance"/u);
   assert.match(html, />App theme</u);
   assert.match(html, />Deep Space</u);
+  assert.match(html, />Oldscool</u);
   assert.match(html, /Connect to inspect and change the active session/u);
 });
 
@@ -190,7 +196,7 @@ test("theme selection is renderer-local and does not use session APIs", () => {
   const store = memoryStore();
   const root = attributeRoot();
   const session = idleSession();
-  selectAppTheme("deep-space", { storage: store, root });
+  selectAppTheme("oldscool", { storage: store, root });
   assert.equal(session.sessionId, "A008_v1_acp_session_keep-me");
   assert.equal(session.answer, "existing conversation");
   assert.equal(session.model, "nvidia/nemotron-3.5-lightning-30b-a3b");
@@ -211,24 +217,48 @@ test("index.html applies the persisted theme before the module loads", () => {
   assert.match(html, /a008\.preferences/u);
   assert.match(html, /data-a008-theme/u);
   assert.match(html, /deep-space/u);
+  assert.match(html, /oldscool/u);
   const scriptEnd = html.indexOf("</script>");
   const module = html.indexOf('src="/src/main.tsx"');
   assert.ok(scriptEnd > 0 && module > scriptEnd);
 });
 
-test("both themes declare every required semantic and visualization token", () => {
+test("all themes declare every required semantic and visualization token", () => {
   const css = readFileSync(join(here, "themes.css"), "utf8");
   const deepAt = css.indexOf('[data-a008-theme="deep-space"]');
+  const oldscoolAt = css.indexOf('[data-a008-theme="oldscool"]');
   assert.notEqual(deepAt, -1);
+  assert.notEqual(oldscoolAt, -1);
   const neutral = tokenNames(css.slice(0, deepAt));
-  const deepSpace = tokenNames(css.slice(deepAt));
+  const deepSpace = tokenNames(css.slice(deepAt, oldscoolAt));
+  const oldscool = tokenNames(css.slice(oldscoolAt));
   for (const name of [
     ...REQUIRED_APP_THEME_TOKENS,
     ...REQUIRED_VIZ_THEME_TOKENS,
   ]) {
     assert.ok(neutral.has(name), `Neutral missing ${name}`);
     assert.ok(deepSpace.has(name), `Deep Space missing ${name}`);
+    assert.ok(oldscool.has(name), `Oldscool missing ${name}`);
   }
+});
+
+test("Oldscool CRT selectors are inert and scoped to the Oldscool root", () => {
+  const app = readFileSync(join(here, "../app.tsx"), "utf8");
+  const chrome = readFileSync(join(here, "a008.css"), "utf8");
+  const memory = readFileSync(join(here, "../memory/memory.css"), "utf8");
+  const themes = readFileSync(join(here, "themes.css"), "utf8");
+
+  assert.match(app, /className="a008-crt-overlay" aria-hidden="true"/u);
+  assert.match(chrome, /\.a008-crt-overlay\s*\{\s*display: none;/u);
+  assert.match(chrome, /html\[data-a008-theme="oldscool"\] \.a008-crt-overlay/u);
+  assert.match(chrome, /pointer-events: none;/u);
+  assert.match(chrome, /repeating-linear-gradient/u);
+  assert.match(chrome, /html\[data-a008-theme="oldscool"\] \.a008-composer-send/u);
+  assert.match(memory, /html\[data-a008-theme="oldscool"\] \.memory-button:not\(\.memory-button-quiet\)/u);
+  assert.equal(memory.includes('html[data-a008-theme="neutral"] .memory-button'), false);
+  assert.equal(memory.includes('html[data-a008-theme="deep-space"] .memory-button'), false);
+  assert.match(themes, /--a008-crt-scanline:/u);
+  assert.match(themes, /--a008-crt-bloom:/u);
 });
 
 test("Neutral token values are the extracted current A008 palette", () => {
