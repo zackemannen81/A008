@@ -309,7 +309,7 @@ function semanticGeneration(model: string, limits: RuntimeBudgets) {
     ...SEMANTIC_JSON_GENERATION,
     ...(capabilities.topP ? {} : { topP: null }),
     ...(capabilities.thinking ? {} : { enableThinking: null }),
-    ...(model === "gpt-5.6-luna"
+    ...(model === "gpt-5.6-luna" || model === "gpt-5.6-terra"
       ? { temperature: null, reasoningEffort: "none" }
       : {}),
     maxTokens: Math.min(limits.semanticOutputTokens, capabilities.maxTokens),

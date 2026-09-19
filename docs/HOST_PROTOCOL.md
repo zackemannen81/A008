@@ -175,7 +175,7 @@ Each model also carries `defaults` (the complete parameter object below) and
 `capabilities`: `maxTokens` (integer ceiling), `topP`, `thinking`, `seed`, `stop`
 (booleans), `reasoningBudget` (integer ceiling or null), `reasoningEfforts`
 (string array), and `verifiedOn` (ISO date). These describe the supported A008
-controls for the hosted endpoint. The current built-in model list has seven entries, including `gpt-5.6-luna`.
+controls for the hosted endpoint. The current built-in model list has eight entries, including `gpt-5.6-luna` and `gpt-5.6-terra`.
 Defaults here come from model profiles; environment overrides appear in the
 session snapshot after connection. No environment values or input modalities
 are published by this route. User-catalog additions (NVIDIA Build or kie.ai)
@@ -426,7 +426,7 @@ expose cwd, project identity, memory path and effective generation settings.
 | `A008_SOURCE_STORE_PATH` | upload store; must be outside the repository. Unset disables uploads |
 | `NVIDIA_API_KEY` | NVIDIA provider credential |
 | `KIE_API_KEY` | optional kie.ai credential |
-| `OPENAI_API_KEY` | optional OpenAI chat credential; enables built-in `gpt-5.6-luna` |
+| `OPENAI_API_KEY` | optional OpenAI chat credential; enables built-in `gpt-5.6-luna` and `gpt-5.6-terra` |
 | `A008_MEMORY_SQLITE_PATH` | memory store; must be outside the repository |
 | `A008_PROJECT_ID`, `A008_AGENT_ID` | canonical `A008_v1_<kind>_<lowercase UUIDv4>` |
 | `A008_PROVIDER_TIMEOUT_MS` | per-request ceiling, default `180000` |

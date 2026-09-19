@@ -137,6 +137,21 @@ export const OPENAI_GPT_56_LUNA: ModelProfile = Object.freeze({
   verifiedOn: "2026-09-09",
 });
 
+/** Text and image input through the existing native OpenAI Responses route. */
+export const OPENAI_GPT_56_TERRA: ModelProfile = Object.freeze({
+  id: "gpt-5.6-terra",
+  name: "OpenAI GPT-5.6 Terra",
+  provider: "openai",
+  executionProvider: "openai",
+  defaults: Object.freeze({
+    maxTokens: 16_384,
+    reasoningEffort: "medium",
+    stream: true,
+  }),
+  inputModalities: Object.freeze(["text", "image"] as const),
+  verifiedOn: "2026-09-19",
+});
+
 /** True when the model accepts image input, whatever A008 can send today. */
 export function acceptsModality(
   profile: ModelProfile,
@@ -189,4 +204,5 @@ export const defaultModelRegistry = new ModelRegistry([
   META_MUSE_GLIMMER_30B,
   POOLSIDE_LAGUNA_XS,
   OPENAI_GPT_56_LUNA,
+  OPENAI_GPT_56_TERRA,
 ]);

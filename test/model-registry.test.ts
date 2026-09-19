@@ -77,17 +77,20 @@ test("the omni profile is selectable and declares image input", () => {
   );
 });
 
-test("OpenAI GPT-5.6 Luna is a verified selectable profile", () => {
-  const luna = defaultModelRegistry.require("gpt-5.6-luna");
-  assert.equal(luna.provider, "openai");
-  assert.equal(luna.executionProvider, "openai");
-  assert.equal(luna.defaults.reasoningEffort, "medium");
-  assert.equal(acceptsModality(luna, "image"), true);
+test("OpenAI GPT-5.6 Luna and Terra are verified selectable profiles", () => {
+  for (const id of ["gpt-5.6-luna", "gpt-5.6-terra"]) {
+    const profile = defaultModelRegistry.require(id);
+    assert.equal(profile.provider, "openai");
+    assert.equal(profile.executionProvider, "openai");
+    assert.equal(profile.defaults.reasoningEffort, "medium");
+    assert.equal(acceptsModality(profile, "image"), true);
+  }
 });
 
 test("shipped profiles declare executionProvider separately from vendor provider", () => {
   const expected: Record<string, { provider: string; execution: string }> = {
     "gpt-5.6-luna": { provider: "openai", execution: "openai" },
+    "gpt-5.6-terra": { provider: "openai", execution: "openai" },
     "nvidia/nemotron-3.5-lightning-30b-a3b": {
       provider: "nvidia",
       execution: "nvidia",
@@ -155,6 +158,7 @@ test("every image-capable model is reachable and every text model is honest", ()
 
   assert.deepEqual(withImage.sort(), [
     "gpt-5.6-luna",
+    "gpt-5.6-terra",
     "moonshotai/kimi-k3",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
   ]);

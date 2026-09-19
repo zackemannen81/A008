@@ -1,108 +1,111 @@
-# A008-0133 — OpenAI GPT-5.6 Terra selectable profile
+# Current Task
 
-Task ID: A008-0133
+Task ID:
 Parent Task: None
-Status: Ready
-Owner: ChatGPT (operator)
-Created: 2026-09-19
-Last updated: 2026-09-19
-Charter frozen at: 2026-09-19
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
 
 ## Read First
 
 - `AGENTS.md`
 - `docs/TASK_WORKFLOW.md`
 - `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
 - `docs/CURRENT_STATUS.md`
 - `docs/SYSTEMDOC.md`
-- `docs/finished/A008-0131_native-openai-responses-routing-for-luna.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant records under `docs/adr/`
 
 ## Task Summary
 
-Add OpenAI GPT-5.6 Terra as a shipped selectable model beside GPT-5.6 Luna so the owner can compare scenarios through the existing native OpenAI Responses path before Stage 4 begins.
+Describe why this bounded task is active now and its intended outcome.
 
 ## Task Charter
 
 ### Goal
 
-Expose `gpt-5.6-terra` as an additional OpenAI model without changing Luna defaults or any cognition, memory, tool-approval, project/session, or Stage-4 behavior.
+Define one primary outcome.
 
 ### Primary Deliverable
 
-A verified Terra model profile in the existing registry/capability/runtime composition, automatically composed into ACME native OpenAI Responses alongside Luna.
+Name the concrete artifact or behavior.
 
 ### In Scope
 
-- Terra shipped model profile and public export.
-- Terra generation capabilities matching current OpenAI documentation.
-- Existing embedded ACME OpenAI composition includes Terra automatically.
-- Terra semantic JSON calls use the same stateless OpenAI controls as Luna.
-- Focused registry/config/routing regressions and current model documentation.
+- List work required for the deliverable.
 
 ### Out of Scope
 
-- Replacing Luna as a default or fallback.
-- Provider fallback or automatic model switching.
-- Changes to prompts, extraction, classification, retrieval, memory, tools, sessions, V2, or Stage 4.
-- Live paid provider calls by the operator.
+- List adjacent work that must not be absorbed.
 
 ### Definition of Done
 
-- GUI/host model inventory can select both Luna and Terra.
-- Terra resolves to executionProvider `openai` and native Responses composition.
-- Luna remains unchanged and selectable.
-- Terra semantic calls use reasoning `none` and omit generic sampling controls already unsupported for OpenAI semantic calls.
-- Focused tests, typecheck/build and diff hygiene pass.
+- State objective completion conditions.
 
 ### Necessity Gate
 
-Contract: `docs/PROJECT_BRIEF.md`, PC-06 — Supported user controls and content.
-Contract revision: cca0431
+Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
+Contract revision: <Git commit containing the reviewed contract>
 
-| Change | Clause and constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
+
+| Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
 | --- | --- | --- | --- | --- |
-| Terra model profile | PC-06 + existing OpenAI owner | Owner cannot select the requested supported model for scenario comparison | add one shipped profile and capability row | registry/session tests |
-| Native Responses composition | PC-06 + A008-0131 boundary | Terra could appear selectable but route incorrectly | reuse executionProvider=openai auto-composition; no new transport | embedded config test |
-| Semantic compatibility | PC-04/06 existing semantic owner | selected Terra could fail post-output semantic calls | reuse stateless reasoning-none semantic generation | runtime-preferences regression |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
 
 ### Minimum Verification Gates
 
-- [ ] Registry exposes Luna and Terra with text/image input and OpenAI execution.
-- [ ] Generation capabilities expose Terra 128K output and documented reasoning efforts.
-- [ ] Embedded ACME config exposes both under native `openAi.profiles`.
-- [ ] Luna remains unchanged and no default switches to Terra.
-- [ ] Focused tests, root typecheck/build and `git diff --check` pass.
-- [ ] No paid/live provider call required.
+- [ ] Define checks that may be strengthened but not removed after Ready.
+
+## References
+
+- Add owned documents, source revisions, contracts, and decisions.
 
 ## Checklist
 
-- [x] Claim A008-0133 on main.
-- [x] Freeze charter Ready.
-- [ ] Implement bounded Terra profile support.
-- [ ] Verify focused behavior.
-- [ ] Update owning docs.
-- [ ] Archive/handoff and restore CURRENT_TASK.
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
 
 ## Decisions and Notes
 
-- OpenAI documentation checked 2026-09-19: `gpt-5.6-terra` supports text/image input, Responses API, 128K max output and reasoning efforts none/low/medium/high/xhigh/max.
-- Terra is additive. Luna stays the existing default wherever Luna was already the default.
-- The direct Chat Completions adapter remains a reference path; embedded ACME native Responses is the active OpenAI route.
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+
+## Charter Amendment Log
+
+- none
 
 ## Verification
 
-Pending implementation.
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
 
 ## Documentation Updates
 
 - [ ] `docs/CURRENT_STATUS.md`
 - [ ] `docs/SYSTEMDOC.md`
-- [ ] `docs/HOST_PROTOCOL.md` if shipped model count/text changes
 - [ ] `docs/JOURNAL.md`
-- [ ] handoff/archive
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
 
 ## Handoff and Follow-ups
 
-- Current state: Ready.
-- Next recommended step: implement and verify Terra, then begin A008-0132 Stage 4.
-- Blockers: none.
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.
