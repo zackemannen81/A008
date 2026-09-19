@@ -2485,3 +2485,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Verification recorded by the merged task: GUI typecheck passed; 176 GUI tests passed with 0 failures/skips; GUI production build and `git diff --check` passed.
 - The implementation merged through PR #78 before its ID claim/archive/handoff was completed. The identity is claimed retrospectively to match merged reality; the completed record is archived without changing scope or product behavior.
 - [Handoff](handoffs/A008-0137.md). Signature: ChatGPT (operator, retrospective closure)
+
+## 2026-09-19 — A008-0138 Stage 4 command receipts and bounded idempotency
+
+- Operator: ChatGPT. A008-0138 merged through PR #79 at `344d5c2` after rebasing cleanly onto the current integration main.
+- V2 mutations now use stable application `commandId` plus a principal-scoped canonical command digest and bounded process-local running/terminal receipts. Identical retries observe existing state without repeating provider/tool/approval work; changed content returns `COMMAND_CONFLICT`, and unknown/expired/foreign receipt lookup returns `COMMAND_UNKNOWN`.
+- Receipt metadata is bounded and secret-safe: raw mutation payloads are not retained; terminal retention is five minutes with a 1,024-per-principal cap that never evicts running or unexpired work. Running prompt receipts correlate to the stable `turnId`.
+- Final pre-merge verification on the corrected wire-schema shape: packed independent protocol consumer passed; `npm test` passed 677 core + 4 membership + 176 GUI = 857 tests, 0 failures/skips; rebased focused A008-0138/V2 real-host gate passed 19/19; `git diff --check` passed. No live or paid provider call was required.
+- Stage 4 remains In Progress. A008-0139 reconnect/resume lease is now unblocked; A008-0140 remains restart uncertainty plus Stage-4 closure.
+- [Handoff](handoffs/A008-0138.md). Signature: ChatGPT (operator)
