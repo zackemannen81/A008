@@ -65,8 +65,8 @@ function layoutHierarchy(nodes: readonly MemoryRecord[], edges: readonly MemoryE
   const points = [...byLevel].flatMap(([level, members]) => members.map((node, index) => ({
     id: node.id, x: 120 + index * 150, y: 100 + level * 130,
   })));
-  const width = Math.max(1000, ...points.map((point) => point.x + 120), 1000);
-  const height = Math.max(680, ...points.map((point) => point.y + 100), 680);
+  const width = Math.max(880, ...points.map((point) => point.x + 120), 880);
+  const height = Math.max(480, ...points.map((point) => point.y + 100), 480);
   return { points, clusters: [], hubId: [...nodes].sort((a, b) => (incoming.get(b.id) ?? 0) - (incoming.get(a.id) ?? 0) || compareId(a, b))[0]?.id, width, height };
 }
 

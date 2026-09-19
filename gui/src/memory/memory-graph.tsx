@@ -70,7 +70,7 @@ export function MemoryGraph({
   );
   const bottom = Math.max(
     ...visiblePoints.map((p) => p.y + 40),
-    ...labels.map((l) => l.y + 42),
+    ...labels.map((l) => l.y + 44),
   );
   const frame =
     focused && visiblePoints.length

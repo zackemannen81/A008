@@ -9,7 +9,7 @@ export function NodeShape({ kind, size }: { kind: MemoryKind | string; size: num
     case "claim":
       return <rect x={-size} y={-size} width={size * 2} height={size * 2} rx={3} />;
     case "utterance":
-      return <rect x={-size * 1.3} y={-size * 0.5} width={size * 2.6} height={size} rx={size * 0.5} />;
+      return <rect x={-size * 1.5} y={-size * 0.5} width={size * 2.6} height={size} rx={size * 0.5} />;
     case "artifact":
       return <polygon points={`0,${-size} ${size},0 0,${size} ${-size},0`} />;
     case "provenance":
