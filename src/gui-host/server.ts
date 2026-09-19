@@ -5,7 +5,12 @@ import type {
   ShellHostResult,
 } from "../../packages/protocol/src/index.js";
 
-import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
+import {
+  createHash,
+  randomBytes,
+  randomUUID,
+  timingSafeEqual,
+} from "node:crypto";
 import {
   createReadStream,
   existsSync,
@@ -89,6 +94,10 @@ import {
   moduleDirectory,
 } from "../runtime/local-runtime-config.js";
 import { handleBrowserFrameCheck } from "./browser-frame.js";
+import {
+  ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
+  ZERO_COST_MODEL_ROUTES,
+} from "../providers/zero-cost-model-catalog.js";
 import {
   bindingFor,
   handleDirectoryList,
@@ -803,6 +812,13 @@ async function handleHttp(input: {
     }
     if (method === "GET" && pathname === "/v1/catalog/kie") {
       sendJson(response, 200, handleKieCatalogGet(input.catalogPath));
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/catalog/zero-cost") {
+      sendJson(response, 200, {
+        verifiedAt: ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
+        routes: ZERO_COST_MODEL_ROUTES,
+      });
       return;
     }
     if (method === "GET" && pathname === "/v1/catalog/nvidia") {

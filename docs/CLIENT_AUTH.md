@@ -1,6 +1,6 @@
 # V2 authentication and session transport
 
-A008-0110 implements public `GET /v2/info`, authenticated `POST /v2/auth/ticket` and local device grants. A008-0112 adds the usable authenticated `WS /v2/session` transport. V1 and fixed-session ACP panels retain their existing authentication behavior. A008-0132 adds the first Stage-4 state/recovery foundation: stable turn/message identity, monotonic session-event sequencing, authoritative snapshot boundaries and explicit terminal turn outcomes. Command idempotency/receipts, reconnect/resume leases and restart uncertainty remain later Stage-4 work.
+A008-0110 implements public `GET /v2/info`, authenticated `POST /v2/auth/ticket` and local device grants. A008-0112 adds the usable authenticated `WS /v2/session` transport. V1 and fixed-session ACP panels retain their existing authentication behavior. A008-0132 adds the first Stage-4 state/recovery foundation: stable turn/message identity, monotonic session-event sequencing, authoritative snapshot boundaries and explicit terminal turn outcomes. A008-0136 advertises those implemented features through `GET /v2/info` so clients can discover the actual running boundary. Command idempotency/receipts, reconnect/resume leases and restart uncertainty remain later Stage-4 work and are not advertised.
 
 ## Owner-local device management
 

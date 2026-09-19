@@ -228,6 +228,70 @@ export const kieCatalogSchema = z.object({
   models: z.array(kieCatalogModelSchema).readonly(),
 });
 export type KieCatalog = z.infer<typeof kieCatalogSchema>;
+
+export const zeroCostAccessSchema = z.enum([
+  "free-endpoint",
+  "free-model",
+  "free-tier",
+]);
+export const zeroCostLifecycleSchema = z.enum([
+  "recurring",
+  "dynamic",
+  "preview",
+  "trial",
+]);
+export const zeroCostApiStyleSchema = z.enum([
+  "openai-chat-completions",
+  "openai-responses",
+]);
+export const zeroCostInputModalitySchema = z.enum([
+  "text",
+  "image",
+  "audio",
+  "video",
+  "pdf",
+]);
+export const zeroCostCapabilitySchema = z.enum([
+  "agentic",
+  "coding",
+  "reasoning",
+  "tools",
+  "structured-output",
+  "code-execution",
+  "long-context",
+  "multimodal",
+]);
+export const zeroCostDataPolicySchema = z.enum([
+  "review-before-sensitive-use",
+  "do-not-send-sensitive-data",
+]);
+export const zeroCostModelRouteSchema = z.object({
+  key: nonempty,
+  provider: z.enum(["nvidia", "opencode", "openrouter", "groq", "google"]),
+  modelId: nonempty,
+  name: nonempty,
+  baseUrl: nonempty,
+  apiStyle: zeroCostApiStyleSchema,
+  access: zeroCostAccessSchema,
+  lifecycle: zeroCostLifecycleSchema,
+  contextWindow: count.optional(),
+  maxOutputTokens: count.optional(),
+  inputModalities: z.array(zeroCostInputModalitySchema).readonly().optional(),
+  capabilities: z.array(zeroCostCapabilitySchema).readonly().optional(),
+  quota: text.optional(),
+  expiresAt: text.optional(),
+  dataPolicy: zeroCostDataPolicySchema,
+  a008ProfileId: text.optional(),
+  note: text.optional(),
+  verifiedAt: nonempty,
+  sourceUrls: z.array(nonempty).min(1).readonly(),
+});
+export type ZeroCostModelRouteDto = z.infer<typeof zeroCostModelRouteSchema>;
+export const zeroCostCatalogSchema = z.object({
+  verifiedAt: nonempty,
+  routes: z.array(zeroCostModelRouteSchema).readonly(),
+});
+export type ZeroCostCatalog = z.infer<typeof zeroCostCatalogSchema>;
 export const providerSettingsSchema = z.object({
   nvidiaApiKeyConfigured: z.boolean(),
   kieApiKeyConfigured: z.boolean(),
@@ -335,6 +399,7 @@ export const v1HttpSchemas = {
   directoryList: directoryListSchema,
   nvidiaCatalog: nvidiaCatalogSchema,
   kieCatalog: kieCatalogSchema,
+  zeroCostCatalog: zeroCostCatalogSchema,
   providerSettings: providerSettingsSchema,
   providerSettingsUpdate: providerSettingsUpdateSchema,
   providerSettingsInput: providerSettingsInputSchema,

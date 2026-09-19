@@ -20,6 +20,7 @@ current Single Source of Truth.
 | Native/external API | V2 discovery, scoped device auth, one-use tickets and authenticated `WS /v2/session` |
 | Semantic memory | Project-namespaced SQLite, semantic scope retrieval, additive projection, post-output extraction/reconciliation and L2/L3 lifecycle |
 | Providers | NVIDIA Build, kie.ai and OpenAI chat dispatch; NVIDIA/kie image generation |
+| Discovery | Read-only Zero Cost Radar over 26 validated free/free-tier provider-model routes; catalog presence never registers or routes a model |
 | Projects | Create new projects or register/open an existing root without mutating its files |
 | Tools | Approved repository/file/Git/shell tools plus approved stdio MCP tools |
 | Compatibility | Stable V1 web/ACP paths remain covered while V2 is built out |
@@ -44,6 +45,8 @@ See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_s
 - Independent evidence and association lifecycle with reinforcement, dormant
   state, decay policy, receipts and audit in knowledge schema 4.
 - Read-only memory diagnostics: overview, relationship map and knowledge manager.
+- Parameters exposes a read-only Zero Cost Radar plus current V2/Stage-4 runtime
+  discovery. The bundled GUI still uses V1 session transport until Stage 5.
 - Structured model tools with explicit approval: repository read/create/edit,
   literal Git operations, shell execution and stdio MCP.
 - Source intake with content-addressed storage and extraction for UTF-8 text,
@@ -80,9 +83,9 @@ npm run verify:protocol
 npm --prefix gui run build
 ```
 
-The latest merged Stage-4 foundation proof passed **671 core + 4 membership +
-171 GUI = 846 tests** with zero failures/skips. Root typecheck/build and the
-independently packed `@a008/protocol` consumer proof also passed.
+The latest merged-plus-A008-0136 verification passed **671 core + 4 membership +
+175 GUI = 850 tests** with zero failures/skips. Root typecheck/build, production
+GUI build and the independently packed `@a008/protocol` consumer proof also pass.
 
 Useful additional checks:
 

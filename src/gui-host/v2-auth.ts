@@ -57,7 +57,8 @@ export class V2Auth {
       serverInstanceId?: string;
     },
   ) {
-    this.serverInstanceId = options.serverInstanceId ?? `server_${randomUUID()}`;
+    this.serverInstanceId =
+      options.serverInstanceId ?? `server_${randomUUID()}`;
   }
   #now() {
     return (this.options.now ?? Date.now)();
@@ -218,7 +219,15 @@ export class V2Auth {
         "device",
         ...(this.options.pin.enabled ? ["browser-pin"] : []),
       ],
-      features: ["auth.tickets", "session.websocket"],
+      features: [
+        "auth.tickets",
+        "session.websocket",
+        "session.turn-identity",
+        "session.message-identity",
+        "session.event-sequence",
+        "session.snapshot-boundary",
+        "session.terminal-outcomes",
+      ],
       limits: V2_LIMITS,
     };
   }

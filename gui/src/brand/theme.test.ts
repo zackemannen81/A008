@@ -176,6 +176,10 @@ test("Parameters exposes Appearance without requiring a connected session", () =
     createElement(ParametersPanel, { session: idleSession(), onClose() {} }),
   );
   assert.match(html, />Appearance</u);
+  assert.match(html, />Zero Cost</u);
+  assert.match(html, />Runtime</u);
+  assert.match(html, /Zero Cost Radar/u);
+  assert.match(html, /Loading runtime capabilities/u);
   assert.match(html, /aria-label="Appearance"/u);
   assert.match(html, />App theme</u);
   assert.match(html, />Deep Space</u);

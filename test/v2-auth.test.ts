@@ -185,7 +185,26 @@ test("real V2 discovery/ticket routes require app auth, registered scope and Ori
     });
   try {
     const info = await (await fetch(`${root}/v2/info`)).json();
-    assert.ok(v2InfoSchema.safeParse(info).success);
+    const parsedInfo = v2InfoSchema.safeParse(info);
+    assert.ok(parsedInfo.success);
+    if (parsedInfo.success) {
+      for (const feature of [
+        "session.turn-identity",
+        "session.message-identity",
+        "session.event-sequence",
+        "session.snapshot-boundary",
+        "session.terminal-outcomes",
+      ])
+        assert.ok(parsedInfo.data.features.includes(feature));
+      assert.equal(
+        parsedInfo.data.features.includes("session.command-idempotency"),
+        false,
+      );
+      assert.equal(
+        parsedInfo.data.features.includes("session.reconnect-resume"),
+        false,
+      );
+    }
     assert.ok(!JSON.stringify(info).includes(f.directory));
     assert.ok(!JSON.stringify(info).includes(projectId));
     assert.equal((await fetch(`${root}/v1/models`)).status, 200);
@@ -427,13 +446,21 @@ test(
       assert.equal(result.state.messages.at(-1).role, "assistant");
       assert.match(result.state.messages.at(-1).content, /Fixture answer/u);
       assert.equal(result.state.messages.length, 2);
-      assert.ok(result.state.messages.every((message: any) => /^message_/u.test(message.messageId)));
+      assert.ok(
+        result.state.messages.every((message: any) =>
+          /^message_/u.test(message.messageId),
+        ),
+      );
       const turnEvents = client.frames.filter(
         (frame) => frame.type === "event" && frame.sessionId === sessionId,
       );
       assert.ok(turnEvents.some((frame) => frame.event === "answer/delta"));
-      const started = turnEvents.find((frame) => frame.event === "turn/started");
-      const terminal = turnEvents.find((frame) => frame.event === "turn/terminal");
+      const started = turnEvents.find(
+        (frame) => frame.event === "turn/started",
+      );
+      const terminal = turnEvents.find(
+        (frame) => frame.event === "turn/terminal",
+      );
       assert.ok(started);
       assert.equal(terminal?.turnId, started.turnId);
       assert.equal(terminal?.outcome, "completed");
@@ -448,7 +475,9 @@ test(
           (frame) => frame.serverInstanceId === result.serverInstanceId,
         ),
       );
-      const messageIds = result.state.messages.map((message: any) => message.messageId);
+      const messageIds = result.state.messages.map(
+        (message: any) => message.messageId,
+      );
 
       client.send({
         type: "command",
@@ -760,7 +789,10 @@ test(
         payload: { text: "WRITE CANCEL" },
       });
       const cancelledPermission = await nextV2Signal(client, "tool/permission");
-      assert.equal(existsSync(join(project.rootFolder, "cancelled.txt")), false);
+      assert.equal(
+        existsSync(join(project.rootFolder, "cancelled.txt")),
+        false,
+      );
       client.send({
         type: "command",
         requestId: "cancel_permission_turn",
@@ -775,12 +807,18 @@ test(
         action: "tool/permission",
         projectId: project.projectId,
         sessionId,
-        payload: { permissionId: cancelledPermission.permissionId, allow: true },
+        payload: {
+          permissionId: cancelledPermission.permissionId,
+          allow: true,
+        },
       });
       let staleError: any;
       let cancelledPromptResult: any;
       const raceDeadline = Date.now() + 8000;
-      while ((!staleError || !cancelledPromptResult) && Date.now() < raceDeadline) {
+      while (
+        (!staleError || !cancelledPromptResult) &&
+        Date.now() < raceDeadline
+      ) {
         const frame = await client.next(Math.max(1, raceDeadline - Date.now()));
         if (frame.type === "error" && frame.requestId === "stale_permission")
           staleError = frame;
@@ -792,7 +830,10 @@ test(
       }
       assert.equal(staleError?.code, "INVALID_REQUEST");
       assert.ok(cancelledPromptResult);
-      assert.equal(existsSync(join(project.rootFolder, "cancelled.txt")), false);
+      assert.equal(
+        existsSync(join(project.rootFolder, "cancelled.txt")),
+        false,
+      );
       const cancelledTerminals = client.frames.filter(
         (frame) =>
           frame.type === "event" &&

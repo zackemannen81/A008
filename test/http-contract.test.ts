@@ -75,7 +75,10 @@ test("OpenAPI derives every operation/schema and all generated references resolv
       (n, methods) => n + Object.keys(methods).length,
       0,
     ),
-    23,
+    v1HttpOperations.reduce(
+      (count, operation) => count + operation.method.split("/").length,
+      0,
+    ),
   );
   for (const operation of v1HttpOperations)
     for (const method of operation.method.split("/")) {
@@ -268,6 +271,7 @@ test("real host HTTP surface preserves auth, runtime validation, payloads and bi
         encodeURIComponent("https://example.test/frame"),
     );
     await request("GET", "/v1/catalog/kie");
+    await request("GET", "/v1/catalog/zero-cost");
     await request("GET", "/v1/catalog/nvidia");
     await request("POST", "/v1/catalog/nvidia", {
       id: "synthetic/model",
