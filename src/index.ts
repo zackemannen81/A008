@@ -10,6 +10,7 @@ export {
   ModelRegistry,
   NVIDIA_NEMOTRON_35_LIGHTNING,
   OPENAI_GPT_56_LUNA,
+  OPENAI_GPT_56_TERRA,
   defaultModelRegistry,
 } from "./core/model-registry.js";
 export type {

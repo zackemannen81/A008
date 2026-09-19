@@ -45,6 +45,11 @@ test("all registered model defaults conform to their controls, including effort-
       .enableThinking,
     null,
   );
+  assert.deepEqual(
+    generationCapabilities("gpt-5.6-terra").reasoningEfforts,
+    ["none", "low", "medium", "high", "xhigh", "max"],
+  );
+  assert.equal(generationCapabilities("gpt-5.6-terra").maxTokens, 128000);
 });
 
 test("parameter validation refuses invalid, unsupported and excessive values atomically", () => {

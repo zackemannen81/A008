@@ -122,9 +122,10 @@ NVIDIA/kie/OpenAI dispatch for reference/debug work; `A008_CHAT_TRANSPORT=acme`
 retains the remote model-runtime/2 path for compatibility/deployment. There is
 no post-dispatch fallback. A008 remains the owner of model selection, provider
 strategy, prompts, tools, memory and cognition. A008-0131 composes embedded
-OpenAI profiles under ACME's native `openAi` route so Luna executes through
-the Responses API; NVIDIA retains its existing Chat Completions route and KIE
-retains its compatible routes. Invocation-local images map to ACME image parts
+OpenAI profiles under ACME's native `openAi` route so OpenAI models execute
+through the Responses API. A008-0133 adds shipped `gpt-5.6-terra` beside
+`gpt-5.6-luna` without changing Luna defaults; both share that same route.
+NVIDIA retains its existing Chat Completions route and KIE retains its compatible routes. Invocation-local images map to ACME image parts
 with `requiredCapabilities.vision=true`; committed conversation history remains
 text-only.
 
