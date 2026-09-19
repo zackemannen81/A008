@@ -2501,3 +2501,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Final pre-merge verification on the corrected wire-schema shape: packed independent protocol consumer passed; `npm test` passed 677 core + 4 membership + 176 GUI = 857 tests, 0 failures/skips; rebased focused A008-0138/V2 real-host gate passed 19/19; `git diff --check` passed. No live or paid provider call was required.
 - Stage 4 remains In Progress. A008-0139 reconnect/resume lease is now unblocked; A008-0140 remains restart uncertainty plus Stage-4 closure.
 - [Handoff](handoffs/A008-0138.md). Signature: ChatGPT (operator)
+
+## 2026-09-20 — A008-0139 Stage 4 reconnect/resume lease
+
+- Operator: ChatGPT. A008-0139 merged through PR #81 at `24901a1` after rebasing onto main including A008-0141.
+- V2 transport loss now interrupts active work, denies pending approvals and detaches the surviving process-local session under an opaque scoped 45-second resume lease. Correct same-principal resume rebinds the existing session through the A008-0132 authoritative snapshot boundary; wrong identity/capability, second writer, explicit close and expiry fail deterministically.
+- Resume does not replay transient thought/answer output, provider execution, tool execution or stale approvals. Device revoke/expiry hard-terminates instead of granting resume authority. The resume capability is absent from URLs, ordinary snapshots, command receipts and provider/model payloads.
+- Final post-rebase verification: packed independent protocol consumer passed; focused reconnect/V2 gate passed 18/18; `npm test` passed 681 core + 4 membership + 177 GUI = 862 tests, 0 failures/skips; diff hygiene passed. No live/paid provider call was required.
+- Stage 4 remains In Progress. A008-0140 restart uncertainty + combined closure proof is the only remaining child.
+- [Handoff](handoffs/A008-0139.md). Signature: ChatGPT (operator)
