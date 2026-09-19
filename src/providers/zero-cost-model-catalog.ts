@@ -17,27 +17,14 @@
 
 export const ZERO_COST_MODEL_CATALOG_VERIFIED_AT = "2026-09-19" as const;
 
-export type ZeroCostAccess =
-  | "free-endpoint"
-  | "free-model"
-  | "free-tier";
+export type ZeroCostAccess = "free-endpoint" | "free-model" | "free-tier";
 
-export type ZeroCostLifecycle =
-  | "recurring"
-  | "dynamic"
-  | "preview"
-  | "trial";
+export type ZeroCostLifecycle = "recurring" | "dynamic" | "preview" | "trial";
 
-export type ZeroCostApiStyle =
-  | "openai-chat-completions"
-  | "openai-responses";
+export type ZeroCostApiStyle = "openai-chat-completions" | "openai-responses";
 
 export type ZeroCostInputModality =
-  | "text"
-  | "image"
-  | "audio"
-  | "video"
-  | "pdf";
+  "text" | "image" | "audio" | "video" | "pdf";
 
 export type ZeroCostCapability =
   | "agentic"
@@ -50,8 +37,7 @@ export type ZeroCostCapability =
   | "multimodal";
 
 export type ZeroCostDataPolicy =
-  | "review-before-sensitive-use"
-  | "do-not-send-sensitive-data";
+  "review-before-sensitive-use" | "do-not-send-sensitive-data";
 
 export interface ZeroCostModelRoute {
   readonly key: string;
@@ -96,7 +82,14 @@ export const ZERO_COST_MODEL_ROUTES = [
     lifecycle: "trial",
     contextWindow: 1_000_000,
     inputModalities: ["text", "image"],
-    capabilities: ["agentic", "coding", "reasoning", "tools", "long-context", "multimodal"],
+    capabilities: [
+      "agentic",
+      "coding",
+      "reasoning",
+      "tools",
+      "long-context",
+      "multimodal",
+    ],
     dataPolicy: "review-before-sensitive-use",
     a008ProfileId: "moonshotai/kimi-k3",
     note: "NVIDIA Build currently labels the hosted prototype as Free Endpoint.",
@@ -368,7 +361,14 @@ export const ZERO_COST_MODEL_ROUTES = [
     contextWindow: 1_048_576,
     maxOutputTokens: 262_144,
     inputModalities: ["text", "image", "audio"],
-    capabilities: ["agentic", "coding", "reasoning", "tools", "long-context", "multimodal"],
+    capabilities: [
+      "agentic",
+      "coding",
+      "reasoning",
+      "tools",
+      "long-context",
+      "multimodal",
+    ],
     dataPolicy: "do-not-send-sensitive-data",
     note: "Free research endpoint is restricted to agentic harnesses; prompts and outputs are logged for model improvement.",
     verifiedAt: ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
@@ -386,7 +386,14 @@ export const ZERO_COST_MODEL_ROUTES = [
     contextWindow: 1_048_576,
     maxOutputTokens: 262_144,
     inputModalities: ["text", "image", "audio"],
-    capabilities: ["agentic", "coding", "reasoning", "tools", "long-context", "multimodal"],
+    capabilities: [
+      "agentic",
+      "coding",
+      "reasoning",
+      "tools",
+      "long-context",
+      "multimodal",
+    ],
     dataPolicy: "do-not-send-sensitive-data",
     note: "Free research endpoint is restricted to agentic harnesses; prompts and outputs are logged for model improvement.",
     verifiedAt: ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
@@ -403,7 +410,14 @@ export const ZERO_COST_MODEL_ROUTES = [
     lifecycle: "dynamic",
     contextWindow: 262_144,
     inputModalities: ["text", "image"],
-    capabilities: ["agentic", "coding", "reasoning", "tools", "structured-output", "multimodal"],
+    capabilities: [
+      "agentic",
+      "coding",
+      "reasoning",
+      "tools",
+      "structured-output",
+      "multimodal",
+    ],
     dataPolicy: "review-before-sensitive-use",
     note: "Exact :free slug is zero-priced; OpenRouter also exposes paid Nex siblings.",
     verifiedAt: ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
@@ -442,7 +456,9 @@ export const ZERO_COST_MODEL_ROUTES = [
     dataPolicy: "do-not-send-sensitive-data",
     note: "NVIDIA free-endpoint trial terms apply; do not submit personal or confidential data.",
     verifiedAt: ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
-    sourceUrls: ["https://openrouter.ai/nvidia/nemotron-3-ultra-550b-a55b:free"],
+    sourceUrls: [
+      "https://openrouter.ai/nvidia/nemotron-3-ultra-550b-a55b:free",
+    ],
   },
   {
     key: "openrouter:dots3-note-preview",
@@ -454,7 +470,13 @@ export const ZERO_COST_MODEL_ROUTES = [
     access: "free-model",
     lifecycle: "preview",
     contextWindow: 512_000,
-    capabilities: ["agentic", "coding", "reasoning", "long-context", "multimodal"],
+    capabilities: [
+      "agentic",
+      "coding",
+      "reasoning",
+      "long-context",
+      "multimodal",
+    ],
     expiresAt: "2026-09-30",
     dataPolicy: "review-before-sensitive-use",
     note: "OpenRouter explicitly says this free preview goes away on 2026-09-30.",
@@ -477,7 +499,14 @@ export const ZERO_COST_MODEL_ROUTES = [
     contextWindow: 131_072,
     maxOutputTokens: 65_536,
     inputModalities: ["text"],
-    capabilities: ["agentic", "coding", "reasoning", "tools", "structured-output", "code-execution"],
+    capabilities: [
+      "agentic",
+      "coding",
+      "reasoning",
+      "tools",
+      "structured-output",
+      "code-execution",
+    ],
     quota: "Free Plan: 30 RPM, 1,000 RPD, 8,000 TPM, 200,000 TPD.",
     dataPolicy: "review-before-sensitive-use",
     note: "Free Plan quota only; normal Groq token pricing exists outside the free allowance.",
@@ -544,8 +573,18 @@ export const ZERO_COST_MODEL_ROUTES = [
     contextWindow: 1_048_576,
     maxOutputTokens: 65_536,
     inputModalities: ["text", "image", "audio", "video", "pdf"],
-    capabilities: ["agentic", "coding", "reasoning", "tools", "structured-output", "code-execution", "long-context", "multimodal"],
-    quota: "Free Tier is zero-priced within model/account rate limits; check the live quota for the project.",
+    capabilities: [
+      "agentic",
+      "coding",
+      "reasoning",
+      "tools",
+      "structured-output",
+      "code-execution",
+      "long-context",
+      "multimodal",
+    ],
+    quota:
+      "Free Tier is zero-priced within model/account rate limits; check the live quota for the project.",
     dataPolicy: "do-not-send-sensitive-data",
     note: "Google marks Free Tier input/output/context caching as free of charge; Free Tier data may be used to improve products.",
     verifiedAt: ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
