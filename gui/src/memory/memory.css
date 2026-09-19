@@ -661,19 +661,32 @@
 .memory-edge path {
   fill: none;
   stroke: var(--a008-viz-edge);
-  stroke-opacity: 0.22;
-  stroke-width: 1.25;
+  stroke-opacity: 0.42;
+  stroke-width: calc(1.25px + (var(--memory-edge-weight, 1) - 1) * 0.65px);
 }
 .memory-edge.selected path {
   stroke: var(--a008-viz-identity);
-  stroke-opacity: 0.85;
-  stroke-width: 2;
+  stroke-opacity: 0.96;
+  stroke-width: calc(2px + (var(--memory-edge-weight, 1) - 1) * 0.75px);
+  filter: drop-shadow(0 0 4px var(--a008-viz-identity));
 }
 .memory-edge.subdued path {
-  stroke-opacity: 0.07;
+  stroke: var(--a008-viz-history);
+  stroke-opacity: 0.32;
+  stroke-dasharray: 5 6;
+  filter: none;
+}
+.memory-edge-label {
+  fill: var(--a008-viz-highlight);
+  font: 12px var(--a008-mono);
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--a008-viz-canvas-outer);
+  stroke-width: 5px;
+  stroke-linejoin: round;
 }
 .memory-graph marker path {
-  fill: var(--a008-viz-identity);
+  fill: var(--a008-viz-edge);
 }
 .memory-node {
   cursor: pointer;
@@ -681,6 +694,13 @@
 .memory-node .memory-node-hit {
   fill: transparent;
   stroke: none;
+}
+.memory-node .memory-node-shape {
+  fill: var(--a008-viz-canvas-outer);
+  fill-opacity: 0.82;
+  stroke: var(--memory-kind-color);
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 3px var(--memory-kind-color));
 }
 .memory-node .memory-node-dot {
   fill: var(--memory-kind-color);
@@ -690,8 +710,8 @@
 .memory-node .memory-node-ring {
   fill: none;
   stroke: var(--memory-kind-color);
-  stroke-opacity: 0.3;
-  stroke-width: 1;
+  stroke-opacity: 0.66;
+  stroke-width: 1.2;
 }
 .memory-node.hub .memory-node-dot {
   stroke-width: 3;
@@ -714,7 +734,16 @@
   outline: none;
 }
 .memory-node.dimmed {
-  opacity: 0.38;
+  opacity: 0.28;
+}
+.memory-node.dimmed .memory-node-shape,
+.memory-node.dimmed .memory-node-ring {
+  stroke: var(--a008-viz-history);
+  stroke-dasharray: 4 4;
+  filter: none;
+}
+.memory-node.dimmed .memory-node-dot {
+  fill: var(--a008-viz-history);
 }
 .memory-node:hover,
 .memory-node:focus {

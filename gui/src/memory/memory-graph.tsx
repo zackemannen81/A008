@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState, type CSSProperties } from "react";
 import { NodeShape } from "./memory-graph-shape.jsx";
 import {
   KIND_LABEL,
@@ -8,12 +8,23 @@ import {
 } from "./memory-client.js";
 import {
   degreeMap,
+  edgeLabelPoint,
   edgePath,
   layoutGraph,
   layoutLabels,
+  parallelEdgeCounts,
   shorten,
 } from "./memory-graph-layout.js";
 export { layoutGraph, primaryDomain } from "./memory-graph-layout.js";
+
+export function isFocusSubdued(
+  focused: boolean,
+  selected: string | undefined,
+  connected: ReadonlySet<string>,
+  nodeId: string,
+) {
+  return focused && selected !== undefined && nodeId !== selected && !connected.has(nodeId);
+}
 
 export function MemoryGraph({
   graph,
@@ -42,14 +53,14 @@ export function MemoryGraph({
     () => degreeMap(graph.nodes, graph.edges),
     [graph.nodes, graph.edges],
   );
+  const parallelEdges = useMemo(() => parallelEdgeCounts(graph.edges), [graph.edges]);
   const connected = new Set(
     graph.edges
       .filter((edge) => edge.from === selected || edge.to === selected)
       .flatMap((edge) => [edge.from, edge.to]),
   );
   const focused = focusMode && selected !== undefined;
-  const visible = (nodeId: string) =>
-    !focused || nodeId === selected || connected.has(nodeId);
+  const visible = (_nodeId: string) => true;
   const priority = [
     selected,
     hovered,
@@ -227,17 +238,24 @@ export function MemoryGraph({
                 b = points.get(edge.to);
               const highlighted =
                 edge.from === selected || edge.to === selected;
-              if (!a || !b || (focused && !highlighted)) return null;
+              const subdued = focused && !highlighted;
+              const parallelCount =
+                parallelEdges.get(`${edge.from}\u0000${edge.to}`) ?? 1;
+              if (!a || !b) return null;
+              const label = edgeLabelPoint(a, b);
               return (
                 <g
                   key={JSON.stringify(edge)}
-                  className={`memory-edge${highlighted ? " selected" : ""}${selected && !highlighted ? " subdued" : ""}`}
+                  className={`memory-edge${highlighted ? " selected" : ""}${subdued ? " subdued" : ""}${parallelCount > 1 ? " parallel" : ""}`}
+                  style={{ "--memory-edge-weight": Math.min(parallelCount, 4) } as CSSProperties}
                 >
-                  <path
-                    d={edgePath(a, b)}
-                    markerEnd={highlighted ? `url(#${id}-arrow)` : undefined}
-                  />
-                  <title>{edge.relation}</title>
+                  <path d={edgePath(a, b)} markerEnd={`url(#${id}-arrow)`} />
+                  {highlighted ? (
+                    <text className="memory-edge-label" x={label.x} y={label.y}>
+                      {shorten(edge.relation, 20)}
+                    </text>
+                  ) : null}
+                  <title>{`${edge.relation} · ${parallelCount} parallel displayed stored link${parallelCount === 1 ? "" : "s"}`}</title>
                 </g>
               );
             })}
@@ -247,10 +265,12 @@ export function MemoryGraph({
                 const point = points.get(node.id)!;
                 const isHub = node.id === layout.hubId,
                   isSelected = node.id === selected;
-                const dimmed =
-                  selected !== undefined &&
-                  !isSelected &&
-                  !connected.has(node.id);
+                const dimmed = isFocusSubdued(
+                  focused,
+                  selected,
+                  connected,
+                  node.id,
+                );
                 return (
                   <g
                     key={node.id}
@@ -328,7 +348,8 @@ export function MemoryGraph({
       </div>
       <p className="memory-muted memory-graph-note">
         Grouped by primary domain; distance does not measure similarity. Node
-        size reflects displayed link count. Lines represent stored links only.
+        size reflects displayed link count. Arrows represent stored direction;
+        thicker arrows mean parallel displayed stored links, not evidence strength.
         Viewing does not reinforce memory.
         {graph.nodes.length > 0 && !graph.edges.length
           ? " No stored links connect the displayed records."

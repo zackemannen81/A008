@@ -10,9 +10,13 @@ import {
   type MemoryRecord,
   type MemorySnapshot,
 } from "./memory-client.js";
-import { layoutGraph, MemoryGraph } from "./memory-graph.js";
+import { isFocusSubdued, layoutGraph, MemoryGraph } from "./memory-graph.js";
 import { MemoryInspector, storedConnections } from "./memory-inspector.js";
-import { edgePath, layoutLabels } from "./memory-graph-layout.js";
+import {
+  edgePath,
+  layoutLabels,
+  parallelEdgeCounts,
+} from "./memory-graph-layout.js";
 import { MemoryOverview } from "./memory-overview.js";
 
 const record: MemoryRecord = {
@@ -281,6 +285,39 @@ test("dense single-domain and many-domain maps preserve spacing, bounds and orde
       positions(render(nodes[40]!.id)),
     );
   }
+});
+
+test("focused topology retains subdued graph context while exposing directed relation labels and parallel-link weight", () => {
+  const selected: MemoryRecord = { ...record, id: "entity:selected", kind: "entity", label: "Selected" };
+  const neighbour: MemoryRecord = { ...record, id: "claim:neighbour", label: "Neighbour" };
+  const context: MemoryRecord = { ...record, id: "artifact:context", kind: "artifact", label: "Context" };
+  const edges = [
+    { from: selected.id, to: neighbour.id, relation: "supports" },
+    { from: selected.id, to: neighbour.id, relation: "references" },
+    { from: context.id, to: neighbour.id, relation: "appears_in" },
+  ];
+  const html = renderToStaticMarkup(
+    createElement(MemoryGraph, {
+      graph: { nodes: [selected, neighbour, context], edges, totalNodes: 3, totalEdges: 3 },
+      selected: selected.id,
+      onSelect() {},
+    }),
+  );
+  assert.equal((html.match(/data-record-id=/gu) ?? []).length, 3);
+  assert.equal((html.match(/marker-end=/gu) ?? []).length, 3);
+  assert.match(html, /memory-edge selected parallel/u);
+  assert.match(html, /memory-edge-label/u);
+  assert.match(html, /supports/u);
+  assert.equal(
+    isFocusSubdued(true, selected.id, new Set([selected.id, neighbour.id]), context.id),
+    true,
+  );
+  assert.equal(
+    isFocusSubdued(true, selected.id, new Set([selected.id, neighbour.id]), neighbour.id),
+    false,
+  );
+  assert.match(html, /thicker arrows mean parallel displayed stored links, not evidence strength/u);
+  assert.equal(parallelEdgeCounts(edges).get(`${selected.id}\u0000${neighbour.id}`), 2);
 });
 
 test("inspector navigation preserves stored direction, parallel labels and self links", () => {

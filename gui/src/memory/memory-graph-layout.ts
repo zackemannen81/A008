@@ -203,3 +203,30 @@ export function edgePath(a: GraphPoint, b: GraphPoint): string {
   const bend = Math.min(48, distance * 0.15);
   return `M ${a.x} ${a.y} Q ${(a.x + b.x) / 2 - (dy / distance) * bend} ${(a.y + b.y) / 2 + (dx / distance) * bend} ${b.x} ${b.y}`;
 }
+
+/** The point halfway along the same curved path used for its visible relation.
+ * It is presentation-only and does not imply an additional stored relation. */
+export function edgeLabelPoint(a: GraphPoint, b: GraphPoint) {
+  if (a.id === b.id) return { x: a.x, y: a.y - 58 };
+  const dx = b.x - a.x,
+    dy = b.y - a.y,
+    distance = Math.hypot(dx, dy);
+  const bend = Math.min(48, distance * 0.15);
+  const controlX = (a.x + b.x) / 2 - (dy / distance) * bend;
+  const controlY = (a.y + b.y) / 2 + (dx / distance) * bend;
+  return {
+    x: (a.x + 2 * controlX + b.x) / 4,
+    y: (a.y + 2 * controlY + b.y) / 4,
+  };
+}
+
+/** Count parallel directional links only. This is a topology display cue, never
+ * an evidence, truth, relevance, lifecycle or semantic-strength measurement. */
+export function parallelEdgeCounts(edges: readonly MemoryEdge[]) {
+  const counts = new Map<string, number>();
+  for (const edge of edges) {
+    const key = `${edge.from}\u0000${edge.to}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
+}

@@ -709,8 +709,7 @@ The inspector lists exact incoming/outgoing/self relations and navigates their
 existing endpoints; parallel relations remain separate entries. Its link count
 means displayed stored links, not unique related records or the complete store.
 
-Focus mode hides unrelated records and frames the selected neighbourhood without
-changing its positions. Fit restores the current frame; zoom and native scrolling
+Focus mode retains unrelated records and links as dark dashed context, frames the selected neighbourhood, and emphasizes its actual directed links without changing positions. Each displayed link now has a directional arrow; selected links show their stored relation label. A thicker arrow means only that parallel stored links with the same displayed direction are present, never evidence strength, confidence, truth, relevance, lifecycle or semantic similarity. Fit restores the current frame; zoom and native scrolling
 work on desktop and narrow screens. The inspector follows the graph below the
 existing responsive breakpoint. Distances make no similarity claim; domain
 shading and reads do not create/reinforce edges or activate evidence. Graph limits
