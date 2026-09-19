@@ -134,6 +134,10 @@ export function RuntimeCapabilitiesPanel() {
           <dd>{Math.round(info.limits.ticketLifetimeMs / 1000)} s</dd>
         </div>
         <div>
+          <dt>Resume lease</dt>
+          <dd>{Math.round(info.limits.sessionResumeLeaseMs / 1000)} s</dd>
+        </div>
+        <div>
           <dt>Receipt TTL</dt>
           <dd>{Math.round(info.limits.commandReceiptRetentionMs / 1000)} s</dd>
         </div>

@@ -41,6 +41,7 @@ export const V2_LIMITS = {
   inputFrameBytes: 1_048_576,
   outputFrameBytes: 8_388_608,
   promptBytes: 65_536,
+  sessionResumeLeaseMs: 45_000,
   commandReceiptRetentionMs: 5 * 60_000,
   commandReceiptLimitPerPrincipal: 1_024,
 } as const;
@@ -234,6 +235,7 @@ export class V2Auth {
         "session.terminal-outcomes",
         "session.command-receipts",
         "session.command-idempotency",
+        "session.reconnect-resume",
       ],
       limits: V2_LIMITS,
     };

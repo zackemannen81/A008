@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import type {
   RequestPermissionResponse,
   SessionNotification,
@@ -39,6 +39,8 @@ interface CommittedMessage {
 }
 interface ActiveTurn {
   readonly turnId: string;
+  readonly settled: Promise<void>;
+  readonly resolveSettled: () => void;
   terminal: boolean;
   cancelRequested?: boolean;
   interruptRequested?: boolean;
@@ -51,8 +53,11 @@ interface OwnedSession {
   readonly sessionId: string;
   readonly projectId: string;
   readonly principalId: string;
-  readonly connectionId: string;
-  readonly emit: (frame: V2SessionServerFrame) => void;
+  readonly resumeCapability: string;
+  connectionId?: string;
+  emit?: (frame: V2SessionServerFrame) => void;
+  leaseExpiresAt?: number;
+  leaseTimer?: ReturnType<typeof setTimeout>;
   active: boolean;
   sequence: number;
   messages: CommittedMessage[];
@@ -72,6 +77,8 @@ export class V2SessionService {
   readonly #registry: ProjectRuntimeRegistry;
   readonly #serverInstanceId: string;
   readonly #host: EngineHost;
+  readonly #now: () => number;
+  readonly #resumeLeaseMs: number;
   readonly #sessions = new Map<string, OwnedSession>();
   readonly #permissions = new Map<string, PendingPermission>();
   readonly #receipts: V2CommandReceiptStore;
@@ -83,15 +90,19 @@ export class V2SessionService {
     serverInstanceId: string;
     stderr?: NodeJS.WritableStream;
     now?: () => number;
+    resumeLeaseMs?: number;
     commandReceiptLimitPerPrincipal?: number;
   }) {
     this.#env = { ...options.env };
     this.#projectsPath = options.projectsPath;
     this.#registry = options.registry;
     this.#serverInstanceId = options.serverInstanceId;
+    this.#now = options.now ?? Date.now;
+    this.#resumeLeaseMs =
+      options.resumeLeaseMs ?? V2_LIMITS.sessionResumeLeaseMs;
     this.#receipts = new V2CommandReceiptStore({
       serverInstanceId: options.serverInstanceId,
-      ...(options.now ? { now: options.now } : {}),
+      now: this.#now,
       retentionMs: V2_LIMITS.commandReceiptRetentionMs,
       limitPerPrincipal:
         options.commandReceiptLimitPerPrincipal ??
@@ -127,11 +138,21 @@ export class V2SessionService {
     sessionId: string,
   ): boolean {
     const session = this.#sessions.get(sessionId);
-    return (
-      session !== undefined &&
-      session.principalId === principal.id &&
-      session.projectId === projectId
-    );
+    if (
+      !session ||
+      session.principalId !== principal.id ||
+      session.projectId !== projectId
+    )
+      return false;
+    if (
+      session.connectionId === undefined &&
+      session.leaseExpiresAt !== undefined &&
+      session.leaseExpiresAt <= this.#now()
+    ) {
+      void this.#expireDetachedSession(sessionId);
+      return false;
+    }
+    return true;
   }
 
   beginCommand(
@@ -187,6 +208,88 @@ export class V2SessionService {
     return this.#receipts.lookup(principal.id, projectId, commandId);
   }
 
+  resumeCapability(
+    principal: V2Principal,
+    projectId: string,
+    sessionId: string,
+    connectionId: string,
+  ): string {
+    return this.#require(principal, projectId, sessionId, connectionId)
+      .resumeCapability;
+  }
+
+  async resumeSession(input: {
+    principal: V2Principal;
+    projectId: string;
+    sessionId: string;
+    connectionId: string;
+    resumeCapability: string;
+    emit: (frame: V2SessionServerFrame) => void;
+  }): Promise<V2SessionState> {
+    const owned = this.#sessions.get(input.sessionId);
+    if (
+      !owned ||
+      owned.projectId !== input.projectId ||
+      owned.principalId !== input.principal.id
+    )
+      throw new V2AuthError(
+        "SESSION_EXPIRED",
+        404,
+        "The project session is unavailable to this principal.",
+      );
+    if (owned.connectionId !== undefined) {
+      if (owned.connectionId !== input.connectionId)
+        throw new V2AuthError(
+          "SESSION_BUSY",
+          409,
+          "Session is already attached to another connection.",
+        );
+      if (owned.capture)
+        return this.#state(
+          owned,
+          this.#host.control(owned.sessionId, { action: "inspect" }),
+          owned.capture.representedSequence,
+        );
+      return this.#captureSnapshot(owned);
+    }
+    if (
+      owned.leaseExpiresAt === undefined ||
+      owned.leaseExpiresAt <= this.#now()
+    ) {
+      await this.#expireDetachedSession(owned.sessionId);
+      throw new V2AuthError(
+        "SESSION_EXPIRED",
+        404,
+        "Session resume is unavailable or expired.",
+      );
+    }
+    if (
+      !this.#sameResumeCapability(
+        owned.resumeCapability,
+        input.resumeCapability,
+      )
+    )
+      throw new V2AuthError(
+        "SESSION_EXPIRED",
+        404,
+        "Session resume is unavailable or expired.",
+      );
+
+    const previousExpiry = owned.leaseExpiresAt;
+    this.#clearLease(owned);
+    owned.connectionId = input.connectionId;
+    owned.emit = input.emit;
+    try {
+      return this.#captureSnapshot(owned);
+    } catch (error) {
+      delete owned.connectionId;
+      delete owned.emit;
+      owned.leaseExpiresAt = previousExpiry;
+      this.#scheduleLeaseExpiry(owned);
+      throw error;
+    }
+  }
+
   async newSession(input: {
     principal: V2Principal;
     projectId: string;
@@ -202,8 +305,9 @@ export class V2SessionService {
         notify,
         requestPermission: (params) => {
           const owned = this.#sessions.get(params.sessionId);
-          if (!owned)
+          if (!owned || !owned.connectionId || !owned.emit)
             return Promise.resolve({ outcome: { outcome: "cancelled" } });
+          const connectionId = owned.connectionId;
           const turn = owned.activeTurn;
           if (!turn || turn.terminal)
             return Promise.resolve({ outcome: { outcome: "cancelled" } });
@@ -211,7 +315,7 @@ export class V2SessionService {
           return new Promise<RequestPermissionResponse>((resolve) => {
             this.#permissions.set(permissionId, {
               sessionId: params.sessionId,
-              connectionId: owned.connectionId,
+              connectionId,
               turnId: turn.turnId,
               resolve,
             });
@@ -230,6 +334,7 @@ export class V2SessionService {
       sessionId: created.sessionId,
       projectId: input.projectId,
       principalId: input.principal.id,
+      resumeCapability: randomBytes(32).toString("base64url"),
       connectionId: input.connectionId,
       emit: input.emit,
       active: false,
@@ -261,23 +366,7 @@ export class V2SessionService {
     connectionId: string,
   ): V2SessionState {
     const owned = this.#require(principal, projectId, sessionId, connectionId);
-    if (owned.capture)
-      throw new V2AuthError(
-        "SESSION_BUSY",
-        409,
-        "A session snapshot is already being delivered.",
-      );
-    owned.capture = { representedSequence: owned.sequence, queued: [] };
-    try {
-      return this.#state(
-        owned,
-        this.#host.control(sessionId, { action: "inspect" }),
-        owned.capture.representedSequence,
-      );
-    } catch (error) {
-      delete owned.capture;
-      throw error;
-    }
+    return this.#captureSnapshot(owned);
   }
 
   finishSnapshot(sessionId: string, connectionId: string): void {
@@ -285,7 +374,7 @@ export class V2SessionService {
     if (!owned || owned.connectionId !== connectionId || !owned.capture) return;
     const queued = owned.capture.queued;
     delete owned.capture;
-    for (const event of queued) owned.emit(event);
+    for (const event of queued) owned.emit?.(event);
   }
 
   async prompt(
@@ -303,8 +392,14 @@ export class V2SessionService {
         409,
         "Session already has an active turn.",
       );
+    let resolveSettled!: () => void;
+    const settled = new Promise<void>((resolve) => {
+      resolveSettled = resolve;
+    });
     const turn: ActiveTurn = {
       turnId: `turn_${randomUUID()}`,
+      settled,
+      resolveSettled,
       terminal: false,
     };
     owned.active = true;
@@ -341,6 +436,7 @@ export class V2SessionService {
       owned.active = false;
       this.#denyPermissions(sessionId);
       if (owned.activeTurn === turn) delete owned.activeTurn;
+      turn.resolveSettled();
     }
     return this.#state(
       owned,
@@ -379,6 +475,7 @@ export class V2SessionService {
         this.#host.control(sessionId, { action: "inspect" }),
       );
       this.#denyPermissions(sessionId);
+      this.#clearLease(owned);
       await this.#host.closeSession(sessionId);
       this.#sessions.delete(sessionId);
       return { ...state, active: false, closed: true };
@@ -428,28 +525,124 @@ export class V2SessionService {
   }
 
   async closeConnection(connectionId: string): Promise<void> {
-    const ids = [...this.#sessions.values()]
-      .filter((session) => session.connectionId === connectionId)
-      .map((session) => session.sessionId);
-    for (const sessionId of ids) {
-      const owned = this.#sessions.get(sessionId);
-      if (owned?.activeTurn && !owned.activeTurn.terminal)
-        owned.activeTurn.interruptRequested = true;
-      this.#denyPermissions(sessionId);
-      this.#host.sessionAgent(sessionId).cancel({ sessionId });
-      await this.#host.closeSession(sessionId).catch(() => undefined);
-      if (owned?.activeTurn && !owned.activeTurn.terminal)
-        this.#settleTurn(owned, owned.activeTurn, "interrupted");
-      this.#sessions.delete(sessionId);
+    const sessions = [...this.#sessions.values()].filter(
+      (session) => session.connectionId === connectionId,
+    );
+    for (const owned of sessions) {
+      delete owned.capture;
+      const turn = owned.activeTurn;
+      if (turn && !turn.terminal) {
+        turn.interruptRequested = true;
+        this.#denyPermissions(owned.sessionId);
+        this.#host.sessionAgent(owned.sessionId).cancel({
+          sessionId: owned.sessionId,
+        });
+        await turn.settled;
+      } else {
+        this.#denyPermissions(owned.sessionId);
+      }
+      if (owned.connectionId !== connectionId) continue;
+      delete owned.connectionId;
+      delete owned.emit;
+      owned.leaseExpiresAt = this.#now() + this.#resumeLeaseMs;
+      this.#scheduleLeaseExpiry(owned);
     }
+  }
+
+  async terminateConnection(connectionId: string): Promise<void> {
+    const sessions = [...this.#sessions.values()].filter(
+      (session) => session.connectionId === connectionId,
+    );
+    for (const owned of sessions) await this.#destroySession(owned);
   }
 
   async close(): Promise<void> {
     for (const permission of this.#permissions.values())
       permission.resolve({ outcome: { outcome: "cancelled" } });
     this.#permissions.clear();
+    for (const session of this.#sessions.values()) this.#clearLease(session);
     this.#sessions.clear();
     await this.#host.close();
+  }
+
+  #captureSnapshot(owned: OwnedSession): V2SessionState {
+    if (owned.capture)
+      throw new V2AuthError(
+        "SESSION_BUSY",
+        409,
+        "A session snapshot is already being delivered.",
+      );
+    owned.capture = { representedSequence: owned.sequence, queued: [] };
+    try {
+      return this.#state(
+        owned,
+        this.#host.control(owned.sessionId, { action: "inspect" }),
+        owned.capture.representedSequence,
+      );
+    } catch (error) {
+      delete owned.capture;
+      throw error;
+    }
+  }
+
+  #sameResumeCapability(expected: string, received: string): boolean {
+    const left = Buffer.from(expected);
+    const right = Buffer.from(received);
+    return left.length === right.length && timingSafeEqual(left, right);
+  }
+
+  #clearLease(owned: OwnedSession): void {
+    if (owned.leaseTimer !== undefined) clearTimeout(owned.leaseTimer);
+    delete owned.leaseTimer;
+    delete owned.leaseExpiresAt;
+  }
+
+  #scheduleLeaseExpiry(owned: OwnedSession): void {
+    if (owned.leaseExpiresAt === undefined || owned.connectionId !== undefined)
+      return;
+    if (owned.leaseTimer !== undefined) clearTimeout(owned.leaseTimer);
+    const delay = Math.max(0, owned.leaseExpiresAt - this.#now());
+    owned.leaseTimer = setTimeout(() => {
+      void this.#expireDetachedSession(owned.sessionId).catch(() => undefined);
+    }, delay);
+    owned.leaseTimer.unref?.();
+  }
+
+  async #expireDetachedSession(sessionId: string): Promise<void> {
+    const owned = this.#sessions.get(sessionId);
+    if (
+      !owned ||
+      owned.connectionId !== undefined ||
+      owned.leaseExpiresAt === undefined
+    )
+      return;
+    if (owned.leaseExpiresAt > this.#now()) {
+      this.#scheduleLeaseExpiry(owned);
+      return;
+    }
+    await this.#destroySession(owned);
+  }
+
+  async #destroySession(owned: OwnedSession): Promise<void> {
+    if (this.#sessions.get(owned.sessionId) !== owned) return;
+    this.#clearLease(owned);
+    delete owned.capture;
+    const turn = owned.activeTurn;
+    if (turn && !turn.terminal) {
+      turn.interruptRequested = true;
+      this.#denyPermissions(owned.sessionId);
+      this.#host.sessionAgent(owned.sessionId).cancel({
+        sessionId: owned.sessionId,
+      });
+      await turn.settled;
+    } else {
+      this.#denyPermissions(owned.sessionId);
+    }
+    await this.#host.closeSession(owned.sessionId).catch(() => undefined);
+    if (this.#sessions.get(owned.sessionId) === owned)
+      this.#sessions.delete(owned.sessionId);
+    delete owned.connectionId;
+    delete owned.emit;
   }
 
   #require(
@@ -474,7 +667,9 @@ export class V2SessionService {
       throw new V2AuthError(
         "SESSION_BUSY",
         409,
-        "Session is attached to another connection.",
+        owned.connectionId === undefined
+          ? "Session is detached; resume is required."
+          : "Session is attached to another connection.",
       );
     return owned;
   }
@@ -653,7 +848,7 @@ export class V2SessionService {
       ...event,
     } as V2SessionEvent;
     if (owned.capture) owned.capture.queued.push(frame);
-    else owned.emit(frame);
+    else owned.emit?.(frame);
     return frame;
   }
 

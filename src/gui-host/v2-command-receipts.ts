@@ -196,6 +196,10 @@ export function isV2MutationCommand(command: V2SessionCommand): boolean {
   );
 }
 
+export function isV2ReceiptCommand(command: V2SessionCommand): boolean {
+  return isV2MutationCommand(command) && command.action !== "session/resume";
+}
+
 export function mutationCommandId(command: V2SessionCommand): string {
   if (!isV2MutationCommand(command))
     throw new V2AuthError(

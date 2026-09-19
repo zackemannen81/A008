@@ -61,6 +61,7 @@
           "type": "string",
           "enum": [
             "session/new",
+            "session/resume",
             "session/inspect",
             "session/prompt",
             "session/cancel",
@@ -263,6 +264,12 @@
             "active"
           ],
           "additionalProperties": false
+        },
+        "resumeCapability": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$"
         },
         "receipt": {
           "type": "object",

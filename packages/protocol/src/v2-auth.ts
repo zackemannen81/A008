@@ -22,6 +22,11 @@ export const v2ProjectIdSchema = z
   .regex(
     /^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u,
   );
+export const v2ResumeCapabilitySchema = z
+  .string()
+  .min(32)
+  .max(128)
+  .regex(/^[A-Za-z0-9_-]+$/u);
 export const v2TicketRequestSchema = z
   .object({ projectId: v2ProjectIdSchema, sessionId: v2IdSchema.optional() })
   .strict();
@@ -103,6 +108,7 @@ export const v2InfoSchema = z.object({
     inputFrameBytes: z.number().int(),
     outputFrameBytes: z.number().int(),
     promptBytes: z.number().int(),
+    sessionResumeLeaseMs: z.number().int(),
     commandReceiptRetentionMs: z.number().int(),
     commandReceiptLimitPerPrincipal: z.number().int(),
   }),
@@ -126,6 +132,7 @@ export function v2AuthJsonSchemas() {
       "v2-info": v2InfoSchema,
       "v2-error": v2ErrorSchema,
       "v2-command-receipt": v2CommandReceiptSchema,
+      "v2-resume-capability": v2ResumeCapabilitySchema,
       "v2-ticket-request": v2TicketRequestSchema,
       "v2-ticket-response": v2TicketResponseSchema,
       "v2-authenticate": v2AuthenticateSchema,

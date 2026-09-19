@@ -16,15 +16,15 @@ export const STAGE4_COMMAND_FEATURES = [
   "session.command-idempotency",
 ] as const;
 
+export const STAGE4_RECOVERY_FEATURES = ["session.reconnect-resume"] as const;
+
 export const STAGE4_IMPLEMENTED_FEATURES = [
   ...STAGE4_FOUNDATION_FEATURES,
   ...STAGE4_COMMAND_FEATURES,
+  ...STAGE4_RECOVERY_FEATURES,
 ] as const;
 
-export const STAGE4_REMAINING = [
-  "Reconnect / resume leases",
-  "Restart uncertainty handling",
-] as const;
+export const STAGE4_REMAINING = ["Restart uncertainty handling"] as const;
 
 export async function loadRuntimeCapabilities(
   signal?: AbortSignal,

@@ -9,10 +9,12 @@ import {
   v2ErrorSchema,
   v2IdSchema,
   v2ProjectIdSchema,
+  v2ResumeCapabilitySchema,
 } from "./v2-auth.js";
 
 export const V2_SESSION_ACTIONS = [
   "session/new",
+  "session/resume",
   "session/inspect",
   "session/prompt",
   "session/cancel",
@@ -54,6 +56,15 @@ export const v2SessionCommandSchema = z.union([
       ...mutationCommand,
       action: z.literal("session/new"),
       payload: z.object({ model: v2IdSchema.optional() }).strict().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      ...sessionMutationCommand,
+      action: z.literal("session/resume"),
+      payload: z
+        .object({ resumeCapability: v2ResumeCapabilitySchema })
+        .strict(),
     })
     .strict(),
   z
@@ -158,6 +169,7 @@ export const v2SessionResultSchema = z
     projectId: v2ProjectIdSchema,
     sessionId: v2IdSchema.optional(),
     state: v2SessionStateSchema.optional(),
+    resumeCapability: v2ResumeCapabilitySchema.optional(),
     receipt: v2CommandReceiptSchema.optional(),
   })
   .strict();

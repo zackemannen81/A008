@@ -214,8 +214,9 @@ test("real V2 discovery/ticket routes require app auth, registered scope and Ori
       );
       assert.equal(
         parsedInfo.data.features.includes("session.reconnect-resume"),
-        false,
+        true,
       );
+      assert.equal(parsedInfo.data.limits.sessionResumeLeaseMs, 45_000);
     }
     assert.ok(!JSON.stringify(info).includes(f.directory));
     assert.ok(!JSON.stringify(info).includes(projectId));
@@ -386,6 +387,15 @@ class V2WireClient {
         return frame;
     }
     throw new Error(`Timed out waiting for V2 ${type}.`);
+  }
+
+  async closeAndWait(): Promise<void> {
+    if (this.socket.readyState === WebSocket.CLOSED) return;
+    const closed = new Promise<void>((resolve) =>
+      this.socket.addEventListener("close", () => resolve(), { once: true }),
+    );
+    this.socket.close();
+    await closed;
   }
 
   close(): void {
@@ -1371,6 +1381,331 @@ test(
       assert.equal(foreignBody.code, "COMMAND_UNKNOWN");
     } finally {
       client?.close();
+      await host.close();
+      await provider.close();
+      rmSync(f.directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "A008-0139 real V2 disconnect resumes one surviving session without replay",
+  { timeout: 30000 },
+  async () => {
+    const provider = await startSessionControlProvider();
+    const f = fixture();
+    f.env.NVIDIA_CHAT_COMPLETIONS_URL = provider.endpoint;
+    f.env.PATH = process.env.PATH;
+    const project = createRegisteredFixtureProject(f, "V2 reconnect");
+    const devices = new DeviceRegistry(f.env);
+    const owner = devices.grant({
+      name: "Resume owner",
+      projects: [project.projectId],
+      capabilities: ["session"],
+    });
+    const foreign = devices.grant({
+      name: "Resume foreign",
+      projects: [project.projectId],
+      capabilities: ["session"],
+    });
+    const host = await startGuiHost({ env: f.env, port: 0, cwd: f.directory });
+    const clients: V2WireClient[] = [];
+    try {
+      const first = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(host.port, owner.credential, project.projectId),
+      );
+      clients.push(first);
+      first.send({
+        type: "command",
+        requestId: "resume_new",
+        action: "session/new",
+        projectId: project.projectId,
+      });
+      const opened = await first.until("result", "resume_new");
+      const sessionId = opened.sessionId as string;
+      const resumeCapability = opened.resumeCapability as string;
+      assert.match(resumeCapability, /^[A-Za-z0-9_-]{32,128}$/u);
+      assert.equal(
+        JSON.stringify(opened.state).includes(resumeCapability),
+        false,
+      );
+      assert.equal(
+        JSON.stringify(opened.receipt).includes(resumeCapability),
+        false,
+      );
+
+      const resumeTicket = await issueV2Ticket(
+        host.port,
+        owner.credential,
+        project.projectId,
+        sessionId,
+      );
+      first.send({
+        type: "command",
+        requestId: "resume_wait",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "WAIT-TURN" },
+      });
+      await nextV2Signal(first, "thought");
+
+      const userProviderCalls = () =>
+        provider.requests.filter(
+          (payload) =>
+            !String(payload.messages?.at(-1)?.content ?? "").includes(
+              '"operation"',
+            ),
+        ).length;
+      assert.equal(userProviderCalls(), 1);
+
+      await first.closeAndWait();
+
+      const resumed = await V2WireClient.connect(host.port, resumeTicket);
+      clients.push(resumed);
+      let resumeResult: any;
+      for (let attempt = 0; attempt < 20 && !resumeResult; attempt++) {
+        resumed.send({
+          type: "command",
+          requestId: "resume_attach",
+          commandId: "resume_attach_command",
+          action: "session/resume",
+          projectId: project.projectId,
+          sessionId,
+          payload: { resumeCapability },
+        });
+        const frame = await resumed.next();
+        if (frame.type === "result" && frame.requestId === "resume_attach") {
+          resumeResult = frame;
+          break;
+        }
+        if (
+          frame.type === "error" &&
+          frame.requestId === "resume_attach" &&
+          frame.code === "SESSION_BUSY"
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          continue;
+        }
+        assert.fail(`Unexpected resume frame: ${JSON.stringify(frame)}`);
+      }
+      assert.ok(resumeResult, "resume must succeed after detach settles");
+      assert.equal(resumeResult.sessionId, sessionId);
+      assert.equal(resumeResult.resumeCapability, resumeCapability);
+      assert.equal(resumeResult.state.active, false);
+      assert.equal(resumeResult.state.activeTurn, undefined);
+      assert.equal(
+        JSON.stringify(resumeResult.state).includes(resumeCapability),
+        false,
+      );
+      assert.equal(
+        resumed.frames.some(
+          (frame) =>
+            frame.type === "event" &&
+            (frame.event === "thought/delta" ||
+              frame.event === "answer/delta" ||
+              frame.event === "tool/permission"),
+        ),
+        false,
+      );
+      assert.equal(userProviderCalls(), 1);
+
+      const secondWriter = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(
+          host.port,
+          owner.credential,
+          project.projectId,
+          sessionId,
+        ),
+      );
+      clients.push(secondWriter);
+      secondWriter.send({
+        type: "command",
+        requestId: "resume_second_writer",
+        action: "session/resume",
+        projectId: project.projectId,
+        sessionId,
+        payload: { resumeCapability },
+      });
+      await expectV2Error(secondWriter, "SESSION_BUSY", "resume_second_writer");
+
+      const foreignClient = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(host.port, foreign.credential, project.projectId),
+      );
+      clients.push(foreignClient);
+      foreignClient.send({
+        type: "command",
+        requestId: "resume_foreign",
+        action: "session/resume",
+        projectId: project.projectId,
+        sessionId,
+        payload: { resumeCapability },
+      });
+      await expectV2Error(foreignClient, "SESSION_EXPIRED", "resume_foreign");
+
+      resumed.send({
+        type: "command",
+        requestId: "resume_close",
+        action: "session/control",
+        projectId: project.projectId,
+        sessionId,
+        payload: { control: { action: "close" } },
+      });
+      await resumed.until("result", "resume_close");
+
+      const afterClose = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(host.port, owner.credential, project.projectId),
+      );
+      clients.push(afterClose);
+      afterClose.send({
+        type: "command",
+        requestId: "resume_after_close",
+        action: "session/resume",
+        projectId: project.projectId,
+        sessionId,
+        payload: { resumeCapability },
+      });
+      await expectV2Error(afterClose, "SESSION_EXPIRED", "resume_after_close");
+      assert.equal(userProviderCalls(), 1);
+    } finally {
+      for (const client of clients) client.close();
+      await host.close();
+      await provider.close();
+      rmSync(f.directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "A008-0139 detach denies pending approval and resume cannot resurrect it",
+  { timeout: 30000 },
+  async () => {
+    const provider = await startSessionControlProvider((payload) => {
+      const messages = payload.messages ?? [];
+      const last = messages.at(-1);
+      if (last?.role === "tool")
+        return { role: "assistant", content: "Tool phase finished." };
+      const user =
+        [...messages].reverse().find((message: any) => message.role === "user")
+          ?.content ?? "";
+      if (!String(user).includes("WRITE DETACH")) return undefined;
+      return {
+        role: "assistant",
+        content: null,
+        tool_calls: [
+          {
+            id: "write-detach",
+            type: "function",
+            function: {
+              name: "create_file",
+              arguments: JSON.stringify({
+                path: "detached.txt",
+                content: "must-not-run",
+              }),
+            },
+          },
+        ],
+      };
+    });
+    const f = fixture();
+    f.env.NVIDIA_CHAT_COMPLETIONS_URL = provider.endpoint;
+    f.env.PATH = process.env.PATH;
+    const project = createRegisteredFixtureProject(f, "V2 detached approval");
+    const devices = new DeviceRegistry(f.env);
+    const owner = devices.grant({
+      name: "Detached approval owner",
+      projects: [project.projectId],
+      capabilities: ["session"],
+    });
+    const host = await startGuiHost({ env: f.env, port: 0, cwd: f.directory });
+    const clients: V2WireClient[] = [];
+    try {
+      const first = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(host.port, owner.credential, project.projectId),
+      );
+      clients.push(first);
+      first.send({
+        type: "command",
+        requestId: "detach_new",
+        action: "session/new",
+        projectId: project.projectId,
+      });
+      const opened = await first.until("result", "detach_new");
+      const sessionId = opened.sessionId as string;
+      const resumeCapability = opened.resumeCapability as string;
+      const resumeTicket = await issueV2Ticket(
+        host.port,
+        owner.credential,
+        project.projectId,
+        sessionId,
+      );
+
+      first.send({
+        type: "command",
+        requestId: "detach_prompt",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "WRITE DETACH" },
+      });
+      const permission = await nextV2Signal(first, "tool/permission");
+      assert.equal(existsSync(join(project.rootFolder, "detached.txt")), false);
+
+      await first.closeAndWait();
+      const callsAfterDetach = provider.requests.length;
+
+      const resumed = await V2WireClient.connect(host.port, resumeTicket);
+      clients.push(resumed);
+      let attached = false;
+      for (let attempt = 0; attempt < 20 && !attached; attempt++) {
+        resumed.send({
+          type: "command",
+          requestId: "detach_resume",
+          commandId: "detach_resume_command",
+          action: "session/resume",
+          projectId: project.projectId,
+          sessionId,
+          payload: { resumeCapability },
+        });
+        const frame = await resumed.next();
+        if (frame.type === "result" && frame.requestId === "detach_resume") {
+          attached = true;
+          break;
+        }
+        if (
+          frame.type === "error" &&
+          frame.requestId === "detach_resume" &&
+          frame.code === "SESSION_BUSY"
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          continue;
+        }
+        assert.fail(`Unexpected detach-resume frame: ${JSON.stringify(frame)}`);
+      }
+      assert.equal(attached, true);
+
+      resumed.send({
+        type: "command",
+        requestId: "detached_stale_permission",
+        action: "tool/permission",
+        projectId: project.projectId,
+        sessionId,
+        payload: { permissionId: permission.permissionId, allow: true },
+      });
+      await expectV2Error(
+        resumed,
+        "INVALID_REQUEST",
+        "detached_stale_permission",
+      );
+      assert.equal(existsSync(join(project.rootFolder, "detached.txt")), false);
+      assert.equal(provider.requests.length, callsAfterDetach);
+    } finally {
+      for (const client of clients) client.close();
       await host.close();
       await provider.close();
       rmSync(f.directory, { recursive: true, force: true });

@@ -64,6 +64,11 @@
           "minimum": -9007199254740991,
           "maximum": 9007199254740991
         },
+        "sessionResumeLeaseMs": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
         "commandReceiptRetentionMs": {
           "type": "integer",
           "minimum": -9007199254740991,
@@ -82,6 +87,7 @@
         "inputFrameBytes",
         "outputFrameBytes",
         "promptBytes",
+        "sessionResumeLeaseMs",
         "commandReceiptRetentionMs",
         "commandReceiptLimitPerPrincipal"
       ],
