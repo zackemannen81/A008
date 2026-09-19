@@ -149,9 +149,9 @@ never whether work is active or complete. Task state belongs in
 | A008-0133 | OpenAI GPT-5.6 Terra selectable profile | ChatGPT (operator) | 2026-09-19 | add Terra beside Luna through the existing OpenAI/Responses model-selection path without changing defaults |
 | A008-0134 | validated zero-cost model catalog | ChatGPT (operator) | 2026-09-19 | verify currently available zero-cost/free-tier model routes and add a data-only importable source catalog without changing routing |
 | A008-0135 | docs-first reality sync | ChatGPT (operator) | 2026-09-19 | reconcile README and current governing docs with merged runtime/product reality |
-
 | A008-0136 | GUI capability sync and ZeroCostRadar | ChatGPT (operator) | 2026-09-19 | expose Stage-4 discovery/current capability and validated zero-cost model catalog in the bundled GUI without changing routing |
 | A008-0137 | neon memory-map topology presentation | Rickard (operator) | 2026-09-19 | improve the existing read-only memory graph topology presentation without changing memory semantics |
 | A008-0138 | Stage 4 command receipts and bounded idempotency | ChatGPT (operator) | 2026-09-19 | stable command IDs, canonical payload digests, bounded process-local receipts and duplicate-mutation suppression |
 | A008-0139 | Stage 4 reconnect/resume lease | ChatGPT (operator) | 2026-09-19 | detached-session lease, scoped resume capability, authoritative resume snapshot and stale-approval handling |
 | A008-0140 | Stage 4 restart uncertainty and closure proof | ChatGPT (operator) | 2026-09-19 | restart/unknown-outcome semantics and final Stage-4 race/compatibility closure gate |
+| A008-0141 | *Oldscool CRT scanlines and phosphor bloom | A008 | 2026-09-19 | New Oldscool theme. |
