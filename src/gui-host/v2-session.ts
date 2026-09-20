@@ -27,6 +27,7 @@ import {
   SQLITE_PATH_ENV,
 } from "../runtime/local-runtime-config.js";
 import { sameCommittedMessageIdentity } from "../core/chat-content.js";
+import { configuredMcpServers } from "./provider-routes.js";
 import type { V2Principal } from "./v2-auth.js";
 import { V2AuthError, V2_LIMITS } from "./v2-auth.js";
 import {
@@ -76,6 +77,7 @@ interface PendingPermission {
 export class V2SessionService {
   readonly #env: NodeJS.ProcessEnv;
   readonly #projectsPath: string;
+  readonly #catalogPath?: string;
   readonly #registry: ProjectRuntimeRegistry;
   readonly #serverInstanceId: string;
   readonly #host: EngineHost;
@@ -88,6 +90,7 @@ export class V2SessionService {
   constructor(options: {
     env: NodeJS.ProcessEnv;
     projectsPath: string;
+    catalogPath?: string;
     registry: ProjectRuntimeRegistry;
     serverInstanceId: string;
     stderr?: NodeJS.WritableStream;
@@ -97,6 +100,7 @@ export class V2SessionService {
   }) {
     this.#env = { ...options.env };
     this.#projectsPath = options.projectsPath;
+    this.#catalogPath = options.catalogPath ?? "";
     this.#registry = options.registry;
     this.#serverInstanceId = options.serverInstanceId;
     this.#now = options.now ?? Date.now;
@@ -302,7 +306,12 @@ export class V2SessionService {
     const project = this.#project(input.projectId);
     const notify = (message: SessionNotification) => this.#notify(message);
     const created = await this.#host.newSession(
-      { cwd: project.rootFolder, mcpServers: [] },
+      {
+        cwd: project.rootFolder,
+        mcpServers: this.#catalogPath
+          ? [...configuredMcpServers(this.#catalogPath)]
+          : [],
+      },
       {
         notify,
         requestPermission: (params) => {
@@ -734,10 +743,7 @@ export class V2SessionService {
     while (
       common < owned.messages.length &&
       common < messages.length &&
-      sameCommittedMessageIdentity(
-        owned.messages[common]!,
-        messages[common]!,
-      )
+      sameCommittedMessageIdentity(owned.messages[common]!, messages[common]!)
     )
       common += 1;
     owned.messages = messages.map((message, index) =>

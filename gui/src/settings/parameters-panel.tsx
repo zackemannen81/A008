@@ -10,6 +10,7 @@ import "./parameters.css";
 import { AppearancePanel } from "./appearance-panel.js";
 import { GlobalSettingsForm } from "./global-settings-form.js";
 import { NvidiaCatalogPanel } from "./nvidia-catalog-panel.js";
+import { McpServersPanel } from "./mcp-servers-panel.js";
 import { ZeroCostRadarPanel } from "./zero-cost-radar-panel.js";
 import { RuntimeCapabilitiesPanel } from "./runtime-capabilities-panel.js";
 
@@ -17,6 +18,7 @@ type ParameterPage =
   | "model"
   | "semantic"
   | "provider"
+  | "mcp"
   | "radar"
   | "runtime"
   | "budgets"
@@ -27,6 +29,7 @@ const PARAMETER_TABS: readonly { id: ParameterPage; label: string }[] = [
   { id: "model", label: "Model" },
   { id: "semantic", label: "Semantic" },
   { id: "provider", label: "Provider" },
+  { id: "mcp", label: "MCP" },
   { id: "radar", label: "Zero Cost" },
   { id: "runtime", label: "Runtime" },
   { id: "budgets", label: "Budgets" },
@@ -552,6 +555,9 @@ export function ParametersPanel(props: {
         <div hidden={page !== "provider"}>
           <NvidiaCatalogPanel />
         </div>
+        <div hidden={page !== "mcp"}>
+          <McpServersPanel />
+        </div>
         <div hidden={page !== "radar"}>
           <ZeroCostRadarPanel />
         </div>
@@ -574,7 +580,9 @@ export function ParametersPanel(props: {
           <AppearancePanel />
         </div>
         {session.details?.runtimePreferences &&
-        (page === "semantic" || page === "budgets" || page === "instructions") ? (
+        (page === "semantic" ||
+          page === "budgets" ||
+          page === "instructions") ? (
           <GlobalSettingsForm
             key={session.sessionId}
             session={session}

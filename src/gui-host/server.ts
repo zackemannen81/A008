@@ -117,6 +117,9 @@ import {
   SQLITE_PATH_ENV,
 } from "../runtime/local-runtime-config.js";
 import {
+  configuredMcpServers,
+  handleMcpServersPost,
+  mcpServersView,
   handleBlobGet,
   handleImageGenerate,
   handleNvidiaCatalogAdd,
@@ -335,6 +338,7 @@ export async function startGuiHost(
               registry: projectRegistry,
               env: acpEnv(),
               cwd: workspace.cwd,
+              mcpServers: () => configuredMcpServers(catalogPath),
             }),
         )
         .then((created) => {
@@ -814,6 +818,26 @@ async function handleHttp(input: {
       sendJson(response, 200, {
         models: mergedModels(input.registry, input.catalogPath),
       });
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/mcp-servers") {
+      sendJson(response, 200, mcpServersView(input.catalogPath));
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/mcp-servers") {
+      if (!isJsonContentType(request)) {
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
+        return;
+      }
+      sendJson(
+        response,
+        200,
+        handleMcpServersPost(input.catalogPath, await readJsonBody(request)),
+      );
       return;
     }
     if (method === "GET" && pathname === "/v1/catalog/kie") {

@@ -2518,3 +2518,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Updated the public verification baseline to the documented A008-0142 full-suite result: 701 core + 4 membership + 186 GUI = 891 tests, zero failures/skips. Added concise coverage of ordered generated-image conversation content and the separate semantic-model control.
 - Verification: compared against CURRENT_STATUS and the A008-0103 program record; local Markdown links, fenced-code-block balance and `git diff --check` pass. No product source, schema, dependency or generated artifact changed, so runtime suites/builds were not rerun.
 - [Handoff](handoffs/A008-0146.md). Signature: Rickard (operator)
+
+## 2026-09-21 - A008-0148 user-configured stdio MCP servers
+
+- Operator: Rickard. Parameters → MCP now provides the supported bundled-product workflow for inspecting, adding, editing, disabling and removing local stdio MCP server definitions.
+- The existing user catalog persists the canonical definitions; empty configuration retains existing no-MCP behavior. Typed authenticated V1 GET/POST routes expose validated configuration only, and the renderer never owns or spawns MCP processes.
+- Enabled definitions are read at V1 bridge and V2 new-session construction and supplied through the existing EngineHost → ModelToolSession boundary. Active sessions retain their already-constructed catalog; the UI states that a new session is required after changes.
+- Existing ModelToolSession approval, cancellation, timeout and catalog/tool-budget behavior remains the execution boundary; unsupported transports are rejected. No session restore/hot reload or A008-0147 lifecycle work was introduced.
+- Verification: root/GUI typecheck; 703/703 core, 4/4 membership and 187/187 GUI tests; `git diff --check` passed. Real-host HTTP coverage includes valid and malformed MCP configuration requests.
+- [Handoff](handoffs/A008-0148.md). Signature: A008

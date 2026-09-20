@@ -1,4 +1,5 @@
 import type { UserChatModel } from "../../packages/protocol/src/index.js";
+import type { McpServer } from "@agentclientprotocol/sdk";
 export type { UserChatModel } from "../../packages/protocol/src/index.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -38,8 +39,13 @@ export interface KieCatalogSettings {
   readonly imageModel: string;
 }
 
+export type UserMcpServer = Extract<McpServer, { command: string }> & {
+  readonly enabled: boolean;
+};
+
 export interface UserCatalog {
   readonly version: 1;
+  readonly mcpServers: readonly UserMcpServer[];
   readonly chatModels: readonly UserChatModel[];
   readonly image: UserImageSettings;
   readonly chatProvider: ChatCatalogProvider;
@@ -55,6 +61,7 @@ const DEFAULT_KIE: KieCatalogSettings = {
 
 const EMPTY: UserCatalog = {
   version: 1,
+  mcpServers: [],
   chatModels: [],
   image: {
     model: DEFAULT_USER_IMAGE_MODEL,
@@ -84,6 +91,56 @@ export function parseUserCatalog(value: unknown): UserCatalog {
       "configuration",
       "User catalog must be a version 1 document.",
     );
+  }
+  const mcpServers: UserMcpServer[] = [];
+  if (value.mcpServers !== undefined) {
+    if (!Array.isArray(value.mcpServers)) {
+      throw new ChatError("configuration", "MCP servers must be an array.");
+    }
+    const names = new Set<string>();
+    for (const item of value.mcpServers) {
+      if (
+        !isRecord(item) ||
+        typeof item.name !== "string" ||
+        !item.name.trim() ||
+        typeof item.command !== "string" ||
+        !item.command.trim() ||
+        !Array.isArray(item.args) ||
+        !item.args.every((arg) => typeof arg === "string") ||
+        !Array.isArray(item.env) ||
+        !item.env.every(
+          (entry) =>
+            isRecord(entry) &&
+            typeof entry.name === "string" &&
+            entry.name.trim() &&
+            typeof entry.value === "string",
+        ) ||
+        (item.enabled !== undefined && typeof item.enabled !== "boolean")
+      ) {
+        throw new ChatError(
+          "configuration",
+          "MCP server is malformed or unsupported.",
+        );
+      }
+      const name = item.name.trim();
+      if (names.has(name)) {
+        throw new ChatError(
+          "configuration",
+          "MCP server names must be unique.",
+        );
+      }
+      names.add(name);
+      mcpServers.push({
+        name,
+        command: item.command.trim(),
+        args: [...item.args],
+        env: item.env.map((entry) => ({
+          name: String(entry.name).trim(),
+          value: String(entry.value),
+        })),
+        enabled: item.enabled !== false,
+      });
+    }
   }
   const image = isRecord(value.image)
     ? {
@@ -151,6 +208,7 @@ export function parseUserCatalog(value: unknown): UserCatalog {
   };
   return {
     version: 1,
+    mcpServers,
     chatModels,
     image,
     chatProvider: chatProvider(value.chatProvider),
@@ -213,6 +271,19 @@ export function saveUserCatalog(path: string, catalog: UserCatalog): void {
     encoding: "utf8",
     mode: 0o600,
   });
+}
+
+export function activeMcpServers(catalog: UserCatalog): readonly McpServer[] {
+  return catalog.mcpServers
+    .filter((server) => server.enabled)
+    .map(({ enabled: _, ...server }) => server);
+}
+
+export function replaceUserMcpServers(
+  catalog: UserCatalog,
+  mcpServers: readonly UserMcpServer[],
+): UserCatalog {
+  return { ...catalog, mcpServers: [...mcpServers] };
 }
 
 export function addUserChatModel(

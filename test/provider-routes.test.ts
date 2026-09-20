@@ -5,6 +5,8 @@ import { join } from "node:path";
 import test from "node:test";
 import { defaultModelRegistry } from "../src/core/model-registry.js";
 import {
+  configuredMcpServers,
+  handleMcpServersPost,
   handleImageGenerate,
   handleKieCatalogGet,
   handleNvidiaCatalogAdd,
@@ -19,6 +21,37 @@ const PNG = Buffer.from(
   "base64",
 );
 
+test("MCP configuration persists enabled stdio servers and rejects unsupported transport", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a008-mcp-"));
+  const catalogPath = join(dir, "catalog.json");
+  const saved = handleMcpServersPost(catalogPath, {
+    servers: [
+      {
+        name: "fixture",
+        command: process.execPath,
+        args: ["fixture.mjs"],
+        env: [{ name: "MODE", value: "test" }],
+        enabled: true,
+      },
+      {
+        name: "disabled",
+        command: process.execPath,
+        args: [],
+        env: [],
+        enabled: false,
+      },
+    ],
+  });
+  assert.equal(saved.servers.length, 2);
+  assert.equal(configuredMcpServers(catalogPath).length, 1);
+  assert.throws(
+    () =>
+      handleMcpServersPost(catalogPath, {
+        servers: [{ name: "remote", url: "https://example.test" }],
+      }),
+    /MCP server/u,
+  );
+});
 test("merged models include user-catalog additions with unverified controls", () => {
   const dir = mkdtempSync(join(tmpdir(), "a008-cat-"));
   const catalogPath = join(dir, "catalog.json");

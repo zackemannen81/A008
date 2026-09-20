@@ -312,6 +312,98 @@
         ]
       }
     },
+    "/v1/mcp-servers": {
+      "get": {
+        "summary": "host MCP configuration",
+        "x-a008-owner": "provider-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mcpServerCatalog"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "host MCP configuration mutation",
+        "x-a008-owner": "provider-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/mcpServerCatalogInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mcpServerCatalog"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
     "/v1/catalog/zero-cost": {
       "get": {
         "summary": "validated zero-cost model discovery",
@@ -2583,6 +2675,83 @@
             "maximum": 9007199254740991
           }
         }
+      },
+      "mcpServerCatalog": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "servers": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "$ref": "#/components/schemas/mcpServerCatalog/$defs/__schema0"
+                },
+                "command": {
+                  "$ref": "#/components/schemas/mcpServerCatalog/$defs/__schema0"
+                },
+                "args": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/mcpServerCatalog/$defs/__schema1"
+                  }
+                },
+                "env": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "$ref": "#/components/schemas/mcpServerCatalog/$defs/__schema0"
+                      },
+                      "value": {
+                        "$ref": "#/components/schemas/mcpServerCatalog/$defs/__schema1"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ]
+                  }
+                },
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name",
+                "command",
+                "args",
+                "env",
+                "enabled"
+              ]
+            }
+          }
+        },
+        "required": [
+          "servers"
+        ],
+        "$defs": {
+          "__schema0": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/mcpServerCatalog/$defs/__schema1"
+          },
+          "__schema1": {
+            "type": "string"
+          }
+        }
+      },
+      "mcpServerCatalogInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "servers": {}
+        },
+        "required": [
+          "servers"
+        ]
       },
       "providerSettings": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",

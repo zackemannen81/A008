@@ -292,6 +292,19 @@ export const zeroCostCatalogSchema = z.object({
   routes: z.array(zeroCostModelRouteSchema).readonly(),
 });
 export type ZeroCostCatalog = z.infer<typeof zeroCostCatalogSchema>;
+export const mcpServerSchema = z.object({
+  name: nonempty,
+  command: nonempty,
+  args: z.array(text),
+  env: z.array(z.object({ name: nonempty, value: text })),
+  enabled: z.boolean(),
+});
+export type McpServer = z.infer<typeof mcpServerSchema>;
+export const mcpServerCatalogSchema = z.object({
+  servers: z.array(mcpServerSchema).readonly(),
+});
+export type McpServerCatalog = z.infer<typeof mcpServerCatalogSchema>;
+export const mcpServerCatalogInputSchema = z.object({ servers: z.unknown() });
 export const providerSettingsSchema = z.object({
   nvidiaApiKeyConfigured: z.boolean(),
   kieApiKeyConfigured: z.boolean(),
@@ -400,6 +413,8 @@ export const v1HttpSchemas = {
   nvidiaCatalog: nvidiaCatalogSchema,
   kieCatalog: kieCatalogSchema,
   zeroCostCatalog: zeroCostCatalogSchema,
+  mcpServerCatalog: mcpServerCatalogSchema,
+  mcpServerCatalogInput: mcpServerCatalogInputSchema,
   providerSettings: providerSettingsSchema,
   providerSettingsUpdate: providerSettingsUpdateSchema,
   providerSettingsInput: providerSettingsInputSchema,
