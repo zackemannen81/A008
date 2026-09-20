@@ -2510,3 +2510,11 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Final post-rebase verification: packed independent protocol consumer passed; focused reconnect/V2 gate passed 18/18; `npm test` passed 681 core + 4 membership + 177 GUI = 862 tests, 0 failures/skips; diff hygiene passed. No live/paid provider call was required.
 - Stage 4 remains In Progress. A008-0140 restart uncertainty + combined closure proof is the only remaining child.
 - [Handoff](handoffs/A008-0139.md). Signature: ChatGPT (operator)
+
+## 2026-09-20 — A008-0146 README current-state synchronization
+
+- Operator: Rickard. Claimed A008-0146 on `main` and completed a docs-only README synchronization after A008-0103 Stage 4 closure.
+- README now states that Stage 5 is the next programme gate but remains Not started until a child charter is frozen; it does not start SDK or bundled-client migration.
+- Updated the public verification baseline to the documented A008-0142 full-suite result: 701 core + 4 membership + 186 GUI = 891 tests, zero failures/skips. Added concise coverage of ordered generated-image conversation content and the separate semantic-model control.
+- Verification: compared against CURRENT_STATUS and the A008-0103 program record; local Markdown links, fenced-code-block balance and `git diff --check` pass. No product source, schema, dependency or generated artifact changed, so runtime suites/builds were not rerun.
+- [Handoff](handoffs/A008-0146.md). Signature: Rickard (operator)

@@ -25,17 +25,23 @@ current Single Source of Truth.
 | Tools | Approved repository/file/Git/shell tools plus approved stdio MCP tools |
 | Compatibility | Stable V1 web/ACP paths remain covered while V2 is built out |
 
-The stable-client API programme has completed Stages 1–4. Stable application turn/message identity, event ordering, snapshot boundaries, terminal outcomes, bounded command receipts/idempotency, same-process reconnect/resume and explicit restart uncertainty are verified. Stage 5 — independent SDK + bundled web migration — is next.
+The stable-client API programme has completed Stages 1–4. Stable application turn/message identity, event ordering, snapshot boundaries, terminal outcomes, bounded command receipts/idempotency, same-process reconnect/resume and explicit restart uncertainty are verified. Stage 5 — independent SDK + bundled web migration — is the next programme gate and has not started.
 See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_stable-client-api-program.md).
 
 ## What works now
 
 - Transactional chat sessions with streamed thought/content separation, rollback
   on failed turns and model-aware generation controls.
+- Committed conversation content supports ordered generated-image items: manual
+  and structured model-tool generation reserve one placeholder and resolve it
+  in place without reordering surrounding text.
 - One runtime/provider/memory ownership model shared by CLI, ACP, standalone GUI,
   portable engine and V2 session transport.
-- Eight built-in chat profiles plus a user catalog. Live dispatch selects NVIDIA
-  Build, kie.ai or OpenAI from the selected model/provider configuration.
+- Eight built-in chat profiles plus a user catalog. Chat model selection is
+  session-scoped; the separate global semantic-model choice owns retrieval and
+  knowledge processing rather than inferring it from configured credentials.
+  Live dispatch selects NVIDIA Build, kie.ai or OpenAI from the selected
+  model/provider configuration.
 - Persistent semantic memory with exact/entity/lexical/tag/domain retrieval,
   accumulated semantic discussion scope, bounded provider context, current/history
   separation and durable provenance.
@@ -83,9 +89,10 @@ npm run verify:protocol
 npm --prefix gui run build
 ```
 
-The latest merged-plus-A008-0136 verification passed **671 core + 4 membership +
-175 GUI = 850 tests** with zero failures/skips. Root typecheck/build, production
-GUI build and the independently packed `@a008/protocol` consumer proof also pass.
+The latest documented full-suite verification passed **701 core + 4 membership +
+186 GUI = 891 tests** with zero failures/skips. Root and GUI typechecks, GUI
+production build, `verify:protocol` and `git diff --check` also passed. No live
+or paid provider call was made.
 
 Useful additional checks:
 
@@ -345,7 +352,7 @@ part of verification.
 | 6. Independent Expo proof | Not started |
 | 7. Compatibility release | Not started |
 
-Stage 4 is complete. A008-0132 stabilizes turn/message identity, snapshot/event ordering and terminal outcomes; A008-0138 adds bounded command receipts/idempotency; A008-0139 adds the same-process reconnect/resume lease; A008-0140 proves restart uncertainty and the combined recovery matrix. Stage 5 is now the active next gate: move the completed shared contracts into an independent SDK and migrate the bundled web client.
+Stage 4 is complete. A008-0132 stabilizes turn/message identity, snapshot/event ordering and terminal outcomes; A008-0138 adds bounded command receipts/idempotency; A008-0139 adds the same-process reconnect/resume lease; A008-0140 proves restart uncertainty and the combined recovery matrix. Stage 5 — SDK and bundled-web migration — is the next programme gate and remains Not started until its child charter is frozen.
 
 ## Security boundaries
 
