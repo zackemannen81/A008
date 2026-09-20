@@ -3,6 +3,7 @@ import { ToolPermissionDialog } from "./session/tool-permission-dialog.js";
 import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
 import { ChatPane, type ChatGeneratedImage } from "./chat/chat-pane.js";
+import { buildChatTranscript } from "./chat/chat-transcript.js";
 import {
   persistShortcutDockVisible,
   ShortcutDock,
@@ -67,7 +68,6 @@ export function App() {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [sources, setSources] = useState<readonly SessionSource[]>([]);
   const [images, setImages] = useState<readonly ChatGeneratedImage[]>([]);
-  const [imageError, setImageError] = useState("");
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [artifact, setArtifact] = useState<CodeArtifactView>();
   const [pendingArtifact, setPendingArtifact] = useState<HtmlArtifactCandidate>();
@@ -354,27 +354,35 @@ export function App() {
           onArtifactCandidate={considerArtifact}
           images={images}
         />
-        {imageError ? <p className="a008-chat-error" role="alert">{imageError}</p> : null}
         <Composer
           session={session}
           onParameters={openParameters}
           onImage={(prompt) => {
-            setImageError("");
+            const id = crypto.randomUUID();
+            // Reserve the transcript position before the provider operation starts.
+            const position = buildChatTranscript({ session }).turns.length;
+            setImages((current) => [
+              ...current,
+              { id, prompt, position, status: "pending" },
+            ]);
             void generateImage(prompt)
               .then((image) => {
-                setImages((current) => [
-                  ...current,
-                  {
-                    id: image.locator,
-                    prompt,
-                    src: generatedImageSrc(image),
-                  },
-                ]);
+                setImages((current) => current.map((entry) =>
+                  entry.id === id
+                    ? { ...entry, status: "completed", src: generatedImageSrc(image) }
+                    : entry,
+                ));
               })
               .catch((reason) => {
-                setImageError(
-                  reason instanceof Error ? reason.message : "Image generation failed.",
-                );
+                setImages((current) => current.map((entry) =>
+                  entry.id === id
+                    ? {
+                        ...entry,
+                        status: "failed",
+                        error: reason instanceof Error ? reason.message : "Image generation failed.",
+                      }
+                    : entry,
+                ));
               });
           }}
         />

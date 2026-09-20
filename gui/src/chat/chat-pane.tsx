@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { GuiSession } from "../session/types.js";
 import { captureSessionPrompt } from "./capture-prompt.js";
 import {
@@ -29,7 +29,11 @@ import "./chat-pane.css";
 export interface ChatGeneratedImage {
   readonly id: string;
   readonly prompt: string;
-  readonly src: string;
+  /** The transcript index occupied when generation was requested. */
+  readonly position: number;
+  readonly status: "pending" | "completed" | "failed";
+  readonly src?: string;
+  readonly error?: string;
 }
 
 function ThoughtBlock({ turn }: { readonly turn: ChatAssistantTurn }) {
@@ -276,24 +280,27 @@ export function ChatPane(props: {
           </div>
         ) : (
           <>
-            {transcript.turns.map((turn) =>
-              turn.kind === "user" ? (
-                <UserTurnView key={turn.id} turn={turn} />
-              ) : (
-                <AssistantTurnView
-                  key={turn.id}
-                  turn={turn}
-                  tools={toolLog[turn.id] ?? turn.tools}
-                  onArtifactOpen={props.onArtifactOpen}
-                />
-              ),
-            )}
-            {(props.images ?? []).map((image) => (
-              <article key={image.id} className="a008-chat-turn a008-chat-turn-assistant">
-                <span className="a008-chat-label">Image</span>
-                <p className="a008-chat-bubble a008-chat-bubble-user">{image.prompt}</p>
-                <img className="a008-chat-image" src={image.src} alt={image.prompt} />
-              </article>
+            {Array.from({ length: transcript.turns.length + 1 }, (_, position) => (
+              <Fragment key={`position-${position}`}>
+                {(props.images ?? []).filter((image) => image.position === position).map((image) => (
+                  <article key={image.id} className="a008-chat-turn a008-chat-turn-assistant" data-a008-image-status={image.status}>
+                    <span className="a008-chat-label">Image</span>
+                    {image.status === "pending" ? <p className="a008-chat-bubble a008-chat-bubble-answer">[IMAGE GENERATING]</p> : null}
+                    {image.status === "failed" ? <p className="a008-chat-bubble a008-chat-bubble-answer">[IMAGE GENERATION FAILED] {image.error}</p> : null}
+                    {image.status === "completed" && image.src ? <img className="a008-chat-image" src={image.src} alt={image.prompt} /> : null}
+                  </article>
+                ))}
+                {transcript.turns[position] === undefined ? null : transcript.turns[position].kind === "user" ? (
+                  <UserTurnView key={transcript.turns[position].id} turn={transcript.turns[position]} />
+                ) : (
+                  <AssistantTurnView
+                    key={transcript.turns[position].id}
+                    turn={transcript.turns[position]}
+                    tools={toolLog[transcript.turns[position].id] ?? transcript.turns[position].tools}
+                    onArtifactOpen={props.onArtifactOpen}
+                  />
+                )}
+              </Fragment>
             ))}
           </>
         )}

@@ -155,3 +155,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0139 | Stage 4 reconnect/resume lease | ChatGPT (operator) | 2026-09-19 | detached-session lease, scoped resume capability, authoritative resume snapshot and stale-approval handling |
 | A008-0140 | Stage 4 restart uncertainty and closure proof | ChatGPT (operator) | 2026-09-19 | restart/unknown-outcome semantics and final Stage-4 race/compatibility closure gate |
 | A008-0141 | *Oldscool CRT scanlines and phosphor bloom | A008 | 2026-09-19 | New Oldscool theme. |
+| A008-0142 | UX Generating Images in chat | A008 | 2026-09-20 | UX Improvements.|
