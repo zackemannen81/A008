@@ -2,7 +2,7 @@
 
 Task ID: A008-0142
 Parent Task: None
-Status: Ready
+Status: In Progress
 Owner: A008
 Created: 2026-09-20
 Last updated: 2026-09-20
@@ -22,15 +22,13 @@ Charter frozen at: 2026-09-20
 
 ## Task Summary
 
-Describe why this bounded task is active now and its intended outcome.
+Fix generated-image chronology by making image generation a host/session-owned ordered transcript operation: reserve an `[IMAGE GENERATING]` item immediately, resolve that same item in place, and expose the same generation pipeline through a structured model `generate_image` tool as well as the existing manual GUI action.
 
 ## Task Charter
 
 # A008 — In-sequence image generation and model-triggered image tool
 
-Status: Draft
-Parent Task: None
-Created: 2026-09-20
+Charter status: Frozen for implementation
 
 ## Problem
 
@@ -491,37 +489,66 @@ The task is complete when:
 ### Necessity Gate
 
 Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
-Contract revision: <Git commit containing the reviewed contract>
-
-One row per coherent change or group serving one outcome. Apply the Necessity
-Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
-intended outcomes and planned checks freeze with the charter. Record refinements
-of the initial approach in mutable notes within those bounds.
+Contract revision: `df195008dab303ef3c9bb21e4ca1d0ac9e6d2a3b`
 
 | Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
 | --- | --- | --- | --- | --- |
-| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
+| Canonical multimodal ordered conversation content | PC-01 and PC-06; ADR 0045 D1-D3/D6; ADR 0019 D3-D4/D6; ADR 0041 D8 | A generated image occupies the exact conversational position reserved when generation starts, survives transcript reconstruction and is represented by the same canonical conversation model as text. Without this, images remain detached/appended and clients need competing transcript truth. | Extend the provider-neutral committed conversation/message model with typed multimodal content parts while preserving existing string messages as a compatibility form. Generated-image state uses stable conversation identity and bounded pending/completed/failed/cancelled state; durable media is referenced through the source store, never embedded as raw bytes/provider URLs. | Focused core/host/GUI tests prove text compatibility, immediate placeholder, same-ID in-place resolution, interleaved later text, reverse completion order, failure position, and transcript reconstruction from canonical multimodal state. |
+| One shared image-generation completion owner | PC-01 and PC-06; ADR 0033 image-job/source-store decision; ADR 0044 D2 | Manual `+` generation and model-triggered generation produce identical transcript semantics and one durable local media copy. Without this, two generation paths can drift or duplicate ownership. | Refactor the existing host/provider image path only enough for both invocation surfaces to create/resolve the same session-owned image item and reuse the existing source store. ACME does not become the image-generation owner. | Provider-route/host tests prove both invocation paths converge on one completion path and one source-store result. |
+| Structured model `generate_image` tool | PC-05 and PC-06; ADR 0028 model-tool/approval/cancellation boundary | A natural-language image request can cause an authorized structured tool call rather than forcing the user onto the `+` menu. Without this, the chartered model-triggered behavior remains unsupported. | Add one bounded typed image-generation tool through the existing `EngineHost` / `ModelToolSession` mechanism. Keep approval/cancellation authority unchanged and hide provider/job/source-store internals from the model. | Model-tool tests prove structured invocation reaches the shared image owner, cancellation/approval rules remain authoritative, ordinary text cannot execute the tool, and non-image turns do not spuriously generate. |
+| Recovery, duplicate suppression and explicit uncertainty | PC-01 and PC-06; ADR 0041 D5/D8 | Reload/reconnect does not duplicate or reorder image items, and process loss never silently replays a chargeable generation. Without this, recovery can create duplicate images or false completion. | Reuse existing session identity/order/recovery semantics for image posts where available; correlate completion to one stable image item; never auto-resubmit after unknown process outcome. Document any V1 restart limit rather than invent durability. | Focused recovery tests cover duplicate completion, reconnect/reconstruction ordering and no automatic provider replay after lost ownership; document any intentionally unsupported restart case. |
 
 ### Minimum Verification Gates
 
-- [ ] Define checks that may be strengthened but not removed after Ready.
+- [ ] `npm run typecheck` passes.
+- [ ] `npm test` passes with no failures/skips introduced by this task.
+- [ ] `npm --prefix gui run typecheck` passes.
+- [ ] `npm --prefix gui run test` passes.
+- [ ] `npm --prefix gui run build` passes, allowing only already-recorded warnings.
+- [ ] Focused host/session/image/tool tests prove placeholder ordering, same-item resolution, reverse completion order, failure, duplicate suppression and recovery semantics.
+- [ ] `npm run verify:protocol` passes if shared protocol/package surfaces change; otherwise record N/A with reason.
+- [ ] `git diff --check` passes.
+- [ ] Manual running-GUI proof covers one manual image generation and one model-tool image generation; use deterministic/fake provider plumbing unless a live/paid call is explicitly authorized.
 
 ## References
 
-- Add owned documents, source revisions, contracts, and decisions.
+- `docs/PROJECT_BRIEF.md` Core Product Contract at `df195008dab303ef3c9bb21e4ca1d0ac9e6d2a3b`.
+- `docs/TASK_WORKFLOW.md` — Ready/freeze and Necessity Gate rules.
+- `docs/adr/0019-a008-owned-gui.md` — host owns product GUI/backend boundary; renderer has no provider authority.
+- `docs/adr/0028-engine-package-and-panels.md` — structured model tools, approval and cancellation.
+- `docs/adr/0033-kie-provider.md` — job-based Kie images and local source-store copy.
+- `docs/adr/0041-client-api-v2-and-ownership.md` — distinct identities, ordering, recovery and no replay after uncertain outcomes.
+- `docs/adr/0045-multimodal-conversation-content.md` — canonical committed conversation content is multimodal; supersedes the inherited text-only `ChatMessage.content` restriction.
+- `docs/adr/0044-native-vision-input.md` — source-store, capability-gating, provenance and ACME execution boundaries remain; D1 text-only restriction is superseded by ADR 0045.
+- `docs/CLIENT_API_V2.md` — current session identity/order/recovery contract where applicable.
+- `docs/CURRENT_STATUS.md` and `docs/SYSTEMDOC.md` — actual current host/image/tool behavior.
+- Checkpoint `b0f04b2` — validated renderer-local reservation proof; not the final host-owned implementation.
 
 ## Checklist
 
-- [ ] Break work into ordered steps and keep them truthful.
-- [ ] Include verification and documentation updates.
+- [x] Preserve the validated renderer-local placeholder/reserved-position proof in checkpoint `b0f04b2`.
+- [x] Inspect the real ownership path and identify the host/session/snapshot gap beyond `gui/src/app.tsx`.
+- [ ] Extend the canonical provider-neutral committed conversation/message model with typed multimodal content while preserving existing string messages as a compatibility form.
+- [ ] Route manual `+` image generation through the shared pending → terminal image-post lifecycle.
+- [ ] Expose bounded `generate_image` through the existing structured model-tool authority and route it through the same lifecycle.
+- [ ] Project/reconstruct image posts through the transcript so reload/reconnect preserve identity and order.
+- [ ] Implement explicit failed/cancelled/uncertain behavior and duplicate suppression without automatic chargeable replay.
+- [ ] Add focused automated proof and run the frozen verification gates.
+- [ ] Update owning docs, archive the task, write handoff, restore `CURRENT_TASK.md`, and leave merge journaling to `main`.
 
 ## Decisions and Notes
 
-- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+- 2026-09-20: checkpoint `b0f04b2` proves the renderer-local reserved-position UI and passes GUI typecheck/tests/diff hygiene, but it is deliberately not treated as completion evidence.
+- Architecture inspection after the checkpoint confirmed that correct reload/reconnect and model-tool behavior require host/session ownership; further renderer-only stitching is rejected.
+- ADR 0044 D1 is superseded by ADR 0045. `ChatMessage.content` is no longer constrained to string-only committed content; A008-0142 may implement provider-neutral typed multimodal committed messages/conversation items. Raw image bytes and temporary provider URLs still remain outside durable chat state.
+- Existing provider routes and source-store persistence remain the image-generation owner; ACME remains execution substrate for the model call and does not become the media-generation owner.
+- Kie callback/webhook work remains out of scope under `docs/backlog/kie-image-callback-completion.md`; A008-0142 must work with the current provider completion mechanism.
+- The earlier Ready marker was incomplete because mandatory Necessity Gate and verification fields were still template placeholders. This repair establishes the valid frozen gate before implementation resumes; it does not add a new product outcome.
 
 ## Charter Amendment Log
 
-- none
+- 2026-09-20 — Re-froze the charter after repairing the invalid/incomplete Ready state: populated mandatory Necessity Gate, verification, references and checklist fields.
+- 2026-09-20 — Owner withdrew the inherited text-only chat restriction. ADR 0045 supersedes ADR 0020 D6 / ADR 0032 / ADR 0044 D1 on this point; the charter now authorizes canonical provider-neutral multimodal committed conversation content. Product goal and acceptance behavior are unchanged; the implementation boundary is corrected.
 
 ## Verification
 
