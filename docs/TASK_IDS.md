@@ -159,3 +159,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0143 | Atomic knowledge state ownership and reinforcement semantics | A008 (operator) | 2026-09-20 | current state as SSOT, atomic history transition, temporal ownership and non-skippable semantic reinforcement |
 | A008-0144 | Canonical knowledge, memory and contextual-attraction model | A008 (operator) | 2026-09-20 | supersede residual 0143 admission semantics, adopt CURRENT_MEMORY_MODEL and add signed retrieval attraction |
 | A008-0145 | explicit chat/semantic model controls and stable tool summary | ChatGPT (operator) | 2026-09-20 | provider routing, reasoning summary, max-output defaults and chat tool-summary stability |
+| A008-0146 | README current-state synchronization after Stage 4 closure | Rickard (operator) | 2026-09-20 | docs-only README alignment with completed Stage 4 and subsequent user-visible updates |
