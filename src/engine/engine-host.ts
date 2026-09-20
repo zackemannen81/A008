@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import type {
   InitializeRequest,
@@ -14,7 +14,15 @@ import {
   ProjectRuntimeRegistry,
   type ProjectRuntime,
 } from "./project-runtime-registry.js";
-import type { SessionControl } from "../core/session-control.js";
+import type { SessionControl, SessionSnapshot } from "../core/session-control.js";
+import type { GeneratedImage } from "../../packages/protocol/src/index.js";
+import { defaultCatalogPath } from "../core/user-catalog.js";
+import {
+  defaultSecretsPath,
+  resolveKieApiKey,
+  resolveNvidiaApiKey,
+} from "../core/provider-secrets.js";
+import { handleImageGenerate } from "../gui-host/provider-routes.js";
 import { startGuiHost, type GuiHost } from "../gui-host/server.js";
 import type { AcpBridge } from "../gui-host/acp-bridge.js";
 import type { GuiHostServerMessage } from "../gui-host/protocol.js";
@@ -39,6 +47,7 @@ interface EngineSession {
   thought: string;
   answer: string;
   activities: Map<string, Extract<GuiHostServerMessage, { type: "tool" }>>;
+  generations: Map<string, AbortController>;
 }
 
 export interface EngineHostOptions {
@@ -51,6 +60,12 @@ export interface EngineHostOptions {
   cwd?: string;
   stderr?: NodeJS.WritableStream;
   staticDir?: string;
+  /** Test/embedding override. Production uses configured A008 image providers. */
+  generateImage?: (input: {
+    project: ProjectRuntime;
+    prompt: string;
+    signal: AbortSignal;
+  }) => Promise<GeneratedImage>;
 }
 
 /** ACP and web panels share these exact runtime/session objects. */
@@ -122,12 +137,16 @@ export class EngineHost {
     if (this.#closed) throw new Error("Engine is stopping.");
     const project = this.#project(params.cwd),
       cwd = project.cwd;
+    const created = project.agent.newSession(params);
     const tools = new ModelToolSession({
       cwd,
       env: this.#options.env,
       mcpServers: params.mcpServers,
+      generateImage: async (prompt, signal) => {
+        signal.throwIfAborted();
+        this.generateImage(created.sessionId, prompt);
+      },
     });
-    const created = project.agent.newSession(params);
     const token = randomBytes(32).toString("hex");
     const session: EngineSession = {
       project,
@@ -135,6 +154,7 @@ export class EngineHost {
       tools,
       listeners: new Set(),
       activities: new Map(),
+      generations: new Map(),
       thought: "",
       answer: "",
     };
@@ -186,6 +206,60 @@ export class EngineHost {
 
   sessionAgent(sessionId: string) {
     return this.#require(sessionId).project.agent;
+  }
+
+  subscribeSession(sessionId: string, listener: Listener): () => void {
+    const session = this.#require(sessionId);
+    session.listeners.add(listener);
+    listener({
+      type: "session/activity",
+      sessionId,
+      active: !!session.active,
+      ...(session.input ? { text: session.input } : {}),
+      state: session.project.agent.controlSession({
+        sessionId,
+        action: "inspect",
+      }),
+    });
+    if (session.active) {
+      if (session.thought)
+        listener({ type: "thought", sessionId, text: session.thought });
+      if (session.answer)
+        listener({ type: "answer", sessionId, text: session.answer });
+    }
+    for (const activity of session.activities.values()) listener(activity);
+    return () => session.listeners.delete(listener);
+  }
+
+  generateImage(
+    sessionId: string,
+    prompt: string,
+  ): { generationId: string; state: SessionSnapshot } {
+    const session = this.#require(sessionId);
+    const normalized = prompt.trim();
+    if (normalized.length < 3)
+      throw new Error("Image prompt must be at least 3 characters.");
+    const generationId = "image_" + randomUUID();
+    const state = session.project.agent.reserveGeneratedImage(
+      sessionId,
+      generationId,
+      normalized,
+    );
+    const controller = new AbortController();
+    session.generations.set(generationId, controller);
+    this.#emit(session, {
+      type: "session/activity",
+      sessionId,
+      active: !!session.active,
+      state,
+    });
+    void this.#completeGeneratedImage(
+      sessionId,
+      generationId,
+      normalized,
+      controller,
+    );
+    return { generationId, state };
   }
 
   #project(directory: string): Project {
@@ -375,6 +449,14 @@ export class EngineHost {
 
   async closeSession(sessionId: string) {
     const session = this.#require(sessionId);
+    for (const [generationId, controller] of session.generations) {
+      controller.abort();
+      session.project.agent.resolveGeneratedImage(sessionId, generationId, {
+        status: "cancelled",
+        error: "Image generation cancelled because the session closed.",
+      });
+    }
+    session.generations.clear();
     session.project.agent.cancel({ sessionId });
     await session.active?.catch(() => undefined);
     if (session.project.agent.openSessionIds().includes(sessionId))
@@ -414,6 +496,71 @@ export class EngineHost {
     this.#projects.clear();
   }
 
+  async #completeGeneratedImage(
+    sessionId: string,
+    generationId: string,
+    prompt: string,
+    controller: AbortController,
+  ): Promise<void> {
+    const session = this.#sessions.get(sessionId);
+    if (session === undefined) return;
+    try {
+      const generated = await this.#generateImageProvider(
+        session.project,
+        prompt,
+        controller.signal,
+      );
+      if (controller.signal.aborted) {
+        session.project.agent.resolveGeneratedImage(sessionId, generationId, {
+          status: "cancelled",
+          error: "Image generation cancelled.",
+        });
+      } else {
+        session.project.agent.resolveGeneratedImage(sessionId, generationId, {
+          status: "completed",
+          locator: generated.locator,
+          mediaType: generated.mediaType,
+          filename: generated.filename,
+        });
+      }
+    } catch {
+      if (this.#sessions.get(sessionId) !== session) return;
+      session.project.agent.resolveGeneratedImage(sessionId, generationId, {
+        status: controller.signal.aborted ? "cancelled" : "failed",
+        error: controller.signal.aborted
+          ? "Image generation cancelled."
+          : "Image generation failed.",
+      });
+    } finally {
+      if (this.#sessions.get(sessionId) === session) {
+        session.generations.delete(generationId);
+        this.#snapshot(sessionId, session);
+      }
+    }
+  }
+
+  async #generateImageProvider(
+    project: ProjectRuntime,
+    prompt: string,
+    signal: AbortSignal,
+  ): Promise<GeneratedImage> {
+    signal.throwIfAborted();
+    if (this.#options.generateImage !== undefined) {
+      return await this.#options.generateImage({ project, prompt, signal });
+    }
+    const secretsPath = defaultSecretsPath(this.#options.env);
+    const generated = await handleImageGenerate({
+      apiKey: resolveNvidiaApiKey(this.#options.env, secretsPath),
+      kieApiKey: resolveKieApiKey(this.#options.env, secretsPath),
+      fetch: globalThis.fetch.bind(globalThis),
+      catalogPath: defaultCatalogPath(this.#options.env),
+      storeRoot: project.runtime.sourceStoreRoot,
+      body: { prompt },
+    });
+    signal.throwIfAborted();
+    return generated;
+  }
+
   #require(id: string) {
     const session = this.#sessions.get(id);
     if (!session) throw new Error("Unknown engine session.");
@@ -446,6 +593,10 @@ export class EngineHost {
         if (id !== sessionId) throw new Error("Wrong panel session.");
         return this.control(id, control);
       },
+      generateImage: async (id, prompt) => {
+        if (id !== sessionId) throw new Error("Wrong panel session.");
+        return this.generateImage(id, prompt);
+      },
       prompt: async (id, text, _handlers, signal) => {
         if (id !== sessionId) throw new Error("Wrong panel session.");
         signal.throwIfAborted();
@@ -471,22 +622,7 @@ export class EngineHost {
       ingestSource: async (input) => agent.ingestSource(input),
       subscribeSession: (id, listener) => {
         if (id !== sessionId) throw new Error("Wrong panel session.");
-        session.listeners.add(listener);
-        listener({
-          type: "session/activity",
-          sessionId,
-          active: !!session.active,
-          ...(session.input ? { text: session.input } : {}),
-          state: agent.controlSession({ sessionId, action: "inspect" }),
-        });
-        if (session.active) {
-          if (session.thought)
-            listener({ type: "thought", sessionId, text: session.thought });
-          if (session.answer)
-            listener({ type: "answer", sessionId, text: session.answer });
-        }
-        for (const activity of session.activities.values()) listener(activity);
-        return () => session.listeners.delete(listener);
+        return this.subscribeSession(id, listener);
       },
     };
   }

@@ -1,3 +1,7 @@
+import {
+  chatContentSchema,
+  type ChatContent,
+} from "../../../packages/protocol/src/index.js";
 import type { GuiSession, RuntimeToolCall } from "../session/types.js";
 
 export const CHAT_CHANNEL = {
@@ -26,7 +30,18 @@ export interface ChatAssistantTurn {
   readonly tools?: readonly ChatToolActivity[];
 }
 
-export type ChatTurn = ChatUserTurn | ChatAssistantTurn;
+export interface ChatImageTurn {
+  readonly kind: "image";
+  readonly id: string;
+  readonly prompt: string;
+  readonly status: "pending" | "completed" | "failed" | "cancelled";
+  readonly locator?: string;
+  readonly mediaType?: string;
+  readonly filename?: string;
+  readonly error?: string;
+}
+
+export type ChatTurn = ChatUserTurn | ChatAssistantTurn | ChatImageTurn;
 
 export interface ChatTranscript {
   readonly status: GuiSession["status"];
@@ -48,7 +63,14 @@ export interface ChatTranscriptInput {
 
 interface SessionMessage {
   readonly role: "user" | "assistant";
-  readonly content: string;
+  readonly content: ChatContent;
+}
+
+function textContent(content: ChatContent): string {
+  if (typeof content === "string") return content;
+  return content
+    .flatMap((part) => (part.type === "text" ? [part.text] : []))
+    .join("\n");
 }
 
 /**
@@ -73,11 +95,12 @@ function readOptionalMessages(
     }
     const role = (entry as { readonly role?: unknown }).role;
     const content = (entry as { readonly content?: unknown }).content;
+    const parsedContent = chatContentSchema.safeParse(content);
     if (
       (role === "user" || role === "assistant") &&
-      typeof content === "string"
+      parsedContent.success
     ) {
-      messages.push({ role, content });
+      messages.push({ role, content: parsedContent.data });
     }
   }
   return messages;
@@ -89,12 +112,41 @@ function turnsFromMessages(messages: readonly SessionMessage[]): ChatTurn[] {
   let assistantCount = 0;
   for (const message of messages) {
     if (message.role === "user") {
+      const text = textContent(message.content);
+      if (text === "") continue;
       userCount += 1;
       turns.push({
         kind: "user",
         id: `a008-chat-user-${String(userCount)}`,
-        text: message.content,
+        text,
       });
+      continue;
+    }
+    if (typeof message.content !== "string") {
+      for (const part of message.content) {
+        if (part.type === "generated_image") {
+          turns.push({
+            kind: "image",
+            id: part.generationId,
+            prompt: part.prompt,
+            status: part.status,
+            ...(part.locator === undefined ? {} : { locator: part.locator }),
+            ...(part.mediaType === undefined ? {} : { mediaType: part.mediaType }),
+            ...(part.filename === undefined ? {} : { filename: part.filename }),
+            ...(part.error === undefined ? {} : { error: part.error }),
+          });
+          continue;
+        }
+        if (part.text === "") continue;
+        assistantCount += 1;
+        turns.push({
+          kind: "assistant",
+          id: `a008-chat-assistant-${String(assistantCount)}`,
+          thought: "",
+          answer: part.text,
+          live: false,
+        });
+      }
       continue;
     }
     assistantCount += 1;
@@ -187,11 +239,19 @@ export function buildChatTranscript(
     const session = input.session;
     const turns = turnsFromMessages(input.session.details.messages);
     if (session.pendingText !== undefined) {
-      turns.push({
-        kind: "user",
-        id: "pending-user",
-        text: session.pendingText,
-      });
+      const pendingAlreadyCommitted = [...turns]
+        .reverse()
+        .some(
+          (turn) =>
+            turn.kind === "user" && turn.text === session.pendingText,
+        );
+      if (!pendingAlreadyCommitted) {
+        turns.push({
+          kind: "user",
+          id: "pending-user",
+          text: session.pendingText,
+        });
+      }
       turns.push({
         kind: "assistant",
         id: "pending-assistant",
@@ -247,6 +307,9 @@ export function channelTexts(turns: readonly ChatTurn[]): {
   for (const turn of turns) {
     if (turn.kind === "user") {
       user.push(turn.text);
+      continue;
+    }
+    if (turn.kind === "image") {
       continue;
     }
     if (turn.thought !== "") {

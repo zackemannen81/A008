@@ -1473,6 +1473,30 @@ async function handleSocketMessage(input: {
       );
       return;
     }
+    if (parsed.type === "image/generate") {
+      const bridge = await input.getBridge();
+      if (bridge.generateImage === undefined) {
+        throw new Error(
+          "Image generation requires the current A008 session runtime.",
+        );
+      }
+      const generated = await bridge.generateImage(
+        parsed.sessionId,
+        parsed.prompt,
+      );
+      sendSocket(
+        input.ws,
+        {
+          type: "image/generate/ok",
+          requestId: parsed.requestId,
+          sessionId: parsed.sessionId,
+          generationId: generated.generationId,
+          state: generated.state,
+        },
+        input.secrets,
+      );
+      return;
+    }
     if (
       parsed.type === "session/control" &&
       parsed.control.action === "close"

@@ -182,6 +182,26 @@ export function parseClientMessage(
     }
     return { type: "cancel", requestId, sessionId };
   }
+  if (type === "image/generate") {
+    if (
+      requestId === undefined ||
+      sessionId === undefined ||
+      typeof parsed.prompt !== "string" ||
+      parsed.prompt.trim().length === 0
+    ) {
+      return {
+        error: "image/generate requires requestId, sessionId and prompt.",
+        ...(requestId === undefined ? {} : { requestId }),
+        ...(sessionId === undefined ? {} : { sessionId }),
+      };
+    }
+    return {
+      type: "image/generate",
+      requestId,
+      sessionId,
+      prompt: parsed.prompt.trim(),
+    };
+  }
   return {
     error: "Unknown WebSocket message type.",
     ...(requestId === undefined ? {} : { requestId }),

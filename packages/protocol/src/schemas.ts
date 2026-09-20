@@ -101,12 +101,43 @@ export const runtimePreferencesSnapshotSchema = z
 export type RuntimePreferencesSnapshot = z.infer<
   typeof runtimePreferencesSnapshotSchema
 >;
+
+export const generatedImageStatusSchema = z.enum([
+  "pending",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+export const chatContentPartSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("text"), text }),
+  z.object({
+    type: z.literal("generated_image"),
+    generationId: nonempty,
+    prompt: nonempty,
+    status: generatedImageStatusSchema,
+    locator: nonempty.optional(),
+    mediaType: nonempty.optional(),
+    filename: nonempty.optional(),
+    error: text.optional(),
+  }),
+]);
+export const chatContentSchema = z.union([
+  text,
+  z.array(chatContentPartSchema).min(1).readonly(),
+]);
+export type ChatContent = z.infer<typeof chatContentSchema>;
+
 export const sessionSnapshotSchema = z.object({
   runtimePreferences: runtimePreferencesSnapshotSchema.optional(),
   model: text,
   parameters: sessionParametersSchema,
   messages: z
-    .array(z.object({ role: z.enum(["user", "assistant"]), content: text }))
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: chatContentSchema,
+      }),
+    )
     .readonly(),
   runtime: z.object({
     cwd: text,
@@ -176,6 +207,12 @@ export const clientMessageSchema = z.discriminatedUnion("type", [
     sessionId: commandId,
   }),
   z.object({
+    type: z.literal("image/generate"),
+    requestId: commandId,
+    sessionId: commandId,
+    prompt: nonempty,
+  }),
+  z.object({
     type: z.literal("tool/permission"),
     requestId: commandId,
     sessionId: commandId,
@@ -217,6 +254,13 @@ const replies = [
     requestId: nonempty,
     sessionId: nonempty,
     state: sessionSnapshotSchema.optional(),
+  }),
+  z.object({
+    type: z.literal("image/generate/ok"),
+    requestId: nonempty,
+    sessionId: nonempty,
+    generationId: nonempty,
+    state: sessionSnapshotSchema,
   }),
   z.object({
     type: z.literal("session/control/ok"),

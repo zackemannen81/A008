@@ -1,6 +1,39 @@
 export type ChatRole = "system" | "user" | "assistant";
 
+export type GeneratedImageStatus =
+  | "pending"
+  | "completed"
+  | "failed"
+  | "cancelled";
+
+export interface ChatTextContentPart {
+  readonly type: "text";
+  readonly text: string;
+}
+
+export interface ChatGeneratedImageContentPart {
+  readonly type: "generated_image";
+  readonly generationId: string;
+  readonly prompt: string;
+  readonly status: GeneratedImageStatus;
+  readonly locator?: string | undefined;
+  readonly mediaType?: string | undefined;
+  readonly filename?: string | undefined;
+  readonly error?: string | undefined;
+}
+
+export type ChatContentPart =
+  | ChatTextContentPart
+  | ChatGeneratedImageContentPart;
+export type ChatContent = string | readonly ChatContentPart[];
+
 export interface ChatMessage {
+  readonly role: ChatRole;
+  readonly content: ChatContent;
+}
+
+/** Provider-facing text message. Durable multimodal content is projected separately. */
+export interface ChatTextMessage {
   readonly role: ChatRole;
   readonly content: string;
 }
@@ -17,7 +50,7 @@ export interface ChatToolCall {
 }
 /** Tool observations are invocation data, never committed conversation history. */
 export type ChatWireMessage =
-  | ChatMessage
+  | ChatTextMessage
   | {
       readonly role: "assistant";
       readonly content: string;
@@ -82,7 +115,7 @@ export interface ChatExecutionEvidence {
 }
 
 export interface ChatCompletion {
-  readonly message: ChatMessage;
+  readonly message: ChatTextMessage;
   readonly reasoning?: string;
   readonly finishReason?: string | null;
   readonly usage?: ChatUsage;
@@ -124,10 +157,9 @@ export interface ModelProfile {
   /**
    * What the model accepts as input.
    *
-   * A008 does not yet send anything but text to a chat turn; `ChatMessage`
-   * carries a `string` and ADR 0020 D6 kept it that way. This field exists so a
-   * caller can *ask* before that changes, and so a client can show which models
-   * could take an image rather than discovering it from a provider error.
+   * Canonical committed chat may be multimodal under ADR 0045. Provider
+   * invocation remains capability-gated and uses an explicit projection rather
+   * than leaking durable source-store metadata into unsupported routes.
    */
   readonly inputModalities: readonly ModelModality[];
   /**

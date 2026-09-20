@@ -5,6 +5,7 @@ import type {
 } from "@agentclientprotocol/sdk";
 import type {
   RegisteredProject,
+  ChatContent,
   SessionControlInput,
   SessionSnapshot,
   V2CommandReceipt,
@@ -25,6 +26,7 @@ import {
   PROJECT_ID_ENV,
   SQLITE_PATH_ENV,
 } from "../runtime/local-runtime-config.js";
+import { sameCommittedMessageIdentity } from "../core/chat-content.js";
 import type { V2Principal } from "./v2-auth.js";
 import { V2AuthError, V2_LIMITS } from "./v2-auth.js";
 import {
@@ -35,7 +37,7 @@ import {
 interface CommittedMessage {
   readonly messageId: string;
   readonly role: "user" | "assistant";
-  readonly content: string;
+  readonly content: ChatContent;
 }
 interface ActiveTurn {
   readonly turnId: string;
@@ -732,13 +734,15 @@ export class V2SessionService {
     while (
       common < owned.messages.length &&
       common < messages.length &&
-      owned.messages[common]!.role === messages[common]!.role &&
-      owned.messages[common]!.content === messages[common]!.content
+      sameCommittedMessageIdentity(
+        owned.messages[common]!,
+        messages[common]!,
+      )
     )
       common += 1;
     owned.messages = messages.map((message, index) =>
       index < common
-        ? owned.messages[index]!
+        ? { ...owned.messages[index]!, content: message.content }
         : {
             messageId: `message_${randomUUID()}`,
             role: message.role,

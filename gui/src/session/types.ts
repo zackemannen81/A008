@@ -45,6 +45,7 @@ export interface GuiSession extends GuiSessionState {
   endSession?(): Promise<void>;
   connect(): Promise<void>;
   prompt(text: string, attachment?: PromptImageAttachment): Promise<void>;
+  generateImage?(prompt: string): Promise<void>;
   cancel(): Promise<void>;
 }
 

@@ -12,6 +12,7 @@ import {
 } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { ChatSession, type SendMessageOptions } from "../core/chat-session.js";
+import type { GeneratedImageTerminalUpdate } from "../core/chat-content.js";
 import {
   Utf8ByteChatMessageMeasurer,
   type ChatInvocationBudget,
@@ -651,6 +652,17 @@ export class LocalMemorySession {
         "Cannot undo during an active turn.",
       );
     return this.#chat.undoLastTurn();
+  }
+
+  reserveGeneratedImage(generationId: string, prompt: string): void {
+    this.#chat.reserveGeneratedImage(generationId, prompt);
+  }
+
+  resolveGeneratedImage(
+    generationId: string,
+    update: GeneratedImageTerminalUpdate,
+  ): boolean {
+    return this.#chat.resolveGeneratedImage(generationId, update);
   }
 
   consumeMemoryDiagnostic(): string | undefined {
