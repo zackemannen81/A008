@@ -129,6 +129,7 @@ Contract revision: `3532bcd8a0546e79dde1dbdb4e2623ca387ad0c6`
 - Evidence attachment may still fail closed when source support cannot be verified. That failure must not be reused as a reinforcement gate.
 - Do not solve this by adding another versioning abstraction, another canonical-status field, or retrieval-time truth reconstruction.
 - Existing storage and ontology are reused unless a concrete failing acceptance test proves a bounded change is necessary.
+- Git/HEAD analogy: treat `current_state` like the checked-out `main` HEAD. Read the current state, change only the affected semantic address, and commit one atomic transition. The resulting state is the new truth surface; earlier states remain history/provenance, like prior commits. Retrieval must not vote among old commits to rediscover HEAD.
 
 ## Charter Amendment Log
 
