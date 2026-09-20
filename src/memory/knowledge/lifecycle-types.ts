@@ -73,7 +73,7 @@ export interface ReinforcementReceipt {
   readonly occurrenceId: string;
   readonly evidenceId: string;
   readonly at: string;
-  readonly support: {
+  readonly support?: {
     readonly utteranceId: string;
     readonly start: number;
     readonly end: number;

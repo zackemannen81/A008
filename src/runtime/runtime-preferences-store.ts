@@ -14,6 +14,7 @@ import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { findRepositoryRoot, moduleDirectory } from "./local-runtime-config.js";
 import { ChatError } from "../core/errors.js";
+import { DEFAULT_MODEL_ID } from "../core/model-registry.js";
 import {
   DEFAULT_RUNTIME_BUDGETS,
   parseRuntimePreferences,
@@ -48,9 +49,16 @@ export class RuntimePreferencesStore {
         );
       }
     }
+    const defaultSemanticModel =
+      env.NVIDIA_API_KEY?.trim()
+        ? DEFAULT_MODEL_ID
+        : env.OPENAI_API_KEY?.trim()
+          ? "gpt-5.6-luna"
+          : DEFAULT_MODEL_ID;
     this.#defaults = parseRuntimePreferences({
       instructions: "",
       budgets: { ...DEFAULT_RUNTIME_BUDGETS, providerTimeoutMs },
+      semantic: { model: defaultSemanticModel, reasoningEffort: null },
     });
     this.snapshot(); // Refuse corrupt configuration before opening a provider/store.
   }
@@ -95,8 +103,19 @@ export class RuntimePreferencesStore {
               ),
               ...legacy.budgets,
             },
+            semantic: this.#defaults.semantic,
           });
-        } else settings = parseRuntimePreferences(stored.settings);
+        } else {
+          const storedSettings = stored.settings;
+          const withSemantic =
+            typeof storedSettings === "object" &&
+            storedSettings !== null &&
+            !Array.isArray(storedSettings) &&
+            !("semantic" in storedSettings)
+              ? { ...storedSettings, semantic: this.#defaults.semantic }
+              : storedSettings;
+          settings = parseRuntimePreferences(withSemantic);
+        }
       } catch {
         throw new ChatError(
           "configuration",
@@ -130,6 +149,17 @@ export class RuntimePreferencesStore {
         }
       }
       const current = this.snapshot();
+      // Existing clients edit only instructions/budgets; omission preserves
+      // newer semantic and lifecycle policy fields.
+      if (
+        typeof value === "object" &&
+        value !== null &&
+        !("semantic" in value)
+      )
+        settings = parseRuntimePreferences({
+          ...settings,
+          semantic: current.settings.semantic,
+        });
       // Existing clients edit only instructions/budgets; omission preserves advanced policy.
       if (
         typeof value === "object" &&

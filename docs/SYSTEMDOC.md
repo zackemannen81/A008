@@ -167,18 +167,28 @@ bare `ChatSession` for tests and direct callers.
 Live CLI and ACP chat without an injected transport use
 `createConfiguredChatTransport` (A008-0114 over A008-0073/0087/0088, with
 A008-0127 embedded execution). The default is `EmbeddedAcmeChatTransport`.
-Explicit model identity still owns routing: A008 derives the ACME selection and
-provider hint from the selected built-in/user-catalog profile, while ACME owns
-only execution. Any one of `NVIDIA_API_KEY`, `KIE_API_KEY`, or
-`OPENAI_API_KEY` is enough to compose the relevant embedded route.
+Chat model identity and semantic model identity are explicit A008-owned choices:
+chat uses the session model while retrieval-scope classification, post-output
+extraction, relation classification and source-knowledge extraction use the
+persisted Runtime Preferences semantic model. A008 derives each ACME selection
+and provider hint from that chosen built-in/user-catalog profile, while ACME owns
+only execution. `NVIDIA_API_KEY`, `KIE_API_KEY`, and `OPENAI_API_KEY` authorize
+the corresponding routes but credential presence never selects the semantic
+model.
 `A008_CHAT_TRANSPORT=direct` selects the prior direct dispatch path;
 `A008_CHAT_TRANSPORT=acme` selects the remote sidecar path and requires its
 runtime URL. The Luna function-tools restriction is specific to the direct
 OpenAI Chat Completions reference path: that adapter keeps the A008-owned
 effective `reasoningEffort: "none"` guard without rewriting selected session
 state. Embedded ACME OpenAI execution uses native Responses and preserves the
-selected reasoning effort, including function-tool turns. Stream usage handling
-and other provider-specific payload rules remain in the provider adapters. Image generation on the host
+selected reasoning effort, including function-tool turns. For streamed Responses
+requests with reasoning enabled, A008 additionally requests OpenAI's provider
+reasoning summary (`reasoning.summary=auto`). ACME maps summary deltas onto the
+existing transient reasoning channel; the GUI shows that channel as Thought.
+This is not raw chain-of-thought and it is never committed to dialogue or memory.
+Non-streaming semantic JSON calls do not request reasoning summaries. Stream
+usage handling and other provider-specific payload rules remain in the provider
+adapters. Image generation on the host
 follows `imageProvider`: NVIDIA NIMs or kie Market jobs
 (`POST /api/v1/jobs/createTask` then poll `GET /api/v1/jobs/recordInfo`).
 
@@ -194,9 +204,11 @@ implements no fallback or retry policy.
 Live Nemotron streams may emit only a short prefix on `reasoning_content` and
 continue the same chain-of-thought on `content` before the user-visible answer.
 The transport normalizes those channel transitions so reasoning never becomes
-`message.content` or content deltas. Semantic JSON calls use a dedicated
-non-thinking generation profile and never inherit chat `enableThinking` or
-`reasoningBudget`. Intake receives only `verifiedFinalAnswer`. Successful chat
+`message.content` or content deltas. Semantic JSON calls use their own generation
+profile and never inherit chat `enableThinking`, `reasoningBudget` or reasoning
+effort. Runtime Preferences owns the semantic reasoning-effort value separately;
+models that expose effort default to `none` for semantic work unless the operator
+selects another supported effort. Intake receives only `verifiedFinalAnswer`. Successful chat
 with failed post-output is a degraded memory outcome, not a failed chat turn.
 
 The CLI is one composition surface. `models` and help work without a key. `chat`
@@ -271,7 +283,10 @@ approval boundary and existing runtime budgets. Duplicate or unknown model tool
 calls fail closed and name the id or tool. ACP stderr `memory>` diagnostics are
 not concatenated onto unrelated turn errors. In the standalone GUI, tool activity
 renders inside the assistant turn in the transcript, not as a footer above the
-composer. The bundled standalone GUI may let
+composer. A008-0145 makes the aggregate tool disclosure stable for one tool
+cycle: the first running snapshot may open it, later running/completed transitions
+do not force it closed or reopened, and an explicit user collapse remains owned
+by the user until the cycle clears. The bundled standalone GUI may let
 the operator choose Allow all for the current GUI session; this is local client
 state that answers later permission requests and resets on reconnect, not model-
 derived authority or a persistent policy. These tools do not create another
@@ -557,21 +572,29 @@ conversation within the owned ACP session. End session releases it and leaves
 the page running. These operations do not delete saved memory.
 
 The header Parameters dialog includes Appearance, which selects Neutral, Deep
-Space, or Oldscool without a connected session. Model, Provider, Budgets and Instructions
-remain session/runtime controls. Appearance is renderer-local only.
+Space, or Oldscool without a connected session. Model owns the current chat
+session controls. Semantic is a separate global runtime surface for semantic
+model and semantic reasoning effort; Provider owns credentials, while Budgets
+and Instructions remain global runtime controls. Appearance is renderer-local
+only.
 
 The header Parameters dialog uses endpoint capability metadata from GET
 /v1/models. Stream, temperature omission or 0–1, top P, total generated-token
 budget, supported reasoning toggles/budgets/efforts, seed and stop sequences
-are applied as a complete per-session configuration. Null survives default
-merges and omits the provider field; temperature 0 remains an explicit value.
-The reasoning budget is omitted while reasoning is disabled. Input tokens and
-semantic-memory processing are outside the chat output budget. Values and
+are applied as a complete per-session chat configuration. Luna and Terra default
+chat output to 128,000 tokens, their declared output maximum. Null survives
+default merges and omits the provider field; temperature 0 remains an explicit
+value. The reasoning budget is omitted while reasoning is disabled. Semantic
+processing has its own global model/reasoning choice and a 128,000-token output
+budget, capped by the selected semantic model's capability. Values and
 model-specific exclusions are validated before the provider call.
 
-`LocalMemorySession` owns this configuration. Chat uses the existing transport;
-retrieval/analyzer/classifier options remain independent. ACP advertises its
-custom control capability only when the composition registers the method.
+`LocalMemorySession` owns the per-session chat configuration. The shared runtime
+preference store owns the independent semantic model/reasoning configuration,
+and retrieval/analyzer/classifier/source extraction all resolve that same
+semantic choice at operation start. Chat and semantic work reuse the existing
+transport but do not silently inherit each other's model controls. ACP advertises
+its custom control capability only when the composition registers the method.
 The host serializes controls with prompts, checks socket ownership, cleans up
 failed/new sessions and refuses unsupported controls on older ACP bridges.
 Cancellation holds the busy state through the terminal acknowledgment.
@@ -594,17 +617,19 @@ the existing analyzer; one operation time evaluates a persisted exponential
 baseline. Direct dormant matches stay eligible. Inspection exposes baseline and
 evaluated values; model projection contains no lifecycle numbers.
 
-Live reinforcement resolves one invocation-local handle to one stored claim and
-requires independent support from the original message or attributed source.
-The analyzer names that support as an exact quote; staging resolves it to a
-span. Entity commit reuses an existing registry identity when a later label
-slugs to the same id (`HTML5 Canvas` / `html5_canvas`) instead of refusing a
-duplicate register.
-Restatement reuses canonical evidence where acceptance permits. Writes execute
-synchronously after asynchronous comparison: refresh stale state under the
-SQLite write lock, validate the target/source, then commit evidence, state,
-boost, receipt and audit together. In-memory writes restore the prior snapshot
-on failure. Reads never call these writes. Schema 3 converts legacy baselines
+Live lifecycle reinforcement is occurrence-based. Once retrieval has fixed the
+admitted set, existing lifecycle-backed evidence that became semantically
+actual/relevant in that distinct occurrence may be reinforced exactly once.
+Exact quote/span/provenance support is validated independently for evidence and
+association attachment; missing or ambiguous proof is not a lifecycle veto.
+Entity commit reuses an existing registry identity when a later label slugs to
+the same id (`HTML5 Canvas` / `html5_canvas`) instead of refusing a duplicate
+register.
+Writes execute synchronously under the knowledge transaction/lock and durable
+occurrence/evidence receipts make retries idempotent. In-memory writes restore
+the prior snapshot on failure. DEFINE/RETRIEVE/EXPAND/FILTER/COMPOSE/PROJECT
+remain non-mutating; reinforcement is the separate lifecycle write after
+admission. Schema 3 converts legacy baselines
 without inventing severity, history or elapsed age; see the constitution's
 backup/restore procedure. Settings format 4 holds advanced creation policy in
 the existing runtime owner; existing-client saves preserve it.
@@ -672,7 +697,7 @@ judgment, user-data upgrade or running-application restart is claimed.
 
 ## Structural entity references and relation contract (A008-0122)
 
-`entities[]` from post-output extraction denotes distinct referents. The entity registry resolves each label independently through deterministic lexical identity, so slug-equivalent forms such as `React` and `react` reuse one entity while co-mentioned values such as `gui/package.json`, `gui/package-lock.json`, and `React` remain separate identities. Preferred display spelling is stored independently from the canonical ID. Structured proposition ownership determines statement-slot ownership where present; unstructured fallback uses a proposition-specific statement identity and never `entities[0]`.
+`entities[]` from post-output extraction denotes distinct referents. The entity registry resolves each label independently through deterministic lexical identity, so slug-equivalent forms such as `React` and `react` reuse one entity while co-mentioned values such as `gui/package.json`, `gui/package-lock.json`, and `React` remain separate identities. Preferred display spelling is stored independently from the canonical ID. Structured attribute/relationship propositions determine semantic-address ownership where present. Unstructured propositions remain evidence and claim↔entity references; they do not create proposition-specific statement identities, statement slots, or current-state bindings.
 
 `ClaimEntityReferenceStore` owns structural claim↔entity membership. Schema 5 persists it in `A008_knowledge_claim_entities`; the inspection graph projects it as `entity_ref`. These links are referential topology only: they have no semantic relation type, support span, strength, reinforcement, decay, or association lifecycle. `RelationIndex` remains the sole owner of independently classified L3 semantic associations.
 
@@ -870,12 +895,14 @@ existing exact ID-free proposal/candidate envelope. Both may share one generator
 and therefore one transport/model configuration without constructing another
 provider implementation or credential owner.
 
-The runtime uses the existing generation capability registry for semantic top P
-and output ceilings. Explicit null omits top P for Kimi K3; it cannot be restored
-by the generator default. Luna semantic JSON calls use reasoning effort `none`
-while chat defaults to `medium`, preserving the existing deterministic
-`temperature: 0` semantic profile. Other models retain their fixed semantic
-sampling.
+The runtime uses the existing generation capability registry for semantic top P,
+reasoning effort and output ceilings. Explicit null omits top P for Kimi K3; it
+cannot be restored by the generator default. The global semantic output budget
+defaults to 128,000 tokens and each call uses the lower of that value and the
+selected semantic model capability. Semantic reasoning effort is independently
+persisted; effort-capable models default to `none` unless the operator selects a
+supported level. Luna/Terra semantic calls omit unsupported temperature, while
+chat keeps its separate session reasoning choice.
 The classifier instruction distinguishes the input envelope from the output
 decision and gives concrete JSON shapes (A008-0083).
 A008-0085 adds serialized, fictional extractor examples covering empty social
@@ -884,10 +911,12 @@ outputs pass the existing stager. Analyzer support is an exact `quote` from the
 original message or ingested source (optional 1-based `occurrence` when the
 quote repeats). Runtime computes canonical UTF-16 `start`/`end`; model-supplied
 offsets are ignored. Newline encoding is the only mechanical variant. A rewritten
-quote may still reinforce when the proposition itself is a unique exact
-substring of the original source. A quote that exists only in the answer is
-omitted, not treated as malformed. Missing or ambiguous quotes skip
-reinforcement and keep the proposal. The instruction describes types in prose
+quote may still provide evidence support when the proposition itself is a unique
+exact substring of the original source. A quote that exists only in the answer
+is omitted, not treated as malformed. Missing or ambiguous quotes omit that
+support attachment and keep the proposal; they do not suppress the separate
+occurrence-based lifecycle reinforcement when the stored knowledge became
+semantically actual/relevant. The instruction describes types in prose
 instead of displaying JSON-like pseudocode.
 Completeness applies only after a durability eligibility gate. Routine execution
 narration, transient workflow state, immediate requests and one-off occurrences are
@@ -1179,6 +1208,12 @@ passes its already-held lease explicitly to avoid recursively acquiring it.
 
 Device revoke or expiry discovered by the live authority check closes the socket, cancels its owned work and resolves pending permissions denied. Tool permission IDs are one-use and bound to the owning connection/session. Outgoing V2 frames pass the existing credential-redaction boundary.
 
-A008-0132 adds the first Stage-4 state/recovery foundation without changing runtime ownership. Each accepted V2 prompt receives an A008-owned `turnId`; committed user/assistant messages receive stable `messageId` values that survive unchanged prefixes across later turns/undo while removed/reset messages are retired. Each session owns a monotonic event `sequence`; all events also carry the process `serverInstanceId`, `sessionId` and applicable `turnId`. `session/inspect` captures the exact represented sequence, queues events emitted while the snapshot is being delivered and drains only newer events after `finishSnapshot`, so clients replace from the snapshot then apply only strictly newer events (`isV2SessionEventNewer`). A turn settles at most once as `completed`, `cancelled`, `interrupted` or `failed`; the terminal event reports answer status separately from post-output memory status. Disconnect interrupts an active turn, cancel marks it cancelled, and stale tool approvals are rejected after turn/session authority changes. Sequence state is per session/project and application IDs are not derived from ACME `modelExecutionId`. Command receipts/idempotency, reconnect/resume leases, replay/history and restart uncertainty remain later Stage-4 work. See [CLIENT_AUTH.md](CLIENT_AUTH.md) and [CLIENT_API_V2.md](CLIENT_API_V2.md).
+A008-0132 adds the first Stage-4 state/recovery foundation without changing runtime ownership. Each accepted V2 prompt receives an A008-owned `turnId`; committed user/assistant messages receive stable `messageId` values that survive unchanged prefixes across later turns/undo while removed/reset messages are retired. Each session owns a monotonic event `sequence`; all events also carry the process `serverInstanceId`, `sessionId` and applicable `turnId`. `session/inspect` captures the exact represented sequence, queues events emitted while the snapshot is being delivered and drains only newer events after `finishSnapshot`, so clients replace from the snapshot then apply only strictly newer events (`isV2SessionEventNewer`). A turn settles at most once as `completed`, `cancelled`, `interrupted` or `failed`; the terminal event reports answer status separately from post-output memory status. Disconnect interrupts an active turn, cancel marks it cancelled, and stale tool approvals are rejected after turn/session authority changes. Sequence state is per session/project and application IDs are not derived from ACME `modelExecutionId`.
 
-A008-0136 makes that implemented boundary discoverable rather than expanding it. Public `GET /v2/info` advertises `session.turn-identity`, `session.message-identity`, `session.event-sequence`, `session.snapshot-boundary` and `session.terminal-outcomes` in addition to the existing auth/session features. It deliberately does not advertise command-idempotency, reconnect/resume or restart-recovery features. The bundled GUI Parameters → Runtime view reads that discovery document and reports the remaining gaps explicitly. Bundled chat still uses the V1 WebSocket owner; migrating the web client to V2 remains Stage 5. The existing V1 45-second detached-session resume capability is compatibility behavior and is not a V2 Stage-4 lease.
+A008-0138 adds bounded process-local mutation identity without changing runtime ownership. Mutating V2 commands require a stable `commandId`; `session/inspect` and read-only `session/control {action: inspect}` do not. Before executing a mutation, the V2 host computes a canonical SHA-256 digest over action/project/session/payload and indexes it by authorized principal plus command ID. An identical retry receives the existing running/succeeded/failed receipt and never re-enters the mutation path; the same ID with different canonical content returns `COMMAND_CONFLICT`. A running prompt receipt carries its stable `turnId`. Terminal receipts are retained for five minutes from settlement, with at most 1,024 entries per principal; running or unexpired receipts are not evicted for capacity. Unknown/expired or foreign-principal receipt lookup returns `COMMAND_UNKNOWN`. Authenticated `GET /v2/projects/{projectId}/commands/{commandId}` exposes only receipt metadata; raw mutation payloads are never stored there. This is bounded idempotency, not durable exactly-once execution.
+
+A008-0139 adds the V2 reconnect/resume lease without creating another runtime owner. A transport close calls the existing V2 session owner to interrupt active work, deny pending permissions, wait for terminal settlement, drop the connection/event sink and retain only same-process session state plus an opaque 256-bit resume capability for 45 seconds. `session/resume` must come from the same authorized principal/project/session, rejects a second writer, validates the capability in constant time and then rebinds the connection before creating an authoritative A008-0132 snapshot capture/drain boundary. The capability is returned only by `session/new`/successful `session/resume`; it is absent from ordinary snapshots, command receipts and provider/model payloads. Explicit session close, lease expiry and credential revoke/expiry destroy resume authority. Reconnect never replays thought/answer/tool output or implicitly resubmits a provider/tool mutation. The lease is process-local and does not survive restart.
+
+A008-0140 closes Stage 4 without adding persistence. Every standalone V2 GUI-host process already creates a fresh `serverInstanceId`; A008-0140 proves that process death therefore invalidates the in-memory receipt registry and detached-session lease. A receipt known to be running on the dead instance is `COMMAND_UNKNOWN` on the new instance, the old session/resume capability is `SESSION_EXPIRED`, and the host does not infer success/failure or automatically resubmit the mutation. A real host also proves answer/memory independence by returning a completed answer while post-output semantic extraction fails as `memoryStatus=staging_failed`. The combined Stage-4 matrix covers snapshot/event ordering, duplicate commands, cancellation/tool approval, lease expiry, restart uncertainty and project/session isolation.
+
+Public `GET /v2/info` now advertises the complete bounded Stage-4 surface: A008-0132 identity/order/snapshot/terminal features, A008-0138 command receipts/idempotency, A008-0139 `session.reconnect-resume`, and A008-0140 `session.restart-uncertainty`, with the same bounded limits. The bundled GUI Parameters → Runtime view reports `STAGE 4 COMPLETE`. Bundled chat still uses the V1 WebSocket owner; migrating the web client to the independent Stage-5 SDK remains the next gate. Existing V1 reconnect compatibility remains separate from the V2 contract.

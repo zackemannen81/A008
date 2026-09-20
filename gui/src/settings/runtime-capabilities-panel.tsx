@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import type { V2Info } from "../../../packages/protocol/src/index.js";
 import {
   loadRuntimeCapabilities,
-  STAGE4_FOUNDATION_FEATURES,
+  STAGE4_IMPLEMENTED_FEATURES,
   STAGE4_REMAINING,
+  stage4Complete,
   stage4FoundationComplete,
 } from "./runtime-capabilities.js";
 
@@ -58,6 +59,7 @@ export function RuntimeCapabilitiesPanel() {
   if (!info) return <p role="status">Loading runtime capabilities…</p>;
 
   const foundation = stage4FoundationComplete(info);
+  const complete = stage4Complete(info);
   const available = new Set(info.features);
 
   return (
@@ -73,7 +75,11 @@ export function RuntimeCapabilitiesPanel() {
         <span
           className={foundation ? "a008-radar-ready" : "a008-radar-discovery"}
         >
-          {foundation ? "FOUNDATION ACTIVE" : "PARTIAL"}
+          {complete
+            ? "STAGE 4 COMPLETE"
+            : foundation
+              ? "FOUNDATION ACTIVE"
+              : "PARTIAL"}
         </span>
       </div>
       <p className="a008-radar-intro">
@@ -100,21 +106,30 @@ export function RuntimeCapabilitiesPanel() {
           <dd>{info.authProfiles.join(" · ")}</dd>
         </div>
       </dl>
-      <h4>Stage 4 foundation</h4>
+      <h4>Implemented Stage 4 slices</h4>
       <ul className="a008-runtime-features">
-        {STAGE4_FOUNDATION_FEATURES.map((feature) => (
+        {STAGE4_IMPLEMENTED_FEATURES.map((feature) => (
           <li key={feature} data-available={available.has(feature)}>
             <span aria-hidden="true">{available.has(feature) ? "✓" : "–"}</span>
             <code>{feature}</code>
           </li>
         ))}
       </ul>
-      <h4>Still outside the implemented Stage 4 slice</h4>
-      <ul className="a008-runtime-pending">
-        {STAGE4_REMAINING.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
+      {STAGE4_REMAINING.length > 0 ? (
+        <>
+          <h4>Still outside the implemented Stage 4 slice</h4>
+          <ul className="a008-runtime-pending">
+            {STAGE4_REMAINING.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="a008-parameter-footnote">
+          Stage 4 recovery guarantees are complete. Stage 5 owns SDK and web
+          migration.
+        </p>
+      )}
       <h4>Advertised limits</h4>
       <dl className="a008-runtime-meta">
         <div>
@@ -132,6 +147,18 @@ export function RuntimeCapabilitiesPanel() {
         <div>
           <dt>Ticket TTL</dt>
           <dd>{Math.round(info.limits.ticketLifetimeMs / 1000)} s</dd>
+        </div>
+        <div>
+          <dt>Resume lease</dt>
+          <dd>{Math.round(info.limits.sessionResumeLeaseMs / 1000)} s</dd>
+        </div>
+        <div>
+          <dt>Receipt TTL</dt>
+          <dd>{Math.round(info.limits.commandReceiptRetentionMs / 1000)} s</dd>
+        </div>
+        <div>
+          <dt>Receipts / principal</dt>
+          <dd>{info.limits.commandReceiptLimitPerPrincipal}</dd>
         </div>
       </dl>
       <details className="a008-runtime-all-features">

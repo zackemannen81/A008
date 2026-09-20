@@ -93,7 +93,10 @@ export function classifyIntents(
     detected.push("current_state");
   }
   if (detected.length === 0) {
-    return ["current_state", "attribution"];
+    // Current state is the default truth surface. Attribution is opt-in: raw
+    // claims/utterances must not accompany an ordinary state question merely
+    // because no stronger intent word was present.
+    return ["current_state"];
   }
   if (detected.length === 1 && detected[0] === "associative") {
     return ["associative"];

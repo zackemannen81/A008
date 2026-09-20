@@ -9,6 +9,7 @@ import {
   type MemoryLifecyclePolicy,
 } from "./memory-lifecycle-policy.js";
 import { ChatError } from "./errors.js";
+import { DEFAULT_MODEL_ID } from "./model-registry.js";
 
 /** Local limits. Units intentionally distinguish serialized bytes from tokens. */
 export const DEFAULT_RUNTIME_BUDGETS = Object.freeze({
@@ -16,7 +17,7 @@ export const DEFAULT_RUNTIME_BUDGETS = Object.freeze({
   memoryProjectionBytes: 32_768,
   recentMessages: 2,
   semanticInputBytes: 262_144,
-  semanticOutputTokens: 16_384,
+  semanticOutputTokens: 128_000,
   stagingBytes: 262_144,
   maximumProposals: 128,
   maximumTagsPerProposal: 16,
@@ -35,11 +36,23 @@ export const DEFAULT_RUNTIME_BUDGETS = Object.freeze({
   toolOutputBytes: 65_536,
   toolTimeoutMs: 60_000,
 });
+export const DEFAULT_SEMANTIC_SETTINGS = Object.freeze({
+  model: DEFAULT_MODEL_ID,
+  reasoningEffort: null as string | null,
+});
+
 export type RuntimeBudgetKey = keyof typeof DEFAULT_RUNTIME_BUDGETS;
 export type RuntimeBudgets = { readonly [K in RuntimeBudgetKey]: number };
-export type RuntimePreferences = WireRuntimePreferences & {
+export type RuntimePreferences = Omit<
+  WireRuntimePreferences,
+  "budgets" | "semantic"
+> & {
   readonly memoryLifecycle?: MemoryLifecyclePolicy;
   readonly budgets: RuntimeBudgets;
+  readonly semantic: {
+    readonly model: string;
+    readonly reasoningEffort: string | null;
+  };
 };
 export type RuntimeBudgetField = Omit<WireRuntimeBudgetField, "key"> & {
   readonly key: RuntimeBudgetKey;
@@ -210,10 +223,16 @@ export function parseRuntimePreferences(value: unknown): RuntimePreferences {
   if (
     !isRecord(value) ||
     Object.keys(value).some(
-      (k) => !["instructions", "budgets", "memoryLifecycle"].includes(k),
+      (k) => !["instructions", "budgets", "semantic", "memoryLifecycle"].includes(k),
     ) ||
     typeof value.instructions !== "string" ||
     !isRecord(value.budgets) ||
+    (value.semantic !== undefined &&
+      (!isRecord(value.semantic) ||
+        typeof value.semantic.model !== "string" ||
+        value.semantic.model.trim().length === 0 ||
+        (value.semantic.reasoningEffort !== null &&
+          typeof value.semantic.reasoningEffort !== "string"))) ||
     Object.keys(value.budgets).length !== RUNTIME_BUDGET_FIELDS.length
   ) {
     throw new ChatError(
@@ -241,6 +260,16 @@ export function parseRuntimePreferences(value: unknown): RuntimePreferences {
     return {
       instructions: value.instructions.trim(),
       budgets,
+      semantic:
+        value.semantic === undefined
+          ? { ...DEFAULT_SEMANTIC_SETTINGS }
+          : {
+              model: String(value.semantic.model).trim(),
+              reasoningEffort:
+                value.semantic.reasoningEffort === null
+                  ? null
+                  : String(value.semantic.reasoningEffort).trim(),
+            },
       memoryLifecycle: parseMemoryLifecyclePolicy(
         value.memoryLifecycle ?? DEFAULT_MEMORY_LIFECYCLE_POLICY,
       ),

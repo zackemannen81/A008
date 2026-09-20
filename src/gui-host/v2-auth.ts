@@ -2,8 +2,11 @@ import { randomBytes, randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   V2_CAPABILITIES,
+  v2IdSchema,
+  v2ProjectIdSchema,
   v2TicketRequestSchema,
   type V2Capability,
+  type V2CommandReceipt,
   type V2ErrorCode,
   type V2TicketRequest,
 } from "../../packages/protocol/src/index.js";
@@ -38,6 +41,9 @@ export const V2_LIMITS = {
   inputFrameBytes: 1_048_576,
   outputFrameBytes: 8_388_608,
   promptBytes: 65_536,
+  sessionResumeLeaseMs: 45_000,
+  commandReceiptRetentionMs: 5 * 60_000,
+  commandReceiptLimitPerPrincipal: 1_024,
 } as const;
 
 export class V2Auth {
@@ -227,6 +233,10 @@ export class V2Auth {
         "session.event-sequence",
         "session.snapshot-boundary",
         "session.terminal-outcomes",
+        "session.command-receipts",
+        "session.command-idempotency",
+        "session.reconnect-resume",
+        "session.restart-uncertainty",
       ],
       limits: V2_LIMITS,
     };
@@ -240,6 +250,11 @@ export async function handleV2AuthHttp(options: {
   originAllowed: boolean;
   readJson: (request: IncomingMessage) => Promise<unknown>;
   sendJson: (response: ServerResponse, status: number, data: unknown) => void;
+  lookupCommandReceipt?: (
+    principal: V2Principal,
+    projectId: string,
+    commandId: string,
+  ) => V2CommandReceipt;
 }): Promise<void> {
   const { auth, request, response, sendJson } = options;
   response.setHeader("cache-control", "no-store");
@@ -256,6 +271,37 @@ export async function handleV2AuthHttp(options: {
       return;
     }
     const principal = auth.authenticate(request);
+    const commandMatch =
+      request.method === "GET"
+        ? /^\/v2\/projects\/([^/]+)\/commands\/([^/]+)$/u.exec(path)
+        : null;
+    if (commandMatch) {
+      if (!options.lookupCommandReceipt)
+        throw new V2AuthError(
+          "UNSUPPORTED_CAPABILITY",
+          404,
+          "Command receipt lookup is not available.",
+        );
+      const projectParsed = v2ProjectIdSchema.safeParse(commandMatch[1]);
+      const commandParsed = v2IdSchema.safeParse(commandMatch[2]);
+      if (!projectParsed.success || !commandParsed.success)
+        throw new V2AuthError(
+          "INVALID_REQUEST",
+          400,
+          "Invalid command receipt path.",
+        );
+      const current = auth.authorize(principal, projectParsed.data, "session");
+      sendJson(
+        response,
+        200,
+        options.lookupCommandReceipt(
+          current,
+          projectParsed.data,
+          commandParsed.data,
+        ),
+      );
+      return;
+    }
     if (path === "/v2/auth/ticket" && request.method === "POST") {
       if (!request.headers["content-type"]?.startsWith("application/json"))
         throw new V2AuthError(

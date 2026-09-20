@@ -1,6 +1,7 @@
 import {
   DEFAULT_MEMORY_LIFECYCLE_POLICY,
   parseMemoryLifecyclePolicy,
+  type CreationLifecyclePolicy,
   type MemoryLifecyclePolicy,
 } from "../../core/memory-lifecycle-policy.js";
 import {
@@ -16,8 +17,32 @@ export interface AssociationIdentity {
   readonly relation: string;
   readonly scope: readonly string[];
 }
+export type AssociationAttractionSignal = "positive_use" | "negative_relevance";
+
+export interface AssociationAttractionAdjustment {
+  readonly occurrenceId: string;
+  readonly signal: AssociationAttractionSignal;
+  readonly fromAttraction: number;
+  readonly toAttraction: number;
+  readonly at: string;
+  readonly observedAt: string;
+}
+
+export interface AssociationAttractionState {
+  readonly policyVersion: "association-attraction-exponential-v1";
+  readonly value: number;
+  readonly decayLambda: number;
+  readonly boost: number;
+  readonly maximum: 1;
+  readonly valueUpdatedAt: string;
+  readonly lastAdjustedAt: string | null;
+  readonly adjustments: readonly AssociationAttractionAdjustment[];
+}
+
 export interface AssociationRecord extends AssociationIdentity {
   readonly key: string;
+  /** Optional only for backwards-compatible hydration of pre-0144 stores. */
+  readonly attraction?: AssociationAttractionState;
   readonly lifecycle: {
     readonly policyVersion: "association-exponential-v1";
     readonly strength: number;
@@ -103,6 +128,21 @@ export function evaluateAssociation(record: AssociationRecord, at: string) {
   validateRecord(record);
   return evaluatePersistence(record.lifecycle, at);
 }
+
+export function evaluateAssociationAttraction(
+  record: AssociationRecord,
+  at: string,
+): number {
+  validateRecord(record);
+  const state = record.attraction;
+  if (state === undefined) return 0;
+  const now = Date.parse(operationalTime(at));
+  const updated = Date.parse(state.valueUpdatedAt);
+  const elapsedSeconds = Math.max(0, (now - updated) / 1000);
+  const value = state.value * Math.exp(-state.decayLambda * elapsedSeconds);
+  return Math.abs(value) < Number.EPSILON ? 0 : value;
+}
+
 function validateRecord(record: AssociationRecord): void {
   if (record.key !== associationKey(record))
     throw new Error("Corrupt association key");
@@ -119,6 +159,93 @@ function validateRecord(record: AssociationRecord): void {
   finiteUnit(life.boost, "association boost");
   evaluatePersistence(life, life.strengthUpdatedAt);
   if (life.lastReinforcedAt !== null) operationalTime(life.lastReinforcedAt);
+  if (record.attraction !== undefined) validateAttraction(record.attraction);
+}
+
+function neutralAttraction(
+  at: string,
+  policy: CreationLifecyclePolicy,
+): AssociationAttractionState {
+  return {
+    policyVersion: "association-attraction-exponential-v1",
+    value: 0,
+    decayLambda: Math.LN2 / policy.halfLifeSeconds,
+    boost: policy.boost,
+    maximum: 1,
+    valueUpdatedAt: operationalTime(at),
+    lastAdjustedAt: null,
+    adjustments: [],
+  };
+}
+
+function evaluateAttractionState(
+  state: AssociationAttractionState,
+  at: string,
+): number {
+  const now = Date.parse(operationalTime(at));
+  const updated = Date.parse(state.valueUpdatedAt);
+  const elapsedSeconds = Math.max(0, (now - updated) / 1000);
+  const value = state.value * Math.exp(-state.decayLambda * elapsedSeconds);
+  return Math.abs(value) < Number.EPSILON ? 0 : value;
+}
+
+function finiteSignedUnit(value: number, label: string): void {
+  if (!Number.isFinite(value) || value < -1 || value > 1) {
+    throw new Error(`Invalid ${label}`);
+  }
+}
+
+function validateAttraction(state: AssociationAttractionState): void {
+  if (
+    !state ||
+    Object.keys(state).sort().join() !==
+      "adjustments,boost,decayLambda,lastAdjustedAt,maximum,policyVersion,value,valueUpdatedAt" ||
+    state.policyVersion !== "association-attraction-exponential-v1" ||
+    state.maximum !== 1 ||
+    !Number.isFinite(state.decayLambda) ||
+    state.decayLambda <= 0 ||
+    !Array.isArray(state.adjustments)
+  ) {
+    throw new Error("Invalid association attraction");
+  }
+  finiteSignedUnit(state.value, "association attraction");
+  finiteUnit(state.boost, "association attraction boost");
+  operationalTime(state.valueUpdatedAt);
+  if (state.lastAdjustedAt !== null) operationalTime(state.lastAdjustedAt);
+
+  const occurrences = new Set<string>();
+  for (const adjustment of state.adjustments) {
+    nonEmpty(adjustment.occurrenceId);
+    if (occurrences.has(adjustment.occurrenceId)) {
+      throw new Error("Duplicate association attraction receipt");
+    }
+    occurrences.add(adjustment.occurrenceId);
+    if (
+      adjustment.signal !== "positive_use" &&
+      adjustment.signal !== "negative_relevance"
+    ) {
+      throw new Error("Invalid association attraction signal");
+    }
+    finiteSignedUnit(adjustment.fromAttraction, "association attraction audit");
+    finiteSignedUnit(adjustment.toAttraction, "association attraction audit");
+    operationalTime(adjustment.at);
+    operationalTime(adjustment.observedAt);
+  }
+
+  const last = state.adjustments[state.adjustments.length - 1];
+  if (last === undefined) {
+    if (state.value !== 0 || state.lastAdjustedAt !== null) {
+      throw new Error("Invalid neutral association attraction baseline");
+    }
+    return;
+  }
+  if (
+    last.toAttraction !== state.value ||
+    last.at !== state.valueUpdatedAt ||
+    state.lastAdjustedAt !== last.at
+  ) {
+    throw new Error("Corrupt association attraction audit");
+  }
 }
 
 /** Owned alongside RelationIndex, never by EvidenceLifecycleStore or a binding. */
@@ -139,6 +266,68 @@ export class AssociationLifecycle {
       receipts: [...this.#receipts.values()],
       transitions: this.#transitions,
     });
+  }
+
+  adjustAttraction(
+    edgeKey: string,
+    input: {
+      readonly occurrenceId: string;
+      readonly at: string;
+      readonly signal: AssociationAttractionSignal;
+    },
+    policy: MemoryLifecyclePolicy = DEFAULT_MEMORY_LIFECYCLE_POLICY,
+  ): "adjusted" | "duplicate" {
+    nonEmpty(edgeKey);
+    nonEmpty(input.occurrenceId);
+    const observedAt = operationalTime(input.at);
+    if (
+      input.signal !== "positive_use" &&
+      input.signal !== "negative_relevance"
+    ) {
+      throw new Error("Invalid association attraction signal");
+    }
+    const previous = this.#records.get(edgeKey);
+    if (previous === undefined) throw new Error("Unknown association");
+    const creation = parseMemoryLifecyclePolicy(policy).association;
+    const baseline =
+      previous.attraction ??
+      neutralAttraction(previous.lifecycle.strengthUpdatedAt, creation);
+    if (
+      baseline.adjustments.some(
+        (adjustment) => adjustment.occurrenceId === input.occurrenceId,
+      )
+    ) {
+      return "duplicate";
+    }
+    const fromAttraction = evaluateAttractionState(baseline, observedAt);
+    const at =
+      Date.parse(baseline.valueUpdatedAt) > Date.parse(observedAt)
+        ? baseline.valueUpdatedAt
+        : observedAt;
+    const direction = input.signal === "positive_use" ? 1 : -1;
+    const toAttraction = Math.max(
+      -1,
+      Math.min(1, fromAttraction + direction * baseline.boost),
+    );
+    const adjustment: AssociationAttractionAdjustment = {
+      occurrenceId: input.occurrenceId,
+      signal: input.signal,
+      fromAttraction,
+      toAttraction,
+      at,
+      observedAt,
+    };
+    const attraction: AssociationAttractionState = {
+      ...baseline,
+      value: toAttraction,
+      valueUpdatedAt: at,
+      lastAdjustedAt: at,
+      adjustments: [...baseline.adjustments, adjustment],
+    };
+    const record = { ...previous, attraction };
+    validateRecord(record);
+    this.#records.set(edgeKey, record);
+    return "adjusted";
   }
 
   hydrate(snapshot: AssociationSnapshot): void {
@@ -243,7 +432,13 @@ export class AssociationLifecycle {
           strengthUpdatedAt: at,
           lastReinforcedAt: null,
         };
-    const record = { ...identity, key: edgeKey, lifecycle };
+    const record: AssociationRecord = {
+      ...identity,
+      key: edgeKey,
+      lifecycle,
+      attraction:
+        previous?.attraction ?? neutralAttraction(at, creation),
+    };
     validateRecord(record);
     const kind = previous ? "reinforced" : "created";
     this.#records.set(edgeKey, record);

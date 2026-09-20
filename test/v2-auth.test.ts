@@ -197,13 +197,30 @@ test("real V2 discovery/ticket routes require app auth, registered scope and Ori
       ])
         assert.ok(parsedInfo.data.features.includes(feature));
       assert.equal(
+        parsedInfo.data.features.includes("session.command-receipts"),
+        true,
+      );
+      assert.equal(
         parsedInfo.data.features.includes("session.command-idempotency"),
-        false,
+        true,
+      );
+      assert.equal(
+        parsedInfo.data.limits.commandReceiptRetentionMs,
+        5 * 60_000,
+      );
+      assert.equal(
+        parsedInfo.data.limits.commandReceiptLimitPerPrincipal,
+        1_024,
       );
       assert.equal(
         parsedInfo.data.features.includes("session.reconnect-resume"),
-        false,
+        true,
       );
+      assert.equal(
+        parsedInfo.data.features.includes("session.restart-uncertainty"),
+        true,
+      );
+      assert.equal(parsedInfo.data.limits.sessionResumeLeaseMs, 45_000);
     }
     assert.ok(!JSON.stringify(info).includes(f.directory));
     assert.ok(!JSON.stringify(info).includes(projectId));
@@ -318,7 +335,30 @@ class V2WireClient {
     return client;
   }
   send(frame: unknown): void {
-    this.socket.send(JSON.stringify(frame));
+    let outgoing = frame;
+    if (
+      frame &&
+      typeof frame === "object" &&
+      (frame as { type?: unknown }).type === "command" &&
+      typeof (frame as { requestId?: unknown }).requestId === "string" &&
+      !("commandId" in frame)
+    ) {
+      const command = frame as {
+        requestId: string;
+        action?: unknown;
+        payload?: { control?: { action?: unknown } };
+      };
+      const readOnly =
+        command.action === "session/inspect" ||
+        (command.action === "session/control" &&
+          command.payload?.control?.action === "inspect");
+      if (!readOnly)
+        outgoing = {
+          ...frame,
+          commandId: `command_${command.requestId}`,
+        };
+    }
+    this.socket.send(JSON.stringify(outgoing));
   }
 
   next(timeoutMs = 4000): Promise<any> {
@@ -351,6 +391,15 @@ class V2WireClient {
         return frame;
     }
     throw new Error(`Timed out waiting for V2 ${type}.`);
+  }
+
+  async closeAndWait(): Promise<void> {
+    if (this.socket.readyState === WebSocket.CLOSED) return;
+    const closed = new Promise<void>((resolve) =>
+      this.socket.addEventListener("close", () => resolve(), { once: true }),
+    );
+    this.socket.close();
+    await closed;
   }
 
   close(): void {
@@ -774,6 +823,18 @@ test(
         payload: { permissionId: permission.permissionId, allow: true },
       });
       await client.until("result", "allow_1");
+      client.send({
+        type: "command",
+        requestId: "allow_1_retry",
+        commandId: "command_allow_1",
+        action: "tool/permission",
+        projectId: project.projectId,
+        sessionId,
+        payload: { permissionId: permission.permissionId, allow: true },
+      });
+      const duplicateApproval = await client.until("result", "allow_1_retry");
+      assert.equal(duplicateApproval.receipt.status, "succeeded");
+      assert.equal(duplicateApproval.receipt.commandId, "command_allow_1");
       await client.until("result", "prompt_allow");
       assert.equal(
         readFileSync(join(project.rootFolder, "approved.txt"), "utf8"),
@@ -1139,6 +1200,516 @@ test(
       assert.equal(wire.includes("[redacted]"), true);
     } finally {
       client?.close();
+      await host.close();
+      await provider.close();
+      rmSync(f.directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "A008-0138 real V2 command receipts deduplicate running/terminal prompt attempts and isolate lookup",
+  { timeout: 30000 },
+  async () => {
+    const provider = await startSessionControlProvider();
+    const f = fixture();
+    f.env.NVIDIA_CHAT_COMPLETIONS_URL = provider.endpoint;
+    f.env.PATH = process.env.PATH;
+    const project = createRegisteredFixtureProject(f, "V2 receipts");
+    const devices = new DeviceRegistry(f.env);
+    const owner = devices.grant({
+      name: "Receipt owner",
+      projects: [project.projectId],
+      capabilities: ["session"],
+    });
+    const foreign = devices.grant({
+      name: "Receipt foreign",
+      projects: [project.projectId],
+      capabilities: ["session"],
+    });
+    const host = await startGuiHost({ env: f.env, port: 0, cwd: f.directory });
+    let client: V2WireClient | undefined;
+    try {
+      client = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(host.port, owner.credential, project.projectId),
+      );
+      client.send({
+        type: "command",
+        requestId: "receipt_new",
+        commandId: "receipt_new_command",
+        action: "session/new",
+        projectId: project.projectId,
+      });
+      const opened = await client.until("result", "receipt_new");
+      const sessionId = opened.sessionId as string;
+      assert.equal(opened.receipt.status, "succeeded");
+      assert.equal(opened.receipt.commandId, "receipt_new_command");
+
+      client.send({
+        type: "command",
+        requestId: "prompt_attempt_1",
+        commandId: "stable_prompt_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "WAIT-TURN" },
+      });
+      await nextV2Signal(client, "thought");
+
+      const userRequestCount = () =>
+        provider.requests.filter(
+          (payload) =>
+            !String(payload.messages?.at(-1)?.content ?? "").includes(
+              '"operation"',
+            ),
+        ).length;
+      assert.equal(userRequestCount(), 1);
+
+      client.send({
+        type: "command",
+        requestId: "prompt_attempt_2",
+        commandId: "stable_prompt_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "WAIT-TURN" },
+      });
+      const runningDuplicate = await client.until("result", "prompt_attempt_2");
+      assert.equal(runningDuplicate.receipt.status, "running");
+      assert.match(runningDuplicate.receipt.turnId, /^turn_/u);
+      assert.equal(runningDuplicate.state, undefined);
+      assert.equal(userRequestCount(), 1);
+
+      client.send({
+        type: "command",
+        requestId: "prompt_conflict",
+        commandId: "stable_prompt_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "different payload" },
+      });
+      const conflict = await expectV2Error(
+        client,
+        "COMMAND_CONFLICT",
+        "prompt_conflict",
+      );
+      assert.equal(conflict.commandId, "stable_prompt_command");
+      assert.equal(userRequestCount(), 1);
+
+      client.send({
+        type: "command",
+        requestId: "receipt_cancel",
+        commandId: "receipt_cancel_command",
+        action: "session/cancel",
+        projectId: project.projectId,
+        sessionId,
+      });
+      await client.until("result", "receipt_cancel");
+      const completed = await client.until("result", "prompt_attempt_1");
+      assert.equal(completed.receipt.status, "succeeded");
+      assert.equal(completed.receipt.commandId, "stable_prompt_command");
+      assert.equal(userRequestCount(), 1);
+
+      client.send({
+        type: "command",
+        requestId: "prompt_attempt_3",
+        commandId: "stable_prompt_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "WAIT-TURN" },
+      });
+      const terminalDuplicate = await client.until(
+        "result",
+        "prompt_attempt_3",
+      );
+      assert.equal(terminalDuplicate.receipt.status, "succeeded");
+      assert.equal(terminalDuplicate.state, undefined);
+      assert.equal(userRequestCount(), 1);
+
+      client.send({
+        type: "command",
+        requestId: "failed_attempt_1",
+        commandId: "stable_failed_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "FAIL-TURN" },
+      });
+      const firstFailure = await expectV2Error(
+        client,
+        "RUNTIME_FAILED",
+        "failed_attempt_1",
+      );
+      assert.equal(firstFailure.receipt.status, "failed");
+      assert.equal(firstFailure.receipt.commandId, "stable_failed_command");
+      assert.equal(userRequestCount(), 2);
+
+      client.send({
+        type: "command",
+        requestId: "failed_attempt_2",
+        commandId: "stable_failed_command",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "FAIL-TURN" },
+      });
+      const repeatedFailure = await expectV2Error(
+        client,
+        "RUNTIME_FAILED",
+        "failed_attempt_2",
+      );
+      assert.equal(repeatedFailure.receipt.status, "failed");
+      assert.equal(repeatedFailure.receipt.commandId, "stable_failed_command");
+      assert.equal(userRequestCount(), 2);
+
+      const lookup = await fetch(
+        `http://127.0.0.1:${host.port}/v2/projects/${project.projectId}/commands/stable_prompt_command`,
+        { headers: { authorization: `Bearer ${owner.credential}` } },
+      );
+      const receipt = (await lookup.json()) as any;
+      assert.equal(lookup.status, 200, JSON.stringify(receipt));
+      assert.equal(receipt.commandId, "stable_prompt_command");
+      assert.equal(receipt.status, "succeeded");
+      assert.equal(receipt.projectId, project.projectId);
+      assert.equal(JSON.stringify(receipt).includes("WAIT-TURN"), false);
+
+      const foreignLookup = await fetch(
+        `http://127.0.0.1:${host.port}/v2/projects/${project.projectId}/commands/stable_prompt_command`,
+        { headers: { authorization: `Bearer ${foreign.credential}` } },
+      );
+      const foreignBody = (await foreignLookup.json()) as any;
+      assert.equal(foreignLookup.status, 404, JSON.stringify(foreignBody));
+      assert.equal(foreignBody.code, "COMMAND_UNKNOWN");
+    } finally {
+      client?.close();
+      await host.close();
+      await provider.close();
+      rmSync(f.directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "A008-0139 real V2 disconnect resumes one surviving session without replay",
+  { timeout: 30000 },
+  async () => {
+    const provider = await startSessionControlProvider();
+    const f = fixture();
+    f.env.NVIDIA_CHAT_COMPLETIONS_URL = provider.endpoint;
+    f.env.PATH = process.env.PATH;
+    const project = createRegisteredFixtureProject(f, "V2 reconnect");
+    const devices = new DeviceRegistry(f.env);
+    const owner = devices.grant({
+      name: "Resume owner",
+      projects: [project.projectId],
+      capabilities: ["session"],
+    });
+    const foreign = devices.grant({
+      name: "Resume foreign",
+      projects: [project.projectId],
+      capabilities: ["session"],
+    });
+    const host = await startGuiHost({ env: f.env, port: 0, cwd: f.directory });
+    const clients: V2WireClient[] = [];
+    try {
+      const first = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(host.port, owner.credential, project.projectId),
+      );
+      clients.push(first);
+      first.send({
+        type: "command",
+        requestId: "resume_new",
+        action: "session/new",
+        projectId: project.projectId,
+      });
+      const opened = await first.until("result", "resume_new");
+      const sessionId = opened.sessionId as string;
+      const resumeCapability = opened.resumeCapability as string;
+      assert.match(resumeCapability, /^[A-Za-z0-9_-]{32,128}$/u);
+      assert.equal(
+        JSON.stringify(opened.state).includes(resumeCapability),
+        false,
+      );
+      assert.equal(
+        JSON.stringify(opened.receipt).includes(resumeCapability),
+        false,
+      );
+
+      const resumeTicket = await issueV2Ticket(
+        host.port,
+        owner.credential,
+        project.projectId,
+        sessionId,
+      );
+      first.send({
+        type: "command",
+        requestId: "resume_wait",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "WAIT-TURN" },
+      });
+      await nextV2Signal(first, "thought");
+
+      const userProviderCalls = () =>
+        provider.requests.filter(
+          (payload) =>
+            !String(payload.messages?.at(-1)?.content ?? "").includes(
+              '"operation"',
+            ),
+        ).length;
+      assert.equal(userProviderCalls(), 1);
+
+      await first.closeAndWait();
+
+      const resumed = await V2WireClient.connect(host.port, resumeTicket);
+      clients.push(resumed);
+      let resumeResult: any;
+      for (let attempt = 0; attempt < 20 && !resumeResult; attempt++) {
+        resumed.send({
+          type: "command",
+          requestId: "resume_attach",
+          commandId: "resume_attach_command",
+          action: "session/resume",
+          projectId: project.projectId,
+          sessionId,
+          payload: { resumeCapability },
+        });
+        const frame = await resumed.next();
+        if (frame.type === "result" && frame.requestId === "resume_attach") {
+          resumeResult = frame;
+          break;
+        }
+        if (
+          frame.type === "error" &&
+          frame.requestId === "resume_attach" &&
+          frame.code === "SESSION_BUSY"
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          continue;
+        }
+        assert.fail(`Unexpected resume frame: ${JSON.stringify(frame)}`);
+      }
+      assert.ok(resumeResult, "resume must succeed after detach settles");
+      assert.equal(resumeResult.sessionId, sessionId);
+      assert.equal(resumeResult.resumeCapability, resumeCapability);
+      assert.equal(resumeResult.state.active, false);
+      assert.equal(resumeResult.state.activeTurn, undefined);
+      assert.equal(
+        JSON.stringify(resumeResult.state).includes(resumeCapability),
+        false,
+      );
+      assert.equal(
+        resumed.frames.some(
+          (frame) =>
+            frame.type === "event" &&
+            (frame.event === "thought/delta" ||
+              frame.event === "answer/delta" ||
+              frame.event === "tool/permission"),
+        ),
+        false,
+      );
+      assert.equal(userProviderCalls(), 1);
+
+      const secondWriter = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(
+          host.port,
+          owner.credential,
+          project.projectId,
+          sessionId,
+        ),
+      );
+      clients.push(secondWriter);
+      secondWriter.send({
+        type: "command",
+        requestId: "resume_second_writer",
+        action: "session/resume",
+        projectId: project.projectId,
+        sessionId,
+        payload: { resumeCapability },
+      });
+      await expectV2Error(secondWriter, "SESSION_BUSY", "resume_second_writer");
+
+      const foreignClient = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(host.port, foreign.credential, project.projectId),
+      );
+      clients.push(foreignClient);
+      foreignClient.send({
+        type: "command",
+        requestId: "resume_foreign",
+        action: "session/resume",
+        projectId: project.projectId,
+        sessionId,
+        payload: { resumeCapability },
+      });
+      await expectV2Error(foreignClient, "SESSION_EXPIRED", "resume_foreign");
+
+      resumed.send({
+        type: "command",
+        requestId: "resume_close",
+        action: "session/control",
+        projectId: project.projectId,
+        sessionId,
+        payload: { control: { action: "close" } },
+      });
+      await resumed.until("result", "resume_close");
+
+      const afterClose = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(host.port, owner.credential, project.projectId),
+      );
+      clients.push(afterClose);
+      afterClose.send({
+        type: "command",
+        requestId: "resume_after_close",
+        action: "session/resume",
+        projectId: project.projectId,
+        sessionId,
+        payload: { resumeCapability },
+      });
+      await expectV2Error(afterClose, "SESSION_EXPIRED", "resume_after_close");
+      assert.equal(userProviderCalls(), 1);
+    } finally {
+      for (const client of clients) client.close();
+      await host.close();
+      await provider.close();
+      rmSync(f.directory, { recursive: true, force: true });
+    }
+  },
+);
+
+test(
+  "A008-0139 detach denies pending approval and resume cannot resurrect it",
+  { timeout: 30000 },
+  async () => {
+    const provider = await startSessionControlProvider((payload) => {
+      const messages = payload.messages ?? [];
+      const last = messages.at(-1);
+      if (last?.role === "tool")
+        return { role: "assistant", content: "Tool phase finished." };
+      const user =
+        [...messages].reverse().find((message: any) => message.role === "user")
+          ?.content ?? "";
+      if (!String(user).includes("WRITE DETACH")) return undefined;
+      return {
+        role: "assistant",
+        content: null,
+        tool_calls: [
+          {
+            id: "write-detach",
+            type: "function",
+            function: {
+              name: "create_file",
+              arguments: JSON.stringify({
+                path: "detached.txt",
+                content: "must-not-run",
+              }),
+            },
+          },
+        ],
+      };
+    });
+    const f = fixture();
+    f.env.NVIDIA_CHAT_COMPLETIONS_URL = provider.endpoint;
+    f.env.PATH = process.env.PATH;
+    const project = createRegisteredFixtureProject(f, "V2 detached approval");
+    const devices = new DeviceRegistry(f.env);
+    const owner = devices.grant({
+      name: "Detached approval owner",
+      projects: [project.projectId],
+      capabilities: ["session"],
+    });
+    const host = await startGuiHost({ env: f.env, port: 0, cwd: f.directory });
+    const clients: V2WireClient[] = [];
+    try {
+      const first = await V2WireClient.connect(
+        host.port,
+        await issueV2Ticket(host.port, owner.credential, project.projectId),
+      );
+      clients.push(first);
+      first.send({
+        type: "command",
+        requestId: "detach_new",
+        action: "session/new",
+        projectId: project.projectId,
+      });
+      const opened = await first.until("result", "detach_new");
+      const sessionId = opened.sessionId as string;
+      const resumeCapability = opened.resumeCapability as string;
+      const resumeTicket = await issueV2Ticket(
+        host.port,
+        owner.credential,
+        project.projectId,
+        sessionId,
+      );
+
+      first.send({
+        type: "command",
+        requestId: "detach_prompt",
+        action: "session/prompt",
+        projectId: project.projectId,
+        sessionId,
+        payload: { text: "WRITE DETACH" },
+      });
+      const permission = await nextV2Signal(first, "tool/permission");
+      assert.equal(existsSync(join(project.rootFolder, "detached.txt")), false);
+
+      await first.closeAndWait();
+      const callsAfterDetach = provider.requests.length;
+
+      const resumed = await V2WireClient.connect(host.port, resumeTicket);
+      clients.push(resumed);
+      let attached = false;
+      for (let attempt = 0; attempt < 20 && !attached; attempt++) {
+        resumed.send({
+          type: "command",
+          requestId: "detach_resume",
+          commandId: "detach_resume_command",
+          action: "session/resume",
+          projectId: project.projectId,
+          sessionId,
+          payload: { resumeCapability },
+        });
+        const frame = await resumed.next();
+        if (frame.type === "result" && frame.requestId === "detach_resume") {
+          attached = true;
+          break;
+        }
+        if (
+          frame.type === "error" &&
+          frame.requestId === "detach_resume" &&
+          frame.code === "SESSION_BUSY"
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          continue;
+        }
+        assert.fail(`Unexpected detach-resume frame: ${JSON.stringify(frame)}`);
+      }
+      assert.equal(attached, true);
+
+      resumed.send({
+        type: "command",
+        requestId: "detached_stale_permission",
+        action: "tool/permission",
+        projectId: project.projectId,
+        sessionId,
+        payload: { permissionId: permission.permissionId, allow: true },
+      });
+      await expectV2Error(
+        resumed,
+        "INVALID_REQUEST",
+        "detached_stale_permission",
+      );
+      assert.equal(existsSync(join(project.rootFolder, "detached.txt")), false);
+      assert.equal(provider.requests.length, callsAfterDetach);
+    } finally {
+      for (const client of clients) client.close();
       await host.close();
       await provider.close();
       rmSync(f.directory, { recursive: true, force: true });

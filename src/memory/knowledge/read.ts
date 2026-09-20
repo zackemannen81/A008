@@ -64,8 +64,13 @@ export function readKnowledge(
   const expanded = expand(retrieved, scope, context, {
     message: input.message,
   });
-  const filtered = filter({
+  const truthScopedExpanded = protectCurrentTruthSurfaces(
     expanded,
+    scope,
+    context,
+  );
+  const filtered = filter({
+    expanded: truthScopedExpanded,
     scope,
     ...(input.taskTags === undefined ? {} : { taskTags: input.taskTags }),
   });
@@ -90,10 +95,58 @@ export function readKnowledge(
   return {
     scope,
     retrieved,
-    expanded,
+    expanded: truthScopedExpanded,
     filtered,
     projected,
   };
+}
+
+function protectCurrentTruthSurfaces(
+  expanded: ExpandResult,
+  scope: SemanticScope,
+  context: KnowledgeReadContext,
+): ExpandResult {
+  if (
+    !scope.intents.includes("current_state") ||
+    scope.intents.includes("history") ||
+    scope.intents.includes("attribution")
+  ) {
+    return expanded;
+  }
+
+  const stateClaimIds = new Set(
+    context.state.snapshot().bindings.map((binding) => binding.claimId),
+  );
+  if (stateClaimIds.size === 0) {
+    return expanded;
+  }
+  const stateUtteranceIds = new Set(
+    context.evidence
+      .listClaims()
+      .filter((claim) => stateClaimIds.has(claim.id))
+      .flatMap((claim) =>
+        claim.derivedFrom.kind === "utterance" ? [claim.derivedFrom.id] : [],
+      ),
+  );
+
+  const records: RetrievedRecord[] = [];
+  const omitted = [...expanded.omitted];
+  for (const record of expanded.records) {
+    const shadowedClaim =
+      record.surface === "claim" &&
+      record.evidenceId !== undefined &&
+      stateClaimIds.has(record.evidenceId);
+    const shadowedUtterance =
+      record.surface === "utterance" &&
+      record.evidenceId !== undefined &&
+      stateUtteranceIds.has(record.evidenceId);
+    if (shadowedClaim || shadowedUtterance) {
+      omitted.push({ record, reason: "current_state_owned_by_binding" });
+      continue;
+    }
+    records.push(record);
+  }
+  return { records, omitted };
 }
 
 function unique(values: readonly string[]): readonly string[] {

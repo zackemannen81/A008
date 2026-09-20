@@ -195,6 +195,118 @@
           }
         }
       }
+    },
+    "/v2/projects/{projectId}/commands/{commandId}": {
+      "get": {
+        "security": [
+          {
+            "device": []
+          },
+          {
+            "browserPin": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commandId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Principal-owned bounded command receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-command-receipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Structured V2 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/v2-error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -220,7 +332,10 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["device", "browser-pin"]
+              "enum": [
+                "device",
+                "browser-pin"
+              ]
             }
           },
           "features": {
@@ -261,6 +376,21 @@
                 "type": "integer",
                 "minimum": -9007199254740991,
                 "maximum": 9007199254740991
+              },
+              "sessionResumeLeaseMs": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "commandReceiptRetentionMs": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "commandReceiptLimitPerPrincipal": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               }
             },
             "required": [
@@ -269,7 +399,10 @@
               "authenticationDeadlineMs",
               "inputFrameBytes",
               "outputFrameBytes",
-              "promptBytes"
+              "promptBytes",
+              "sessionResumeLeaseMs",
+              "commandReceiptRetentionMs",
+              "commandReceiptLimitPerPrincipal"
             ],
             "additionalProperties": false
           }
@@ -299,6 +432,12 @@
             "pattern": "^[A-Za-z0-9_-]+$"
           },
           "requestId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "commandId": {
             "type": "string",
             "minLength": 1,
             "maxLength": 160,
@@ -338,6 +477,107 @@
             "minLength": 1,
             "maxLength": 160,
             "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "serverInstanceId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "commandId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "action": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "projectId": {
+                "type": "string",
+                "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+              },
+              "sessionId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "turnId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "running",
+                  "succeeded",
+                  "failed"
+                ]
+              },
+              "startedAt": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "settledAt": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "INVALID_REQUEST",
+                      "UNAUTHENTICATED",
+                      "FORBIDDEN",
+                      "PROJECT_NOT_FOUND",
+                      "SESSION_EXPIRED",
+                      "SESSION_BUSY",
+                      "REVISION_CONFLICT",
+                      "UNSUPPORTED_CAPABILITY",
+                      "PROJECT_BINDING_CONFLICT",
+                      "COMMAND_CONFLICT",
+                      "COMMAND_UNKNOWN",
+                      "CAPACITY_EXCEEDED",
+                      "SNAPSHOT_TOO_LARGE",
+                      "RUNTIME_FAILED"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "retryable": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "retryable"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "serverInstanceId",
+              "commandId",
+              "action",
+              "projectId",
+              "status",
+              "startedAt"
+            ],
+            "additionalProperties": false
           }
         },
         "required": [
@@ -348,6 +588,115 @@
           "retryable"
         ],
         "additionalProperties": false
+      },
+      "v2-command-receipt": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "serverInstanceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "commandId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "projectId": {
+            "type": "string",
+            "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          },
+          "sessionId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "turnId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "succeeded",
+              "failed"
+            ]
+          },
+          "startedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "settledAt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "INVALID_REQUEST",
+                  "UNAUTHENTICATED",
+                  "FORBIDDEN",
+                  "PROJECT_NOT_FOUND",
+                  "SESSION_EXPIRED",
+                  "SESSION_BUSY",
+                  "REVISION_CONFLICT",
+                  "UNSUPPORTED_CAPABILITY",
+                  "PROJECT_BINDING_CONFLICT",
+                  "COMMAND_CONFLICT",
+                  "COMMAND_UNKNOWN",
+                  "CAPACITY_EXCEEDED",
+                  "SNAPSHOT_TOO_LARGE",
+                  "RUNTIME_FAILED"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "retryable": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "retryable"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "serverInstanceId",
+          "commandId",
+          "action",
+          "projectId",
+          "status",
+          "startedAt"
+        ],
+        "additionalProperties": false
+      },
+      "v2-resume-capability": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "string",
+        "minLength": 32,
+        "maxLength": 128,
+        "pattern": "^[A-Za-z0-9_-]+$"
       },
       "v2-ticket-request": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -364,7 +713,9 @@
             "pattern": "^[A-Za-z0-9_-]+$"
           }
         },
-        "required": ["projectId"],
+        "required": [
+          "projectId"
+        ],
         "additionalProperties": false
       },
       "v2-ticket-response": {
@@ -398,7 +749,12 @@
             "pattern": "^[A-Za-z0-9_-]+$"
           }
         },
-        "required": ["serverInstanceId", "ticket", "expiresAt", "projectId"],
+        "required": [
+          "serverInstanceId",
+          "ticket",
+          "expiresAt",
+          "projectId"
+        ],
         "additionalProperties": false
       },
       "v2-authenticate": {
@@ -415,7 +771,10 @@
             "maxLength": 128
           }
         },
-        "required": ["type", "ticket"],
+        "required": [
+          "type",
+          "ticket"
+        ],
         "additionalProperties": false
       }
     },

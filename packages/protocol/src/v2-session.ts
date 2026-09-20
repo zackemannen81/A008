@@ -5,13 +5,16 @@ import {
 } from "./schemas.js";
 import {
   v2AuthenticateSchema,
+  v2CommandReceiptSchema,
   v2ErrorSchema,
   v2IdSchema,
   v2ProjectIdSchema,
+  v2ResumeCapabilitySchema,
 } from "./v2-auth.js";
 
 export const V2_SESSION_ACTIONS = [
   "session/new",
+  "session/resume",
   "session/inspect",
   "session/prompt",
   "session/cancel",
@@ -24,14 +27,44 @@ const baseCommand = {
   requestId: v2IdSchema,
   projectId: v2ProjectIdSchema,
 };
+const mutationCommand = { ...baseCommand, commandId: v2IdSchema };
 const sessionCommand = { ...baseCommand, sessionId: v2IdSchema };
+const sessionMutationCommand = {
+  ...mutationCommand,
+  sessionId: v2IdSchema,
+};
 
-export const v2SessionCommandSchema = z.discriminatedUnion("action", [
+const readOnlySessionControlSchema = sessionControlInputSchema.and(
+  z.object({ action: z.literal("inspect") }),
+);
+const mutatingSessionControlSchema = sessionControlInputSchema.and(
+  z.object({
+    action: z.enum([
+      "reset",
+      "undo",
+      "close",
+      "model",
+      "configure",
+      "configureRuntime",
+    ]),
+  }),
+);
+
+export const v2SessionCommandSchema = z.union([
   z
     .object({
-      ...baseCommand,
+      ...mutationCommand,
       action: z.literal("session/new"),
       payload: z.object({ model: v2IdSchema.optional() }).strict().optional(),
+    })
+    .strict(),
+  z
+    .object({
+      ...sessionMutationCommand,
+      action: z.literal("session/resume"),
+      payload: z
+        .object({ resumeCapability: v2ResumeCapabilitySchema })
+        .strict(),
     })
     .strict(),
   z
@@ -39,22 +72,31 @@ export const v2SessionCommandSchema = z.discriminatedUnion("action", [
     .strict(),
   z
     .object({
-      ...sessionCommand,
+      ...sessionMutationCommand,
       action: z.literal("session/prompt"),
       payload: z.object({ text: z.string().min(1) }).strict(),
     })
     .strict(),
-  z.object({ ...sessionCommand, action: z.literal("session/cancel") }).strict(),
   z
-    .object({
-      ...sessionCommand,
-      action: z.literal("session/control"),
-      payload: z.object({ control: sessionControlInputSchema }).strict(),
-    })
+    .object({ ...sessionMutationCommand, action: z.literal("session/cancel") })
     .strict(),
   z
     .object({
       ...sessionCommand,
+      action: z.literal("session/control"),
+      payload: z.object({ control: readOnlySessionControlSchema }).strict(),
+    })
+    .strict(),
+  z
+    .object({
+      ...sessionMutationCommand,
+      action: z.literal("session/control"),
+      payload: z.object({ control: mutatingSessionControlSchema }).strict(),
+    })
+    .strict(),
+  z
+    .object({
+      ...sessionMutationCommand,
       action: z.literal("tool/permission"),
       payload: z
         .object({ permissionId: v2IdSchema, allow: z.boolean() })
@@ -122,10 +164,13 @@ export const v2SessionResultSchema = z
     type: z.literal("result"),
     serverInstanceId: v2IdSchema,
     requestId: v2IdSchema,
+    commandId: v2IdSchema.optional(),
     action: z.enum(V2_SESSION_ACTIONS),
     projectId: v2ProjectIdSchema,
     sessionId: v2IdSchema.optional(),
     state: v2SessionStateSchema.optional(),
+    resumeCapability: v2ResumeCapabilitySchema.optional(),
+    receipt: v2CommandReceiptSchema.optional(),
   })
   .strict();
 

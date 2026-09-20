@@ -4,11 +4,18 @@ import type { Duplex } from "node:stream";
 import {
   v2AuthenticateSchema,
   v2SessionCommandSchema,
+  type V2CommandReceipt,
   type V2SessionCommand,
   type V2SessionServerFrame,
+  type V2SessionState,
 } from "../../packages/protocol/src/index.js";
 import { acceptWebSocket, type GuiWebSocket } from "./websocket.js";
 import { V2Auth, V2AuthError, V2_LIMITS, type V2Principal } from "./v2-auth.js";
+import {
+  isV2MutationCommand,
+  isV2ReceiptCommand,
+  mutationCommandId,
+} from "./v2-command-receipts.js";
 import { V2SessionService } from "./v2-session.js";
 
 interface AuthenticatedConnection {
@@ -17,6 +24,12 @@ interface AuthenticatedConnection {
   readonly ticketSessionId?: string;
   attachedSessionId?: string;
   creatingSession?: boolean;
+}
+
+interface CommandRunResult {
+  readonly state: V2SessionState;
+  readonly resumeCapability?: string;
+  readonly snapshot: boolean;
 }
 
 export function openV2SessionSocket(options: {
@@ -59,7 +72,7 @@ export function openV2SessionSocket(options: {
   const revoke = async (message: string): Promise<void> => {
     if (authorityTimer) clearInterval(authorityTimer);
     authorityTimer = undefined;
-    await options.sessions.closeConnection(connectionId);
+    await options.sessions.terminateConnection(connectionId);
     ws?.close(4003, message);
   };
   const beginAuthorityChecks = (): void => {
@@ -176,6 +189,8 @@ async function dispatch(
     return;
   }
   const command = parsed.data;
+  let commandId: string | undefined;
+  let receiptStarted = false;
   try {
     connection.principal = auth.authorize(
       connection.principal,
@@ -188,37 +203,112 @@ async function dispatch(
         403,
         "The socket is bound to another project.",
       );
-    const state = await runCommand(
+
+    if (isV2MutationCommand(command)) commandId = mutationCommandId(command);
+
+    if (isV2ReceiptCommand(command)) {
+      const begun = sessions.beginCommand(connection.principal, command);
+      if (begun.kind === "existing") {
+        sendExistingReceipt(auth, command, begun.receipt, send);
+        return;
+      }
+      receiptStarted = true;
+    }
+
+    const outcome = await runCommand(
       command,
       connection,
       connectionId,
       sessions,
       send,
     );
+    const state = outcome.state;
+    const receipt =
+      commandId && receiptStarted
+        ? sessions.settleCommandSuccess(connection.principal, commandId, {
+            sessionId: state.sessionId,
+          })
+        : undefined;
     send({
       type: "result",
       serverInstanceId: auth.serverInstanceId,
       requestId: command.requestId,
+      ...(commandId ? { commandId } : {}),
       action: command.action,
       projectId: command.projectId,
       sessionId: state.sessionId,
       state,
+      ...(outcome.resumeCapability
+        ? { resumeCapability: outcome.resumeCapability }
+        : {}),
+      ...(receipt ? { receipt } : {}),
     });
-    if (command.action === "session/inspect")
+    if (outcome.snapshot)
       sessions.finishSnapshot(state.sessionId, connectionId);
   } catch (error) {
-    if (command.action === "session/inspect" && "sessionId" in command)
+    if (
+      (command.action === "session/inspect" ||
+        command.action === "session/resume") &&
+      "sessionId" in command
+    )
       sessions.finishSnapshot(command.sessionId, connectionId);
+    const details = failureDetails(error);
+    const receipt =
+      commandId && receiptStarted
+        ? sessions.settleCommandFailure(connection.principal, commandId, {
+            ...details,
+            ...("sessionId" in command ? { sessionId: command.sessionId } : {}),
+          })
+        : undefined;
     send(
-      toFailure(
+      v2Failure(
         auth,
-        error,
+        details.code,
+        details.message,
         command.requestId,
         command.projectId,
         "sessionId" in command ? command.sessionId : undefined,
+        details.retryable,
+        commandId,
+        receipt,
       ),
     );
   }
+}
+
+function sendExistingReceipt(
+  auth: V2Auth,
+  command: V2SessionCommand,
+  receipt: V2CommandReceipt,
+  send: (frame: V2SessionServerFrame) => void,
+): void {
+  if (receipt.status === "failed" && receipt.error) {
+    send(
+      v2Failure(
+        auth,
+        receipt.error.code,
+        receipt.error.message,
+        command.requestId,
+        command.projectId,
+        receipt.sessionId ??
+          ("sessionId" in command ? command.sessionId : undefined),
+        receipt.error.retryable,
+        receipt.commandId,
+        receipt,
+      ),
+    );
+    return;
+  }
+  send({
+    type: "result",
+    serverInstanceId: auth.serverInstanceId,
+    requestId: command.requestId,
+    commandId: receipt.commandId,
+    action: command.action,
+    projectId: command.projectId,
+    ...(receipt.sessionId ? { sessionId: receipt.sessionId } : {}),
+    receipt,
+  });
 }
 async function runCommand(
   command: V2SessionCommand,
@@ -226,7 +316,7 @@ async function runCommand(
   connectionId: string,
   sessions: V2SessionService,
   send: (frame: V2SessionServerFrame) => void,
-) {
+): Promise<CommandRunResult> {
   if (command.action === "session/new") {
     if (
       connection.ticketSessionId ||
@@ -249,7 +339,16 @@ async function runCommand(
         emit: send,
       });
       connection.attachedSessionId = state.sessionId;
-      return state;
+      return {
+        state,
+        resumeCapability: sessions.resumeCapability(
+          connection.principal,
+          command.projectId,
+          state.sessionId,
+          connectionId,
+        ),
+        snapshot: false,
+      };
     } finally {
       delete connection.creatingSession;
     }
@@ -263,13 +362,46 @@ async function runCommand(
       "The connection is bound to another session.",
     );
   switch (command.action) {
-    case "session/inspect":
-      return sessions.inspect(
-        connection.principal,
-        command.projectId,
+    case "session/resume": {
+      if (
+        connection.attachedSessionId !== undefined &&
+        connection.attachedSessionId !== sessionId
+      )
+        throw new V2AuthError(
+          "SESSION_BUSY",
+          409,
+          "This connection is already scoped to another session.",
+        );
+      const state = await sessions.resumeSession({
+        principal: connection.principal,
+        projectId: command.projectId,
         sessionId,
         connectionId,
-      );
+        resumeCapability: command.payload.resumeCapability,
+        emit: send,
+      });
+      connection.attachedSessionId = sessionId;
+      return {
+        state,
+        resumeCapability: sessions.resumeCapability(
+          connection.principal,
+          command.projectId,
+          sessionId,
+          connectionId,
+        ),
+        snapshot: true,
+      };
+    }
+    case "session/inspect":
+      return {
+        state: sessions.inspect(
+          connection.principal,
+          command.projectId,
+          sessionId,
+          connectionId,
+        ),
+        snapshot: true,
+      };
     case "session/prompt": {
       if (
         Buffer.byteLength(command.payload.text, "utf8") > V2_LIMITS.promptBytes
@@ -279,21 +411,33 @@ async function runCommand(
           413,
           "Prompt exceeds the advertised byte limit.",
         );
-      return sessions.prompt(
-        connection.principal,
-        command.projectId,
-        sessionId,
-        connectionId,
-        command.payload.text,
-      );
+      return {
+        state: await sessions.prompt(
+          connection.principal,
+          command.projectId,
+          sessionId,
+          connectionId,
+          command.payload.text,
+          (turnId) =>
+            sessions.noteCommandTurn(
+              connection.principal,
+              command.commandId,
+              turnId,
+            ),
+        ),
+        snapshot: false,
+      };
     }
     case "session/cancel":
-      return sessions.cancel(
-        connection.principal,
-        command.projectId,
-        sessionId,
-        connectionId,
-      );
+      return {
+        state: sessions.cancel(
+          connection.principal,
+          command.projectId,
+          sessionId,
+          connectionId,
+        ),
+        snapshot: false,
+      };
     case "session/control": {
       const state = await sessions.control(
         connection.principal,
@@ -304,17 +448,20 @@ async function runCommand(
       );
       if (command.payload.control.action === "close")
         delete connection.attachedSessionId;
-      return state;
+      return { state, snapshot: false };
     }
     case "tool/permission":
-      return sessions.resolvePermission(
-        connection.principal,
-        command.projectId,
-        sessionId,
-        connectionId,
-        command.payload.permissionId,
-        command.payload.allow,
-      );
+      return {
+        state: sessions.resolvePermission(
+          connection.principal,
+          command.projectId,
+          sessionId,
+          connectionId,
+          command.payload.permissionId,
+          command.payload.allow,
+        ),
+        snapshot: false,
+      };
   }
 }
 
@@ -325,6 +472,34 @@ function safeJson(raw: string): unknown {
     return undefined;
   }
 }
+function failureDetails(error: unknown): {
+  code: import("../../packages/protocol/src/index.js").V2ErrorCode;
+  message: string;
+  retryable: boolean;
+} {
+  if (error instanceof V2AuthError)
+    return {
+      code: error.code,
+      message: error.message,
+      retryable: error.status >= 500,
+    };
+  if (
+    error &&
+    typeof error === "object" &&
+    (error as { code?: unknown }).code === "PROJECT_BINDING_CONFLICT"
+  )
+    return {
+      code: "PROJECT_BINDING_CONFLICT",
+      message: "Project binding conflict.",
+      retryable: false,
+    };
+  return {
+    code: "RUNTIME_FAILED",
+    message: "The V2 session operation failed.",
+    retryable: false,
+  };
+}
+
 function toFailure(
   auth: V2Auth,
   error: unknown,
@@ -332,38 +507,15 @@ function toFailure(
   projectId?: string,
   sessionId?: string,
 ): V2SessionServerFrame {
-  if (error instanceof V2AuthError)
-    return v2Failure(
-      auth,
-      error.code,
-      error.message,
-      requestId,
-      projectId,
-      sessionId,
-      error.status >= 500,
-    );
-  if (
-    error &&
-    typeof error === "object" &&
-    (error as { code?: unknown }).code === "PROJECT_BINDING_CONFLICT"
-  ) {
-    return v2Failure(
-      auth,
-      "PROJECT_BINDING_CONFLICT",
-      error instanceof Error ? error.message : "Project binding conflict.",
-      requestId,
-      projectId,
-      sessionId,
-    );
-  }
+  const details = failureDetails(error);
   return v2Failure(
     auth,
-    "RUNTIME_FAILED",
-    "The V2 session operation failed.",
+    details.code,
+    details.message,
     requestId,
     projectId,
     sessionId,
-    false,
+    details.retryable,
   );
 }
 
@@ -375,6 +527,8 @@ function v2Failure(
   projectId?: string,
   sessionId?: string,
   retryable = false,
+  commandId?: string,
+  receipt?: V2CommandReceipt,
 ): V2SessionServerFrame {
   return {
     type: "error",
@@ -383,7 +537,9 @@ function v2Failure(
     message,
     retryable,
     ...(requestId ? { requestId } : {}),
+    ...(commandId ? { commandId } : {}),
     ...(projectId ? { projectId } : {}),
     ...(sessionId ? { sessionId } : {}),
+    ...(receipt ? { receipt } : {}),
   };
 }

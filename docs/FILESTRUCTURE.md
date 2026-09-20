@@ -2,6 +2,12 @@ A008-0141 adds the renderer-local Oldscool CRT presentation to the existing them
 
 A008-0137 refines that existing read-only SVG presentation in `gui/src/memory/{memory-graph,memory-graph-shape,memory-graph-layout,memory.css}.tsx`: kind-specific neon forms and colours, directed arrows, selected stored-relation labels and parallel-topology width now make the bounded stored graph easier to inspect. Focus preserves the whole graph as dark dashed context while framing/emphasizing the selected neighbourhood. Arrow width is only the count of parallel displayed stored links in the same direction; it is never evidence strength or another memory semantic.
 
+A008-0140 adds `test/A008-0140-stage4-restart-closure.test.ts` as the real-process restart/partial-memory closure proof, and extends V2 discovery plus `gui/src/settings/runtime-capabilities*.ts*` with the explicit `session.restart-uncertainty`/Stage-4-complete signal. No restart persistence or second recovery owner is introduced; `serverInstanceId`, the existing receipt registry and the existing resume owner provide the bounded semantics being proven.
+
+A008-0139 extends the existing `src/gui-host/v2-session.ts`/`v2-websocket.ts` owners with detached-session lease state, opaque resume capability, `session/resume` dispatch and hard-termination on revoke. Shared protocol changes remain in `packages/protocol/src/{v2-auth,v2-session}.ts` with generated V2 resume/session/info schemas. `test/A008-0139-stage4-reconnect-resume.test.ts` owns deterministic lease/identity/expiry/no-replay coverage; `test/v2-auth.test.ts` owns real-host disconnect/resume, second-writer/foreign-principal/explicit-close and stale-approval regressions. At the A008-0139 boundary the Runtime capability UI reported the 45-second lease with only restart uncertainty pending; A008-0140 now closes that final Stage-4 gap.
+
+A008-0138 adds `src/gui-host/v2-command-receipts.ts` as the bounded process-local receipt owner used by the existing V2 session/WebSocket boundary. `packages/protocol/src/{v2-auth,v2-session}.ts` and generated V2 schemas/OpenAPI expose command IDs, receipt metadata, command conflict/unknown/capacity outcomes and authenticated receipt lookup. `test/A008-0138-stage4-command-receipts.test.ts` owns deterministic digest/retention/capacity/principal-isolation coverage; `test/v2-auth.test.ts` owns real-host retry, conflict, tool-permission dedupe and HTTP lookup coverage. At the A008-0138 boundary `gui/src/settings/runtime-capabilities*.ts*` presented the implemented receipt slice with reconnect/restart still pending; A008-0139/0140 subsequently close those Stage-4 gaps.
+
 A008-0136 exposes recent capability through the existing GUI/host owners. `packages/protocol/src/{routes,http-schemas,http-operations}.ts` adds the typed read-only `GET /v1/catalog/zero-cost` contract and generated HTTP OpenAPI entry; `src/gui-host/server.ts` projects `ZERO_COST_MODEL_ROUTES` without mutation. `gui/src/settings/zero-cost-radar*.ts*` owns the discovery-only Parameters view. `gui/src/settings/runtime-capabilities*.ts*` reads public `/v2/info` and renders the implemented Stage-4 foundation without migrating bundled chat away from V1. `src/gui-host/v2-auth.ts` advertises only the Stage-4 features already delivered by A008-0132.
 
 A008-0134 adds `src/providers/zero-cost-model-catalog.ts`: a typed, importable, data-only snapshot of currently verified zero-cost/free-tier provider-model routes. It carries access/lifecycle/quota/privacy/provenance metadata and optional existing A008 profile IDs; it has no runtime imports and does not register or route models.
@@ -124,7 +130,10 @@ Design decision: [ADR 0030](adr/0030-focused-standalone-workspace.md).
 
 A008-0068 adds `src/tools/repository-tools.ts` (native file/Git definitions and
 execution), `gui/src/tools/repository-pane.tsx`, `repository.css` and
-`repository.test.ts` (catalog, workspace, shortcuts and activity). Additional
+`repository.test.ts` (catalog, workspace, shortcuts and activity). A008-0145
+keeps the same owner but makes the aggregate tool-summary disclosure state stable
+across sequential running/completed snapshots and covers the state rule in
+`repository.test.ts`. Additional
 native and standalone integration checks live in `test/model-tools.test.ts`.
 The runbook is [GUI_REPOSITORY_TOOLS.md](GUI_REPOSITORY_TOOLS.md).
 
@@ -192,8 +201,10 @@ A008/
 |  |  |  `- capture-prompt.ts        user-text observation shim
 |  |  |- composer/                   A008-0035 slash composer
 |  |  |- terminal/                   A008-0036 terminal pane
-|  |  |- settings/                   A008-0037 settings
-|  |  |  |- parameters-panel.tsx     A008-0065 model-aware generation dialog
+|  |  |- settings/                   A008-0037 settings; A008-0145 explicit Semantic controls
+|  |  |  |- parameters-panel.tsx     chat Model plus separate global Semantic/runtime pages
+|  |  |  |- global-settings-form.tsx persistent instructions/budgets and semantic model/effort
+|  |  |  |- runtime-preferences.ts   shared V1 runtime-preference types/guards
 |  |  |  |- parameters.css          parameter and session-control styling
 |  |  |  |- appearance-panel.tsx     A008-0093 App theme picker
 |  |  |  |- nvidia-catalog.ts        NVIDIA/kie/OpenAI provider-settings client
@@ -408,7 +419,8 @@ A008/
    |- JOURNAL.md                     append-only work waves
    |- FILESTRUCTURE.md               this repository map
    |- TASK_IDS.md                    task address allocation
-   |- KNOWLEDGE_MEMORY_MODEL.md      accepted knowledge constitution (ADR 0018)
+   |- CURRENT_MEMORY_MODEL.md        owner-approved current knowledge/state/memory/context target
+   |- KNOWLEDGE_MEMORY_MODEL.md      prior knowledge constitution; historical where superseded by current model
    |- KNOWLEDGE_MODEL_GAP_ANALYSIS.md v0-vs-model violations and sequence
    |- tasks/                         frozen program and child charters; operator delegates from here
    |- handoffs/                      worker integration handoffs

@@ -51,10 +51,17 @@
           "maxLength": 160,
           "pattern": "^[A-Za-z0-9_-]+$"
         },
+        "commandId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
         "action": {
           "type": "string",
           "enum": [
             "session/new",
+            "session/resume",
             "session/inspect",
             "session/prompt",
             "session/cancel",
@@ -255,6 +262,113 @@
             "parameters",
             "messages",
             "active"
+          ],
+          "additionalProperties": false
+        },
+        "resumeCapability": {
+          "type": "string",
+          "minLength": 32,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "receipt": {
+          "type": "object",
+          "properties": {
+            "serverInstanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "commandId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "action": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "projectId": {
+              "type": "string",
+              "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "turnId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "running",
+                "succeeded",
+                "failed"
+              ]
+            },
+            "startedAt": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "settledAt": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "INVALID_REQUEST",
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "PROJECT_NOT_FOUND",
+                    "SESSION_EXPIRED",
+                    "SESSION_BUSY",
+                    "REVISION_CONFLICT",
+                    "UNSUPPORTED_CAPABILITY",
+                    "PROJECT_BINDING_CONFLICT",
+                    "COMMAND_CONFLICT",
+                    "COMMAND_UNKNOWN",
+                    "CAPACITY_EXCEEDED",
+                    "SNAPSHOT_TOO_LARGE",
+                    "RUNTIME_FAILED"
+                  ]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "retryable": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "retryable"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "serverInstanceId",
+            "commandId",
+            "action",
+            "projectId",
+            "status",
+            "startedAt"
           ],
           "additionalProperties": false
         }
@@ -672,6 +786,12 @@
           "maxLength": 160,
           "pattern": "^[A-Za-z0-9_-]+$"
         },
+        "commandId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
         "code": {
           "type": "string",
           "enum": [
@@ -706,6 +826,107 @@
           "minLength": 1,
           "maxLength": 160,
           "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "receipt": {
+          "type": "object",
+          "properties": {
+            "serverInstanceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "commandId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "action": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "projectId": {
+              "type": "string",
+              "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "turnId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "running",
+                "succeeded",
+                "failed"
+              ]
+            },
+            "startedAt": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "settledAt": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "error": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "INVALID_REQUEST",
+                    "UNAUTHENTICATED",
+                    "FORBIDDEN",
+                    "PROJECT_NOT_FOUND",
+                    "SESSION_EXPIRED",
+                    "SESSION_BUSY",
+                    "REVISION_CONFLICT",
+                    "UNSUPPORTED_CAPABILITY",
+                    "PROJECT_BINDING_CONFLICT",
+                    "COMMAND_CONFLICT",
+                    "COMMAND_UNKNOWN",
+                    "CAPACITY_EXCEEDED",
+                    "SNAPSHOT_TOO_LARGE",
+                    "RUNTIME_FAILED"
+                  ]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "retryable": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "retryable"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "serverInstanceId",
+            "commandId",
+            "action",
+            "projectId",
+            "status",
+            "startedAt"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

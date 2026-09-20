@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { RepositoryPane, ToolActivity } from "./repository-pane.js";
+import {
+  nextToolSummaryDisclosure,
+  RepositoryPane,
+  ToolActivity,
+} from "./repository-pane.js";
 import type { GuiSession } from "../session/types.js";
 
 function session(overrides: Partial<GuiSession> = {}): GuiSession {
@@ -59,3 +63,27 @@ test("tool activity escapes arguments and distinguishes waiting, completed and f
   assert.match(html, /&lt;script&gt;/);
   assert.equal(html.includes("<script>"), false);
 });
+
+test("tool summary stays open across running/completed/running snapshots until the cycle clears", () => {
+  let state = { open: false, active: false };
+  state = nextToolSummaryDisclosure(state, true, true);
+  assert.deepEqual(state, { open: true, active: true });
+
+  state = nextToolSummaryDisclosure(state, true, false);
+  assert.deepEqual(state, { open: true, active: true });
+
+  state = nextToolSummaryDisclosure(state, true, true);
+  assert.deepEqual(state, { open: true, active: true });
+
+  state = { ...state, open: false };
+  state = nextToolSummaryDisclosure(state, true, true);
+  assert.deepEqual(
+    state,
+    { open: false, active: true },
+    "a user collapse must not be overridden by later status changes",
+  );
+
+  state = nextToolSummaryDisclosure(state, false, false);
+  assert.deepEqual(state, { open: false, active: false });
+});
+

@@ -155,4 +155,7 @@ never whether work is active or complete. Task state belongs in
 | A008-0139 | Stage 4 reconnect/resume lease | ChatGPT (operator) | 2026-09-19 | detached-session lease, scoped resume capability, authoritative resume snapshot and stale-approval handling |
 | A008-0140 | Stage 4 restart uncertainty and closure proof | ChatGPT (operator) | 2026-09-19 | restart/unknown-outcome semantics and final Stage-4 race/compatibility closure gate |
 | A008-0141 | *Oldscool CRT scanlines and phosphor bloom | A008 | 2026-09-19 | New Oldscool theme. |
-| A008-0142 | UX Generating Images in chat | A008 | 2026-09-20 | UX Improvements.|
+| A008-0142 | In-sequence image generation and model-triggered image tool | A008 | 2026-09-20 | ordered image-generation transcript placeholders, in-place resolution and shared manual/model tool pipeline |
+| A008-0143 | Atomic knowledge state ownership and reinforcement semantics | A008 (operator) | 2026-09-20 | current state as SSOT, atomic history transition, temporal ownership and non-skippable semantic reinforcement |
+| A008-0144 | Canonical knowledge, memory and contextual-attraction model | A008 (operator) | 2026-09-20 | supersede residual 0143 admission semantics, adopt CURRENT_MEMORY_MODEL and add signed retrieval attraction |
+| A008-0145 | explicit chat/semantic model controls and stable tool summary | ChatGPT (operator) | 2026-09-20 | provider routing, reasoning summary, max-output defaults and chat tool-summary stability |

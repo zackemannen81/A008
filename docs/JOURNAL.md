@@ -2486,10 +2486,27 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - The implementation merged through PR #78 before its ID claim/archive/handoff was completed. The identity is claimed retrospectively to match merged reality; the completed record is archived without changing scope or product behavior.
 - [Handoff](handoffs/A008-0137.md). Signature: ChatGPT (operator, retrospective closure)
 
-## 2026-09-19 � A008-0141 Oldscool CRT scanlines and phosphor bloom
+## 2026-09-19 � A008-0141 Oldscool CRT scanlines and phosphor bloom
 
 - Operator: Rickard. Added the third renderer-local Oldscool app theme with dark CRT surfaces, phosphor-green controls, warm retro highlights, a static pointer-inert scanline layer and restrained phosphor bloom on selected chrome and primary controls.
 - The persisted theme remains under `a008.preferences.appearance.theme` and is applied before React mounts. Every effect is scoped to `html[data-a008-theme="oldscool"]`; Neutral, Deep Space and the sandboxed Code Canvas preview remain unchanged.
 - Verification: 177 GUI tests passed with 0 failures/skips; GUI typecheck, production build and `git diff --check` passed. The production build retains only existing Zod annotation and >500 kB chunk warnings.
 - No provider call, runtime/session/memory/tool/host/API change, remote push or PR was made. [Handoff](handoffs/A008-0141.md).
 - Signature: A008
+## 2026-09-19 — A008-0138 Stage 4 command receipts and bounded idempotency
+
+- Operator: ChatGPT. A008-0138 merged through PR #79 at `344d5c2` after rebasing cleanly onto the current integration main.
+- V2 mutations now use stable application `commandId` plus a principal-scoped canonical command digest and bounded process-local running/terminal receipts. Identical retries observe existing state without repeating provider/tool/approval work; changed content returns `COMMAND_CONFLICT`, and unknown/expired/foreign receipt lookup returns `COMMAND_UNKNOWN`.
+- Receipt metadata is bounded and secret-safe: raw mutation payloads are not retained; terminal retention is five minutes with a 1,024-per-principal cap that never evicts running or unexpired work. Running prompt receipts correlate to the stable `turnId`.
+- Final pre-merge verification on the corrected wire-schema shape: packed independent protocol consumer passed; `npm test` passed 677 core + 4 membership + 176 GUI = 857 tests, 0 failures/skips; rebased focused A008-0138/V2 real-host gate passed 19/19; `git diff --check` passed. No live or paid provider call was required.
+- Stage 4 remains In Progress. A008-0139 reconnect/resume lease is now unblocked; A008-0140 remains restart uncertainty plus Stage-4 closure.
+- [Handoff](handoffs/A008-0138.md). Signature: ChatGPT (operator)
+
+## 2026-09-20 — A008-0139 Stage 4 reconnect/resume lease
+
+- Operator: ChatGPT. A008-0139 merged through PR #81 at `24901a1` after rebasing onto main including A008-0141.
+- V2 transport loss now interrupts active work, denies pending approvals and detaches the surviving process-local session under an opaque scoped 45-second resume lease. Correct same-principal resume rebinds the existing session through the A008-0132 authoritative snapshot boundary; wrong identity/capability, second writer, explicit close and expiry fail deterministically.
+- Resume does not replay transient thought/answer output, provider execution, tool execution or stale approvals. Device revoke/expiry hard-terminates instead of granting resume authority. The resume capability is absent from URLs, ordinary snapshots, command receipts and provider/model payloads.
+- Final post-rebase verification: packed independent protocol consumer passed; focused reconnect/V2 gate passed 18/18; `npm test` passed 681 core + 4 membership + 177 GUI = 862 tests, 0 failures/skips; diff hygiene passed. No live/paid provider call was required.
+- Stage 4 remains In Progress. A008-0140 restart uncertainty + combined closure proof is the only remaining child.
+- [Handoff](handoffs/A008-0139.md). Signature: ChatGPT (operator)

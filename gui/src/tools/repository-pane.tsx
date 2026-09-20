@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { GuiSession, RuntimeToolCall } from "../session/types.js";
 import "./repository.css";
 
@@ -38,11 +38,40 @@ function isBlocking(tool: RuntimeToolCall): boolean {
   return displayStatus(tool) === "failed" && tool.recoveredBy === undefined;
 }
 
+export interface ToolSummaryDisclosure {
+  readonly open: boolean;
+  readonly active: boolean;
+}
+
+export function nextToolSummaryDisclosure(
+  current: ToolSummaryDisclosure,
+  hasTools: boolean,
+  hasRunning: boolean,
+): ToolSummaryDisclosure {
+  if (!hasTools) return { open: false, active: false };
+  if (!current.active) return { open: hasRunning, active: true };
+  return current;
+}
+
 export function ToolActivity({
   tools,
 }: {
   readonly tools?: readonly RuntimeToolCall[];
 }) {
+  const [disclosure, setDisclosure] = useState<ToolSummaryDisclosure>({
+    open: false,
+    active: false,
+  });
+  const hasTools = (tools?.length ?? 0) > 0;
+  const hasRunning =
+    tools?.some((tool) => displayStatus(tool) === "running") ?? false;
+
+  useEffect(() => {
+    setDisclosure((current) =>
+      nextToolSummaryDisclosure(current, hasTools, hasRunning),
+    );
+  }, [hasTools, hasRunning]);
+
   if (!tools?.length) return null;
   const grouped = new Map<string, RuntimeToolCall[]>();
   for (const tool of tools) {
@@ -58,7 +87,16 @@ export function ToolActivity({
   }, { running: 0, ok: 0, recovered: 0, failed: 0, blocking: 0 });
   const completed = counts.running === 0;
   return <section className="a008-tool-activity" aria-label="Tool activity">
-    <details className="a008-tool-summary" open={!completed}>
+    <details
+      className="a008-tool-summary"
+      open={disclosure.open}
+      onToggle={(event) =>
+        setDisclosure((current) => ({
+          ...current,
+          open: event.currentTarget.open,
+        }))
+      }
+    >
       <summary>{completed ? "✓" : "⚙"} Tools · {tools.length} calls · {completed ? "completed" : "running"}</summary>
       <div className="a008-tool-summary-counts">
         {counts.ok} ok · {counts.recovered} recovered · {counts.failed} failed · {counts.running} running

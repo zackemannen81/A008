@@ -1343,7 +1343,10 @@
                       "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
                     }
                   },
-                  "required": ["name", "count"]
+                  "required": [
+                    "name",
+                    "count"
+                  ]
                 }
               },
               "statuses": {
@@ -1479,7 +1482,12 @@
                 "$ref": "#/components/schemas/memorySnapshot/$defs/__schema4"
               }
             },
-            "required": ["nodes", "edges", "totalNodes", "totalEdges"]
+            "required": [
+              "nodes",
+              "edges",
+              "totalNodes",
+              "totalEdges"
+            ]
           },
           "__schema9": {
             "type": "object",
@@ -1494,7 +1502,11 @@
                 "$ref": "#/components/schemas/memorySnapshot/$defs/__schema1"
               }
             },
-            "required": ["from", "to", "relation"]
+            "required": [
+              "from",
+              "to",
+              "relation"
+            ]
           }
         }
       },
@@ -1513,7 +1525,10 @@
           "memory": {},
           "projectId": {}
         },
-        "required": ["projectName", "rootFolder"],
+        "required": [
+          "projectName",
+          "rootFolder"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string",
@@ -1541,7 +1556,9 @@
                 "$ref": "#/components/schemas/projectBootstrapConfig/$defs/__schema0"
               }
             },
-            "required": ["initialize"]
+            "required": [
+              "initialize"
+            ]
           },
           "continuity": {
             "type": "object",
@@ -1562,10 +1579,15 @@
                     "$ref": "#/components/schemas/projectBootstrapConfig/$defs/__schema0"
                   }
                 },
-                "required": ["enabled"]
+                "required": [
+                  "enabled"
+                ]
               }
             },
-            "required": ["docsFirst", "multiAgent"]
+            "required": [
+              "docsFirst",
+              "multiAgent"
+            ]
           },
           "memory": {
             "type": "object",
@@ -1574,7 +1596,9 @@
                 "type": "boolean"
               }
             },
-            "required": ["useGlobalA008Memory"]
+            "required": [
+              "useGlobalA008Memory"
+            ]
           }
         },
         "required": [
@@ -1607,10 +1631,16 @@
                 "type": "boolean"
               }
             },
-            "required": ["useGlobalA008Memory"]
+            "required": [
+              "useGlobalA008Memory"
+            ]
           }
         },
-        "required": ["projectName", "rootFolder", "memory"],
+        "required": [
+          "projectName",
+          "rootFolder",
+          "memory"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string",
@@ -1650,7 +1680,10 @@
                       "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
                     }
                   },
-                  "required": ["kind", "path"]
+                  "required": [
+                    "kind",
+                    "path"
+                  ]
                 },
                 {
                   "type": "object",
@@ -1668,7 +1701,11 @@
                       "maximum": 9007199254740991
                     }
                   },
-                  "required": ["kind", "path", "bytes"]
+                  "required": [
+                    "kind",
+                    "path",
+                    "bytes"
+                  ]
                 },
                 {
                   "type": "object",
@@ -1681,7 +1718,10 @@
                       "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
                     }
                   },
-                  "required": ["kind", "path"]
+                  "required": [
+                    "kind",
+                    "path"
+                  ]
                 }
               ]
             }
@@ -1696,7 +1736,10 @@
                 "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
               }
             },
-            "required": ["useGlobalStore", "namespace"]
+            "required": [
+              "useGlobalStore",
+              "namespace"
+            ]
           },
           "multiAgent": {
             "oneOf": [
@@ -1708,7 +1751,9 @@
                     "const": false
                   }
                 },
-                "required": ["enabled"]
+                "required": [
+                  "enabled"
+                ]
               },
               {
                 "type": "object",
@@ -1724,7 +1769,11 @@
                     "$ref": "#/components/schemas/projectPlan/$defs/__schema0"
                   }
                 },
-                "required": ["enabled", "maxWorkers", "workerCloneRoot"]
+                "required": [
+                  "enabled",
+                  "maxWorkers",
+                  "workerCloneRoot"
+                ]
               }
             ]
           }
@@ -1770,7 +1819,10 @@
                 "$ref": "#/components/schemas/registeredProject/$defs/__schema0"
               }
             },
-            "required": ["initialize", "name"]
+            "required": [
+              "initialize",
+              "name"
+            ]
           },
           "continuity": {
             "type": "object",
@@ -1788,7 +1840,9 @@
                         "const": false
                       }
                     },
-                    "required": ["enabled"]
+                    "required": [
+                      "enabled"
+                    ]
                   },
                   {
                     "type": "object",
@@ -1804,12 +1858,19 @@
                         "$ref": "#/components/schemas/registeredProject/$defs/__schema0"
                       }
                     },
-                    "required": ["enabled", "maxWorkers", "workerCloneRoot"]
+                    "required": [
+                      "enabled",
+                      "maxWorkers",
+                      "workerCloneRoot"
+                    ]
                   }
                 ]
               }
             },
-            "required": ["docsFirst", "multiAgent"]
+            "required": [
+              "docsFirst",
+              "multiAgent"
+            ]
           },
           "memory": {
             "type": "object",
@@ -1818,7 +1879,9 @@
                 "type": "boolean"
               }
             },
-            "required": ["useGlobalA008Memory"]
+            "required": [
+              "useGlobalA008Memory"
+            ]
           }
         },
         "required": [
@@ -1878,7 +1941,10 @@
                       "$ref": "#/components/schemas/projects/$defs/__schema0"
                     }
                   },
-                  "required": ["initialize", "name"]
+                  "required": [
+                    "initialize",
+                    "name"
+                  ]
                 },
                 "continuity": {
                   "type": "object",
@@ -1896,7 +1962,9 @@
                               "const": false
                             }
                           },
-                          "required": ["enabled"]
+                          "required": [
+                            "enabled"
+                          ]
                         },
                         {
                           "type": "object",
@@ -1921,7 +1989,10 @@
                       ]
                     }
                   },
-                  "required": ["docsFirst", "multiAgent"]
+                  "required": [
+                    "docsFirst",
+                    "multiAgent"
+                  ]
                 },
                 "memory": {
                   "type": "object",
@@ -1930,7 +2001,9 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["useGlobalA008Memory"]
+                  "required": [
+                    "useGlobalA008Memory"
+                  ]
                 }
               },
               "required": [
@@ -1945,7 +2018,10 @@
             }
           }
         },
-        "required": ["currentId", "projects"],
+        "required": [
+          "currentId",
+          "projects"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string"
@@ -1987,7 +2063,10 @@
                           "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
                         }
                       },
-                      "required": ["kind", "path"]
+                      "required": [
+                        "kind",
+                        "path"
+                      ]
                     },
                     {
                       "type": "object",
@@ -2005,7 +2084,11 @@
                           "maximum": 9007199254740991
                         }
                       },
-                      "required": ["kind", "path", "bytes"]
+                      "required": [
+                        "kind",
+                        "path",
+                        "bytes"
+                      ]
                     },
                     {
                       "type": "object",
@@ -2018,7 +2101,10 @@
                           "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
                         }
                       },
-                      "required": ["kind", "path"]
+                      "required": [
+                        "kind",
+                        "path"
+                      ]
                     }
                   ]
                 }
@@ -2033,7 +2119,10 @@
                     "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
                   }
                 },
-                "required": ["useGlobalStore", "namespace"]
+                "required": [
+                  "useGlobalStore",
+                  "namespace"
+                ]
               },
               "multiAgent": {
                 "$ref": "#/components/schemas/projectCreated/$defs/__schema1"
@@ -2074,7 +2163,10 @@
                     "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
                   }
                 },
-                "required": ["initialize", "name"]
+                "required": [
+                  "initialize",
+                  "name"
+                ]
               },
               "continuity": {
                 "type": "object",
@@ -2086,7 +2178,10 @@
                     "$ref": "#/components/schemas/projectCreated/$defs/__schema1"
                   }
                 },
-                "required": ["docsFirst", "multiAgent"]
+                "required": [
+                  "docsFirst",
+                  "multiAgent"
+                ]
               },
               "memory": {
                 "type": "object",
@@ -2095,7 +2190,9 @@
                     "type": "boolean"
                   }
                 },
-                "required": ["useGlobalA008Memory"]
+                "required": [
+                  "useGlobalA008Memory"
+                ]
               }
             },
             "required": [
@@ -2109,7 +2206,10 @@
             ]
           }
         },
-        "required": ["plan", "project"],
+        "required": [
+          "plan",
+          "project"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string"
@@ -2124,7 +2224,9 @@
                     "const": false
                   }
                 },
-                "required": ["enabled"]
+                "required": [
+                  "enabled"
+                ]
               },
               {
                 "type": "object",
@@ -2140,7 +2242,11 @@
                     "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
                   }
                 },
-                "required": ["enabled", "maxWorkers", "workerCloneRoot"]
+                "required": [
+                  "enabled",
+                  "maxWorkers",
+                  "workerCloneRoot"
+                ]
               }
             ]
           }
@@ -2155,7 +2261,9 @@
             "minLength": 1
           }
         },
-        "required": ["projectId"]
+        "required": [
+          "projectId"
+        ]
       },
       "workspaceBinding": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2171,7 +2279,11 @@
             "type": "boolean"
           }
         },
-        "required": ["cwd", "projectId", "useGlobalMemory"],
+        "required": [
+          "cwd",
+          "projectId",
+          "useGlobalMemory"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string"
@@ -2193,7 +2305,10 @@
             }
           }
         },
-        "required": ["path", "entries"],
+        "required": [
+          "path",
+          "entries"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string"
@@ -2229,11 +2344,20 @@
                   "type": "boolean"
                 }
               },
-              "required": ["id", "ownedBy", "added"]
+              "required": [
+                "id",
+                "ownedBy",
+                "added"
+              ]
             }
           }
         },
-        "required": ["source", "browse", "note", "models"],
+        "required": [
+          "source",
+          "browse",
+          "note",
+          "models"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string"
@@ -2267,17 +2391,31 @@
                 },
                 "kind": {
                   "type": "string",
-                  "enum": ["chat", "image", "video"]
+                  "enum": [
+                    "chat",
+                    "image",
+                    "video"
+                  ]
                 },
                 "added": {
                   "type": "boolean"
                 }
               },
-              "required": ["id", "name", "kind", "added"]
+              "required": [
+                "id",
+                "name",
+                "kind",
+                "added"
+              ]
             }
           }
         },
-        "required": ["source", "browse", "note", "models"],
+        "required": [
+          "source",
+          "browse",
+          "note",
+          "models"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string"
@@ -2302,7 +2440,13 @@
                 },
                 "provider": {
                   "type": "string",
-                  "enum": ["nvidia", "opencode", "openrouter", "groq", "google"]
+                  "enum": [
+                    "nvidia",
+                    "opencode",
+                    "openrouter",
+                    "groq",
+                    "google"
+                  ]
                 },
                 "modelId": {
                   "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema0"
@@ -2315,15 +2459,27 @@
                 },
                 "apiStyle": {
                   "type": "string",
-                  "enum": ["openai-chat-completions", "openai-responses"]
+                  "enum": [
+                    "openai-chat-completions",
+                    "openai-responses"
+                  ]
                 },
                 "access": {
                   "type": "string",
-                  "enum": ["free-endpoint", "free-model", "free-tier"]
+                  "enum": [
+                    "free-endpoint",
+                    "free-model",
+                    "free-tier"
+                  ]
                 },
                 "lifecycle": {
                   "type": "string",
-                  "enum": ["recurring", "dynamic", "preview", "trial"]
+                  "enum": [
+                    "recurring",
+                    "dynamic",
+                    "preview",
+                    "trial"
+                  ]
                 },
                 "contextWindow": {
                   "$ref": "#/components/schemas/zeroCostCatalog/$defs/__schema2"
@@ -2336,7 +2492,13 @@
                   "type": "array",
                   "items": {
                     "type": "string",
-                    "enum": ["text", "image", "audio", "video", "pdf"]
+                    "enum": [
+                      "text",
+                      "image",
+                      "audio",
+                      "video",
+                      "pdf"
+                    ]
                   }
                 },
                 "capabilities": {
@@ -2403,7 +2565,10 @@
             }
           }
         },
-        "required": ["verifiedAt", "routes"],
+        "required": [
+          "verifiedAt",
+          "routes"
+        ],
         "$defs": {
           "__schema0": {
             "minLength": 1,
@@ -2440,11 +2605,18 @@
           },
           "chatProvider": {
             "type": "string",
-            "enum": ["nvidia", "kie", "openai"]
+            "enum": [
+              "nvidia",
+              "kie",
+              "openai"
+            ]
           },
           "imageProvider": {
             "type": "string",
-            "enum": ["nvidia", "kie"]
+            "enum": [
+              "nvidia",
+              "kie"
+            ]
           },
           "kieChatModel": {
             "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
@@ -2507,11 +2679,18 @@
           },
           "chatProvider": {
             "type": "string",
-            "enum": ["nvidia", "kie", "openai"]
+            "enum": [
+              "nvidia",
+              "kie",
+              "openai"
+            ]
           },
           "imageProvider": {
             "type": "string",
-            "enum": ["nvidia", "kie"]
+            "enum": [
+              "nvidia",
+              "kie"
+            ]
           },
           "kieChatModel": {
             "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
@@ -2556,7 +2735,9 @@
           "name": {},
           "provider": {}
         },
-        "required": ["id"]
+        "required": [
+          "id"
+        ]
       },
       "catalogAdded": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2579,14 +2760,26 @@
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "enum": ["text", "image", "video", "audio"]
+                  "enum": [
+                    "text",
+                    "image",
+                    "video",
+                    "audio"
+                  ]
                 }
               }
             },
-            "required": ["id", "name", "provider", "inputModalities"]
+            "required": [
+              "id",
+              "name",
+              "provider",
+              "inputModalities"
+            ]
           }
         },
-        "required": ["added"],
+        "required": [
+          "added"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string"
@@ -2601,7 +2794,9 @@
             "type": "string"
           }
         },
-        "required": ["removed"]
+        "required": [
+          "removed"
+        ]
       },
       "imageInput": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2614,7 +2809,9 @@
           "height": {},
           "seed": {}
         },
-        "required": ["prompt"]
+        "required": [
+          "prompt"
+        ]
       },
       "generatedImage": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2638,7 +2835,13 @@
             "$ref": "#/components/schemas/generatedImage/$defs/__schema0"
           }
         },
-        "required": ["locator", "sha256", "bytes", "mediaType", "filename"],
+        "required": [
+          "locator",
+          "sha256",
+          "bytes",
+          "mediaType",
+          "filename"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string",
@@ -2671,7 +2874,13 @@
             "$ref": "#/components/schemas/uploadedSource/$defs/__schema0"
           }
         },
-        "required": ["locator", "sha256", "bytes", "mediaType", "extracted"],
+        "required": [
+          "locator",
+          "sha256",
+          "bytes",
+          "mediaType",
+          "extracted"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string",
@@ -2687,7 +2896,9 @@
             "type": "string"
           }
         },
-        "required": ["command"]
+        "required": [
+          "command"
+        ]
       },
       "shellResult": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2718,7 +2929,13 @@
             "type": "boolean"
           }
         },
-        "required": ["stdout", "stderr", "exitCode", "timedOut", "truncated"],
+        "required": [
+          "stdout",
+          "stderr",
+          "exitCode",
+          "timedOut",
+          "truncated"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string"
@@ -2739,7 +2956,10 @@
             "$ref": "#/components/schemas/frameCheck/$defs/__schema0"
           }
         },
-        "required": ["url", "embeddable"],
+        "required": [
+          "url",
+          "embeddable"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string"
@@ -2757,7 +2977,10 @@
             "$ref": "#/components/schemas/httpError/$defs/__schema0"
           }
         },
-        "required": ["error", "message"],
+        "required": [
+          "error",
+          "message"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string"
@@ -2776,7 +2999,10 @@
             "type": "string"
           }
         },
-        "required": ["ok", "name"]
+        "required": [
+          "ok",
+          "name"
+        ]
       },
       "loginInput": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2786,7 +3012,9 @@
             "type": "string"
           }
         },
-        "required": ["pin"]
+        "required": [
+          "pin"
+        ]
       },
       "loginResult": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2797,7 +3025,9 @@
             "const": true
           }
         },
-        "required": ["ok"]
+        "required": [
+          "ok"
+        ]
       },
       "models": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2861,7 +3091,10 @@
                       "$ref": "#/components/schemas/models/$defs/__schema3"
                     },
                     "enableThinking": {
-                      "type": ["boolean", "null"]
+                      "type": [
+                        "boolean",
+                        "null"
+                      ]
                     },
                     "reasoningBudget": {
                       "anyOf": [
@@ -2987,7 +3220,9 @@
             }
           }
         },
-        "required": ["models"],
+        "required": [
+          "models"
+        ],
         "$defs": {
           "__schema0": {
             "type": "string"
@@ -2998,7 +3233,12 @@
           },
           "__schema2": {
             "type": "string",
-            "enum": ["text", "image", "video", "audio"]
+            "enum": [
+              "text",
+              "image",
+              "video",
+              "audio"
+            ]
           },
           "__schema3": {
             "type": "number"
@@ -3013,7 +3253,9 @@
             "type": "string"
           }
         },
-        "required": ["url"]
+        "required": [
+          "url"
+        ]
       },
       "directoryQuery": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -3023,7 +3265,9 @@
             "type": "string"
           }
         },
-        "required": ["path"]
+        "required": [
+          "path"
+        ]
       },
       "catalogRemoveQuery": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -3033,7 +3277,9 @@
             "type": "string"
           }
         },
-        "required": ["id"]
+        "required": [
+          "id"
+        ]
       },
       "blobPath": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -3048,7 +3294,10 @@
             "minLength": 1
           }
         },
-        "required": ["sha256", "name"]
+        "required": [
+          "sha256",
+          "name"
+        ]
       },
       "uploadHeaders": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",

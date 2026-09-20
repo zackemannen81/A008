@@ -83,6 +83,7 @@ test("OpenAI GPT-5.6 Luna and Terra are verified selectable profiles", () => {
     assert.equal(profile.provider, "openai");
     assert.equal(profile.executionProvider, "openai");
     assert.equal(profile.defaults.reasoningEffort, "medium");
+    assert.equal(profile.defaults.maxTokens, 128_000);
     assert.equal(acceptsModality(profile, "image"), true);
   }
 });

@@ -179,6 +179,8 @@ return `COMMAND_UNKNOWN`. Server restart changes instance ID. In either case the
 SDK must surface uncertainty rather than inventing failure or auto-resubmitting.
 These are bounded process-local guarantees, not durable exactly-once execution.
 
+Implementation status: Stage 4 is complete. A008-0138 implements bounded receipt/idempotency semantics for V2 session mutations; `session/inspect` and read-only `session/control { action: "inspect" }` do not require a command ID, and receipt lookup is authenticated at `GET /v2/projects/{projectId}/commands/{commandId}`. A008-0139 implements the accepted same-process 45-second reconnect/resume lease: transport loss interrupts active work, denies pending approvals, detaches the surviving session and allows the same authorized principal to rebind it with an opaque resume capability and authoritative snapshot. A008-0140 proves restart uncertainty: a new host process has a new `serverInstanceId`, old process-local receipts return `COMMAND_UNKNOWN`, old resume authority is `SESSION_EXPIRED`, and no lost mutation is automatically resubmitted or assigned an invented terminal outcome. These guarantees are bounded and process-local, not durable exactly-once execution.
+
 ## Implementation and release gates
 
 Stages remain ordered: shared project/session owner; V2/auth; turn/recovery;

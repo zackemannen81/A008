@@ -138,6 +138,77 @@ test("a source claim is not accepted as a user assertion", async () => {
   });
 });
 
+test("0144 resolved source observation establishes HEAD without user acceptance", async () => {
+  await withContext(async (handle) => {
+    const sourceText = "ND-0001 status is In Progress.";
+    const ingested = ingest(
+      {
+        content: sourceText,
+        speaker: "repository-reader",
+        locator: "source:repo/docs/CURRENT_TASK.md",
+        relation: "derived_from",
+        scope: { verified: true },
+      },
+      { store: handle.context.evidence },
+    );
+    const utteranceId = ingested.utterances[0]?.id;
+    assert.ok(utteranceId);
+
+    const staged = batch(
+      { kind: "source", utteranceId },
+      "source:repo/docs/CURRENT_TASK.md",
+    );
+    const structured = {
+      kind: "attribute_binding" as const,
+      entityLabel: "ND-0001",
+      attribute: "status",
+      value: "In Progress",
+    };
+    const proposals = [
+      {
+        ...staged.proposals[0]!,
+        proposal: {
+          ...staged.proposals[0]!.proposal,
+          proposition: sourceText,
+          structuredProposition: structured,
+        },
+        entities: ["ND-0001"],
+      },
+    ];
+
+    await new KnowledgeEngineCommit({
+      context: handle.context,
+      classifier: alwaysNew,
+    }).commit({
+      batch: {
+        ...staged,
+        proposals,
+        serialized: JSON.stringify(proposals),
+      },
+      proposalIndex: 0,
+    });
+
+    const claim = handle.context.evidence
+      .listClaims()
+      .find((item) => item.label === sourceText);
+    assert.ok(claim);
+    assert.equal(claim.status, "asserted");
+    assert.equal(claim.attributedTo, "repository-reader");
+
+    const entity = handle.context.entities.findByIdentity("ND-0001");
+    assert.ok(entity);
+    const slot = handle.context.slots.list().find(
+      (item) =>
+        item.ref.kind === "attribute" &&
+        item.ref.entity === entity.id &&
+        item.ref.name === "status",
+    );
+    assert.ok(slot);
+    assert.equal(handle.context.state.currentValue(slot.ref), "In Progress");
+    assert.equal(handle.context.state.current(slot.ref).length, 1);
+  });
+});
+
 test("a dialogue claim still reaches the user-assertion policy", async () => {
   await withContext(async (handle) => {
     const before = handle.context.evidence.listUtterances().length;
@@ -207,12 +278,10 @@ test("the commit path refuses source acceptance even if staging got it wrong", a
   });
 });
 
-test("a classifier conflict aligns unstructured fallback ownership without using entities[0]", async () => {
-  // A008-0122 makes `entities[]` referential, so an unstructured claim starts
-  // from a statement-specific fallback instead of `<entities[0]>.statement`.
-  // When the semantic classifier identifies a conflict with one existing
-  // carrier, the new fallback may align to that target slot so both claims can
-  // be contested mechanically without reviving array-position ownership.
+test("a classifier conflict on unstructured evidence does not invent state ownership", async () => {
+  // The classifier may identify two evidence claims as conflicting, but without
+  // an explicit semantic address there is no state slot to contest. Claims are
+  // retained as evidence; wording and entities[] never become truth identity.
   await withContext(async (handle) => {
     const message = "Zorros häst heter Fresca. Zorros häst heter Tornado.";
     const proposals = [
@@ -254,32 +323,29 @@ test("a classifier conflict aligns unstructured fallback ownership without using
     };
 
     await committer.commit({ batch: staged, proposalIndex: 0 });
-    await committer.commit({ batch: staged, proposalIndex: 1 });
+    const conflict = await committer.commit({ batch: staged, proposalIndex: 1 });
 
     const snapshot = handle.context.state.snapshot();
-    assert.equal(snapshot.contestedSlotKeys.length, 1);
-    assert.match(
-      snapshot.contestedSlotKeys[0]!,
-      /^attribute:statement_[0-9a-f]{12}:statement$/u,
-      "classifier conflict did not align to the existing statement fallback slot",
-    );
-    assert.notEqual(snapshot.contestedSlotKeys[0], "attribute:zorro:statement");
-    const contested = snapshot.claims.filter(
-      (claim) => claim.status === "contested",
-    );
-    assert.ok(
-      contested.length >= 2,
-      `both accounts must be retained as contested, got ${contested.length}`,
+    assert.equal(conflict.reconciliation.relation, "conflict");
+    assert.deepEqual(snapshot.contestedSlotKeys, []);
+    assert.deepEqual(snapshot.bindings, []);
+    assert.deepEqual(snapshot.claims, []);
+    assert.equal(handle.context.evidence.listClaims().length, 2);
+    assert.equal(
+      handle.context.slots
+        .list()
+        .some(
+          (slot) =>
+            slot.ref.kind === "attribute" && slot.ref.name === "statement",
+        ),
+      false,
     );
   });
 });
 
-test("a statement slot is registered as a set on the very first commit", async () => {
-  // Asserted after exactly one proposal, before any second one could have
-  // widened it. `#ensureSlot` repairs a legacy single-valued slot as well, and
-  // that repair covers for a wrong registration so completely that the
-  // registration itself would otherwise go unchecked — which is how redundant
-  // code turns into code nobody notices is wrong.
+test("an unstructured first commit does not register a statement slot", async () => {
+  // A008-0143 removes the sentence-address fallback entirely. One unstructured
+  // claim must remain evidence and must not create any synthetic state slot.
   await withContext(async (handle) => {
     await new KnowledgeEngineCommit({
       context: handle.context,
@@ -295,11 +361,8 @@ test("a statement slot is registered as a set on the very first commit", async (
         (slot) =>
           slot.ref.kind === "attribute" && slot.ref.name === "statement",
       );
-    assert.equal(statement.length, 1);
-    assert.equal(
-      statement[0]?.cardinality,
-      "set",
-      "an entity has many statements; single cardinality made two of them a conflict",
-    );
+    assert.equal(statement.length, 0);
+    assert.equal(handle.context.state.snapshot().bindings.length, 0);
+    assert.equal(handle.context.evidence.listClaims().length, 1);
   });
 });

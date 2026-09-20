@@ -14,11 +14,14 @@
           "maxLength": 128
         }
       },
-      "required": ["type", "ticket"],
+      "required": [
+        "type",
+        "ticket"
+      ],
       "additionalProperties": false
     },
     {
-      "oneOf": [
+      "anyOf": [
         {
           "type": "object",
           "properties": {
@@ -35,6 +38,12 @@
             "projectId": {
               "type": "string",
               "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "commandId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
             },
             "action": {
               "type": "string",
@@ -53,7 +62,13 @@
               "additionalProperties": false
             }
           },
-          "required": ["type", "requestId", "projectId", "action"],
+          "required": [
+            "type",
+            "requestId",
+            "projectId",
+            "commandId",
+            "action"
+          ],
           "additionalProperties": false
         },
         {
@@ -73,36 +88,11 @@
               "type": "string",
               "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
             },
-            "sessionId": {
+            "commandId": {
               "type": "string",
               "minLength": 1,
               "maxLength": 160,
               "pattern": "^[A-Za-z0-9_-]+$"
-            },
-            "action": {
-              "type": "string",
-              "const": "session/inspect"
-            }
-          },
-          "required": ["type", "requestId", "projectId", "sessionId", "action"],
-          "additionalProperties": false
-        },
-        {
-          "type": "object",
-          "properties": {
-            "type": {
-              "type": "string",
-              "const": "command"
-            },
-            "requestId": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 160,
-              "pattern": "^[A-Za-z0-9_-]+$"
-            },
-            "projectId": {
-              "type": "string",
-              "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
             },
             "sessionId": {
               "type": "string",
@@ -112,17 +102,21 @@
             },
             "action": {
               "type": "string",
-              "const": "session/prompt"
+              "const": "session/resume"
             },
             "payload": {
               "type": "object",
               "properties": {
-                "text": {
+                "resumeCapability": {
                   "type": "string",
-                  "minLength": 1
+                  "minLength": 32,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9_-]+$"
                 }
               },
-              "required": ["text"],
+              "required": [
+                "resumeCapability"
+              ],
               "additionalProperties": false
             }
           },
@@ -130,6 +124,7 @@
             "type",
             "requestId",
             "projectId",
+            "commandId",
             "sessionId",
             "action",
             "payload"
@@ -161,10 +156,118 @@
             },
             "action": {
               "type": "string",
+              "const": "session/inspect"
+            }
+          },
+          "required": [
+            "type",
+            "requestId",
+            "projectId",
+            "sessionId",
+            "action"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "command"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "projectId": {
+              "type": "string",
+              "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "commandId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "action": {
+              "type": "string",
+              "const": "session/prompt"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "type",
+            "requestId",
+            "projectId",
+            "commandId",
+            "sessionId",
+            "action",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "command"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "projectId": {
+              "type": "string",
+              "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "commandId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "action": {
+              "type": "string",
               "const": "session/cancel"
             }
           },
-          "required": ["type", "requestId", "projectId", "sessionId", "action"],
+          "required": [
+            "type",
+            "requestId",
+            "projectId",
+            "commandId",
+            "sessionId",
+            "action"
+          ],
           "additionalProperties": false
         },
         {
@@ -203,59 +306,110 @@
                       "type": "object",
                       "properties": {
                         "action": {
-                          "type": "string",
-                          "enum": ["inspect", "reset", "undo", "close"]
+                          "allOf": [
+                            {
+                              "type": "string",
+                              "const": "inspect"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "inspect",
+                                "reset",
+                                "undo",
+                                "close"
+                              ]
+                            }
+                          ]
                         }
                       },
-                      "required": ["action"],
+                      "required": [
+                        "action"
+                      ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
                         "action": {
-                          "type": "string",
-                          "const": "model"
+                          "allOf": [
+                            {
+                              "type": "string",
+                              "const": "inspect"
+                            },
+                            {
+                              "type": "string",
+                              "const": "model"
+                            }
+                          ]
                         },
                         "model": {
                           "type": "string",
                           "pattern": "\\S"
                         }
                       },
-                      "required": ["action", "model"],
+                      "required": [
+                        "action",
+                        "model"
+                      ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
                         "action": {
-                          "type": "string",
-                          "const": "configure"
+                          "allOf": [
+                            {
+                              "type": "string",
+                              "const": "inspect"
+                            },
+                            {
+                              "type": "string",
+                              "const": "configure"
+                            }
+                          ]
                         },
                         "parameters": {}
                       },
-                      "required": ["action", "parameters"],
+                      "required": [
+                        "action",
+                        "parameters"
+                      ],
                       "additionalProperties": false
                     },
                     {
                       "type": "object",
                       "properties": {
                         "action": {
-                          "type": "string",
-                          "const": "configureRuntime"
+                          "allOf": [
+                            {
+                              "type": "string",
+                              "const": "inspect"
+                            },
+                            {
+                              "type": "string",
+                              "const": "configureRuntime"
+                            }
+                          ]
                         },
                         "settings": {},
                         "revision": {
                           "type": "string"
                         }
                       },
-                      "required": ["action", "settings", "revision"],
+                      "required": [
+                        "action",
+                        "settings",
+                        "revision"
+                      ],
                       "additionalProperties": false
                     }
                   ]
                 }
               },
-              "required": ["control"],
+              "required": [
+                "control"
+              ],
               "additionalProperties": false
             }
           },
@@ -286,6 +440,200 @@
               "type": "string",
               "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
             },
+            "commandId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "sessionId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "action": {
+              "type": "string",
+              "const": "session/control"
+            },
+            "payload": {
+              "type": "object",
+              "properties": {
+                "control": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "allOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "reset",
+                                "undo",
+                                "close",
+                                "model",
+                                "configure",
+                                "configureRuntime"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "inspect",
+                                "reset",
+                                "undo",
+                                "close"
+                              ]
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "action"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "allOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "reset",
+                                "undo",
+                                "close",
+                                "model",
+                                "configure",
+                                "configureRuntime"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "const": "model"
+                            }
+                          ]
+                        },
+                        "model": {
+                          "type": "string",
+                          "pattern": "\\S"
+                        }
+                      },
+                      "required": [
+                        "action",
+                        "model"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "allOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "reset",
+                                "undo",
+                                "close",
+                                "model",
+                                "configure",
+                                "configureRuntime"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "const": "configure"
+                            }
+                          ]
+                        },
+                        "parameters": {}
+                      },
+                      "required": [
+                        "action",
+                        "parameters"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "action": {
+                          "allOf": [
+                            {
+                              "type": "string",
+                              "enum": [
+                                "reset",
+                                "undo",
+                                "close",
+                                "model",
+                                "configure",
+                                "configureRuntime"
+                              ]
+                            },
+                            {
+                              "type": "string",
+                              "const": "configureRuntime"
+                            }
+                          ]
+                        },
+                        "settings": {},
+                        "revision": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "action",
+                        "settings",
+                        "revision"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "control"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "type",
+            "requestId",
+            "projectId",
+            "commandId",
+            "sessionId",
+            "action",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "command"
+            },
+            "requestId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
+            "projectId": {
+              "type": "string",
+              "pattern": "^A008_v1_project_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            },
+            "commandId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 160,
+              "pattern": "^[A-Za-z0-9_-]+$"
+            },
             "sessionId": {
               "type": "string",
               "minLength": 1,
@@ -309,7 +657,10 @@
                   "type": "boolean"
                 }
               },
-              "required": ["permissionId", "allow"],
+              "required": [
+                "permissionId",
+                "allow"
+              ],
               "additionalProperties": false
             }
           },
@@ -317,6 +668,7 @@
             "type",
             "requestId",
             "projectId",
+            "commandId",
             "sessionId",
             "action",
             "payload"
