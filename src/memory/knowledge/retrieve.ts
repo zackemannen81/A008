@@ -162,6 +162,24 @@ export function retrieve(
       ) {
         continue;
       }
+      if (intents.has("current_state")) {
+        for (const binding of currentBindingsFromEvidence(claim.id, context)) {
+          push(
+            records,
+            seen,
+            bindingRecord(
+              binding,
+              "state",
+              query.message,
+              scope,
+              context,
+              "direct",
+              true,
+              ["current_state_via_evidence"],
+            ),
+          );
+        }
+      }
       push(
         records,
         seen,
@@ -204,6 +222,24 @@ export function retrieve(
       .listUtterances()
       .find((item) => item.id === recordId);
     if (utterance !== undefined) {
+      if (intents.has("current_state")) {
+        for (const binding of currentBindingsFromEvidence(utterance.id, context)) {
+          push(
+            records,
+            seen,
+            bindingRecord(
+              binding,
+              "state",
+              query.message,
+              scope,
+              context,
+              "associative",
+              true,
+              [...reasons, "current_state_via_evidence"],
+            ),
+          );
+        }
+      }
       push(
         records,
         seen,
@@ -223,6 +259,26 @@ export function retrieve(
       .listClaims()
       .find((item) => item.id === recordId);
     if (labelled !== undefined) {
+      if (intents.has("current_state")) {
+        // Evidence may belong to an older binding. Use it as a discovery edge
+        // to the semantic address, then project that address's HEAD binding.
+        for (const binding of currentBindingsFromEvidence(labelled.id, context)) {
+          push(
+            records,
+            seen,
+            bindingRecord(
+              binding,
+              "state",
+              query.message,
+              scope,
+              context,
+              "associative",
+              true,
+              [...reasons, "current_state_via_evidence"],
+            ),
+          );
+        }
+      }
       push(
         records,
         seen,
@@ -234,30 +290,6 @@ export function retrieve(
           "associative",
           false,
           reasons,
-        ),
-      );
-    }
-    // And the current-state binding the same claim established, if there is
-    // one. Bindings carry no labels of their own — they are reached through a
-    // slot, which is reached through an entity — so without this the only way
-    // to a binding is by naming its entity, and a subject-area match would
-    // return the claim while the current truth it established stayed hidden.
-    for (const binding of context.state.snapshot().bindings) {
-      if (binding.claimId !== recordId || !isOpenInterval(binding.interval)) {
-        continue;
-      }
-      push(
-        records,
-        seen,
-        bindingRecord(
-          binding,
-          "state",
-          query.message,
-          scope,
-          context,
-          "associative",
-          false,
-          [...reasons, "current_state"],
         ),
       );
     }
@@ -421,6 +453,28 @@ function matchedEntityIds(
   return entityIds;
 }
 
+function currentBindingsFromEvidence(
+  evidenceId: string,
+  context: KnowledgeReadContext,
+): readonly Binding[] {
+  const claimIds = new Set<string>([evidenceId]);
+  for (const claim of context.evidence.listClaims()) {
+    if (
+      claim.derivedFrom.kind === "utterance" &&
+      claim.derivedFrom.id === evidenceId
+    ) {
+      claimIds.add(claim.id);
+    }
+  }
+  const addresses = new Map<string, SlotRef>();
+  for (const binding of context.state.snapshot().bindings) {
+    if (claimIds.has(binding.claimId)) {
+      addresses.set(slotKey(binding.slot), binding.slot);
+    }
+  }
+  return [...addresses.values()].flatMap((slot) => context.state.current(slot));
+}
+
 function bindingRecord(
   binding: Binding,
   surface: "state" | "history",
@@ -433,6 +487,11 @@ function bindingRecord(
 ): RetrievedRecord {
   const exactSlot = true;
   const lexical = mentionsLabel(message, binding.label);
+  const lifecycle = context.lifecycle.get(binding.claimId);
+  const viewed =
+    lifecycle === undefined
+      ? undefined
+      : viewLifecycle(context.lifecycle, binding.claimId, context.evaluatedAt);
   const score = scoreRetrieved({
     matchKind,
     exactSlot,
@@ -451,6 +510,14 @@ function bindingRecord(
     slotLabel: slotLabelOf(binding.slot),
     value: bindingValue(binding),
     interval: cloneInterval(binding.interval),
+    ...(viewed === undefined
+      ? {}
+      : {
+          evidenceId: binding.claimId,
+          evidenceKind: "claim" as const,
+          strength: viewed.strength,
+          memoryState: viewed.memoryState,
+        }),
   };
   return record;
 }

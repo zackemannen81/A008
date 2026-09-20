@@ -606,7 +606,7 @@ test("exact support quotes become runtime UTF-16 spans", async () => {
   );
 });
 
-test("model-supplied offsets cannot reinforce; missing quotes stay exact-match only", async () => {
+test("invalid support is omitted without skipping the semantic proposal", async () => {
   const message = "I use TypeScript.";
   const staged = await intake({
     async analyze() {
@@ -634,9 +634,7 @@ test("model-supplied offsets cannot reinforce; missing quotes stay exact-match o
   assert.equal(staged.proposals.length, 2);
   assert.equal(staged.proposals[0]?.support, undefined);
   assert.equal(staged.proposals[1]?.support, undefined);
-  assert.equal(staged.skippedProposals.length, 2);
-  assert.match(staged.skippedProposals[0] ?? "", /quote not found/u);
-  assert.match(staged.skippedProposals[1] ?? "", /quote not found/u);
+  assert.deepEqual(staged.skippedProposals, []);
 });
 
 test("a verbatim proposition can supply the span when the quote was rewritten", async () => {

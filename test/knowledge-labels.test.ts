@@ -641,14 +641,12 @@ test("a version 1 database opens and is migrated, not refused", () => {
   }
 });
 
-// --- statement slots are a set (A008-0062) ---------------------------------
+// --- unstructured evidence does not invent state (A008-0143) -----------------
 
-test("many unstructured statements about one entity coexist without entity-first slot ownership", async () => {
-  // Three facts name the same extracted entity. A008-0122 makes `entities[]`
-  // referential only: array position cannot choose state ownership. Because
-  // these proposals have no structured proposition, each gets a statement-
-  // specific fallback slot while deterministic claim→Zorro references preserve
-  // the shared graph anchor. No false conflict is introduced.
+test("many unstructured statements remain evidence without synthetic state ownership", async () => {
+  // Three facts name the same extracted entity but none carries a structured
+  // semantic address. They remain claims with deterministic claim→Zorro
+  // references; wording must never mint statement slots or current truth.
   const facts = [
     "Zorros häst heter Fresca",
     "Zorro bor i Kalifornien",
@@ -698,27 +696,15 @@ test("many unstructured statements about one entity coexist without entity-first
     try {
       const snapshot = store.load();
       assert.deepEqual(snapshot.state.contestedSlotKeys, []);
-      const open = snapshot.state.bindings.filter(
-        (binding) => binding.interval.to === null,
-      );
-      assert.equal(open.length, facts.length, "a statement was lost");
-      const slots = new Set(
-        open.map((binding) =>
-          binding.slot.kind === "attribute"
-            ? `${binding.slot.entity}.${binding.slot.name}`
-            : "relation",
-        ),
-      );
       assert.equal(
-        slots.size,
-        facts.length,
-        "unstructured facts were conflated onto one owner slot",
+        snapshot.state.bindings.length,
+        0,
+        "unstructured facts must not create current or historical bindings",
       );
-      assert.ok(
-        [...slots].every((name) =>
-          /^statement_[0-9a-f]{12}\.statement$/u.test(name),
-        ),
-        `unexpected fallback slots: ${[...slots].join(", ")}`,
+      assert.deepEqual(
+        new Set(snapshot.claims.map((claim) => claim.label)),
+        new Set(facts),
+        "all facts must survive as evidence claims",
       );
       const references = snapshot.entityReferences ?? [];
       assert.equal(references.length, facts.length);
@@ -730,12 +716,10 @@ test("many unstructured statements about one entity coexist without entity-first
         (slot) =>
           slot.ref.kind === "attribute" && slot.ref.name === "statement",
       );
-      assert.equal(statementSlots.length, facts.length);
-      assert.ok(statementSlots.every((slot) => slot.cardinality === "set"));
       assert.equal(
-        snapshot.slots.filter((slot) => slot.cardinality === "single").length,
+        statementSlots.length,
         0,
-        "a slot was left single-valued",
+        "sentence wording must not mint synthetic statement slots",
       );
     } finally {
       store.close();

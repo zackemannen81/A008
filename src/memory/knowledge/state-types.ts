@@ -76,7 +76,10 @@ export interface SlotClaim {
   readonly attributedTo: string;
   readonly causedBy: string;
   readonly kind: ClaimKind;
-  readonly acceptanceEligible: boolean;
+  /** New writes use semantic state eligibility; acceptance remains provenance. */
+  readonly stateEligible?: boolean;
+  /** Legacy persisted field retained for snapshot compatibility only. */
+  readonly acceptanceEligible?: boolean;
   readonly retractsClaimId?: string;
   readonly targetInterval?: Interval;
 }

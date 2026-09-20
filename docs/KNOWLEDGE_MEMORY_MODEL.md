@@ -109,9 +109,13 @@ retrieval result.
 A past value is historically correct state over a past interval. It is not a
 "superseded" or lesser record.
 
-**L11. Retrieval is non-mutating.**
-Reading never changes strength, activation, state or history. Every lifecycle
-change happens in a named process with an explicit caller.
+**L11. Retrieval selection and projection are non-mutating.**
+DEFINE, RETRIEVE, EXPAND, FILTER, COMPOSE and PROJECT never change strength,
+activation, state or history. After the admitted set is fixed, knowledge that
+became semantically actual/relevant in that distinct occurrence may trigger the
+separate named lifecycle operation `reinforceOccurrence`. That write is not a
+retrieval score, truth decision or projection side effect and is idempotent per
+occurrence/evidence pair.
 
 **L12. Every accepted state has a traceable path back to evidence.**
 No accepted binding may exist without at least one claim, and no claim without
@@ -188,6 +192,13 @@ The single most important structural rule in this document:
 > **State records and evidence records are different records with different
 > lifecycles. An implementation that stores them as one record type will
 > reproduce every confusion this model was written to remove.**
+
+A persisted implementation may keep a slot-scoped claim shadow for deterministic
+RECONCILE/retraction bookkeeping, but that shadow is not a second truth store.
+Its acceptance status and validity interval must mirror the evidence/state
+transition it represents. Current truth is owned only by the open binding for the
+semantic address. Claims may explain or discover that address; they never
+compete with its current binding in a current-state projection.
 
 ### 2.3 Content kinds and semantic dimensions
 
@@ -556,19 +567,18 @@ Operation snapshots and stored numeric policies prevent mid-operation changes
 or retrospective reclassification. Changed settings affect later creations.
 Changing existing records requires an explicit migration/rebase.
 
-Automatic reinforcement needs an original message/source span, a semantically
-supported relation and the exact existing claim resolved from that invocation's
-handle map. The existing comparator judges support using the original source;
-answer-only text, retrieval, questions, mere quotation, conflicts and unrelated
-content do not establish recurrence. Runtime validates source ownership, span
-bounds and the unchanged canonical target. Missing proof skips reinforcement
-with a result diagnostic, while valid extraction can proceed.
+Automatic reinforcement is owned by semantic actuality/relevance, not by textual
+recurrence. When existing lifecycle-backed evidence becomes semantically actual
+in a distinct occurrence, that evidence is reinforced exactly once for that
+occurrence. Exact wording, an exact claim match, a quote, a source span or a
+provenance attachment is not a precondition for the lifecycle write.
 
-Restatement reuses the canonical carrier when it does not require the existing
-user-acceptance transition. Its new utterance retains attribution; source
-repetition does not become a user assertion. Extend may reinforce only its
-underlying target. Supersede/conflict and mechanical correction/retraction
-cannot boost a displaced target. No substring/all-record reinforcement remains.
+Evidence/provenance validation remains strict and separate. A malformed,
+ambiguous or unverifiable quote/span may refuse the evidence attachment or a
+semantic association proof, but it must not turn an otherwise actual/relevant
+knowledge occurrence into `reinforcement skipped`. Conflict, correction,
+retraction and unrelated material still do not authorize a boost merely by
+existing. No substring/all-record reinforcement is permitted.
 
 An original dialogue task/conversation or source locator/content determines a
 stable occurrence identity. One occurrence/claim receipt, decayed boost, new
@@ -714,13 +724,19 @@ Rules:
 
 - Intent classification is explicit, inspectable, and may return several
   intents.
-- An ambiguous or missing intent defaults to `current_state` + `attribution`.
-  It never defaults to `associative` alone.
+- An ambiguous or missing intent defaults to `current_state` only. Attribution
+  is opt-in; raw claims and utterances must not accompany an ordinary current
+  state read merely because no stronger intent word was present. It never
+  defaults to `associative` alone.
 - A `history` intent explicitly retrieves closed intervals. Closed intervals
   are unreachable under any other intent, and the model is never shown a past
   value without its interval.
 - No intent may read state through the evidence lifecycle, and no intent may
-  read evidence as if it were state.
+  read evidence as if it were state. On a `current_state` read, a matching
+  claim/utterance may discover the semantic address it established, but the
+  projected truth surface is that address's current binding (HEAD). State-backed
+  claim/utterance text is not projected alongside HEAD unless an explicit
+  attribution/history intent asks for evidence.
 
 ### 8.3 Scoring
 
@@ -938,7 +954,7 @@ of L11, because it makes every read a write and every answer a lifecycle event.
 
 | Process | Authority and writes |
 | --- | --- |
-| Automatic `reinforceOccurrence` | Validated fresh supporting occurrence, exact claim and restatement/extend relation; decay first, then capped boost. Writes baseline/time, derived cache, real recurrence time, audit and durable receipt in one transaction. Never writes truth/state/history. |
+| Automatic `reinforceOccurrence` | Existing lifecycle-backed evidence becomes semantically actual/relevant in a distinct occurrence; decay first, then capped boost. Exact wording/span/provenance proof is not a lifecycle gate. Writes baseline/time, derived cache, recurrence time, audit and durable occurrence/evidence receipt in one transaction. Never writes truth/state/history. |
 | Explicit `reinforce` maintenance | Named caller/reason; operates on evaluated strength and rebases. Kept as a deliberate maintenance API, never invoked by reads or used instead of the automatic occurrence gate. |
 | Explicit `weaken` / `decay` maintenance | Named caller/reason; subtracts an explicit amount or the retained legacy `decayRate * elapsed` amount from evaluated strength, then rebases. This preserves the manual API's units; it is not the automatic exponential calculation or a scheduled job. |
 | Explicit `reactivate` maintenance | Explicit request only; may raise strength to the threshold and rebase. No read or diagnostic candidate authorizes it; maintenance is not a fresh recurrence. |

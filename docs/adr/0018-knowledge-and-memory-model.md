@@ -103,8 +103,17 @@ decides whether two statements about one entity disagree.*
 - Memory strength is prohibited in direct-match scoring.
 - Tags define scope and discovery. A tag miss is never a truth or
   direct-match eligibility decision.
+- A current-state evidence hit may discover the semantic address it established,
+  but the projected truth is that address's current binding. State-backed claim
+  and utterance text is evidence, not a parallel current-state candidate.
+- Missing/ambiguous intent defaults to current state only; attribution is
+  explicit.
 - History intent reads closed intervals. Closed intervals are unreachable
   under any other intent.
+- Automatic occurrence reinforcement is triggered by semantically actual/relevant
+  lifecycle-backed evidence after admission. Exact wording, quote/span proof or
+  provenance attachment is not a lifecycle gate; those validations remain
+  independently strict.
 
 ### D8. Typed projection payload
 
@@ -186,6 +195,10 @@ repair (M1) is necessary and insufficient.
 
 ### D13. A statement slot is a set, and the classifier judges disagreement (A008-0062)
 
+> **Historical decision, narrowed by D15 / A008-0143.** D13 remains descriptive
+> for already-resolved/legacy statement slots. Unstructured wording no longer
+> creates a synthetic `<sentence>.statement` semantic address at all.
+
 The owner reported `memory commit failed at proposal 2: UPDATE fails when the
 slot is contested` from a live run. Reproduced end to end, three facts stated in
 one message about one subject produced:
@@ -265,6 +278,37 @@ recoverable, so an unrecognised failure is assumed recoverable.
 A batch that skipped everything still reports `completed`, because the batch did
 complete. What failed is named, apart from a staging skip, because the two point
 at different things to go and look at.
+
+### D15. HEAD owns current truth; claims are evidence and discovery (A008-0143)
+
+For each resolved semantic address, the open binding is the current truth surface.
+A later valid value atomically closes the prior binding and opens the new HEAD;
+the prior value remains history. Evidence claims, utterances, provenance and
+lifecycle metadata explain or help discover that address but do not compete with
+HEAD on a current-state read.
+
+An implementation-local slot claim may remain for deterministic reconciliation,
+conflict and retraction bookkeeping. It is a shadow of the evidence/state
+transition, not independent authority: its accepted/contested status and validity
+interval must track the transition it represents. It is never reconstructed into
+a second current truth surface at retrieval time.
+
+Unstructured propositions with no resolved attribute/relationship address remain
+evidence. They do not mint sentence hashes, statement entities or synthetic
+statement slots. This narrows D13: its set-cardinality repair remains valid for
+legacy/explicit statement slots, but it is no longer a fallback identity scheme.
+
+Current-state retrieval may use an old claim/utterance/tag/domain match to locate
+the semantic address. Once located, the current binding is projected. Claims and
+utterances remain directly available when attribution/history is explicitly
+requested. Missing intent defaults to current state, not current state plus
+attribution.
+
+Automatic reinforcement is likewise separated from provenance proof. Existing
+lifecycle-backed evidence that becomes semantically actual/relevant in a distinct
+occurrence receives one idempotent boost for that occurrence. Exact quote/span,
+exact wording and provenance attachment are not prerequisites for that lifecycle
+write; a failed evidence attachment cannot become a reinforcement veto.
 
 ## Consequences
 

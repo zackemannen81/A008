@@ -12,9 +12,9 @@ export const KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION = [
   "For new omit targetHandle. For restatement, extend, or supersede include targetHandle. For conflict include targetHandles.",
   "A target may be a candidate handle from the top-level candidates array or an earlier proposalHandle from the items array. Never target the current proposal or a later proposal.",
   'Example syntax only: [{"proposalHandle":"proposal_1","type":"new"},{"proposalHandle":"proposal_2","type":"extend","targetHandle":"proposal_1"}].',
-  "Judge each proposal against existing candidates and earlier proposals in this batch so semantic duplicates and extensions are not written as unrelated new knowledge.",
+  "Judge each proposal against existing candidates and earlier proposals in this batch so semantic duplicates, updates, corrections, extensions and conflicts are not written as unrelated new knowledge.",
+  "sourceSupport is provenance/evidence context only. Its presence or absence must not change the semantic relation type, and you do not need to emit supportsTarget.",
   ...KNOWLEDGE_ASSOCIATION_RULES,
   'Within each decision, "proposal" means that decision\'s proposal claim. Candidate and entity handles must come from this request.',
-  "For restatement or extend, set supportsTarget true only when that item's sourceSupport independently asserts or establishes the selected target. Otherwise set supportsTarget false.",
-  "The model only classifies relations. It never decides canonical IDs, persistence, lifecycle strength, activation, decay or commit order.",
+  "The model only classifies relations. It never decides canonical IDs, persistence, lifecycle strength, activation, decay, attraction, commit order or final HEAD ownership.",
 ].join(" ");

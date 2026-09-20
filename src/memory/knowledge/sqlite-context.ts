@@ -172,6 +172,7 @@ export function createSqliteKnowledgeContext(
       "link",
       "hydrate",
       "establishAssociation",
+      "adjustAttraction",
     ]),
   };
   persistEnabled = true;
