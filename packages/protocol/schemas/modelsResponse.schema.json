@@ -60,7 +60,10 @@
                 "$ref": "#/$defs/__schema3"
               },
               "enableThinking": {
-                "type": ["boolean", "null"]
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "reasoningBudget": {
                 "anyOf": [
@@ -182,7 +185,9 @@
       }
     }
   },
-  "required": ["models"],
+  "required": [
+    "models"
+  ],
   "$defs": {
     "__schema0": {
       "type": "string"
@@ -193,7 +198,12 @@
     },
     "__schema2": {
       "type": "string",
-      "enum": ["text", "image", "video", "audio"]
+      "enum": [
+        "text",
+        "image",
+        "video",
+        "audio"
+      ]
     },
     "__schema3": {
       "type": "number"

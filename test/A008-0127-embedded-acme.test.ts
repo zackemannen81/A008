@@ -455,3 +455,76 @@ test("embedded OpenAI route uses native Responses with vision, tools and selecte
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test("streamed OpenAI reasoning summary reaches the transient reasoning channel", async () => {
+  const { directory, path } = tempCatalog();
+  const bodies: Record<string, any>[] = [];
+  const deltas: string[] = [];
+  try {
+    saveUserCatalog(path, loadUserCatalog(path));
+    const transport = new EmbeddedAcmeChatTransport({
+      env: { OPENAI_API_KEY: "sk-fixture" },
+      catalogPath: path,
+      requestKey: () => "openai-summary-fixture",
+      fetch: async (_input, init) => {
+        bodies.push(JSON.parse(String(init?.body ?? "{}")));
+        const completed = {
+          id: "resp_openai_summary",
+          model: "gpt-5.6-luna",
+          status: "completed",
+          output: [
+            {
+              type: "message",
+              content: [{ type: "output_text", text: "Final answer." }],
+            },
+          ],
+          usage: { input_tokens: 5, output_tokens: 3, total_tokens: 8 },
+        };
+        const frames = [
+          {
+            type: "response.reasoning_summary_text.delta",
+            delta: "Checked the relevant constraints.",
+          },
+          {
+            type: "response.output_text.delta",
+            delta: "Final answer.",
+          },
+          { type: "response.completed", response: completed },
+        ]
+          .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+          .join("");
+        return new Response(frames, {
+          status: 200,
+          headers: { "content-type": "text/event-stream" },
+        });
+      },
+    });
+
+    const completion = await transport.complete(
+      {
+        model: "gpt-5.6-luna",
+        messages: [{ role: "user", content: "reason about this" }],
+        options: {
+          maxTokens: 128000,
+          reasoningEffort: "high",
+          stream: true,
+        },
+      },
+      { onDelta: (delta) => deltas.push(`${delta.type}:${delta.text}`) },
+    );
+
+    assert.deepEqual(bodies[0]?.reasoning, {
+      effort: "high",
+      summary: "auto",
+    });
+    assert.equal(bodies[0]?.max_output_tokens, 128000);
+    assert.deepEqual(deltas, [
+      "reasoning:Checked the relevant constraints.",
+      "content:Final answer.",
+    ]);
+    assert.equal(completion.reasoning, "Checked the relevant constraints.");
+    assert.equal(completion.message.content, "Final answer.");
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

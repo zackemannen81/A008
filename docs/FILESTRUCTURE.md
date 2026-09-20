@@ -130,7 +130,10 @@ Design decision: [ADR 0030](adr/0030-focused-standalone-workspace.md).
 
 A008-0068 adds `src/tools/repository-tools.ts` (native file/Git definitions and
 execution), `gui/src/tools/repository-pane.tsx`, `repository.css` and
-`repository.test.ts` (catalog, workspace, shortcuts and activity). Additional
+`repository.test.ts` (catalog, workspace, shortcuts and activity). A008-0145
+keeps the same owner but makes the aggregate tool-summary disclosure state stable
+across sequential running/completed snapshots and covers the state rule in
+`repository.test.ts`. Additional
 native and standalone integration checks live in `test/model-tools.test.ts`.
 The runbook is [GUI_REPOSITORY_TOOLS.md](GUI_REPOSITORY_TOOLS.md).
 
@@ -198,8 +201,10 @@ A008/
 |  |  |  `- capture-prompt.ts        user-text observation shim
 |  |  |- composer/                   A008-0035 slash composer
 |  |  |- terminal/                   A008-0036 terminal pane
-|  |  |- settings/                   A008-0037 settings
-|  |  |  |- parameters-panel.tsx     A008-0065 model-aware generation dialog
+|  |  |- settings/                   A008-0037 settings; A008-0145 explicit Semantic controls
+|  |  |  |- parameters-panel.tsx     chat Model plus separate global Semantic/runtime pages
+|  |  |  |- global-settings-form.tsx persistent instructions/budgets and semantic model/effort
+|  |  |  |- runtime-preferences.ts   shared V1 runtime-preference types/guards
 |  |  |  |- parameters.css          parameter and session-control styling
 |  |  |  |- appearance-panel.tsx     A008-0093 App theme picker
 |  |  |  |- nvidia-catalog.ts        NVIDIA/kie/OpenAI provider-settings client

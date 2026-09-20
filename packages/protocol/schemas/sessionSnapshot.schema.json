@@ -21,7 +21,13 @@
           "$ref": "#/$defs/__schema5"
         }
       },
-      "required": ["revision", "settings", "defaults", "fields", "storagePath"]
+      "required": [
+        "revision",
+        "settings",
+        "defaults",
+        "fields",
+        "storagePath"
+      ]
     },
     "model": {
       "$ref": "#/$defs/__schema0"
@@ -56,7 +62,10 @@
           "$ref": "#/$defs/__schema2"
         },
         "enableThinking": {
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "reasoningBudget": {
           "anyOf": [
@@ -123,13 +132,19 @@
         "properties": {
           "role": {
             "type": "string",
-            "enum": ["user", "assistant"]
+            "enum": [
+              "user",
+              "assistant"
+            ]
           },
           "content": {
             "$ref": "#/$defs/__schema0"
           }
         },
-        "required": ["role", "content"]
+        "required": [
+          "role",
+          "content"
+        ]
       }
     },
     "runtime": {
@@ -171,11 +186,18 @@
                 "$ref": "#/$defs/__schema0"
               }
             },
-            "required": ["name", "description"]
+            "required": [
+              "name",
+              "description"
+            ]
           }
         }
       },
-      "required": ["cwd", "projectId", "memoryPath"]
+      "required": [
+        "cwd",
+        "projectId",
+        "memoryPath"
+      ]
     },
     "undone": {
       "type": "boolean"
@@ -184,7 +206,12 @@
       "type": "boolean"
     }
   },
-  "required": ["model", "parameters", "messages", "runtime"],
+  "required": [
+    "model",
+    "parameters",
+    "messages",
+    "runtime"
+  ],
   "$defs": {
     "__schema0": {
       "type": "string"
@@ -203,9 +230,35 @@
           "additionalProperties": {
             "$ref": "#/$defs/__schema2"
           }
+        },
+        "semantic": {
+          "type": "object",
+          "properties": {
+            "model": {
+              "minLength": 1,
+              "$ref": "#/$defs/__schema0"
+            },
+            "reasoningEffort": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/__schema0"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "model",
+            "reasoningEffort"
+          ]
         }
       },
-      "required": ["instructions", "budgets"]
+      "required": [
+        "instructions",
+        "budgets"
+      ]
     },
     "__schema2": {
       "type": "number"
@@ -246,7 +299,14 @@
           "$ref": "#/$defs/__schema2"
         }
       },
-      "required": ["key", "label", "unit", "description", "minimum", "maximum"]
+      "required": [
+        "key",
+        "label",
+        "unit",
+        "description",
+        "minimum",
+        "maximum"
+      ]
     },
     "__schema5": {
       "anyOf": [

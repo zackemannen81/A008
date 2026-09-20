@@ -251,7 +251,7 @@ test(
       assert.ok(semantics.length > 0);
       for (const request of semantics) {
         assert.equal(request.temperature, 0);
-        assert.equal(request.max_tokens, 16384);
+        assert.equal(request.max_tokens, 32768);
         assert.equal("seed" in request, false);
       }
       const invalid = await control({

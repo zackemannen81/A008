@@ -259,6 +259,37 @@ function transportFailureReason(
   return "network";
 }
 
+function openAiReasoningSummaryBody(url: string, body: string): string {
+  if (!url.endsWith("/v1/responses")) return body;
+  try {
+    const parsed = JSON.parse(body) as Record<string, unknown>;
+    const reasoning =
+      typeof parsed.reasoning === "object" &&
+      parsed.reasoning !== null &&
+      !Array.isArray(parsed.reasoning)
+        ? (parsed.reasoning as Record<string, unknown>)
+        : undefined;
+    if (
+      parsed.stream !== true ||
+      reasoning === undefined ||
+      reasoning.effort === "none" ||
+      reasoning.summary !== undefined
+    ) {
+      return body;
+    }
+    // Reasoning summaries are a provider display surface, not raw chain of
+    // thought and not an A008 cognitive control. The selected effort remains
+    // unchanged; the summary is emitted only through the transient thought
+    // channel and never enters committed chat or semantic memory.
+    return JSON.stringify({
+      ...parsed,
+      reasoning: { ...reasoning, summary: "auto" },
+    });
+  } catch {
+    return body;
+  }
+}
+
 function createA008FetchTransport(
   fetchImpl: typeof globalThis.fetch,
 ): ProviderTransport {
@@ -278,7 +309,7 @@ function createA008FetchTransport(
         const response = await fetchImpl(request.url, {
           method: request.method,
           headers: { ...request.headers },
-          body: request.body,
+          body: openAiReasoningSummaryBody(request.url, request.body),
           signal,
         });
         return {
@@ -314,7 +345,7 @@ function createA008FetchTransport(
         response = await fetchImpl(request.url, {
           method: request.method,
           headers: { ...request.headers },
-          body: request.body,
+          body: openAiReasoningSummaryBody(request.url, request.body),
           signal,
         });
       } catch (error) {
