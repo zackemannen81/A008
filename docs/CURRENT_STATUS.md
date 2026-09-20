@@ -1,9 +1,11 @@
 # Current Status
 
-Reality as of 2026-09-19. This document records observed state; intended design
+Reality as of 2026-09-20. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
 ## What exists
+
+A008-0142 is in progress. ADR 0045 removes the inherited text-only committed-chat restriction from ADR 0020 D6 / ADR 0032 / ADR 0044 D1 and makes provider-neutral typed multimodal content part of the canonical committed conversation model. The decision is accepted; implementation is not yet complete. Existing string messages remain a compatibility form while A008-0142 migrates transcript/session/protocol consumers and integrates generated-image placeholder lifecycle plus model-triggered `generate_image` through the existing tool boundary.
 
 A008-0141 adds Oldscool as a third renderer-local app theme. Parameters → Appearance persists `oldscool` under the existing `a008.preferences.appearance.theme` value and applies it before React loads. Oldscool uses dark olive-black surfaces, warm amber/cream text and borders, phosphor-green controls, a static pointer-inert CRT scanline layer, and restrained phosphor bloom on selected chrome and primary controls. All effects are scoped to `html[data-a008-theme="oldscool"]`; Neutral and Deep Space retain their existing presentation. The effect does not alter sessions, models, memory, tools, providers, host/API behavior or the sandboxed Code Canvas preview. Verification: 177 GUI tests passed with 0 failures/skips; GUI typecheck, production build and diff hygiene passed. The build retains only the existing Zod annotation and >500 kB bundle warnings.
 

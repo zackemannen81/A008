@@ -8,7 +8,9 @@ replacement.
 
 ## Records
 
-- [0044-native-vision-input.md](0044-native-vision-input.md) — Accepted; invocation-local native image input over existing upload locators while committed chat remains text-only; capability-gated direct/ACME execution and model metadata projection.
+- [0045-multimodal-conversation-content.md](0045-multimodal-conversation-content.md) — Accepted; removes the inherited text-only `ChatMessage.content` restriction and makes typed multimodal content, including generated images, part of the canonical committed conversation model.
+
+- [0044-native-vision-input.md](0044-native-vision-input.md) — Accepted with D1 superseded by ADR 0045; source-store, capability-gating, provenance and ACME execution boundaries remain authoritative.
 
 - [0043-acme-execution-boundary.md](0043-acme-execution-boundary.md) — Accepted; immutable non-cognitive ACME execution boundary plus Stage-3.5 evidence gate before default adoption.
 
@@ -44,7 +46,8 @@ replacement.
 
 - [0032-nvidia-catalog-and-image-generation.md](0032-nvidia-catalog-and-image-generation.md) —
   Accepted; browse/add NVIDIA Build models, host image generation, write-only
-  API key in Parameters. Amends 0019 D3/D4; does not change ADR 0020 D6.
+  API key in Parameters. Its inherited text-only `ChatMessage.content` statement
+  is superseded by ADR 0045.
 
 - [0031-workbench-context-and-memory-map.md](0031-workbench-context-and-memory-map.md) —
   Accepted; Chat workbench is environment/sources context, tool help lives on
@@ -142,8 +145,9 @@ replacement.
   Canvas+Agent Server remains operator compatibility only.
 - [`0020-source-upload-ingest.md`](0020-source-upload-ingest.md) — Accepted;
   uploads are stored by the GUI host and extracted in the ACP process over a
-  locator. Amends 0019 D4 with POST /v1/upload. Extraction is a port; image
-  description is its own port, not a ChatMessage change. Its D11 (A008-0056)
+  locator. Amends 0019 D4 with POST /v1/upload. D6's text-only chat restriction
+  and rejection of image content blocks are superseded by ADR 0045; source
+  extraction/provenance remain separate. Its D11 (A008-0056)
   supersedes the D8 bullet that held PDF and DOCX back: both are read now, PDF
   through pdfjs-dist and Word through a dependency-free ZIP/OOXML reader. Live
   vision stays unsupported pending an owner cost decision.

@@ -5,6 +5,8 @@ Date: 2026-09-17
 Task: A008-0124
 Decision owner: Operator
 
+Partially superseded by [ADR 0045](0045-multimodal-conversation-content.md): D1 and all derived text-only committed-chat restrictions are withdrawn. D2-D7 remain authoritative where compatible with ADR 0045.
+
 Amends: ADR 0020 D6. Complements ADR 0026, ADR 0032 and ADR 0043.
 
 ## Context
