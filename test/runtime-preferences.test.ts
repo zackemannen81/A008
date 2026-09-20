@@ -32,6 +32,7 @@ const identity = "Du heter Agent 008, oavsett modell eller leverantör.";
 const defaults = (): RuntimePreferences => ({
   instructions: "",
   budgets: { ...DEFAULT_RUNTIME_BUDGETS },
+  semantic: { model: DEFAULT_MODEL_ID, reasoningEffort: null },
 });
 function update(
   store: RuntimePreferencesStore,
@@ -43,6 +44,20 @@ function update(
     {
       instructions: instructions ?? before.settings.instructions,
       budgets: { ...before.settings.budgets, ...budgets },
+    },
+    before.revision,
+  );
+}
+function updateSemantic(
+  store: RuntimePreferencesStore,
+  model: string,
+  reasoningEffort: string | null = null,
+) {
+  const before = store.snapshot();
+  return store.save(
+    {
+      ...before.settings,
+      semantic: { model, reasoningEffort },
     },
     before.revision,
   );
@@ -404,6 +419,7 @@ test("semantic output can exceed the old 16384 default and reports each model's 
   try {
     update(runtime.preferences, { semanticOutputTokens: 131072 });
     for (const model of defaultModelRegistry.list()) {
+      updateSemantic(runtime.preferences, model.id);
       const session = runtime.openSession({ model: model.id });
       await session.send("fixture");
       const extraction = fake.requests
@@ -428,9 +444,12 @@ test("semantic output can exceed the old 16384 default and reports each model's 
       (r) => operation(r) === "retrieval_scope",
     );
     assert.equal(scopeRequests.length, defaultModelRegistry.list().length);
-    assert.equal(
-      scopeRequests.every((r) => r.options?.maxTokens === 32768),
-      true,
+    assert.deepEqual(
+      scopeRequests.map((request) => [request.model, request.options?.maxTokens]),
+      defaultModelRegistry.list().map((model) => [
+        model.id,
+        generationCapabilities(model.id).maxTokens,
+      ]),
     );
   } finally {
     runtime.close();
@@ -456,7 +475,7 @@ test("Kimi extraction and relation commit reach the NVIDIA payload without immut
         assert.equal(Object.hasOwn(payload, "top_p"), false);
         assert.equal(payload.stream, false);
         assert.equal(payload.temperature, 0);
-        assert.equal(payload.max_tokens, 16384);
+        assert.equal(payload.max_tokens, 65536);
       }
       const content =
         op === "knowledge_analysis"
@@ -495,11 +514,13 @@ test("Kimi extraction and relation commit reach the NVIDIA payload without immut
     }),
   });
   try {
+    updateSemantic(runtime.preferences, "moonshotai/kimi-k3");
     const result = await runtime
       .openSession({ model: "moonshotai/kimi-k3" })
       .turn("The fixture box is blue.");
     assert.equal(result.postOutput.status, "completed");
     assert.deepEqual(operations, [
+      "retrieval_scope",
       "knowledge_analysis",
       "relation_classification",
     ]);
@@ -513,9 +534,9 @@ test("Kimi extraction and relation commit reach the NVIDIA payload without immut
   }
 });
 
-test("OpenAI-only Luna runtime keeps chat and semantic scope on native Responses and off NVIDIA", async () => {
+test("explicit Luna semantic setting wins with both provider credentials configured", async () => {
   const isolated = isolatedMemoryEnv({
-    NVIDIA_API_KEY: undefined,
+    NVIDIA_API_KEY: "nvapi-fixture",
     OPENAI_API_KEY: "sk-openai-fixture",
   });
   const originalFetch = globalThis.fetch;
@@ -578,6 +599,7 @@ test("OpenAI-only Luna runtime keeps chat and semantic scope on native Responses
     surface: "cli",
   });
   try {
+    updateSemantic(runtime.preferences, "gpt-5.6-luna", "high");
     const result = await runtime
       .openSession({ model: "gpt-5.6-luna" })
       .turn("The fixture box is blue.");
@@ -603,12 +625,18 @@ test("OpenAI-only Luna runtime keeps chat and semantic scope on native Responses
     assert.equal(
       calls
         .filter((call) => call.operation !== undefined)
-        .every((call) => call.body.reasoning?.effort === "none"),
+        .every((call) => call.body.reasoning?.effort === "high"),
       true,
     );
+    assert.deepEqual(
+      calls.find((call) => call.operation === undefined)?.body.reasoning,
+      { effort: "medium", summary: "auto" },
+    );
     assert.equal(
-      calls.find((call) => call.operation === undefined)?.body.reasoning?.effort,
-      "medium",
+      calls
+        .filter((call) => call.operation !== undefined)
+        .every((call) => call.body.reasoning?.summary === undefined),
+      true,
     );
     assert.equal(
       "records" in result.postOutput && result.postOutput.records.length > 0,
@@ -647,6 +675,7 @@ test("malformed social extraction preserves the delivered answer and leaves memo
     }),
   });
   try {
+    updateSemantic(runtime.preferences, "moonshotai/kimi-k3");
     const session = runtime.openSession({ model: "moonshotai/kimi-k3" });
     const result = await session.turn("Hello, good evening.");
     assert.equal(result.postOutput.status, "staging_failed");

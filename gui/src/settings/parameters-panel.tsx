@@ -15,6 +15,7 @@ import { RuntimeCapabilitiesPanel } from "./runtime-capabilities-panel.js";
 
 type ParameterPage =
   | "model"
+  | "semantic"
   | "provider"
   | "radar"
   | "runtime"
@@ -24,6 +25,7 @@ type ParameterPage =
 
 const PARAMETER_TABS: readonly { id: ParameterPage; label: string }[] = [
   { id: "model", label: "Model" },
+  { id: "semantic", label: "Semantic" },
   { id: "provider", label: "Provider" },
   { id: "radar", label: "Zero Cost" },
   { id: "runtime", label: "Runtime" },
@@ -572,15 +574,17 @@ export function ParametersPanel(props: {
           <AppearancePanel />
         </div>
         {session.details?.runtimePreferences &&
-        (page === "budgets" || page === "instructions") ? (
+        (page === "semantic" || page === "budgets" || page === "instructions") ? (
           <GlobalSettingsForm
             key={session.sessionId}
             session={session}
             initial={session.details.runtimePreferences}
             page={page}
+            models={models}
           />
         ) : page !== "model" &&
           page !== "provider" &&
+          page !== "semantic" &&
           page !== "radar" &&
           page !== "runtime" &&
           page !== "appearance" &&

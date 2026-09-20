@@ -167,18 +167,28 @@ bare `ChatSession` for tests and direct callers.
 Live CLI and ACP chat without an injected transport use
 `createConfiguredChatTransport` (A008-0114 over A008-0073/0087/0088, with
 A008-0127 embedded execution). The default is `EmbeddedAcmeChatTransport`.
-Explicit model identity still owns routing: A008 derives the ACME selection and
-provider hint from the selected built-in/user-catalog profile, while ACME owns
-only execution. Any one of `NVIDIA_API_KEY`, `KIE_API_KEY`, or
-`OPENAI_API_KEY` is enough to compose the relevant embedded route.
+Chat model identity and semantic model identity are explicit A008-owned choices:
+chat uses the session model while retrieval-scope classification, post-output
+extraction, relation classification and source-knowledge extraction use the
+persisted Runtime Preferences semantic model. A008 derives each ACME selection
+and provider hint from that chosen built-in/user-catalog profile, while ACME owns
+only execution. `NVIDIA_API_KEY`, `KIE_API_KEY`, and `OPENAI_API_KEY` authorize
+the corresponding routes but credential presence never selects the semantic
+model.
 `A008_CHAT_TRANSPORT=direct` selects the prior direct dispatch path;
 `A008_CHAT_TRANSPORT=acme` selects the remote sidecar path and requires its
 runtime URL. The Luna function-tools restriction is specific to the direct
 OpenAI Chat Completions reference path: that adapter keeps the A008-owned
 effective `reasoningEffort: "none"` guard without rewriting selected session
 state. Embedded ACME OpenAI execution uses native Responses and preserves the
-selected reasoning effort, including function-tool turns. Stream usage handling
-and other provider-specific payload rules remain in the provider adapters. Image generation on the host
+selected reasoning effort, including function-tool turns. For streamed Responses
+requests with reasoning enabled, A008 additionally requests OpenAI's provider
+reasoning summary (`reasoning.summary=auto`). ACME maps summary deltas onto the
+existing transient reasoning channel; the GUI shows that channel as Thought.
+This is not raw chain-of-thought and it is never committed to dialogue or memory.
+Non-streaming semantic JSON calls do not request reasoning summaries. Stream
+usage handling and other provider-specific payload rules remain in the provider
+adapters. Image generation on the host
 follows `imageProvider`: NVIDIA NIMs or kie Market jobs
 (`POST /api/v1/jobs/createTask` then poll `GET /api/v1/jobs/recordInfo`).
 
@@ -194,9 +204,11 @@ implements no fallback or retry policy.
 Live Nemotron streams may emit only a short prefix on `reasoning_content` and
 continue the same chain-of-thought on `content` before the user-visible answer.
 The transport normalizes those channel transitions so reasoning never becomes
-`message.content` or content deltas. Semantic JSON calls use a dedicated
-non-thinking generation profile and never inherit chat `enableThinking` or
-`reasoningBudget`. Intake receives only `verifiedFinalAnswer`. Successful chat
+`message.content` or content deltas. Semantic JSON calls use their own generation
+profile and never inherit chat `enableThinking`, `reasoningBudget` or reasoning
+effort. Runtime Preferences owns the semantic reasoning-effort value separately;
+models that expose effort default to `none` for semantic work unless the operator
+selects another supported effort. Intake receives only `verifiedFinalAnswer`. Successful chat
 with failed post-output is a degraded memory outcome, not a failed chat turn.
 
 The CLI is one composition surface. `models` and help work without a key. `chat`
@@ -271,7 +283,10 @@ approval boundary and existing runtime budgets. Duplicate or unknown model tool
 calls fail closed and name the id or tool. ACP stderr `memory>` diagnostics are
 not concatenated onto unrelated turn errors. In the standalone GUI, tool activity
 renders inside the assistant turn in the transcript, not as a footer above the
-composer. The bundled standalone GUI may let
+composer. A008-0145 makes the aggregate tool disclosure stable for one tool
+cycle: the first running snapshot may open it, later running/completed transitions
+do not force it closed or reopened, and an explicit user collapse remains owned
+by the user until the cycle clears. The bundled standalone GUI may let
 the operator choose Allow all for the current GUI session; this is local client
 state that answers later permission requests and resets on reconnect, not model-
 derived authority or a persistent policy. These tools do not create another
@@ -557,21 +572,29 @@ conversation within the owned ACP session. End session releases it and leaves
 the page running. These operations do not delete saved memory.
 
 The header Parameters dialog includes Appearance, which selects Neutral, Deep
-Space, or Oldscool without a connected session. Model, Provider, Budgets and Instructions
-remain session/runtime controls. Appearance is renderer-local only.
+Space, or Oldscool without a connected session. Model owns the current chat
+session controls. Semantic is a separate global runtime surface for semantic
+model and semantic reasoning effort; Provider owns credentials, while Budgets
+and Instructions remain global runtime controls. Appearance is renderer-local
+only.
 
 The header Parameters dialog uses endpoint capability metadata from GET
 /v1/models. Stream, temperature omission or 0–1, top P, total generated-token
 budget, supported reasoning toggles/budgets/efforts, seed and stop sequences
-are applied as a complete per-session configuration. Null survives default
-merges and omits the provider field; temperature 0 remains an explicit value.
-The reasoning budget is omitted while reasoning is disabled. Input tokens and
-semantic-memory processing are outside the chat output budget. Values and
+are applied as a complete per-session chat configuration. Luna and Terra default
+chat output to 128,000 tokens, their declared output maximum. Null survives
+default merges and omits the provider field; temperature 0 remains an explicit
+value. The reasoning budget is omitted while reasoning is disabled. Semantic
+processing has its own global model/reasoning choice and a 128,000-token output
+budget, capped by the selected semantic model's capability. Values and
 model-specific exclusions are validated before the provider call.
 
-`LocalMemorySession` owns this configuration. Chat uses the existing transport;
-retrieval/analyzer/classifier options remain independent. ACP advertises its
-custom control capability only when the composition registers the method.
+`LocalMemorySession` owns the per-session chat configuration. The shared runtime
+preference store owns the independent semantic model/reasoning configuration,
+and retrieval/analyzer/classifier/source extraction all resolve that same
+semantic choice at operation start. Chat and semantic work reuse the existing
+transport but do not silently inherit each other's model controls. ACP advertises
+its custom control capability only when the composition registers the method.
 The host serializes controls with prompts, checks socket ownership, cleans up
 failed/new sessions and refuses unsupported controls on older ACP bridges.
 Cancellation holds the busy state through the terminal acknowledgment.
@@ -872,12 +895,14 @@ existing exact ID-free proposal/candidate envelope. Both may share one generator
 and therefore one transport/model configuration without constructing another
 provider implementation or credential owner.
 
-The runtime uses the existing generation capability registry for semantic top P
-and output ceilings. Explicit null omits top P for Kimi K3; it cannot be restored
-by the generator default. Luna semantic JSON calls use reasoning effort `none`
-while chat defaults to `medium`, preserving the existing deterministic
-`temperature: 0` semantic profile. Other models retain their fixed semantic
-sampling.
+The runtime uses the existing generation capability registry for semantic top P,
+reasoning effort and output ceilings. Explicit null omits top P for Kimi K3; it
+cannot be restored by the generator default. The global semantic output budget
+defaults to 128,000 tokens and each call uses the lower of that value and the
+selected semantic model capability. Semantic reasoning effort is independently
+persisted; effort-capable models default to `none` unless the operator selects a
+supported level. Luna/Terra semantic calls omit unsupported temperature, while
+chat keeps its separate session reasoning choice.
 The classifier instruction distinguishes the input envelope from the output
 decision and gives concrete JSON shapes (A008-0083).
 A008-0085 adds serialized, fictional extractor examples covering empty social

@@ -58,6 +58,12 @@ export type RuntimeBudgetField = z.infer<typeof runtimeBudgetFieldSchema>;
 export const runtimePreferencesSchema = z.object({
   instructions: text,
   budgets: z.record(text, finite),
+  semantic: z
+    .object({
+      model: nonempty,
+      reasoningEffort: text.nullable(),
+    })
+    .optional(),
 });
 export type RuntimePreferences = z.infer<typeof runtimePreferencesSchema>;
 export const runtimePreferencesSnapshotSchema = z

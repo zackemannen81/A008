@@ -129,7 +129,7 @@ export const OPENAI_GPT_56_LUNA: ModelProfile = Object.freeze({
   provider: "openai",
   executionProvider: "openai",
   defaults: Object.freeze({
-    maxTokens: 16_384,
+    maxTokens: 128_000,
     reasoningEffort: "medium",
     stream: true,
   }),
@@ -144,7 +144,7 @@ export const OPENAI_GPT_56_TERRA: ModelProfile = Object.freeze({
   provider: "openai",
   executionProvider: "openai",
   defaults: Object.freeze({
-    maxTokens: 16_384,
+    maxTokens: 128_000,
     reasoningEffort: "medium",
     stream: true,
   }),

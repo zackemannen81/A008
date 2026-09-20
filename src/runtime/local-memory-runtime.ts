@@ -303,15 +303,35 @@ function semanticBudget(maximum: number): {
   };
 }
 
-function semanticGeneration(model: string, limits: RuntimeBudgets) {
+function semanticGeneration(
+  model: string,
+  limits: RuntimeBudgets,
+  selectedReasoningEffort: string | null = null,
+) {
   const capabilities = generationCapabilities(model);
+  if (
+    selectedReasoningEffort !== null &&
+    !capabilities.reasoningEfforts.includes(selectedReasoningEffort)
+  ) {
+    throw new ChatError(
+      "configuration",
+      `Semantic reasoning effort ${selectedReasoningEffort} is not supported for ${model}.`,
+    );
+  }
+  const semanticReasoningEffort =
+    capabilities.reasoningEfforts.length === 0
+      ? undefined
+      : (selectedReasoningEffort ?? "none");
   return {
     ...SEMANTIC_JSON_GENERATION,
     ...(capabilities.topP ? {} : { topP: null }),
     ...(capabilities.thinking ? {} : { enableThinking: null }),
     ...(model === "gpt-5.6-luna" || model === "gpt-5.6-terra"
-      ? { temperature: null, reasoningEffort: "none" }
+      ? { temperature: null }
       : {}),
+    ...(semanticReasoningEffort === undefined
+      ? {}
+      : { reasoningEffort: semanticReasoningEffort }),
     maxTokens: Math.min(limits.semanticOutputTokens, capabilities.maxTokens),
   };
 }
@@ -599,7 +619,7 @@ export class LocalMemorySession {
         field.key === "semanticOutputTokens"
           ? {
               ...field,
-              description: `${field.description} Saved effective limits: extraction/classification (${this.model}) ${semanticGeneration(this.model, snapshot.settings.budgets).maxTokens}; retrieval/source extraction (${DEFAULT_MODEL_ID}) ${semanticGeneration(DEFAULT_MODEL_ID, snapshot.settings.budgets).maxTokens}.`,
+              description: `${field.description} Saved effective semantic limit: ${snapshot.settings.semantic.model} ${semanticGeneration(snapshot.settings.semantic.model, snapshot.settings.budgets, snapshot.settings.semantic.reasoningEffort).maxTokens}.`,
             }
           : field,
       ),
@@ -1043,11 +1063,16 @@ export class LocalMemoryRuntime {
       recentMessageLimit: limits.recentMessages,
       systemInstructions: settings.instructions,
     });
+    const semanticProfile = this.#registry.require(settings.semantic.model);
     const generator = new ChatTransportSemanticJsonGenerator({
       transport: this.#transport,
-      model: chatSession.model,
+      model: semanticProfile.id,
       budget: budget(limits.semanticInputBytes),
-      generation: semanticGeneration(chatSession.model, limits),
+      generation: semanticGeneration(
+        semanticProfile.id,
+        limits,
+        settings.semantic.reasoningEffort,
+      ),
     });
     const intakeBudget = semanticBudget(limits.stagingBytes);
     const intake = new PostOutputKnowledgeIntake({
@@ -1209,13 +1234,18 @@ export class LocalMemoryRuntime {
     utteranceId: string,
     signal: AbortSignal | undefined,
   ): Promise<SourceKnowledgeOutcome> {
-    const limits = this.preferences.current.budgets;
-    const profile = this.#registry.require(DEFAULT_MODEL_ID);
+    const settings = this.preferences.current;
+    const limits = settings.budgets;
+    const profile = this.#registry.require(settings.semantic.model);
     const generator = new ChatTransportSemanticJsonGenerator({
       transport: this.#transport,
       model: profile.id,
       budget: budget(limits.semanticInputBytes),
-      generation: semanticGeneration(profile.id, limits),
+      generation: semanticGeneration(
+        profile.id,
+        limits,
+        settings.semantic.reasoningEffort,
+      ),
     });
     // A source is not a conversation. It gets its own conversation and task
     // identity so nothing ties an uploaded file to whichever chat was open.
@@ -1424,13 +1454,10 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
     projectId,
     migrateV0: true,
   });
-  const semanticModelId = nvidiaOptions
-    ? DEFAULT_MODEL_ID
-    : openAiKey
-      ? "gpt-5.6-luna"
-      : DEFAULT_MODEL_ID;
   const scopes = new ConversationScopes();
   const createReader = (limits: RuntimeBudgets): MemoryReadPort => {
+    const semanticSettings = preferences.current.semantic;
+    const semanticProfile = registry.require(semanticSettings.model);
     const reader = new KnowledgeMemoryReader({
       context: knowledge.context,
       scopes,
@@ -1443,23 +1470,18 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
         maxTurnCharacters: limits.retrievalHistoryCharacters,
         maxSemanticQueries: limits.retrievalSemanticQueries,
       }),
-      // The one provider call retrieval makes. It places a message in subject
-      // areas it never names — "hur fungerar människans minne?" becomes
-      // neuroscience — which is what lets a record be found by what it is about
-      // rather than by which of its words the question happened to repeat.
-      //
-      // It uses the default model rather than whichever `/model` selected, for
-      // the same reason the semantic profile pins temperature to zero: this is
-      // A008's own classification step and its behaviour should not change when
-      // the operator switches the model they are talking to.
+      // Retrieval is a semantic-runtime operation. Its model is explicit in
+      // Runtime Preferences and never inferred from whichever provider key
+      // happens to be configured on this machine.
       scopeClassifier: new ModelBackedRetrievalScopeClassifier(
         new ChatTransportSemanticJsonGenerator({
           transport,
-          model: registry.require(semanticModelId).id,
+          model: semanticProfile.id,
           budget: budget(limits.semanticInputBytes),
           generation: semanticGeneration(
-            registry.require(semanticModelId).id,
+            semanticProfile.id,
             limits,
+            semanticSettings.reasoningEffort,
           ),
         }),
         { maximumVocabulary: limits.retrievalVocabulary },
