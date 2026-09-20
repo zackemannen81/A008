@@ -37,7 +37,7 @@
   --a008-overlay: rgba(0, 0, 0, 0.6);
   --a008-grid: rgba(238, 238, 238, 0.026);
   /* Themes may override this asset without changing transcript code. */
-  --a008-image-generating-asset: url("/image-generating.gif");
+  --a008-image-generating-asset: url("/loading.gif");
 
   --a008-viz-identity: #e8c547;
   --a008-viz-state: #5b8def;

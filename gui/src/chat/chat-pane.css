@@ -92,7 +92,7 @@
   aspect-ratio: 1;
   background-image: var(
     --a008-image-generating-asset,
-    url("/image-generating.gif")
+    url("/loading.gif")
   );
   background-position: center;
   background-repeat: no-repeat;
