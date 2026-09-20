@@ -869,7 +869,7 @@ test("generateImage applies the host snapshot in place instead of appending a de
               generationId,
               prompt: "a lonely lighthouse during a storm",
               status: "completed",
-              locator: `source://${"ab".repeat(32)}/lighthouse.png`,
+              locator: `source:${"ab".repeat(32)}/lighthouse.png`,
               mediaType: "image/png",
               filename: "lighthouse.png",
             },

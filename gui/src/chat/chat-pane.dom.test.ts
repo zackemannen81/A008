@@ -455,7 +455,7 @@ test("image generation reserves and resolves its original transcript position", 
                 generationId: "image-1",
                 prompt: "lighthouse",
                 status: "completed",
-                locator: `source://${"ab".repeat(32)}/image.png`,
+                locator: `source:${"ab".repeat(32)}/image.png`,
                 mediaType: "image/png",
                 filename: "image.png",
               },
@@ -500,7 +500,7 @@ test("image items retain request order when their completion states differ", () 
                 generationId: "second",
                 prompt: "second",
                 status: "completed",
-                locator: `source://${"cd".repeat(32)}/image.png`,
+                locator: `source:${"cd".repeat(32)}/image.png`,
                 mediaType: "image/png",
                 filename: "image.png",
               },
@@ -510,7 +510,7 @@ test("image items retain request order when their completion states differ", () 
       }),
     }),
   );
-  assert.ok(html.indexOf("[IMAGE GENERATING]") < html.indexOf("two"));
+  assert.ok(html.indexOf("Generating image…") < html.indexOf("two"));
   assert.ok(
     html.indexOf("two") <
       html.indexOf(`src="/v1/blobs/${"cd".repeat(32)}/image.png"`),

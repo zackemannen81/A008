@@ -4,9 +4,7 @@ import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
 import { ChatPane } from "./chat/chat-pane.js";
 import {
-  persistShortcutDockVisible,
   ShortcutDock,
-  shortcutDockVisible,
   type EmptyShortcutId,
 } from "./chat/empty-shortcuts.js";
 import { Composer } from "./composer/composer.js";
@@ -61,7 +59,7 @@ export function App() {
   const [page, setPage] = useState<Page>("chat");
   const [toolsOpen, setToolsOpen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
-  const [shortcutsOpen, setShortcutsOpen] = useState(() => shortcutDockVisible());
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [toolSurface, setToolSurface] = useState<ToolSurface>("terminal");
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [sources, setSources] = useState<readonly SessionSource[]>([]);
@@ -257,8 +255,8 @@ export function App() {
             className="a008-certified"
             src="/acme-engine-certified.png"
             alt="Running ACME-engine certified"
-            width={1280}
-            height={1164}
+            width={120}
+            height={120}
           />
           <p>A008 · Local-engine</p>
         </div>
@@ -313,6 +311,7 @@ export function App() {
                 setCanvasOpen(!canvasOpen);
                 setFilesOpen(false);
                 setToolsOpen(false);
+                setShortcutsOpen(false);
               }}
             >
               Canvas{artifact ? " •" : ""}
@@ -324,6 +323,7 @@ export function App() {
               onClick={() => {
                 setFilesOpen(!filesOpen);
                 setCanvasOpen(false);
+                setShortcutsOpen(false);
               }}
             >
               Files
@@ -335,9 +335,28 @@ export function App() {
               onClick={() => {
                 setToolsOpen(!toolsOpen);
                 setCanvasOpen(false);
+                setShortcutsOpen(false);
               }}
             >
               Workbench
+            </button>
+            <button
+              type="button"
+              className="a008-shortcuts-trigger"
+              aria-label="Shortcuts"
+              title="Shortcuts"
+              aria-expanded={shortcutsOpen}
+              aria-controls="a008-shortcut-dock"
+              onClick={() => {
+                setShortcutsOpen((open) => !open);
+                setFilesOpen(false);
+                setToolsOpen(false);
+                setCanvasOpen(false);
+              }}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 7 17 17M10 17h7v-7" />
+              </svg>
             </button>
             </>
           ) : null}
@@ -381,17 +400,7 @@ export function App() {
         hidden={page !== "chat" || filesOpen || toolsOpen || canvasOpen}
         open={shortcutsOpen}
         onShortcut={onShortcut}
-        onHide={() => {
-          setShortcutsOpen(false);
-          persistShortcutDockVisible(false);
-        }}
-        onOpen={() => {
-          setShortcutsOpen(true);
-          setFilesOpen(false);
-          setToolsOpen(false);
-          setCanvasOpen(false);
-          persistShortcutDockVisible(true);
-        }}
+        onClose={() => setShortcutsOpen(false)}
       />
       <aside
         className="a008-code-canvas-float"

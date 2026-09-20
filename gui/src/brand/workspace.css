@@ -47,28 +47,38 @@
 .a008-header-actions { gap: .6rem; flex-shrink: 0; }
 .a008-header-status { font-size: .7rem; text-transform: none; letter-spacing: normal; }
 .a008-connection-dot { box-shadow: none; width: .4rem; height: .4rem; }
-.a008-panel-toggle, .a008-navigation-toggle, .a008-header .a008-parameters-open {
+.a008-panel-toggle, .a008-navigation-toggle, .a008-header .a008-parameters-open, .a008-shortcuts-trigger {
   background: transparent; border: 1px solid var(--a008-border); border-radius: .5rem;
   color: var(--a008-fg-soft); padding: .5rem .65rem; font: inherit; font-size: .75rem; cursor: pointer;
 }
-.a008-panel-toggle[aria-expanded="true"] { background: var(--a008-panel); }
+.a008-panel-toggle[aria-expanded="true"], .a008-shortcuts-trigger[aria-expanded="true"] {
+  background: var(--a008-panel);
+}
+.a008-shortcuts-trigger {
+  display: grid; place-items: center; width: 2.2rem; min-width: 2.2rem; padding: .45rem;
+}
+.a008-shortcuts-trigger svg {
+  width: 1rem; height: 1rem; fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.a008-shortcuts-trigger:hover { color: var(--a008-accent); border-color: var(--a008-border-strong); }
 .a008-navigation-toggle { display: none; }
 .a008-app .a008-main, .a008-app .a008-memory-main, .a008-app .a008-help-main { grid-column: 2; grid-row: 2; background: var(--a008-bg); min-width: 0; min-height: 0; }
 .a008-app .a008-main { padding: 0 1.5rem 1rem; }
 .a008-help-main { overflow: auto; }
 .a008-shortcut-dock {
-  position: absolute; top: 4.35rem; right: 1.1rem; width: 20.5rem; z-index: 5;
+  position: absolute; top: 4.1rem; right: 1.1rem; width: 20.5rem; z-index: 7;
   display: flex; flex-direction: column; align-items: stretch; gap: .35rem;
+  padding: .7rem; border: 1px solid var(--a008-border); border-radius: 1rem;
+  background: var(--a008-panel); box-shadow: var(--a008-shadow-panel);
 }
-.a008-shortcut-dock-collapsed { width: auto; align-items: flex-end; }
 .a008-shortcut-dock .a008-empty-shortcuts { margin: 0; max-width: none; width: 100%; }
-.a008-shortcut-hide, .a008-shortcut-show {
-  align-self: flex-end; background: var(--a008-panel); border: 1px solid var(--a008-border);
-  border-radius: .5rem; color: var(--a008-muted); padding: .35rem .65rem; font: inherit;
-  font-size: .72rem; cursor: pointer;
+.a008-shortcut-hide {
+  align-self: flex-end; width: 1.8rem; height: 1.8rem; padding: 0;
+  display: grid; place-items: center; background: transparent; border: 1px solid transparent;
+  border-radius: .45rem; color: var(--a008-muted); font: 1rem/1 inherit; cursor: pointer;
 }
-.a008-shortcut-show { color: var(--a008-fg-soft); }
-.a008-shortcut-hide:hover, .a008-shortcut-show:hover { border-color: var(--a008-border-strong); color: var(--a008-fg); }
+.a008-shortcut-hide:hover { border-color: var(--a008-border-strong); color: var(--a008-fg); }
 .a008-environment-float, .a008-files-float, .a008-code-canvas-float {
   position: absolute; top: 4.35rem; right: 1.1rem; width: 22.5rem;
   max-height: calc(100% - 5.2rem); overflow: auto; z-index: 6;
@@ -219,7 +229,9 @@
   .a008-composer-footer button { max-width: 100%; }
   .a008-header-title { font-size: .8rem; gap: .4rem; }
   .a008-header-actions { gap: .25rem; }
-  .a008-header .a008-parameters-open, .a008-panel-toggle { padding-inline: .45rem; font-size: .7rem; }
+  .a008-header .a008-parameters-open, .a008-panel-toggle, .a008-shortcuts-trigger {
+    padding-inline: .45rem; font-size: .7rem;
+  }
   .a008-chat-transcript { padding: 1rem .25rem; }
 }
 .a008-parameters .a008-parameter-toggle { display: flex; }

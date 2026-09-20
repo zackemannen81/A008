@@ -8,7 +8,7 @@ export function generatedImageSrc(image: GeneratedImage): string {
 }
 
 export function generatedImageLocatorSrc(locator: string): string | undefined {
-  const match = /^source:\/\/([a-f0-9]{64})\/(.+)$/u.exec(locator.trim());
+  const match = /^source:([a-f0-9]{64})\/(.+)$/u.exec(locator.trim());
   if (match === null) return undefined;
   return `/v1/blobs/${match[1]}/${encodeURIComponent(match[2]!)}`;
 }

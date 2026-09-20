@@ -32,7 +32,7 @@ test("generateImage posts the prompt and maps the stored locator to a blob URL",
 test("generatedImageLocatorSrc maps a source-store locator and ignores provider URLs", () => {
   const sha = "ab".repeat(32);
   assert.equal(
-    generatedImageLocatorSrc(`source://${sha}/storm.png`),
+    generatedImageLocatorSrc(`source:${sha}/storm.png`),
     `/v1/blobs/${sha}/storm.png`,
   );
   assert.equal(

@@ -55,34 +55,25 @@ export function ShortcutDock(props: {
   readonly hidden: boolean;
   readonly open: boolean;
   readonly onShortcut: (id: EmptyShortcutId) => void;
-  readonly onOpen: () => void;
-  readonly onHide: () => void;
+  readonly onClose: () => void;
 }) {
+  if (props.hidden || !props.open) return null;
   return (
     <aside
-      className={`a008-shortcut-dock${props.open ? "" : " a008-shortcut-dock-collapsed"}`}
-      hidden={props.hidden}
+      id="a008-shortcut-dock"
+      className="a008-shortcut-dock"
+      aria-label="Shortcuts"
     >
-      {props.open ? (
-        <>
-          <button
-            type="button"
-            className="a008-shortcut-hide"
-            onClick={props.onHide}
-          >
-            Hide shortcuts
-          </button>
-          <EmptyShortcuts onShortcut={props.onShortcut} />
-        </>
-      ) : (
-        <button
-          type="button"
-          className="a008-shortcut-show"
-          onClick={props.onOpen}
-        >
-          Shortcuts
-        </button>
-      )}
+      <button
+        type="button"
+        className="a008-shortcut-hide"
+        aria-label="Close shortcuts"
+        title="Close shortcuts"
+        onClick={props.onClose}
+      >
+        ×
+      </button>
+      <EmptyShortcuts onShortcut={props.onShortcut} />
     </aside>
   );
 }

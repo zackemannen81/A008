@@ -79,9 +79,14 @@ function ImageTurnView({ turn }: { readonly turn: ChatImageTurn }) {
     >
       <span className="a008-chat-label">Image</span>
       {turn.status === "pending" ? (
-        <p className="a008-chat-bubble a008-chat-bubble-answer">
-          [IMAGE GENERATING]
-        </p>
+        <div
+          className="a008-image-generating"
+          role="status"
+          aria-label="Generating image"
+        >
+          <div className="a008-image-generating-media" aria-hidden="true" />
+          <span>Generating image…</span>
+        </div>
       ) : null}
       {turn.status === "failed" ? (
         <p className="a008-chat-bubble a008-chat-bubble-answer">
