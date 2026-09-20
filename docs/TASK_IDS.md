@@ -44,7 +44,7 @@ never whether work is active or complete. Task state belongs in
 | A008-0025 | split state from history | unassigned | 2026-09-02 | M4 bindings, intervals, RECONCILE, UPDATE |
 | A008-0026 | first-class evidence and acceptance | unassigned | 2026-09-02 | M5 utterance, claim, ACCEPT, typed payload |
 | A008-0027 | evidence lifecycle and retrieval intents | unassigned | 2026-09-02 | M6 lifecycle on evidence; history surface |
-| A008-0028 | knowledge storage redesign | unassigned | 2026-09-02 | M7 SQLite after in-memory S1â€“S10 |
+| A008-0028 | knowledge storage redesign | unassigned | 2026-09-02 | M7 SQLite after in-memory S1Ã¢â‚¬â€œS10 |
 | A008-0029 | CLI slash commands and native terminal tool | Grok (operator) | 2026-09-02 | interactive /commands and /shell; reject LangChain community |
 | A008-0030 | A008-owned GUI program | Grok (operator / boss) | 2026-09-02 | parent; sole main merger |
 | A008-0031 | adopt A008 GUI boundary | Grok (operator / boss) | 2026-09-02 | ADR 0019 and gui stub shell |
@@ -103,7 +103,7 @@ never whether work is active or complete. Task state belongs in
 | A008-0085 | extraction JSON contract and live regression | Codex (operator) | 2026-09-08 | remove prompt pseudocode, distinguish durable facts from greetings and identify failing model/operation |
 | A008-0086 | standalone GUI allow-all tool approval | Codex (operator) | 2026-09-08 | session-scoped third permission choice; no protocol expansion |
 | A008-0087 | OpenAI GPT-5.6 Luna provider | Codex (operator) | 2026-09-09 | OpenAI chat-completions transport, secure key handling, model controls and provider-isolated semantic calls |
-| A008-0090 | A008-integrerad kod-canvas | Rickard (operator) | 2026-09-09 | chat-driven lokal HTML/Canvas-rendering Ã¶ver befintlig GUI/session/approval-grÃ¤ns |
+| A008-0090 | A008-integrerad kod-canvas | Rickard (operator) | 2026-09-09 | chat-driven lokal HTML/Canvas-rendering ÃƒÂ¶ver befintlig GUI/session/approval-grÃƒÂ¤ns |
 | A008-0091 | session code artifact and isolated HTML/Canvas preview | Codex (operator) | 2026-09-09 | transient in-chat code content, local editor/preview, repository writes remain explicit approved tools |
 | A008-0092 | mobile WebSocket recovery | Codex (operator) | 2026-09-09 | host heartbeat, bounded reconnect and short authenticated ACP-session resume grace |
 | A008-0093 | global app theme system | Grok (operator) | 2026-09-11 | persistent semantic Neutral and Deep Space GUI themes |
@@ -143,7 +143,7 @@ never whether work is active or complete. Task state belongs in
 | A008-0127 | embedded ACME model-runtime migration | ChatGPT (operator) | 2026-09-18 | replace default HTTP sidecar execution with in-process acme-engine while preserving A008 ownership of model selection, memory, prompts and tools |
 | A008-0128 | embedded OpenAI output-token wire compatibility | ChatGPT (operator) | 2026-09-18 | consume acme-engine 0.1.4 and select max_completion_tokens for embedded OpenAI Chat Completions profiles |
 | A008-0129 | Luna function-tools reasoning compatibility | ChatGPT (operator) | 2026-09-18 | force effective reasoning_effort none for GPT-5.6 Luna Chat Completions turns that include function tools |
-| A008-0130 | unified attachments | ChatGPT (operator) | 2026-09-18 | Unified prompt attachments: clipboard paste, file picker, drag/drop och local filepath → same source locator pipeline.|
+| A008-0130 | unified attachments | ChatGPT (operator) | 2026-09-18 | Unified prompt attachments: clipboard paste, file picker, drag/drop och local filepath â†’ same source locator pipeline.|
 | A008-0131 | native OpenAI Responses routing for Luna | ChatGPT (operator) | 2026-09-18 | consume acme-engine 0.1.5 and route OpenAI/Luna through native Responses while leaving NVIDIA/KIE compatible routes unchanged |
 | A008-0132 | Stage 4 turn identity and ordered snapshot foundation | ChatGPT (operator) | 2026-09-18 | first bounded Stage-4 child: application turn/message identity, monotonic session events, authoritative snapshot boundary and explicit terminal turn outcomes |
 | A008-0133 | OpenAI GPT-5.6 Terra selectable profile | ChatGPT (operator) | 2026-09-19 | add Terra beside Luna through the existing OpenAI/Responses model-selection path without changing defaults |
@@ -161,3 +161,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0145 | explicit chat/semantic model controls and stable tool summary | ChatGPT (operator) | 2026-09-20 | provider routing, reasoning summary, max-output defaults and chat tool-summary stability |
 | A008-0146 | README current-state synchronization after Stage 4 closure | Rickard (operator) | 2026-09-20 | docs-only README alignment with completed Stage 4 and subsequent user-visible updates |
 | A008-0147 | project conversation session restore | ChatGPT (operator) | 2026-09-21 | reopen a registered project into its existing canonical conversation history instead of an empty chat |
+| A008-0148 | user-configured MCP servers and Settings surface | Rickard (operator) | 2026-09-21 | product/GUI configuration and lifecycle for existing MCP tool support |
