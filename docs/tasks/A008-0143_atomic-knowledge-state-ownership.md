@@ -2,8 +2,9 @@
 
 Task ID: A008-0143
 Parent Task: None
-Status: Ready
+Status: Superseded
 Owner: A008 (operator)
+Superseded by: A008-0144
 Created: 2026-09-20
 Last updated: 2026-09-20
 Charter frozen at: 2026-09-20
@@ -130,6 +131,7 @@ Contract revision: `3532bcd8a0546e79dde1dbdb4e2623ca387ad0c6`
 - Do not solve this by adding another versioning abstraction, another canonical-status field, or retrieval-time truth reconstruction.
 - Existing storage and ontology are reused unless a concrete failing acceptance test proves a bounded change is necessary.
 - Git/HEAD analogy: treat `current_state` like the checked-out `main` HEAD. Read the current state, change only the affected semantic address, and commit one atomic transition. The resulting state is the new truth surface; earlier states remain history/provenance, like prior commits. Retrieval must not vote among old commits to rediscover HEAD.
+- Superseded 2026-09-20 by A008-0144 after the live empty-store smoke test showed that the synthetic-state fix worked but the remaining `user-assertion-v1` state-admission boundary was too narrow. Preserve 0143's implementation/tests as predecessor input; do not merge PR #83 standalone.
 
 ## Charter Amendment Log
 
@@ -152,9 +154,9 @@ Contract revision: `3532bcd8a0546e79dde1dbdb4e2623ca387ad0c6`
 
 ## Handoff and Follow-ups
 
-- Current state: Ready; task chartered after owner review of live memory behavior.
-- Next recommended step: start after A008-0142 is complete/integrated, reproduce the acceptance failures first, then make the smallest model-compliant correction.
-- Blockers: do not overlap writes with the active A008-0142 worktree.
+- Current state: Superseded by A008-0144 before merge; the completed worker implementation remains reusable predecessor work.
+- Next recommended step: continue through A008-0144 using the 0143 implementation lineage plus the owner-approved `CURRENT_MEMORY_MODEL.md`; do not merge PR #83 standalone.
+- Blockers: none for the successor charter.
 - Child tasks: none at freeze.
 - Open questions: existing corrupted/currently competing live records may require a separately reviewed repair step after prevention is verified.
 
