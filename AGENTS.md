@@ -27,8 +27,9 @@ Read these in order before changing the repository:
 4. `docs/CONTRIBUTING.md`
 5. `docs/CURRENT_STATUS.md`
 6. `docs/SYSTEMDOC.md`
-7. `docs/JOURNAL.md`
-8. `docs/FILESTRUCTURE.md`
+7. `docs/CURRENT_MEMORY_MODEL.md` when work touches knowledge, state, memory, retrieval or context
+8. `docs/JOURNAL.md`
+9. `docs/FILESTRUCTURE.md`
 
 Read relevant decisions under `docs/adr/` and the multi-agent rules in
 `docs/MULTIAGENT.md` when a task delegates work.
@@ -41,6 +42,7 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
 - `docs/PROJECT_BRIEF.md`: core product contract, approved direction and non-goals.
 - `docs/CURRENT_STATUS.md`: observed current reality and verified gaps.
 - `docs/SYSTEMDOC.md`: durable behavior that actually exists.
+- `docs/CURRENT_MEMORY_MODEL.md`: owner-approved current knowledge/state/memory/context semantics; older memory-model documents and ADR clauses are historical where this file explicitly supersedes the same boundary.
 - `docs/JOURNAL.md`: append-only, dated work waves.
 - `docs/FILESTRUCTURE.md`: repository map.
 - `docs/TASK_IDS.md`: identity allocation only.

@@ -414,7 +414,8 @@ A008/
    |- JOURNAL.md                     append-only work waves
    |- FILESTRUCTURE.md               this repository map
    |- TASK_IDS.md                    task address allocation
-   |- KNOWLEDGE_MEMORY_MODEL.md      accepted knowledge constitution (ADR 0018)
+   |- CURRENT_MEMORY_MODEL.md        owner-approved current knowledge/state/memory/context target
+   |- KNOWLEDGE_MEMORY_MODEL.md      prior knowledge constitution; historical where superseded by current model
    |- KNOWLEDGE_MODEL_GAP_ANALYSIS.md v0-vs-model violations and sequence
    |- tasks/                         frozen program and child charters; operator delegates from here
    |- handoffs/                      worker integration handoffs
