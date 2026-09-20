@@ -82,6 +82,34 @@
       "properties": {
         "type": {
           "type": "string",
+          "const": "image/generate/ok"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "generationId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "state": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "sessionId",
+        "generationId",
+        "state"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
           "const": "session/control/ok"
         },
         "requestId": {
@@ -401,7 +429,19 @@
                 ]
               },
               "content": {
-                "$ref": "#/$defs/__schema1"
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/__schema1"
+                  },
+                  {
+                    "readOnly": true,
+                    "minItems": 1,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/$defs/__schema9"
+                    }
+                  }
+                ]
               }
             },
             "required": [
@@ -574,6 +614,68 @@
         },
         {
           "type": "null"
+        }
+      ]
+    },
+    "__schema9": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "text"
+            },
+            "text": {
+              "$ref": "#/$defs/__schema1"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "generated_image"
+            },
+            "generationId": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "prompt": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "completed",
+                "failed",
+                "cancelled"
+              ]
+            },
+            "locator": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "mediaType": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "filename": {
+              "$ref": "#/$defs/__schema0"
+            },
+            "error": {
+              "$ref": "#/$defs/__schema1"
+            }
+          },
+          "required": [
+            "type",
+            "generationId",
+            "prompt",
+            "status"
+          ]
         }
       ]
     }

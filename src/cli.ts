@@ -4,7 +4,7 @@ import { createInterface } from "node:readline/promises";
 import { ModelToolSession } from "./tools/model-tools.js";
 import { pathToFileURL } from "node:url";
 import { parseSlash, SLASH_HELP } from "./cli/slash.js";
-import { chatContentText } from "./core/chat-content.js";
+import { chatContentDisplay } from "./core/chat-content.js";
 import { ChatError, isChatError } from "./core/errors.js";
 import { isIdentityError } from "./identity/errors.js";
 import { isMemoryError } from "./memory/errors.js";
@@ -138,7 +138,9 @@ async function handleSlash(
         return "continue";
       }
       for (const message of turns) {
-        out.write(`${message.role}: ${preview(chatContentText(message.content))}\n`);
+        out.write(
+          `${message.role}: ${preview(chatContentDisplay(message.content))}\n`,
+        );
       }
       return "continue";
     }

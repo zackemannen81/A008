@@ -1,4 +1,4 @@
-import { chatContentText } from "./chat-content.js";
+import { chatContentDisplay, chatContentText } from "./chat-content.js";
 import { ChatError } from "./errors.js";
 import type { ChatMessage, ChatTextMessage } from "./types.js";
 
@@ -118,7 +118,7 @@ export function composeChatInvocation(
     );
   const dialogue = committedMessages.flatMap((message) => {
     if (message.role === "system") return [];
-    const content = chatContentText(message.content).trim();
+    const content = chatContentDisplay(message.content).trim();
     return content.length === 0 ? [] : [{ role: message.role, content }];
   });
   const boundedDialogue =

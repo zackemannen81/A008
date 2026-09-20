@@ -15,10 +15,10 @@
           "$ref": "#/$defs/__schema1"
         },
         "fields": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "storagePath": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema6"
         }
       },
       "required": [
@@ -138,7 +138,19 @@
             ]
           },
           "content": {
-            "$ref": "#/$defs/__schema0"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/__schema0"
+              },
+              {
+                "readOnly": true,
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/__schema7"
+                }
+              }
+            ]
           }
         },
         "required": [
@@ -235,8 +247,7 @@
           "type": "object",
           "properties": {
             "model": {
-              "minLength": 1,
-              "$ref": "#/$defs/__schema0"
+              "$ref": "#/$defs/__schema3"
             },
             "reasoningEffort": {
               "anyOf": [
@@ -264,14 +275,18 @@
       "type": "number"
     },
     "__schema3": {
+      "minLength": 1,
+      "$ref": "#/$defs/__schema0"
+    },
+    "__schema4": {
       "readOnly": true,
       "minItems": 1,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema4"
+        "$ref": "#/$defs/__schema5"
       }
     },
-    "__schema4": {
+    "__schema5": {
       "type": "object",
       "properties": {
         "key": {
@@ -308,13 +323,75 @@
         "maximum"
       ]
     },
-    "__schema5": {
+    "__schema6": {
       "anyOf": [
         {
           "$ref": "#/$defs/__schema0"
         },
         {
           "type": "null"
+        }
+      ]
+    },
+    "__schema7": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "text"
+            },
+            "text": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "generated_image"
+            },
+            "generationId": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "prompt": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "completed",
+                "failed",
+                "cancelled"
+              ]
+            },
+            "locator": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "mediaType": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "filename": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "error": {
+              "$ref": "#/$defs/__schema0"
+            }
+          },
+          "required": [
+            "type",
+            "generationId",
+            "prompt",
+            "status"
+          ]
         }
       ]
     }

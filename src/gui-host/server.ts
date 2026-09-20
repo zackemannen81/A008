@@ -1338,6 +1338,21 @@ async function handleSocketMessage(input: {
     sendSocket(input.ws, errorMessage(parsed), input.secrets);
     return;
   }
+  const forwardSessionMessage = (
+    sessionId: string,
+    message: GuiHostServerMessage,
+  ) => {
+    if (
+      input.activePrompts.has(sessionId) &&
+      (message.type === "thought" ||
+        message.type === "answer" ||
+        message.type === "tool" ||
+        message.type === "error")
+    ) {
+      return;
+    }
+    sendSocket(input.ws, message, input.secrets);
+  };
   try {
     if (parsed.type === "session/new") {
       const bridge = await input.getBridge();
@@ -1376,7 +1391,7 @@ async function handleSocketMessage(input: {
         input.observers.set(
           created.sessionId,
           bridge.subscribeSession(created.sessionId, (message) =>
-            sendSocket(input.ws, message, input.secrets),
+            forwardSessionMessage(created.sessionId, message),
           ),
         );
       }
@@ -1421,7 +1436,7 @@ async function handleSocketMessage(input: {
           input.observers.set(
             parsed.sessionId,
             bridge.subscribeSession(parsed.sessionId, (message) =>
-              sendSocket(input.ws, message, input.secrets),
+              forwardSessionMessage(parsed.sessionId, message),
             ),
           );
         }

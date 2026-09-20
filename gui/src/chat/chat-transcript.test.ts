@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { GuiSession } from "../session/types.js";
+import type { SessionSnapshot } from "../session/session-controls.js";
 import {
   buildChatTranscript,
   channelTexts,
@@ -185,6 +186,63 @@ test("suppressLive hides current buffers after a new user prompt", () => {
   assert.deepEqual(channels.user, ["Next question"]);
   assert.deepEqual(channels.thought, []);
   assert.deepEqual(channels.answer, []);
+});
+
+test("snapshot image items keep request order across pending and completed states", () => {
+  const locator = `source://${"ab".repeat(32)}/storm.png`;
+  const details: SessionSnapshot = {
+        model: "nvidia/nemotron-3.5-lightning-30b-a3b",
+        parameters: {
+          stream: true,
+          temperature: null,
+          topP: null,
+          maxTokens: 1024,
+          enableThinking: null,
+          reasoningBudget: null,
+          reasoningEffort: null,
+          seed: null,
+          stop: null,
+        },
+        messages: [
+          { role: "user", content: "first" },
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "generated_image",
+                generationId: "image-1",
+                prompt: "lighthouse",
+                status: "pending",
+              },
+            ],
+          },
+          { role: "user", content: "later text" },
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "generated_image",
+                generationId: "image-2",
+                prompt: "storm",
+                status: "completed",
+                locator,
+                mediaType: "image/png",
+                filename: "storm.png",
+              },
+            ],
+          },
+        ],
+        runtime: { cwd: "C:/test", projectId: null, memoryPath: null },
+  };
+  const transcript = buildChatTranscript({
+    session: fakeSession({ details }),
+  });
+  assert.deepEqual(
+    transcript.turns.map((turn) => turn.kind),
+    ["user", "image", "user", "image"],
+  );
+  assert.equal(transcript.turns[1]?.kind === "image" && transcript.turns[1].status, "pending");
+  assert.equal(transcript.turns[3]?.kind === "image" && transcript.turns[3].id, "image-2");
 });
 
 test("error stays off thought and answer channels", () => {

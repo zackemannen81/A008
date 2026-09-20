@@ -304,7 +304,9 @@ export class ChatSession {
         ...this.#messages,
         active.userMessage,
         ...active.imageMessages,
-        { ...completion.message },
+        ...(completion.message.content.trim() || active.imageMessages.length === 0
+          ? [{ ...completion.message }]
+          : []),
       ];
       return completion;
     } catch (error) {

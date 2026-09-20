@@ -96,6 +96,9 @@ function ImageTurnView({ turn }: { readonly turn: ChatImageTurn }) {
       {turn.status === "completed" && src ? (
         <img className="a008-chat-image" src={src} alt={turn.prompt} />
       ) : null}
+      {turn.status === "completed" && src === undefined ? (
+        <p className="a008-chat-bubble a008-chat-bubble-answer">[IMAGE]</p>
+      ) : null}
     </article>
   );
 }

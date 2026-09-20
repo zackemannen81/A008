@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { ChatSession } from "../src/core/chat-session.js";
+import { generatedImagePart } from "../src/core/chat-content.js";
 import { ChatError } from "../src/core/errors.js";
 import type {
   ChatCallbacks,
@@ -246,4 +247,79 @@ test("native image input survives same-turn tool continuation but never enters c
     { role: "assistant", content: "final answer" },
   ]);
   assert.equal(JSON.stringify(session.messages).includes("base64"), false);
+});
+
+test("generated images reserve immediately and resolve the same item in place", async () => {
+  const transport: ChatTransport = {
+    async complete() {
+      return { message: { role: "assistant", content: "later" } };
+    },
+  };
+  const session = new ChatSession({ model: "provider/model", transport });
+  session.reserveGeneratedImage("image_1", "a lonely lighthouse during a storm");
+  const pending = session.messages[0];
+  assert.deepEqual(pending, {
+    role: "assistant",
+    content: [
+      {
+        type: "generated_image",
+        generationId: "image_1",
+        prompt: "a lonely lighthouse during a storm",
+        status: "pending",
+      },
+    ],
+  });
+  await session.send("keep talking");
+  assert.equal(
+    session.resolveGeneratedImage("image_1", {
+      status: "completed",
+      locator: "source://aa".padEnd(9 + 64, "a") + "/lighthouse.png",
+      mediaType: "image/png",
+      filename: "lighthouse.png",
+    }),
+    true,
+  );
+  assert.equal(
+    session.resolveGeneratedImage("image_1", {
+      status: "completed",
+      locator: "source://duplicate",
+      mediaType: "image/png",
+      filename: "dup.png",
+    }),
+    true,
+  );
+  const first = generatedImagePart(session.messages[0]!.content);
+  assert.equal(first?.status, "completed");
+  assert.equal(first?.locator?.includes("lighthouse"), true);
+  assert.deepEqual(
+    session.messages.slice(1).map((message) => message.content),
+    ["keep talking", "later"],
+  );
+});
+
+test("generated image jobs keep request order when they complete in reverse", () => {
+  const session = new ChatSession({
+    model: "provider/model",
+    transport: {
+      async complete() {
+        return { message: { role: "assistant", content: "unused" } };
+      },
+    },
+  });
+  session.reserveGeneratedImage("image_1", "one");
+  session.reserveGeneratedImage("image_2", "two");
+  session.resolveGeneratedImage("image_2", {
+    status: "completed",
+    locator: "source://two",
+    mediaType: "image/png",
+    filename: "two.png",
+  });
+  session.resolveGeneratedImage("image_1", { status: "failed" });
+  const images = session.messages.map((message) =>
+    generatedImagePart(message.content),
+  );
+  assert.equal(images[0]?.generationId, "image_1");
+  assert.equal(images[0]?.status, "failed");
+  assert.equal(images[1]?.generationId, "image_2");
+  assert.equal(images[1]?.status, "completed");
 });

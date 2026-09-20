@@ -1,3 +1,5 @@
+A008-0142 adds `src/core/chat-content.ts` as the provider-neutral committed-content helper (string compatibility, typed `generated_image` parts, in-place pending/completed/failed/cancelled updates). `ChatSession`/`EngineHost` own the shared reserve→resolve lifecycle; `ModelToolSession` exposes bounded `generate_image`; V1 `image/generate` and snapshot `chatContentSchema` live in `packages/protocol/src`. The GUI reconstructs image turns from the host snapshot rather than a renderer-local image array. Provider jobs and the source store remain the durable media boundary; ACME does not generate images.
+
 A008-0141 adds the renderer-local Oldscool CRT presentation to the existing theme owner: `gui/src/brand/{theme,themes,a008}.ts*` owns identity, complete semantic tokens, static pointer-inert scanlines and chrome/control phosphor bloom; `gui/src/memory/memory.css` adds Oldscool-only bloom for primary Memory buttons. `gui/src/app.tsx` renders the inert overlay, while `gui/index.html` applies the persisted identity before React mounts. No host/runtime/session/provider/memory or sandboxed Code Canvas preview behavior changes.
 
 A008-0137 refines that existing read-only SVG presentation in `gui/src/memory/{memory-graph,memory-graph-shape,memory-graph-layout,memory.css}.tsx`: kind-specific neon forms and colours, directed arrows, selected stored-relation labels and parallel-topology width now make the bounded stored graph easier to inspect. Focus preserves the whole graph as dark dashed context while framing/emphasizing the selected neighbourhood. Arrow width is only the count of parallel displayed stored links in the same direction; it is never evidence strength or another memory semantic.
@@ -258,6 +260,7 @@ A008/
 |  |  `- server.ts                   stdio ACP executable composition root
 |  |- core/
 |  |  |- chat-invocation.ts          ephemeral context, history window, and exact request budget
+|  |  |- chat-content.ts             multimodal committed-content helpers and generated-image identity
 |  |  |- types.ts                    provider-neutral chat contracts
 |  |  |- errors.ts                   typed error taxonomy
 |  |  |- model-registry.ts           verified model profiles and lookup

@@ -28,6 +28,61 @@ import { startGuiHost } from "../src/gui-host/server.js";
 import { startSessionControlProvider } from "./fixtures/session-control-provider.js";
 import { WireClient } from "./fixtures/gui-wire-client.js";
 
+test("generate_image is offered only when the host supplies the shared owner", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-image-tool-"));
+  const started: string[] = [];
+  const withImage = new ModelToolSession({
+    cwd,
+    env: process.env,
+    generateImage: async (prompt) => {
+      started.push(prompt);
+    },
+  });
+  const withoutImage = new ModelToolSession({ cwd, env: process.env });
+  try {
+    const offered = await withImage.prepare(
+      budgets,
+      { approve: async () => true, update: async () => undefined },
+      new AbortController().signal,
+    );
+    const hidden = await withoutImage.prepare(
+      budgets,
+      { approve: async () => true, update: async () => undefined },
+      new AbortController().signal,
+    );
+    assert.equal(
+      offered.definitions.some((tool) => tool.name === "generate_image"),
+      true,
+    );
+    assert.equal(
+      hidden.definitions.some((tool) => tool.name === "generate_image"),
+      false,
+    );
+    const startedResult = JSON.parse(
+      await offered.execute({
+        id: "img-1",
+        name: "generate_image",
+        arguments: JSON.stringify({ prompt: "a red robot on the moon" }),
+      }),
+    );
+    assert.equal(startedResult.status, "completed");
+    assert.deepEqual(started, ["a red robot on the moon"]);
+    const denied = JSON.parse(
+      await offered.execute({
+        id: "img-2",
+        name: "generate_image",
+        arguments: JSON.stringify({ prompt: "no" }),
+      }),
+    );
+    assert.equal(denied.status, "invalid_arguments");
+    assert.deepEqual(started, ["a red robot on the moon"]);
+  } finally {
+    await withImage.close();
+    await withoutImage.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
 test("file tools preserve UTF-8/CRLF, reject stale and ambiguous edits, existing files and escaped paths", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "a008-repository-"));
   const outside = mkdtempSync(join(tmpdir(), "a008-outside-"));
