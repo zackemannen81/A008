@@ -22,9 +22,12 @@ import {
   saveProviderSecrets,
 } from "../core/provider-secrets.js";
 import {
+  activeMcpServers,
   addUserChatModel,
   loadUserCatalog,
+  parseUserCatalog,
   removeUserChatModel,
+  replaceUserMcpServers,
   saveUserCatalog,
   userModelProfile,
   type CatalogProvider,
@@ -41,6 +44,34 @@ export type FetchLike = typeof fetch;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function mcpServersView(catalogPath: string): {
+  servers: readonly import("../core/user-catalog.js").UserMcpServer[];
+} {
+  return { servers: loadUserCatalog(catalogPath).mcpServers };
+}
+
+export function handleMcpServersPost(
+  catalogPath: string,
+  body: unknown,
+): ReturnType<typeof mcpServersView> {
+  if (!isRecord(body) || !Array.isArray(body.servers)) {
+    throw new ChatError("configuration", "MCP servers must be an array.");
+  }
+  const parsed = parseUserCatalog({
+    ...loadUserCatalog(catalogPath),
+    mcpServers: body.servers,
+  });
+  saveUserCatalog(
+    catalogPath,
+    replaceUserMcpServers(loadUserCatalog(catalogPath), parsed.mcpServers),
+  );
+  return mcpServersView(catalogPath);
+}
+
+export function configuredMcpServers(catalogPath: string) {
+  return activeMcpServers(loadUserCatalog(catalogPath));
 }
 
 export function mergedModels(

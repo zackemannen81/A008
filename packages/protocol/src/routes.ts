@@ -11,6 +11,13 @@ export const v1HttpRoutes = [
   ],
   ["GET", "/v1/browser/frame-check", "host network probe", "browser-frame"],
   ["GET", "/v1/catalog/kie", "host catalog", "provider-routes"],
+  ["GET", "/v1/mcp-servers", "host MCP configuration", "provider-routes"],
+  [
+    "POST",
+    "/v1/mcp-servers",
+    "host MCP configuration mutation",
+    "provider-routes",
+  ],
   [
     "GET",
     "/v1/catalog/zero-cost",

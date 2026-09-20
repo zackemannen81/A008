@@ -4,6 +4,7 @@ import type {
   SessionNotification,
 } from "@agentclientprotocol/sdk";
 import { EngineHost } from "../engine/engine-host.js";
+import type { McpServer } from "@agentclientprotocol/sdk";
 import { ProjectRuntimeRegistry } from "../engine/project-runtime-registry.js";
 import type { AcpBridge, AcpPromptHandlers } from "./acp-bridge.js";
 
@@ -12,6 +13,7 @@ export function createLocalAcpBridge(options: {
   registry: ProjectRuntimeRegistry;
   env: NodeJS.ProcessEnv;
   cwd: string;
+  mcpServers?: () => readonly McpServer[];
 }): AcpBridge {
   const project = options.registry.openConfigured(options.cwd, options.env);
   const host = new EngineHost({
@@ -79,7 +81,7 @@ export function createLocalAcpBridge(options: {
     async newSession(model) {
       if (closed) throw new Error("Project bridge is closed.");
       const created = await host.newSession(
-        { cwd: project.cwd, mcpServers: [] },
+        { cwd: project.cwd, mcpServers: [...(options.mcpServers?.() ?? [])] },
         {
           notify,
           requestPermission: (params) => {

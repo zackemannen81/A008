@@ -1,7 +1,21 @@
 # Current Status
 
-Reality as of 2026-09-20. This document records observed state; intended design
+Reality as of 2026-09-21. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
+
+A008-0148 makes the existing stdio-only MCP capability configurable from bundled
+GUI Parameters → MCP. The existing user catalog persists validated named command,
+argument, non-secret environment and enabled-state definitions; empty configuration
+preserves no-MCP behavior. Authenticated V1 configuration routes and both bundled
+V1/V2 new-session construction paths resolve the same enabled definitions and pass
+them through the existing `EngineHost` → `ModelToolSession` owner. The renderer
+never spawns MCP processes. Changed configuration applies only to subsequently
+constructed sessions; active sessions retain their catalog and the UI states that
+requirement. Approval, cancellation, timeout and tool/catalog budget behavior
+remain in `ModelToolSession`; remote transports, session restoration and hot reload
+are not introduced. Verification: root/GUI typecheck, 703 core, 4 membership and
+187 GUI tests pass with 0 failures/skips; real-host HTTP coverage includes valid
+and malformed MCP configuration, and diff hygiene passes.
 
 A008-0144 is now the frozen successor memory-model task. `docs/CURRENT_MEMORY_MODEL.md` records the owner-approved target for claims/evidence, single-HEAD Current State, provenance/support, lifecycle/salience, retrieval/context construction and signed association attraction. A008-0143 is superseded before merge because its synthetic-state and atomic-HEAD fixes remain useful predecessor work but its residual `user-assertion-v1` state-admission boundary is too narrow. No A008-0144 runtime behavior is claimed yet; PR #83 must not merge standalone.
 

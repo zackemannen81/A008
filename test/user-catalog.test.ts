@@ -53,6 +53,42 @@ test("user catalog round-trips added chat models and image settings", () => {
   assert.equal(catalog.chatProvider, "nvidia");
   assert.equal(catalog.imageProvider, "nvidia");
   assert.equal(catalog.kie.chatModel, "gemini-3-flash");
+  assert.deepEqual(catalog.mcpServers, []);
+});
+
+test("user catalog persists validated stdio MCP servers and rejects unsupported shapes", () => {
+  const catalog = parseUserCatalog({
+    version: 1,
+    mcpServers: [
+      {
+        name: "fixture",
+        command: process.execPath,
+        args: ["server.mjs"],
+        env: [{ name: "FIXTURE_MODE", value: "test" }],
+        enabled: false,
+      },
+    ],
+  });
+  assert.equal(catalog.mcpServers[0]?.enabled, false);
+  assert.throws(
+    () =>
+      parseUserCatalog({
+        version: 1,
+        mcpServers: [{ name: "remote", url: "https://example.test" }],
+      }),
+    /MCP server/u,
+  );
+  assert.throws(
+    () =>
+      parseUserCatalog({
+        version: 1,
+        mcpServers: [
+          { name: "same", command: "a", args: [], env: [] },
+          { name: "same", command: "b", args: [], env: [] },
+        ],
+      }),
+    /unique/u,
+  );
 });
 
 test("secrets file stores a key and loads it without exposing it in thrown parse errors", () => {
