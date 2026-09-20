@@ -62,6 +62,12 @@ export interface RelationHop {
 
 export interface RelationIndexPort {
   neighbors(id: string): readonly RelationHop[];
+  adjustAttraction?(
+    edgeKey: string,
+    occurrenceId: string,
+    at: string,
+    signal: import("./association-lifecycle.js").AssociationAttractionSignal,
+  ): "adjusted" | "duplicate";
 }
 
 export interface KnowledgeReadContext {
@@ -114,6 +120,10 @@ export interface RetrievedRecord {
   readonly fromKind?: string;
   readonly toKind?: string;
   readonly strength?: number;
+  /** Signed contextual gravity from the association path; never truth. */
+  readonly attraction?: number;
+  /** Association actually used to reach this record, for exact-once feedback. */
+  readonly associationKey?: string;
   readonly memoryState?: MemoryLifecycleState;
   readonly evidenceId?: string;
   readonly evidenceKind?: EvidenceLifecycleKind;

@@ -138,6 +138,77 @@ test("a source claim is not accepted as a user assertion", async () => {
   });
 });
 
+test("0144 resolved source observation establishes HEAD without user acceptance", async () => {
+  await withContext(async (handle) => {
+    const sourceText = "ND-0001 status is In Progress.";
+    const ingested = ingest(
+      {
+        content: sourceText,
+        speaker: "repository-reader",
+        locator: "source:repo/docs/CURRENT_TASK.md",
+        relation: "derived_from",
+        scope: { verified: true },
+      },
+      { store: handle.context.evidence },
+    );
+    const utteranceId = ingested.utterances[0]?.id;
+    assert.ok(utteranceId);
+
+    const staged = batch(
+      { kind: "source", utteranceId },
+      "source:repo/docs/CURRENT_TASK.md",
+    );
+    const structured = {
+      kind: "attribute_binding" as const,
+      entityLabel: "ND-0001",
+      attribute: "status",
+      value: "In Progress",
+    };
+    const proposals = [
+      {
+        ...staged.proposals[0]!,
+        proposal: {
+          ...staged.proposals[0]!.proposal,
+          proposition: sourceText,
+          structuredProposition: structured,
+        },
+        entities: ["ND-0001"],
+      },
+    ];
+
+    await new KnowledgeEngineCommit({
+      context: handle.context,
+      classifier: alwaysNew,
+    }).commit({
+      batch: {
+        ...staged,
+        proposals,
+        serialized: JSON.stringify(proposals),
+      },
+      proposalIndex: 0,
+    });
+
+    const claim = handle.context.evidence
+      .listClaims()
+      .find((item) => item.label === sourceText);
+    assert.ok(claim);
+    assert.equal(claim.status, "asserted");
+    assert.equal(claim.attributedTo, "repository-reader");
+
+    const entity = handle.context.entities.findByIdentity("ND-0001");
+    assert.ok(entity);
+    const slot = handle.context.slots.list().find(
+      (item) =>
+        item.ref.kind === "attribute" &&
+        item.ref.entity === entity.id &&
+        item.ref.name === "status",
+    );
+    assert.ok(slot);
+    assert.equal(handle.context.state.currentValue(slot.ref), "In Progress");
+    assert.equal(handle.context.state.current(slot.ref).length, 1);
+  });
+});
+
 test("a dialogue claim still reaches the user-assertion policy", async () => {
   await withContext(async (handle) => {
     const before = handle.context.evidence.listUtterances().length;

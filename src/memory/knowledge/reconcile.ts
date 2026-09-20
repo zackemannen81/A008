@@ -3,7 +3,7 @@ import { slotKey } from "./registry.js";
 import {
   bindingValue,
   canSequenceAfter,
-  isAcceptanceEligible,
+  isStateReconciliationEligible,
   intervalsEqual,
   intervalsOverlap,
   isOpenInterval,
@@ -31,7 +31,7 @@ export function reconcile(
   const competing = claims.filter(
     (claim) =>
       claim.id !== proposal.id &&
-      isAcceptanceEligible(claim) &&
+      isStateReconciliationEligible(claim) &&
       intervalsOverlap(claim.aboutInterval, proposal.aboutInterval) &&
       !valuesEqual(claim.value, proposal.value),
   );

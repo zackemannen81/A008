@@ -37,6 +37,7 @@ import { accept } from "./accept.js";
 import { UNKNOWN_INSTANT } from "./clocks.js";
 import { asUtteranceId, recordClaimsFromUtterance } from "./evidence.js";
 import {
+  SEMANTIC_STATE_POLICY_ID,
   USER_ASSERTION_POLICY_ID,
   type ClaimDraft,
   type ClaimProposition,
@@ -336,7 +337,6 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       if (
         resolved &&
         classifierDecision.type === "restatement" &&
-        (origin.kind === "source" || currentTarget.status === "accepted") &&
         !["contested", "retracted", "rejected"].includes(
           currentTarget.status,
         ) &&
@@ -466,6 +466,8 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       const stateAddressable =
         staged.proposal.structuredProposition?.kind === "attribute_binding" ||
         staged.proposal.structuredProposition?.kind === "relationship_binding";
+      const stateReconciliationEligible =
+        stateAddressable && !startsAfter(aboutInterval.from, at);
       if (!stateAddressable) {
         let reinforcement = "not_eligible";
         if (
@@ -570,7 +572,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         fallbackValue: staged.proposal.proposition,
         causedBy: utteranceId,
         attributedTo: evidenceClaim?.attributedTo ?? claimOrigin,
-        acceptanceEligible: claimOrigin === "message",
+        stateEligible: stateReconciliationEligible,
         status: accepted ? "accepted" : "asserted",
         aboutInterval,
         resolveEntity: (label) => this.#context.entities.ensure(label, "entity").id,
@@ -582,7 +584,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       let relation: ReconciliationRelation = "new";
       const conflictTargetIds: string[] = [];
       let permitsReinforcement = true;
-      if (accepted) {
+      if (stateReconciliationEligible) {
         const decision = reconcile(this.#context.state, slotClaim, slot);
         if (
           classifierDecision.type === "conflict" ||
@@ -614,8 +616,11 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
             accept(
               {
                 claimId: evidenceClaim.id,
-                policy: ACCEPT_POLICY,
-                authority: { verified: true, speakerRole: "user" },
+                policy: { id: SEMANTIC_STATE_POLICY_ID },
+                authority: {
+                  verified: true,
+                  speakerRole: claimOrigin === "message" ? "user" : "third_party",
+                },
                 reconcileOutcome: "conflict",
                 competingClaimIds: appliedConflict.competingClaimIds.flatMap(
                   (id) => {
@@ -632,7 +637,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           conflictTargetIds.push(...appliedConflict.competingClaimIds);
         } else if (decision.outcome === "change") {
           update(this.#context.state, decision, {
-            decidedBy: USER_ASSERTION_POLICY_ID,
+            decidedBy: SEMANTIC_STATE_POLICY_ID,
           });
           relation =
             classifierDecision.type === "supersede" ||
@@ -646,7 +651,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           decision.outcome === "retraction"
         ) {
           update(this.#context.state, decision, {
-            decidedBy: USER_ASSERTION_POLICY_ID,
+            decidedBy: SEMANTIC_STATE_POLICY_ID,
           });
           permitsReinforcement = false;
           relation = "supersede";
@@ -1336,7 +1341,7 @@ function statementClaim(input: {
   readonly fallbackValue: string;
   readonly causedBy: string;
   readonly attributedTo: string;
-  readonly acceptanceEligible: boolean;
+  readonly stateEligible: boolean;
   readonly status: SlotClaim["status"];
   readonly aboutInterval: import("./types.js").Interval;
   readonly resolveEntity: (label: string) => Entity["id"];
@@ -1357,7 +1362,7 @@ function statementClaim(input: {
     attributedTo: input.attributedTo,
     causedBy: input.causedBy,
     kind: "assertion",
-    acceptanceEligible: input.acceptanceEligible,
+    stateEligible: input.stateEligible,
   };
 }
 
@@ -1399,6 +1404,11 @@ function asClassifierConflict(
     targetInterval: decision.proposal.aboutInterval,
     reason: "relation classifier judged the proposal to conflict",
   };
+}
+
+function startsAfter(from: Instant, at: string): boolean {
+  if (typeof from !== "string") return false;
+  return Date.parse(from) > Date.parse(at);
 }
 
 function exactUniqueSpan(

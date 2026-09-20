@@ -615,6 +615,50 @@ test("0143 future event remains evidence and never becomes current state", async
   assert.equal(context.state.claim(claim.id), undefined);
 });
 
+test("0144 resolved assistant-derived observation can own HEAD while remaining asserted", async () => {
+  const context = createKnowledgeContext(() => "2026-09-20T10:00:00.000Z");
+  const message = "Inspect the current task status.";
+  const answer = "ND-0001 status is In Progress.";
+  const batch = await stage(47, message, answer, [
+    {
+      severity: "important",
+      proposition: answer,
+      kind: "state",
+      structuredProposition: {
+        kind: "attribute_binding",
+        entityLabel: "ND-0001",
+        attribute: "status",
+        value: "In Progress",
+      },
+      entities: ["ND-0001"],
+      domains: ["repository-state"],
+    },
+  ]);
+
+  await commitOne(context, batch, () => ({ type: "new" }));
+
+  const claim = context.evidence
+    .listClaims()
+    .find((item) => item.label === answer);
+  assert.ok(claim);
+  assert.equal(claim.status, "asserted");
+  assert.equal(claim.attributedTo, "assistant");
+  assert.equal(claim.acceptance, undefined);
+
+  const entity = context.entities.findByIdentity("ND-0001");
+  assert.ok(entity);
+  const slot = context.slots.list().find(
+    (item) =>
+      item.ref.kind === "attribute" &&
+      item.ref.entity === entity.id &&
+      item.ref.name === "status",
+  );
+  assert.ok(slot);
+  assert.equal(context.state.currentValue(slot.ref), "In Progress");
+  assert.equal(context.state.current(slot.ref).length, 1);
+  assert.equal(context.state.current(slot.ref)[0]?.claimId, claim.id);
+});
+
 test("0122 answer-only discoveries use assistant provenance and never user acceptance", async () => {
   const context = createKnowledgeContext();
   const message = "Can you inspect the GUI dependencies?";

@@ -91,8 +91,9 @@ export function canSequenceAfter(
   return proposed.from > current.from;
 }
 
-export function isAcceptanceEligible(claim: SlotClaim): boolean {
-  if (!claim.acceptanceEligible) {
+export function isStateReconciliationEligible(claim: SlotClaim): boolean {
+  const eligible = claim.stateEligible ?? claim.acceptanceEligible ?? false;
+  if (!eligible) {
     return false;
   }
   return claim.status === "asserted" || claim.status === "accepted";
@@ -778,7 +779,12 @@ function cloneClaim(claim: SlotClaim): SlotClaim {
     attributedTo: claim.attributedTo,
     causedBy: claim.causedBy,
     kind: claim.kind,
-    acceptanceEligible: claim.acceptanceEligible,
+    ...(claim.stateEligible === undefined
+      ? {}
+      : { stateEligible: claim.stateEligible }),
+    ...(claim.acceptanceEligible === undefined
+      ? {}
+      : { acceptanceEligible: claim.acceptanceEligible }),
     ...(claim.retractsClaimId === undefined
       ? {}
       : { retractsClaimId: claim.retractsClaimId }),
