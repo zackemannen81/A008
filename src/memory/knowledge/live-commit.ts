@@ -56,7 +56,12 @@ import {
   selectUtteranceDomains,
   statementEntityLabel,
 } from "./write-policy.js";
-import type { Entity, KnowledgeIdFactory, SlotDefinition } from "./types.js";
+import type {
+  Entity,
+  Instant,
+  KnowledgeIdFactory,
+  SlotDefinition,
+} from "./types.js";
 
 export interface KnowledgeEngineCommitOptions {
   readonly policy?: MemoryLifecyclePolicy;
@@ -143,6 +148,18 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       origin.kind === "source"
         ? sourceUtterance?.content
         : input.batch.sourceMessage;
+    // A delivered dialogue turn has a real occurrence order. Do not discard it
+    // as UNKNOWN_INSTANT before the state machine can sequence later updates.
+    // Source material keeps its own assertedAt value because ingestion time is
+    // not a substitute for world/event time.
+    const stateFrom: Instant =
+      origin.kind === "dialogue"
+        ? at
+        : (sourceUtterance?.assertedAt ?? UNKNOWN_INSTANT);
+    const aboutInterval = staged.aboutInterval ?? {
+      from: stateFrom,
+      to: null,
+    };
     const span = staged.support;
     const validSupport =
       span !== undefined &&
@@ -332,22 +349,22 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           tags: [...(staged.proposal.tags ?? [])],
           domains: [...utteranceDomains],
         });
-        const committedSource = this.#context.evidence
-          .listUtterances()
-          .find((u) => u.id === utteranceId);
-        reinforcement =
-          !validSupport ||
-          classifierDecision.supportsTarget !== true ||
-          committedSource?.content !== source
-            ? "skipped_unproven_source"
-            : this.#context.lifecycle.reinforceOccurrence({
-                  occurrenceId,
-                  evidenceId: selected.id,
-                  at,
-                  support: { utteranceId, start: span.start, end: span.end },
-                })
-              ? "applied"
-              : "duplicate_or_creation";
+        reinforcement = this.#context.lifecycle.reinforceOccurrence({
+          occurrenceId,
+          evidenceId: selected.id,
+          at,
+          ...(validSupport
+            ? {
+                support: {
+                  utteranceId,
+                  start: span.start,
+                  end: span.end,
+                },
+              }
+            : {}),
+        })
+          ? "applied"
+          : "duplicate_or_creation";
         this.#context.entityReferences.attach(
           selected.id,
           structuralEntities.map((entity) => entity.id),
@@ -372,7 +389,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
             value: staged.proposal.proposition,
           },
           certainty: certaintyFromConfidence(staged.proposal.confidence),
-          aboutInterval: { from: UNKNOWN_INSTANT, to: null },
+          aboutInterval,
         },
       ];
       const recorded = recordClaimsFromUtterance(
@@ -441,6 +458,79 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         evidenceClaim !== undefined &&
         this.#context.evidence.requireClaim(evidenceClaim.id).status ===
           "accepted";
+
+      // Only propositions with an explicit semantic address may own current
+      // state. Free text, predicates, events and negations remain evidence
+      // until INTERPRET can resolve them to a concrete slot; inventing a
+      // sentence-hash statement slot would turn wording into truth identity.
+      const stateAddressable =
+        staged.proposal.structuredProposition?.kind === "attribute_binding" ||
+        staged.proposal.structuredProposition?.kind === "relationship_binding";
+      if (!stateAddressable) {
+        let reinforcement = "not_eligible";
+        if (
+          resolved &&
+          (classifierDecision.type === "restatement" ||
+            classifierDecision.type === "extend")
+        ) {
+          reinforcement = this.#context.lifecycle.reinforceOccurrence({
+            occurrenceId,
+            evidenceId: selected.id,
+            at,
+            ...(validSupport
+              ? {
+                  support: {
+                    utteranceId,
+                    start: span.start,
+                    end: span.end,
+                  },
+                }
+              : {}),
+          })
+            ? "applied"
+            : "duplicate_or_creation";
+        } else if (
+          classifierDecision.type === "restatement" ||
+          classifierDecision.type === "extend"
+        ) {
+          reinforcement = "unresolved_target";
+        }
+        const relation: ReconciliationRelation = classifierDecision.type;
+        const conflictTargetIds: string[] =
+          classifierDecision.type === "conflict"
+            ? classifierDecision.targetHandles.flatMap((handle) => {
+                const id = targets.get(handle)?.id;
+                return id === undefined ? [] : [String(id)];
+              })
+            : [];
+        const associationResults = applyAssociations(evidenceClaim?.id ?? "");
+        const mappedDecision = mappedReconciliation(classifierDecision, relation);
+        return {
+          classifierDecision,
+          reconciliationDecision: mappedDecision,
+          reconciliation: {
+            relation,
+            item: null,
+            previousItem: null,
+            conflictTargetIds,
+          },
+          evidence: {
+            associations: associationResults,
+            reinforcement,
+            materializedCandidateIds: candidates.map(
+              (candidate) => candidate.handle,
+            ),
+            classifierCandidateIds: candidates.map(
+              (candidate) => candidate.handle,
+            ),
+            classifierInputSerialized: serialized,
+            classifierInputMeasuredUnits: this.#measurer.measure(serialized),
+            classifierInputMeasurementUnit: this.#measurer.unit,
+          },
+          index: { status: "not_required" },
+        };
+      }
+
       const conflictTargetBindings =
         classifierDecision.type === "conflict"
           ? classifierDecision.targetHandles.map((handle) => {
@@ -476,10 +566,14 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       const slotClaim = statementClaim({
         id: evidenceClaim?.id ?? `slot:${this.#idFactory()}`,
         slot: slot.ref,
-        value: staged.proposal.proposition,
+        proposition: staged.proposal.structuredProposition,
+        fallbackValue: staged.proposal.proposition,
         causedBy: utteranceId,
         attributedTo: evidenceClaim?.attributedTo ?? claimOrigin,
         acceptanceEligible: claimOrigin === "message",
+        status: accepted ? "accepted" : "asserted",
+        aboutInterval,
+        resolveEntity: (label) => this.#context.entities.ensure(label, "entity").id,
       });
       if (this.#context.state.claim(slotClaim.id) === undefined) {
         this.#context.state.recordClaim(slotClaim);
@@ -506,14 +600,36 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           // would throw on the `change` it was handed. So the decision is
           // restated as the conflict the classifier found, naming the open
           // members it competes with.
-          this.#context.state.applyConflict(
+          const appliedConflict =
             decision.outcome === "conflict"
               ? decision
-              : asClassifierConflict(decision, this.#context.state, slot),
-          );
+              : asClassifierConflict(decision, this.#context.state, slot);
+          this.#context.state.applyConflict(appliedConflict);
+          if (evidenceClaim !== undefined) {
+            const evidenceClaims = new Map(
+              this.#context.evidence
+                .listClaims()
+                .map((claim) => [String(claim.id), claim] as const),
+            );
+            accept(
+              {
+                claimId: evidenceClaim.id,
+                policy: ACCEPT_POLICY,
+                authority: { verified: true, speakerRole: "user" },
+                reconcileOutcome: "conflict",
+                competingClaimIds: appliedConflict.competingClaimIds.flatMap(
+                  (id) => {
+                    const competing = evidenceClaims.get(id);
+                    return competing === undefined ? [] : [competing.id];
+                  },
+                ),
+              },
+              this.#context.evidence,
+            );
+          }
           permitsReinforcement = false;
           relation = "conflict";
-          conflictTargetIds.push(...decision.competingClaimIds);
+          conflictTargetIds.push(...appliedConflict.competingClaimIds);
         } else if (decision.outcome === "change") {
           update(this.#context.state, decision, {
             decidedBy: USER_ASSERTION_POLICY_ID,
@@ -544,24 +660,25 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         (classifierDecision.type === "restatement" ||
           classifierDecision.type === "extend")
       ) {
-        if (!resolved) reinforcement = "skipped_unresolved_target";
-        else if (!validSupport || classifierDecision.supportsTarget !== true)
-          reinforcement = "skipped_unproven_source";
-        else {
-          const committedSource = this.#context.evidence
-            .listUtterances()
-            .find((u) => u.id === utteranceId);
-          if (committedSource?.content !== source)
-            reinforcement = "skipped_changed_source";
-          else
-            reinforcement = this.#context.lifecycle.reinforceOccurrence({
-              occurrenceId,
-              evidenceId: selected.id,
-              at,
-              support: { utteranceId, start: span.start, end: span.end },
-            })
-              ? "applied"
-              : "duplicate_or_creation";
+        if (!resolved) {
+          reinforcement = "unresolved_target";
+        } else {
+          reinforcement = this.#context.lifecycle.reinforceOccurrence({
+            occurrenceId,
+            evidenceId: selected.id,
+            at,
+            ...(validSupport
+              ? {
+                  support: {
+                    utteranceId,
+                    start: span.start,
+                    end: span.end,
+                  },
+                }
+              : {}),
+          })
+            ? "applied"
+            : "duplicate_or_creation";
         }
       }
       const associationResults = applyAssociations(evidenceClaim?.id ?? "");
@@ -1031,8 +1148,8 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         content,
         speaker,
         locator,
-        assertedAt: UNKNOWN_INSTANT,
-        ingestedAt: UNKNOWN_INSTANT,
+        assertedAt: at,
+        ingestedAt: at,
         scope: {
           verified: true,
           ...(input.batch.proposals[0]?.proposal.scope === undefined
@@ -1106,6 +1223,56 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     structuredProposition: ClaimProposition | undefined,
     proposition: string,
   ): SlotDefinition {
+    if (structuredProposition?.kind === "attribute_binding") {
+      const entity = this.#context.entities.ensure(
+        structuredProposition.entityLabel,
+        "entity",
+      );
+      const ref = {
+        kind: "attribute" as const,
+        entity: entity.id,
+        name: structuredProposition.attribute,
+      };
+      const existing = this.#context.slots.get(ref);
+      if (existing !== undefined) return existing;
+      const definition: SlotDefinition = {
+        ref,
+        cardinality: "single",
+        valueType:
+          structuredProposition.value === null
+            ? "null"
+            : typeof structuredProposition.value,
+      };
+      this.#context.slots.register(definition);
+      return definition;
+    }
+
+    if (structuredProposition?.kind === "relationship_binding") {
+      const subject = this.#context.entities.ensure(
+        structuredProposition.subjectLabel,
+        "entity",
+      );
+      this.#context.entities.ensure(structuredProposition.objectLabel, "entity");
+      const ref = {
+        kind: "relation" as const,
+        subject: subject.id,
+        name: structuredProposition.relation,
+      };
+      const existing = this.#context.slots.get(ref);
+      if (existing !== undefined) {
+        return existing.cardinality === "set"
+          ? existing
+          : this.#context.slots.widenToSet(ref);
+      }
+      const definition: SlotDefinition = {
+        ref,
+        cardinality: "set",
+        valueType: "referent",
+      };
+      this.#context.slots.register(definition);
+      return definition;
+    }
+
     const currentMatch = this.#context.state
       .snapshot()
       .bindings.find(
@@ -1120,12 +1287,8 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         return existingSlot;
       }
     }
-    const structuredOwner = propositionOwnerLabel(structuredProposition);
-    const label = structuredOwner ?? statementEntityLabel(proposition);
-    const entity = this.#context.entities.ensure(
-      label,
-      structuredOwner === undefined ? "statement" : "entity",
-    );
+    const label = statementEntityLabel(proposition);
+    const entity = this.#context.entities.ensure(label, "statement");
     const ref = {
       kind: "attribute" as const,
       entity: entity.id,
@@ -1133,33 +1296,12 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     };
     const found = this.#context.slots.get(ref);
     if (found !== undefined) {
-      if (found.cardinality !== "single") {
-        return found;
-      }
-      // A statement slot registered before this task carries the old
-      // cardinality, and a slot definition is durable, so leaving it would keep
-      // producing false conflicts in every store that already exists. Upgrading
-      // widens what the slot admits and invalidates no binding it already
-      // holds: every current binding stays open and stays current.
-      return this.#context.slots.widenToSet(ref);
+      return found.cardinality === "set"
+        ? found
+        : this.#context.slots.widenToSet(ref);
     }
     const definition: SlotDefinition = {
       ref,
-      // A set, not a single value. `<entity>.statement` is a bag of things said
-      // about an entity, and the analyzer instruction asks for *every* distinct
-      // durable claim — so an entity routinely has many. Single cardinality
-      // encoded "an entity has exactly one statement", which is false by
-      // construction, and `reconcile` then read two different true facts as a
-      // disagreement: conflict, `applyConflict`, and a slot marked contested
-      // permanently. The next proposal on that entity threw "UPDATE fails when
-      // the slot is contested", the batch died, and every later turn about the
-      // same subject died with it.
-      //
-      // The relation classifier had said `new` for all of them. Its judgement
-      // was correct and a mechanical cardinality rule overruled it. Genuine
-      // contradiction detection belongs to the classifier, which is what
-      // ADR 0018 makes it; single cardinality was catching real disagreement
-      // only by accident and false disagreement constantly.
       cardinality: "set",
       valueType: "string",
     };
@@ -1190,21 +1332,28 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
 function statementClaim(input: {
   readonly id: string;
   readonly slot: SlotDefinition["ref"];
-  readonly value: string;
+  readonly proposition: ClaimProposition | undefined;
+  readonly fallbackValue: string;
   readonly causedBy: string;
   readonly attributedTo: string;
   readonly acceptanceEligible: boolean;
+  readonly status: SlotClaim["status"];
+  readonly aboutInterval: import("./types.js").Interval;
+  readonly resolveEntity: (label: string) => Entity["id"];
 }): SlotClaim {
-  if (input.slot.kind !== "attribute") {
-    throw new Error("live commit writes attribute statement slots only");
-  }
+  const value =
+    input.proposition?.kind === "attribute_binding"
+      ? input.proposition.value
+      : input.proposition?.kind === "relationship_binding"
+        ? input.resolveEntity(input.proposition.objectLabel)
+        : input.fallbackValue;
   return {
     id: input.id,
     slot: input.slot,
-    value: input.value,
-    label: input.value,
-    aboutInterval: { from: UNKNOWN_INSTANT, to: null },
-    status: "asserted",
+    value,
+    label: input.fallbackValue,
+    aboutInterval: structuredClone(input.aboutInterval),
+    status: input.status,
     attributedTo: input.attributedTo,
     causedBy: input.causedBy,
     kind: "assertion",

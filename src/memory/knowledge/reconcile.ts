@@ -4,7 +4,9 @@ import {
   bindingValue,
   canSequenceAfter,
   isAcceptanceEligible,
+  intervalsEqual,
   intervalsOverlap,
+  isOpenInterval,
   type KnowledgeState,
   valuesEqual,
 } from "./state.js";
@@ -102,6 +104,54 @@ export function reconcile(
       competingClaimIds,
       targetInterval: target.interval,
       reason: "explicit correction amends a past interval in place",
+    });
+  }
+
+  if (
+    slot.cardinality === "single" &&
+    !isOpenInterval(proposal.aboutInterval)
+  ) {
+    const overlappingBindings = history.filter((binding) =>
+      intervalsOverlap(binding.interval, proposal.aboutInterval),
+    );
+    const exact = overlappingBindings.find(
+      (binding) =>
+        intervalsEqual(binding.interval, proposal.aboutInterval) &&
+        valuesEqual(bindingValue(binding), proposal.value),
+    );
+    if (exact !== undefined) {
+      return decision("re_assertion", {
+        proposal,
+        slot,
+        from: bindingValue(exact),
+        to: proposal.value,
+        competingClaimIds,
+        targetInterval: exact.interval,
+        reason: "proposal restates an already-recorded historical interval",
+      });
+    }
+    if (overlappingBindings.length > 0) {
+      return decision("conflict", {
+        proposal,
+        slot,
+        from: currentValue,
+        to: proposal.value,
+        competingClaimIds: uniqueIds([
+          ...competingClaimIds,
+          ...overlappingBindings.map((binding) => binding.claimId),
+        ]),
+        targetInterval: proposal.aboutInterval,
+        reason: "historical interval overlaps an incompatible recorded interval",
+      });
+    }
+    return decision("change", {
+      proposal,
+      slot,
+      from: null,
+      to: proposal.value,
+      competingClaimIds,
+      targetInterval: null,
+      reason: "closed non-overlapping interval adds historical state without changing current state",
     });
   }
 

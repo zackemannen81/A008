@@ -10,7 +10,9 @@ import type {
   RuntimeTaskId,
 } from "../identity/types.js";
 import { MemoryError } from "../memory/errors.js";
+import { deserializeInterval } from "../memory/knowledge/clocks.js";
 import { parseClaimProposition } from "../memory/knowledge/claim-proposition.js";
+import type { Interval } from "../memory/knowledge/types.js";
 import type { KnowledgeProposal } from "../memory/types.js";
 import type { SemanticOperationContext } from "./semantic-operation.js";
 
@@ -62,6 +64,8 @@ export interface AnalyzedKnowledgeDraft {
   readonly proposition: string;
   readonly kind: string;
   readonly structuredProposition?: unknown;
+  /** Explicit validity interval when the source establishes one. */
+  readonly aboutInterval?: unknown;
   readonly tags?: readonly string[];
   readonly domains?: readonly string[];
   readonly entities?: readonly string[];
@@ -276,6 +280,7 @@ export type StagePostOutputKnowledgeInput =
 export interface StagedKnowledgeProposal {
   readonly severity?: KnowledgeSeverity;
   readonly support?: KnowledgeSupportSpan;
+  readonly aboutInterval?: Interval;
   readonly proposal: KnowledgeProposal;
   readonly domains: readonly string[];
   readonly entities: readonly string[];
@@ -505,6 +510,9 @@ export function serializeStagedKnowledgeProposals(
       ...(entry.proposal.structuredProposition === undefined
         ? {}
         : { structuredProposition: entry.proposal.structuredProposition }),
+      ...(entry.aboutInterval === undefined
+        ? {}
+        : { aboutInterval: entry.aboutInterval }),
       tags: [...(entry.proposal.tags ?? [])],
       scope: [...entry.proposal.scope],
       domains: [...entry.domains],
@@ -654,11 +662,9 @@ export class PostOutputKnowledgeIntake {
             : {}),
         },
       );
-      if (resolvedSupport?.ok === false) {
-        skipped.push(
-          `proposal ${index + 1} reinforcement skipped: ${resolvedSupport.reason}`,
-        );
-      }
+      // Evidence support is optional provenance. A quote/span miss must not
+      // turn a valid semantic proposal into a skipped proposal or gate later
+      // reinforcement; only attach support when runtime can verify it exactly.
       const kind = nonEmpty(raw.kind, `proposal ${index + 1} kind`);
       const semanticKey = `${kind.toLowerCase()}\u0000${proposition.toLowerCase()}`;
       if (seen.has(semanticKey)) {
@@ -690,6 +696,19 @@ export class PostOutputKnowledgeIntake {
           );
         }
       }
+      let aboutInterval: Interval | undefined;
+      if (raw.aboutInterval !== undefined) {
+        try {
+          aboutInterval = deserializeInterval(JSON.stringify(raw.aboutInterval));
+        } catch (error) {
+          throw new MemoryError(
+            "policy",
+            error instanceof Error
+              ? `proposal ${index + 1} ${error.message}`
+              : `proposal ${index + 1} has invalid aboutInterval`,
+          );
+        }
+      }
       const proposal: KnowledgeProposal = {
         proposition,
         kind,
@@ -715,6 +734,7 @@ export class PostOutputKnowledgeIntake {
         ...(resolvedSupport?.ok === true
           ? { support: resolvedSupport.span }
           : {}),
+        ...(aboutInterval === undefined ? {} : { aboutInterval }),
         proposal,
         domains: normalizedStrings(
           raw.domains,

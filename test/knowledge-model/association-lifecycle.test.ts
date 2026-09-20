@@ -407,15 +407,23 @@ for (const durable of [false, true])
         return decision(input);
       });
       assert.deepEqual(edgeOnly.evidence.associations, ["created"]);
+      const afterEdgeOnly = context.lifecycle
+        .list()
+        .filter((r) => r.evidenceKind === "claim");
+      assert.equal(
+        afterEdgeOnly.find((r) => r.evidenceId === link.from)!.lifecycle.strength,
+        1,
+        "semantic restatement reinforces the actual claim even when claim support is not attached",
+      );
       assert.deepEqual(
-        context.lifecycle.list().filter((r) => r.evidenceKind === "claim"),
-        endpoints.records.filter((r) => r.evidenceKind === "claim"),
+        afterEdgeOnly.find((r) => r.evidenceId === link.to),
+        endpoints.records.find((r) => r.evidenceId === link.to),
       );
       assert.deepEqual(context.state.snapshot(), state);
       const created = relations(context).associationSnapshot();
       assert.equal(created.records[0]!.key, associationKey(link));
       assert.equal(created.receipts.length, 1);
-      assert.equal(context.lifecycle.snapshot().receipts!.length, 0);
+      assert.equal(context.lifecycle.snapshot().receipts!.length, 1);
       await commit(context, staged, (input) => decision(input));
       assert.deepEqual(relations(context).associationSnapshot(), created);
       time = day(90);
@@ -450,6 +458,7 @@ for (const durable of [false, true])
       const claimReceipt = context.lifecycle
         .snapshot()
         .receipts!.find((r) => r.occurrenceId === edgeReceipt.occurrenceId)!;
+      assert.ok(claimReceipt.support);
       assert.equal(
         edgeReceipt.support.utteranceId,
         claimReceipt.support.utteranceId,
@@ -649,7 +658,11 @@ test("A28/A29: imported source recurrence retains provenance and deduplicates co
       .locator,
     "source:routes",
   );
-  assert.equal(context.lifecycle.snapshot().receipts!.length, 0);
+  assert.equal(
+    context.lifecycle.snapshot().receipts!.length,
+    1,
+    "reimported source makes the claim actual once; duplicate source occurrence is idempotent",
+  );
 });
 
 test("A25/A29/A30: existing semantic call creates a proposal edge once, ignores model policy and preserves read projection boundaries", async () => {

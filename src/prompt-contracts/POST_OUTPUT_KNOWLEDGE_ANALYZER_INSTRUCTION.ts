@@ -14,7 +14,7 @@ export const POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION = [
   "Use double quotes for every JSON property name and string value.",
   "Do not output Markdown, comments, explanatory prose, trailing commas, single-quoted strings, unquoted values, or additional wrapper objects.",
 
-  "Each array item may contain only: proposition, kind, structuredProposition, tags, domains, entities, confidence, severity and support.",
+  "Each array item may contain only: proposition, kind, structuredProposition, aboutInterval, tags, domains, entities, confidence, severity and support.",
 
   // ---------------------------------------------------------------------------
   // ELIGIBILITY GATE
@@ -135,6 +135,16 @@ export const POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION = [
   "Use only source-grounded labels and values in structuredProposition.",
   "Do not invent structure merely to avoid the runtime's explicit-statement fallback.",
   "Omit structuredProposition when the source is genuinely unstructured or structure would require guessing.",
+
+  // ---------------------------------------------------------------------------
+  // TEMPORAL VALIDITY
+  // ---------------------------------------------------------------------------
+
+  'aboutInterval is optional. Use it only when the source explicitly establishes a validity interval that can be represented without guessing: {"from":string|{"unknown":true},"to":string|{"unknown":true}|null}.',
+  "Use source-grounded absolute timestamps/dates when they are unambiguous. Do not use ingestion time as a substitute for event/world time.",
+  "A closed past interval belongs to historical state; it must not be rewritten as a current assertion.",
+  "A future event or plan must remain future/event knowledge and must not be emitted as an open current-state attribute merely because it is asserted now.",
+  "If a past/future qualifier cannot be normalized safely from the supplied context, preserve it in proposition and avoid inventing an open current-state structured binding.",
 
   // ---------------------------------------------------------------------------
   // ENTITY EXTRACTION

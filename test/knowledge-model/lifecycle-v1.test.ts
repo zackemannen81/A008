@@ -287,7 +287,7 @@ test("A19/A22: invalid policy/time, zero lambda, underflow, backwards clock and 
 });
 
 for (const durable of [false, true]) {
-  test(`A14-A18/A20/A29: exact source proof, read isolation, rollback, duplicates and cancellation (${durable ? "SQLite" : "memory"})`, async () => {
+  test(`A14-A18/A20/A29: semantic actuality, read isolation, rollback, duplicates and cancellation (${durable ? "SQLite" : "memory"})`, async () => {
     const directory = mkdtempSync(join(tmpdir(), "a008-l2-"));
     const filename = join(directory, "fixture.sqlite");
     let time = day(0);
@@ -350,7 +350,9 @@ for (const durable of [false, true]) {
         ),
       );
       assert.deepEqual(captureSnapshot(context), beforeCancel);
-      // Missing/answer-only source and a semantically rejected question/quotation never reinforce.
+      // Reinforcement follows semantic actuality, not evidence attachment.
+      // Each distinct turn makes the same knowledge current/relevant again,
+      // even when it is a question, quotation, or has no exact support span.
       await commit(
         context,
         await batch(4, "Tell me about the valve", false),
@@ -368,7 +370,8 @@ for (const durable of [false, true]) {
         "restatement",
         false,
       );
-      assert.equal(context.lifecycle.snapshot().receipts!.length, 1);
+      assert.equal(context.lifecycle.snapshot().receipts!.length, 4);
+      near(context.lifecycle.get(target)!.lifecycle.strength, 0.9);
       const inspected = inspectKnowledge(context, { projectId, durable });
       const detail = JSON.parse(
         inspected.records.find(
@@ -394,12 +397,12 @@ for (const durable of [false, true]) {
               reopened.context.lifecycle.get(target)!.lifecycle,
               time,
             ).strength,
-            0.15,
+            0.45,
           );
           await commit(reopened.context, recurrence, "restatement");
           assert.equal(
             reopened.context.lifecycle.snapshot().receipts!.length,
-            1,
+            4,
           );
         } finally {
           reopened.close();
@@ -708,7 +711,7 @@ test("A16/A17/A29: relation matrix, unresolved target and namespace separation",
     batch: await batch(2),
     proposalIndex: 0,
   });
-  assert.equal(result.evidence.reinforcement, "skipped_unresolved_target");
+  assert.equal(result.evidence.reinforcement, "unresolved_target");
   assert.equal(context.lifecycle.snapshot().receipts!.length, 0);
   const isolated = createKnowledgeContext(() => day(0));
   await commit(isolated, await batch(1));
