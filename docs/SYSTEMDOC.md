@@ -191,6 +191,12 @@ usage handling and other provider-specific payload rules remain in the provider
 adapters. Image generation on the host
 follows `imageProvider`: NVIDIA NIMs or kie Market jobs
 (`POST /api/v1/jobs/createTask` then poll `GET /api/v1/jobs/recordInfo`).
+A008-0142 keeps that provider path as the media owner. Manual GUI generation and
+the structured model tool `generate_image` both call the same EngineHost
+lifecycle: reserve a pending assistant image item, copy successful bytes into
+the existing source store, then resolve that item in place. The model never
+sees Kie job IDs, credentials or temporary media URLs. ACME executes the chat
+turn that may invoke the tool; it does not generate the image.
 
 CLI chat and A008 ACP now use `createLocalMemoryRuntime`, which injects one
 transport into answer and semantic calls. Identity, SQLite path, and debug
@@ -322,9 +328,12 @@ command itself.
 
 `WS /v1/session` uses the in-process fixed-project bridge and shared EngineHost
 session facade (A008-0109); the registry owns its runtime. Frames follow ADR 0019 D4 with the additive ADR 0026 controls: the client sends `session/new`,
-`prompt`, and `cancel`; the host answers `session/new/ok`, `thought`, `answer`,
-`prompt/ok`, and `error`. Reasoning arrives as `thought` frames and is never
-concatenated into an `answer` frame. No Agent Server schema and no OpenHands
+`prompt`, `image/generate`, and `cancel`; the host answers `session/new/ok`,
+`thought`, `answer`, `prompt/ok`, `image/generate/ok`, and `error`. Reasoning
+arrives as `thought` frames and is never concatenated into an `answer` frame.
+`image/generate` reserves a pending generated-image conversation item before the
+provider finishes and returns that snapshot immediately; later `session/activity`
+snapshots resolve the same item. No Agent Server schema and no OpenHands
 TypeScript client participate. `session/control` and `session/control/ok`
 carry the session operations and snapshots specified in HOST_PROTOCOL.md.
 
@@ -422,9 +431,12 @@ description of an image is `derived_from` it and is spoken by the model.
 Recording the second as the first would attribute a machine's account to a
 person and let it through `user-assertion-v1` as a user assertion.
 
-Image description is its own port rather than a `ChatMessage` shape, so the
-provider-neutral core stays text-only and exactly one ingest-side file knows
-about image payloads.
+Image description remains its own ingest port rather than a source-extraction
+`ChatMessage` shape, so exactly one ingest-side file knows about image payloads.
+Committed conversation content is no longer text-only: ADR 0045 / A008-0142 allow
+string messages as a compatibility form and typed `generated_image` parts as
+canonical assistant output. Those parts reference source-store locators and do
+not automatically become utterances, OCR or accepted knowledge.
 
 Wave 1 stores evidence and does not run the analyze/classify/commit coordinator.
 That coordinator's staging input is a dialogue pair and its instruction is
@@ -464,14 +476,19 @@ state without a fatal error banner. Successful `session/resume/ok` restores
 error and the next manual Connect starts a new session.
 
 `gui/src/chat/` renders user text, the assistant answer, and streaming thought
-as three distinct DOM channels, with the thought channel display-only. A
-rendered-DOM test asserts that the answer node's text equals the answer exactly
+as three distinct DOM channels, with the thought channel display-only. Generated
+images occupy their own ordered assistant turns reconstructed from snapshot
+`generated_image` parts: pending renders `[IMAGE GENERATING]`, failure renders
+`[IMAGE GENERATION FAILED]`, and completion renders the source-store blob.
+A rendered-DOM test asserts that the answer node's text equals the answer exactly
 and that thought text appears exactly once in the document, inside the thought
 node. Current sessions render committed messages from the runtime snapshot and
 overlay the pending user/thought/answer only while a turn runs. A prompt
 acknowledgment ends the live marker; reset/undo/model changes synchronize the
 display with the core. The older reducer/capture shim is used only when an older
-host supplies no snapshot.
+host supplies no snapshot. V1 image-generation jobs are process-local: reconnect
+in the same host process reconstructs pending and completed items from the live
+snapshot, and a new process does not replay a lost chargeable generation.
 
 `gui/src/composer/` carries the A008-0029 slash set, `gui/src/terminal/` calls
 `POST /v1/shell` rather than executing anything in the browser, and

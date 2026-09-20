@@ -116,6 +116,14 @@ export function createLocalAcpBridge(options: {
       requireSession(id);
       return host.control(id, control);
     },
+    async generateImage(id, prompt) {
+      requireSession(id);
+      return host.generateImage(id, prompt);
+    },
+    subscribeSession(id, listener) {
+      requireSession(id);
+      return host.subscribeSession(id, listener);
+    },
     async prompt(id, text, current, signal, attachment) {
       requireSession(id);
       signal.throwIfAborted();

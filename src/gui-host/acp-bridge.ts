@@ -67,6 +67,10 @@ export interface AcpBridge {
     sessionId: string,
     control: SessionControl,
   ): Promise<SessionSnapshot>;
+  generateImage?(
+    sessionId: string,
+    prompt: string,
+  ): Promise<{ generationId: string; state: SessionSnapshot }>;
   /** Optional for hosts connected to an older ACP implementation. */
   inspectMemory?(query: MemoryInspectionQuery): Promise<MemoryInspection>;
   newSession(model?: string): Promise<{ sessionId: string }>;

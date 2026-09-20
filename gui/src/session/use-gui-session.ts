@@ -65,6 +65,7 @@ export function useGuiSession(options?: GuiSessionClientOptions): GuiSession {
     error: snapshot.error,
     connect: connectRef.current,
     prompt: client.prompt,
+    generateImage: client.generateImage,
     cancel: client.cancel,
   };
 }

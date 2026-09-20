@@ -9,6 +9,7 @@ Decision owner: Operator
 Amends: [ADR 0019](0019-a008-owned-gui.md) D4 (host protocol v1 gains a route).
 Amended by its own D10 (A008-0049), which supersedes D7, and its own D11
 (A008-0056), which supersedes the first bullet of D8.
+D6's text-only `ChatMessage.content` restriction and its rejection of image content blocks are superseded by [ADR 0045](0045-multimodal-conversation-content.md); the source-extraction/provenance boundary itself remains.
 
 ## Context
 

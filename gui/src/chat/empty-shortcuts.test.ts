@@ -31,34 +31,29 @@ test("shortcut dock is visible until the user hides it", () => {
   assert.equal(shortcutDockVisible(store), true);
 });
 
-test("open dock lists shortcuts and a hide control", () => {
+test("open shortcut popover lists commands and a close control", () => {
   const html = renderToStaticMarkup(
     createElement(ShortcutDock, {
       hidden: false,
       open: true,
       onShortcut() {},
-      onOpen() {},
-      onHide() {},
+      onClose() {},
     }),
   );
-  assert.match(html, /Hide shortcuts/u);
+  assert.match(html, /id="a008-shortcut-dock"/u);
+  assert.match(html, /Close shortcuts/u);
   assert.match(html, /Workbench shortcuts/u);
   assert.match(html, /Ctrl\+Shift\+G/u);
-  assert.equal(html.includes(">Shortcuts<"), false);
 });
 
-test("collapsed dock is a show control without the chip list", () => {
+test("closed shortcut popover renders nothing", () => {
   const html = renderToStaticMarkup(
     createElement(ShortcutDock, {
       hidden: false,
       open: false,
       onShortcut() {},
-      onOpen() {},
-      onHide() {},
+      onClose() {},
     }),
   );
-  assert.match(html, /a008-shortcut-dock-collapsed/u);
-  assert.match(html, />Shortcuts</u);
-  assert.equal(html.includes("Hide shortcuts"), false);
-  assert.equal(html.includes("Workbench shortcuts"), false);
+  assert.equal(html, "");
 });

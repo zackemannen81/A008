@@ -9,6 +9,7 @@ export const CLIENT_MESSAGE_KEYS = [
   "requestId",
   "sessionId",
   "text",
+  "prompt",
   "attachment",
   "model",
   "control",

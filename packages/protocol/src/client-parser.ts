@@ -51,6 +51,13 @@ export function encodeClientMessage(message: ClientMessage): string {
         requestId: message.requestId,
         sessionId: message.sessionId,
       });
+    case "image/generate":
+      return JSON.stringify({
+        type: "image/generate",
+        requestId: message.requestId,
+        sessionId: message.sessionId,
+        prompt: message.prompt,
+      });
   }
 }
 
@@ -182,6 +189,27 @@ export function parseServerMessage(value: unknown): ServerMessage | undefined {
         ...(value.state === undefined
           ? {}
           : { state: parseSessionSnapshot(value.state) }),
+      };
+    }
+    case "image/generate/ok": {
+      const requestId = requiredString(value, "requestId");
+      const sessionId = requiredString(value, "sessionId");
+      const generationId = requiredString(value, "generationId");
+      if (
+        requestId === undefined ||
+        sessionId === undefined ||
+        generationId === undefined
+      ) {
+        throw new GuiHostProtocolError(
+          "image/generate/ok is missing identifiers.",
+        );
+      }
+      return {
+        type: "image/generate/ok",
+        requestId,
+        sessionId,
+        generationId,
+        state: parseSessionSnapshot(value.state),
       };
     }
     case "error": {

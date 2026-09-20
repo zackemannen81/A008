@@ -114,6 +114,30 @@
       "properties": {
         "type": {
           "type": "string",
+          "const": "image/generate"
+        },
+        "requestId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/__schema0"
+        },
+        "prompt": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": [
+        "type",
+        "requestId",
+        "sessionId",
+        "prompt"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
           "const": "tool/permission"
         },
         "requestId": {

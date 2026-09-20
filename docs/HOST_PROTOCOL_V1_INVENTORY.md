@@ -82,15 +82,18 @@ Frame shape does not replace these runtime checks.
 | `session/new` | Create in current standalone workspace or attach borrowed engine session | `session/new/ok`, optional snapshot |
 | `session/resume` | Claim detached host lease using sessionId/resumeToken | `session/resume/ok`, optional snapshot |
 | `prompt` | Run in owned session | `thought`, `answer`, `tool`, `tool/permission`, `prompt/ok` |
+| `image/generate` | Reserve a pending generated-image conversation item and start the shared host image pipeline | `image/generate/ok` with snapshot; later `session/activity` resolves the same item |
 | `cancel` | Cancel owned active work | Existing completion/error behavior; no dedicated cancel acknowledgment |
 | `tool/permission` | Resolve matching pending permission once; engine approval remains ACP-owned | No dedicated acknowledgment |
 | `session/control` | Inspect/reset/undo/close/model/configure/configureRuntime in owned session | `session/control/ok` with snapshot |
 
 `error` reports request/session IDs when available. `session/activity` carries
-observed borrowed-session activity, optional text/snapshot. These, plus the nine
-named reply/event types above, are the ten current server frame types. Message
-shapes, model metadata, snapshots and controls share `packages/protocol/src`;
-`server.ts`, ACP and core still own execution, authorization and state.
+observed borrowed-session activity, optional text/snapshot. These, plus the named
+reply/event types above including `image/generate/ok`, are the current server
+frame types. Snapshot `messages[].content` may be a string or typed content
+parts. Message shapes, model metadata, snapshots and controls share
+`packages/protocol/src`; `server.ts`, ACP and core still own execution,
+authorization and state.
 
 Disconnect still cancels active standalone work; an existing detached lease may
 be resumed for 45 seconds by default. Process restart loses it. No turn IDs,

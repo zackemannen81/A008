@@ -43,6 +43,31 @@ test("chat invocation composition is stable, ordered, bounded, and defensive", (
   assert.equal(committed[0]?.content, "persistent");
 });
 
+test("chat invocation projects generated images as labels without locators", () => {
+  const committed: ChatMessage[] = [
+    {
+      role: "assistant",
+      content: [
+        {
+          type: "generated_image",
+          generationId: "image_1",
+          prompt: "a red robot",
+          status: "completed",
+          locator: "source://secret/robot.png",
+          mediaType: "image/png",
+          filename: "robot.png",
+        },
+      ],
+    },
+  ];
+  const composition = composeChatInvocation(committed, "make another at night");
+  assert.deepEqual(composition.messages.at(-2), {
+    role: "assistant",
+    content: "[IMAGE] a red robot",
+  });
+  assert.equal(composition.serialized.includes("source://"), false);
+});
+
 test("chat invocation enforces an exact multibyte UTF-8 budget", () => {
   const measurer = new Utf8ByteChatMessageMeasurer();
   const instruction = {

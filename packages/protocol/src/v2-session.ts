@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  chatContentSchema,
   sessionControlInputSchema,
   sessionParametersSchema,
 } from "./schemas.js";
@@ -122,7 +123,7 @@ export const v2SessionMessageSchema = z
   .object({
     messageId: v2IdSchema,
     role: z.enum(["user", "assistant"]),
-    content: z.string(),
+    content: chatContentSchema,
   })
   .strict();
 

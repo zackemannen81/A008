@@ -17,6 +17,7 @@ import {
   type SetSessionConfigOptionResponse,
 } from "@agentclientprotocol/sdk";
 import type { SendMessageOptions } from "../core/chat-session.js";
+import type { GeneratedImageTerminalUpdate } from "../core/chat-content.js";
 import type { ChatCompletion, ChatImageAttachment } from "../core/types.js";
 import type { ChatMessage } from "../core/types.js";
 import {
@@ -64,6 +65,11 @@ export interface AcpTurnSession {
   undoLastTurn?(): boolean;
   configureParameters?(value: unknown): void;
   enableSessionControls?(): void;
+  reserveGeneratedImage?(generationId: string, prompt: string): void;
+  resolveGeneratedImage?(
+    generationId: string,
+    update: GeneratedImageTerminalUpdate,
+  ): boolean;
   send(content: string, options?: SendMessageOptions): Promise<ChatCompletion>;
   consumeMemoryDiagnostic?(): string | undefined;
   consumeMemoryStatus?(): string | undefined;
@@ -601,6 +607,34 @@ export class A008AcpAgent {
         delete state.activeTurn;
       }
     }
+  }
+
+  reserveGeneratedImage(
+    sessionId: string,
+    generationId: string,
+    prompt: string,
+  ): SessionSnapshot {
+    const state = this.#requireSession(sessionId);
+    state.chat ??= this.#createSession(state.model);
+    state.chat.enableSessionControls?.();
+    if (state.chat.reserveGeneratedImage === undefined) {
+      throw RequestError.methodNotFound("generated image transcript");
+    }
+    state.chat.reserveGeneratedImage(generationId, prompt);
+    return this.#sessionSnapshot(state);
+  }
+
+  resolveGeneratedImage(
+    sessionId: string,
+    generationId: string,
+    update: GeneratedImageTerminalUpdate,
+  ): SessionSnapshot {
+    const state = this.#requireSession(sessionId);
+    if (state.chat?.resolveGeneratedImage === undefined) {
+      throw RequestError.methodNotFound("generated image transcript");
+    }
+    state.chat.resolveGeneratedImage(generationId, update);
+    return this.#sessionSnapshot(state);
   }
 
   controlSession(params: unknown): SessionSnapshot {

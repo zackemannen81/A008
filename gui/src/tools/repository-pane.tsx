@@ -90,12 +90,13 @@ export function ToolActivity({
     <details
       className="a008-tool-summary"
       open={disclosure.open}
-      onToggle={(event) =>
+      onToggle={(event) => {
+        const open = event.currentTarget.open;
         setDisclosure((current) => ({
           ...current,
-          open: event.currentTarget.open,
-        }))
-      }
+          open,
+        }));
+      }}
     >
       <summary>{completed ? "✓" : "⚙"} Tools · {tools.length} calls · {completed ? "completed" : "running"}</summary>
       <div className="a008-tool-summary-counts">

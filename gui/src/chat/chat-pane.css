@@ -73,6 +73,32 @@
   border-radius: 0.8rem;
 }
 
+.a008-image-generating {
+  display: grid;
+  justify-items: center;
+  gap: .55rem;
+  width: min(100%, 16rem);
+  min-height: 12rem;
+  padding: 1rem;
+  border: 1px solid var(--a008-border, #333);
+  border-radius: .9rem;
+  background: color-mix(in srgb, var(--a008-panel, #242424) 72%, transparent);
+  color: var(--a008-chat-muted);
+  font-size: .75rem;
+}
+
+.a008-image-generating-media {
+  width: 10rem;
+  aspect-ratio: 1;
+  background-image: var(
+    --a008-image-generating-asset,
+    url("/loading.gif")
+  );
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
 .a008-chat-empty {
   margin: auto;
   max-width: 28rem;

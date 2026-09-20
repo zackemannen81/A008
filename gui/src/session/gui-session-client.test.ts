@@ -811,6 +811,89 @@ test("controls only replace settings on a matching acknowledgment and preserve t
   assert.equal(client.details?.parameters.temperature, null);
 });
 
+test("generateImage applies the host snapshot in place instead of appending a detached image", async () => {
+  const client = createClient();
+  const socket = await becomeReady(client);
+  const pending = client.generateImage!(
+    "a lonely lighthouse during a storm",
+  );
+  const sent = JSON.parse(socket.sent.at(-1)!) as {
+    type: string;
+    prompt: string;
+  };
+  assert.equal(sent.type, "image/generate");
+  assert.equal(sent.prompt, "a lonely lighthouse during a storm");
+  const generationId = "image_1";
+  socket.deliver({
+    type: "image/generate/ok",
+    requestId: "req-2",
+    sessionId: "sess-1",
+    generationId,
+    state: {
+      ...controlledState,
+      messages: [
+        {
+          role: "assistant",
+          content: [
+            {
+              type: "generated_image",
+              generationId,
+              prompt: "a lonely lighthouse during a storm",
+              status: "pending",
+            },
+          ],
+        },
+      ],
+    },
+  });
+  await pending;
+  let transcript = buildChatTranscript({ session: client });
+  assert.equal(transcript.turns.length, 1);
+  assert.equal(transcript.turns[0]?.kind, "image");
+  assert.equal(
+    transcript.turns[0]?.kind === "image" && transcript.turns[0].status,
+    "pending",
+  );
+  socket.deliver({
+    type: "session/activity",
+    sessionId: "sess-1",
+    active: false,
+    state: {
+      ...controlledState,
+      messages: [
+        {
+          role: "assistant",
+          content: [
+            {
+              type: "generated_image",
+              generationId,
+              prompt: "a lonely lighthouse during a storm",
+              status: "completed",
+              locator: `source:${"ab".repeat(32)}/lighthouse.png`,
+              mediaType: "image/png",
+              filename: "lighthouse.png",
+            },
+          ],
+        },
+        { role: "user", content: "later" },
+      ],
+    },
+  });
+  transcript = buildChatTranscript({ session: client });
+  assert.deepEqual(
+    transcript.turns.map((turn) => turn.kind),
+    ["image", "user"],
+  );
+  assert.equal(
+    transcript.turns[0]?.kind === "image" && transcript.turns[0].id,
+    generationId,
+  );
+  assert.equal(
+    transcript.turns[0]?.kind === "image" && transcript.turns[0].status,
+    "completed",
+  );
+});
+
 test("committed history and transient thought render once, stop being live, and disappear on reset", async () => {
   const client = createClient();
   const socket = await becomeReady(client);

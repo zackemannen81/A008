@@ -55,6 +55,7 @@ class GuiSessionClientImpl implements GuiSessionClient {
   #connectWork: Promise<void> | undefined;
   #pendingConnect: PendingRequest | undefined;
   #pendingPrompt: PendingRequest | undefined;
+  readonly #pendingImages = new Map<string, PendingRequest>();
   #cancelled = false;
   #observedActive = false;
   #allowAllTools = false;
@@ -133,6 +134,8 @@ class GuiSessionClientImpl implements GuiSessionClient {
     this.#pendingConnect?.reject(error);
     this.#pendingPrompt?.reject(error);
     this.#pendingControl?.reject(error);
+    for (const pending of this.#pendingImages.values()) pending.reject(error);
+    this.#pendingImages.clear();
     this.#pendingConnect = undefined;
     this.#pendingPrompt = undefined;
     this.#pendingControl = undefined;
@@ -321,6 +324,43 @@ class GuiSessionClientImpl implements GuiSessionClient {
       return Promise.reject(failure);
     }
 
+    return done;
+  };
+
+  generateImage = (prompt: string): Promise<void> => {
+    const normalized = prompt.trim();
+    if (normalized.length < 3) {
+      return Promise.reject(
+        new Error("Describe the image to generate."),
+      );
+    }
+    const sessionId = this.#snapshot.sessionId;
+    if (
+      this.#snapshot.status !== "ready" ||
+      sessionId === undefined ||
+      this.#socket?.readyState !== SOCKET_OPEN
+    ) {
+      return Promise.reject(new Error("GUI session is not ready."));
+    }
+    const requestId = this.#createRequestId();
+    const done = new Promise<void>((resolve, reject) => {
+      this.#pendingImages.set(requestId, { requestId, resolve, reject });
+    });
+    try {
+      this.#socket.send(
+        encodeClientMessage({
+          type: "image/generate",
+          requestId,
+          sessionId,
+          prompt: normalized,
+        }),
+      );
+    } catch (error) {
+      this.#pendingImages.delete(requestId);
+      const failure = toError(error, "Failed to start image generation.");
+      this.#replaceSnapshot({ error: failure.message });
+      return Promise.reject(failure);
+    }
     return done;
   };
 
@@ -540,6 +580,20 @@ class GuiSessionClientImpl implements GuiSessionClient {
           message.state,
         );
         return;
+      case "image/generate/ok": {
+        if (message.sessionId !== this.#snapshot.sessionId) return;
+        const pending = this.#pendingImages.get(message.requestId);
+        if (pending === undefined) return;
+        this.#pendingImages.delete(message.requestId);
+        this.#model = message.state.model;
+        this.#replaceSnapshot({
+          details: message.state,
+          model: message.state.model,
+          error: undefined,
+        });
+        pending.resolve();
+        return;
+      }
       case "session/control/ok": {
         const pending = this.#pendingControl;
         if (
@@ -661,6 +715,15 @@ class GuiSessionClientImpl implements GuiSessionClient {
 
   #onHostError(requestId: string | undefined, message: string): void {
     this.#replaceSnapshot({ permission: undefined });
+    if (requestId !== undefined) {
+      const image = this.#pendingImages.get(requestId);
+      if (image !== undefined) {
+        this.#pendingImages.delete(requestId);
+        this.#replaceSnapshot({ error: message });
+        image.reject(new Error(message));
+        return;
+      }
+    }
     if (
       this.#pendingControl !== undefined &&
       (requestId === undefined || requestId === this.#pendingControl.requestId)
@@ -729,6 +792,8 @@ class GuiSessionClientImpl implements GuiSessionClient {
     this.#pendingConnect?.reject(failure);
     this.#pendingPrompt?.reject(failure);
     this.#pendingControl?.reject(failure);
+    for (const pending of this.#pendingImages.values()) pending.reject(failure);
+    this.#pendingImages.clear();
     this.#pendingConnect = undefined;
     this.#pendingPrompt = undefined;
     this.#pendingControl = undefined;
@@ -779,6 +844,8 @@ class GuiSessionClientImpl implements GuiSessionClient {
     const connect = this.#pendingConnect;
     const prompt = this.#pendingPrompt;
     const control = this.#pendingControl;
+    const images = [...this.#pendingImages.values()];
+    this.#pendingImages.clear();
     this.#pendingControl = undefined;
     this.#pendingConnect = undefined;
     this.#pendingPrompt = undefined;
@@ -794,6 +861,7 @@ class GuiSessionClientImpl implements GuiSessionClient {
     connect?.reject(failure);
     prompt?.reject(failure);
     control?.reject(failure);
+    for (const pending of images) pending.reject(failure);
   }
 
   #detachSocket(): void {

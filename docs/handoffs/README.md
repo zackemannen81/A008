@@ -32,6 +32,7 @@ theme system;
 
 ## Records
 
+- [A008-0142.md](A008-0142.md) — Complete; in-sequence generated-image transcript items and structured `generate_image`. Not pushed.
 - [A008-0143.md](A008-0143.md) — Complete; atomic current-state ownership, evidence/HEAD separation and occurrence reinforcement. PR #83 open.
 - [A008-0064.md](A008-0064.md) — Complete locally; three read-only memory GUI
   views with real runtime data and browser verification. Not pushed.

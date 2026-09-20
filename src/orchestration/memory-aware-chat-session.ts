@@ -1,4 +1,5 @@
 import { ChatSession, type SendMessageOptions } from "../core/chat-session.js";
+import { chatContentText } from "../core/chat-content.js";
 import type { ChatCompletion, ChatGenerationOptions } from "../core/types.js";
 import type { ChatInvocationBudget } from "../core/chat-invocation.js";
 import { ChatError } from "../core/errors.js";
@@ -184,20 +185,20 @@ export class MemoryAwareChatSession {
         input.requiredKnowledgeIds ?? [],
         "Required knowledge ID",
       );
-      const recentTurns = (
+      const recentTurns =
         this.#recentMessageLimit === 0
           ? []
           : this.#chat.messages
-              .filter(
-                (
-                  entry,
-                ): entry is {
-                  readonly role: "user" | "assistant";
-                  readonly content: string;
-                } => entry.role === "user" || entry.role === "assistant",
-              )
-              .slice(-this.#recentMessageLimit)
-      ).map((entry) => ({ ...entry }));
+              .flatMap((entry) => {
+                if (entry.role !== "user" && entry.role !== "assistant") {
+                  return [];
+                }
+                const content = chatContentText(entry.content).trim();
+                return content === ""
+                  ? []
+                  : [{ role: entry.role, content }];
+              })
+              .slice(-this.#recentMessageLimit);
       const request: MemoryReadRequest = {
         ...this.#context,
         taskId,

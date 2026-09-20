@@ -2,13 +2,29 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import type { ChatContent } from "../../../packages/protocol/src/index.js";
 import type { GuiSession } from "../session/types.js";
+import type { SessionSnapshot } from "../session/session-controls.js";
 import { ChatPane } from "./chat-pane.js";
 import { EMPTY_SHORTCUTS, EmptyShortcuts } from "./empty-shortcuts.js";
 
 const THOUGHT_TOKEN = "SECRET_THOUGHT_TOKEN";
 const ANSWER_TEXT = "A008 answers in the answer channel.";
 const USER_TEXT = "What is A008?";
+
+function snapshot(
+  messages: readonly {
+    readonly role: "user" | "assistant";
+    readonly content: ChatContent;
+  }[],
+): SessionSnapshot {
+  return {
+    model: "nvidia/nemotron-3.5-lightning-30b-a3b",
+    parameters: { stream: true, temperature: null, topP: null, maxTokens: 1024, enableThinking: null, reasoningBudget: null, reasoningEffort: null, seed: null, stop: null },
+    messages,
+    runtime: { cwd: "C:/test", projectId: null, memoryPath: null },
+  };
+}
 
 function fakeSession(overrides: Partial<GuiSession> = {}): GuiSession {
   return {
@@ -397,4 +413,133 @@ test("live or incomplete HTML never exposes the Canvas action", () => {
     }),
   );
   assert.equal(incomplete.includes("Open in Canvas"), false);
+});
+
+
+test("image generation reserves and resolves its original transcript position", () => {
+  const pending = renderToStaticMarkup(
+    createElement(ChatPane, {
+      session: fakeSession({
+        details: snapshot([
+          { role: "user", content: "first" },
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "generated_image",
+                generationId: "image-1",
+                prompt: "lighthouse",
+                status: "pending",
+              },
+            ],
+          },
+          { role: "assistant", content: "answer one" },
+          { role: "user", content: "second" },
+        ]),
+      }),
+    }),
+  );
+  assert.ok(pending.indexOf("[IMAGE GENERATING]") < pending.indexOf("answer one"));
+  assert.ok(pending.indexOf("answer one") < pending.indexOf("second"));
+
+  const completed = renderToStaticMarkup(
+    createElement(ChatPane, {
+      session: fakeSession({
+        details: snapshot([
+          { role: "user", content: "first" },
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "generated_image",
+                generationId: "image-1",
+                prompt: "lighthouse",
+                status: "completed",
+                locator: `source:${"ab".repeat(32)}/image.png`,
+                mediaType: "image/png",
+                filename: "image.png",
+              },
+            ],
+          },
+          { role: "assistant", content: "answer one" },
+          { role: "user", content: "second" },
+        ]),
+      }),
+    }),
+  );
+  assert.ok(completed.includes(`src="/v1/blobs/${"ab".repeat(32)}/image.png"`));
+  assert.ok(
+    completed.indexOf(`src="/v1/blobs/${"ab".repeat(32)}/image.png"`) <
+      completed.indexOf("answer one"),
+  );
+});
+
+test("image items retain request order when their completion states differ", () => {
+  const html = renderToStaticMarkup(
+    createElement(ChatPane, {
+      session: fakeSession({
+        details: snapshot([
+          { role: "user", content: "one" },
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "generated_image",
+                generationId: "first",
+                prompt: "first",
+                status: "pending",
+              },
+            ],
+          },
+          { role: "user", content: "two" },
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "generated_image",
+                generationId: "second",
+                prompt: "second",
+                status: "completed",
+                locator: `source:${"cd".repeat(32)}/image.png`,
+                mediaType: "image/png",
+                filename: "image.png",
+              },
+            ],
+          },
+        ]),
+      }),
+    }),
+  );
+  assert.ok(html.indexOf("Generating image…") < html.indexOf("two"));
+  assert.ok(
+    html.indexOf("two") <
+      html.indexOf(`src="/v1/blobs/${"cd".repeat(32)}/image.png"`),
+  );
+});
+
+test("a failed image generation remains at its reserved transcript position", () => {
+  const html = renderToStaticMarkup(
+    createElement(ChatPane, {
+      session: fakeSession({
+        details: snapshot([
+          { role: "user", content: "request" },
+          {
+            role: "assistant",
+            content: [
+              {
+                type: "generated_image",
+                generationId: "failed",
+                prompt: "storm",
+                status: "failed",
+                error: "provider unavailable",
+              },
+            ],
+          },
+          { role: "assistant", content: "later" },
+        ]),
+      }),
+    }),
+  );
+  assert.ok(html.indexOf("[IMAGE GENERATION FAILED]") < html.indexOf("later"));
+  assert.match(html, /provider unavailable/u);
 });

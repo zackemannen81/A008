@@ -40,9 +40,12 @@ client surfaces, and optional persistent semantic memory.
   0029, 0032 and 0033.
 - **PC-06 — Supported user controls and content.** Expose supported session and
   model controls, memory inspection, source intake and image generation through
-  their existing runtime/host/provider owners. Preserve source provenance and
-  explicit unsupported outcomes; a listed capability alone does not implement
-  or authorize it. See ADR 0020, 0025-0027 and 0030-0033.
+  their existing runtime/host/provider owners. Canonical committed conversation
+  content may be multimodal, including typed image references, under ADR 0045;
+  media persistence and semantic-memory provenance remain separately owned.
+  Preserve source provenance and explicit unsupported outcomes; a listed
+  capability alone does not implement or authorize it. See ADR 0020, 0025-0027,
+  0030-0033, 0044 and 0045.
 
 Apply the [Necessity Gate](TASK_WORKFLOW.md#necessity-gate) to each substantive
 change. Cite the exact PC clause and the accepted detailed constraint needed
@@ -61,6 +64,8 @@ NVIDIA CLI with a modern GUI/client derived from OpenHands Agent Canvas and an
 add-on model for capabilities such as semantic memory.
 
 ## Approved product direction
+
+- ADR 0045 withdraws the inherited text-only committed-chat restriction. A008's canonical conversation model may carry provider-neutral typed multimodal content, including generated-image references, while raw media remains in the source store and image content does not automatically become semantic knowledge. Existing string messages remain a compatibility form during migration.
 
 - ADR 0043 accepts ACME as a Stage-3.5 execution-substrate candidate under one immutable boundary: **the ACME integration replaces A008's provider execution path, not any part of the A008 cognitive or memory architecture.** A008 owns why, what and when to execute; ACME may own how an already-authorized execution is carried out. Default adoption requires Stage-3.5 parity/reliability evidence and is not pre-decided.
 

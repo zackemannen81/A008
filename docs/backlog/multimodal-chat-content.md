@@ -1,9 +1,9 @@
 # Multimodal chat content
 
-Status: Activated by A008-0124
+Status: Superseded by ADR 0045; implementation continuation owned by A008-0142
 Source: A008-0055; owner diagram of the vision upload path
 Recorded: 2026-09-04
-Activated: 2026-09-17; ADR 0044 owns the accepted invocation-local vision boundary.
+Activated: 2026-09-17; ADR 0044 first accepted invocation-local vision. On 2026-09-20 the owner withdrew the inherited text-only chat restriction; ADR 0045 now owns canonical multimodal committed conversation content.
 
 ## Context
 

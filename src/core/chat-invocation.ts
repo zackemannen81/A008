@@ -1,5 +1,6 @@
+import { chatContentDisplay, chatContentText } from "./chat-content.js";
 import { ChatError } from "./errors.js";
-import type { ChatMessage } from "./types.js";
+import type { ChatMessage, ChatTextMessage } from "./types.js";
 
 export const DEFAULT_SYSTEM_MESSAGE = "You are a helpful AI assistant.";
 
@@ -25,7 +26,7 @@ export interface ChatInvocationPlan {
 }
 
 export interface ComposedChatInvocation {
-  readonly messages: readonly ChatMessage[];
+  readonly messages: readonly ChatTextMessage[];
   readonly serialized: string;
   readonly measuredUnits: number | null;
   readonly measurementUnit: string | null;
@@ -89,7 +90,7 @@ export function validateBudget(
 }
 
 export function serializeChatMessages(
-  messages: readonly ChatMessage[],
+  messages: readonly ChatTextMessage[],
 ): string {
   return JSON.stringify(
     messages.map((message) => ({
@@ -112,10 +113,14 @@ export function composeChatInvocation(
   const maximumHistory = historyLimit(plan.historyMessageLimit);
   const persistentSystemMessages = committedMessages
     .filter((message) => message.role === "system")
-    .map((message) => nonEmpty(message.content, "Session system message"));
-  const dialogue = committedMessages
-    .filter((message) => message.role !== "system")
-    .map((message) => ({ ...message }));
+    .map((message) =>
+      nonEmpty(chatContentText(message.content), "Session system message"),
+    );
+  const dialogue = committedMessages.flatMap((message) => {
+    if (message.role === "system") return [];
+    const content = chatContentDisplay(message.content).trim();
+    return content.length === 0 ? [] : [{ role: message.role, content }];
+  });
   const boundedDialogue =
     maximumHistory === undefined
       ? dialogue
@@ -138,7 +143,7 @@ export function composeChatInvocation(
       : [DEFAULT_SYSTEM_MESSAGE]),
     ...contextInstructions,
   ].join("\n\n");
-  const messages: ChatMessage[] = [
+  const messages: ChatTextMessage[] = [
     { role: "system", content: systemInstruction },
     ...boundedDialogue,
     { role: "user", content: providerUserContent },

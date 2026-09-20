@@ -11,9 +11,11 @@ import {
   CHAT_CHANNEL,
   emptyStateCopy,
   type ChatAssistantTurn,
+  type ChatImageTurn,
   type ChatToolActivity,
   type ChatUserTurn,
 } from "./chat-transcript.js";
+import { generatedImageLocatorSrc } from "../images/generate-image.js";
 import { AsciiLogo } from "../brand/ascii-logo.js";
 import { StartActions } from "./start-actions.js";
 import { EmptyStarfield } from "./starfield.js";
@@ -25,12 +27,6 @@ import {
 import { HighlightedCode } from "../highlight/highlighted-code.js";
 import { ToolActivity } from "../tools/repository-pane.js";
 import "./chat-pane.css";
-
-export interface ChatGeneratedImage {
-  readonly id: string;
-  readonly prompt: string;
-  readonly src: string;
-}
 
 function ThoughtBlock({ turn }: { readonly turn: ChatAssistantTurn }) {
   const [open, setOpen] = useState(false);
@@ -66,6 +62,48 @@ function UserTurnView({ turn }: { readonly turn: ChatUserTurn }) {
       >
         {turn.text}
       </p>
+    </article>
+  );
+}
+
+function ImageTurnView({ turn }: { readonly turn: ChatImageTurn }) {
+  const src =
+    turn.status === "completed" && turn.locator
+      ? generatedImageLocatorSrc(turn.locator)
+      : undefined;
+  return (
+    <article
+      className="a008-chat-turn a008-chat-turn-assistant"
+      data-a008-role="assistant"
+      data-a008-image-status={turn.status}
+    >
+      <span className="a008-chat-label">Image</span>
+      {turn.status === "pending" ? (
+        <div
+          className="a008-image-generating"
+          role="status"
+          aria-label="Generating image"
+        >
+          <div className="a008-image-generating-media" aria-hidden="true" />
+          <span>Generating image…</span>
+        </div>
+      ) : null}
+      {turn.status === "failed" ? (
+        <p className="a008-chat-bubble a008-chat-bubble-answer">
+          [IMAGE GENERATION FAILED]{turn.error ? ` ${turn.error}` : ""}
+        </p>
+      ) : null}
+      {turn.status === "cancelled" ? (
+        <p className="a008-chat-bubble a008-chat-bubble-answer">
+          [IMAGE GENERATION CANCELLED]
+        </p>
+      ) : null}
+      {turn.status === "completed" && src ? (
+        <img className="a008-chat-image" src={src} alt={turn.prompt} />
+      ) : null}
+      {turn.status === "completed" && src === undefined ? (
+        <p className="a008-chat-bubble a008-chat-bubble-answer">[IMAGE]</p>
+      ) : null}
     </article>
   );
 }
@@ -127,7 +165,6 @@ export function ChatPane(props: {
   readonly onStartPrompt?: (prompt: string) => void;
   readonly onArtifactOpen?: (artifact: HtmlArtifactCandidate) => void;
   readonly onArtifactCandidate?: (artifact: HtmlArtifactCandidate) => void;
-  readonly images?: readonly ChatGeneratedImage[];
 }) {
   const { session } = props;
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -242,7 +279,7 @@ export function ChatPane(props: {
 
   return (
     <section className="a008-chat" aria-label="A008 chat">
-      {transcript.empty && (props.images?.length ?? 0) === 0 ? <EmptyStarfield /> : null}
+      {transcript.empty ? <EmptyStarfield /> : null}
       {session.error !== undefined && session.error !== "" ? (
         <p className="a008-chat-error" data-a008-chat="error" role="alert">
           {session.error}
@@ -260,7 +297,7 @@ export function ChatPane(props: {
             root.scrollHeight - root.scrollTop - root.clientHeight < 48;
         }}
       >
-        {transcript.empty && (props.images?.length ?? 0) === 0 ? (
+        {transcript.empty ? (
           <div className="a008-chat-empty">
             <AsciiLogo />
             <hr className="a008-empty-rule" />
@@ -279,6 +316,8 @@ export function ChatPane(props: {
             {transcript.turns.map((turn) =>
               turn.kind === "user" ? (
                 <UserTurnView key={turn.id} turn={turn} />
+              ) : turn.kind === "image" ? (
+                <ImageTurnView key={turn.id} turn={turn} />
               ) : (
                 <AssistantTurnView
                   key={turn.id}
@@ -288,13 +327,6 @@ export function ChatPane(props: {
                 />
               ),
             )}
-            {(props.images ?? []).map((image) => (
-              <article key={image.id} className="a008-chat-turn a008-chat-turn-assistant">
-                <span className="a008-chat-label">Image</span>
-                <p className="a008-chat-bubble a008-chat-bubble-user">{image.prompt}</p>
-                <img className="a008-chat-image" src={image.src} alt={image.prompt} />
-              </article>
-            ))}
           </>
         )}
       </div>

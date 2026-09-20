@@ -3,8 +3,8 @@
 Status: Accepted
 Date: 2026-09-08
 Task: A008-0071
-Amends: ADR 0019 D3/D4 (host may call NVIDIA catalog and image endpoints),
-ADR 0020 D6 (unchanged: `ChatMessage.content` remains a string)
+Amends: ADR 0019 D3/D4 (host may call NVIDIA catalog and image endpoints).
+The inherited ADR 0020 D6 statement that `ChatMessage.content` remains a string is superseded by [ADR 0045](0045-multimodal-conversation-content.md).
 
 ## Decision
 

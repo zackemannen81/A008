@@ -97,6 +97,7 @@ export class ModelToolSession {
     cwd: string;
     env: NodeJS.ProcessEnv;
     mcpServers?: readonly McpServer[];
+    generateImage?: (prompt: string, signal: AbortSignal) => Promise<void>;
   }) {
     this.#cwd = options.cwd;
     this.#env = options.env;
@@ -132,6 +133,33 @@ export class ModelToolSession {
     );
     for (const tool of repositoryTools(this.#cwd, toolEnvironment(this.#env)))
       this.#register(tool.definition, tool.run);
+    if (options.generateImage !== undefined) {
+      this.#register(
+        {
+          name: "generate_image",
+          description:
+            "Generate one image from a natural-language description and place it in the current conversation. The host owns provider selection, storage, ordering and completion.",
+          parameters: {
+            type: "object",
+            properties: {
+              prompt: { type: "string", minLength: 3, maxLength: 8000 },
+            },
+            required: ["prompt"],
+            additionalProperties: false,
+          },
+        },
+        async (args, signal) => {
+          await options.generateImage!(String(args.prompt), signal);
+          return {
+            failed: false,
+            text: JSON.stringify({
+              status: "started",
+              text: "Image generation started in the conversation.",
+            }),
+          };
+        },
+      );
+    }
   }
 
   #register(definition: ChatToolDefinition, run: RegisteredTool["run"]) {
