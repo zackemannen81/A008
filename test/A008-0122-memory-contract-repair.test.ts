@@ -767,13 +767,17 @@ test("0122 single and batch relation prompts share the same explicit semantics",
     KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION,
     KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION,
   ]) {
-    assert.match(instruction, /restatement means the same semantic assertion/u);
-    assert.match(instruction, /supersede means the proposal replaces/u);
+    assert.match(instruction, /restatement means semantic equivalence/u);
+    assert.match(instruction, /not a restatement merely because most words/u);
+    assert.match(instruction, /explicit correction.*supersede/iu);
+    assert.match(instruction, /source type.*does not decide/iu);
+    assert.match(instruction, /do not output attraction/iu);
     assert.match(
       instruction,
       /structural claim-entity membership are not semantic associations/u,
     );
     assert.match(instruction, /structuredProposition/u);
+    assert.doesNotMatch(instruction, /set supportsTarget true only/iu);
   }
   assert.doesNotMatch(
     KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION,

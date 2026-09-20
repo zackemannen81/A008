@@ -545,6 +545,8 @@ test("the analyzer instruction keeps its two structural guarantees", () => {
   for (const field of [
     "proposition",
     "kind",
+    "structuredProposition",
+    "aboutInterval",
     "tags",
     "domains",
     "entities",
@@ -561,8 +563,15 @@ test("the analyzer instruction keeps its two structural guarantees", () => {
     instruction,
     /Precision at this eligibility boundary is more important than recall/iu,
   );
+  assert.match(instruction, /Questions request information and do not assert/iu);
   assert.match(instruction, /request, command or immediate work intention/iu);
   assert.match(instruction, /not by itself a durable preference/iu);
+
+  // Resolved state-bearing extraction must remain atomically addressable.
+  assert.match(instruction, /one output item may target at most one semantic address/iu);
+  assert.match(instruction, /could later change independently/iu);
+  assert.match(instruction, /explicit correction or retraction is assertive knowledge/iu);
+  assert.match(instruction, /Do not suppress a correction as a duplicate/iu);
 
   // Entity output names independently identifiable referents, never a bag of
   // generic concepts that only make sense inside the sentence that produced it.
