@@ -14,7 +14,7 @@ export const POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION = [
   "Use double quotes for every JSON property name and string value.",
   "Do not output Markdown, comments, explanatory prose, trailing commas, single-quoted strings, unquoted values, or additional wrapper objects.",
 
-  "Each array item may contain only: proposition, kind, structuredProposition, tags, domains, entities, confidence, severity and support.",
+  "Each array item may contain only: proposition, kind, structuredProposition, aboutInterval, tags, domains, entities, confidence, severity and support.",
 
   // ---------------------------------------------------------------------------
   // ELIGIBILITY GATE
@@ -70,8 +70,10 @@ export const POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION = [
 
   "Claims explicitly supported by the original user message or ingested source may qualify when they pass the durability gate.",
 
-  "A request, command or immediate work intention in the current turn is not by itself a durable preference, standing instruction, persistent goal or future plan.",
-  "Extract such a durable user state only when the source explicitly establishes that it persists beyond completing the current request.",
+  "Questions request information and do not assert the proposition embedded in the question. Do not turn a question into a claim merely because it names an entity, value or possible state.",
+  "A request, command or immediate work intention in the current turn does not assert that the requested resulting world state already exists, and is not by itself a durable preference, standing instruction, persistent goal or future plan.",
+  "An explicit standing rule, constraint or durable decision may still qualify when the source itself establishes that it persists beyond completing the current request, including when phrased imperatively.",
+  "Quoted or attributed material is not an assertion by the current speaker unless the source independently endorses it.",
 
   "Claims found only in the assistant answer require a higher durability threshold.",
   "Do not persist assistant narration, plans, routine execution activity, tool usage, progress updates or ordinary validation results.",
@@ -95,13 +97,19 @@ export const POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION = [
 
   "Split claims when their parts could independently differ in truth, time, confidence, polarity, condition, causal role, lifecycle or qualification.",
 
-  "Do not split homogeneous subjects, objects, values, examples or list members that participate in the same relation in the same way.",
+  "For resolved state-bearing knowledge, one output item may target at most one semantic address. Split coordinated entities, attributes or relationships when each binding could later change independently, even when the sentence applies the same value or relation to all of them.",
 
-  "Do not split merely because a sentence contains several nouns, clauses or examples.",
+  "Keep homogeneous list members together only when they form one inseparable event, predicate or list-valued proposition and do not imply independently mutable semantic addresses.",
+
+  "Do not split merely because a sentence contains several nouns, clauses or examples when those parts are not independently truth-valued.",
 
   "Preserve conditions, exceptions, comparisons, quantities, uncertainty, attribution, temporal scope, negation and causal direction with the claim they qualify.",
 
   "Do not turn hypothetical, conditional, attributed, uncertain or causal statements into unconditional facts.",
+
+  "An explicit correction or retraction is assertive knowledge, not merely conversational narration. When the source says an earlier value or assertion was wrong and supplies a corrected durable value, preserve the corrected assertion as its own atomic claim.",
+  "Do not suppress a correction as a duplicate merely because it shares most words, entities or numbers with the earlier assertion. Preserve the semantic dimension that changed.",
+  "Do not infer a correction or retraction merely from topical overlap or disagreement unless the source actually establishes it.",
 
   // ---------------------------------------------------------------------------
   // SOURCE FIDELITY
@@ -133,8 +141,19 @@ export const POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION = [
   'structuredProposition is optional. Use it only when the source maps directly to one of these canonical shapes: {"kind":"attribute_binding","entityLabel":string,"attribute":string,"value":any}; {"kind":"relationship_binding","subjectLabel":string,"relation":string,"objectLabel":string}; {"kind":"event_occurrence","type":string,"participants"?:string[]}; {"kind":"predicate","name":string,"arguments":string[]}; or {"kind":"negation","of":structuredProposition}.',
 
   "Use only source-grounded labels and values in structuredProposition.",
-  "Do not invent structure merely to avoid the runtime's explicit-statement fallback.",
-  "Omit structuredProposition when the source is genuinely unstructured or structure would require guessing.",
+  "Do not invent structure merely to force a claim into Current State.",
+  "If no stable semantic address can be resolved without guessing, omit structuredProposition. The durable claim may remain unresolved evidence and can be resolved later.",
+  "Never fabricate synthetic entities or addresses such as statement_<hash>.statement for otherwise unresolved text.",
+
+  // ---------------------------------------------------------------------------
+  // TEMPORAL VALIDITY
+  // ---------------------------------------------------------------------------
+
+  'aboutInterval is optional. Use it only when the source explicitly establishes a validity interval that can be represented without guessing: {"from":string|{"unknown":true},"to":string|{"unknown":true}|null}.',
+  "Use source-grounded absolute timestamps/dates when they are unambiguous. Do not use ingestion time as a substitute for event/world time.",
+  "A closed past interval belongs to historical state; it must not be rewritten as a current assertion.",
+  "A future event or plan must remain future/event knowledge and must not be emitted as an open current-state attribute merely because it is asserted now.",
+  "If a past/future qualifier cannot be normalized safely from the supplied context, preserve it in proposition and avoid inventing an open current-state structured binding.",
 
   // ---------------------------------------------------------------------------
   // ENTITY EXTRACTION

@@ -39,8 +39,12 @@ export type AcceptanceDecision =
   "accepted" | "rejected" | "contested" | "not_accepted";
 
 export const USER_ASSERTION_POLICY_ID = "user-assertion-v1" as const;
+export const SEMANTIC_STATE_POLICY_ID = "semantic-state-v1" as const;
 
-export type AcceptancePolicyId = typeof USER_ASSERTION_POLICY_ID | string;
+export type AcceptancePolicyId =
+  | typeof USER_ASSERTION_POLICY_ID
+  | typeof SEMANTIC_STATE_POLICY_ID
+  | string;
 
 export type ClaimProposition =
   | {

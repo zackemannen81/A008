@@ -1,4 +1,4 @@
-# Current Task
+# A008-0144 — Canonical knowledge, memory and contextual-attraction model
 
 Task ID: A008-0145
 Parent Task: None
@@ -13,12 +13,12 @@ Charter frozen at: 2026-09-20
 - `AGENTS.md`
 - `docs/TASK_WORKFLOW.md`
 - `docs/PROJECT_BRIEF.md`
-- `docs/CONTRIBUTING.md`
-- `docs/CURRENT_STATUS.md`
-- `docs/SYSTEMDOC.md`
-- `docs/JOURNAL.md`
-- `docs/FILESTRUCTURE.md`
-- Relevant records under `docs/adr/`
+- `docs/CURRENT_MEMORY_MODEL.md`
+- `docs/KNOWLEDGE_MEMORY_MODEL.md` as prior authority/history where it conflicts
+- `docs/tasks/A008-0143_atomic-knowledge-state-ownership.md`
+- `docs/adr/0018-knowledge-and-memory-model.md`
+- `docs/adr/0035-frozen-instruction-and-memory-target.md`
+- Relevant completed lifecycle, association and retrieval tasks as implementation history.
 
 ## Task Summary
 
@@ -95,7 +95,9 @@ Contract revision: 3532bcd8a0546e79dde1dbdb4e2623ca387ad0c6
 
 ## Documentation Updates
 
-- [ ] `docs/CURRENT_STATUS.md`
+- [ ] `docs/CURRENT_MEMORY_MODEL.md`
+- [ ] `docs/KNOWLEDGE_MEMORY_MODEL.md`
+- [ ] affected ADR(s), explicitly marking superseded clauses rather than silently editing history
 - [ ] `docs/SYSTEMDOC.md`
 - [ ] `docs/FILESTRUCTURE.md` if settings surface ownership changes materially.
 

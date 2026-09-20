@@ -63,7 +63,7 @@ export class EvidenceLifecycleStore {
     return operationalTime(this.clock());
   }
 
-  /** Runtime calls this only after source ownership and semantic support validation. */
+  /** Reinforce once when knowledge becomes semantically actual in a distinct occurrence. */
   reinforceOccurrence(receipt: ReinforcementReceipt): boolean {
     validateReceipt(receipt);
     const key = JSON.stringify([receipt.occurrenceId, receipt.evidenceId]);
@@ -71,17 +71,17 @@ export class EvidenceLifecycleStore {
     operationalTime(receipt.at);
     if (this.#receipts.has(key)) return false;
     const current = this.#records.get(receipt.evidenceId);
-    if (!current || current.evidenceKind !== "claim")
+    if (!current)
       throw new KnowledgeModelError(
         "invalid_input",
-        "Reinforcement target must be an existing claim",
+        "Reinforcement target must be existing lifecycle-backed evidence",
       );
     if (current.lifecycle.creationOccurrenceId === receipt.occurrenceId)
       return false;
     this.reinforce({
       evidenceIds: [receipt.evidenceId],
       caller: "knowledge-commit",
-      reason: "distinct supporting occurrence",
+      reason: "distinct semantically actual occurrence",
       at: receipt.at,
       amount: current.lifecycle.boost,
     });
@@ -653,18 +653,26 @@ function validateReceipt(receipt: ReinforcementReceipt): void {
     typeof receipt.occurrenceId !== "string" ||
     !receipt.occurrenceId.trim() ||
     typeof receipt.evidenceId !== "string" ||
-    !receipt.evidenceId.trim() ||
-    !receipt.support ||
-    typeof receipt.support.utteranceId !== "string" ||
-    !receipt.support.utteranceId.trim() ||
-    !Number.isSafeInteger(receipt.support.start) ||
-    !Number.isSafeInteger(receipt.support.end) ||
-    receipt.support.start < 0 ||
-    receipt.support.end <= receipt.support.start
-  )
+    !receipt.evidenceId.trim()
+  ) {
     throw new KnowledgeModelError(
       "invalid_input",
       "Invalid reinforcement receipt",
     );
+  }
+  if (
+    receipt.support !== undefined &&
+    (typeof receipt.support.utteranceId !== "string" ||
+      !receipt.support.utteranceId.trim() ||
+      !Number.isSafeInteger(receipt.support.start) ||
+      !Number.isSafeInteger(receipt.support.end) ||
+      receipt.support.start < 0 ||
+      receipt.support.end <= receipt.support.start)
+  ) {
+    throw new KnowledgeModelError(
+      "invalid_input",
+      "Invalid reinforcement support",
+    );
+  }
   operationalTime(receipt.at);
 }

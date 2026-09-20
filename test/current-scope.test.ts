@@ -276,6 +276,48 @@ function request(message: string): MemoryReadRequest {
   };
 }
 
+test("0143 admitted retrieval reinforces actual evidence exactly once per turn", async () => {
+  const context = storeWith([
+    {
+      content: "Hippocampus fungerar som en växelstation för minnen",
+      tags: ["hippocampus"],
+      domains: ["neuroscience"],
+    },
+  ]);
+  const utterance = context.evidence.listUtterances()[0]!;
+  context.lifecycle.attach({
+    evidenceId: utterance.id,
+    evidenceKind: "utterance",
+    strength: 0.4,
+    decayLambda: 0,
+  });
+  const reader = new KnowledgeMemoryReader({ context });
+  const first = request("Vad gör hippocampus med minnen?");
+
+  await reader.read(first);
+  assert.ok(
+    Math.abs(context.lifecycle.get(utterance.id)!.lifecycle.strength - 0.6) <
+      1e-12,
+  );
+  assert.equal(context.lifecycle.snapshot().receipts!.length, 1);
+
+  await reader.read(first);
+  assert.ok(
+    Math.abs(context.lifecycle.get(utterance.id)!.lifecycle.strength - 0.6) <
+      1e-12,
+    "same turn/evidence pair is idempotent",
+  );
+  assert.equal(context.lifecycle.snapshot().receipts!.length, 1);
+
+  await reader.read({
+    ...first,
+    taskId:
+      "A008_v1_task_70000000-0000-4000-8000-000000000005" as RuntimeTaskId,
+  });
+  assert.equal(context.lifecycle.get(utterance.id)!.lifecycle.strength, 0.8);
+  assert.equal(context.lifecycle.snapshot().receipts!.length, 2);
+});
+
 function scripted(
   script: ReadonlyMap<
     string,

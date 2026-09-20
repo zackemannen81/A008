@@ -3,6 +3,8 @@ import {
   associationKey,
   EMPTY_ASSOCIATIONS,
   evaluateAssociation,
+  evaluateAssociationAttraction,
+  type AssociationAttractionSignal,
   type AssociationIdentity,
   type AssociationReceipt,
   type AssociationSnapshot,
@@ -21,6 +23,7 @@ import type {
 import { scoreRetrieved } from "./retrieve.js";
 
 const ASSOCIATIVE_DORMANT = "associative_dormant";
+const ASSOCIATION_ATTRACTION_WEIGHT = 0.5;
 
 export interface RelationLink {
   readonly from: string;
@@ -39,6 +42,19 @@ export class RelationIndex implements RelationIndexPort {
     policy?: MemoryLifecyclePolicy,
   ) {
     return this.#associations.establish(edge, occurrence, policy);
+  }
+  adjustAttraction(
+    edgeKey: string,
+    occurrenceId: string,
+    at: string,
+    signal: AssociationAttractionSignal,
+    policy?: MemoryLifecyclePolicy,
+  ) {
+    return this.#associations.adjustAttraction(
+      edgeKey,
+      { occurrenceId, at, signal },
+      policy,
+    );
   }
   readonly #out = new Map<string, RelationHop[]>();
 
@@ -121,6 +137,7 @@ export function expand(
       if (seen.has(related.id)) {
         continue;
       }
+      let routed = related;
       if (hop.association !== undefined) {
         const edge = hop.association;
         const applicable =
@@ -141,16 +158,28 @@ export function expand(
           });
           continue;
         }
+        const attraction = evaluateAssociationAttraction(
+          edge,
+          context.evaluatedAt!,
+        );
+        routed = {
+          ...related,
+          retrievalScore:
+            related.retrievalScore + ASSOCIATION_ATTRACTION_WEIGHT * attraction,
+          reasons: [...related.reasons, "association_attraction"],
+          attraction,
+          associationKey: edge.key,
+        };
       }
-      if (related.memoryState === "dormant") {
+      if (routed.memoryState === "dormant") {
         omitted.push({
-          record: related,
+          record: routed,
           reason: ASSOCIATIVE_DORMANT,
         });
         continue;
       }
-      seen.add(related.id);
-      records.push(related);
+      seen.add(routed.id);
+      records.push(routed);
     }
   }
 

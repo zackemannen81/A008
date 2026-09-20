@@ -2,7 +2,7 @@
 
 Task ID: A008-0144
 Parent Task: None
-Status: Ready
+Status: In Progress
 Owner: A008 (operator)
 Supersedes: A008-0143 where this charter changes memory/state semantics; predecessor implementation and evidence remain reusable input.
 Created: 2026-09-20
@@ -130,8 +130,8 @@ Contract revision: `cd01db4`
 
 ## Checklist
 
-- [ ] Enumerate every implementation/document contradiction against `CURRENT_MEMORY_MODEL.md` before editing runtime code.
-- [ ] Import/reuse the A008-0143 implementation changes as predecessor work; do not merge PR #83 standalone.
+- [x] Enumerate every implementation/document contradiction against `CURRENT_MEMORY_MODEL.md` before editing runtime code.
+- [x] Import/reuse the A008-0143 implementation changes as predecessor work; do not merge PR #83 standalone.
 - [ ] Add failing first-HEAD tests for source/tool/assistant-derived resolved claims.
 - [ ] Remove the residual `user-assertion-v1` universal state gate without removing its provenance value.
 - [ ] Verify temporal/state ownership remains atomic and single-HEAD.
@@ -153,6 +153,8 @@ Contract revision: `cd01db4`
 - Attraction is contextual gravity, not confidence and not relationship valence.
 - Direct/exact retrieval remains authoritative even when strength is dormant or attraction is negative.
 - No new truth store, evidence score, graph implementation or generalized policy framework is authorized unless a failing gate proves it necessary.
+- Initial contradiction inventory (2026-09-20): `live-commit.ts` performs `reconcile -> update` only when the evidence claim is `accepted`, so resolved source/assistant claims remain outside HEAD; `SlotClaim.acceptanceEligible` is still populated from message-origin rather than semantic state applicability; state transitions are still labelled as decided by `user-assertion-v1`; association lifecycle persists only unsigned strength/dormancy and has no signed attraction; associative expansion uses association dormancy but not contextual attraction; the live reader reinforces admitted evidence but has no exactly-once association-attraction update after admission.
+- Existing architecture is sufficient: reuse semantic addressing/reconcile/update, Evidence Claim provenance, AssociationLifecycle/RelationIndex, atomic snapshots and SQLite payload persistence. No second state store or graph is introduced.
 
 ## Charter Amendment Log
 

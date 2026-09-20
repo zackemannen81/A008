@@ -617,17 +617,19 @@ the existing analyzer; one operation time evaluates a persisted exponential
 baseline. Direct dormant matches stay eligible. Inspection exposes baseline and
 evaluated values; model projection contains no lifecycle numbers.
 
-Live reinforcement resolves one invocation-local handle to one stored claim and
-requires independent support from the original message or attributed source.
-The analyzer names that support as an exact quote; staging resolves it to a
-span. Entity commit reuses an existing registry identity when a later label
-slugs to the same id (`HTML5 Canvas` / `html5_canvas`) instead of refusing a
-duplicate register.
-Restatement reuses canonical evidence where acceptance permits. Writes execute
-synchronously after asynchronous comparison: refresh stale state under the
-SQLite write lock, validate the target/source, then commit evidence, state,
-boost, receipt and audit together. In-memory writes restore the prior snapshot
-on failure. Reads never call these writes. Schema 3 converts legacy baselines
+Live lifecycle reinforcement is occurrence-based. Once retrieval has fixed the
+admitted set, existing lifecycle-backed evidence that became semantically
+actual/relevant in that distinct occurrence may be reinforced exactly once.
+Exact quote/span/provenance support is validated independently for evidence and
+association attachment; missing or ambiguous proof is not a lifecycle veto.
+Entity commit reuses an existing registry identity when a later label slugs to
+the same id (`HTML5 Canvas` / `html5_canvas`) instead of refusing a duplicate
+register.
+Writes execute synchronously under the knowledge transaction/lock and durable
+occurrence/evidence receipts make retries idempotent. In-memory writes restore
+the prior snapshot on failure. DEFINE/RETRIEVE/EXPAND/FILTER/COMPOSE/PROJECT
+remain non-mutating; reinforcement is the separate lifecycle write after
+admission. Schema 3 converts legacy baselines
 without inventing severity, history or elapsed age; see the constitution's
 backup/restore procedure. Settings format 4 holds advanced creation policy in
 the existing runtime owner; existing-client saves preserve it.
@@ -695,7 +697,7 @@ judgment, user-data upgrade or running-application restart is claimed.
 
 ## Structural entity references and relation contract (A008-0122)
 
-`entities[]` from post-output extraction denotes distinct referents. The entity registry resolves each label independently through deterministic lexical identity, so slug-equivalent forms such as `React` and `react` reuse one entity while co-mentioned values such as `gui/package.json`, `gui/package-lock.json`, and `React` remain separate identities. Preferred display spelling is stored independently from the canonical ID. Structured proposition ownership determines statement-slot ownership where present; unstructured fallback uses a proposition-specific statement identity and never `entities[0]`.
+`entities[]` from post-output extraction denotes distinct referents. The entity registry resolves each label independently through deterministic lexical identity, so slug-equivalent forms such as `React` and `react` reuse one entity while co-mentioned values such as `gui/package.json`, `gui/package-lock.json`, and `React` remain separate identities. Preferred display spelling is stored independently from the canonical ID. Structured attribute/relationship propositions determine semantic-address ownership where present. Unstructured propositions remain evidence and claim↔entity references; they do not create proposition-specific statement identities, statement slots, or current-state bindings.
 
 `ClaimEntityReferenceStore` owns structural claim↔entity membership. Schema 5 persists it in `A008_knowledge_claim_entities`; the inspection graph projects it as `entity_ref`. These links are referential topology only: they have no semantic relation type, support span, strength, reinforcement, decay, or association lifecycle. `RelationIndex` remains the sole owner of independently classified L3 semantic associations.
 
@@ -909,10 +911,12 @@ outputs pass the existing stager. Analyzer support is an exact `quote` from the
 original message or ingested source (optional 1-based `occurrence` when the
 quote repeats). Runtime computes canonical UTF-16 `start`/`end`; model-supplied
 offsets are ignored. Newline encoding is the only mechanical variant. A rewritten
-quote may still reinforce when the proposition itself is a unique exact
-substring of the original source. A quote that exists only in the answer is
-omitted, not treated as malformed. Missing or ambiguous quotes skip
-reinforcement and keep the proposal. The instruction describes types in prose
+quote may still provide evidence support when the proposition itself is a unique
+exact substring of the original source. A quote that exists only in the answer
+is omitted, not treated as malformed. Missing or ambiguous quotes omit that
+support attachment and keep the proposal; they do not suppress the separate
+occurrence-based lifecycle reinforcement when the stored knowledge became
+semantically actual/relevant. The instruction describes types in prose
 instead of displaying JSON-like pseudocode.
 Completeness applies only after a durability eligibility gate. Routine execution
 narration, transient workflow state, immediate requests and one-off occurrences are

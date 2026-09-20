@@ -91,8 +91,9 @@ export function canSequenceAfter(
   return proposed.from > current.from;
 }
 
-export function isAcceptanceEligible(claim: SlotClaim): boolean {
-  if (!claim.acceptanceEligible) {
+export function isStateReconciliationEligible(claim: SlotClaim): boolean {
+  const eligible = claim.stateEligible ?? claim.acceptanceEligible ?? false;
+  if (!eligible) {
     return false;
   }
   return claim.status === "asserted" || claim.status === "accepted";
@@ -321,6 +322,9 @@ export class KnowledgeState {
       .filter((index) => index >= 0);
 
     let closed: Binding | null = null;
+    const historicalInsertion = !isOpenInterval(
+      decision.proposal.aboutInterval,
+    );
     if (decision.cardinality === "single") {
       if (openIndexes.length > 1) {
         throw new KnowledgeModelError(
@@ -329,7 +333,7 @@ export class KnowledgeState {
         );
       }
       const openIndex = openIndexes[0];
-      if (openIndex !== undefined) {
+      if (!historicalInsertion && openIndex !== undefined) {
         const current = existing[openIndex];
         if (current === undefined) {
           throw new KnowledgeModelError(
@@ -369,12 +373,28 @@ export class KnowledgeState {
       }
     }
 
+    if (
+      historicalInsertion &&
+      existing.some((binding) =>
+        intervalsOverlap(binding.interval, decision.proposal.aboutInterval),
+      )
+    ) {
+      throw new KnowledgeModelError(
+        "invalid_input",
+        "historical CHANGE cannot overlap an existing binding",
+      );
+    }
+
     const opened = bindingFromProposal(decision.proposal);
     const next = [...existing, opened];
     const openAfter = next.filter((binding) =>
       isOpenInterval(binding.interval),
     );
-    if (decision.cardinality === "single" && openAfter.length !== 1) {
+    if (
+      decision.cardinality === "single" &&
+      (openAfter.length > 1 ||
+        (!historicalInsertion && openAfter.length !== 1))
+    ) {
       throw new KnowledgeModelError(
         "invalid_input",
         "CHANGE would violate single-slot cardinality",
@@ -391,6 +411,15 @@ export class KnowledgeState {
       outcome: "change",
     });
     this.#bindings.set(key, next);
+    if (closed !== null) {
+      const priorClaim = this.#claims.get(closed.claimId);
+      if (priorClaim !== undefined) {
+        this.#claims.set(
+          priorClaim.id,
+          cloneClaim({ ...priorClaim, aboutInterval: closed.interval }),
+        );
+      }
+    }
     return {
       closed,
       opened: cloneBinding(opened),
@@ -750,7 +779,12 @@ function cloneClaim(claim: SlotClaim): SlotClaim {
     attributedTo: claim.attributedTo,
     causedBy: claim.causedBy,
     kind: claim.kind,
-    acceptanceEligible: claim.acceptanceEligible,
+    ...(claim.stateEligible === undefined
+      ? {}
+      : { stateEligible: claim.stateEligible }),
+    ...(claim.acceptanceEligible === undefined
+      ? {}
+      : { acceptanceEligible: claim.acceptanceEligible }),
     ...(claim.retractsClaimId === undefined
       ? {}
       : { retractsClaimId: claim.retractsClaimId }),

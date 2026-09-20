@@ -86,14 +86,13 @@ test("two-turn runtime commits an explicit user assertion and rereads it", async
 
     const second = await session.turn(QUESTION);
     assert.match(second.completion.message.content, /alpha-seven/u);
-    // Until A008-0058 this asserted exactly one selected item, which quietly
-    // codified the rule that a state hit suppressed every other surface. The
-    // read finds two things and both are worth sending: the extracted fact, and
-    // the sentence the user actually said it in. The fact still ranks first.
+    // This extractor returns no structured proposition, so A008-0143 keeps
+    // the fact as evidence instead of inventing a sentence-addressed state
+    // slot. The claim and its source utterance remain retrievable.
     const projected = second.memory.projection.projection.items;
     assert.equal(second.memory.evidence.selectedKnowledgeIds.length, 2);
     assert.equal(projected[0]?.proposition, PROPOSITION);
-    assert.equal(projected[0]?.kind, "state");
+    assert.equal(projected[0]?.kind, "claim");
     assert.equal(projected[1]?.kind, "utterance");
     assert.match(projected[1]?.proposition ?? "", /alpha-seven/u);
     const chatRequests = transport.requests.filter(
@@ -161,7 +160,7 @@ test("restart with existing SQLite still projects the active assertion", async (
     );
     assert.deepEqual(
       reread.memory.projection.projection.items.map((item) => item.kind),
-      ["state", "utterance"],
+      ["claim", "utterance"],
     );
     const store = new SqliteKnowledgeStore({
       filename: isolated.sqlitePath,
@@ -170,10 +169,12 @@ test("restart with existing SQLite still projects the active assertion", async (
     try {
       const snapshot = store.load();
       assert.equal(
-        snapshot.state.bindings.some(
-          (binding) =>
-            binding.label === PROPOSITION && binding.interval.to === null,
-        ),
+        snapshot.state.bindings.some((binding) => binding.label === PROPOSITION),
+        false,
+        "unstructured evidence must not invent current state after restart",
+      );
+      assert.equal(
+        snapshot.claims.some((claim) => claim.label === PROPOSITION),
         true,
       );
       assert.equal(
