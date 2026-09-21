@@ -166,3 +166,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0150 | normalize strict-provider null sentinels for optional MCP arguments | Rickard (operator) | 2026-09-21 | restore OpenAI strict-schema nullable-required optional MCP fields before local validation |
 | A008-0151 | ZeroCostRadar live refresh and model import | ChatGPT (operator) | 2026-09-21 | explicit live discovery refresh plus bounded import for already-executable routes |
 | A008-0152 | ZeroCostRadar provider execution support | ChatGPT (operator) | 2026-09-21 | explicit host-owned execution and credentials for currently discovery-only zero-cost providers |
+| A008-0153 | catalog-backed runtime model registry | ChatGPT (operator) | 2026-09-22 | make user-catalog models first-class runtime/session profiles instead of UI-only extras |
