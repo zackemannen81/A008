@@ -406,7 +406,47 @@
     },
     "/v1/catalog/zero-cost": {
       "get": {
-        "summary": "validated zero-cost model discovery",
+        "summary": "bundled validated zero-cost model discovery",
+        "x-a008-owner": "zero-cost-catalog",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/zeroCostCatalog"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "explicit published ZeroCostRadar update check",
         "x-a008-owner": "zero-cost-catalog",
         "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
         "parameters": [],

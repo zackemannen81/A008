@@ -44,6 +44,7 @@ export {
   loadProviderSettings,
   loadRuntimeCapabilities,
   loadZeroCostCatalog,
+  refreshZeroCostCatalog,
   openProject,
   previewProject,
   registerExistingProject,

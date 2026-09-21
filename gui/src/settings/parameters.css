@@ -473,9 +473,44 @@
   font-size: .62rem !important;
   letter-spacing: .14em;
 }
-.a008-radar-heading > span {
+.a008-radar-heading-actions,
+.a008-radar-card-actions {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+.a008-radar-heading-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.a008-radar-heading-actions > span {
   color: var(--a008-muted);
   font-size: .68rem;
+}
+.a008-radar-update,
+.a008-radar-add {
+  border: 1px solid var(--a008-accent);
+  border-radius: .45rem;
+  background: transparent;
+  color: var(--a008-accent);
+  cursor: pointer;
+}
+.a008-radar-update { padding: .35rem .55rem; font-size: .65rem; }
+.a008-radar-add {
+  width: 1.85rem;
+  height: 1.85rem;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+.a008-radar-update:disabled,
+.a008-radar-add:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+.a008-radar-import-note {
+  color: var(--a008-muted) !important;
+  font-style: italic;
 }
 .a008-radar-intro {
   color: var(--a008-muted);

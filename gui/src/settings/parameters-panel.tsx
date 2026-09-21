@@ -559,7 +559,10 @@ export function ParametersPanel(props: {
           <McpServersPanel />
         </div>
         <div hidden={page !== "radar"}>
-          <ZeroCostRadarPanel />
+          <ZeroCostRadarPanel
+            models={models}
+            onModelsChanged={setModels}
+          />
         </div>
         <div hidden={page !== "runtime"}>
           <RuntimeCapabilitiesPanel />

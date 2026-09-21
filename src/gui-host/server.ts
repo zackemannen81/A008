@@ -98,6 +98,7 @@ import {
   ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
   ZERO_COST_MODEL_ROUTES,
 } from "../providers/zero-cost-model-catalog.js";
+import { fetchLatestZeroCostCatalog } from "./zero-cost-radar.js";
 import {
   bindingFor,
   handleDirectoryList,
@@ -849,6 +850,14 @@ async function handleHttp(input: {
         verifiedAt: ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
         routes: ZERO_COST_MODEL_ROUTES,
       });
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/catalog/zero-cost") {
+      sendJson(
+        response,
+        200,
+        await fetchLatestZeroCostCatalog(input.fetchImpl),
+      );
       return;
     }
     if (method === "GET" && pathname === "/v1/catalog/nvidia") {

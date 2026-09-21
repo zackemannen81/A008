@@ -1604,3 +1604,68 @@ test("POST /v1/upload local path mode enforces the existing byte cap", async () 
     },
   );
 });
+
+
+test("POST /v1/catalog/zero-cost performs an explicit validated update check", async () => {
+  const remote = {
+    verifiedAt: "2026-09-21",
+    routes: [
+      {
+        key: "nvidia:remote-fixture",
+        provider: "nvidia",
+        modelId: "nvidia/remote-fixture",
+        name: "Remote Fixture",
+        baseUrl: "https://integrate.api.nvidia.com/v1",
+        apiStyle: "openai-chat-completions",
+        access: "free-endpoint",
+        lifecycle: "trial",
+        dataPolicy: "review-before-sensitive-use",
+        verifiedAt: "2026-09-21",
+        sourceUrls: ["https://example.test/fixture"],
+      },
+    ],
+  };
+  let calls = 0;
+  await withHost(
+    {
+      fetch: async () => {
+        calls += 1;
+        return new Response(JSON.stringify(remote), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      },
+    },
+    async (host) => {
+      const bundled = await httpJson(host, "/v1/catalog/zero-cost");
+      assert.equal(bundled.status, 200);
+      assert.equal(calls, 0);
+
+      const refreshed = await httpJson(host, "/v1/catalog/zero-cost", {
+        method: "POST",
+      });
+      assert.equal(refreshed.status, 200);
+      assert.deepEqual(refreshed.body, remote);
+      assert.equal(calls, 1);
+    },
+  );
+});
+
+test("POST /v1/catalog/zero-cost fails closed on incompatible upstream data", async () => {
+  await withHost(
+    {
+      fetch: async () =>
+        new Response(JSON.stringify({ verifiedAt: "2026-09-21", routes: [{}] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+    },
+    async (host) => {
+      const refreshed = await httpJson(host, "/v1/catalog/zero-cost", {
+        method: "POST",
+      });
+      assert.equal(refreshed.status, 500);
+      assert.match(refreshed.raw, /incompatible model-route metadata/u);
+    },
+  );
+});

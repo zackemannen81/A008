@@ -20,7 +20,7 @@ current Single Source of Truth.
 | Native/external API | V2 discovery, scoped device auth, one-use tickets and authenticated `WS /v2/session` |
 | Semantic memory | Project-namespaced SQLite, semantic scope retrieval, additive projection, post-output extraction/reconciliation and L2/L3 lifecycle |
 | Providers | NVIDIA Build, kie.ai and OpenAI chat dispatch; NVIDIA/kie image generation |
-| Discovery | Read-only Zero Cost Radar over 26 validated free/free-tier provider-model routes; catalog presence never registers or routes a model |
+| Discovery | Zero Cost Radar starts from 26 bundled validated routes, supports explicit live update check, and can import routes only when A008 already has a truthful execution path |
 | Projects | Create new projects or register/open an existing root without mutating its files |
 | Tools | Approved repository/file/Git/shell tools plus approved stdio MCP tools |
 | Compatibility | Stable V1 web/ACP paths remain covered while V2 is built out |
@@ -55,8 +55,7 @@ See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_s
 - Independent evidence and association lifecycle with reinforcement, dormant
   state, decay policy, receipts and audit in knowledge schema 4.
 - Read-only memory diagnostics: overview, relationship map and knowledge manager.
-- Parameters exposes a read-only Zero Cost Radar plus current V2/Stage-4 runtime
-  discovery. The bundled GUI consumes `@a008/client`; chat still uses the V1 session adapter so PIN-disabled/engine/attachment/image behavior is preserved, while independent clients use the V2 adapter.
+- Parameters exposes Zero Cost Radar plus current V2/Stage-4 runtime discovery. Radar opens from the bundled validated snapshot, offers an explicit live Update check against the published ZeroCostRadar A008 feed, and can add a discovered route only when the current A008 runtime already supports its execution provider. Unsupported provider rows stay discovery-only instead of pretending to be runnable. The bundled GUI consumes `@a008/client`; chat still uses the V1 session adapter so PIN-disabled/engine/attachment/image behavior is preserved, while independent clients use the V2 adapter.
 - Structured model tools with explicit approval: repository read/create/edit,
   literal Git operations, shell execution and stdio MCP.
 - Source intake with content-addressed storage and extraction for UTF-8 text,

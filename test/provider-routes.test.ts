@@ -59,7 +59,15 @@ test("merged models include user-catalog additions with unverified controls", ()
     id: "nvidia/preview-example",
     name: "Preview",
   });
+  handleNvidiaCatalogAdd(catalogPath, {
+    id: "nvidia/preview-example",
+    name: "Preview",
+  });
   const models = mergedModels(defaultModelRegistry, catalogPath);
+  assert.equal(
+    models.filter((model) => model.id === "nvidia/preview-example").length,
+    1,
+  );
   const added = models.find((model) => model.id === "nvidia/preview-example");
   assert.equal(added?.name, "Preview");
   assert.equal(added?.added, true);
