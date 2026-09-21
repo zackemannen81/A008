@@ -39,10 +39,9 @@ loads the A008-0134 catalog from `GET /v1/catalog/zero-cost`, distinguishes
 existing A008 profiles from discovery-only candidates, shows lifecycle/quota/
 data-policy/source metadata, and never registers or routes a model. **Runtime**
 loads public `GET /v2/info` and shows the running host's implemented Stage-4
-identity/order/snapshot/terminal foundation plus the still-unimplemented
-idempotency/reconnect/restart boundaries. The bundled GUI itself continues to
-speak V1 until Stage 5; its existing 45-second V1 reconnect behavior is not a
-V2 recovery claim.
+identity/order/snapshot/terminal/receipt/reconnect/restart surface. Session and
+HTTP I/O go through `@a008/client`. Bundled chat still uses the V1 session
+adapter for current feature parity; that is not a V2 recovery claim.
 
 Chat, Memory and **Tools** remain accessible on a narrow screen; Tools contains
 Terminal and Upload. The parameter dialog supports Tab/Escape and restores focus.

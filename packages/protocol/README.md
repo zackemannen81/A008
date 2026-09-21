@@ -24,8 +24,8 @@ const outgoing = encodeClientMessage(command);
 const incoming = parseServerMessage(JSON.parse(receivedText));
 ```
 
-The caller supplies transport, authentication and `receivedText`. This is a
-contract package, not a connection/recovery SDK. Repository consumers import the
+The caller supplies transport, authentication and `receivedText`. Connection,
+recovery and credential adapters live in `@a008/client` (A008-0149). Repository consumers import the
 same source directly; root TypeScript emits `dist/packages/protocol/src`, while
 the independent package build emits `packages/protocol/dist`. The engine bundler
 includes the former and the installed-package verification uses the latter.

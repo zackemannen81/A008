@@ -15,7 +15,10 @@
     "exactOptionalPropertyTypes": true,
     "verbatimModuleSyntax": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@a008/protocol": ["./packages/protocol/src/index.ts"]
+    }
   },
   "include": ["src/**/*.ts", "test/**/*.ts"],
   "exclude": ["dist", "node_modules"]

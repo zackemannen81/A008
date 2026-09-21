@@ -1,6 +1,9 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
+import {
+  createGuiSessionClient,
+  detectBrowserCredentials,
+} from "../../../packages/client/src/index.js";
 import { engineAccessToken } from "./engine-access.js";
-import { createGuiSessionClient } from "./gui-session-client.js";
 import type { GuiSessionClient } from "./gui-session-client.js";
 import type { GuiSession, GuiSessionClientOptions } from "./types.js";
 
@@ -31,7 +34,14 @@ export function settleQuietly(run: () => Promise<void>): () => Promise<void> {
 export function useGuiSession(options?: GuiSessionClientOptions): GuiSession {
   const clientRef = useRef<GuiSessionClient | undefined>(undefined);
   if (clientRef.current === undefined) {
-    clientRef.current = createGuiSessionClient(options);
+    const location =
+      typeof globalThis.location === "object" ? globalThis.location : undefined;
+    clientRef.current = createGuiSessionClient({
+      ...options,
+      location: options?.location ?? location,
+      credentials:
+        options?.credentials ?? detectBrowserCredentials(location),
+    });
   }
   const client = clientRef.current;
   useEffect(() => {

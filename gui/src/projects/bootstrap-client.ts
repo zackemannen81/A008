@@ -1,10 +1,17 @@
+import {
+  createProject as createProjectFromClient,
+  listProjects as listProjectsFromClient,
+  openProject as openProjectFromClient,
+  previewProject as previewProjectFromClient,
+  registerExistingProject as registerExistingFromClient,
+} from "../../../packages/client/src/index.js";
 import type {
   ExistingProjectRegistration,
   ProjectBootstrapConfig,
   ProjectBootstrapPlan,
-  RegisteredProject,
-  ProjectsResponse,
   ProjectCreated,
+  ProjectsResponse,
+  RegisteredProject,
   WorkspaceBinding,
 } from "../../../packages/protocol/src/index.js";
 export type {
@@ -13,33 +20,13 @@ export type {
   ProjectBootstrapPlan,
   RegisteredProject,
 } from "../../../packages/protocol/src/index.js";
-import { engineHeaders } from "../session/engine-access.js";
-
-async function readJson(response: Response): Promise<unknown> {
-  const body: unknown = await response.json();
-  if (!response.ok) {
-    const message =
-      body !== null &&
-      typeof body === "object" &&
-      "error" in body &&
-      typeof (body as { error: unknown }).error === "string"
-        ? (body as { error: string }).error
-        : `Request failed (${String(response.status)})`;
-    throw new Error(message);
-  }
-  return body;
-}
+import { guiHttp } from "../client.js";
 
 export async function previewProject(
   config: ProjectBootstrapConfig,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ProjectBootstrapPlan> {
-  const response = await fetchImpl("/v1/projects/preview", {
-    method: "POST",
-    headers: { ...engineHeaders(), "content-type": "application/json" },
-    body: JSON.stringify(config),
-  });
-  return (await readJson(response)) as ProjectBootstrapPlan;
+  return previewProjectFromClient(guiHttp(fetchImpl), config);
 }
 
 export async function createProject(
@@ -47,44 +34,25 @@ export async function createProject(
   projectId?: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ProjectCreated> {
-  const response = await fetchImpl("/v1/projects/bootstrap", {
-    method: "POST",
-    headers: { ...engineHeaders(), "content-type": "application/json" },
-    body: JSON.stringify({ ...config, ...(projectId ? { projectId } : {}) }),
-  });
-  return (await readJson(response)) as ProjectCreated;
+  return createProjectFromClient(guiHttp(fetchImpl), config, projectId);
 }
 
 export async function registerExistingProject(
   config: ExistingProjectRegistration,
   fetchImpl: typeof fetch = fetch,
 ): Promise<RegisteredProject> {
-  const response = await fetchImpl("/v1/projects/register", {
-    method: "POST",
-    headers: { ...engineHeaders(), "content-type": "application/json" },
-    body: JSON.stringify(config),
-  });
-  return (await readJson(response)) as RegisteredProject;
+  return registerExistingFromClient(guiHttp(fetchImpl), config);
 }
 
 export async function listProjects(
   fetchImpl: typeof fetch = fetch,
 ): Promise<ProjectsResponse> {
-  const response = await fetchImpl("/v1/projects", {
-    headers: { ...engineHeaders(), accept: "application/json" },
-    cache: "no-store",
-  });
-  return (await readJson(response)) as ProjectsResponse;
+  return listProjectsFromClient(guiHttp(fetchImpl));
 }
 
 export async function openProject(
   projectId: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<WorkspaceBinding> {
-  const response = await fetchImpl("/v1/projects/open", {
-    method: "POST",
-    headers: { ...engineHeaders(), "content-type": "application/json" },
-    body: JSON.stringify({ projectId }),
-  });
-  return (await readJson(response)) as WorkspaceBinding;
+  return openProjectFromClient(guiHttp(fetchImpl), projectId);
 }

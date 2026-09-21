@@ -25,7 +25,7 @@ current Single Source of Truth.
 | Tools | Approved repository/file/Git/shell tools plus approved stdio MCP tools |
 | Compatibility | Stable V1 web/ACP paths remain covered while V2 is built out |
 
-The stable-client API programme has completed Stages 1–4. Stable application turn/message identity, event ordering, snapshot boundaries, terminal outcomes, bounded command receipts/idempotency, same-process reconnect/resume and explicit restart uncertainty are verified. Stage 5 — independent SDK + bundled web migration — is the next programme gate and has not started.
+The stable-client API programme has completed Stages 1–5. Stable application turn/message identity, event ordering, snapshot boundaries, terminal outcomes, bounded command receipts/idempotency, same-process reconnect/resume and explicit restart uncertainty are verified. Independent `@a008/client` plus bundled-web consumption of that SDK are verified. Stage 6 — independent Expo proof — is the next programme gate.
 See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_stable-client-api-program.md).
 
 ## What works now
@@ -56,7 +56,7 @@ See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_s
   state, decay policy, receipts and audit in knowledge schema 4.
 - Read-only memory diagnostics: overview, relationship map and knowledge manager.
 - Parameters exposes a read-only Zero Cost Radar plus current V2/Stage-4 runtime
-  discovery. The bundled GUI still uses V1 session transport until Stage 5.
+  discovery. The bundled GUI consumes `@a008/client`; chat still uses the V1 session adapter so PIN-disabled/engine/attachment/image behavior is preserved, while independent clients use the V2 adapter.
 - Structured model tools with explicit approval: repository read/create/edit,
   literal Git operations, shell execution and stdio MCP.
 - Source intake with content-addressed storage and extraction for UTF-8 text,
@@ -352,11 +352,11 @@ part of verification.
 | 2. Project/session ownership | Complete |
 | 3. V2 and authentication | Complete |
 | 4. Turns and recovery | Complete — identity/order/snapshot/terminal + receipts + reconnect + restart uncertainty verified |
-| 5. SDK and web migration | Not started |
+| 5. SDK and web migration | Complete — independent `@a008/client` and bundled GUI consumption |
 | 6. Independent Expo proof | Not started |
 | 7. Compatibility release | Not started |
 
-Stage 4 is complete. A008-0132 stabilizes turn/message identity, snapshot/event ordering and terminal outcomes; A008-0138 adds bounded command receipts/idempotency; A008-0139 adds the same-process reconnect/resume lease; A008-0140 proves restart uncertainty and the combined recovery matrix. Stage 5 — SDK and bundled-web migration — is the next programme gate and remains Not started until its child charter is frozen.
+Stage 5 is complete. A008-0149 adds the independently installable `@a008/client` SDK with cookie/bearer/engine adapters, a V1 session adapter for current bundled-GUI parity, and a V2 session adapter for independent consumers. Stage 6 — Expo/native proof — is the next programme gate.
 
 ## Security boundaries
 

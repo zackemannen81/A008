@@ -17,7 +17,8 @@ the template before push.
 
 - [A008-0105_shared-v1-http-contracts.md](A008-0105_shared-v1-http-contracts.md) — Complete locally; HTTP contract closure.
 
-- [A008-0103_stable-client-api-program.md](A008-0103_stable-client-api-program.md) — Active frozen program.
+- [A008-0103_stable-client-api-program.md](A008-0103_stable-client-api-program.md) — Active frozen program. Stages 1–5 complete; Stage 6 Expo proof is next.
+- [A008-0149_stage5-client-sdk-web-migration.md](A008-0149_stage5-client-sdk-web-migration.md) — Complete; [archive](../finished/A008-0149_stage5-client-sdk-web-migration.md). Stage 5 SDK + web migration.
 - [A008-0104_shared-v1-contract.md](A008-0104_shared-v1-contract.md) — First frozen child.
 
 

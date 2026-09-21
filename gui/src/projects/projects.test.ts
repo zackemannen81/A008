@@ -26,9 +26,14 @@ test("Projects wizard renders New, Recent and continuity controls", () => {
 
 test("GUI bootstrap client module does not import node:fs", () => {
   const source = readFileSync(join(here, "bootstrap-client.ts"), "utf8");
+  const sdk = readFileSync(
+    join(here, "../../../packages/client/src/v1-http.ts"),
+    "utf8",
+  );
   assert.equal(source.includes("node:fs"), false);
-  assert.match(source, /\/v1\/projects/u);
-  assert.match(source, /\/v1\/projects\/register/u);
+  assert.equal(sdk.includes("node:fs"), false);
+  assert.match(sdk, /\/v1\/projects/u);
+  assert.match(sdk, /\/v1\/projects\/register/u);
 });
 
 test("existing-project client posts only registration JSON to the host", async () => {

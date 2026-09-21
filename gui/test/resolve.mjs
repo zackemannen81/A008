@@ -22,6 +22,13 @@ const TS_CANDIDATES = [".ts", ".tsx"];
  * is the whole runner.
  */
 export async function resolve(specifier, context, nextResolve) {
+  if (specifier === "@a008/protocol") {
+    return nextResolve(
+      new URL("../../packages/protocol/src/index.ts", import.meta.url).href,
+      context,
+    );
+  }
+
   if (specifier.startsWith(".") && specifier.endsWith(".css")) {
     return {
       url: new URL(specifier, context.parentURL).href,

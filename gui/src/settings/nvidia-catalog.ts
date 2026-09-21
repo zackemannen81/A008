@@ -1,7 +1,14 @@
+import {
+  addNvidiaModel as addNvidiaModelFromClient,
+  loadKieCatalog as loadKieCatalogFromClient,
+  loadNvidiaCatalog as loadNvidiaCatalogFromClient,
+  loadProviderSettings as loadProviderSettingsFromClient,
+  saveProviderSettings as saveProviderSettingsFromClient,
+} from "../../../packages/client/src/index.js";
 import type {
+  KieCatalog,
   NvidiaCatalog,
   ProviderSettings,
-  KieCatalog,
   ProviderSettingsUpdate,
 } from "../../../packages/protocol/src/index.js";
 export type {
@@ -11,23 +18,13 @@ export type {
   KieCatalogModel,
   KieCatalog,
 } from "../../../packages/protocol/src/index.js";
-import { engineHeaders } from "../session/engine-access.js";
+import { guiHttp } from "../client.js";
 
 export async function loadNvidiaCatalog(
   signal?: AbortSignal,
   fetchImpl: typeof fetch = fetch,
 ): Promise<NvidiaCatalog> {
-  const response = await fetchImpl("/v1/catalog/nvidia", {
-    headers: { ...engineHeaders(), accept: "application/json" },
-    signal,
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error(
-      await errorMessage(response, "Could not load the NVIDIA catalog."),
-    );
-  }
-  return (await response.json()) as NvidiaCatalog;
+  return loadNvidiaCatalogFromClient(guiHttp(fetchImpl), signal);
 }
 
 export async function addNvidiaModel(
@@ -35,91 +32,26 @@ export async function addNvidiaModel(
   fetchImpl: typeof fetch = fetch,
   provider = "nvidia",
 ): Promise<void> {
-  const response = await fetchImpl("/v1/catalog/nvidia", {
-    method: "POST",
-    headers: {
-      ...engineHeaders(),
-      accept: "application/json",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ id, provider }),
-  });
-  if (!response.ok) {
-    throw new Error(await errorMessage(response, "Could not add that model."));
-  }
+  return addNvidiaModelFromClient(guiHttp(fetchImpl), id, provider);
 }
 
 export async function loadProviderSettings(
   signal?: AbortSignal,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ProviderSettings> {
-  const response = await fetchImpl("/v1/provider-settings", {
-    headers: { ...engineHeaders(), accept: "application/json" },
-    signal,
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error(
-      await errorMessage(response, "Could not load provider settings."),
-    );
-  }
-  return (await response.json()) as ProviderSettings;
+  return loadProviderSettingsFromClient(guiHttp(fetchImpl), signal);
 }
 
 export async function loadKieCatalog(
   signal?: AbortSignal,
   fetchImpl: typeof fetch = fetch,
 ): Promise<KieCatalog> {
-  const response = await fetchImpl("/v1/catalog/kie", {
-    headers: { ...engineHeaders(), accept: "application/json" },
-    signal,
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error(
-      await errorMessage(response, "Could not load the kie.ai catalog."),
-    );
-  }
-  return (await response.json()) as KieCatalog;
+  return loadKieCatalogFromClient(guiHttp(fetchImpl), signal);
 }
 
 export async function saveProviderSettings(
   body: ProviderSettingsUpdate,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ProviderSettings> {
-  const response = await fetchImpl("/v1/provider-settings", {
-    method: "POST",
-    headers: {
-      ...engineHeaders(),
-      accept: "application/json",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    throw new Error(
-      await errorMessage(response, "Could not save provider settings."),
-    );
-  }
-  return (await response.json()) as ProviderSettings;
-}
-
-async function errorMessage(
-  response: Response,
-  fallback: string,
-): Promise<string> {
-  try {
-    const payload: unknown = await response.json();
-    if (
-      typeof payload === "object" &&
-      payload !== null &&
-      "message" in payload &&
-      typeof (payload as { message: unknown }).message === "string"
-    ) {
-      return (payload as { message: string }).message;
-    }
-  } catch {
-    /* host may return empty */
-  }
-  return fallback;
+  return saveProviderSettingsFromClient(guiHttp(fetchImpl), body);
 }
