@@ -236,3 +236,125 @@ test("configured ACME transport never posts to a direct provider", async () => {
     true,
   );
 });
+
+
+test("compatible direct dispatch uses the persisted OpenRouter route and credential", async () => {
+  const catalogPath = catalogFile({
+    version: 1,
+    chatModels: [
+      {
+        id: "openrouter/free-model",
+        name: "OpenRouter Free",
+        provider: "openrouter",
+        inputModalities: ["text"],
+        baseUrl: "https://openrouter.ai/api/v1",
+        apiStyle: "openai-chat-completions",
+      },
+    ],
+  });
+  let url = "";
+  let authorization = "";
+  let body: Record<string, unknown> = {};
+  const transport = createDispatchingChatTransport({
+    env: { OPENROUTER_API_KEY: "or-fixture-secret" },
+    catalogPath,
+    timeoutMs: 5_000,
+    fetch: async (input, init) => {
+      url = String(input);
+      authorization = new Headers(init?.headers).get("authorization") ?? "";
+      body = JSON.parse(String(init?.body ?? "{}")) as Record<string, unknown>;
+      return new Response(
+        JSON.stringify({
+          id: "chatcmpl_fixture",
+          model: "openrouter/free-model",
+          choices: [
+            {
+              message: { role: "assistant", content: "from openrouter" },
+              finish_reason: "stop",
+            },
+          ],
+          usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    },
+  });
+
+  const result = await transport.complete({
+    model: "openrouter/free-model",
+    messages: [{ role: "user", content: "hello" }],
+    options: { stream: false },
+  });
+
+  assert.equal(url, "https://openrouter.ai/api/v1/chat/completions");
+  assert.equal(authorization, "Bearer or-fixture-secret");
+  assert.equal(body.model, "openrouter/free-model");
+  assert.equal(result.message.content, "from openrouter");
+  assert.equal(result.usage?.totalTokens, 5);
+});
+
+test("missing compatible credentials and unknown providers fail before fetch", async () => {
+  let fetches = 0;
+  const compatibleCatalog = catalogFile({
+    version: 1,
+    chatModels: [
+      {
+        id: "groq/free-model",
+        name: "Groq Free",
+        provider: "groq",
+        inputModalities: ["text"],
+        baseUrl: "https://api.groq.com/openai/v1",
+        apiStyle: "openai-chat-completions",
+      },
+    ],
+  });
+  const compatible = createDispatchingChatTransport({
+    env: {},
+    catalogPath: compatibleCatalog,
+    timeoutMs: 5_000,
+    fetch: async () => {
+      fetches += 1;
+      return jsonChat("should not run");
+    },
+  });
+  assert.throws(
+    () =>
+      compatible.complete({
+        model: "groq/free-model",
+        messages: [{ role: "user", content: "hello" }],
+        options: { stream: false },
+      }),
+    /GROQ_API_KEY/u,
+  );
+
+  const unknownCatalog = catalogFile({
+    version: 1,
+    chatModels: [
+      {
+        id: "mystery/model",
+        name: "Mystery",
+        provider: "mystery",
+        inputModalities: ["text"],
+      },
+    ],
+  });
+  const unknown = createDispatchingChatTransport({
+    env: { NVIDIA_API_KEY: "nvapi-must-not-be-used" },
+    catalogPath: unknownCatalog,
+    timeoutMs: 5_000,
+    fetch: async () => {
+      fetches += 1;
+      return jsonChat("should not run");
+    },
+  });
+  assert.throws(
+    () =>
+      unknown.complete({
+        model: "mystery/model",
+        messages: [{ role: "user", content: "hello" }],
+        options: { stream: false },
+      }),
+    /Unsupported catalog execution provider/u,
+  );
+  assert.equal(fetches, 0);
+});

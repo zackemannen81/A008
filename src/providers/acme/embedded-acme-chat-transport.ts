@@ -3,6 +3,7 @@ import { createAcmeModelRuntime, type AcmeModelRuntime } from "acme-engine";
 import { ChatError, isChatError } from "../../core/errors.js";
 import {
   acmeProviderHint,
+  catalogExecutionProvider,
   resolveExecutionProvider,
 } from "../../core/execution-provider.js";
 import { generationCapabilities } from "../../core/generation-controls.js";
@@ -23,6 +24,12 @@ import type {
   ModelProfile,
 } from "../../core/types.js";
 import { KIE_MARKET_MODELS, kieChatCompletionsUrl } from "../kie/kie-models.js";
+import {
+  assertSupportedCompatibleRoute,
+  compatibleChatCompletionsEndpoint,
+  compatibleCredentialEnv,
+  isCompatibleExecutionProvider,
+} from "../compatible/provider-routes.js";
 import {
   buildAcmeExecuteBody,
   chatErrorFromAcmeFailure,
@@ -71,13 +78,17 @@ function mergedProfiles(
   return [...shipped, ...extras, ...kie];
 }
 
+function profileExecutionProvider(profile: ModelProfile) {
+  return profile.executionProvider ?? catalogExecutionProvider(profile.provider);
+}
+
 function modelCapabilities(profile: ModelProfile): {
   readonly structuredOutput: boolean;
   readonly tools: boolean;
   readonly vision: boolean;
   readonly maxOutputTokens: number;
 } {
-  const executionProvider = profile.executionProvider ?? "nvidia";
+  const executionProvider = profileExecutionProvider(profile);
   return {
     structuredOutput: false,
     tools: executionProvider !== "kie",
@@ -119,7 +130,7 @@ function selection(profile: ModelProfile): {
   readonly providerHint: string;
   readonly modelHint: string;
 } {
-  const executionProvider = profile.executionProvider ?? "nvidia";
+  const executionProvider = profileExecutionProvider(profile);
   return {
     profile: profile.id,
     providerHint: acmeProviderHint(executionProvider, profile.id),
@@ -129,7 +140,7 @@ function selection(profile: ModelProfile): {
 
 function requireKey(
   env: NodeJS.ProcessEnv,
-  name: "NVIDIA_API_KEY" | "OPENAI_API_KEY" | "KIE_API_KEY",
+  name: string,
 ): string | undefined {
   const value = env[name]?.trim();
   return value ? value : undefined;
@@ -204,7 +215,57 @@ export function buildEmbeddedAcmeRuntimeConfig(options: {
             },
           ],
         }));
-  const compatible = [...kieCompatible];
+
+  const radarCompatible = profiles.flatMap((profile) => {
+    const executionProvider = resolveExecutionProvider(
+      profile.id,
+      options.catalog,
+    );
+    if (!isCompatibleExecutionProvider(executionProvider)) return [];
+    const route = options.catalog.chatModels.find(
+      (entry) =>
+        entry.id === profile.id && entry.provider === executionProvider,
+    );
+    if (
+      route === undefined ||
+      typeof route.baseUrl !== "string" ||
+      (route.apiStyle !== "openai-chat-completions" &&
+        route.apiStyle !== "openai-responses")
+    ) {
+      throw new ChatError(
+        "configuration",
+        `Compatible model ${profile.id} is missing persisted route metadata.`,
+      );
+    }
+    assertSupportedCompatibleRoute({
+      provider: executionProvider,
+      baseUrl: route.baseUrl,
+      apiStyle: route.apiStyle,
+    });
+    const apiKey = requireKey(
+      options.env,
+      compatibleCredentialEnv(executionProvider),
+    );
+    if (apiKey === undefined) return [];
+    return [
+      {
+        providerHint: acmeProviderHint(executionProvider, profile.id),
+        endpoint: compatibleChatCompletionsEndpoint(route.baseUrl),
+        apiKey,
+        provider: executionProvider,
+        profiles: [
+          {
+            selection: selection(profile),
+            model: profile.id,
+            capabilities: modelCapabilities(profile),
+            controls: chatControls(profile),
+          },
+        ],
+      },
+    ];
+  });
+
+  const compatible = [...kieCompatible, ...radarCompatible];
 
   const config: RuntimeConfig = {
     ...(openAiKey !== undefined && openAiProfiles.length > 0
@@ -236,7 +297,7 @@ export function buildEmbeddedAcmeRuntimeConfig(options: {
   ) {
     throw new ChatError(
       "configuration",
-      "NVIDIA_API_KEY, OPENAI_API_KEY, or KIE_API_KEY is required for embedded ACME chat.",
+      "A configured API key for the selected execution provider is required for embedded ACME chat.",
     );
   }
   return config;
@@ -479,8 +540,15 @@ export class EmbeddedAcmeChatTransport implements ChatTransport {
         ? "OPENAI_API_KEY"
         : executionProvider === "kie"
           ? "KIE_API_KEY"
-          : "NVIDIA_API_KEY";
-    if (requireKey(this.#env, requiredKey) === undefined) {
+          : executionProvider === "nvidia"
+            ? "NVIDIA_API_KEY"
+            : isCompatibleExecutionProvider(executionProvider)
+              ? compatibleCredentialEnv(executionProvider)
+              : undefined;
+    if (
+      requiredKey === undefined ||
+      requireKey(this.#env, requiredKey) === undefined
+    ) {
       throw new ChatError(
         "configuration",
         `${requiredKey} is required for ${executionProvider} chat.`,

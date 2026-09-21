@@ -123,3 +123,84 @@ test("user catalog accepts OpenAI for chat without widening image providers", ()
   assert.equal(catalog.chatProvider, "openai");
   assert.equal(catalog.imageProvider, "nvidia");
 });
+
+
+test("compatible user models persist exact route metadata and reject route substitution", () => {
+  const catalog = parseUserCatalog({
+    version: 1,
+    chatModels: [
+      {
+        id: "openrouter/free-model",
+        name: "OpenRouter Free",
+        provider: "openrouter",
+        inputModalities: ["text"],
+        baseUrl: "https://openrouter.ai/api/v1/",
+        apiStyle: "openai-chat-completions",
+      },
+    ],
+  });
+  assert.deepEqual(catalog.chatModels[0], {
+    id: "openrouter/free-model",
+    name: "OpenRouter Free",
+    provider: "openrouter",
+    inputModalities: ["text"],
+    baseUrl: "https://openrouter.ai/api/v1",
+    apiStyle: "openai-chat-completions",
+  });
+  assert.equal(userModelProfile(catalog.chatModels[0]!).executionProvider, "openrouter");
+
+  const dir = mkdtempSync(join(tmpdir(), "a008-compatible-catalog-"));
+  const path = join(dir, "catalog.json");
+  saveUserCatalog(path, catalog);
+  assert.deepEqual(loadUserCatalog(path).chatModels, catalog.chatModels);
+
+  assert.throws(
+    () =>
+      parseUserCatalog({
+        version: 1,
+        chatModels: [
+          {
+            id: "openrouter/wrong-endpoint",
+            name: "Wrong Endpoint",
+            provider: "openrouter",
+            inputModalities: ["text"],
+            baseUrl: "https://example.test/v1",
+            apiStyle: "openai-chat-completions",
+          },
+        ],
+      }),
+    /Unsupported openrouter base URL/u,
+  );
+  assert.throws(
+    () =>
+      parseUserCatalog({
+        version: 1,
+        chatModels: [
+          {
+            id: "openrouter/responses-only",
+            name: "Responses Only",
+            provider: "openrouter",
+            inputModalities: ["text"],
+            baseUrl: "https://openrouter.ai/api/v1",
+            apiStyle: "openai-responses",
+          },
+        ],
+      }),
+    /unsupported API style/u,
+  );
+  assert.throws(
+    () =>
+      parseUserCatalog({
+        version: 1,
+        chatModels: [
+          {
+            id: "mystery/model",
+            name: "Mystery",
+            provider: "mystery",
+            inputModalities: ["text"],
+          },
+        ],
+      }),
+    /Unsupported catalog execution provider/u,
+  );
+});

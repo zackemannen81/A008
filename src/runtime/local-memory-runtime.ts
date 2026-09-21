@@ -1443,22 +1443,34 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
   const agentId = resolveAgentId(config, identityFactory);
   const kieKey = options.env.KIE_API_KEY?.trim() ?? "";
   const openAiKey = options.env.OPENAI_API_KEY?.trim() ?? "";
+  const openRouterKey = options.env.OPENROUTER_API_KEY?.trim() ?? "";
+  const groqKey = options.env.GROQ_API_KEY?.trim() ?? "";
+  const geminiKey = options.env.GEMINI_API_KEY?.trim() ?? "";
+  const openCodeKey = options.env.OPENCODE_API_KEY?.trim() ?? "";
   if (
     !nvidiaOptions &&
     !kieKey &&
     !openAiKey &&
+    !openRouterKey &&
+    !groqKey &&
+    !geminiKey &&
+    !openCodeKey &&
     options.createTransport === undefined &&
     config.chatTransport.mode !== "acme"
   ) {
     throw new ChatError(
       "configuration",
-      "NVIDIA_API_KEY, KIE_API_KEY, or OPENAI_API_KEY is required for chat.",
+      "A configured API key for at least one execution provider is required for chat.",
     );
   }
   const secrets = [
     nvidiaOptions?.apiKey,
     kieKey,
     openAiKey,
+    openRouterKey,
+    groqKey,
+    geminiKey,
+    openCodeKey,
     config.chatTransport.token,
   ].filter(
     (value): value is string => typeof value === "string" && value.length >= 8,

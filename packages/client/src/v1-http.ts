@@ -106,6 +106,7 @@ export function createHttpClient(options: HttpClientOptions) {
       loadZeroCostCatalog(options, signal),
     refreshZeroCostCatalog: (signal?: AbortSignal) =>
       refreshZeroCostCatalog(options, signal),
+    addZeroCostModel: (key: string) => addZeroCostModel(options, key),
     loadRuntimeCapabilities: (signal?: AbortSignal) =>
       loadRuntimeCapabilities(options, signal),
   };
@@ -560,6 +561,28 @@ export async function refreshZeroCostCatalog(
   if (!parsed.success)
     throw new Error("Zero Cost Radar metadata is incompatible with this GUI.");
   return parsed.data;
+}
+
+export async function addZeroCostModel(
+  client: HttpClientOptions,
+  key: string,
+): Promise<void> {
+  const normalized = key.trim();
+  if (!normalized) throw new Error("Zero Cost Radar route key is required.");
+  const { response, body } = await requestJson(
+    client,
+    "/v1/catalog/zero-cost/models",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key: normalized }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      messageFromBody(body, "Could not add that Zero Cost Radar model."),
+    );
+  }
 }
 
 export async function loadRuntimeCapabilities(
