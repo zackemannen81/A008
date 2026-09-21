@@ -164,3 +164,5 @@ never whether work is active or complete. Task state belongs in
 | A008-0148 | user-configured MCP servers and Settings surface | Rickard (operator) | 2026-09-21 | product/GUI configuration and lifecycle for existing MCP tool support |
 | A008-0149 | Stage 5 independent client SDK and bundled web migration | Grok (operator) | 2026-09-21 | platform-independent @a008/client, credential adapters, GUI consumes SDK |
 | A008-0150 | normalize strict-provider null sentinels for optional MCP arguments | Rickard (operator) | 2026-09-21 | restore OpenAI strict-schema nullable-required optional MCP fields before local validation |
+| A008-0151 | ZeroCostRadar live refresh and model import | ChatGPT (operator) | 2026-09-21 | explicit live discovery refresh plus bounded import for already-executable routes |
+| A008-0152 | ZeroCostRadar provider execution support | ChatGPT (operator) | 2026-09-21 | explicit host-owned execution and credentials for currently discovery-only zero-cost providers |
