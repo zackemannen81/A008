@@ -56,11 +56,12 @@
     "device": "node dist/src/gui-host/device-cli.js"
   },
   "dependencies": {
+    "@a008/protocol": "file:packages/protocol",
     "@agentclientprotocol/sdk": "1.4.0",
     "@eslint/js": "10.0.1",
     "@modelcontextprotocol/sdk": "1.30.0",
-    "@a008/protocol": "file:packages/protocol",
-    "acme-engine": "^0.1.5",
+    "acme-engine": "^0.1.6",
+    "agent-browser": "^0.38.1",
     "better-sqlite3": "13.0.3",
     "eslint": "^10.10.0",
     "globals": "17.8.0",
