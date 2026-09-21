@@ -17,6 +17,7 @@ import { NvidiaChatTransport } from "../src/providers/nvidia/nvidia-chat-transpo
 import {
   ModelToolSession,
   boundedToolText,
+  normalizeOptionalNullArguments,
   type ToolActivity,
 } from "../src/tools/model-tools.js";
 import { DEFAULT_RUNTIME_BUDGETS as budgets } from "../src/core/runtime-preferences.js";
@@ -703,6 +704,33 @@ test("real shell timeout and cancellation terminate execution; UTF-8 observation
   }
 });
 
+test("strict-provider null sentinels restore optional MCP arguments before original-schema validation", () => {
+  const parameters = {
+    type: "object",
+    properties: {
+      url: { type: "string" },
+      restore: { oneOf: [{ type: "boolean" }, { type: "string" }] },
+      requiredFlag: { type: "boolean" },
+      explicitNull: { type: ["string", "null"] },
+    },
+    required: ["url", "requiredFlag", "explicitNull"],
+    additionalProperties: false,
+  };
+  assert.deepEqual(
+    normalizeOptionalNullArguments(parameters, {
+      url: "https://example.com",
+      restore: null,
+      requiredFlag: null,
+      explicitNull: null,
+    }),
+    {
+      url: "https://example.com",
+      requiredFlag: null,
+      explicitNull: null,
+    },
+  );
+});
+
 test("approved stdio MCP server is discovered, schema validated, executed and closed in the project", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "a008-tools-mcp-"));
   const tools = new ModelToolSession({
@@ -723,10 +751,12 @@ test("approved stdio MCP server is discovered, schema validated, executed and cl
       { approve: async () => true, update: async () => undefined },
       new AbortController().signal,
     );
-    const name = port.definitions.find((d) => d.name.startsWith("mcp_"))!.name;
+    const writeName = port.definitions.find((definition) =>
+      definition.description.includes("fixture_write"),
+    )!.name;
     const output = await port.execute({
       id: "mcp-proof",
-      name,
+      name: writeName,
       arguments: '{"text":"mcp proof"}',
     });
     assert.match(output, /MCP fixture written/);
@@ -734,6 +764,20 @@ test("approved stdio MCP server is discovered, schema validated, executed and cl
       readFileSync(join(cwd, "mcp-fixture.txt"), "utf8"),
       "mcp proof",
     );
+    const optionalName = port.definitions.find((definition) =>
+      definition.description.includes("fixture_optional"),
+    )!.name;
+    const normalized = JSON.parse(
+      await port.execute({
+        id: "mcp-optional-null",
+        name: optionalName,
+        arguments: '{"url":"https://example.com","restore":null}',
+      }),
+    );
+    assert.equal(normalized.status, "completed");
+    assert.deepEqual(JSON.parse(JSON.parse(normalized.text).content[0].text), {
+      url: "https://example.com",
+    });
   } finally {
     await tools.close();
     rmSync(cwd, { recursive: true, force: true });
