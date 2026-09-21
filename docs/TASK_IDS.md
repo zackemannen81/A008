@@ -162,3 +162,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0146 | README current-state synchronization after Stage 4 closure | Rickard (operator) | 2026-09-20 | docs-only README alignment with completed Stage 4 and subsequent user-visible updates |
 | A008-0147 | project conversation session restore | ChatGPT (operator) | 2026-09-21 | reopen a registered project into its existing canonical conversation history instead of an empty chat |
 | A008-0148 | user-configured MCP servers and Settings surface | Rickard (operator) | 2026-09-21 | product/GUI configuration and lifecycle for existing MCP tool support |
+| A008-0149 | Stage 5 independent client SDK and bundled web migration | Grok (operator) | 2026-09-21 | platform-independent @a008/client, credential adapters, GUI consumes SDK |
