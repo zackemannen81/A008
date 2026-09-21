@@ -9,6 +9,11 @@ import {
 import { join, resolve } from "node:path";
 import test from "node:test";
 import { createAcpRuntime } from "../src/acp/server.js";
+import {
+  addUserChatModel,
+  loadUserCatalog,
+  saveUserCatalog,
+} from "../src/core/user-catalog.js";
 import { EngineHost } from "../src/engine/engine-host.js";
 import { ProjectRuntimeRegistry } from "../src/engine/project-runtime-registry.js";
 import { isolatedMemoryEnv, TEST_PROJECT_ID } from "./helpers.js";
@@ -280,6 +285,56 @@ test("two engine hosts borrow the same runtime without taking disposal ownership
     await a.close();
     await b.close();
     registry.close();
+    rmSync(f.directory, { recursive: true, force: true });
+  }
+});
+
+
+test("ACP runtime resolves user-catalog models added after runtime startup", () => {
+  const f = isolatedMemoryEnv({
+    OPENROUTER_API_KEY: "openrouter-fixture",
+  });
+  const catalogPath = join(f.directory, "catalog.json");
+  f.env.A008_CATALOG_PATH = catalogPath;
+  const opened = createAcpRuntime({
+    env: f.env,
+    cwd: f.directory,
+    stderr: process.stderr,
+  });
+  try {
+    assert.throws(
+      () => opened.runtime.sessionParameters("thinkingmachines/inkling:free"),
+      /Unknown model/u,
+    );
+
+    saveUserCatalog(
+      catalogPath,
+      addUserChatModel(loadUserCatalog(catalogPath), {
+        id: "thinkingmachines/inkling:free",
+        name: "Inkling Free",
+        provider: "openrouter",
+        inputModalities: ["text"],
+        baseUrl: "https://openrouter.ai/api/v1",
+        apiStyle: "openai-chat-completions",
+      }),
+    );
+
+    const parameters = opened.runtime.sessionParameters(
+      "thinkingmachines/inkling:free",
+    );
+    assert.equal(parameters.maxTokens, 16_384);
+    assert.equal(parameters.stream, true);
+
+    const created = opened.agent.newSession(
+      { cwd: f.directory, mcpServers: [] },
+      { initialModel: "thinkingmachines/inkling:free" },
+    );
+    assert.match(created.sessionId, /^A008_v1_acp_session_/u);
+  } finally {
+    for (const id of opened.agent.openSessionIds()) {
+      opened.agent.closeSession({ sessionId: id });
+    }
+    opened.runtime.close();
     rmSync(f.directory, { recursive: true, force: true });
   }
 });

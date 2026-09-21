@@ -186,3 +186,41 @@ test("a reasoning budget is declared only where the vendor documents one", () =>
     );
   }
 });
+
+
+test("registry resolves dynamic profiles without replacing shipped ownership", () => {
+  const builtIn: ModelProfile = {
+    id: "provider/built-in",
+    name: "Built In",
+    provider: "provider",
+    defaults: {},
+    inputModalities: ["text"],
+  };
+  let dynamic: readonly ModelProfile[] = [];
+  const registry = new ModelRegistry([builtIn], () => dynamic);
+
+  assert.equal(registry.get("provider/dynamic"), undefined);
+
+  dynamic = [
+    {
+      id: "provider/dynamic",
+      name: "Dynamic",
+      provider: "provider",
+      defaults: { maxTokens: 1234 },
+      inputModalities: ["text"],
+    },
+  ];
+  assert.equal(registry.require("provider/dynamic").name, "Dynamic");
+  assert.equal(
+    registry.list().some((profile) => profile.id === "provider/dynamic"),
+    true,
+  );
+
+  dynamic = [
+    {
+      ...builtIn,
+      name: "Must Not Override",
+    },
+  ];
+  assert.equal(registry.require("provider/built-in").name, "Built In");
+});
