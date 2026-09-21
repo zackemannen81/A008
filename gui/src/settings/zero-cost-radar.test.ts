@@ -92,13 +92,10 @@ test("Zero Cost Radar update check uses the explicit host refresh operation", as
   assert.equal(result.verifiedAt, "2026-09-21");
 });
 
-test("Zero Cost Radar import is enabled only for the current NVIDIA chat path", async () => {
-  const nvidia = {
-    key: "nvidia:new-free",
-    provider: "nvidia" as const,
-    modelId: "nvidia/new-free",
-    name: "New Free",
-    baseUrl: "https://integrate.api.nvidia.com/v1",
+test("Zero Cost Radar import follows executable provider and API-style routes", async () => {
+  const base = {
+    modelId: "fixture/free",
+    name: "Fixture Free",
     apiStyle: "openai-chat-completions" as const,
     access: "free-endpoint" as const,
     lifecycle: "trial" as const,
@@ -106,21 +103,66 @@ test("Zero Cost Radar import is enabled only for the current NVIDIA chat path", 
     verifiedAt: "2026-09-21",
     sourceUrls: ["https://example.test/source"],
   };
-  const unsupported = { ...nvidia, key: "openrouter:new", provider: "openrouter" as const };
-  assert.equal(zeroCostImportBlockReason(nvidia), undefined);
-  assert.match(zeroCostImportBlockReason(unsupported) ?? "", /not wired/u);
+  const routes = [
+    {
+      ...base,
+      key: "nvidia:free",
+      provider: "nvidia" as const,
+      baseUrl: "https://integrate.api.nvidia.com/v1",
+    },
+    {
+      ...base,
+      key: "openrouter:free",
+      provider: "openrouter" as const,
+      baseUrl: "https://openrouter.ai/api/v1",
+    },
+    {
+      ...base,
+      key: "groq:free",
+      provider: "groq" as const,
+      baseUrl: "https://api.groq.com/openai/v1",
+    },
+    {
+      ...base,
+      key: "google:free",
+      provider: "google" as const,
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    },
+    {
+      ...base,
+      key: "opencode:free",
+      provider: "opencode" as const,
+      baseUrl: "https://opencode.ai/zen/v1",
+    },
+  ];
+  for (const route of routes) {
+    assert.equal(zeroCostImportBlockReason(route), undefined);
+  }
+  assert.match(
+    zeroCostImportBlockReason({
+      ...routes[1]!,
+      baseUrl: "https://example.test/v1",
+    }) ?? "",
+    /validated provider endpoint/u,
+  );
+  assert.match(
+    zeroCostImportBlockReason({
+      ...routes[1]!,
+      apiStyle: "openai-responses",
+    }) ?? "",
+    /not wired/u,
+  );
 
   let body = "";
-  await addZeroCostModel(nvidia, async (_input, init) => {
+  await addZeroCostModel(routes[1]!, async (_input, init) => {
     body = String(init?.body ?? "");
-    return new Response(JSON.stringify({ added: { id: nvidia.modelId } }), {
-      status: 200,
-      headers: { "content-type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ added: { id: routes[1]!.modelId } }),
+      {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      },
+    );
   });
-  assert.deepEqual(JSON.parse(body), {
-    id: "nvidia/new-free",
-    provider: "nvidia",
-    name: "New Free",
-  });
+  assert.deepEqual(JSON.parse(body), { key: "openrouter:free" });
 });

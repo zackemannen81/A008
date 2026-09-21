@@ -18,6 +18,10 @@ export function NvidiaCatalogPanel() {
   const [key, setKey] = useState("");
   const [kieKey, setKieKey] = useState("");
   const [openAiKey, setOpenAiKey] = useState("");
+  const [openRouterKey, setOpenRouterKey] = useState("");
+  const [groqKey, setGroqKey] = useState("");
+  const [geminiKey, setGeminiKey] = useState("");
+  const [openCodeKey, setOpenCodeKey] = useState("");
   const [imageModel, setImageModel] = useState("");
   const [imageEndpoint, setImageEndpoint] = useState("");
   const [chatProvider, setChatProvider] = useState<"nvidia" | "kie" | "openai">(
@@ -153,6 +157,76 @@ export function NvidiaCatalogPanel() {
           onChange={(event) => setOpenAiKey(event.target.value)}
         />
       </label>
+      <h3>Zero Cost Radar providers</h3>
+      <p>
+        Imported OpenRouter, Groq, Gemini and OpenCode chat routes use their
+        provider credentials directly. Keys remain host-owned and write-only;
+        Zero Cost Radar discovery never supplies credentials.
+      </p>
+      <p>
+        OpenRouter API key:{" "}
+        {settings?.openRouterApiKeyConfigured
+          ? `configured (${settings.openRouterKeySource})`
+          : "missing"}
+      </p>
+      <label>
+        OpenRouter API key
+        <input
+          type="password"
+          autoComplete="off"
+          value={openRouterKey}
+          placeholder="write only; never shown again"
+          onChange={(event) => setOpenRouterKey(event.target.value)}
+        />
+      </label>
+      <p>
+        Groq API key:{" "}
+        {settings?.groqApiKeyConfigured
+          ? `configured (${settings.groqKeySource})`
+          : "missing"}
+      </p>
+      <label>
+        Groq API key
+        <input
+          type="password"
+          autoComplete="off"
+          value={groqKey}
+          placeholder="write only; never shown again"
+          onChange={(event) => setGroqKey(event.target.value)}
+        />
+      </label>
+      <p>
+        Gemini API key:{" "}
+        {settings?.geminiApiKeyConfigured
+          ? `configured (${settings.geminiKeySource})`
+          : "missing"}
+      </p>
+      <label>
+        Gemini API key
+        <input
+          type="password"
+          autoComplete="off"
+          value={geminiKey}
+          placeholder="write only; never shown again"
+          onChange={(event) => setGeminiKey(event.target.value)}
+        />
+      </label>
+      <p>
+        OpenCode API key:{" "}
+        {settings?.openCodeApiKeyConfigured
+          ? `configured (${settings.openCodeKeySource})`
+          : "missing"}
+      </p>
+      <label>
+        OpenCode API key
+        <input
+          type="password"
+          autoComplete="off"
+          value={openCodeKey}
+          placeholder="write only; never shown again"
+          onChange={(event) => setOpenCodeKey(event.target.value)}
+        />
+      </label>
       <label>
         Chat provider
         <select
@@ -231,6 +305,14 @@ export function NvidiaCatalogPanel() {
             ...(key.trim() ? { nvidiaApiKey: key.trim() } : {}),
             ...(kieKey.trim() ? { kieApiKey: kieKey.trim() } : {}),
             ...(openAiKey.trim() ? { openAiApiKey: openAiKey.trim() } : {}),
+            ...(openRouterKey.trim()
+              ? { openRouterApiKey: openRouterKey.trim() }
+              : {}),
+            ...(groqKey.trim() ? { groqApiKey: groqKey.trim() } : {}),
+            ...(geminiKey.trim() ? { geminiApiKey: geminiKey.trim() } : {}),
+            ...(openCodeKey.trim()
+              ? { openCodeApiKey: openCodeKey.trim() }
+              : {}),
             imageModel,
             imageEndpoint,
             chatProvider,
@@ -244,8 +326,18 @@ export function NvidiaCatalogPanel() {
               setKey("");
               setKieKey("");
               setOpenAiKey("");
+              setOpenRouterKey("");
+              setGroqKey("");
+              setGeminiKey("");
+              setOpenCodeKey("");
               setNotice(
-                key.trim() || kieKey.trim() || openAiKey.trim()
+                key.trim() ||
+                  kieKey.trim() ||
+                  openAiKey.trim() ||
+                  openRouterKey.trim() ||
+                  groqKey.trim() ||
+                  geminiKey.trim() ||
+                  openCodeKey.trim()
                   ? "Saved. Reconnect the session so chat uses the new key."
                   : "Provider settings saved.",
               );

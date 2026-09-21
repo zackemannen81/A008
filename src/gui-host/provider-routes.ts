@@ -4,6 +4,7 @@ import type {
   GeneratedImage,
   ProviderSettings,
   HostModel,
+  ZeroCostModelRouteDto,
 } from "../../packages/protocol/src/index.js";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync, statSync } from "node:fs";
@@ -16,9 +17,13 @@ import {
 import type { ModelRegistry } from "../core/model-registry.js";
 import {
   loadProviderSecrets,
+  resolveGeminiApiKey,
+  resolveGroqApiKey,
   resolveKieApiKey,
   resolveNvidiaApiKey,
   resolveOpenAiApiKey,
+  resolveOpenCodeApiKey,
+  resolveOpenRouterApiKey,
   saveProviderSecrets,
 } from "../core/provider-secrets.js";
 import {
@@ -38,6 +43,11 @@ import { fetchNvidiaCatalog } from "../providers/nvidia/nvidia-catalog.js";
 import { NvidiaImageTransport } from "../providers/nvidia/nvidia-image-transport.js";
 import { KieJobTransport } from "../providers/kie/kie-jobs.js";
 import { KIE_MARKET_MODELS } from "../providers/kie/kie-models.js";
+import {
+  assertSupportedCompatibleRoute,
+  isCompatibleExecutionProvider,
+  normalizeProviderBaseUrl,
+} from "../providers/compatible/provider-routes.js";
 import { blobPath, sanitiseUploadFilename, writeBlob } from "./source-store.js";
 
 export type FetchLike = typeof fetch;
@@ -138,17 +148,77 @@ export function handleNvidiaCatalogAdd(
   ) {
     throw new ChatError("configuration", "id is required to add a model.");
   }
+  const provider =
+    typeof body.provider === "string" && body.provider.trim()
+      ? body.provider.trim().toLowerCase()
+      : "nvidia";
+  if (provider !== "nvidia" && provider !== "kie") {
+    throw new ChatError(
+      "configuration",
+      "The legacy catalog add route accepts NVIDIA or kie.ai models only. Use the ZeroCostRadar import route for compatible providers.",
+    );
+  }
   const model: UserChatModel = {
     id: body.id.trim(),
     name:
       typeof body.name === "string" && body.name.trim()
         ? body.name.trim()
         : body.id.trim(),
-    provider:
-      typeof body.provider === "string" && body.provider.trim()
-        ? body.provider.trim()
-        : "nvidia",
+    provider,
     inputModalities: ["text"],
+  };
+  const next = addUserChatModel(loadUserCatalog(catalogPath), model);
+  saveUserCatalog(catalogPath, next);
+  return model;
+}
+
+export function handleZeroCostCatalogAdd(
+  catalogPath: string,
+  route: ZeroCostModelRouteDto,
+): UserChatModel {
+  const provider = route.provider;
+  if (provider === "nvidia") {
+    if (
+      route.apiStyle !== "openai-chat-completions" ||
+      normalizeProviderBaseUrl(route.baseUrl) !==
+        "https://integrate.api.nvidia.com/v1"
+    ) {
+      throw new ChatError(
+        "configuration",
+        "The ZeroCostRadar NVIDIA route is not executable by A008.",
+      );
+    }
+  } else if (isCompatibleExecutionProvider(provider)) {
+    assertSupportedCompatibleRoute({
+      provider,
+      baseUrl: route.baseUrl,
+      apiStyle: route.apiStyle,
+    });
+  } else {
+    throw new ChatError(
+      "configuration",
+      `ZeroCostRadar provider ${provider} is not executable by A008.`,
+    );
+  }
+
+  const modalities = (route.inputModalities ?? ["text"]).filter(
+    (value): value is "text" | "image" | "video" | "audio" =>
+      value === "text" ||
+      value === "image" ||
+      value === "video" ||
+      value === "audio",
+  );
+  const model: UserChatModel = {
+    id: route.modelId,
+    name: route.name,
+    provider,
+    inputModalities: modalities.length > 0 ? modalities : ["text"],
+    ...(isCompatibleExecutionProvider(provider)
+      ? {
+          baseUrl: normalizeProviderBaseUrl(route.baseUrl),
+          apiStyle: route.apiStyle,
+        }
+      : {}),
   };
   const next = addUserChatModel(loadUserCatalog(catalogPath), model);
   saveUserCatalog(catalogPath, next);
@@ -282,10 +352,18 @@ export function providerSettingsView(
   const nvidia = resolveNvidiaApiKey(env, secretsPath);
   const kie = resolveKieApiKey(env, secretsPath);
   const openAi = resolveOpenAiApiKey(env, secretsPath);
+  const openRouter = resolveOpenRouterApiKey(env, secretsPath);
+  const groq = resolveGroqApiKey(env, secretsPath);
+  const gemini = resolveGeminiApiKey(env, secretsPath);
+  const openCode = resolveOpenCodeApiKey(env, secretsPath);
   return {
     nvidiaApiKeyConfigured: Boolean(nvidia),
     kieApiKeyConfigured: Boolean(kie),
     openAiApiKeyConfigured: Boolean(openAi),
+    openRouterApiKeyConfigured: Boolean(openRouter),
+    groqApiKeyConfigured: Boolean(groq),
+    geminiApiKeyConfigured: Boolean(gemini),
+    openCodeApiKeyConfigured: Boolean(openCode),
     imageModel: catalog.image.model,
     imageEndpoint: catalog.image.endpoint,
     chatProvider: catalog.chatProvider,
@@ -308,6 +386,26 @@ export function providerSettingsView(
       : openAi
         ? "secrets-file"
         : "missing",
+    openRouterKeySource: env.OPENROUTER_API_KEY?.trim()
+      ? "environment"
+      : openRouter
+        ? "secrets-file"
+        : "missing",
+    groqKeySource: env.GROQ_API_KEY?.trim()
+      ? "environment"
+      : groq
+        ? "secrets-file"
+        : "missing",
+    geminiKeySource: env.GEMINI_API_KEY?.trim()
+      ? "environment"
+      : gemini
+        ? "secrets-file"
+        : "missing",
+    openCodeKeySource: env.OPENCODE_API_KEY?.trim()
+      ? "environment"
+      : openCode
+        ? "secrets-file"
+        : "missing",
   };
 }
 
@@ -323,50 +421,39 @@ export function handleProviderSettingsPost(input: {
       "Provider settings must be a JSON object.",
     );
   }
+  const body = input.body;
   const currentSecrets = loadProviderSecrets(input.secretsPath);
-  let nvidiaApiKey = currentSecrets.nvidiaApiKey;
-  let kieApiKey = currentSecrets.kieApiKey;
-  let openAiApiKey = currentSecrets.openAiApiKey;
-  if (typeof input.body.nvidiaApiKey === "string") {
-    const key = input.body.nvidiaApiKey.trim();
-    if (key.length === 0) {
+  const updatedSecret = (
+    field: string,
+    current: string | undefined,
+  ): string | undefined => {
+    const value = body[field];
+    if (value === undefined || typeof value !== "string") return current;
+    if (value.trim().length === 0) {
       throw new ChatError(
         "configuration",
-        "nvidiaApiKey must be non-empty when provided.",
+        `${field} must be non-empty when provided.`,
       );
     }
-    nvidiaApiKey = key;
-  }
-  if (typeof input.body.kieApiKey === "string") {
-    const key = input.body.kieApiKey.trim();
-    if (key.length === 0) {
-      throw new ChatError(
-        "configuration",
-        "kieApiKey must be non-empty when provided.",
-      );
-    }
-    kieApiKey = key;
-  }
-  if (typeof input.body.openAiApiKey === "string") {
-    const key = input.body.openAiApiKey.trim();
-    if (key.length === 0) {
-      throw new ChatError(
-        "configuration",
-        "openAiApiKey must be non-empty when provided.",
-      );
-    }
-    openAiApiKey = key;
-  }
-  if (
-    nvidiaApiKey !== currentSecrets.nvidiaApiKey ||
-    kieApiKey !== currentSecrets.kieApiKey ||
-    openAiApiKey !== currentSecrets.openAiApiKey
-  ) {
-    saveProviderSecrets(input.secretsPath, {
-      nvidiaApiKey,
-      kieApiKey,
-      openAiApiKey,
-    });
+    return value.trim();
+  };
+  const nextSecrets = {
+    nvidiaApiKey: updatedSecret("nvidiaApiKey", currentSecrets.nvidiaApiKey),
+    kieApiKey: updatedSecret("kieApiKey", currentSecrets.kieApiKey),
+    openAiApiKey: updatedSecret("openAiApiKey", currentSecrets.openAiApiKey),
+    openRouterApiKey: updatedSecret(
+      "openRouterApiKey",
+      currentSecrets.openRouterApiKey,
+    ),
+    groqApiKey: updatedSecret("groqApiKey", currentSecrets.groqApiKey),
+    geminiApiKey: updatedSecret("geminiApiKey", currentSecrets.geminiApiKey),
+    openCodeApiKey: updatedSecret(
+      "openCodeApiKey",
+      currentSecrets.openCodeApiKey,
+    ),
+  };
+  if (JSON.stringify(nextSecrets) !== JSON.stringify(currentSecrets)) {
+    saveProviderSecrets(input.secretsPath, nextSecrets);
   }
   const catalog = loadUserCatalog(input.catalogPath);
   const asChatProvider = (value: unknown): ChatCatalogProvider | undefined =>

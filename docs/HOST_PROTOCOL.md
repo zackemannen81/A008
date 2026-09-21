@@ -206,6 +206,16 @@ verification-date consistency, and returns it for the current request. Invalid
 or unreachable upstream data fails closed; it is not persisted as runtime truth,
 does not register providers/models and does not alter routing or credentials.
 
+### `POST /v1/catalog/zero-cost/models`
+
+Authenticated model registration from the current published ZeroCostRadar feed.
+The request body contains only `{ "key": "<radar-route-key>" }`. The host
+re-fetches and validates the published feed, resolves that exact key, validates
+the provider/base-URL/API-style tuple against A008 execution policy, and only
+then persists the model in the user catalog. This route is not a generic model
+registration endpoint. Unknown keys, unsupported providers/API styles or
+mismatched endpoints fail closed and do not mutate the catalog.
+
 ### `GET /v1/catalog/nvidia`
 
 Live NVIDIA Build list. Needs `NVIDIA_API_KEY`. Never returns the key.
@@ -221,7 +231,10 @@ listed, not invoked.
 { "id": "gemini-3-flash", "provider": "kie" }
 ```
 
-Adds a chat model to `~/.a008/catalog.json`. `provider` defaults to `nvidia`.
+Adds a legacy NVIDIA/kie chat model to `~/.a008/catalog.json`.
+`provider` defaults to `nvidia`; values other than `nvidia` or `kie` are
+rejected. OpenRouter/Groq/Google/OpenCode imports must use the revalidated
+ZeroCostRadar registration route above.
 
 ### `DELETE /v1/catalog/nvidia?id=`
 
@@ -230,16 +243,20 @@ Removes that user-catalog chat model.
 ### `GET /v1/provider-settings`
 
 Reports `nvidiaApiKeyConfigured`, `kieApiKeyConfigured`,
-`openAiApiKeyConfigured`, `chatProvider`, `imageProvider`, NVIDIA image
+`openAiApiKeyConfigured`, `openRouterApiKeyConfigured`,
+`groqApiKeyConfigured`, `geminiApiKeyConfigured`,
+`openCodeApiKeyConfigured`, `chatProvider`, `imageProvider`, NVIDIA image
 model/endpoint, kie chat/image model ids, and per-provider key sources
 (`environment` | `secrets-file` | `missing`). Never a key value.
 
 ### `POST /v1/provider-settings`
 
-Write-only NVIDIA, kie.ai and/or OpenAI API keys plus the catalog fields above.
-`chatProvider` accepts `nvidia`, `kie`, or `openai`; image provider remains
-NVIDIA/kie only. Empty key strings are rejected. Omitted keys leave stored values
-unchanged.
+Write-only NVIDIA, kie.ai, OpenAI, OpenRouter, Groq, Gemini and/or OpenCode
+API keys plus the catalog fields above. `chatProvider` remains the legacy global
+selector and accepts only `nvidia`, `kie`, or `openai`; compatible Radar
+models route from their persisted model-owned execution metadata instead.
+Image provider remains NVIDIA/kie only. Empty key strings are rejected. Omitted
+keys leave stored values unchanged.
 
 ### `POST /v1/images`
 

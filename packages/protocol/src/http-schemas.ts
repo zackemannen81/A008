@@ -199,6 +199,10 @@ export const userChatModelSchema = z.object({
   inputModalities: z
     .array(z.enum(["text", "image", "video", "audio"]))
     .readonly(),
+  baseUrl: text.optional(),
+  apiStyle: z
+    .enum(["openai-chat-completions", "openai-responses"])
+    .optional(),
 });
 export type UserChatModel = z.infer<typeof userChatModelSchema>;
 export const nvidiaCatalogModelSchema = z.object({
@@ -309,6 +313,10 @@ export const providerSettingsSchema = z.object({
   nvidiaApiKeyConfigured: z.boolean(),
   kieApiKeyConfigured: z.boolean(),
   openAiApiKeyConfigured: z.boolean(),
+  openRouterApiKeyConfigured: z.boolean(),
+  groqApiKeyConfigured: z.boolean(),
+  geminiApiKeyConfigured: z.boolean(),
+  openCodeApiKeyConfigured: z.boolean(),
   imageModel: text,
   imageEndpoint: text,
   chatProvider: z.enum(["nvidia", "kie", "openai"]),
@@ -319,12 +327,20 @@ export const providerSettingsSchema = z.object({
   keySource: text,
   kieKeySource: text,
   openAiKeySource: text,
+  openRouterKeySource: text,
+  groqKeySource: text,
+  geminiKeySource: text,
+  openCodeKeySource: text,
 });
 export type ProviderSettings = z.infer<typeof providerSettingsSchema>;
 export const providerSettingsUpdateSchema = z.object({
   nvidiaApiKey: text.optional(),
   kieApiKey: text.optional(),
   openAiApiKey: text.optional(),
+  openRouterApiKey: text.optional(),
+  groqApiKey: text.optional(),
+  geminiApiKey: text.optional(),
+  openCodeApiKey: text.optional(),
   imageModel: text.optional(),
   imageEndpoint: text.optional(),
   chatProvider: z.enum(["nvidia", "kie", "openai"]).optional(),
@@ -350,6 +366,9 @@ export const catalogAddInputSchema = z.object({
   id: nonempty,
   name: z.unknown().optional(),
   provider: z.unknown().optional(),
+});
+export const zeroCostCatalogAddInputSchema = z.object({
+  key: nonempty,
 });
 export const catalogAddedSchema = z.object({ added: userChatModelSchema });
 export const catalogRemovedSchema = z.object({ removed: text });
@@ -419,6 +438,7 @@ export const v1HttpSchemas = {
   providerSettingsUpdate: providerSettingsUpdateSchema,
   providerSettingsInput: providerSettingsInputSchema,
   catalogAddInput: catalogAddInputSchema,
+  zeroCostCatalogAddInput: zeroCostCatalogAddInputSchema,
   catalogAdded: catalogAddedSchema,
   catalogRemoved: catalogRemovedSchema,
   imageInput: imageInputSchema,

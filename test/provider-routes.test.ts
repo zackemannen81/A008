@@ -230,3 +230,47 @@ test("kie image generate stores a blob and never returns the credential", async 
   assert.match(result.locator, /^source:[a-f0-9]{64}\/generated\.png$/u);
   assert.equal(JSON.stringify(result).includes("kie-secret"), false);
 });
+
+
+test("compatible provider keys are write-only and preserve source metadata", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a008-compatible-sec-"));
+  const catalogPath = join(dir, "catalog.json");
+  const secretsPath = join(dir, "secrets.json");
+  const view = handleProviderSettingsPost({
+    catalogPath,
+    secretsPath,
+    env: { GROQ_API_KEY: "groq-env-secret" },
+    body: {
+      openRouterApiKey: "openrouter-secret-value",
+      geminiApiKey: "gemini-secret-value",
+      openCodeApiKey: "opencode-secret-value",
+    },
+  });
+  assert.equal(view.openRouterApiKeyConfigured, true);
+  assert.equal(view.openRouterKeySource, "secrets-file");
+  assert.equal(view.groqApiKeyConfigured, true);
+  assert.equal(view.groqKeySource, "environment");
+  assert.equal(view.geminiApiKeyConfigured, true);
+  assert.equal(view.geminiKeySource, "secrets-file");
+  assert.equal(view.openCodeApiKeyConfigured, true);
+  assert.equal(view.openCodeKeySource, "secrets-file");
+  const serialized = JSON.stringify(view);
+  assert.equal(serialized.includes("openrouter-secret-value"), false);
+  assert.equal(serialized.includes("groq-env-secret"), false);
+  assert.equal(serialized.includes("gemini-secret-value"), false);
+  assert.equal(serialized.includes("opencode-secret-value"), false);
+});
+
+
+test("legacy catalog add route refuses compatible-provider injection", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a008-legacy-cat-"));
+  assert.throws(
+    () =>
+      handleNvidiaCatalogAdd(join(dir, "catalog.json"), {
+        id: "openrouter/not-allowed-here",
+        name: "Wrong Route",
+        provider: "openrouter",
+      }),
+    /ZeroCostRadar import route/u,
+  );
+});

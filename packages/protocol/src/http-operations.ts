@@ -39,6 +39,10 @@ const payloads: Readonly<Record<string, Payloads>> = {
   },
   "GET /v1/catalog/zero-cost": { response: "zeroCostCatalog" },
   "POST /v1/catalog/zero-cost": { response: "zeroCostCatalog" },
+  "POST /v1/catalog/zero-cost/models": {
+    body: "zeroCostCatalogAddInput",
+    response: "catalogAdded",
+  },
   "GET /v1/catalog/nvidia": { response: "nvidiaCatalog" },
   "POST /v1/catalog/nvidia": {
     body: "catalogAddInput",

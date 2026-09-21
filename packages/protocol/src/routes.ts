@@ -30,6 +30,12 @@ export const v1HttpRoutes = [
     "explicit published ZeroCostRadar update check",
     "zero-cost-catalog",
   ],
+  [
+    "POST",
+    "/v1/catalog/zero-cost/models",
+    "revalidated ZeroCostRadar model registration",
+    "provider-routes",
+  ],
   ["GET", "/v1/catalog/nvidia", "host upstream catalog", "provider-routes"],
   ["POST", "/v1/catalog/nvidia", "host catalog mutation", "provider-routes"],
   ["DELETE", "/v1/catalog/nvidia", "host catalog mutation", "provider-routes"],

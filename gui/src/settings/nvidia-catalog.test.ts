@@ -17,4 +17,9 @@ test("provider panel explains Free Endpoint and write-only API key", () => {
   assert.match(html, /sk-…/u);
   assert.match(html, /docs.kie.ai/u);
   assert.match(html, /async Market jobs/u);
+  assert.match(html, /Zero Cost Radar providers/u);
+  assert.match(html, /OpenRouter API key/u);
+  assert.match(html, /Groq API key/u);
+  assert.match(html, /Gemini API key/u);
+  assert.match(html, /OpenCode API key/u);
 });
