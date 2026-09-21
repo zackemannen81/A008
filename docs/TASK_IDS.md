@@ -163,3 +163,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0147 | project conversation session restore | ChatGPT (operator) | 2026-09-21 | reopen a registered project into its existing canonical conversation history instead of an empty chat |
 | A008-0148 | user-configured MCP servers and Settings surface | Rickard (operator) | 2026-09-21 | product/GUI configuration and lifecycle for existing MCP tool support |
 | A008-0149 | Stage 5 independent client SDK and bundled web migration | Grok (operator) | 2026-09-21 | platform-independent @a008/client, credential adapters, GUI consumes SDK |
+| A008-0150 | normalize strict-provider null sentinels for optional MCP arguments | Rickard (operator) | 2026-09-21 | restore OpenAI strict-schema nullable-required optional MCP fields before local validation |
