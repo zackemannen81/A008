@@ -3,6 +3,8 @@
 Reality as of 2026-09-21. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
+A008-0149 ships `@a008/client`, the Stage-5 independent HTTP/WebSocket SDK, and migrates bundled GUI session/HTTP I/O onto it. Injected fetch, WebSocket and cookie/bearer/engine credential adapters keep secrets out of React. The bundled GUI keeps current chat behavior through the V1 session adapter (PIN-disabled standalone, engine-panel capability, prompt attachments and in-session image generation). Independent consumers use the V2 adapter, which authenticates with a one-use ticket, applies snapshots/events and refuses to auto-resubmit mutations after `COMMAND_UNKNOWN`/`SESSION_EXPIRED`. New V2 HTTP business routes are not added. Verification: packed client+protocol install outside A008; 711 core, 4 membership and 187 GUI tests pass with 0 failures/skips; root/GUI typecheck, GUI production build, `verify:protocol`, `verify:client` and `git diff --check` pass. No live/paid provider call.
+
 A008-0148 makes the existing stdio-only MCP capability configurable from bundled
 GUI Parameters → MCP. The existing user catalog persists validated named command,
 argument, non-secret environment and enabled-state definitions; empty configuration

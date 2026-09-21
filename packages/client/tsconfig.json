@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "lib": ["ES2023", "DOM"],
+    "paths": {
+      "@a008/protocol": ["../protocol/dist/index.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

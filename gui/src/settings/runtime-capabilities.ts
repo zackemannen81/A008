@@ -1,7 +1,6 @@
-import {
-  v2InfoSchema,
-  type V2Info,
-} from "../../../packages/protocol/src/index.js";
+import { loadRuntimeCapabilities as loadRuntimeFromClient } from "../../../packages/client/src/index.js";
+import type { V2Info } from "../../../packages/protocol/src/index.js";
+import { guiHttp } from "../client.js";
 
 export const STAGE4_FOUNDATION_FEATURES = [
   "session.turn-identity",
@@ -33,21 +32,7 @@ export async function loadRuntimeCapabilities(
   signal?: AbortSignal,
   fetchImpl: typeof fetch = fetch,
 ): Promise<V2Info> {
-  const response = await fetchImpl("/v2/info", {
-    headers: { accept: "application/json" },
-    signal,
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    throw new Error(
-      `V2 discovery is unavailable in this host mode (${response.status}).`,
-    );
-  }
-  const parsed = v2InfoSchema.safeParse(await response.json());
-  if (!parsed.success) {
-    throw new Error("V2 discovery metadata is incompatible with this GUI.");
-  }
-  return parsed.data;
+  return loadRuntimeFromClient(guiHttp(fetchImpl), signal);
 }
 
 export function stage4FoundationComplete(info: V2Info): boolean {
