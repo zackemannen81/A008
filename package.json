@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "@a008/protocol": "file:packages/protocol",
+    "@acme-engine/adapter-model-chat-completions": "0.1.4",
     "@agentclientprotocol/sdk": "1.4.0",
     "@eslint/js": "10.0.1",
     "@modelcontextprotocol/sdk": "1.30.0",

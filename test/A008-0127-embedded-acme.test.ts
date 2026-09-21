@@ -372,7 +372,7 @@ test("embedded transport calls the provider directly through real acme-engine", 
   }
 });
 
-test("embedded OpenAI route uses native Responses with vision, tools and selected reasoning through ACME 0.1.5", async () => {
+test("embedded OpenAI route uses native Responses with vision, tools and selected reasoning through ACME 0.1.6", async () => {
   const { directory, path } = tempCatalog();
   const bodies: Record<string, unknown>[] = [];
   const urls: string[] = [];
@@ -524,6 +524,74 @@ test("streamed OpenAI reasoning summary reaches the transient reasoning channel"
     ]);
     assert.equal(completion.reasoning, "Checked the relevant constraints.");
     assert.equal(completion.message.content, "Final answer.");
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+
+test("embedded ACME executes a persisted OpenRouter compatible route exactly", async () => {
+  const { directory, path } = tempCatalog();
+  try {
+    saveUserCatalog(
+      path,
+      addUserChatModel(loadUserCatalog(path), {
+        id: "openrouter/free-model",
+        name: "OpenRouter Free",
+        provider: "openrouter",
+        inputModalities: ["text"],
+        baseUrl: "https://openrouter.ai/api/v1",
+        apiStyle: "openai-chat-completions",
+      }),
+    );
+    const catalog = loadUserCatalog(path);
+    const config = buildEmbeddedAcmeRuntimeConfig({
+      env: { OPENROUTER_API_KEY: "or-embedded-secret" },
+      catalog,
+    });
+    const route = config.compatible?.find(
+      (entry) => entry.providerHint === "openrouter",
+    );
+    assert.ok(route);
+    assert.equal(route.endpoint, "https://openrouter.ai/api/v1/chat/completions");
+    assert.equal(route.apiKey, "or-embedded-secret");
+    assert.equal(route.provider, "openrouter");
+    assert.equal(route.profiles[0]?.model, "openrouter/free-model");
+
+    let url = "";
+    let authorization = "";
+    const transport = new EmbeddedAcmeChatTransport({
+      env: { OPENROUTER_API_KEY: "or-embedded-secret" },
+      catalogPath: path,
+      requestKey: () => "openrouter-embedded-fixture",
+      fetch: async (input, init) => {
+        url = String(input);
+        authorization = new Headers(init?.headers).get("authorization") ?? "";
+        return new Response(
+          JSON.stringify({
+            id: "chatcmpl_openrouter_embedded",
+            model: "openrouter/free-model",
+            choices: [
+              {
+                message: { role: "assistant", content: "embedded openrouter" },
+                finish_reason: "stop",
+              },
+            ],
+            usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      },
+    });
+    const completion = await transport.complete({
+      model: "openrouter/free-model",
+      messages: [{ role: "user", content: "hello" }],
+      options: { stream: false },
+    });
+    assert.equal(url, "https://openrouter.ai/api/v1/chat/completions");
+    assert.equal(authorization, "Bearer or-embedded-secret");
+    assert.equal(completion.message.content, "embedded openrouter");
+    assert.equal(completion.usage?.totalTokens, 5);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
