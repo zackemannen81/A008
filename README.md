@@ -35,6 +35,10 @@ See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_s
 - Committed conversation content supports ordered generated-image items: manual
   and structured model-tool generation reserve one placeholder and resolve it
   in place without reordering surrounding text.
+- The standalone workspace persists one current canonical conversation per
+  project in the existing SQLite owner. Reopening a project or restarting the
+  host reconstructs committed text/images under a new ephemeral session; generic
+  ACP/V2 sessions remain independent and stale paid image jobs are never replayed.
 - One runtime/provider/memory ownership model shared by CLI, ACP, standalone GUI,
   portable engine and V2 session transport.
 - Eight built-in chat profiles plus a user catalog. Chat model selection is
@@ -89,8 +93,8 @@ npm run verify:protocol
 npm --prefix gui run build
 ```
 
-The latest documented full-suite verification passed **701 core + 4 membership +
-186 GUI = 891 tests** with zero failures/skips. Root and GUI typechecks, GUI
+The latest documented full-suite verification passed **707 core + 4 membership +
+187 GUI = 898 tests** with zero failures/skips. Root and GUI typechecks, GUI
 production build, `verify:protocol` and `git diff --check` also passed. No live
 or paid provider call was made.
 

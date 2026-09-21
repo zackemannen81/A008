@@ -52,7 +52,13 @@ export function createAcpRuntime(options: {
       tools: nativeToolCatalog(),
     }),
     inspectMemory: (query) => runtime.inspectMemory(query),
-    createSession: (model) => runtime.openSession({ model }),
+    createSession: (model, sessionOptions) =>
+      runtime.openSession({
+        model,
+        ...(sessionOptions?.workspaceConversation === undefined
+          ? {}
+          : { workspaceConversation: sessionOptions.workspaceConversation }),
+      }),
     resolveImageAttachment: (locator) =>
       runtime.resolveImageAttachment(locator),
     // Wired only here, so an agent constructed without a runtime refuses

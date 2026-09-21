@@ -450,10 +450,15 @@ recorded as fact.
 Explicit GUI `endSession` always runs local teardown after its host close attempt,
 including a rejected close. The promise still reports that failure. This matters
 when project opening has already closed the previous v1 bridge: the existing
-project callback catches the stale close, then Connect opens a fresh session
-instead of retaining the previous ready state (A008-0100). Teardown discards the
-old socket and resume capability and rejects pending local work; it does not
-claim that a failed remote close succeeded.
+project callback catches the stale close, then Connect opens a new ephemeral
+session instead of retaining the previous ready state (A008-0100). Since
+A008-0147, that standalone workspace session hydrates the selected project's
+durable current conversation from the runtime-owned SQLite state. The transport
+session/resume capability is still new/process-local; only canonical committed
+conversation state survives project switches or host restart. Generic ACP/V2
+sessions do not opt into workspace restore. Teardown discards the old socket and
+resume capability and rejects pending local work; it does not claim that a
+failed remote close succeeded.
 
 `gui/` is an A008-owned Vite + React + TypeScript application. ADR 0030
 introduces a neutral workspace inspired by the owner's Codex screenshot. It
@@ -488,9 +493,11 @@ node. Current sessions render committed messages from the runtime snapshot and
 overlay the pending user/thought/answer only while a turn runs. A prompt
 acknowledgment ends the live marker; reset/undo/model changes synchronize the
 display with the core. The older reducer/capture shim is used only when an older
-host supplies no snapshot. V1 image-generation jobs are process-local: reconnect
-in the same host process reconstructs pending and completed items from the live
-snapshot, and a new process does not replay a lost chargeable generation.
+host supplies no snapshot. V1 image-generation execution remains process-local:
+same-process reconnect can observe a live pending item, while durable workspace
+restore keeps completed/failed/cancelled conversation items and converts a stale
+persisted `pending` item to terminal cancellation without replaying a chargeable
+generation.
 
 `gui/src/composer/` carries the A008-0029 slash set, `gui/src/terminal/` calls
 `POST /v1/shell` rather than executing anything in the browser, and

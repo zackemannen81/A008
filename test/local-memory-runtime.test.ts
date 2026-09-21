@@ -5,6 +5,7 @@ import test from "node:test";
 import type { ChatRequest } from "../src/core/types.js";
 import { DEFAULT_PROVIDER_TIMEOUT_MS } from "../src/runtime/local-runtime-config.js";
 import { ChatError } from "../src/core/errors.js";
+import { generatedImagePart } from "../src/core/chat-content.js";
 import { parseRuntimeId } from "../src/identity/runtime-id.js";
 import { MemoryError } from "../src/memory/errors.js";
 import { SqliteKnowledgeStore } from "../src/memory/knowledge/index.js";
@@ -189,6 +190,187 @@ test("restart with existing SQLite still projects the active assertion", async (
     }
   } finally {
     secondRuntime.close();
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
+});
+
+
+test("workspace conversation survives runtime restart while generic sessions stay fresh", async () => {
+  const isolated = isolatedMemoryEnv();
+  const transport = () =>
+    memoryAwareFakeTransport({
+      chat: () => ({ content: "Workspace fixture answer." }),
+      analyze: () => [],
+      classify: () => ({ type: "new" }),
+    });
+  const firstRuntime = createLocalMemoryRuntime({
+    env: isolated.env,
+    surface: "test",
+    createTransport: transport,
+  });
+  let conversationId = "";
+  try {
+    const session = firstRuntime.openSession({ workspaceConversation: "fresh" });
+    conversationId = session.conversationId;
+    await session.turn("Persist this workspace turn.");
+    assert.deepEqual(
+      session.messages.map((message) => message.role),
+      ["user", "assistant"],
+    );
+  } finally {
+    firstRuntime.close();
+  }
+
+  const secondRuntime = createLocalMemoryRuntime({
+    env: isolated.env,
+    surface: "test",
+    createTransport: transport,
+  });
+  try {
+    const restored = secondRuntime.openSession({
+      workspaceConversation: "restore",
+    });
+    assert.equal(restored.conversationId, conversationId);
+    assert.deepEqual(
+      restored.messages.map((message) => message.role),
+      ["user", "assistant"],
+    );
+    assert.equal(restored.messages[0]?.content, "Persist this workspace turn.");
+    assert.equal(restored.messages[1]?.content, "Workspace fixture answer.");
+
+    const generic = secondRuntime.openSession();
+    assert.notEqual(generic.conversationId, conversationId);
+    assert.equal(generic.messages.length, 0);
+  } finally {
+    secondRuntime.close();
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
+});
+
+
+test("workspace reset and undo persist the resulting canonical conversation", async () => {
+  const isolated = isolatedMemoryEnv();
+  const transport = () =>
+    memoryAwareFakeTransport({
+      chat: (_request, chatTurn) => ({ content: `Answer ${chatTurn}.` }),
+      analyze: () => [],
+      classify: () => ({ type: "new" }),
+    });
+  const runtime = createLocalMemoryRuntime({
+    env: isolated.env,
+    surface: "test",
+    createTransport: transport,
+  });
+  try {
+    const session = runtime.openSession({ workspaceConversation: "fresh" });
+    await session.turn("First turn.");
+    await session.turn("Second turn.");
+    assert.equal(session.messages.length, 4);
+    assert.equal(session.undoLastTurn(), true);
+    assert.equal(session.messages.length, 2);
+  } finally {
+    runtime.close();
+  }
+
+  const afterUndo = createLocalMemoryRuntime({
+    env: isolated.env,
+    surface: "test",
+    createTransport: transport,
+  });
+  try {
+    const restored = afterUndo.openSession({ workspaceConversation: "restore" });
+    assert.deepEqual(
+      restored.messages.map((message) => message.content),
+      ["First turn.", "Answer 1."],
+    );
+    restored.reset();
+    assert.equal(restored.messages.length, 0);
+  } finally {
+    afterUndo.close();
+  }
+
+  const afterReset = createLocalMemoryRuntime({
+    env: isolated.env,
+    surface: "test",
+    createTransport: transport,
+  });
+  try {
+    assert.equal(
+      afterReset.openSession({ workspaceConversation: "restore" }).messages.length,
+      0,
+    );
+  } finally {
+    afterReset.close();
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
+});
+
+test("workspace restore terminalizes a stale pending generated image without replay", () => {
+  const isolated = isolatedMemoryEnv();
+  const create = () =>
+    createLocalMemoryRuntime({
+      env: isolated.env,
+      surface: "test",
+      createTransport: () =>
+        memoryAwareFakeTransport({
+          chat: () => {
+            throw new Error("restore must not call the provider");
+          },
+        }),
+    });
+  const first = create();
+  let generationId = "";
+  try {
+    const session = first.openSession({ workspaceConversation: "fresh" });
+    generationId = "image_pending_restore";
+    session.reserveGeneratedImage(generationId, "unfinished image fixture");
+    session.reserveGeneratedImage("image_completed_restore", "completed image fixture");
+    session.resolveGeneratedImage("image_completed_restore", {
+      status: "completed",
+      locator: "source:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/completed.png",
+      mediaType: "image/png",
+      filename: "completed.png",
+    });
+    assert.equal(
+      generatedImagePart(session.messages[0]?.content)?.status,
+      "pending",
+    );
+    assert.equal(
+      generatedImagePart(session.messages[1]?.content)?.status,
+      "completed",
+    );
+  } finally {
+    first.close();
+  }
+
+  const second = create();
+  try {
+    const restored = second.openSession({ workspaceConversation: "restore" });
+    const part = generatedImagePart(restored.messages[0]?.content);
+    assert.equal(part?.generationId, generationId);
+    assert.equal(part?.status, "cancelled");
+    assert.match(part?.error ?? "", /did not complete/u);
+    const completed = generatedImagePart(restored.messages[1]?.content);
+    assert.equal(completed?.status, "completed");
+    assert.equal(
+      completed?.locator,
+      "source:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/completed.png",
+    );
+  } finally {
+    second.close();
+  }
+
+  const third = create();
+  try {
+    const restoredAgain = third.openSession({
+      workspaceConversation: "restore",
+    });
+    assert.equal(
+      generatedImagePart(restoredAgain.messages[0]?.content)?.status,
+      "cancelled",
+    );
+  } finally {
+    third.close();
     rmSync(isolated.directory, { recursive: true, force: true });
   }
 });

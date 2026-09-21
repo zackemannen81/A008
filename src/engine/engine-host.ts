@@ -118,8 +118,12 @@ export class EngineHost {
       requestPermission?: RequestToolPermission;
       notify?: ToolNotifier;
     } = {},
+    options: {
+      initialModel?: string;
+      workspaceConversation?: boolean;
+    } = {},
   ) {
-    const work = this.#newSession(params, client);
+    const work = this.#newSession(params, client, options);
     this.#initializing.add(work);
     void work
       .finally(() => this.#initializing.delete(work))
@@ -133,11 +137,22 @@ export class EngineHost {
       requestPermission?: RequestToolPermission;
       notify?: ToolNotifier;
     },
+    options: {
+      initialModel?: string;
+      workspaceConversation?: boolean;
+    },
   ) {
     if (this.#closed) throw new Error("Engine is stopping.");
     const project = this.#project(params.cwd),
       cwd = project.cwd;
-    const created = project.agent.newSession(params);
+    const created = project.agent.newSession(params, {
+      ...(options.initialModel === undefined
+        ? {}
+        : { initialModel: options.initialModel }),
+      ...(options.workspaceConversation === undefined
+        ? {}
+        : { workspaceConversation: options.workspaceConversation }),
+    });
     const tools = new ModelToolSession({
       cwd,
       env: this.#options.env,

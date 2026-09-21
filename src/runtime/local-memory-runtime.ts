@@ -19,6 +19,10 @@ import {
 } from "../core/chat-invocation.js";
 import { ChatError, isChatError } from "../core/errors.js";
 import { RuntimePreferencesStore } from "./runtime-preferences-store.js";
+import {
+  ProjectConversationStateStore,
+  type ProjectConversationState,
+} from "./conversation-state-store.js";
 import type { RuntimeBudgets } from "../core/runtime-preferences.js";
 import { ConversationScopes } from "../memory/knowledge/current-scope.js";
 import { DeterministicRetrievalPlanner } from "../memory/deterministic-retrieval-planner.js";
@@ -223,6 +227,8 @@ export interface LocalMemoryRuntimeOptions {
 export interface LocalMemorySessionOptions {
   readonly model?: string;
   readonly systemMessage?: string;
+  /** Internal standalone-workspace policy; generic sessions omit this. */
+  readonly workspaceConversation?: "restore" | "fresh";
 }
 
 export interface LocalMemoryTurnResult {
@@ -566,6 +572,9 @@ export class LocalMemorySession {
   readonly #runtime: LocalMemoryRuntime;
   readonly #chat: ChatSession;
   readonly #identityFactory: RuntimeIdentityFactory;
+  readonly #persistConversation:
+    | ((state: ProjectConversationState) => void)
+    | undefined;
   #turnActive = false;
   #lastDiagnostic: string | undefined;
   #lastMemoryStatus: PostOutputMemoryResult["status"] | undefined;
@@ -575,11 +584,13 @@ export class LocalMemorySession {
     readonly conversationId: ConversationId;
     readonly chat: ChatSession;
     readonly identityFactory: RuntimeIdentityFactory;
+    readonly persistConversation?: (state: ProjectConversationState) => void;
   }) {
     this.#runtime = options.runtime;
     this.conversationId = options.conversationId;
     this.#chat = options.chat;
     this.#identityFactory = options.identityFactory;
+    this.#persistConversation = options.persistConversation;
   }
 
   get model(): string {
@@ -643,6 +654,7 @@ export class LocalMemorySession {
         "Cannot reset during an active turn.",
       );
     this.#chat.reset();
+    this.#persist();
   }
 
   undoLastTurn(): boolean {
@@ -651,18 +663,31 @@ export class LocalMemorySession {
         "configuration",
         "Cannot undo during an active turn.",
       );
-    return this.#chat.undoLastTurn();
+    const undone = this.#chat.undoLastTurn();
+    if (undone) this.#persist();
+    return undone;
   }
 
   reserveGeneratedImage(generationId: string, prompt: string): void {
     this.#chat.reserveGeneratedImage(generationId, prompt);
+    this.#persist();
   }
 
   resolveGeneratedImage(
     generationId: string,
     update: GeneratedImageTerminalUpdate,
   ): boolean {
-    return this.#chat.resolveGeneratedImage(generationId, update);
+    const resolved = this.#chat.resolveGeneratedImage(generationId, update);
+    if (resolved) this.#persist();
+    return resolved;
+  }
+
+  #persist(): void {
+    this.#persistConversation?.({
+      conversationId: this.conversationId,
+      model: this.model,
+      messages: this.#chat.messages.filter((message) => message.role !== "system"),
+    });
   }
 
   consumeMemoryDiagnostic(): string | undefined {
@@ -750,7 +775,7 @@ export class LocalMemorySession {
                   : { onDelta: options.onDelta }),
                 ...(tools === undefined ? {} : { tools }),
               },
-            );
+            ).finally(() => this.#persist());
             await this.#runtime.tracer.flush();
             const answer = verifiedFinalAnswer(memoryResult.completion);
             let postOutput = await turn.coordinator.process(
@@ -833,6 +858,7 @@ export class LocalMemoryRuntime {
   readonly sqlitePath: string;
   readonly tracer: DebugTraceObserver;
   readonly #knowledge: SqliteKnowledgeContextHandle;
+  readonly #conversationStore: ProjectConversationStateStore;
   readonly #createReader: (budgets: RuntimeBudgets) => MemoryReadPort;
   readonly #committerDecorator:
     | ((committer: StagedProposalCommitter) => StagedProposalCommitter)
@@ -853,6 +879,7 @@ export class LocalMemoryRuntime {
     readonly sqlitePath: string;
     readonly tracer: DebugTraceObserver;
     readonly knowledge: SqliteKnowledgeContextHandle;
+    readonly conversationStore: ProjectConversationStateStore;
     readonly preferences: RuntimePreferencesStore;
     readonly createReader: (budgets: RuntimeBudgets) => MemoryReadPort;
     readonly committerDecorator?: (
@@ -872,6 +899,7 @@ export class LocalMemoryRuntime {
     this.sqlitePath = options.sqlitePath;
     this.tracer = options.tracer;
     this.#knowledge = options.knowledge;
+    this.#conversationStore = options.conversationStore;
     this.preferences = options.preferences;
     this.#createReader = options.createReader;
     this.#committerDecorator = options.committerDecorator;
@@ -1036,24 +1064,46 @@ export class LocalMemoryRuntime {
     if (this.#closed) {
       throw new ChatError("configuration", "Local memory runtime is closed.");
     }
-    const profile = this.#registry.require(options.model ?? DEFAULT_MODEL_ID);
-    const conversationId = this.#identityFactory.create("conversation");
+    const restored =
+      options.workspaceConversation === "restore"
+        ? this.#conversationStore.load()
+        : undefined;
+    const profile = this.#registry.require(
+      restored?.model ?? options.model ?? DEFAULT_MODEL_ID,
+    );
+    const conversationId =
+      restored?.conversationId ?? this.#identityFactory.create("conversation");
     const chatSession = new ChatSession({
       model: profile.id,
       transport: this.#transport,
       ...(options.systemMessage === undefined
         ? {}
         : { systemMessage: options.systemMessage }),
+      ...(restored === undefined ? {} : { initialMessages: restored.messages }),
       // Profile defaults first, operator overrides on top. The profile means
       // "checked against the model card" and is not edited to tune a run.
       generation: { ...profile.defaults, ...this.#chatGeneration },
     });
-    return new LocalMemorySession({
+    const persistConversation =
+      options.workspaceConversation === undefined
+        ? undefined
+        : (state: ProjectConversationState) =>
+            this.#conversationStore.save(state);
+    const session = new LocalMemorySession({
       runtime: this,
       conversationId,
       chat: chatSession,
       identityFactory: this.#identityFactory,
+      ...(persistConversation === undefined ? {} : { persistConversation }),
     });
+    if (options.workspaceConversation !== undefined && restored === undefined) {
+      this.#conversationStore.save({
+        conversationId,
+        model: session.model,
+        messages: session.messages.filter((message) => message.role !== "system"),
+      });
+    }
+    return session;
   }
 
   /** Recompose each turn from one settings snapshot while retaining raw history. */
@@ -1314,6 +1364,7 @@ export class LocalMemoryRuntime {
       return;
     }
     this.#closed = true;
+    this.#conversationStore.close();
     this.#knowledge.close();
     void this.tracer.close();
   }
@@ -1461,6 +1512,10 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
     tracer,
     surface,
   );
+  const conversationStore = new ProjectConversationStateStore(
+    config.sqlitePath,
+    projectId,
+  );
   const knowledge = createSqliteKnowledgeContext({
     filename: config.sqlitePath,
     projectId,
@@ -1526,6 +1581,7 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
     sqlitePath: config.sqlitePath,
     tracer,
     knowledge,
+    conversationStore,
     preferences,
     createReader,
     ...(options.committerDecorator === undefined

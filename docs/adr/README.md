@@ -8,6 +8,8 @@ replacement.
 
 ## Records
 
+- [0046-durable-project-conversation-restore.md](0046-durable-project-conversation-restore.md) — Accepted; the standalone workspace persists one current canonical conversation per project while ACP/V2 session identity, resume authority, receipts and transient execution state remain process-local. Supersedes ADR 0041's blanket no-durable-chat statement only for this bounded workspace conversation state.
+
 - [0045-multimodal-conversation-content.md](0045-multimodal-conversation-content.md) — Accepted; removes the inherited text-only `ChatMessage.content` restriction and makes typed multimodal content, including generated images, part of the canonical committed conversation model.
 
 - [0044-native-vision-input.md](0044-native-vision-input.md) — Accepted with D1 superseded by ADR 0045; source-store, capability-gating, provenance and ACME execution boundaries remain authoritative.

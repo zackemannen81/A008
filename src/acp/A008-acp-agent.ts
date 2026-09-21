@@ -57,6 +57,7 @@ import {
 import { promptToTurnInput } from "./prompt-content.js";
 
 export interface AcpTurnSession {
+  readonly model?: string;
   readonly runtimePreferences?: import("../core/runtime-preferences.js").RuntimePreferencesSnapshot;
   configureRuntimePreferences?(value: unknown, revision: string): void;
   readonly messages?: readonly ChatMessage[];
@@ -77,8 +78,18 @@ export interface AcpTurnSession {
 
 interface AcpSessionState {
   model: string;
+  workspaceConversation: boolean;
   chat?: AcpTurnSession;
   activeTurn?: AbortController;
+}
+
+export interface AcpNewSessionOptions {
+  readonly initialModel?: string;
+  readonly workspaceConversation?: boolean;
+}
+
+export interface AcpCreateSessionOptions {
+  readonly workspaceConversation?: "restore" | "fresh";
 }
 
 /**
@@ -326,7 +337,10 @@ export interface A008AcpAgentOptions {
   /** Set only when the composition registers _a008/session/control. */
   readonly sessionControls?: boolean;
   readonly runtimeInfo?: () => SessionSnapshot["runtime"];
-  readonly createSession: (model: string) => AcpTurnSession;
+  readonly createSession: (
+    model: string,
+    options?: AcpCreateSessionOptions,
+  ) => AcpTurnSession;
   /** Resolve a validated source locator into transient provider-ready image input. */
   readonly resolveImageAttachment?: (locator: string) => ChatImageAttachment;
   readonly registry?: ModelRegistry;
@@ -353,7 +367,10 @@ type NotifySession = (notification: SessionNotification) => Promise<void>;
 export class A008AcpAgent {
   readonly #sessionControls: boolean;
   readonly #runtimeInfo: () => SessionSnapshot["runtime"];
-  readonly #createSession: (model: string) => AcpTurnSession;
+  readonly #createSession: (
+    model: string,
+    options?: AcpCreateSessionOptions,
+  ) => AcpTurnSession;
   readonly #resolveImageAttachment: A008AcpAgentOptions["resolveImageAttachment"];
   readonly #registry: ModelRegistry;
   readonly #extraProfiles: () => readonly ModelProfile[];
@@ -424,7 +441,10 @@ export class A008AcpAgent {
     };
   }
 
-  newSession(_params: NewSessionRequest): NewSessionResponse {
+  newSession(
+    _params: NewSessionRequest,
+    options: AcpNewSessionOptions = {},
+  ): NewSessionResponse {
     let sessionId: string;
     try {
       sessionId = parseRuntimeId(this.#createSessionId(), "acp_session");
@@ -443,10 +463,17 @@ export class A008AcpAgent {
         "A008 generated a duplicate ACP session identity.",
       );
     }
-    this.#sessions.set(sessionId, { model: DEFAULT_MODEL_ID });
+    const model =
+      options.initialModel === undefined
+        ? DEFAULT_MODEL_ID
+        : this.#resolveProfile(options.initialModel).id;
+    this.#sessions.set(sessionId, {
+      model,
+      workspaceConversation: options.workspaceConversation === true,
+    });
     return {
       sessionId,
-      configOptions: this.#modelOptions(DEFAULT_MODEL_ID),
+      configOptions: this.#modelOptions(model),
     };
   }
 
@@ -498,6 +525,9 @@ export class A008AcpAgent {
     }
 
     const input = promptToTurnInput(params.prompt);
+    const restoredWorkspaceChat = state.workspaceConversation
+      ? this.#ensureChat(state)
+      : undefined;
     let imageAttachment: ChatImageAttachment | undefined;
     if (input.image !== undefined) {
       const profile = this.#resolveProfile(state.model);
@@ -515,8 +545,8 @@ export class A008AcpAgent {
       }
       imageAttachment = this.#resolveImageAttachment(input.image.locator);
     }
+    const chat = restoredWorkspaceChat ?? this.#ensureChat(state);
     const content = input.text;
-    state.chat ??= this.#createSession(state.model);
     const controller = new AbortController();
     state.activeTurn = controller;
     let pendingNotifications = Promise.resolve();
@@ -543,7 +573,7 @@ export class A008AcpAgent {
     };
 
     try {
-      const completion = await state.chat.send(content, {
+      const completion = await chat.send(content, {
         ...(imageAttachment === undefined
           ? {}
           : { imageAttachments: [imageAttachment] }),
@@ -567,11 +597,11 @@ export class A008AcpAgent {
         queueDelta("content", remainingContent);
       }
       await pendingNotifications;
-      const diagnostic = state.chat.consumeMemoryDiagnostic?.();
+      const diagnostic = chat.consumeMemoryDiagnostic?.();
       if (diagnostic !== undefined && diagnostic.length > 0) {
         this.#onMemoryDiagnostic?.(diagnostic);
       }
-      const memoryStatus = state.chat.consumeMemoryStatus?.() ?? "unreported";
+      const memoryStatus = chat.consumeMemoryStatus?.() ?? "unreported";
 
       return {
         stopReason:
@@ -615,12 +645,11 @@ export class A008AcpAgent {
     prompt: string,
   ): SessionSnapshot {
     const state = this.#requireSession(sessionId);
-    state.chat ??= this.#createSession(state.model);
-    state.chat.enableSessionControls?.();
-    if (state.chat.reserveGeneratedImage === undefined) {
+    const chat = this.#ensureChat(state);
+    if (chat.reserveGeneratedImage === undefined) {
       throw RequestError.methodNotFound("generated image transcript");
     }
-    state.chat.reserveGeneratedImage(generationId, prompt);
+    chat.reserveGeneratedImage(generationId, prompt);
     return this.#sessionSnapshot(state);
   }
 
@@ -661,44 +690,60 @@ export class A008AcpAgent {
     if (control.action === "model") {
       const profile = this.#resolveProfile(control.model);
       // Construct first: configuration failure must preserve the old conversation.
-      const chat = this.#createSession(profile.id);
+      const chat = this.#createSession(
+        profile.id,
+        state.workspaceConversation
+          ? { workspaceConversation: "fresh" }
+          : undefined,
+      );
       chat.enableSessionControls?.();
-      state.model = profile.id;
+      state.model = chat.model ?? profile.id;
       state.chat = chat;
     }
-    if (state.chat === undefined) {
-      state.chat = this.#createSession(state.model);
-      state.chat.enableSessionControls?.();
-    }
+    const chat = this.#ensureChat(state);
     if (control.action === "configure") {
       const parsed = parseSessionParameters(control.parameters, state.model);
-      if (state.chat.configureParameters === undefined)
+      if (chat.configureParameters === undefined)
         throw RequestError.methodNotFound("session parameters");
-      state.chat.configureParameters(parsed);
+      chat.configureParameters(parsed);
     }
     if (control.action === "configureRuntime") {
-      if (state.chat.configureRuntimePreferences === undefined)
+      if (chat.configureRuntimePreferences === undefined)
         throw RequestError.methodNotFound("runtime settings");
-      state.chat.configureRuntimePreferences(
+      chat.configureRuntimePreferences(
         control.settings,
         control.revision,
       );
     }
     if (control.action === "reset") {
-      if (state.chat.reset === undefined)
+      if (chat.reset === undefined)
         throw RequestError.methodNotFound("session reset");
-      state.chat.reset();
+      chat.reset();
     }
     let undone: boolean | undefined;
     if (control.action === "undo") {
-      if (state.chat.undoLastTurn === undefined)
+      if (chat.undoLastTurn === undefined)
         throw RequestError.methodNotFound("session undo");
-      undone = state.chat.undoLastTurn();
+      undone = chat.undoLastTurn();
     }
     return {
       ...this.#sessionSnapshot(state),
       ...(undone === undefined ? {} : { undone }),
     };
+  }
+
+  #ensureChat(state: AcpSessionState): AcpTurnSession {
+    if (state.chat === undefined) {
+      state.chat = this.#createSession(
+        state.model,
+        state.workspaceConversation
+          ? { workspaceConversation: "restore" }
+          : undefined,
+      );
+      state.chat.enableSessionControls?.();
+      state.model = state.chat.model ?? state.model;
+    }
+    return state.chat;
   }
 
   #sessionSnapshot(state: AcpSessionState): SessionSnapshot {
