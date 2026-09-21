@@ -3,6 +3,16 @@
 Reality as of 2026-09-21. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
+A008-0150 restores OpenAI strict-tool omission sentinels at the provider-to-MCP
+validation boundary. Before existing original-schema Ajv validation,
+`ModelToolSession` removes a top-level `null` only when the original MCP object
+property is optional and non-nullable. Required properties and properties whose
+original schema permits null retain their value and continue through the same
+fail-closed validation. The normalized object is the only value offered for
+approval/MCP execution; ACME strict-schema lowering, provider behavior and MCP
+schemas remain unchanged. Focused ModelToolSession/MCP fixture tests pass 12/12,
+as do root typecheck/build and diff hygiene. No live/paid provider call.
+
 A008-0149 ships `@a008/client`, the Stage-5 independent HTTP/WebSocket SDK, and migrates bundled GUI session/HTTP I/O onto it. Injected fetch, WebSocket and cookie/bearer/engine credential adapters keep secrets out of React. The bundled GUI keeps current chat behavior through the V1 session adapter (PIN-disabled standalone, engine-panel capability, prompt attachments and in-session image generation). Independent consumers use the V2 adapter, which authenticates with a one-use ticket, applies snapshots/events and refuses to auto-resubmit mutations after `COMMAND_UNKNOWN`/`SESSION_EXPIRED`. New V2 HTTP business routes are not added. Verification: packed client+protocol install outside A008; 711 core, 4 membership and 187 GUI tests pass with 0 failures/skips; root/GUI typecheck, GUI production build, `verify:protocol`, `verify:client` and `git diff --check` pass. No live/paid provider call.
 
 A008-0148 makes the existing stdio-only MCP capability configurable from bundled

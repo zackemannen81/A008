@@ -22,9 +22,28 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         additionalProperties: false,
       },
     },
+    {
+      name: "fixture_optional",
+      description: "Observe an optional strict-provider sentinel field.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          url: { type: "string" },
+          restore: { oneOf: [{ type: "boolean" }, { type: "string" }] },
+        },
+        required: ["url"],
+        additionalProperties: false,
+      },
+    },
   ],
 }));
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  if (request.params.name === "fixture_optional")
+    return {
+      content: [
+        { type: "text", text: JSON.stringify(request.params.arguments ?? {}) },
+      ],
+    };
   writeFileSync("mcp-fixture.txt", String(request.params.arguments?.text));
   return { content: [{ type: "text", text: "MCP fixture written." }] };
 });

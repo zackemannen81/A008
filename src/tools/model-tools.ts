@@ -83,6 +83,59 @@ export function boundedToolText(
   };
 }
 
+function schemaAcceptsNull(schema: unknown): boolean {
+  if (schema === true) return true;
+  if (!schema || typeof schema !== "object" || Array.isArray(schema))
+    return false;
+  const value = schema as Record<string, unknown>;
+  const type = value.type;
+  if (type === "null" || (Array.isArray(type) && type.includes("null")))
+    return true;
+  if (value.const === null) return true;
+  if (Array.isArray(value.enum) && value.enum.includes(null)) return true;
+  for (const keyword of ["anyOf", "oneOf"] as const) {
+    const alternatives = value[keyword];
+    if (Array.isArray(alternatives) && alternatives.some(schemaAcceptsNull))
+      return true;
+  }
+  const allOf = value.allOf;
+  return Array.isArray(allOf) && allOf.every(schemaAcceptsNull);
+}
+
+/**
+ * OpenAI strict tools encode original optional properties as nullable-required.
+ * Restore only that omission sentinel before the original MCP schema validates
+ * execution; required and explicitly nullable properties retain their value.
+ */
+export function normalizeOptionalNullArguments(
+  parameters: Record<string, unknown>,
+  args: unknown,
+): unknown {
+  if (!args || typeof args !== "object" || Array.isArray(args)) return args;
+  const properties = parameters.properties;
+  if (
+    !properties ||
+    typeof properties !== "object" ||
+    Array.isArray(properties)
+  )
+    return args;
+  const required = new Set(
+    Array.isArray(parameters.required)
+      ? parameters.required.filter(
+          (name): name is string => typeof name === "string",
+        )
+      : [],
+  );
+  const normalized = { ...(args as Record<string, unknown>) };
+  for (const [name, value] of Object.entries(normalized)) {
+    if (value !== null || required.has(name)) continue;
+    const property = (properties as Record<string, unknown>)[name];
+    if (property !== undefined && !schemaAcceptsNull(property))
+      delete normalized[name];
+  }
+  return normalized;
+}
+
 /** One session's native tool and explicitly supplied, client-approved MCP catalog. */
 export class ModelToolSession {
   readonly #cwd: string;
@@ -279,7 +332,12 @@ export class ModelToolSession {
     };
     let args: Record<string, unknown>;
     try {
-      const parsed = tool.validate(JSON.parse(call.arguments));
+      const parsed = tool.validate(
+        normalizeOptionalNullArguments(
+          tool.definition.parameters,
+          JSON.parse(call.arguments),
+        ),
+      );
       if (!parsed.valid) throw new Error(parsed.errorMessage);
       args = parsed.data;
     } catch {

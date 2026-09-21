@@ -84,6 +84,11 @@ Model tools enter through typed definitions and structured JSON/SSE calls. Nativ
 `exec_command` and client-approved stdio MCP tools require per-action approval.
 Validation precedes approval/execution; denial, cancellation, timeout, unknown
 tools, malformed schemas or exhausted budgets never become successful operations.
+For OpenAI strict-tool lowering only, an incoming top-level `null` is restored to
+absence before the original MCP-schema Ajv validation when, and only when, its
+original object property is optional and non-nullable. Required or explicitly
+nullable original properties retain `null` and must pass that same validation.
+The normalized arguments are the values shown for approval and supplied to MCP.
 Observations re-enter an ephemeral provider transcript. Only the original user
 message and final answer reach committed history and post-output intake.
 
