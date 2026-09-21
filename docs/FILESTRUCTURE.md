@@ -361,7 +361,8 @@ A008/
 |     |- local-runtime-config.ts      SQLite, identity, debug and chat-transport mode settings
 |     |- debug-trace.ts               opt-in secret-safe JSONL observer
 |     |- user-assertion-gate.ts       runtime-owned new-memory activation
-|     `- local-memory-runtime.ts      CLI/ACP memory composition root
+|     |- conversation-state-store.ts  project-scoped durable current workspace conversation
+|     `- local-memory-runtime.ts      CLI/ACP memory composition root and workspace hydration
 |- test/                              fake/local chat, ACP, memory, retrieval, identity, and orchestration tests
 |  |- chat-dispatch.test.ts           NVIDIA vs kie vs OpenAI chat routing plus ACME opt-in
 |  |- acme-chat-transport.test.ts    ACME protocol, failure evidence, no-fallback, boundary

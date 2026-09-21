@@ -26,6 +26,8 @@ export interface ChatSessionOptions {
   readonly model: string;
   readonly transport: ChatTransport;
   readonly systemMessage?: string;
+  /** Canonical committed history used when a durable project conversation is restored. */
+  readonly initialMessages?: readonly ChatMessage[];
   readonly generation?: ChatGenerationOptions;
 }
 
@@ -58,9 +60,19 @@ export class ChatSession {
     this.#model = options.model;
     this.#transport = options.transport;
     this.#generation = options.generation;
-    this.#messages = options.systemMessage?.trim()
-      ? [{ role: "system", content: options.systemMessage.trim() }]
-      : [];
+    const restored = (options.initialMessages ?? []).map(cloneChatMessage);
+    if (restored.some((message) => message.role === "system")) {
+      throw new ChatError(
+        "configuration",
+        "Restored conversation history must not contain system messages.",
+      );
+    }
+    this.#messages = [
+      ...(options.systemMessage?.trim()
+        ? [{ role: "system" as const, content: options.systemMessage.trim() }]
+        : []),
+      ...restored,
+    ];
   }
 
   get model(): string {

@@ -1,72 +1,111 @@
-# A008-0147 — Project conversation session restore
+# Current Task
 
-Task ID: A008-0147
+Task ID:
 Parent Task: None
-Status: Ready
-Owner: ChatGPT (operator)
-Created: 2026-09-21
-Last updated: 2026-09-21
-Charter frozen at: 2026-09-21; contract revision `97cf8c2`
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
+
+## Read First
+
+- `AGENTS.md`
+- `docs/TASK_WORKFLOW.md`
+- `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/SYSTEMDOC.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant records under `docs/adr/`
 
 ## Task Summary
-Opening a registered project currently closes the standalone GUI workspace session and creates a fresh empty session. Restore the project's latest canonical committed conversation instead.
 
-## Goal
-When the standalone GUI opens/reopens a registered project, reconstruct that project's current conversation and continue from it.
+Describe why this bounded task is active now and its intended outcome.
 
-## Primary Deliverable
-A project-scoped durable current-conversation snapshot owned by runtime/session code and hydrated into the standalone workspace session.
+## Task Charter
 
-## In Scope
-- Record the durability refinement: project conversation durability is separate from ACP/V2 session durability.
-- Persist one current workspace conversation per project in the existing SQLite file.
-- Persist conversation identity, model and canonical committed messages, including generated-image parts.
-- Restore it on project reopen and host restart.
-- Keep generic ACP/V2 new sessions fresh and independent.
-- Model change starts and persists a new empty conversation.
-- Persist reset, undo, turns and image terminal transitions.
-- Never replay stale pending paid image generation; restore it terminal/non-replayed.
-- Keep renderer derived from session snapshot.
+### Goal
 
-## Out of Scope
-- MCP server/tool configuration or lifecycle.
-- Decoupling assistant-final from post-output memory work/activity animation.
-- Multiple named conversations per project.
-- Durable ACP/V2 session IDs, resume capabilities, receipts, tools, thoughts or permissions.
-- Offline/cross-device sync or concurrent writers.
-- Provider/memory architecture redesign.
+Define one primary outcome.
 
-## Definition of Done
-- A→B→A restores A's ordered transcript and does not leak it to B.
-- Restart + reopen restores committed transcript under a new ephemeral session ID.
-- Model change/reset/undo persist resulting state.
-- Completed images restore in place; stale pending image never triggers provider execution.
-- Generic ACP/V2 sessions remain fresh.
-- Full tests/build/diff checks pass.
+### Primary Deliverable
 
-## Necessity Gate
-Contract: `docs/PROJECT_BRIEF.md`, PC-01 and PC-06.
-Contract revision: `97cf8c2`.
-Accepted direction: operator instruction 2026-09-21; ADR 0042 project ownership; ADR 0045 canonical multimodal conversation. ADR 0041's old no-durable-chat boundary must be narrowly refined.
+Name the concrete artifact or behavior.
 
-Smallest sufficient change: store one project-namespaced canonical conversation in the existing SQLite owner and opt only the standalone workspace session into restore.
+### In Scope
 
-## Decisions and Notes
-- Persist conversation state, not transport-session authority.
-- One current conversation per project is sufficient.
-- Reuse existing SQLite; no localStorage or second transcript database.
-- Reasoning/tool wire state is not durable chat.
-- MCP work is concurrent but separate.
+- List work required for the deliverable.
+
+### Out of Scope
+
+- List adjacent work that must not be absorbed.
+
+### Definition of Done
+
+- State objective completion conditions.
+
+### Necessity Gate
+
+Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
+Contract revision: <Git commit containing the reviewed contract>
+
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
+
+| Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
+| --- | --- | --- | --- | --- |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
+
+### Minimum Verification Gates
+
+- [ ] Define checks that may be strengthened but not removed after Ready.
+
+## References
+
+- Add owned documents, source revisions, contracts, and decisions.
 
 ## Checklist
-- [x] Identity claimed on main.
-- [x] Charter frozen Ready.
-- [ ] Record narrow durability ADR.
-- [ ] Implement persistence/hydration.
-- [ ] Wire standalone workspace restore only.
-- [ ] Add focused tests.
-- [ ] Run full verification.
-- [ ] Update docs/archive/handoff and restore CURRENT_TASK.
+
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
+
+## Decisions and Notes
+
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+
+## Charter Amendment Log
+
+- none
 
 ## Verification
-Not run yet.
+
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
+
+## Documentation Updates
+
+- [ ] `docs/CURRENT_STATUS.md`
+- [ ] `docs/SYSTEMDOC.md`
+- [ ] `docs/JOURNAL.md`
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
+
+## Handoff and Follow-ups
+
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.

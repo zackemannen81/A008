@@ -101,12 +101,14 @@ export function createLocalAcpBridge(options: {
             });
           },
         },
+        {
+          workspaceConversation: true,
+          ...(model === undefined ? {} : { initialModel: model }),
+        },
       );
       try {
         if (closed)
           throw new Error("Project bridge closed during session creation.");
-        if (model !== undefined)
-          host.control(created.sessionId, { action: "model", model });
         sessions.add(created.sessionId);
         return { sessionId: created.sessionId };
       } catch (error) {
