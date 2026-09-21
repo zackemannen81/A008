@@ -193,6 +193,19 @@ site forbids framing A008. Report-Only CSP is ignored. A probe failure returns
 `embeddable: true` so the pane can still try. `url` must be absolute http(s).
 The host does not return page bodies.
 
+### `GET /v1/catalog/zero-cost`
+
+Returns the bundled, repository-owned validated Zero Cost Radar snapshot. This
+request performs no upstream fetch and remains available offline.
+
+### `POST /v1/catalog/zero-cost`
+
+Explicit operator-triggered update check. The host fetches the published
+ZeroCostRadar A008 feed, validates the complete `zeroCostCatalog` payload and
+verification-date consistency, and returns it for the current request. Invalid
+or unreachable upstream data fails closed; it is not persisted as runtime truth,
+does not register providers/models and does not alter routing or credentials.
+
 ### `GET /v1/catalog/nvidia`
 
 Live NVIDIA Build list. Needs `NVIDIA_API_KEY`. Never returns the key.

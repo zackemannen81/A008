@@ -887,10 +887,12 @@ test(
     const isolated = isolatedMemoryEnv({
       NVIDIA_CHAT_COMPLETIONS_URL: provider.endpoint,
     });
+    const catalogPath = join(isolated.directory, "catalog.json");
     let host = await startGuiHost({
       env: isolated.env,
       port: 0,
       cwd: process.cwd(),
+      catalogPath,
     });
     let client = await WireClient.open(host.port);
     const other = await WireClient.open(host.port);
@@ -1002,6 +1004,7 @@ test(
         env: { ...isolated.env, A008_MEMORY_SQLITE_PATH: ":memory:" },
         port: 0,
         cwd: process.cwd(),
+        catalogPath,
       });
       client = await WireClient.open(host.port);
       client.send({

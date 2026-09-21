@@ -21,7 +21,13 @@ export const v1HttpRoutes = [
   [
     "GET",
     "/v1/catalog/zero-cost",
-    "validated zero-cost model discovery",
+    "bundled validated zero-cost model discovery",
+    "zero-cost-catalog",
+  ],
+  [
+    "POST",
+    "/v1/catalog/zero-cost",
+    "explicit published ZeroCostRadar update check",
     "zero-cost-catalog",
   ],
   ["GET", "/v1/catalog/nvidia", "host upstream catalog", "provider-routes"],
