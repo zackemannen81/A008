@@ -47,6 +47,14 @@ client surfaces, and optional persistent semantic memory.
   capability alone does not implement or authorize it. See ADR 0020, 0025-0027,
   0030-0033 and 0044-0047.
 
+- **PC-07 — A008 Platform.** Owner-approved direction is one canonical backend
+  with durable scoped conversations/runs independent of client lifetime and
+  semantic-memory enablement, parallel projects, thin clients, explicit execution
+  targets and established Docs-First multi-agent coordination. Implement through
+  A008-0160 and ADR 0048 with versioned contracts, safe migration, authorization,
+  recovery and stage-specific verification. Preserve PC-01 through PC-06;
+  platform adoption does not change cognition or memory semantics.
+
 Apply the [Necessity Gate](TASK_WORKFLOW.md#necessity-gate) to each substantive
 change. Cite the exact PC clause and the accepted detailed constraint needed
 for that change. This compact contract neither erases existing exceptions nor

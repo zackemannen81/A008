@@ -101,7 +101,7 @@ code or a vague robustness claim cannot supply product authority.
 - The operator owns task-ID allocation, the canonical working tree, integration,
   merge order, and release decisions. Workers restore the current-task template
   before they push so that file cannot conflict with `main`.
-- The declared maximum is five concurrent writing workers, or any lower runtime
+- The declared maximum is six concurrent writing workers, or any lower runtime
   limit. It is advisory until an execution layer enforces it.
 
 ## Safety

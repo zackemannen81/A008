@@ -3,6 +3,12 @@
 Reality as of 2026-09-22. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
+A008-0160 starts the owner-authorized platform implementation program under
+PC-07 and ADR 0048. PLATFORM_V3_CONTRACT freezes a separate durable-work wire
+boundary; current V1/V2 disconnect/restart semantics remain unchanged. First-wave
+tasks A008-0161 (SQLite platform store) and A008-0162 (protocol) are Ready.
+No V3 runtime capability is implemented or advertised by this adoption.
+
 A008-0159 adopts bounded live-verification authority in TASK_WORKFLOW, AGENTS,
 CONTRIBUTING, MULTIAGENT and the task template. In-scope tests on approved routes
 inherit 10 SEK and finite call/token/time limits without per-call approval;

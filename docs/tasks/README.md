@@ -11,6 +11,10 @@ the template before push.
 
 ## Records
 
+- [A008-0160_platform-implementation-program.md](A008-0160_platform-implementation-program.md) — In Progress; operator-owned platform task graph.
+- [A008-0161_platform-durable-work-store.md](A008-0161_platform-durable-work-store.md) — Ready; independent durable platform storage.
+- [A008-0162_platform-v3-protocol.md](A008-0162_platform-v3-protocol.md) — Ready; additive V3 wire contract.
+
 - [A008-0124_native-vision-input-and-model-capability-metadata.md](A008-0124_native-vision-input-and-model-capability-metadata.md) — Ready; final approved pre-Stage-4 task for model specs plus invocation-local native image input under ADR 0044.
 
 - [A008-0118_acme-runtime-v2-consumer.md](A008-0118_acme-runtime-v2-consumer.md) — Complete; [archive](../finished/A008-0118_acme-runtime-v2-consumer.md). Stage 3.5 GO.
