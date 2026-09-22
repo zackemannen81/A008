@@ -2,7 +2,7 @@
 
 Task ID: A008-0161
 Parent Task: A008-0160
-Status: Ready
+Status: Complete
 Owner: Codex GPT-5.6 Terra (worker)
 Created: 2026-09-22
 Charter frozen at: 2026-09-22 after main claim d4ebfa6; execute only after ADR 0048 integration
@@ -79,8 +79,18 @@ A completed process is not task acceptance.
 
 ## Verification
 
-Pending execution.
+- [x] `npm run typecheck` — pass (local implementation).
+- [x] `npm run build` — pass (local implementation).
+- [x] `node --test dist/test/platform-store.test.js` — 5/5 pass (temporary
+  SQLite fixtures, injected receipt-trigger rollback, and independent reopen).
+- [x] `npm run test:membership` — 4/4 pass.
+- [x] No provider calls, credentials, dependency or lockfile changes.
+
+Actual diff rechecked against PC-07, PC-01, PC-05 and ADR 0048: it is limited
+to durable platform state and its typed local API. It makes no host, HTTP,
+provider execution or semantic-memory availability claim.
 
 ## Progress
 
-Ready; immutable goal/scope/gates. Worker may update progress and results only.
+Implemented and locally verified. Archive and handoff prepared; operator owns
+cross-surface integration and global documentation deltas.
