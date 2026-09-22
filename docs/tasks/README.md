@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0163_trusted-conversation-seeding.md](A008-0163_trusted-conversation-seeding.md) — Ready; backend-owned history through the shared runtime.
+
 - [A008-0160_platform-implementation-program.md](A008-0160_platform-implementation-program.md) — In Progress; operator-owned platform task graph.
 - [A008-0161_platform-durable-work-store.md](A008-0161_platform-durable-work-store.md) — Ready; independent durable platform storage.
 - [A008-0162_platform-v3-protocol.md](A008-0162_platform-v3-protocol.md) — Ready; additive V3 wire contract.
