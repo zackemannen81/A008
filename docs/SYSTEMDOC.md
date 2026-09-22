@@ -12,6 +12,18 @@ its existing nested parsing behavior. V1/V2 artifacts are unchanged. These
 contracts do not implement HTTP endpoints, persistence or execution. See
 `docs/platform/PROTOCOL.md` and `docs/PLATFORM_V3_CONTRACT.md`.
 
+## Durable platform storage foundation
+
+`src/platform/platform-store.ts` owns independent SQLite conversations, runs,
+command receipts and body-free outbox records. Trusted tenant/project scopes
+isolate access. Admission, answers and their events commit transactionally;
+lease generations fence stale workers. Expired undispatched work can requeue,
+while dispatched uncertainty requires reconciliation. An accepted pre-dispatch
+cancellation survives lease expiry. Unknown external effects cannot be confirmed
+as cancelled. Memory outcome metadata is independent of the committed answer.
+The store has no scheduler, HTTP routes, semantic intake or process-lifetime lock.
+See `docs/platform/STORE.md`; host composition remains pending.
+
 ## Trusted backend conversation history
 
 A008-0163 adds internal `conversationSeed: { conversationId, messages }` to

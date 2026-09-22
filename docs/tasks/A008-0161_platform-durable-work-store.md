@@ -2,7 +2,7 @@
 
 Task ID: A008-0161
 Parent Task: A008-0160
-Status: Ready
+Status: Complete
 Owner: Codex GPT-5.6 Terra (worker)
 Created: 2026-09-22
 Charter frozen at: 2026-09-22 after main claim d4ebfa6; execute only after ADR 0048 integration
