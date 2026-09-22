@@ -2527,3 +2527,15 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Existing ModelToolSession approval, cancellation, timeout and catalog/tool-budget behavior remains the execution boundary; unsupported transports are rejected. No session restore/hot reload or A008-0147 lifecycle work was introduced.
 - Verification: root/GUI typecheck; 703/703 core, 4/4 membership and 187/187 GUI tests; `git diff --check` passed. Real-host HTTP coverage includes valid and malformed MCP configuration requests.
 - [Handoff](handoffs/A008-0148.md). Signature: A008
+
+## 2026-09-22 — A008-0160 platform implementation starts
+
+- Operator: Codex. Owner-authorized platform direction adopted as PC-07/ADR 0048
+  through PR #99 at 86466ed. Separate V3 durable-work boundary; V1/V2 and memory
+  semantics preserved. A008-0161/0162 IDs and Ready charters published before
+  isolated Terra worker execution. A008-0163 adds the trusted-history prerequisite.
+- Verification: authority/contract review, nonoverlapping scopes, Markdown/status
+  checks, exact CURRENT_TASK template and diff hygiene. No live provider calls.
+- Contract clarification: new V3-owned objects reject extra keys; reused nested
+  chatContentSchema retains existing parsing semantics for compatibility.
+- Signature: Codex (operator)

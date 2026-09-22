@@ -9,8 +9,11 @@ Boundary: schema and durable storage first; runtime/HTTP availability is separat
 Use camelCase JSON properties. IDs are nonempty opaque strings (max 256 chars);
 tenant/project/principal authority is supplied by the backend, never mutation
 payloads. Revisions/cursors are nonnegative safe integers; timestamps are
-nonnegative integer epoch milliseconds. All wire objects reject unknown fields.
-Messages reuse existing chatContentSchema for content; no reasoning is persisted.
+nonnegative integer epoch milliseconds. All new V3-owned wire objects reject
+unknown fields. Messages reuse existing chatContentSchema exactly, including
+its established nested content parsing/unknown-key semantics for compatibility;
+no reasoning is persisted. This exception does not admit extra authority fields
+on V3 resource or mutation objects.
 
 Conversation:
 - id, tenantId, projectId, title, createdAt, updatedAt, revision

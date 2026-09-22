@@ -33,7 +33,8 @@ Electron remains conditional on a concrete need. Do not invent that need.
 | P0 adoption/contracts | owner authorization | In Progress | ADR 0048 and frozen first-slice contract merged |
 | A008-0161 durable store | P0 | Ready | SQLite isolation/atomicity/idempotency/lease/recovery/reopen proof |
 | A008-0162 wire schemas | P0 | Ready | Strict V3 schemas, independent package checks, V1/V2 regression |
-| P1 host/coordinator/client integration | 0161 + 0162 | Not started | Real host background execution, scoped auth, polling and restart proof |
+| A008-0163 trusted conversation seeding | P0 | Ready | Existing engine consumes committed history without legacy-store writes or semantic replay |
+| P1 host/coordinator/client integration | 0161 + 0162 + 0163 | Not started | Real host background execution, scoped auth, polling and restart proof |
 | P1 GUI/import/admin closure | integrated host | Not started | Parallel projects, durable chats incl memory-off, migration/restore gates |
 | M1 coordination/target adapter | P1 owners | Not started | A25/A27/A29/A30 |
 | M2 context governance | M1 | Not started | A26/A31 |
@@ -80,4 +81,6 @@ platform completion claim until required stage gates actually pass.
 
 - Canonical main and origin/main verified equal and clean before work.
 - IDs claimed and pushed before delegation.
-- P0 authority and first wave Ready charters being integrated.
+- P0 authority and first wave Ready charters merged through PR #99 at 86466ed.
+- Existing runtime inspection identified the bounded trusted-history prerequisite
+  A008-0163; it is independent of the storage/protocol workers.
