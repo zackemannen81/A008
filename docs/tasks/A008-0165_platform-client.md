@@ -77,4 +77,7 @@ packed consumer only. User authorizes worker commit/push/PR; operator merges.
 
 ## Progress / verification
 
-Ready, dependency-gated; pending execution after protocol integration.
+Merged through PR #108 at 1cf318e. Operator rechecked `npm run verify:client`
+and focused SDK tests 6/6 on that main. No worker archive or handoff was in the
+merge. The V2 real-host regression stays with A008-0166. Frozen requirements
+above are unchanged.

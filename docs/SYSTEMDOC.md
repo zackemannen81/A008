@@ -12,6 +12,16 @@ its existing nested parsing behavior. V1/V2 artifacts are unchanged. These
 contracts do not implement HTTP endpoints, persistence or execution. See
 `docs/platform/PROTOCOL.md` and `docs/PLATFORM_V3_CONTRACT.md`.
 
+## Independent Platform V3 client
+
+`packages/client/src/platform-v3.ts` exports `createPlatformV3Client`. It checks
+each V3 request before network I/O and each response before return, encodes path
+segments, and makes at most one HTTP attempt per mutation. It does not mint a
+new command id, retry an ambiguous failure, poll, or cancel a server run when
+the client is disposed. Injected fetch and the existing credential adapters own
+I/O. The client does not open a host endpoint or execute a platform run. See
+`docs/platform/CLIENT.md`.
+
 ## Durable platform storage foundation
 
 `src/platform/platform-store.ts` owns independent SQLite conversations, runs,

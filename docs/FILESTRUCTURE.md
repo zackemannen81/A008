@@ -46,6 +46,8 @@ option across EngineHost, ACP composition and LocalMemoryRuntime (A008-0163).
 A008-0162 adds `packages/protocol/src/platform-v3.ts`, generated
 `packages/protocol/schemas/platform-v3*` artifacts and
 `docs/platform/PROTOCOL.md` for the additive platform wire contracts.
+A008-0165 adds `packages/client/src/platform-v3.ts` and the implemented
+`docs/platform/CLIENT.md` SDK. V3 host composition remains A008-0164.
 
 `docs/PLATFORM_V3_CONTRACT.md` owns the accepted first durable-work contract
 under ADR 0048. `docs/tasks/A008-0160_platform-implementation-program.md` owns

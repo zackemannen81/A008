@@ -3,6 +3,13 @@
 Reality as of 2026-09-22. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
+A008-0165 is merged through PR #108 at 1cf318e. `@a008/client` exports
+`createPlatformV3Client`: strict request and response validation, safe path
+encoding, and one HTTP attempt per mutation. Operator verification on this main
+passed `npm run verify:client` and the focused SDK file 6/6. No V3 host endpoint
+or background run exists. The V2 real-host regression remains A008-0166.
+A008-0164 is Ready and has no implementation on main. No live provider call.
+
 A008-0160 starts the owner-authorized platform implementation program under
 PC-07 and ADR 0048. PLATFORM_V3_CONTRACT freezes a separate durable-work wire
 boundary; current V1/V2 disconnect/restart semantics remain unchanged.

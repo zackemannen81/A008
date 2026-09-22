@@ -3,7 +3,7 @@
 Task ID: A008-0160
 Parent Task: None
 Status: In Progress
-Owner: Codex (operator/master)
+Owner: Grok (operator/master); prior operator Codex
 Created: 2026-09-22
 Charter frozen at: 2026-09-22 following owner authorization and allocation d4ebfa6
 
@@ -36,7 +36,7 @@ Electron remains conditional on a concrete need. Do not invent that need.
 | A008-0163 trusted conversation seeding | P0 | Complete | PR #106; 39 focused tests, no legacy-store writes or semantic replay |
 | P1 host/coordinator/client integration | 0161 + 0162 + 0163 | Not started | Real host background execution, scoped auth, polling and restart proof |
 | A008-0164 backend integration | 0161 + 0162 + 0163 | Ready | Actual scoped durable background host and process-recovery proof |
-| A008-0165 V3 SDK | 0162 | In Progress | Validated independent client, no implicit mutation retry |
+| A008-0165 V3 SDK | 0162 | Merged | PR #108 at 1cf318e. Operator: verify:client pass, focused SDK 6/6. Real-host V2 regression remains 0166 |
 | A008-0166 fixture isolation | observed SDK host test failure | Ready | Temporary catalog isolates existing host verification from user MCP config |
 | P1 GUI/import/admin closure | integrated host | Not started | Parallel projects, durable chats incl memory-off, migration/restore gates |
 | M1 coordination/target adapter | P1 owners | Not started | A25/A27/A29/A30 |
@@ -93,3 +93,9 @@ platform completion claim until required stage gates actually pass.
   in a new isolated clone. 0161 PR #104 corrections passed targeted verification.
 - 0161/0162/0163 are integrated through f9ae0f5. 0164 is now frozen Ready with
   actual storage/seed APIs, scoped auth, limits, failure and process-recovery gates.
+- Grok succeeded Codex as operator. 0165 merged through PR #108 without a worker
+  archive or handoff. Operator rechecked verify:client and focused SDK tests 6/6
+  on main 1cf318e. No live calls. Occupied clones
+  `A008-0164-platform-local-backend`, `A008-0165-platform-client` and
+  `A008-0166-host-fixture-isolation` hold uncommitted files and are not the
+  continuation baseline.

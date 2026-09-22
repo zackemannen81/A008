@@ -1,6 +1,6 @@
 # Platform V3 client
 
-Status: SDK contract only (A008-0165)
+Status: Independent SDK implemented (A008-0165). V3 host wiring is not implemented.
 
 `@a008/client` exports `createPlatformV3Client`, a thin client over the strict
 V3 DTO owner in `@a008/protocol`. It uses injected `fetch`, origin and the

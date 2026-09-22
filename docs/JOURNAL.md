@@ -2511,7 +2511,7 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Stage 4 remains In Progress. A008-0140 restart uncertainty + combined closure proof is the only remaining child.
 - [Handoff](handoffs/A008-0139.md). Signature: ChatGPT (operator)
 
-## 2026-09-20 — A008-0146 README current-state synchronization
+## 2026-09-20 ï¿½ A008-0146 README current-state synchronization
 
 - Operator: Rickard. Claimed A008-0146 on `main` and completed a docs-only README synchronization after A008-0103 Stage 4 closure.
 - README now states that Stage 5 is the next programme gate but remains Not started until a child charter is frozen; it does not start SDK or bundled-client migration.
@@ -2566,3 +2566,15 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
   V3 host availability remains unimplemented until that task passes its gates.
 - Local/fixture verification only; zero live product-provider calls.
 - Signature: Codex (operator)
+
+## 2026-09-22 â€” A008-0165 platform client accepted on main
+
+- Operator: Grok, succeeding Codex. PR #108 merged at 1cf318e. The merge contains
+  the independent V3 SDK and does not contain a finished archive or worker handoff.
+- `@a008/client` now exports `createPlatformV3Client`. Mutations stay single-attempt.
+  No V3 host endpoint is implemented.
+- Operator verification on that main: `npm run verify:client` passed; focused
+  `dist/test/A008-0149-client-sdk.test.js` passed 6/6. The V2 real-host regression
+  was not rerun; A008-0166 owns that fixture isolation. No live provider call.
+- A008-0164 and A008-0166 remain Ready and unimplemented on main.
+- Signature: Grok (operator)
