@@ -91,6 +91,105 @@ references and evidence exist; they cannot prove a change is necessary. Existing
 safety obligations still apply. A separate pilot or evidence programme is not
 a prerequisite for applying this adopted rule.
 
+## Live verification budget
+
+This section owns repository verification authority and its defaults. Adopted
+by A008-0159 at the owner's direction, it replaces generic requirements for
+separate permission merely because a verification call is live or paid.
+Explicit narrower task restrictions remain in force. Older completed records
+describe their historical authority, not a continuing blanket prohibition.
+On resuming an older task, resolve this policy in its mutable verification notes
+without expanding frozen scope. An inherited generic paid-call permission rule
+does not require another approval inside the resolved budget; an explicit
+task-specific no-live restriction or smaller ceiling still applies.
+
+Agents choose the smallest credible verification for the uncertainty in scope.
+Use deterministic fakes/fixtures for fault injection, reproducibility and safe
+isolation; use live providers for real integration, wire compatibility,
+capabilities and provider behavior. Do not build extensive simulation solely
+to avoid a small authorized provider expense. A fake proves behavior against
+its simulated contract, not the actual external provider. Neither test type
+alone proves every failure/recovery case.
+
+### Defaults and task authority
+
+The verification budget is a ceiling, not a spending target or recommended
+consumption. Choose the lowest reasonable total cost and risk that provides
+sufficient verification for the concrete uncertainty. Available budget alone
+does not justify a more expensive model, more calls, more tokens, longer
+verification, broader scope or additional external effects. Stop when the
+verification need is satisfied; unused budget is a normal and desirable outcome.
+Total cost includes engineering work: this rule does not require elaborate fake
+infrastructure when a small authorized live check answers the actual question.
+
+New tasks may inherit this bounded policy; record the resolved values and policy
+revision in the charter before live dispatch. These are aggregate task limits,
+including workers, child allocations, retries and replacement sessions:
+
+| Field | Default | Meaning |
+| --- | --- | --- |
+| max_live_verification_cost | 10 SEK | Total verification spend plus outstanding reservations |
+| max_live_verification_calls | 10 | Physical provider attempts, including retries and secondary model calls |
+| max_input_tokens_per_call | 16384 | Entire provider request, including context and tool schemas |
+| max_output_tokens_per_call | 4096 | Total generated-token bound, including billable reasoning where applicable |
+| live_call_timeout_seconds | 120 | Local deadline per attempt; timeout does not prove billing stopped |
+
+An explicit approved deployment/task policy may replace these defaults; a worker
+cannot increase its own ceilings. Stricter resource limits take precedence.
+If a provider cannot honor a generated-token bound, establish an equivalent
+finite cap and credible cost reservation before using it. Missing limits or
+unknown prices are not permission for unbounded execution.
+
+The task must identify its verification purpose and approved provider routes
+and credential sources (references only). Existing approved scopes may be
+inherited; finding a key or catalog entry alone is not approval. Free routes
+still need approved access and count against call/token/time ceilings.
+No per-call escalation is required within this resolved authority. Escalate
+before raising a ceiling, using a new cost-bearing service or creating a
+materially different external effect. Budget authority does not authorize
+publication, deployment, destructive tools, new data disclosure or automatic
+fallback to another provider. Model choice must still verify the actual target
+capability; a cheaper substitute cannot establish a different model's behavior.
+
+### Model-aware cost and accounting
+
+Before dispatch, resolve provider, actual model/route and applicable price
+schedule. Record a current authoritative price reference/check time, billing
+units and currency. Model names and example prices in discussions are not a
+price catalog. Distinguish input, output, cached input, billable reasoning and
+any request/tool/media fees; avoid counting reasoning twice when included in
+output pricing. Reserve input cost plus bounded maximum output and other fees,
+with a stated conservative allowance. Do not assume cache hits, discounts or
+free promotional capacity. Convert to the budget currency using a recorded
+rate and allowance, or an approved equivalent currency ceiling.
+
+Each physical attempt requires room under both cost and call limits. In parallel,
+reserve shared budget before dispatch; alternatively allocate disjoint worker
+allowances or serialize calls. Child tasks do not inherit a fresh 10 SEK each
+when charged to a parent. An interrupted task resumes its existing accounting.
+
+Track observed cost, outstanding reservations and unknown cost separately.
+Unknown usage is not zero; retain its reservation until reconciled. A known-free
+attempt can reserve zero money but still consumes the other limits. Do not
+silently switch to a paid tier when free capacity expires. If a credible upper
+estimate cannot be established, use an already approved provider-side spend cap
+or obtain a bounded exception; independent verification can continue meanwhile.
+Stop new dispatch when a limit would be exceeded. Already dispatched work may
+still incur charges: local cancellation and estimates cannot guarantee an exact
+provider invoice. Report discrepancies and reconcile before further spending.
+
+Record fake/fixture, local-implementation or live-provider origin with each
+verification result. For live results include model/route, price basis, attempt
+count, usage/cost or explicit unknowns and remaining allowance, without secrets
+or private payloads. A008 owns budget policy and authorization; ACME reports
+observed execution and usage as execution verification evidence, without gaining
+semantic authority.
+
+These are effective working rules. Automatic cross-worker reservations and
+model-price enforcement in the A008 product are future implementation; do not
+claim they exist. For current tasks maintain the allocation/accounting in the
+task record and handoff before further dispatch.
+
 ## Identity
 
 Append the next identity to `docs/TASK_IDS.md` on `main` before Ready. The

@@ -64,6 +64,26 @@ of the initial approach in mutable notes within those bounds.
 
 - [ ] Define checks that may be strengthened but not removed after Ready.
 
+### Verification Budget
+
+Resolve before live dispatch using [Live verification budget](TASK_WORKFLOW.md#live-verification-budget).
+Inheritance authorizes in-scope calls without per-call approval; record the
+policy revision and effective numeric ceilings. Use not-needed/zero for tasks
+that do not require live verification. Credentials are references only.
+Budget is a ceiling, not a target: stop once the verification need is satisfied.
+
+- Live verification purpose / required provider behavior:
+- Budget owner / parent allocation:
+- Policy revision / inherited or explicit approved limits:
+- max_live_verification_cost (amount + currency):
+- max_live_verification_calls (all physical attempts):
+- max_input_tokens_per_call / max_output_tokens_per_call:
+- live_call_timeout_seconds:
+- Approved provider/model routes / credential-source references:
+- Price reference and checked-at / billing units / currency conversion / allowance:
+- Observed spend / outstanding reservations / unknown cost / attempts / remaining allowance:
+- Worker allocations or serialized dispatch; resume retains prior usage:
+
 ## References
 
 - Add owned documents, source revisions, contracts, and decisions.

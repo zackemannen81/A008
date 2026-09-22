@@ -36,6 +36,19 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+`docs/A008_PLATFORM_SPEC.md` is the proposed distributed platform specification,
+created by A008-0156 and updated to v1.2 by A008-0159. Sections 21.1 and 27
+define model-aware verification budgets; TASK_WORKFLOW owns the adopted working
+defaults and template_CURRENT_TASK records resolved task allocations.
+Section 7.1 separates
+Execution Verification Evidence from semantic evidence and memory ingestion.
+It includes durable parallel
+runs, multi-project/client ownership, devices, isolation, migration and the
+established Docs-First multi-agent workflow. Section 8.1–8.7 integrates the four
+add-on contracts; source baselines and product integration gates distinguish
+practice from newly proposed implementation. Accepted API/ACME/memory contracts
+are not superseded and no new runtime behavior is claimed.
+
 A008-0155 adds `gui/src/projects/project-sidebar.tsx` and `project-sidebar.css`
 for the theme-aware project/chat tree and details dialog. Existing project routes,
 SDK/protocol owners and `src/runtime/conversation-state-store.ts` own metadata,
@@ -78,7 +91,7 @@ no provider or user data. Regression coverage stays in the existing
 
 A008-0085 adds `scripts/check-semantic-extraction.mjs`: a dry-run-by-default
 synthetic extraction check through the existing built generator/transport/stager.
-Live mode requires an explicit flag, selected model and separate task authority;
+Live mode requires an explicit flag, selected model and resolved verification budget;
 it opens no memory store. Instruction and diagnostic fixes stay in the existing
 `src/orchestration/semantic-json-model.ts`; no new runtime/API/schema owner.
 

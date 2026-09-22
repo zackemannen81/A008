@@ -3,6 +3,10 @@
 Discoverability: naming convention `A008-NNNN.md`.
 Member state: required. Every member declares a `Status:` line.
 
+Latest specification handoff: [A008-0159](A008-0159.md) — platform v1.2,
+model-aware delegated verification budgets and aligned working rules;
+documentation only.
+
 A writing worker writes one handoff when it opens a pull request, after
 archiving its charter to `docs/finished/` and restoring
 `docs/CURRENT_TASK.md` from the template. The operator treats repository

@@ -169,3 +169,7 @@ never whether work is active or complete. Task state belongs in
 | A008-0153 | catalog-backed runtime model registry | ChatGPT (operator) | 2026-09-22 | make user-catalog models first-class runtime/session profiles instead of UI-only extras |
 | A008-0154 | MCP health probe and isolated session lifecycle | Grok (operator) | 2026-09-22 | ephemeral stdio health probe, session-catalog indicator, and runtime-owned MCP session scope |
 | A008-0155 | themed project sidebar | Codex (operator) | 2026-09-22 | owner-requested project navigation and project details following the active app theme |
+| A008-0156 | distributed platform specification | Codex (operator) | 2026-09-22 | complete the owner's platform draft with background-run, multiproject, ownership, recovery and migration contracts; documentation only |
+| A008-0157 | platform specification with established multi-agent workflow | Codex (operator) | 2026-09-22 | integrate the four optional add-on contracts and productize the owner's practiced Docs-First multi-agent workflow; documentation only |
+| A008-0158 | execution verification evidence boundary | Codex (operator) | 2026-09-22 | reserve execution verification evidence for runtime verification and separate it from A008 semantic evidence, cognition and memory; specification only |
+| A008-0159 | model-aware live verification budgets | Codex (operator) | 2026-09-22 | replace blanket paid-call escalation with bounded delegated verification authority, model-aware cost estimates and shared task limits; documentation only |

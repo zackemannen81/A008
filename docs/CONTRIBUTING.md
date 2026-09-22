@@ -32,7 +32,12 @@ Read `AGENTS.md` and its ordered authority list before changing the repository.
 Documentation work checks links, fences, collection indexes, staged secrets,
 and `git diff --check`. Product charters must add typecheck, unit, contract,
 integration, packaging, installation, and platform gates in proportion to the
-slice. Live-provider tests require separate credential and cost authority.
+slice. Choose deterministic fakes for controlled faults and live providers when
+real integration, wire compatibility or provider behavior must be verified.
+In-scope live tests use approved credentials/providers and the task's resolved
+[live verification budget](TASK_WORKFLOW.md#live-verification-budget); paid
+status alone does not require another approval. Label results as fake/fixture,
+local implementation or live provider; a fake cannot prove external behavior.
 
 ## Licensing
 
