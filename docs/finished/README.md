@@ -2,7 +2,7 @@
 
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 
-Latest archive: [A008-0155_project-sidebar.md](A008-0155_project-sidebar.md) — Complete; themed project sidebar and saved chats.
+Latest archive: [A008-0156_platform-specification.md](A008-0156_platform-specification.md) — Complete; documentation-only distributed platform specification.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

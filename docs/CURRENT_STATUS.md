@@ -3,6 +3,13 @@
 Reality as of 2026-09-22. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
+A008-0156 completes a documentation-only review draft,
+[A008 Platform](A008_PLATFORM_SPEC.md), for the owner's distributed-platform
+direction and parallel background/multiproject work. It distinguishes current
+V2/ACME/memory contracts from proposed run ownership, recovery, device execution,
+isolation, migration and acceptance gates. No platform capability, API contract,
+accepted ADR or implementation status changes in this task.
+
 A008-0155 adds the themed Projects sidebar with collapsible folders, nested saved
 chats, active selection and New chat. The details menu shows chat count and path,
 and supports registry-owned pinning and display-name editing. Pinned projects

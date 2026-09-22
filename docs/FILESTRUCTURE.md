@@ -36,6 +36,12 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+`docs/A008_PLATFORM_SPEC.md` is A008-0156's review-ready proposed distributed
+platform specification. It covers durable parallel runs, multi-project and
+multi-client ownership, devices, isolation, recovery, migration and staged
+acceptance. It does not supersede accepted API/ACME/memory contracts or describe
+newly shipped behavior.
+
 A008-0155 adds `gui/src/projects/project-sidebar.tsx` and `project-sidebar.css`
 for the theme-aware project/chat tree and details dialog. Existing project routes,
 SDK/protocol owners and `src/runtime/conversation-state-store.ts` own metadata,
