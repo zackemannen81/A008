@@ -170,3 +170,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0154 | MCP health probe and isolated session lifecycle | Grok (operator) | 2026-09-22 | ephemeral stdio health probe, session-catalog indicator, and runtime-owned MCP session scope |
 | A008-0155 | themed project sidebar | Codex (operator) | 2026-09-22 | owner-requested project navigation and project details following the active app theme |
 | A008-0156 | distributed platform specification | Codex (operator) | 2026-09-22 | complete the owner's platform draft with background-run, multiproject, ownership, recovery and migration contracts; documentation only |
+| A008-0157 | platform specification with established multi-agent workflow | Codex (operator) | 2026-09-22 | integrate the four optional add-on contracts and productize the owner's practiced Docs-First multi-agent workflow; documentation only |
