@@ -1,0 +1,96 @@
+.a008-platform {
+  min-height: 0;
+  overflow: auto;
+  padding: 1.25rem 1.5rem 2rem;
+  color: var(--a008-fg);
+  background: var(--a008-bg);
+}
+.a008-platform * { box-sizing: border-box; }
+.a008-platform h1 {
+  margin: 0.2rem 0 1rem;
+  font-size: 1.35rem;
+  font-weight: 550;
+}
+.a008-platform > header p {
+  margin: 0;
+  color: var(--a008-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+}
+.a008-platform p { line-height: 1.5; }
+.a008-platform-unavailable,
+.a008-platform-login,
+.a008-platform-model,
+.a008-platform-conflict {
+  color: var(--a008-fg);
+}
+.a008-platform-grid {
+  display: grid;
+  gap: 0.9rem;
+  max-width: 44rem;
+}
+.a008-platform label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+}
+.a008-platform input,
+.a008-platform select,
+.a008-platform textarea,
+.a008-platform button {
+  font: inherit;
+  color: inherit;
+}
+.a008-platform input,
+.a008-platform select,
+.a008-platform textarea {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--a008-border);
+  border-radius: 0.45rem;
+  background: var(--a008-panel);
+}
+.a008-platform textarea { min-height: 6rem; resize: vertical; }
+.a008-platform button {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--a008-border);
+  border-radius: 0.5rem;
+  background: var(--a008-panel);
+  cursor: pointer;
+}
+.a008-platform button:disabled { cursor: default; opacity: 0.45; }
+.a008-platform :focus-visible {
+  outline: 2px solid var(--a008-focus-ring);
+  outline-offset: 2px;
+}
+.a008-platform-create,
+.a008-platform-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: end;
+}
+.a008-platform-conversations,
+.a008-platform-messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.a008-platform-messages li,
+.a008-platform-run-status {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--a008-border);
+  border-radius: 0.55rem;
+  background: var(--a008-panel);
+}
+.a008-platform-messages span {
+  display: block;
+  color: var(--a008-muted);
+  font: 0.68rem var(--a008-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.a008-platform-run-status {
+  font: 0.85rem var(--a008-mono);
+}

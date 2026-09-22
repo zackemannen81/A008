@@ -79,3 +79,20 @@ provider calls. Do not load `.env.local`.
 
 Restore `docs/CURRENT_TASK.md` from the template before push. Archive, commit,
 push and open a PR. Do not merge. Put canonical status deltas in the handoff.
+
+## Verification
+
+Status: Complete. Fixture/local only. 0 live product-provider calls. 0 SEK.
+No `.env.local`.
+
+- `npm ci` at the repo root passed.
+- `npm ci --prefix gui` passed.
+- `npm run build` (root `tsc`) passed so the host proof can import `startGuiHost` from `dist`.
+- `npm --prefix gui run typecheck` passed.
+- `npm --prefix gui test` — 204 passed, 0 failed. Colocated tests cover unavailable, login-required, disabled-without-model, queued, running, completed, `needs_reconciliation`, cancelled, failed, conflict, and no implicit retry.
+- `src/platform/platform-host-proof.test.ts` passed. A temporary platform file outside the repository and the loopback session-control provider served one text run. The first surface was closed without `/cancel`. A second surface observed that same run as completed. The loopback chat count for the prompt was 1.
+- `npm --prefix gui run build` passed (typecheck and Vite production build).
+- `git diff --check` passed.
+- `fc.exe /b docs\template_CURRENT_TASK.md docs\CURRENT_TASK.md` reported no differences.
+
+Skipped: `npm run test:core`, `npm run test:membership`, eslint, and prettier. This change does not touch `src/`, `packages/`, or root package scripts, and those suites are outside the frozen gates.
