@@ -179,3 +179,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0163 | trusted platform conversation seeding | Codex (operator) | 2026-09-22 | seed existing shared runtime sessions from backend-owned committed history without writing the legacy workspace store |
 | A008-0164 | platform local backend integration | Codex (operator) | 2026-09-22 | compose durable store, trusted runtime and authenticated V3 HTTP with background scheduling and real process recovery proof |
 | A008-0165 | platform independent V3 client | Codex (operator) | 2026-09-22 | thin authenticated SDK for V3 conversations/runs/events with explicit command identity and no automatic mutation retry |
+| A008-0166 | host fixture catalog isolation | Codex (operator) | 2026-09-22 | isolate local test catalog from user MCP configuration and restore reproducible V2 SDK verification |
