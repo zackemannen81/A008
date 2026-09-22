@@ -60,6 +60,17 @@ committed assistant after dispatch stays unknown until lease recovery marks
 `needs_reconciliation`. There is no public reconciliation mutation. See
 `docs/platform/BACKEND.md`.
 
+## Platform admin CLI
+
+`src/platform/admin-cli.ts` inspects and cancels through the merged V3 client.
+`npm run platform-admin` does not load `.env.local` or open the platform
+database. Origin is `--origin` or `A008_PLATFORM_ORIGIN`. `info` prints
+`available` and capability names without a bearer and exits 0. Resource
+commands take the bearer only from `A008_DEVICE_TOKEN` and perform one SDK
+call. `cancel-run` sends one cancel. Failures print the SDK code and exit
+non-zero. Device credentials remain in the host device registry. See
+`docs/platform/ADMIN.md`.
+
 ## Project sidebar and saved chats
 
 A008-0155 / ADR 0047 adds a sidebar project tree below workspace navigation.

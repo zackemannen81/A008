@@ -40,7 +40,7 @@ Electron remains conditional on a concrete need. Do not invent that need.
 | A008-0166 fixture isolation | observed SDK host test failure | Complete | PR #110 at a690141. Operator rerun V2 host 2/2. Worker full suite 745+4+192. Secrets-path limit backlogged |
 | P1 GUI/import/admin closure | integrated host | In progress | Split below. Migration stays unreviewed until its own charter |
 | A008-0167 bundled platform surface | 0164 + 0165 | Ready | Additive V3 page; V1 chat and saved history stay untouched |
-| A008-0168 platform admin CLI | 0164 + 0165 | Ready | Inspect and cancel through the existing SDK; no reconciliation API |
+| A008-0168 platform admin CLI | 0164 + 0165 | Complete | PR #112 at d057c22. Operator rerun CLI host tests 2/2. No retry and no new route |
 | M1 coordination/target adapter | P1 owners | Not started | A25/A27/A29/A30 |
 | M2 context governance | M1 | Not started | A26/A31 |
 | M3 continuity | P1 + M1/M2 | Not started | A28/A32 |
@@ -110,3 +110,6 @@ platform completion claim until required stage gates actually pass.
 - A008-0167 and A008-0168 claimed at 36be3af and frozen Ready. They add a
   bundled V3 page and a four-command admin CLI. ADR 0048 D8 still forbids
   silent migration and replacement of V1 chat.
+- A008-0168 merged through PR #112 at d057c22. Operator reran the CLI host
+  tests 2/2 on head b64ef68. `info` exits 0 when the platform is off; resource
+  failures exit non-zero. A008-0167 remains in execution.

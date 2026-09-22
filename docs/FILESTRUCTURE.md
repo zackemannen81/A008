@@ -53,7 +53,9 @@ A008-0165 adds `packages/client/src/platform-v3.ts` and the implemented
 `src/gui-host/server.ts` opts the host in. `src/platform/platform-store.ts`
 adds read-only `lookupRunReceipt`. `test/platform-host.test.ts` and
 `test/fixtures/platform-host-process.ts` prove the real host, including
-child-process restart.
+child-process restart. A008-0168 adds `src/platform/admin-cli.ts`,
+`test/platform-admin-cli.test.ts` and `docs/platform/ADMIN.md`. Root
+`package.json` adds `platform-admin` and registers that test in `test:core`.
 
 `test/helpers.ts` defaults `A008_CATALOG_PATH` inside `isolatedMemoryEnv` to a
 missing temporary catalog so shared host fixtures do not load the operator

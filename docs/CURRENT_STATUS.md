@@ -21,6 +21,14 @@ child-process restart. Worker `test:core` was 755/755, membership 4/4, and GUI
 192/192. This slice has no tools, approvals, migration, or public reconciliation
 API.
 
+A008-0168 is merged through PR #112 at d057c22. `npm run platform-admin` lists
+conversations, reads one run and cancels one run through `createPlatformV3Client`.
+`info` prints availability without a device token and exits 0 when the platform
+is off. Resource commands send `A008_DEVICE_TOKEN` once and do not retry.
+Operator rerun on head `b64ef68`: the CLI host tests passed 2/2. Worker
+`test:core` was 758/758, membership 4/4, and GUI 192/192. No new HTTP route,
+store, or reconciliation command. No live provider call.
+
 A008-0166 is merged through PR #110 at a690141. `isolatedMemoryEnv` sets
 `A008_CATALOG_PATH` to a missing temporary `catalog.json` before caller
 overrides, so shared host fixtures do not load `~/.a008/catalog.json` or start

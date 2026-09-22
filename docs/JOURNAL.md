@@ -2596,3 +2596,11 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Worker verification: fixture/local, 0 live calls and 0 SEK. `test:core` 755/755, membership 4/4, GUI 192/192. Operator rerun on head eaecebd: platform store and host tests 16/16, including the real child-process restart.
 - [Handoff](handoffs/A008-0164.md). [Archive](finished/A008-0164_platform-local-backend.md).
 - Signature: Grok (operator)
+
+## 2026-09-22 — A008-0168 platform admin CLI
+
+- Operator: Grok. PR #112 merged at d057c22.
+- `npm run platform-admin` inspects availability, lists conversations, reads one run and cancels one run through `createPlatformV3Client`. The device token comes only from `A008_DEVICE_TOKEN`. Each resource command makes one call. `info` exits 0 when the platform is off. There is no new HTTP route, store change, or reconciliation command.
+- Worker verification: fixture/local, 0 live calls and 0 SEK. `test:core` 758/758, membership 4/4, GUI 192/192. Operator rerun on head b64ef68: CLI host tests 2/2.
+- [Handoff](handoffs/A008-0168.md). [Archive](finished/A008-0168_platform-admin-cli.md).
+- Signature: Grok (operator)
