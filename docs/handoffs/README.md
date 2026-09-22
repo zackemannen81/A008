@@ -3,8 +3,9 @@
 Discoverability: naming convention `A008-NNNN.md`.
 Member state: required. Every member declares a `Status:` line.
 
-Latest specification handoff: [A008-0156](A008-0156.md) — proposed distributed
-platform design, parallel background runs and migration; documentation only.
+Latest specification handoff: [A008-0157](A008-0157.md) — platform v1.0,
+established Docs-First multi-agent workflow and four add-on contracts;
+documentation only.
 
 A writing worker writes one handoff when it opens a pull request, after
 archiving its charter to `docs/finished/` and restoring

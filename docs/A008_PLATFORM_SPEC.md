@@ -1,12 +1,12 @@
 # A008 Platform
 
-Version: 0.9 — komplett förslag för granskning
+Version: 1.0 — uppdaterat plattformsförslag med Docs-First multi-agent
 
 Datum: 2026-09-22
 
-Dokumentuppgift: A008-0156
+Dokumentuppgift: A008-0157; vidareutvecklar A008-0156
 
-Avstämd mot: `77060079ff85635b6b4fe888f01038aedbb4c41a`
+Avstämd mot A008: `d91f010`; referensrevisioner anges i avsnitt 3.1
 
 ## 1. Syfte, status och läsanvisning
 
@@ -20,14 +20,23 @@ Plane, ACME som execution runtime, explicit registrerade lokala execution
 targets och flera tunna klienter**. En installation blir en A008-instans med
 stabil identitet, gemensamt state och kontrollerad distribuerad exekvering.
 
+Plattformen ska också produktifiera ägarens redan etablerade **Docs-First
+multi-agent-arbetssätt**: isolerade arbetskopior, avgränsade uppgifter,
+behovsstyrd information till både master och workers, riktad kommunikation och
+kontinuitet när en agent ersätts. Swarm används här som namn på denna styrda
+samverkan. Det innebär inte obegränsad agentkommunikation eller fri delegation.
+
 Ägaren har valt plattformsriktningen och begärt denna specifikation. Dokumentet
 bearbetar ägarens 24-delade utkast och fyller luckor kring parallellitet,
-återhämtning, isolation och migration. Det startar ingen implementation.
+återhämtning, isolation och migration. Version 1.0 integrerar de fyra
+add-on-kontrakten och erfarenheterna från befintliga repositories. Det startar
+ingen implementation och kräver inget nytt konceptbevis för arbetsmetoden.
 
 Följande statusgränser gäller:
 
 - **Beslutad riktning:** plattformsmålet ovan, bibehållen A008-cognition och
-  memory, flera klienter och explicit lokal execution.
+  memory, flera klienter, explicit lokal execution och produktifiering av
+  det etablerade Docs-First multi-agent-arbetssättet.
 - **Föreslaget kontrakt:** dokumentets krav med ordet **ska**, krav-ID:n
   `PL-xx`, livscykler och rekommenderade standardval. Dessa är avsedda att
   antas genom avgränsade arkitekturbeslut före berörd implementation.
@@ -42,6 +51,12 @@ auktoritet. Detta förslag ersätter inte tyst deras regler.
 [CURRENT_STATUS](CURRENT_STATUS.md) äger leveransstatus och
 [SYSTEMDOC](SYSTEMDOC.md) beskriver implementerat beteende.
 
+För granskning av ändringarna i version 1.0: avsnitt 3.1 redovisar befintliga
+repos och erfarenheter; avsnitt 5–7 preciserar identiteter och ägarskap;
+avsnitt 8.1–8.7 beskriver den sammanhängande multi-agent-profilen.
+API och GUI följer i avsnitt 14 och 19. Avsnitt 25 innehåller integrationsspåret
+M1–M4 och avsnitt 27 dess acceptanskriterier.
+
 ## 2. Produktutfall och omfattning
 
 Den första produktvinsten är att kunna starta arbete i projekt A, arbeta vidare
@@ -52,7 +67,7 @@ Plattformens grundkrav är:
 
 | ID | Krav |
 | --- | --- |
-| PL-01 | Backend är ensam logisk ägare av accepterat application state; klienter och workers skapar inga alternativa sanningar. |
+| PL-01 | Backend äger canonical application state; repositoryt äger sina accepterade projektbeslut och kod. Revisionbundna referenser förbinder dessa utan dubbla ägare. |
 | PL-02 | Accepterade bakgrundskörningar lever oberoende av vald vy, client connection och klientprocess. |
 | PL-03 | Parallella projekt och konversationer isoleras; delade resurser har explicit konflikt- och ägarskapskontroll. |
 | PL-04 | Accepterat arbete, resultat och återhämtningsstatus är beständiga och synliga efter backendomstart. |
@@ -64,6 +79,10 @@ Plattformens grundkrav är:
 | PL-10 | User API, Admin API, eventkanal och executionkanal har separata kontrakt och rättigheter. |
 | PL-11 | Drift, kvoter, secrets, backup och felsökning har tydliga ägare och verifierbara gränser. |
 | PL-12 | Övergången skyddar befintlig data och stödda klienter; ny semantik introduceras uttryckligt. |
+| PL-13 | Varje skrivande worker har spårbar delegation, egen arbetsyta och avgränsat ansvar; koordinering använder plattformens gemensamma run- och behörighetsägare. |
+| PL-14 | Master och workers får versionsbundna contextpaket efter ansvar, med källor, urvalsskäl och kontrollerad expansion. |
+| PL-15 | Agentmeddelanden routas till berörda mottagare med proveniens; leverans, konsumtion och semantisk acceptans hålls isär. |
+| PL-16 | Workers och master kan ersättas från förenliga checkpoints och aktuell auktoritet; add-on-evidens får aldrig bli konkurrerande projekt- eller memorysanning. |
 
 Tunna klienter får äga presentation, interaktion, utkast, notifieringar och
 lokal cache. De får inte äga egen orchestration, provider-routing eller
@@ -92,6 +111,7 @@ plattform som beskrivs här.
 | ACME | Modell-only execution; A008 äger approval och tool-loop | Samma kognitiva ägarskap; eventuell mekanisk tool-execution i ACME kräver ändrat kontrakt |
 | Identitet | Ägarwebbprofil och avgränsade V2-deviceprincipals | Instance/tenant/user/membership och separat execution-deviceidentitet |
 | Memory avstängt | Konversationslagret kan vara processlokalt | Durable conversations ska vara oberoende av om semantic memory är aktiverat |
+| Multi-agent i A008 | Bootstrap skapar policy/worker-root; befintligt repoarbete använder isolerade arbetskopior och handoffs | Inbyggd koordinering, contextpaket, riktade meddelanden och återhämtning över plattformens runs |
 
 Underlag: [V2-kontraktet](CLIENT_API_V2.md),
 [befintlig målarkitektur](A008_SYSTEM_ARCHITECTURE.md),
@@ -103,6 +123,41 @@ Underlag: [V2-kontraktet](CLIENT_API_V2.md),
 Det befintliga [A008-0103-programmet](tasks/A008-0103_stable-client-api-program.md)
 har egna frysta steg. Plattformens etapper i avsnitt 25 är en ny föreslagen
 leveransordning och ändrar inte programmets status eller återstående uppdrag.
+
+### 3.1 Befintlig erfarenhet och referensimplementationer
+
+Ägaren har upprepade gånger använt arbetssättet. A008:s workerarbetskopior,
+[MULTIAGENT](MULTIAGENT.md) och arkiverade uppgifter är befintligt underlag.
+Add-on-repots `docs/FIELD-NOTES.md` beskriver bland annat separata kloner,
+återhämtning efter omstart, överlappande skrivägarskap och dubblettprocesser.
+Dessa erfarenheter ska omsättas i produktkrav, inte ersättas av en ny pilot.
+
+Read-only-avstämning 2026-09-22:
+
+| Källa | Observerad revision/yta | Betydelse för A008 Platform |
+| --- | --- | --- |
+| `A008` och `a008-workers` | A008 `d91f010`; exempel på befintliga workercommits `904abdf`, `09d8c3e`, `3b1beb9` | Befintliga ägargränser och praktiserat arbete; directoryinventering ersätter inte verifiering av framtida integration |
+| `docs-first_continuity-protocol` | `0341b1069aa9183d588a87acd72c72b5b71d8f16`; CURRENT_STATUS och extraction/baseline | Repositoryägd kontinuitet och atomic semantic ownership; ingen färdig fristående conformancevalidator att förutsätta |
+| `docs-first-multiagent-orchestrator-addon` | `7b57449935d93cfe1909c83b237367eab2d7bf5b`; `server` version 0.2.0 | Befintlig lokal MCP-processupervisor med launch, status, stdin-instruktion och process-tree halt; fyra vidare designkontrakt |
+| `acme` | HEAD `9d8e96579dda23b46a1e65dd452b15deb1251709` med lokala ändringar; A008:s lockfile och installerade facade/model-runtime är 0.1.6 | Återanvänd stödd model-runtime-yta; källrepots bredare paket är inte automatiskt del av A008:s kontrakt |
+
+Protokollrepon hittades lokalt som `C:/code/docs-first_continuity-protocol`.
+Den angivna sökvägen `C:/code/docs-first/_continuity-protocol` fanns inte.
+ACME:s lokala README har delvis äldre versionsrubriker; därför bygger
+versionsuppgiften ovan på A008:s låsta och installerade paket, inte rubriken.
+ACME-checkoutens lokala ändringar ingår inte automatiskt i den angivna HEAD-revisionen.
+
+Supervisor-koden avvisar normalt en andra levande process på samma normaliserade
+cwd inom sin processregistry. Det är användbar befintlig funktion, inte bevis
+på plattformsomfattande leases, junctionsäker pathidentitet eller hård
+tenant-/scopeisolation. `interrupt-agent` skriver till stdin; det är inte i
+sig en kvitterad cancellation för varje CLI. Sådana skillnader ska synas i
+adapterns capabilityrapport.
+
+De fyra dokumenten under add-on-repots `docs/addons/` är separata designförslag.
+Att metoden redan används betyder inte att samtliga föreslagna API:er finns i
+A008. Plattformens tester ska verifiera det kodstöd som införs för metoden.
+Inget av källrepornas start-/installationskommandon aktiveras av denna specifikation.
 
 ## 4. Topologi och de tre planen
 
@@ -117,7 +172,7 @@ flowchart TB
     Admin["Admin Console"]
     subgraph Backend["A008 Backend — en logisk ägare"]
         API["User API / Admin API / Events"]
-        Core["Cognition, policy och orchestration"]
+        Core["Cognition, policy och multi-agent-orkestrering"]
         Dispatch["Execution coordinator / device gateway"]
         DB[("Application DB + memory")]
         Objects[("Files / artifacts")]
@@ -129,12 +184,14 @@ flowchart TB
     MCP["Server tools / remote MCP"]
     Device["Device Runtime"]
     Local["Lokala filer / terminal / MCP / processer"]
+    Repo["Docs-First repository / Git"]
 
     Web & Desktop & Mobile & TV -->|"User API / events"| API
     Admin -->|"Admin API / events"| API
     API --> Core
     Core --> DB & Objects & Jobs
     Core --> Dispatch
+    Core <-->|"Versionsbundna auktoritetsreferenser"| Repo
     Dispatch --> ACME --> Providers
     Dispatch --> Tools --> MCP
     Dispatch <-->|"Autentiserad executionkanal"| Device
@@ -158,6 +215,11 @@ orchestration, projektioner och synkronisering.
 MCP och Device Runtime. Provider- och MCP-tjänster är externa beroenden, inte
 A008-stateägare.
 
+Masteragentens planering och koordinering hör till Core/Data Plane och körs
+under ett vanligt avgränsat project-/run-grant. Den får inte Admin Console-
+privilegier genom sin roll. Admin Console kan inspektera och administrera
+exekveringen inom sina egna behörigheter.
+
 Planen är logiska gränser. Backend får börja som en modulär process med embedded
 ACME, en databas och lokal artifactlagring. En canonical backend kan senare
 bestå av flera API- och workerprocesser över samma kontrollerade stateägare.
@@ -173,6 +235,12 @@ bestå av flera API- och workerprocesser över samma kontrollerade stateägare.
 | Membership | En users tillhörighet och rättigheter inom en tenant |
 | Project | Stabil logisk arbetsyta för conversations, memory, artifacts och runs |
 | Workspace binding | Godkänd koppling mellan project och targetens arbetskatalog/repository |
+| Repo task / TaskAuthorityRef | Uppgift som ägs av repositoryts workflow; referens till repositoryidentitet, task-ID, auktoritetsrevision och charterdigest |
+| Delegation | Oföränderlig tilldelning av ansvar, läs-/skrivscope, basrevision, arbetsyta, budget och acceptanskrav |
+| Worker slot | Logisk roll i en delegation; består när en agentprocess eller provider ersätts |
+| Context projection | Oföränderligt identifierat paket med utvald auktoritet, källrevisioner och urvalsskäl |
+| Agent message | Riktad operativ observation/förfrågan med avsändar- och evidensreferenser |
+| Execution checkpoint | Versionsbundet underlag för fortsättning; måste stämmas av mot faktisk repository-/executionstatus |
 | Conversation | Beständig ordnad arbetsdialog med revision och stabila message-ID:n |
 | Runtime session | A008:s execution-/agentcontext med explicit scope, version och checkpointstatus |
 | Run | Beständig accepterad arbetsbegäran med auktoritet, tillstånd, budget och resultat |
@@ -191,6 +259,7 @@ Instance
     ├── Projects
     │   ├── Conversations → Messages
     │   ├── Runtime sessions → Runs → Attempts / Tool runs
+    │   ├── Repo task references → Delegations → Context / messages / checkpoints
     │   ├── Memory / claims / current-state projections
     │   ├── Files / artifacts
     │   └── Workspace bindings → Execution targets
@@ -213,11 +282,28 @@ workspace bindings på olika devices eller isolerade worktrees. En worktree
 skapar inte automatiskt ett nytt memoryprojekt. Automatisk filsynk mellan
 maskiner ingår inte; revision/commit och arbetskopians identitet följer bindningen.
 
+En Repo task är inte en A008 Run. Samma task kan få flera delegationer över
+tid och flera kompatibla executionförsök utan att byta taskidentitet. Ett
+workerbyte kan fortsätta samma run med ett nytt attempt när återhämtningsreglerna
+tillåter det. Ändrad charter, ansvar eller basbindning kräver en ny delegation;
+en gammal tilldelning skrivs inte om i efterhand.
+
 ## 6. Stateägande och persistens
 
 Backend accepterar kommandon och äger canonical transitions. Databasen är den
 beständiga representationen; frontend får ingen direkt databasåtkomst.
 Workers rapporterar observationer och resultat genom ägarkontraktet.
+
+För Docs-First-projekt äger repositoryts dokument och Git accepterad
+projektauktoritet. Backend lagrar `TaskAuthorityRef`, index och operativa
+observationer, inte en andra redigerbar kopia av taskstatus eller ADR-beslut.
+UI-ändringar av repositoryägda uppgifter går genom explicita repooperationer
+och får effekt efter deras normala workflow. Arbetskopians utkast och
+branchresultat har tydlig status fram till integration.
+
+Rättelse av dokumenterad nulägesbild kräver jämförelse med faktisk kod och
+verifiering enligt repositoryts regler. Ett runtimeevent eller en generisk
+auktoritetsordning från ett annat repo ersätter inte A008:s ägargränser.
 
 | Logiskt lager | Äger eller lagrar |
 | --- | --- |
@@ -226,6 +312,16 @@ Workers rapporterar observationer och resultat genom ägarkontraktet.
 | Object storage | Uppladdat och genererat innehåll, bilder, dokument, stora tool-output och exporter |
 | Durable jobs / outbox | Beständigt schemaläggnings- och leveransunderlag knutet till accepterat state |
 | Cache / eventtransport | Härledda vyer och leverans; får återskapas utan att bli alternativ sanning |
+
+Delegationer, contextmanifest, riktade meddelanden, checkpoints och gate-/
+auditresultat är A008-ägda operativa artifacts knutna till samma runidentiteter.
+De fyra modulerna använder gemensamma lagringsportar; de inför inte varsin
+jobbscheduler eller taskdatabas.
+
+Ett fristående add-ons raderbara runtimejournal och A008:s canonical databas
+är olika gränser. Utgångna checkpoints/cachear kan rensas utan att ändra
+repositorysanning. Accepterade commands, grants, oklara effekter och dedupeevidens
+följer plattformens retention och får inte raderas som ett generellt add-on-test.
 
 Databasvalet är separat från det semantiska kontraktet. SQLite får behållas för
 avgränsad lokal drift. PostgreSQL är en föreslagen kandidat för flerprocessdrift,
@@ -265,7 +361,7 @@ Run, message-ID eller A008:s eventordning.
 [ADR 0043](adr/0043-acme-execution-boundary.md), som uttryckligen förbjuder
 ACME att exekvera A008-tools. Föreslagen hantering:
 
-1. Första plattformsbeviset behåller befintlig A008-toolägare och embedded ACME.
+1. Första plattformsleveransen behåller befintlig A008-toolägare och embedded ACME.
 2. Om tools flyttas till ACME antas först ett avgränsat ADR-tillägg och ett
    verifierat tool-executionkontrakt. Varken nuvarande paket eller en
    arkitekturbild räcker som bevis på stöd.
@@ -287,6 +383,13 @@ transportförsök, device för kvittering av samma dispatch. Ingen nivå får
 multiplicera retries, kostnad eller sidoeffekter genom att anta att nästa nivå
 inte redan har försökt. Automatisk providerfallback efter ett oklart dispatch
 är inte tillåten.
+
+Två workeradaptrar hålls isär: en A008-styrd agentloop via ACME:s modellgräns
+och en extern coding-agent CLI via processadaptern. En CLI kan göra egna
+provideranrop som A008/ACME inte ser. Då kan A008 styra arbetsyta, process och
+briefing samt ta emot checkpoints, men måste rapportera intern context,
+providerkostnad och replaygarantier som okända där insyn saknas. Capabilities
+från den första adaptern får inte automatiskt ärvas av den andra.
 
 ## 8. Parallella projekt och bakgrundsarbete
 
@@ -331,6 +434,222 @@ delbudget. Ett barn får inte utöka rättigheter eller spendera utanför
 förälderns budget. Avbrytning av en trädstruktur måste ange vilka barn som
 stoppats och vilka effekter som redan genomförts.
 
+En rot-run kan samordna flera child runs. Barnen har egna runtime contexts
+och resultatartefakter; de skriver inte parallella assistantsvar direkt i
+förälderns conversation. Koordinatorn committar det sammanställda svaret.
+Barnresultat blir inte automatiskt del av alla syskons context.
+Rot-run får inte rapportera hela uppdraget slutfört medan obligatoriska
+barnsteg är olösta; ett överfört bakgrundsansvar måste vara uttryckligt spårat.
+
+### 8.1 Docs-First Multi-Agent som valbar arbetsprofil
+
+Profilen använder samma Backend, runs, approvals, events, devices och secrets
+som övriga A008. Docs-First och add-on-kontrakten förblir användbara fristående;
+A008:s integration gör inte A008, ACME, MCP eller en databas obligatorisk
+för basprotokollet.
+
+| Modul | Kontraktets ansvar | Integration i A008 |
+| --- | --- | --- |
+| Context Governance | Reproducerbara contextprojektioner, revisionsidentitet och expansion | A008 contextbyggare med auktoritetsresolver; begränsad vy för master och workers |
+| Coordination & Gatekeeper | Delegationer, meddelanden, start-/slutgates och processbindningar | Gemensam run-coordinator och targetadaptrar; samma reservations- och behörighetsägare |
+| Execution Continuity | Checkpoints, reconciliation och ersättningsbriefing | A008:s beständiga run-/attemptlager med Git- och processevidens |
+| Execution Economics & Audit | Kostnads-/capabilityevidens, budgetbeslut och auditresultat | Gemensamma budgets, providerpolicy och usageportar; ingen konkurrerande routingägare |
+
+Varje modul deklarerar tillgängliga capabilities. Manuellt granskade briefs
+kan användas innan automatisk projection finns. Saknad checkpointpersistens
+innebär att just den återhämtningsförmågan saknas. Repositoryt är fortfarande
+användbart. Ekonomimodulen lämnar beslutsunderlag; A008 äger modellval och
+aktivering av routingpolicy.
+
+Den befintliga MCP-supervisorn kan återanvändas bakom en versionerad
+processadapter på en lokal execution target. Den blir inte en publik,
+oautentiserad fjärrkontrolltjänst eller ny auktoritetsägare.
+
+### 8.2 Arbetsytor, scope och delade resurser
+
+Säker skrivande enhet:
+
+```text
+repo task + fryst delegation
+    → egen branch + fysisk arbetsyta
+    → explicit skrivscope + läsberoenden
+    → run/attempt + verifiering + integrationshandoff
+```
+
+Workers skapas vid faktisk delegation, inte när projektets kryssruta markeras.
+Kloner och worktrees stöds bakom samma workspacekontrakt. För A008 följs den
+befintliga externa roten:
+
+```text
+C:/code/
+├── A008/                         canonical checkout
+└── A008-workers/
+    ├── task-api/                 workerarbetsyta
+    └── task-gui/                 workerarbetsyta
+```
+
+Varje target har sin godkända worker-root. Backend lagrar bindningar;
+klientens godtyckliga filsökväg skapar ingen tillåten arbetsyta. Befintliga
+kataloger återanvänds efter identitets-/innehållskontroll. Cleanup får inte
+kasta ointegrerat arbete eller radera utanför godkänd root.
+
+Skrivscope kontrolleras mellan aktiva delegationer. Delade API-kontrakt,
+lockfiler, databaser, testmiljöer, portar och integrationsbranch kan kräva
+egna reservationer även när filscope inte överlappar. Read-only-workers får
+dela läsytor när executionprofilen verkligen är read-only.
+
+Klon/worktree skiljer arbetskopior åt; den isolerar inte OS-rättigheter,
+nätverk eller secrets. Scopekontrollen ska visa om den hindrar writes,
+upptäcker dem vid diffgranskning eller endast ger råd.
+
+### 8.3 Behovsstyrda contextpaket
+
+Workerpaketet innehåller charter, obligatoriska säkerhets-/ägarskapsregler,
+skrivscope, läsberoenden, relevanta kontrakt/källutdrag, revision, tillåtna
+åtgärder och verifieringskrav. Giltig checkpoint och relevanta meddelanden
+kan tillkomma. Full historik, samtliga ADR:er och andra workers chattar ingår
+inte automatiskt.
+
+Masterpaketet innehåller mål, task-/beroendegraf, ansvar, kompakt runstatus,
+blockerare, verifieringsutfall, budgetavvikelser och beslutspunkter med
+evidensreferenser. Master begär detaljer inför ett visst beslut. En reviewer
+får det diff-/kontraktsunderlag granskningen behöver; en mastersammanfattning
+ersätter inte faktisk verifiering.
+
+`ContextProjection` binds till task/delegation, audience, source revision,
+charter-/scopedigest, algoritm/version samt valda fragment med digests och
+urvalsskäl. `projection_id` bestäms av utfallsrelevanta inputs; vanlig
+skapandetid får inte ensam ge identiska paket olika identitet.
+
+Deterministiska regler väljer namngivna obligatoriska källor och beroenden.
+Modellen kan föreslå mer material; detta registreras som förslag, inte som
+deterministisk eller godkänd auktoritet.
+
+Om information saknas lämnar agenten en `ContextRequest` med projection-ID,
+anledning och önskad källa/scope. Inom godkänd läsgräns kan deterministisk
+policy bevilja expansion utan mänskligt beslut varje gång. Requests utanför
+gränsen går till rätt beslutsägare. Utfallen får ett skäl; beviljande skapar
+ett nytt manifest med referens till föregående version. Otillräcklig context
+ger explicit väntan/expansion, aldrig tyst gissning.
+
+Nuvarande A008-AGENTS kräver bred inläsning. Selektiv workerinläsning kräver
+en uttryckligen antagen rollprofil med obligatorisk kärna och vägar till
+återstående auktoritet. Verktyget får inte kringgå gällande instruktioner
+genom att bara skapa ett mindre paket.
+
+Projection visar vilket material A008 levererade. Efterföljande observerade
+fil-/verktygsläsningar registreras separat för att beskriva faktiska inputs.
+För opaka CLI:er rapporteras insynen som begränsad; ett briefingmanifest
+bevisar inte allt modellen såg. Contextpolicy och tekniskt verkställd
+informationsåtkomst är olika gränser.
+
+### 8.4 Riktad kommunikation
+
+Agentkommunikation går via backendens meddelandeyta med send/read/ack.
+Mottagaren kan vara en delegation eller logisk workerroll så att processbyte
+inte förlorar inkorgen. Avsändande attempt och behörighet verifieras och
+stämplas av backend.
+
+Meddelandet bär `message_id`, tenant/project, avsändande execution/task,
+mottagande delegation/task, typ, ämne, begränsad payload, evidensreferenser,
+auktoritetsklass, relevant revision och eventuell expiry. Idempotency och
+mottagarscope kontrolleras även vid retry. Payloaden får inte själv höja
+auktoritetsklass, ge rättigheter eller räknas som systeminstruktion.
+
+| Typ | Normal mottagare |
+| --- | --- |
+| Observation / dependency-update | Uppgifter som påverkas av fyndet eller kontraktsförändringen |
+| Blocker / decision-request | Ansvarig koordinator eller behörig mänsklig beslutsfattare |
+| Context-request | Contextägaren; eskalering enligt läspolicy |
+| Verification-result / handoff | Reviewer/integrationsägare och berörd mastervy |
+
+Routing, dedupe och köhantering kräver inte att mastermodellen läser och
+vidarebefordrar varje meddelande. Rutinutbyte hålls hos berörda workers.
+Broadcast kräver uttryckligt scope och är inte normal kommunikationsform.
+
+Accepterat, levererat, konsumerat och semantiskt accepterat är olika
+händelser. En dependency-update är en observation tills artefakten
+verifierats och relevant repositorybeslut/integration skett.
+Nack/timeout/utgången TTL får inte tolkas som godkännande.
+
+Inbox har storleksgränser, backpressure och återleverans med dedupe.
+Viktiga blockerare och olösta beslut får inte tyst försvinna genom loggretention;
+expiry måste synas eller eskaleras. Revisionändring gör berörda meddelanden
+stale tills användbarheten prövats igen.
+
+### 8.5 Gates, auktoritet och integration
+
+Startgate kontrollerar taskreferens/charter, beroenden, target, branch,
+basrevision, arbetsyta, scopes, samtidighetsplats, behörighet och budget.
+Reservationer görs atomärt och återhämtas/fence:as enligt runreglerna.
+Begränsningar gäller även rekursiv delegation.
+
+En koordinator som väntar på barn eller ett contextbeslut ska inte hålla en
+knapp aktiv modell-/processplats som barnen behöver för att göra framsteg.
+Runägarskap och skydd för delade resurser består ändå tills de uttryckligen
+släpps. Beroendecykler upptäcks före aktivering; en ändrad graf får inte skapa
+tyst cirkulär väntan mellan delegationer.
+
+Varje regel klassas som `enforced`, `advisory` eller `unavailable`.
+Maxantal workers är hårt först när alla starter genom profilen omfattas av
+samma reservation. Ett språkmodellomdöme om arkitekturkvalitet redovisas som
+bedömning, inte deterministisk gate.
+
+Supervisoradaptern får inte exponera `allow_shared_cwd` som en väg för
+skrivande workers att kringgå reservationen. Särskilda read-only-undantag
+kräver motsvarande verifierad profil. Ett schemafält eller en promptrad
+som heter read-only räcker inte.
+
+Slutgate kräver artifacts/commit, diff mot scope, verifiering bunden till
+artifactrevision, blockerare och handoff. Grön process-exit bevisar inte
+uppgiftens kvalitet eller acceptans.
+
+Review och auktoriserad integration följer repositoryts workflow.
+En beroendeändring eller senare merge kan kräva ny combined verification.
+Backend kan registrera `run=succeeded` för levererad workerevidens medan
+repo task väntar på integration. UI visar båda tillstånden; workerprocessen
+får inte ensam sätta tasken till Finished.
+
+### 8.6 Kontinuitet för workers och master
+
+Checkpoints registreras efter fynd, kod-/verifieringssteg, före överlämning
+och inför context-/processbyte. De innehåller utfört arbete, faktiska artifact-/
+Git-referenser, kvarstående frågor, nästa åtgärd, projection-ID, relevant
+inboxposition och verifieringsstatus. De sparar inte chain-of-thought eller
+försöker återskapa en dold providerchat.
+
+Vid recovery läser A008 aktuell repoauktoritet, workspace/Git-state,
+run-/attemptstatus, targetens liveness och senaste kompatibla checkpoint.
+En ersättare får en briefing med det förenliga underlaget. Ändrad charter,
+oförenlig bas eller oklar tidigare execution stoppar blind resume.
+PID ensam räcker inte som executionidentitet efter omstart.
+
+Master ersätts från taskgraf, reservationer, öppna beslut, inkorg och
+verifierad evidens. Workers skickar inte hela sin historik till den nya
+mastern. Bara aktuell koordinator får delegera/integrera inom sin lease;
+en återvändande gammal master får inte skapa dubbla workers.
+
+För opaka CLI:er gäller checkpoint-/repokontinuitet, inte exakt en
+providerkörning. Recovery av ocommittade filer kräver att targetens data
+finns kvar; backendmetadata återskapar inte filer från en förlorad disk.
+
+### 8.7 Ekonomi och audit
+
+Usage-/tids-/attempt-/contextobservationer samlas från början där adaptern
+kan rapportera dem. Okänd usage/kostnad är okänd, inte noll. Ekonomimodulen
+kan även göra audit av importerad evidens utan egen execution.
+
+Budgethierarkin är tenant/project-policy → uppgift/delegation → run/attempt.
+Master, workers, retries och modelldriven review räknas med. Mät kostnad och
+tid per accepterat resultat, verifieringsbörda, omarbete och context-expansion;
+mindre initialt context är inte i sig ett kvalitetsmått.
+
+Audit är ett oföränderligt fynd om en bestämd execution/artifactrevision.
+Det får inte skriva om executionutfall eller acceptera kod. Automatisk
+routingoptimering och cache över olika modeller kräver versionerad, uttryckligt
+antagen policy. Första integrationen behöver inte vänta på dessa funktioner.
+
+
 ## 9. Run-livscykel och cancellation
 
 Föreslagna tillstånd:
@@ -341,6 +660,8 @@ Föreslagna tillstånd:
 | `running` | Aktuell worker äger lease; får utföra auktoriserade steg |
 | `waiting_approval` | Kräver aktuellt godkännande; fortsätter endast efter giltig resolution |
 | `waiting_target` | Godkänd target otillgänglig; får vänta till deadline, inte tyst byta maskin |
+| `waiting_context` | Contextunderlag eller expansionsbeslut saknas; får fortsätta först med giltigt underlag, annars avslutas enligt deadline |
+| `waiting_dependencies` | Väntar på namngivna barn-/beroenderesultat; behåller runidentitet och reservationsansvar men inte en aktiv modellplats |
 | `cancel_requested` | Nya steg stoppas; pågående execution håller på att kvitteras/avslutas |
 | `needs_reconciliation` | Extern effekt eller completion är okänd; ingen automatisk retry eller fortsatt effektfull execution |
 | `succeeded` | Avtalat huvudresultat har committats |
@@ -457,6 +778,14 @@ Memoryjobb binder till committed originalmessage/final answer och occurrence-ID.
 Deras pending/failed/complete-status går att inspektera separat från svaret.
 Återhämtning deduplicerar knowledgeeffekter och behöver inte upprepa
 modellgenereringen av det redan accepterade chattsvaret.
+
+Context Governance väljer en uppgiftsanpassad vy av repositoryauktoritet;
+semantic retrieval väljer tillåten kunskap för modellens arbete. Båda ägs av
+A008 men svarar på olika frågor. Relevansscore får inte göra en gammal
+memoryträff överordnad ett aktuellt källkontrakt. Sammanställningen bevarar
+modellens regler för additivt context, proveniens och redovisad budget.
+Operativa agentobservationer kan representeras som sådana när memorykontraktet
+tillåter det; det gör dem inte till accepterad repositoryauktoritet.
 
 ## 12. Identity, tenants och authorization
 
@@ -617,6 +946,29 @@ GET    /platform-api/devices
 WS     /platform-api/events
 ```
 
+Multi-agent-profilen behöver även följande resursgrupper bakom samma version,
+autentisering och SDK. Namnen är illustrativa:
+
+```http
+GET    /platform-api/projects/{projectId}/task-authorities
+POST   /platform-api/projects/{projectId}/delegations
+GET    /platform-api/delegations/{delegationId}
+GET    /platform-api/delegations/{delegationId}/context
+POST   /platform-api/delegations/{delegationId}/context-requests
+GET    /platform-api/delegations/{delegationId}/messages
+POST   /platform-api/delegations/{delegationId}/messages
+POST   /platform-api/agent-messages/{messageId}/ack
+GET    /platform-api/runs/{runId}/checkpoints
+GET    /platform-api/runs/{runId}/gate-results
+GET    /platform-api/runs/{runId}/audits
+```
+
+Task-authority-listan är en projektion över registrerad repoauktoritet;
+den ger ingen separat route att direkt skriva över repoets taskstatus.
+Checkpointinlämning från en worker autentiseras och binds till aktuell
+execution via worker-/devicekontraktet. Vanlig klientläsning av checkpoints
+ger inte rätt att fabricera workerevidens.
+
 Meddelandekommandot anger om det ska skapa en run; standard för skickad
 chatprompt är ett atomärt message+run-kommando. Klienten får då tillbaka
 `command_id`, `message_id`, `run_id` och accepterad revision och ska inte
@@ -692,6 +1044,11 @@ Eventpersistens kräver ingen full event-sourced implementation.
 En återkallad prenumeration stängs, och inga nya otillåtna event skickas.
 Återanslutning kontrollerar ny behörighet även om cursorn tidigare var giltig.
 Reconnect är aldrig ett kommando att återskapa ett svar.
+
+Agentmeddelanden har ett eget mottagarkontrakt ovanpå samma beständiga
+leveransmekanismer. En projektscopad UI-prenumeration innebär inte att varje
+agent ska få varje meddelande i sin prompt. Klienten får behöriga översikter;
+contextbyggaren väljer vad respektive agent behöver konsumera.
 
 ## 16. Säkerhet, secrets och trust boundaries
 
@@ -814,6 +1171,27 @@ Klientcache är scoped till instance, tenant och principal. Account-/instansbyte
 får inte visa föregående användares data. Offline får klienten visa markerad
 cache och bevara lokala utkast. Den får inte påstå att arbete accepterats
 innan servern har kvitterat det eller automatiskt skicka gamla utkast vid login.
+
+Docs-First Multi-Agent visas som ett sammanhållet val i projektets arbetsprofil:
+
+```text
+[x] Docs-First
+[x] Multi-agent-arbete
+    Samtidiga workers: konfigurerad gräns
+    Arbetsytor: godkänd worker-root / worktree eller klon
+    Context: behovsstyrt med expansion
+    Integration: verifiering och review enligt projektets workflow
+```
+
+Aktivering konfigurerar profilen. En faktisk uppgift/delegation startar arbetet.
+Avaktivering stoppar nya delegationer men raderar inte evidens eller lämnar
+aktiva workers utan kontroll; deras avslut/cancellation har eget tydligt val.
+
+Arbetsvyn visar task-/beroendegraf, workeransvar, arbetsyta/branch, verkligt
+verkställda begränsningar, status, blockerare och resultat. En beslutsinkorg
+samlar approvals, contexteskalering och integrationsfrågor. Detaljvyn visar
+vilka källor ett contextpaket innehöll och varför. Fullständiga loggar är en
+behörig felsökningsvy, inte standardcontext för master eller workers.
 
 ## 20. Connected och health
 
@@ -949,6 +1327,18 @@ konversationslagring framåt och erbjud explicit import av ännu tillgänglig
 processlokal historik. Historik som redan försvunnit kan inte rekonstrueras
 eller påstås vara migrerad.
 
+Migration av multi-agent-arbetet återanvänder befintliga task-ID:n, charters,
+workerroots, branches, handoffs och erfarenheter. A008 inventerar och erbjuder
+explicit bindning till dessa resurser utan att nollställa eller överta dem
+utifrån enbart katalognamn. Befintliga processer måste identifieras och få
+ett kontrollerat ägarbyte innan en ny scheduler får ersätta dem.
+
+Fältanteckningarnas kända fel blir regressionsfall: dubbla processer i samma
+arbetskopia, överlappande scope, stale dokument efter merge och skillnaden
+mellan stdin-instruktion och faktiskt processavslut. Bootstrapvalet uppgraderas
+från policygenerering till deklarerad produktcapability i takt med leverans.
+Ingen dold installation, workerstart eller automatisk push följer av aktivering.
+
 ## 24. Första arkitekturella milstolpen
 
 Milstolpen är en fungerande gemensam backend med två oberoende webbläsarklienter,
@@ -974,6 +1364,11 @@ Ett konkret demonstrationsförlopp:
 Device Runtime behövs inte för detta första serverbaserade bevis. Däremot
 krävs den innan samma löften utökas till filer/terminal på en annan maskin.
 
+Detta är en milstolpe för den nya distribuerade klient-/stategränsen.
+Ägarens multi-agent-arbetssätt är redan praktiserat. Produktintegrationen i
+avsnitt 25 kan börja lokalt utan att invänta denna milstolpe; inget separat
+tvåworker-konceptbevis eller nytt beslut om metodens värde krävs.
+
 ## 25. Föreslagen leveransordning
 
 Etapperna nedan är förslag till nya bounded tasks efter beslut. De är inte
@@ -982,7 +1377,7 @@ necessity gate, fryst scope och verifiering.
 
 | Etapp | Minsta leverans | Exit gate |
 | --- | --- | --- |
-| P0 — Kontrakt och beslut | Versionsstrategi, domänidentiteter, background-semantik, writescope, ACMEgräns och migration | Beslut D1–D5 nedan har tydlig disposition; schemas/fel/livscykler går att kontraktstesta |
+| P0 — Integrationskontrakt och beslut | Versionsstrategi, task/run/delegation-identiteter, background-semantik, context-/meddelandeägare, writescope, ACMEgräns och migration | Disposition för D1–D5 och närmast berörda D13–D16; befintlig praxis ligger till grund för kontrakten |
 | P1 — Beständigt parallellt arbete lokalt | Scoped local tenant/principal, durable conversations/runs/receipts/outbox, leases, konfliktkontroll, minsta admin CLI/API | Två projekt och två conversations kan arbeta parallellt; klientstängning och processkrasch hanteras enligt A01–A08 |
 | P2 — Remote web och fler användare | Auth/memberships, full server-side isolation, eventreplay/snapshot, GUI som fristående klient | Hela milstolpen i avsnitt 24; A09–A15 och relevant migrations-/restorebevis |
 | P3 — Hybrid execution | Enrollment, Device Runtime, scoped capabilities/workspaces, devicekanal och effektevidens | Samma run kan initieras från web/mobiltestklient mot lokal target; A16–A18 |
@@ -991,6 +1386,23 @@ necessity gate, fryst scope och verifiering.
 | P6 — Expo iOS / Android | Mobil UX och notifieringar över samma resurser | Fortsätt samma conversation, approval, artifact och targetarbete efter app-suspend |
 | P7 — Android TV | Fjärrkontroll-/voice-/monitoring-UX | Samma state och accesskontroll; inga TV-specifika backendägare |
 | Villkorad — Electron | Hostvariant för dokumenterat integrationsbehov | Samma klient-/devicekontrakt och relevant paritet; ingen andra A008-motor |
+
+**Multi-agent-produktifieringen är ett eget integrationsspår över samma grund.**
+Den behöver inte vänta på remote web, alla klienter eller hosted multi-tenancy.
+P1 tillhandahåller gemensamma run-/persistensmekanismer; en lokal
+execution-targetadapter kan användas innan P3 levererar remote enrollment.
+
+| Leverans | Produktarbete och återanvändning | Teknisk acceptans för det som införs |
+| --- | --- | --- |
+| M1 — Coordination & Gatekeeper | Bind befintliga charters/arbetsytor till delegationer och runs; integrera vald lokal processadapter, scopes/reservationer, riktad inbox och GUI-status | Dubbletter, scopekonflikter och gamla ägare hanteras; uppgiftsacceptans följer repo-workflow. A25, A27, A29, A30 |
+| M2 — Context Governance | Automatisera master-/workerpaket, källmanifest, expansion och versionsbunden cache; behåll granskade briefs som explicit tillgänglig nivå | Paket kan återskapas, behörighetsgränser hålls och stale källor fångas. A26, A31 |
+| M3 — Execution Continuity | Bind checkpoints, inboxposition och target/Git-reconciliation till P1:s återhämtning; stötta worker- och masterbyte | Integrationsfel och omstarter återhämtas utan dubbla workers eller fabricerad providerreplay. A28, A32 |
+| M4 — Economics & Audit | Bygg spårbar budget-/usage-/auditvy över evidens som samlats från första integrationen | Kostnad och okända värden redovisas korrekt; audit ändrar inte tidigare utfall. A33 |
+
+Varje rad delas vid behov i bounded implementationsuppgifter. Acceptance
+verifierar A008-koden och dess adaptrar mot det etablerade arbetssättet.
+Den är inte en ny pilot eller ett krav att åter bevisa nyttan av multi-agent.
+Avancerad adaptiv routing/contextoptimering är senare valbart arbete.
 
 Säkerhet, run-inspektion, backup och avbrytning följer varje etapp.
 P4 innebär en utbyggd adminprodukt, inte att tidigare etapper får sakna
@@ -1007,7 +1419,7 @@ som inte redan fattats. Endast beslut som blockerar nästa etapp behöver tas nu
 | D1 | Hur införs nya lifecycle-/eventkontrakt? | Separat explicit plattformskontrakt; behåll dagens V2-semantik. Välj nytt versionsnummer om tillägget inte ryms kompatibelt | P0 |
 | D2 | Vilken parallellitet gäller i en conversation? | En icke-terminal skrivande run; avvisa konkurrerande prompt. Separat conversation/fork för parallella svar | P0 |
 | D3 | Ska chatpersistens vara oberoende av memoryläge? | Ja, med separat lagringsägare/konfiguration och kontrollerad migration | P1 |
-| D4 | Flyttas tool execution till ACME? | Behåll A008-toolägaren för första beviset; pröva senare enbart mekanisk execution genom nytt ADR | Före eventuell toolflytt |
+| D4 | Flyttas tool execution till ACME? | Behåll A008-toolägaren för första leveransen; pröva senare enbart mekanisk execution genom nytt ADR | Före eventuell toolflytt |
 | D5 | Hur prioriteras detta mot A008-0103:s kvarvarande steg? | Dokumentera programändring eller separat beroendesatt program; skriv inte om frysta charter | Före nya implementationstasks |
 | D6 | Fysisk backendlagring och processmodell? | Börja kompakt; välj och verifiera en profil först. Utvärdera PostgreSQL för delad flerprocessdrift utan att anta färdig memoryadapter | P1 och före flerprocessdrift |
 | D7 | User identity och tenantmodell? | Lokal förskapad ägare/tenant först; OIDC och explicit membership för remote. Ingen automatisk offentlig signup | P2 |
@@ -1016,17 +1428,27 @@ som inte redan fattats. Endast beslut som blockerar nästa etapp behöver tas nu
 | D10 | Retention, RPO/RTO, limits och prestandamål? | Frys mätbara värden per faktisk deploymentprofil efter kapacitets-/restoreprov; inga generella löften | Respektive release |
 | D11 | Hur återställs oklara externa effekter? | Adapterevidens först; auditerad reconciliation med explicit dupliceringsrisk när evidens saknas | P1 |
 | D12 | Delning, admininsyn och radering? | Projektskopad åtkomst, ingen implicit promptinsyn för driftadmin, separat retention/deletionkontrakt | P2 / delning |
+| D13 | Vilken workeradapter integreras först? | Bind den befintliga lokala processupervisorn genom en A008-targetadapter där den passar; redovisa CLI-insyn och begränsningar separat från ACME-agentloop | M1 |
+| D14 | Vilken rollprofil tillåter selektiv auktoritetsläsning? | Anta obligatorisk regelkärna, verifierbara källfragment och policybaserad expansion; ändra inte AGENTS indirekt | M2 |
+| D15 | Hur kopplas fristående add-on-state till A008? | Fyra modulkontrakt över gemensamma run-/artifact-/eventportar; egna semantiska ägare, ingen andra scheduler/taskdatabas | M1/M3 |
+| D16 | Hur binds befintligt arbete till plattformen? | Bevara task-ID, branch och arbetsyta; verifiera scope och processtillhörighet före explicit övertagande | M1 / migration |
 
-För rekommenderad första implementationscharter: begränsa arbetet till
-**durable A008-owned runs som fortsätter vid klientfrånkoppling, med två
-isolerade projekt och befintlig A008/ACME-gräns**. Plattformens övriga tjänster
-blir beroendesatta följduppgifter, inte extra scope i samma ändring.
+Rekommenderad första leveranssekvens: frys P1:s gemensamma run-/ägarskapsgräns
+och M1:s task-/delegations-/targetbindning, implementera dem i avgränsade
+uppgifter och koppla det befintliga arbetssättet till A008:s UI/API.
+Context, checkpoints och ekonomi följer egna kontrakt och beroenden enligt
+M2–M4. Ingen ny beslutspunkt frågar om swarm-metoden först måste bevisas.
 
 ## 27. Acceptansmatris
 
 Detta är krav på framtida verifiering. Ingen rad är godkänd av att denna
 Markdownfil har skapats. Fake providers/tools ska användas för deterministiska
 felprov; live/paid-providerprov behöver separat uppgiftsauktoritet.
+
+För M1–M4 är detta integrations- och regressionskrav på ny programvara.
+Befintliga workerflöden och dokumenterade incidenter återanvänds som underlag.
+Antal workers i ett test är en kontrollerad testkonfiguration, inte ett
+ytterligare metodexperiment som ägaren måste genomföra.
 
 | Test | Krav | Scenario och observerbart godkänt utfall |
 | --- | --- | --- |
@@ -1054,6 +1476,15 @@ felprov; live/paid-providerprov behöver separat uppgiftsauktoritet.
 | A22 | PL-08/12 | Migrera riktiga format med syntetiskt innehåll inklusive memory-off och dubbla projektnamn. IDs/proveniens/valda chattar bevaras enligt mapping; inga tomma ersättningsnamespaces |
 | A23 | PL-11/12 | Avbryt migration, prova rollback före writes och spärrat gammalt schema efter writes. Inget tyst dataöverskrivande eller samtidig gammal/new writer |
 | A24 | PL-02/09 | Desktopfönster stängs respektive Device Runtime stoppas; mobil suspend/resume. Backendrun och targetstatus skiljs korrekt och klienterna konvergerar |
+| A25 | PL-03/13 | Konkurrerande launchförsök vid workspace-/kapacitetskonflikt samt parent som väntar på barn. En giltig reservation; barn kan göra framsteg när parent väntar och beroendecykler nekas |
+| A26 | PL-14 | Bygg olika master-/workerpaket från fryst underlag. Identiska inputs ger samma bytes/ID; källändring invalidiserar cache; expansion får nytt länkat manifest |
+| A27 | PL-06/15 | Skicka en beroendeobservation med retry till rätt och fel mottagare. En mottagareffekt, korrekt senderproveniens, inget läckage eller automatisk truth promotion |
+| A28 | PL-04/13/16 | Ersätt worker och master efter avbrott. Git/charter/checkpoint stäms av; ny ägare får rätt inbox och inga dubbla processer startas |
+| A29 | PL-01/13 | Worker rapporterar klar med saknad eller stale verifiering. Slutgate nekar; succeeded execution får inte automatiskt sätta repo task till Finished |
+| A30 | PL-07/13 | Kör samma profil via lokal supervisor och annan workeradapter. Rapporten skiljer verkligt enforced från advisory/unavailable; stdin-signal blir inte falskt cancellationbevis |
+| A31 | PL-06/14 | Begär tillåten och otillåten context-expansion samt försök ta bort obligatorisk regelkärna. Tillåten expansion versioneras; övrigt nekas/eskaleras utan gissning |
+| A32 | PL-01/05/16 | Ändra charter medan worker är borta och rensa utgången checkpointcache. Stale resume nekas; repoauktoritet består och aktiv dedupe-/effektevidens skyddas |
+| A33 | PL-11/16 | Importera kostnad med okända fält och skapa ny audit över samma execution. Okänt förblir okänt; tidigare resultat/audit skrivs inte om och policy aktiveras inte automatiskt |
 
 Godkända bevis ska ange version, deploymentprofil, utförda felinjektioner,
 observerat utfall och kvarvarande begränsningar. Kodtester, paketering,
@@ -1084,6 +1515,7 @@ inte att varje client, databas eller driftprofil måste byggas samtidigt.
 | Admin, secrets, säkerhet och observability | 16, 18, 21 |
 | Deployment och Connected | 20, 22 |
 | Non-goals, roadmap, milstolpe och slutlig målbild | 1–2, 23–27 |
+| Etablerat Docs-First multi-agent-arbete och de fyra add-on-kontrakten | 3.1, 5–8, 11, 14–15, 19, 23, 25–27 |
 
 Den gemensamma produktidén är att användaren arbetar i **samma A008-instans**.
 Backend håller ihop cognition, memory och accepterat state. Exekveringen kan

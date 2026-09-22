@@ -36,11 +36,13 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
-`docs/A008_PLATFORM_SPEC.md` is A008-0156's review-ready proposed distributed
-platform specification. It covers durable parallel runs, multi-project and
-multi-client ownership, devices, isolation, recovery, migration and staged
-acceptance. It does not supersede accepted API/ACME/memory contracts or describe
-newly shipped behavior.
+`docs/A008_PLATFORM_SPEC.md` is the proposed distributed platform specification,
+created by A008-0156 and updated to v1.0 by A008-0157. It includes durable parallel
+runs, multi-project/client ownership, devices, isolation, migration and the
+established Docs-First multi-agent workflow. Section 8.1–8.7 integrates the four
+add-on contracts; source baselines and product integration gates distinguish
+practice from newly proposed implementation. Accepted API/ACME/memory contracts
+are not superseded and no new runtime behavior is claimed.
 
 A008-0155 adds `gui/src/projects/project-sidebar.tsx` and `project-sidebar.css`
 for the theme-aware project/chat tree and details dialog. Existing project routes,

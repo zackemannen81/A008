@@ -3,7 +3,15 @@
 Reality as of 2026-09-22. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
-A008-0156 completes a documentation-only review draft,
+A008-0157 updates [A008 Platform](A008_PLATFORM_SPEC.md) to proposal v1.0 with
+the owner's established Docs-First multi-agent workflow and four independent
+add-on contracts. It integrates task/delegation identities, bounded context,
+routed communication, worker/master replacement and a product integration
+roadmap. Existing practice is input, not a new conceptual proof requirement.
+Read-only source evidence distinguishes the process supervisor from proposed
+add-on capabilities. No runtime feature, accepted ADR or API schema changed.
+
+A008-0156 created the initial documentation-only review draft,
 [A008 Platform](A008_PLATFORM_SPEC.md), for the owner's distributed-platform
 direction and parallel background/multiproject work. It distinguishes current
 V2/ACME/memory contracts from proposed run ownership, recovery, device execution,
