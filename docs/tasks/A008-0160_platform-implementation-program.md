@@ -37,6 +37,7 @@ Electron remains conditional on a concrete need. Do not invent that need.
 | P1 host/coordinator/client integration | 0161 + 0162 + 0163 | Not started | Real host background execution, scoped auth, polling and restart proof |
 | A008-0164 backend integration | 0161 + 0162 + 0163 | Ready | Actual scoped durable background host and process-recovery proof |
 | A008-0165 V3 SDK | 0162 | In Progress | Validated independent client, no implicit mutation retry |
+| A008-0166 fixture isolation | observed SDK host test failure | Ready | Temporary catalog isolates existing host verification from user MCP config |
 | P1 GUI/import/admin closure | integrated host | Not started | Parallel projects, durable chats incl memory-off, migration/restore gates |
 | M1 coordination/target adapter | P1 owners | Not started | A25/A27/A29/A30 |
 | M2 context governance | M1 | Not started | A26/A31 |
