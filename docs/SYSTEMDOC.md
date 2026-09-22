@@ -3,6 +3,38 @@
 This document describes durable behavior that exists now. Intended product
 architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
+## Project sidebar and saved chats
+
+A008-0155 / ADR 0047 adds a sidebar project tree below workspace navigation.
+Project folders expand/collapse their chats; names open the current project chat;
+chat rows open a specific saved conversation; the compose icon creates a new one.
+The ellipsis (also right-click) opens a keyboard-accessible details dialog showing
+name, chat count, root path, pin toggle and display-name editing. Pins are stored
+in the existing registry. Pinned projects sort before alphabetically sorted names.
+All colours, borders, selection and shadows consume the current app theme tokens.
+The list scrolls independently and remains available through mobile navigation.
+
+Authenticated `GET /v1/projects/sidebar` derives summaries from the canonical
+conversation store without opening unused runtimes or calling providers.
+`POST /v1/projects/update` strictly accepts projectId/name/pinned; roots, memory
+bindings and project files cannot be edited there. `POST /v1/projects/chat` accepts
+new/open and an explicit conversation ID for open. It validates project ownership,
+settles/closes the old workspace bridge, selects/creates the conversation, then
+the GUI reconnects through its existing SDK/session owner. Generic ACP/V2 sessions
+keep their existing independent behavior.
+
+The existing `ProjectConversationStateStore` owns `A008_project_chats`, keyed by
+project namespace and conversation ID, and `A008_project_chat_selection`, which
+contains only the selected ID. The old single row migrates transactionally on
+first runtime access for that namespace and remains an unused legacy snapshot.
+Unopened namespaces can still be listed from their legacy row without writes.
+Titles derive from the first user text, capped at 100 characters; no title model
+call or renderer transcript cache exists. New chat retains old chats. Reset and
+model change replace only the selected conversation, retaining their existing
+semantics. Images keep their source-store references and stale-pending restore
+rule. Memory-disabled projects retain the existing in-process-only storage mode,
+explicitly described by the details menu.
+
 ## Shared v1 wire contract
 
 `packages/protocol/src` owns the existing WS/session/model/runtime-preference

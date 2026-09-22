@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
+import Database from "better-sqlite3";
+import {
+  ProjectConversationStateStore,
+  readProjectConversations,
+} from "../src/runtime/conversation-state-store.js";
 import type { ChatRequest } from "../src/core/types.js";
 import { DEFAULT_PROVIDER_TIMEOUT_MS } from "../src/runtime/local-runtime-config.js";
 import { ChatError } from "../src/core/errors.js";
@@ -27,6 +32,128 @@ import {
 const ASSERTION = "Durable fact: the local memory project code is alpha-seven.";
 const PROPOSITION = "the local memory project code is alpha-seven";
 const QUESTION = "What is the local memory project code?";
+
+test("sidebar conversation migration preserves legacy chat, selection, content and project isolation", () => {
+  const fixture = isolatedMemoryEnv();
+  const filename = join(fixture.directory, "chat-migration.sqlite");
+  const first = parseRuntimeId(
+    "A008_v1_conversation_00000000-0000-4000-8000-000000000001",
+    "conversation",
+  );
+  const second = parseRuntimeId(
+    "A008_v1_conversation_00000000-0000-4000-8000-000000000002",
+    "conversation",
+  );
+  const other = parseRuntimeId(
+    "A008_v1_project_00000000-0000-4000-8000-000000000002",
+    "project",
+  );
+  const legacy = new Database(filename);
+  legacy.exec(
+    "CREATE TABLE A008_project_conversation (namespace TEXT PRIMARY KEY, conversation_id TEXT, model TEXT, messages_json TEXT, updated_at TEXT)",
+  );
+  legacy
+    .prepare("INSERT INTO A008_project_conversation VALUES (?, ?, ?, ?, ?)")
+    .run(
+      TEST_PROJECT_ID,
+      first,
+      "fixture",
+      JSON.stringify([
+        { role: "user", content: "Legacy chat title" },
+        { role: "assistant", content: "Retained answer" },
+      ]),
+      "2026-09-22T00:00:00Z",
+    );
+  legacy.prepare("INSERT INTO A008_project_conversation VALUES (?, ?, ?, ?, ?)").run("unopened-legacy-project", second, "fixture", JSON.stringify([{ role: "user", content: "Unopened legacy title" }]), "2026-09-22T00:00:00Z");
+  legacy.close();
+  assert.equal(
+    readProjectConversations(filename, TEST_PROJECT_ID)[0]?.title,
+    "Legacy chat title",
+  );
+  const store = new ProjectConversationStateStore(
+    filename,
+    parseRuntimeId(TEST_PROJECT_ID, "project"),
+  );
+  try {
+    assert.equal(readProjectConversations(filename, "unopened-legacy-project")[0]?.title, "Unopened legacy title");
+    assert.equal(store.load()?.messages.length, 2);
+    store.save({
+      conversationId: second,
+      model: "fixture",
+      messages: [{ role: "user", content: "Second\nchat" }],
+    });
+    assert.equal(store.list().length, 2);
+    assert.equal(
+      store.list().find((chat) => chat.current)?.title,
+      "Second chat",
+    );
+    store.select(first);
+    assert.equal(store.load()?.messages[1]?.content, "Retained answer");
+    const foreign = new ProjectConversationStateStore(filename, other);
+    try {
+      assert.deepEqual(foreign.list(), []);
+      assert.throws(
+        () => foreign.select(first),
+        /Unknown project conversation/u,
+      );
+    } finally {
+      foreign.close();
+    }
+  } finally {
+    store.close();
+  }
+  const reopened = new ProjectConversationStateStore(
+    filename,
+    parseRuntimeId(TEST_PROJECT_ID, "project"),
+  );
+  try {
+    assert.equal(reopened.load()?.conversationId, first);
+    assert.equal(reopened.list().length, 2);
+    reopened.save({ conversationId: first, model: "fixture", messages: [] });
+    assert.equal(reopened.list().length, 2);
+    reopened.select(second);
+    assert.equal(reopened.load()?.messages[0]?.content, "Second\nchat");
+  } finally {
+    reopened.close();
+    rmSync(fixture.directory, { recursive: true, force: true });
+  }
+});
+
+test("workspace new/select preserves chats while reset affects only the selected chat", async () => {
+  const fixture = isolatedMemoryEnv();
+  const runtime = createLocalMemoryRuntime({
+    env: fixture.env,
+    surface: "test",
+    createTransport: () =>
+      memoryAwareFakeTransport({
+        chat: () => ({ content: "Answer" }),
+        analyze: () => [],
+        classify: () => ({ type: "new" }),
+      }),
+  });
+  try {
+    const first = runtime.openSession({ workspaceConversation: "restore" });
+    await first.turn("First chat");
+    runtime.createWorkspaceConversation();
+    const second = runtime.openSession({ workspaceConversation: "restore" });
+    await second.turn("Second chat");
+    assert.equal(runtime.listWorkspaceConversations().length, 2);
+    runtime.selectWorkspaceConversation(first.conversationId);
+    const restored = runtime.openSession({ workspaceConversation: "restore" });
+    assert.equal(restored.messages[0]?.content, "First chat");
+    restored.reset();
+    assert.equal(runtime.listWorkspaceConversations().length, 2);
+    runtime.selectWorkspaceConversation(second.conversationId);
+    assert.equal(
+      runtime.openSession({ workspaceConversation: "restore" }).messages[0]
+        ?.content,
+      "Second chat",
+    );
+  } finally {
+    runtime.close();
+    rmSync(fixture.directory, { recursive: true, force: true });
+  }
+});
 
 function assertionTransport() {
   return memoryAwareFakeTransport({

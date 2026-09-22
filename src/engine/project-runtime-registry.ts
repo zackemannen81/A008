@@ -75,6 +75,12 @@ export class ProjectRuntimeRegistry {
     this.#env = { ...options.env };
   }
 
+  findByProjectId(projectId: string): ProjectRuntime | undefined {
+    return [...this.#projects.values()].find(
+      ({ project }) => project.binding.projectId === projectId,
+    )?.project;
+  }
+
   /** V1/CLI compatibility initialization, distinct from strict existing attachment. */
   openConfigured(
     directory: string,

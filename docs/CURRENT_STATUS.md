@@ -3,6 +3,17 @@
 Reality as of 2026-09-22. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
+A008-0155 adds the themed Projects sidebar with collapsible folders, nested saved
+chats, active selection and New chat. The details menu shows chat count and path,
+and supports registry-owned pinning and display-name editing. Pinned projects
+sort first, then names alphabetically; opening a project does not move its row.
+Standalone projects now retain multiple conversations through the existing SQLite
+owner, with an additive migration of the previous current chat. New chat preserves
+other chats; reset/model change still replace only the selected chat. Projects
+with global memory disabled retain chats only during the host lifetime. The
+authenticated host routes and independent SDK expose sidebar/update/chat actions.
+Verification for this local branch is recorded in the A008-0155 task/handoff.
+
 A008-0154 makes stdio MCP health and session identity host-owned. Parameters → MCP can Reload & Test a saved server: the host spawns a temporary process, completes MCP initialize, `tools/list`, and catalog validation, then closes it. The row shows READY with the tool count, FAILED with the stage that stopped (`process did not start`, `MCP handshake failed`, catalog validation, or close), or RESTART REQUIRED when an open host session was constructed with a different enabled catalog. The probe does not replace that session's `ModelToolSession`. Each tool session publishes `A008_MCP_EXECUTION_ID` and a stable `A008_MCP_SERVER_SCOPE`. A string `session` argument published by the server is hidden from the model and filled from that scope. Domain containment combined with restore or state replay is rejected before execution. No server name is special-cased. V2 session construction now receives the same catalog path the bundled bridge already used. Verification: 726/726 core + 4/4 membership + 190/190 GUI = 920/920, root and GUI typecheck, GUI production build, packed protocol verification, and `git diff --check` pass. No live provider call.
 
 A008-0153 removes the remaining split-brain between the model list and runtime session registry. `ModelRegistry` can now compose dynamic profiles while preserving shipped-profile precedence, and the ACP/local runtime owns one catalog-backed registry whose dynamic source is the current configured user catalog. A model added after runtime startup is therefore immediately resolvable by `LocalMemoryRuntime.sessionParameters()` and a newly created ACP session without host restart; no imported model ids are hardcoded. Focused model/runtime tests pass 17/17, the full repository gate passes 722/722 core + 4/4 membership + 189/189 GUI = 915/915, root typecheck, GUI production build and `git diff --check` pass, and a read-only smoke against the operator catalog resolved `thinkingmachines/inkling:free`, `moonshotai/kimi-k2.6` and `openai/gpt-oss-120b` without provider calls.

@@ -20,6 +20,9 @@ import {
   type ProjectBootstrapConfig,
   type ProjectBootstrapPlan,
   type ProjectCreated,
+  type ProjectSidebar,
+  type ProjectUpdate,
+  type ProjectChatAction,
   type ProjectsResponse,
   type ProviderSettings,
   type ProviderSettingsUpdate,
@@ -88,6 +91,10 @@ export function createHttpClient(options: HttpClientOptions) {
     registerExistingProject: (config: ExistingProjectRegistration) =>
       registerExistingProject(options, config),
     listProjects: () => listProjects(options),
+    listSidebarProjects: () => listSidebarProjects(options),
+    updateProject: (input: ProjectUpdate) => updateProject(options, input),
+    changeProjectChat: (input: ProjectChatAction) =>
+      changeProjectChat(options, input),
     openProject: (projectId: string) => openProject(options, projectId),
     loadNvidiaCatalog: (signal?: AbortSignal) =>
       loadNvidiaCatalog(options, signal),
@@ -295,6 +302,30 @@ export function formatShellHostResult(result: ShellHostResult): string {
   if (result.stdout.length === 0 && result.stderr.length === 0)
     lines.push("(no output)");
   return `${lines.join("\n")}\n`;
+}
+
+export function listSidebarProjects(
+  client: HttpClientOptions,
+): Promise<ProjectSidebar> {
+  return projectJson(client, "/v1/projects/sidebar");
+}
+export function updateProject(
+  client: HttpClientOptions,
+  input: ProjectUpdate,
+): Promise<RegisteredProject> {
+  return projectJson(client, "/v1/projects/update", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+export function changeProjectChat(
+  client: HttpClientOptions,
+  input: ProjectChatAction,
+): Promise<WorkspaceBinding> {
+  return projectJson(client, "/v1/projects/chat", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 async function projectJson<T>(

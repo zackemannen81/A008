@@ -3,7 +3,11 @@ import type {
   HttpError,
   UploadedSource,
   ShellHostResult,
+  ProjectSidebar,
+  WorkspaceBinding,
 } from "../../packages/protocol/src/index.js";
+import { projectChatActionSchema } from "../../packages/protocol/src/index.js";
+import { readProjectConversations } from "../runtime/conversation-state-store.js";
 
 import {
   createHash,
@@ -117,6 +121,7 @@ import {
   handleProjectList,
   handleProjectOpen,
   handleProjectPreview,
+  handleProjectUpdate,
 } from "./project-routes.js";
 import {
   readProjectRegistry,
@@ -411,6 +416,73 @@ export async function startGuiHost(
     sessionLeases.delete(sessionId);
   };
 
+  const sidebarProjects = (): ProjectSidebar => {
+    const registry = readProjectRegistry(projectsPath);
+    return {
+      currentId: workspace.projectId ?? null,
+      projects: registry.projects.map((project) => ({
+        ...project,
+        conversations:
+          projectRegistry
+            .findByProjectId(project.projectId)
+            ?.runtime.listWorkspaceConversations() ??
+          (project.memory.useGlobalA008Memory
+            ? readProjectConversations(
+                env[SQLITE_PATH_ENV]?.trim() || defaultSqlitePath(),
+                project.projectId,
+              )
+            : []),
+      })),
+    };
+  };
+  let changingChat = false;
+  const changeProjectChat = async (
+    body: unknown,
+  ): Promise<WorkspaceBinding> => {
+    const parsed = projectChatActionSchema.safeParse(body);
+    if (
+      !parsed.success ||
+      (parsed.data.action === "open" && !parsed.data.conversationId)
+    ) {
+      throw new ChatError("configuration", "Invalid project chat action.");
+    }
+    if (changingChat)
+      throw new ChatError(
+        "configuration",
+        "A project chat switch is already in progress.",
+      );
+    changingChat = true;
+    try {
+      const { projectId, action, conversationId } = parsed.data;
+      const project = readProjectRegistry(projectsPath).projects.find(
+        (entry) => entry.projectId === projectId,
+      );
+      if (!project) throw new ChatError("configuration", "Unknown project.");
+      const target = projectRegistry.openConfigured(project.rootFolder, {
+        ...runtimeBaseEnv(),
+        [PROJECT_ID_ENV]: projectId,
+        [SQLITE_PATH_ENV]: project.memory.useGlobalA008Memory
+          ? env[SQLITE_PATH_ENV]?.trim() || defaultSqlitePath()
+          : ":memory:",
+      });
+      if (
+        action === "open" &&
+        !target.runtime
+          .listWorkspaceConversations()
+          .some((chat) => chat.conversationId === conversationId)
+      ) {
+        throw new ChatError("configuration", "Unknown project conversation.");
+      }
+      // Close and settle the old session before changing the selected chat.
+      await applyWorkspace(bindingFor(project));
+      if (action === "new") target.runtime.createWorkspaceConversation();
+      else target.runtime.selectWorkspaceConversation(conversationId!);
+      return handleProjectOpen({ registryPath: projectsPath }, { projectId });
+    } finally {
+      changingChat = false;
+    }
+  };
+
   const releaseDetachedSession = async (sessionId: string): Promise<void> => {
     const lease = sessionLeases.get(sessionId);
     if (lease === undefined || lease.attached) return;
@@ -605,6 +677,8 @@ export async function startGuiHost(
       secretsPath,
       projectsPath,
       applyWorkspace,
+      sidebarProjects,
+      changeProjectChat,
     });
   });
 
@@ -765,6 +839,8 @@ async function handleHttp(input: {
   readonly mcpProbes: McpProbeMemory;
   readonly secretsPath: string;
   readonly projectsPath: string;
+  readonly sidebarProjects: () => ProjectSidebar;
+  readonly changeProjectChat: (body: unknown) => Promise<WorkspaceBinding>;
   readonly applyWorkspace: (next: {
     cwd: string;
     projectId: string;
@@ -1057,6 +1133,35 @@ async function handleHttp(input: {
     if (method === "GET" && blob) {
       if (handleBlobGet(input.storeRoot, blob[1]!, blob[2]!, response)) return;
       sendJson(response, 404, errorBody("Image not found."));
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/projects/sidebar") {
+      sendJson(response, 200, input.sidebarProjects());
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/projects/update") {
+      if (!isJsonContentType(request)) {
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
+        return;
+      }
+      const body = await readJsonBody(request);
+      sendJson(
+        response,
+        200,
+        handleProjectUpdate({ registryPath: input.projectsPath }, body),
+      );
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/projects/chat") {
+      if (!isJsonContentType(request)) {
+        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        return;
+      }
+      sendJson(response, 200, await input.changeProjectChat(await readJsonBody(request)));
       return;
     }
     if (method === "GET" && pathname === "/v1/projects") {

@@ -1060,6 +1060,23 @@ export class LocalMemoryRuntime {
     );
   }
 
+  listWorkspaceConversations() {
+    return this.#conversationStore.list();
+  }
+
+  selectWorkspaceConversation(conversationId: string): void {
+    this.#conversationStore.select(conversationId);
+  }
+
+  createWorkspaceConversation(): void {
+    const model = this.#conversationStore.load()?.model ?? DEFAULT_MODEL_ID;
+    this.#conversationStore.save({
+      conversationId: this.#identityFactory.create("conversation"),
+      model,
+      messages: [],
+    });
+  }
+
   openSession(options: LocalMemorySessionOptions = {}): LocalMemorySession {
     if (this.#closed) {
       throw new ChatError("configuration", "Local memory runtime is closed.");
@@ -1084,11 +1101,14 @@ export class LocalMemoryRuntime {
       // "checked against the model card" and is not edited to tune a run.
       generation: { ...profile.defaults, ...this.#chatGeneration },
     });
+    let persistedConversationId = conversationId;
     const persistConversation =
       options.workspaceConversation === undefined
         ? undefined
-        : (state: ProjectConversationState) =>
-            this.#conversationStore.save(state);
+        : (state: ProjectConversationState) => {
+            this.#conversationStore.save(state, persistedConversationId);
+            persistedConversationId = state.conversationId;
+          };
     const session = new LocalMemorySession({
       runtime: this,
       conversationId,
@@ -1097,11 +1117,21 @@ export class LocalMemoryRuntime {
       ...(persistConversation === undefined ? {} : { persistConversation }),
     });
     if (options.workspaceConversation !== undefined && restored === undefined) {
-      this.#conversationStore.save({
-        conversationId,
-        model: session.model,
-        messages: session.messages.filter((message) => message.role !== "system"),
-      });
+      const previous =
+        options.workspaceConversation === "fresh"
+          ? this.#conversationStore.list().find((chat) => chat.current)
+              ?.conversationId
+          : undefined;
+      this.#conversationStore.save(
+        {
+          conversationId,
+          model: session.model,
+          messages: session.messages.filter(
+            (message) => message.role !== "system",
+          ),
+        },
+        previous,
+      );
     }
     return session;
   }

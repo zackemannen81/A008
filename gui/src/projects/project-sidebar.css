@@ -1,0 +1,277 @@
+.a008-sidebar-projects {
+  display: flex;
+  flex-direction: column;
+  min-height: 5rem;
+  flex: 1;
+  gap: 0.3rem;
+}
+.a008-sidebar-projects button,
+.a008-project-popover button {
+  border: 0;
+  background: transparent;
+  color: var(--a008-fg-soft);
+  font: inherit;
+  cursor: pointer;
+  border-radius: 0.55rem;
+}
+.a008-sidebar-projects button:hover:not(:disabled),
+.a008-project-popover button:hover:not(:disabled) {
+  background: var(--a008-surface-hover);
+  color: var(--a008-fg);
+}
+.a008-sidebar-projects button:disabled,
+.a008-project-popover button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.a008-sidebar-projects svg,
+.a008-project-popover svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.a008-sidebar-projects > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.a008-sidebar-projects > header button {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.7rem;
+}
+.a008-sidebar-projects > header button:first-child {
+  flex: 1;
+  text-align: left;
+}
+.a008-sidebar-projects > header span {
+  width: 1.1rem;
+  text-align: center;
+}
+.a008-sidebar-project-scroll {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  padding: 0.15rem 0.2rem 0.5rem;
+}
+.a008-project-tree,
+.a008-project-chats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.a008-project-tree > li {
+  margin-bottom: 0.65rem;
+}
+.a008-project-row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-radius: 0.65rem;
+  min-height: 2.35rem;
+}
+.a008-project-row:hover,
+.a008-project-row:focus-within {
+  background: var(--a008-surface-hover);
+}
+.a008-project-row.is-active {
+  background: var(--a008-surface-selected);
+}
+.a008-project-folder {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2.2rem;
+  flex: 0 0 auto;
+}
+.a008-project-chevron {
+  display: none;
+  font-size: 1.3rem;
+}
+.a008-project-folder:hover svg {
+  display: none;
+}
+.a008-project-folder:hover .a008-project-chevron {
+  display: block;
+}
+.a008-project-name {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.15rem;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.a008-project-action {
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.9rem;
+  flex: 0 0 auto;
+  opacity: 0;
+}
+.a008-project-row:hover .a008-project-action,
+.a008-project-row:focus-within .a008-project-action {
+  opacity: 1;
+}
+.a008-project-pin {
+  display: flex;
+  color: var(--a008-muted);
+}
+.a008-project-pin svg {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+.a008-project-chats {
+  padding-left: 2rem;
+  margin-top: 0.2rem;
+}
+.a008-project-chats button {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.4rem;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.86rem;
+}
+.a008-project-chats button[aria-current="page"] {
+  color: var(--a008-fg);
+  background: var(--a008-surface-selected);
+}
+.a008-project-empty {
+  color: var(--a008-muted);
+  font-size: 0.8rem;
+  padding: 0.5rem 0.4rem;
+  margin: 0;
+}
+.a008-project-add-empty {
+  margin: 0.5rem;
+  padding: 0.65rem;
+  font-size: 0.8rem !important;
+}
+.a008-project-error {
+  padding: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--a008-danger);
+  overflow-wrap: anywhere;
+}
+.a008-project-error button {
+  padding: 0.4rem;
+}
+.a008-project-popover {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  box-sizing: border-box;
+  width: min(24rem, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  overflow: auto;
+  padding: 0.65rem;
+  border: 1px solid var(--a008-border);
+  border-radius: 1rem;
+  background: var(--a008-surface-3);
+  color: var(--a008-fg);
+  box-shadow: var(--a008-shadow-panel);
+  font: 0.95rem/1.4 var(--a008-sans);
+}
+.a008-project-popover::backdrop {
+  background: transparent;
+}
+.a008-project-popover :focus-visible {
+  outline: 2px solid var(--a008-focus-ring);
+  outline-offset: 2px;
+}
+.a008-project-popover header {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.15rem 0.25rem;
+}
+.a008-project-popover header strong {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.a008-project-popover header button {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex-shrink: 0;
+}
+.a008-project-popover header button[aria-pressed="true"] {
+  color: var(--a008-accent);
+}
+.a008-project-popover p {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  margin: 0;
+  padding: 0.65rem 0.3rem;
+}
+.a008-project-path {
+  border-top: 1px solid var(--a008-border);
+  border-bottom: 1px solid var(--a008-border);
+}
+.a008-project-path span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+  user-select: text;
+}
+.a008-project-popover .a008-project-storage-note {
+  font-size: 0.75rem;
+  color: var(--a008-muted);
+}
+.a008-project-popover .a008-project-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.3rem;
+  width: 100%;
+  text-align: left;
+}
+.a008-project-popover form {
+  padding: 0.65rem 0.3rem 0.2rem;
+}
+.a008-project-popover label {
+  display: grid;
+  gap: 0.4rem;
+}
+.a008-project-popover input {
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid var(--a008-border);
+  border-radius: 0.5rem;
+  background: var(--a008-surface-1);
+  color: var(--a008-fg);
+  font: inherit;
+}
+.a008-project-popover form > div {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+.a008-project-popover form button {
+  padding: 0.5rem 0.8rem;
+}
+.a008-project-popover form button:last-child {
+  background: var(--a008-accent);
+  color: var(--a008-on-accent);
+}
+@media (hover: none) {
+  .a008-project-action {
+    opacity: 1;
+  }
+}
