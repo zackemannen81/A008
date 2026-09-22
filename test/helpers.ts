@@ -27,6 +27,7 @@ export function isolatedMemoryEnv(overrides: NodeJS.ProcessEnv = {}): {
       A008_MEMORY_SQLITE_PATH: sqlitePath,
       A008_SETTINGS_PATH: join(directory, "settings.json"),
       A008_DEBUG_TRACE: "off",
+      A008_CATALOG_PATH: join(directory, "catalog.json"),
       ...overrides,
     },
   };

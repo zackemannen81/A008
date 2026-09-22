@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { rmSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { executeProjectBootstrap } from "../src/bootstrap/service.js";
@@ -16,6 +16,25 @@ import {
   type GuiWebSocketConstructor,
 } from "../packages/client/src/index.js";
 
+test("isolated host fixtures default to a missing temporary catalog", () => {
+  const fixture = isolatedMemoryEnv();
+  const overridden = isolatedMemoryEnv({
+    A008_CATALOG_PATH: join(fixture.directory, "override-catalog.json"),
+  });
+  try {
+    const catalogPath = join(fixture.directory, "catalog.json");
+    assert.equal(fixture.env.A008_CATALOG_PATH, catalogPath);
+    assert.equal(existsSync(catalogPath), false);
+    assert.equal(
+      overridden.env.A008_CATALOG_PATH,
+      join(fixture.directory, "override-catalog.json"),
+    );
+  } finally {
+    rmSync(fixture.directory, { recursive: true, force: true });
+    rmSync(overridden.directory, { recursive: true, force: true });
+  }
+});
+
 test(
   "independent V2 SDK client authenticates, prompts and inspects a real host",
   { timeout: 30000 },
@@ -26,6 +45,8 @@ test(
     f.env.PATH = process.env.PATH;
     f.env.A008_DEVICES_PATH = join(f.directory, "devices.sqlite");
     f.env.A008_PROJECTS_PATH = join(f.directory, "projects.json");
+    assert.equal(f.env.A008_CATALOG_PATH, join(f.directory, "catalog.json"));
+    assert.equal(existsSync(String(f.env.A008_CATALOG_PATH)), false);
     const project = executeProjectBootstrap(
       parseProjectBootstrapConfig({
         projectName: "SDK fixture",
