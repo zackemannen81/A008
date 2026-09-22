@@ -20,6 +20,12 @@ import {
   DEFAULT_KIE_IMAGE_MODEL,
   kieChatCompletionsUrl,
 } from "../providers/kie/kie-models.js";
+import {
+  assertSupportedCompatibleRoute,
+  isCompatibleExecutionProvider,
+  normalizeProviderBaseUrl,
+  type CompatibleApiStyle,
+} from "../providers/compatible/provider-routes.js";
 
 export const CATALOG_PATH_ENV = "A008_CATALOG_PATH";
 export const DEFAULT_USER_IMAGE_MODEL = DEFAULT_IMAGE_MODEL;
@@ -179,11 +185,48 @@ export function parseUserCatalog(value: unknown): UserCatalog {
       const modalities = Array.isArray(item.inputModalities)
         ? item.inputModalities.filter(modality)
         : (["text"] as const);
+      const provider = item.provider.trim().toLowerCase() || "nvidia";
+      const executionProvider = catalogExecutionProvider(provider);
+      const route =
+        isCompatibleExecutionProvider(executionProvider)
+          ? (() => {
+              if (
+                typeof item.baseUrl !== "string" ||
+                !item.baseUrl.trim() ||
+                (item.apiStyle !== "openai-chat-completions" &&
+                  item.apiStyle !== "openai-responses")
+              ) {
+                throw new ChatError(
+                  "configuration",
+                  `User catalog model ${item.id.trim()} requires explicit baseUrl and apiStyle.`,
+                );
+              }
+              const apiStyle = item.apiStyle as CompatibleApiStyle;
+              assertSupportedCompatibleRoute({
+                provider: executionProvider,
+                baseUrl: item.baseUrl,
+                apiStyle,
+              });
+              return {
+                baseUrl: normalizeProviderBaseUrl(item.baseUrl),
+                apiStyle,
+              };
+            })()
+          : (() => {
+              if (item.baseUrl !== undefined || item.apiStyle !== undefined) {
+                throw new ChatError(
+                  "configuration",
+                  `User catalog model ${item.id.trim()} has route metadata on non-compatible provider ${provider}.`,
+                );
+              }
+              return {};
+            })();
       chatModels.push({
         id: item.id.trim(),
         name: item.name.trim() || item.id.trim(),
-        provider: item.provider.trim() || "nvidia",
+        provider,
         inputModalities: modalities.length > 0 ? modalities : ["text"],
+        ...route,
       });
     }
   }

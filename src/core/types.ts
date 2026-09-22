@@ -142,7 +142,14 @@ export interface ChatTransport {
 export type ModelModality = "text" | "image" | "video" | "audio";
 
 /** Who executes a prepared chat call. Distinct from vendor `provider`. */
-export type ExecutionProvider = "openai" | "nvidia" | "kie";
+export type ExecutionProvider =
+  | "openai"
+  | "nvidia"
+  | "kie"
+  | "openrouter"
+  | "groq"
+  | "google"
+  | "opencode";
 
 export interface ModelProfile {
   readonly id: string;

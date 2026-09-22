@@ -184,6 +184,27 @@ test("real host HTTP surface preserves auth, runtime validation, payloads and bi
         return Response.json({
           data: [{ id: "nvidia/synthetic", owned_by: "nvidia" }],
         });
+      if (url.includes("/data/a008-model-routes.json"))
+        return Response.json({
+          verifiedAt: "2026-09-21",
+          routes: [
+            {
+              key: "synthetic-zero-route",
+              provider: "nvidia",
+              modelId: "nvidia/synthetic-zero",
+              name: "Synthetic Zero",
+              baseUrl: "https://integrate.api.nvidia.com/v1",
+              apiStyle: "openai-chat-completions",
+              access: "free-endpoint",
+              lifecycle: "recurring",
+              inputModalities: ["text"],
+              capabilities: ["tools"],
+              dataPolicy: "review-before-sensitive-use",
+              verifiedAt: "2026-09-21",
+              sourceUrls: ["https://example.test/zero-cost-source"],
+            },
+          ],
+        });
       if (url === "https://example.test/image")
         return Response.json({
           artifacts: [{ base64: png.toString("base64") }],
@@ -272,6 +293,10 @@ test("real host HTTP surface preserves auth, runtime validation, payloads and bi
     );
     await request("GET", "/v1/catalog/kie");
     await request("GET", "/v1/catalog/zero-cost");
+    await request("POST", "/v1/catalog/zero-cost");
+    await request("POST", "/v1/catalog/zero-cost/models", {
+      key: "synthetic-zero-route",
+    });
     await request("GET", "/v1/mcp-servers");
     await request("POST", "/v1/mcp-servers", {
       servers: [

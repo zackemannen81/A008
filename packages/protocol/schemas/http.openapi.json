@@ -406,7 +406,7 @@
     },
     "/v1/catalog/zero-cost": {
       "get": {
-        "summary": "validated zero-cost model discovery",
+        "summary": "bundled validated zero-cost model discovery",
         "x-a008-owner": "zero-cost-catalog",
         "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
         "parameters": [],
@@ -417,6 +417,98 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/zeroCostCatalog"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "explicit published ZeroCostRadar update check",
+        "x-a008-owner": "zero-cost-catalog",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/zeroCostCatalog"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/catalog/zero-cost/models": {
+      "post": {
+        "summary": "revalidated ZeroCostRadar model registration",
+        "x-a008-owner": "provider-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/zeroCostCatalogAddInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/catalogAdded"
                 }
               }
             }
@@ -2766,6 +2858,18 @@
           "openAiApiKeyConfigured": {
             "type": "boolean"
           },
+          "openRouterApiKeyConfigured": {
+            "type": "boolean"
+          },
+          "groqApiKeyConfigured": {
+            "type": "boolean"
+          },
+          "geminiApiKeyConfigured": {
+            "type": "boolean"
+          },
+          "openCodeApiKeyConfigured": {
+            "type": "boolean"
+          },
           "imageModel": {
             "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
           },
@@ -2804,12 +2908,28 @@
           },
           "openAiKeySource": {
             "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          },
+          "openRouterKeySource": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          },
+          "groqKeySource": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          },
+          "geminiKeySource": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
+          },
+          "openCodeKeySource": {
+            "$ref": "#/components/schemas/providerSettings/$defs/__schema0"
           }
         },
         "required": [
           "nvidiaApiKeyConfigured",
           "kieApiKeyConfigured",
           "openAiApiKeyConfigured",
+          "openRouterApiKeyConfigured",
+          "groqApiKeyConfigured",
+          "geminiApiKeyConfigured",
+          "openCodeApiKeyConfigured",
           "imageModel",
           "imageEndpoint",
           "chatProvider",
@@ -2819,7 +2939,11 @@
           "kieImageModel",
           "keySource",
           "kieKeySource",
-          "openAiKeySource"
+          "openAiKeySource",
+          "openRouterKeySource",
+          "groqKeySource",
+          "geminiKeySource",
+          "openCodeKeySource"
         ],
         "$defs": {
           "__schema0": {
@@ -2838,6 +2962,18 @@
             "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
           },
           "openAiApiKey": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          },
+          "openRouterApiKey": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          },
+          "groqApiKey": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          },
+          "geminiApiKey": {
+            "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
+          },
+          "openCodeApiKey": {
             "$ref": "#/components/schemas/providerSettingsUpdate/$defs/__schema0"
           },
           "imageModel": {
@@ -2884,6 +3020,10 @@
           "nvidiaApiKey": {},
           "kieApiKey": {},
           "openAiApiKey": {},
+          "openRouterApiKey": {},
+          "groqApiKey": {},
+          "geminiApiKey": {},
+          "openCodeApiKey": {},
           "imageModel": {},
           "imageEndpoint": {},
           "chatProvider": {},
@@ -2906,6 +3046,19 @@
         },
         "required": [
           "id"
+        ]
+      },
+      "zeroCostCatalogAddInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "key"
         ]
       },
       "catalogAdded": {
@@ -2936,6 +3089,16 @@
                     "audio"
                   ]
                 }
+              },
+              "baseUrl": {
+                "$ref": "#/components/schemas/catalogAdded/$defs/__schema0"
+              },
+              "apiStyle": {
+                "type": "string",
+                "enum": [
+                  "openai-chat-completions",
+                  "openai-responses"
+                ]
               }
             },
             "required": [

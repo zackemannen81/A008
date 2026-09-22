@@ -62,7 +62,7 @@ local/external evidence (not A008 authority)
   |- C:\code\OpenHands         MIT Agent Canvas source clone
   |- owner Context-First doc   source input; A008 memory v0 now exists
   |- C:\code\acme             external source repo; not an adopted baseline
-  |                             (published acme-engine@0.1.5 is a bounded dependency)
+  |                             (published acme-engine@0.1.6 is a bounded dependency)
   `- bootstrap/protocol/add-on reference packages
 ```
 
@@ -109,12 +109,14 @@ CLI / A008-acp -> createLocalMemoryRuntime
                  v
           ChatTransport
             -> EmbeddedAcmeChatTransport (default)
-               -> acme-engine@0.1.5 createAcmeModelRuntime().execute()
+               -> acme-engine@0.1.6 createAcmeModelRuntime().execute()
                -> ACME provider adapter -> selected provider endpoint
             -> explicit direct dispatch (A008_CHAT_TRANSPORT=direct)
                |- NvidiaChatTransport
                |- KieChatTransport
-               `- OpenAiChatTransport
+               |- OpenAiChatTransport
+               `- OpenAiCompatibleChatTransport
+                  -> validated OpenRouter / Groq / Google / OpenCode route
             -> explicit remote AcmeChatTransport (A008_CHAT_TRANSPORT=acme)
                -> acme-model-runtime/2 GET /v1/model/compatibility
                -> POST /v1/model/execute SSE
@@ -122,7 +124,7 @@ CLI / A008-acp -> createLocalMemoryRuntime
 
 A008-0118 established the remote `acme-model-runtime/2` contract and Stage
 3.5 GO. A008-0127 moves the normal execution path in-process: the default
-`EmbeddedAcmeChatTransport` consumes registry-published `acme-engine@0.1.5`,
+`EmbeddedAcmeChatTransport` consumes registry-published `acme-engine@0.1.6`,
 derives runtime profiles from A008's registry/catalog and credentials, and calls
 `createAcmeModelRuntime().execute()` without a sidecar process, URL, token or
 sidecar profile environment. `A008_CHAT_TRANSPORT=direct` retains direct
@@ -137,7 +139,9 @@ NVIDIA retains its existing Chat Completions route and KIE retains its compatibl
 with `requiredCapabilities.vision=true`; committed conversation history remains
 text-only.
 
-A008-0136 adds no provider execution path. `GET /v1/catalog/zero-cost` is a typed, read-only host projection of the A008-0134 `ZERO_COST_MODEL_ROUTES` snapshot. The Parameters → Zero Cost GUI renders access, lifecycle, capabilities, quota/expiry, data-policy and source provenance, and marks entries with an existing `a008ProfileId` separately from catalog-only discovery. The route performs no upstream fetch, registration, credential mutation, model selection or fallback. A radar row is therefore evidence for discovery only, not runtime support.
+A008-0136 established the typed bundled Zero Cost Radar projection; A008-0151 keeps that offline baseline and adds an explicit live update boundary. `GET /v1/catalog/zero-cost` returns the repository-owned A008-0134 `ZERO_COST_MODEL_ROUTES` snapshot without network access. `POST /v1/catalog/zero-cost` is the explicit live check: the host fetches ZeroCostRadar's published `data/a008-model-routes.json`, validates it with the shared `zeroCostCatalogSchema`, requires route verification dates to match the catalog verification date, and returns the result only for that request. The remote feed itself is not persisted as runtime truth and discovery metadata never grants execution authority.
+
+A008-0152 adds a separate authenticated host mutation, `POST /v1/catalog/zero-cost/models`, that accepts only a Radar route key. The host re-fetches and validates the published feed, resolves that exact key, validates the provider/base-URL/API-style tuple against A008-owned execution policy, and only then persists the model. Compatible user-model rows retain provider, normalized base URL and API style across restart. OpenRouter, Groq, Google Gemini OpenAI compatibility and OpenCode Zen Chat-Completions routes are executable through explicit provider credentials in both direct/reference dispatch and embedded ACME `compatible[]` profiles. Unknown providers, missing credentials, mismatched endpoints and unsupported API styles fail before provider network execution; `openai-responses` Radar rows remain blocked. Parameters → Provider owns write-only compatible-provider credentials and exposes only configured/source state. Parameters → Zero Cost derives Add availability from the same supported route policy. Import never changes the active/default model/provider and never introduces provider/model/paid fallback.
 
 A008-0148 makes the existing stdio-only MCP catalog configurable in Parameters → MCP. The host persists one operator-managed catalog in the existing user catalog, validates name/command/argument/environment structure before it reaches execution, and exposes it through authenticated V1 host routes. Renderer code only reads/writes that configuration; it never spawns MCP processes. The bundled V1 bridge and V2 session service each read the same enabled definitions only while constructing a new `EngineHost` session; `EngineHost` passes them to the existing `ModelToolSession`, which remains the sole MCP process/catalog/tool execution owner. Existing sessions retain their already constructed catalog, and the Settings UI explicitly requires a new session after changes. stdio remains the only supported transport; approval, cancellation, timeouts and tool/catalog budgets remain inside `ModelToolSession`. This flow does not restore or migrate sessions and does not alter A008-0147 lifecycle ownership.
 
@@ -179,9 +183,11 @@ chat uses the session model while retrieval-scope classification, post-output
 extraction, relation classification and source-knowledge extraction use the
 persisted Runtime Preferences semantic model. A008 derives each ACME selection
 and provider hint from that chosen built-in/user-catalog profile, while ACME owns
-only execution. `NVIDIA_API_KEY`, `KIE_API_KEY`, and `OPENAI_API_KEY` authorize
-the corresponding routes but credential presence never selects the semantic
-model.
+only execution. `NVIDIA_API_KEY`, `KIE_API_KEY`, `OPENAI_API_KEY`,
+`OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY` and
+`OPENCODE_API_KEY` authorize their corresponding explicit routes; credential
+presence never selects the semantic model or substitutes one provider for
+another.
 `A008_CHAT_TRANSPORT=direct` selects the prior direct dispatch path;
 `A008_CHAT_TRANSPORT=acme` selects the remote sidecar path and requires its
 runtime URL. The Luna function-tools restriction is specific to the direct
@@ -345,13 +351,14 @@ TypeScript client participate. `session/control` and `session/control/ok`
 carry the session operations and snapshots specified in HOST_PROTOCOL.md.
 
 Credentials stay in the host process. `NVIDIA_API_KEY`, `KIE_API_KEY`,
-`OPENAI_API_KEY`, optional secrets-file copies under `~/.a008/secrets.json`,
-the optional NVIDIA endpoint
-override, and memory settings are read from process environment or that file.
-The renderer never reads a key. Outbound text is redacted so neither a
-credential value, the literal tokens `NVIDIA_API_KEY`, `KIE_API_KEY` and
-`OPENAI_API_KEY`, nor the string `authorization` reaches the renderer; the trade is that an answer
-legitimately discussing those names is shown redacted. The host may call
+`OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`
+and `OPENCODE_API_KEY` may come from process environment or write-only copies
+under `~/.a008/secrets.json`; the optional NVIDIA endpoint override and memory
+settings retain their existing owners. The renderer never reads a key. Provider
+settings expose only configured/source metadata. Outbound text is redacted so
+credential values and authorization material do not reach the renderer; the
+trade is that an answer legitimately discussing configured secret values is
+shown redacted. The host may call
 NVIDIA catalog/image endpoints and kie.ai job endpoints; chat completions still
 run through the shared local runtime.
 
@@ -1049,7 +1056,7 @@ guarantees.
 `createLocalMemoryRuntime` is the live local composition root. By default it
 constructs `EmbeddedAcmeChatTransport` and passes A008-owned registry/catalog
 metadata, credentials, endpoints and execution controls into
-`acme-engine@0.1.5`; no separately started ACME process or
+`acme-engine@0.1.6`; no separately started ACME process or
 `A008_ACME_MODEL_RUNTIME_URL`/token/build configuration is needed. The embedded
 runtime is rebuilt for subsequent calls when the user catalog fingerprint
 changes. Explicit `A008_CHAT_TRANSPORT=direct` uses the existing direct provider

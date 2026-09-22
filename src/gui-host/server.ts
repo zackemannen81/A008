@@ -85,9 +85,13 @@ import {
 } from "../core/user-catalog.js";
 import {
   defaultSecretsPath,
+  resolveGeminiApiKey,
+  resolveGroqApiKey,
   resolveKieApiKey,
   resolveNvidiaApiKey,
   resolveOpenAiApiKey,
+  resolveOpenCodeApiKey,
+  resolveOpenRouterApiKey,
 } from "../core/provider-secrets.js";
 import {
   findRepositoryRoot,
@@ -98,6 +102,7 @@ import {
   ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
   ZERO_COST_MODEL_ROUTES,
 } from "../providers/zero-cost-model-catalog.js";
+import { fetchLatestZeroCostCatalog } from "./zero-cost-radar.js";
 import {
   bindingFor,
   handleDirectoryList,
@@ -127,6 +132,7 @@ import {
   handleNvidiaCatalogGet,
   handleNvidiaCatalogRemove,
   handleProviderSettingsPost,
+  handleZeroCostCatalogAdd,
   mergedModels,
   providerSettingsView,
   type FetchLike,
@@ -261,6 +267,10 @@ export async function startGuiHost(
     resolveNvidiaApiKey(env, secretsPath),
     resolveKieApiKey(env, secretsPath),
     resolveOpenAiApiKey(env, secretsPath),
+    resolveOpenRouterApiKey(env, secretsPath),
+    resolveGroqApiKey(env, secretsPath),
+    resolveGeminiApiKey(env, secretsPath),
+    resolveOpenCodeApiKey(env, secretsPath),
     pin,
   ].filter(
     (value): value is string => typeof value === "string" && value.length > 0,
@@ -288,6 +298,18 @@ export async function startGuiHost(
       : {}),
     ...(resolveOpenAiApiKey(env, secretsPath)
       ? { OPENAI_API_KEY: resolveOpenAiApiKey(env, secretsPath) }
+      : {}),
+    ...(resolveOpenRouterApiKey(env, secretsPath)
+      ? { OPENROUTER_API_KEY: resolveOpenRouterApiKey(env, secretsPath) }
+      : {}),
+    ...(resolveGroqApiKey(env, secretsPath)
+      ? { GROQ_API_KEY: resolveGroqApiKey(env, secretsPath) }
+      : {}),
+    ...(resolveGeminiApiKey(env, secretsPath)
+      ? { GEMINI_API_KEY: resolveGeminiApiKey(env, secretsPath) }
+      : {}),
+    ...(resolveOpenCodeApiKey(env, secretsPath)
+      ? { OPENCODE_API_KEY: resolveOpenCodeApiKey(env, secretsPath) }
       : {}),
   });
   const acpEnv = (): NodeJS.ProcessEnv => ({
@@ -849,6 +871,43 @@ async function handleHttp(input: {
         verifiedAt: ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
         routes: ZERO_COST_MODEL_ROUTES,
       });
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/catalog/zero-cost") {
+      sendJson(
+        response,
+        200,
+        await fetchLatestZeroCostCatalog(input.fetchImpl),
+      );
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/catalog/zero-cost/models") {
+      if (!isJsonContentType(request)) {
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
+        return;
+      }
+      const body = await readJsonBody(request);
+      if (!isRecord(body) || typeof body.key !== "string" || !body.key.trim()) {
+        throw new ChatError(
+          "configuration",
+          "ZeroCostRadar route key is required.",
+        );
+      }
+      const key = body.key.trim();
+      const catalog = await fetchLatestZeroCostCatalog(input.fetchImpl);
+      const route = catalog.routes.find((entry) => entry.key === key);
+      if (route === undefined) {
+        throw new ChatError(
+          "configuration",
+          `ZeroCostRadar route ${key} is not in the current validated feed.`,
+        );
+      }
+      const added = handleZeroCostCatalogAdd(input.catalogPath, route);
+      sendJson(response, 200, { added });
       return;
     }
     if (method === "GET" && pathname === "/v1/catalog/nvidia") {

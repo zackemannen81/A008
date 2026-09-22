@@ -25,6 +25,7 @@ export {
 } from "./http.js";
 export {
   addNvidiaModel,
+  addZeroCostModel,
   browserHttpClient,
   checkFrame,
   createHttpClient,
@@ -44,6 +45,7 @@ export {
   loadProviderSettings,
   loadRuntimeCapabilities,
   loadZeroCostCatalog,
+  refreshZeroCostCatalog,
   openProject,
   previewProject,
   registerExistingProject,

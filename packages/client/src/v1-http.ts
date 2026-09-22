@@ -104,6 +104,9 @@ export function createHttpClient(options: HttpClientOptions) {
     checkFrame: (url: string) => checkFrame(options, url),
     loadZeroCostCatalog: (signal?: AbortSignal) =>
       loadZeroCostCatalog(options, signal),
+    refreshZeroCostCatalog: (signal?: AbortSignal) =>
+      refreshZeroCostCatalog(options, signal),
+    addZeroCostModel: (key: string) => addZeroCostModel(options, key),
     loadRuntimeCapabilities: (signal?: AbortSignal) =>
       loadRuntimeCapabilities(options, signal),
   };
@@ -386,11 +389,12 @@ export async function addNvidiaModel(
   client: HttpClientOptions,
   id: string,
   provider = "nvidia",
+  name?: string,
 ): Promise<void> {
   const { response, body } = await requestJson(client, "/v1/catalog/nvidia", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ id, provider }),
+    body: JSON.stringify({ id, provider, ...(name ? { name } : {}) }),
   });
   if (!response.ok)
     throw new Error(messageFromBody(body, "Could not add that model."));
@@ -538,6 +542,47 @@ export async function loadZeroCostCatalog(
   if (!parsed.success)
     throw new Error("Zero Cost Radar metadata is incompatible with this GUI.");
   return parsed.data;
+}
+
+export async function refreshZeroCostCatalog(
+  client: HttpClientOptions,
+  signal?: AbortSignal,
+): Promise<ZeroCostCatalog> {
+  const { response, body } = await requestJson(
+    client,
+    "/v1/catalog/zero-cost",
+    { method: "POST", ...withSignal(signal) },
+  );
+  if (!response.ok)
+    throw new Error(
+      messageFromBody(body, `Zero Cost Radar update check failed (${String(response.status)}).`),
+    );
+  const parsed = zeroCostCatalogSchema.safeParse(body);
+  if (!parsed.success)
+    throw new Error("Zero Cost Radar metadata is incompatible with this GUI.");
+  return parsed.data;
+}
+
+export async function addZeroCostModel(
+  client: HttpClientOptions,
+  key: string,
+): Promise<void> {
+  const normalized = key.trim();
+  if (!normalized) throw new Error("Zero Cost Radar route key is required.");
+  const { response, body } = await requestJson(
+    client,
+    "/v1/catalog/zero-cost/models",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key: normalized }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      messageFromBody(body, "Could not add that Zero Cost Radar model."),
+    );
+  }
 }
 
 export async function loadRuntimeCapabilities(

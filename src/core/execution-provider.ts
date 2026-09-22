@@ -6,11 +6,24 @@ import { isKieChatModelId } from "../providers/kie/kie-models.js";
 export type { ExecutionProvider } from "./types.js";
 
 export function isExecutionProvider(value: string): value is ExecutionProvider {
-  return value === "openai" || value === "nvidia" || value === "kie";
+  return (
+    value === "openai" ||
+    value === "nvidia" ||
+    value === "kie" ||
+    value === "openrouter" ||
+    value === "groq" ||
+    value === "google" ||
+    value === "opencode"
+  );
 }
 
 export function catalogExecutionProvider(provider: string): ExecutionProvider {
-  return provider === "openai" || provider === "kie" ? provider : "nvidia";
+  const normalized = provider.trim().toLowerCase();
+  if (isExecutionProvider(normalized)) return normalized;
+  throw new ChatError(
+    "configuration",
+    `Unsupported catalog execution provider: ${provider}.`,
+  );
 }
 
 export function acmeProviderHint(
