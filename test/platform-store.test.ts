@@ -467,3 +467,44 @@ test("state survives independent reopen, future schemas fail, and closed stores 
   );
   inspect.close();
 });
+
+test("lookupRunReceipt reads the canonical receipt and does not admit a run", async (t) => {
+  const f = await fixture();
+  t.after(f.dispose);
+  const conversation = f.store.createConversation(SCOPE, { title: "receipt" });
+  const input = {
+    conversationId: conversation.id,
+    commandId: "command-lookup",
+    expectedRevision: 0,
+    model: "model-a",
+    text: "same payload",
+  };
+  assert.equal(f.store.lookupRunReceipt(SCOPE, input), undefined);
+  const accepted = f.store.acceptRun(SCOPE, input);
+  assert.deepEqual(f.store.lookupRunReceipt(SCOPE, input), {
+    run: accepted.run,
+    replayed: true,
+  });
+  assert.equal(f.store.listRuns(SCOPE).length, 1);
+  assert.equal(f.store.getConversation(SCOPE, conversation.id).revision, 1);
+  assert.throws(
+    () =>
+      f.store.lookupRunReceipt(SCOPE, {
+        ...input,
+        text: "different payload",
+      }),
+    expectCode("COMMAND_CONFLICT"),
+  );
+  assert.equal(
+    f.store.lookupRunReceipt(
+      { ...SCOPE, principalId: "principal-b" },
+      input,
+    ),
+    undefined,
+  );
+  assert.equal(f.store.listRuns(SCOPE).length, 1);
+  assert.equal(
+    f.store.getConversation(SCOPE, conversation.id).messages[0]?.content,
+    "same payload",
+  );
+});

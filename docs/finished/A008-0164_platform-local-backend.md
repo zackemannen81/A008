@@ -157,3 +157,17 @@ and attach PR. Never merge. Provide exact base/head/PR, commands/pass counts,
 fixture/local/live classification, remaining limitations, config/defaults and
 the operator's exact global documentation deltas. User authorizes these Git
 actions within this task; operator performs acceptance and integration.
+
+## Verification
+
+Status: Complete. Fixture/local only. 0 live product-provider calls. 0 SEK.
+
+- `npm run typecheck` passed.
+- `npm run build` passed.
+- `node --test --test-force-exit dist/test/platform-store.test.js` — 6 passed, 0 failed, including read-only `lookupRunReceipt`.
+- `node --test --test-force-exit dist/test/platform-host.test.js` — 10 passed, 0 failed. The real child-process kill/restart left the dispatched `WAIT-TURN` prompt at exactly 1 loopback chat request and marked that run `needs_reconciliation`; the queued safe prompt produced exactly 1 chat request only after restart.
+- `npm run test:core` — 755 passed, 0 failed.
+- `npm run test:membership` — 4 passed, 0 failed.
+- `npm run test:gui` — 192 passed, 0 failed after `npm ci` in `gui` (the first full `npm test` reported 35 GUI failures solely because `gui/node_modules` and `esbuild` were absent).
+- `git diff --check` passed.
+- An earlier isolated `v2-auth` WebSocket run timed out while the user catalog contained one MCP server. The same tests passed inside `test:core` (755/755). A separate empty-catalog host check authenticated, opened a V2 session and received one fixture answer. A008-0166 still owns catalog isolation.

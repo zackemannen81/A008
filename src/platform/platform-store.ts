@@ -197,49 +197,50 @@ export class PlatformStore {
     return this.#conversation(scope, conversationId);
   }
 
+  /**
+   * Read-only command receipt check. It uses the same canonical digest as
+   * `acceptRun` and never inserts a conversation, message, run, or event.
+   */
+  lookupRunReceipt(
+    scope: PlatformScope,
+    input: AcceptPlatformRun,
+  ): AcceptedPlatformRun | undefined {
+    this.#requireOpen();
+    this.#validateScope(scope);
+    const canonical = this.#canonicalRunCreate(input);
+    return this.#matchingReceipt(
+      scope,
+      canonical.commandId,
+      canonical.payloadDigest,
+    );
+  }
+
   acceptRun(
     scope: PlatformScope,
     input: AcceptPlatformRun,
   ): AcceptedPlatformRun {
     this.#requireOpen();
     this.#validateScope(scope);
-    const conversationId = parseRuntimeId(input.conversationId, "conversation");
-    const commandId = this.#bounded(input.commandId, "commandId", 1, 256);
-    const model = this.#bounded(input.model, "model", 1, 256);
-    const text = this.#bounded(input.text, "text", 1, 65536);
-    this.#safeInteger(input.expectedRevision, "expectedRevision");
-    const payloadDigest = digest({
-      conversationId,
-      expectedRevision: input.expectedRevision,
-      model,
-      text,
-    });
+    const canonical = this.#canonicalRunCreate(input);
+    const conversationId = canonical.conversationId;
+    const commandId = canonical.commandId;
+    const model = canonical.model;
+    const text = canonical.text;
+    const payloadDigest = canonical.payloadDigest;
     const runId = this.#opaqueId(input.runId, "runId", "run");
     const messageId = this.#opaqueId(input.messageId, "messageId", "message");
     const now = this.#now();
     let accepted: AcceptedPlatformRun | undefined;
 
     this.#immediate(() => {
-      const receipt = this.#database
-        .prepare(
-          `SELECT payload_digest, run_id FROM A008_platform_command_receipts
-           WHERE tenant_id = ? AND principal_id = ? AND command_id = ?`,
-        )
-        .get(scope.tenantId, scope.principalId, commandId) as
-        ReceiptRow | undefined;
-      if (receipt !== undefined) {
-        if (receipt.payload_digest !== payloadDigest) {
-          throw new PlatformStoreError(
-            "COMMAND_CONFLICT",
-            "commandId was already accepted with a different run.create payload.",
-          );
-        }
-        accepted = { run: this.#run(scope, receipt.run_id), replayed: true };
+      const replay = this.#matchingReceipt(scope, commandId, payloadDigest);
+      if (replay !== undefined) {
+        accepted = replay;
         return;
       }
 
       const conversation = this.#conversationRow(scope, conversationId);
-      if (conversation.revision !== input.expectedRevision) {
+      if (conversation.revision !== canonical.expectedRevision) {
         throw new PlatformStoreError(
           "REVISION_CONFLICT",
           "Conversation revision does not match.",
@@ -919,6 +920,57 @@ export class PlatformStore {
         "Run revision does not match.",
       );
     }
+  }
+
+  #canonicalRunCreate(input: AcceptPlatformRun): {
+    readonly conversationId: string;
+    readonly commandId: string;
+    readonly expectedRevision: number;
+    readonly model: string;
+    readonly text: string;
+    readonly payloadDigest: string;
+  } {
+    const conversationId = parseRuntimeId(input.conversationId, "conversation");
+    const commandId = this.#bounded(input.commandId, "commandId", 1, 256);
+    const model = this.#bounded(input.model, "model", 1, 256);
+    const text = this.#bounded(input.text, "text", 1, 65536);
+    this.#safeInteger(input.expectedRevision, "expectedRevision");
+    return {
+      conversationId,
+      commandId,
+      expectedRevision: input.expectedRevision,
+      model,
+      text,
+      payloadDigest: digest({
+        conversationId,
+        expectedRevision: input.expectedRevision,
+        model,
+        text,
+      }),
+    };
+  }
+
+  #matchingReceipt(
+    scope: PlatformScope,
+    commandId: string,
+    payloadDigest: string,
+  ): AcceptedPlatformRun | undefined {
+    const receipt = this.#database
+      .prepare(
+        `SELECT payload_digest, run_id FROM A008_platform_command_receipts
+         WHERE tenant_id = ? AND principal_id = ? AND command_id = ?`,
+      )
+      .get(scope.tenantId, scope.principalId, commandId) as
+      | ReceiptRow
+      | undefined;
+    if (receipt === undefined) return undefined;
+    if (receipt.payload_digest !== payloadDigest) {
+      throw new PlatformStoreError(
+        "COMMAND_CONFLICT",
+        "commandId was already accepted with a different run.create payload.",
+      );
+    }
+    return { run: this.#run(scope, receipt.run_id), replayed: true };
   }
 
   #validateScope(scope: PlatformScope): void {
