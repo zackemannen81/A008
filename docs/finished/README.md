@@ -2,7 +2,7 @@
 
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 
-Latest archive: [A008-0154_mcp-health-and-session-lifecycle.md](A008-0154_mcp-health-and-session-lifecycle.md) — Complete; ephemeral MCP health probe and runtime-owned session scope.
+Latest archive: [A008-0159_live-verification-budgets.md](A008-0159_live-verification-budgets.md) — Complete; delegated model-aware live-verification budgets and platform v1.2.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

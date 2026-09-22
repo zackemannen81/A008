@@ -1,5 +1,15 @@
 # Memory map visual check
 
+## Project sidebar check (A008-0155)
+
+After root and GUI builds, run `node gui/test/project-sidebar-preview.mjs` and
+open `http://127.0.0.1:5195`. It serves the actual production GUI and host with
+disposable synthetic projects/chats. Provider execution points at an unavailable
+loopback address; no personal project registry, credentials or databases are used.
+Check opening each saved chat, New chat and returning to prior content, pin/name
+changes, folder collapse, Escape/focus return, all three Appearance themes and
+390×844 navigation. Stop with Ctrl+C to close the host and remove fixture data.
+
 Run `node gui/test/memory-map-preview.mjs` from the repository root, then open
 `http://127.0.0.1:5194/__memory-map-check` and select **Relationship map**.
 The real MemoryPage, graph, inspector and client parser use synthetic records.

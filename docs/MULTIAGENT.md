@@ -48,7 +48,15 @@ The operator owns:
 - the canonical A008 working tree;
 - cross-task decisions and shared contracts;
 - merge order, combined verification, release, and external effects;
-- credentials, paid-provider authority, shared ports, and test environments.
+- credential/provider approval, verification-budget allocation, shared ports,
+  and test environments.
+
+Workers may choose and run in-scope live verification within their allocation
+under [Live verification budget](TASK_WORKFLOW.md#live-verification-budget),
+without per-call owner approval. Child allocations come from one parent budget;
+cloning, retrying, resuming or replacing a worker does not replenish it. Until
+atomic shared reservations exist, the operator assigns non-overlapping cost and
+call allowances or serializes dispatch. Unknown usage stays reserved on handoff.
 
 ## Wave preflight
 

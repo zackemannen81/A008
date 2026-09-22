@@ -1,5 +1,7 @@
 # Decision Records
 
+- [0047 — Project sidebar and saved chats](0047-project-sidebar-and-saved-chats.md) — Accepted; themed project navigation and multiple saved workspace chats.
+
 Discoverability: index. Every member is listed below.
 Member state: required. Every member declares a `Status:` line.
 

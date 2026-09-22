@@ -157,6 +157,7 @@ export const registeredProjectSchema = z.object({
   name: text,
   rootFolder: text,
   createdAt: text,
+  pinned: z.boolean().optional(),
   repository: z.object({ initialize: z.boolean(), name: text }),
   continuity: z.object({ docsFirst: z.boolean(), multiAgent }),
   memory: z.object({ useGlobalA008Memory: z.boolean() }),
@@ -167,6 +168,38 @@ export const projectsResponseSchema = z.object({
   projects: z.array(registeredProjectSchema).readonly(),
 });
 export type ProjectsResponse = z.infer<typeof projectsResponseSchema>;
+export const projectSidebarSchema = z.object({
+  currentId: text.nullable(),
+  projects: z.array(
+    registeredProjectSchema.extend({
+      conversations: z.array(
+        z.object({
+          conversationId: text,
+          title: text,
+          updatedAt: text,
+          current: z.boolean(),
+        }),
+      ),
+    }),
+  ),
+});
+export type ProjectSidebar = z.infer<typeof projectSidebarSchema>;
+export const projectUpdateSchema = z
+  .object({
+    projectId: nonempty,
+    name: z.string().trim().min(1).max(120).optional(),
+    pinned: z.boolean().optional(),
+  })
+  .strict();
+export type ProjectUpdate = z.infer<typeof projectUpdateSchema>;
+export const projectChatActionSchema = z
+  .object({
+    projectId: nonempty,
+    action: z.enum(["new", "open"]),
+    conversationId: nonempty.optional(),
+  })
+  .strict();
+export type ProjectChatAction = z.infer<typeof projectChatActionSchema>;
 export const projectCreatedSchema = z.object({
   plan: projectPlanSchema,
   project: registeredProjectSchema,
@@ -452,6 +485,9 @@ export const v1HttpSchemas = {
   projectPlan: projectPlanSchema,
   registeredProject: registeredProjectSchema,
   projects: projectsResponseSchema,
+  projectSidebar: projectSidebarSchema,
+  projectUpdate: projectUpdateSchema,
+  projectChatAction: projectChatActionSchema,
   projectCreated: projectCreatedSchema,
   projectOpen: projectOpenSchema,
   workspaceBinding: workspaceBindingSchema,

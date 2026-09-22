@@ -55,6 +55,9 @@ qualified; `server.ts` owns dispatch and response envelopes.
 | POST `/v1/images` | Host provider job, output into host source store | `provider-routes.ts`, provider transport |
 | GET `/v1/blobs/{sha256}/{name}` | Host source store bytes | `source-store.ts`, `server.ts` |
 | GET `/v1/projects` | Host project registry | `project-routes.ts` |
+| GET `/v1/projects/sidebar` | Registered project metadata and project-scoped saved chat summaries | `server.ts`, `conversation-state-store.ts` |
+| POST `/v1/projects/update` | Project display name/pin only | `project-routes.ts` |
+| POST `/v1/projects/chat` | New/open project chat, settle old workspace session and select canonical conversation | `server.ts`, `local-memory-runtime.ts` |
 | GET `/v1/projects/browse` | List absolute host filesystem `path` | `project-routes.ts` |
 | POST `/v1/projects/preview` | Preview project creation | `project-routes.ts` |
 | POST `/v1/projects/bootstrap` | Create/register project, then global workspace switch | `project-routes.ts`, `server.ts` |

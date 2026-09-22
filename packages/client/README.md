@@ -31,6 +31,12 @@ and in-session image generation keep working. Independent consumers use the
 V2 adapter. The SDK never auto-resubmits a mutation after `COMMAND_UNKNOWN`
 or `SESSION_EXPIRED`.
 
+`createHttpClient` also exposes `listSidebarProjects`, `updateProject` (display
+name/pin) and `changeProjectChat` (`new` or `open` with a conversation ID). These
+use the authenticated V1 standalone workspace routes. After changing the selected
+chat, reconnect the GUI session to hydrate that chat; these calls never submit a
+model prompt or replay execution.
+
 ```sh
 npm run build:protocol
 npm run build:client
