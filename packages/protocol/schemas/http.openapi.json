@@ -404,6 +404,100 @@
         ]
       }
     },
+    "/v1/mcp-servers/health": {
+      "get": {
+        "summary": "ephemeral MCP probe state and session catalog drift",
+        "x-a008-owner": "mcp-health",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mcpServerHealth"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/mcp-servers/probe": {
+      "post": {
+        "summary": "ephemeral stdio MCP handshake and catalog check",
+        "x-a008-owner": "mcp-health",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/mcpServerProbeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mcpServerHealth"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
     "/v1/catalog/zero-cost": {
       "get": {
         "summary": "bundled validated zero-cost model discovery",
@@ -2843,6 +2937,91 @@
         },
         "required": [
           "servers"
+        ]
+      },
+      "mcpServerHealth": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "restartRequired": {
+            "type": "boolean"
+          },
+          "servers": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "$ref": "#/components/schemas/mcpServerHealth/$defs/__schema0"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ready",
+                    "failed",
+                    "restart_required",
+                    "untested"
+                  ]
+                },
+                "stage": {
+                  "type": "string",
+                  "enum": [
+                    "process",
+                    "handshake",
+                    "catalog",
+                    "close"
+                  ]
+                },
+                "toolCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "testedAt": {
+                  "$ref": "#/components/schemas/mcpServerHealth/$defs/__schema1"
+                },
+                "lines": {
+                  "readOnly": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/mcpServerHealth/$defs/__schema0"
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "status",
+                "lines"
+              ]
+            }
+          }
+        },
+        "required": [
+          "restartRequired",
+          "servers"
+        ],
+        "$defs": {
+          "__schema0": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/mcpServerHealth/$defs/__schema1"
+          },
+          "__schema1": {
+            "type": "string"
+          }
+        }
+      },
+      "mcpServerProbeInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "name"
         ]
       },
       "providerSettings": {

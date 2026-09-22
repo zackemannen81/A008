@@ -19,6 +19,15 @@ import {
   killProcessTree,
 } from "./terminal.js";
 import { repositoryTools, RepositoryToolError } from "./repository-tools.js";
+import {
+  bindRuntimeMcpArguments,
+  createMcpExecutionId,
+  mcpChildEnvironment,
+  mcpServerScope,
+  presentMcpSchema,
+  readMcpTools,
+  type McpArgumentBinding,
+} from "./mcp-runtime.js";
 
 export interface ToolActivity {
   readonly id: string;
@@ -35,6 +44,10 @@ export interface ToolApproval {
 interface RegisteredTool {
   definition: ChatToolDefinition;
   validate: JsonSchemaValidator<Record<string, unknown>>;
+  validateParameters: Record<string, unknown>;
+  bind?: (
+    args: Record<string, unknown>,
+  ) => McpArgumentBinding;
   run(
     args: Record<string, unknown>,
     signal: AbortSignal,
@@ -141,6 +154,7 @@ export class ModelToolSession {
   readonly #cwd: string;
   readonly #env: NodeJS.ProcessEnv;
   readonly #servers: readonly McpServer[];
+  readonly #executionId: string;
   readonly #tools = new Map<string, RegisteredTool>();
   readonly #clients: { client: Client; transport: StdioClientTransport }[] = [];
   #ready = false;
@@ -150,11 +164,13 @@ export class ModelToolSession {
     cwd: string;
     env: NodeJS.ProcessEnv;
     mcpServers?: readonly McpServer[];
+    executionId?: string;
     generateImage?: (prompt: string, signal: AbortSignal) => Promise<void>;
   }) {
     this.#cwd = options.cwd;
     this.#env = options.env;
     this.#servers = options.mcpServers ?? [];
+    this.#executionId = options.executionId ?? createMcpExecutionId();
     if (this.#servers.some((server) => "type" in server))
       throw new Error("A008 supports approved stdio MCP servers only.");
     this.#register(
@@ -215,11 +231,27 @@ export class ModelToolSession {
     }
   }
 
-  #register(definition: ChatToolDefinition, run: RegisteredTool["run"]) {
+  #register(
+    definition: ChatToolDefinition,
+    run: RegisteredTool["run"],
+    options?: {
+      validateParameters?: Record<string, unknown>;
+      bind?: RegisteredTool["bind"];
+    },
+  ) {
+    const validateParameters =
+      options?.validateParameters ??
+      (definition.parameters as Record<string, unknown>);
     const validate = new AjvJsonSchemaValidator().getValidator<
       Record<string, unknown>
-    >(definition.parameters as JsonSchemaType);
-    this.#tools.set(definition.name, { definition, validate, run });
+    >(validateParameters as JsonSchemaType);
+    this.#tools.set(definition.name, {
+      definition,
+      validate,
+      validateParameters,
+      ...(options?.bind ? { bind: options.bind } : {}),
+      run,
+    });
   }
 
   async prepare(
@@ -239,16 +271,17 @@ export class ModelToolSession {
             args: string[];
             env: { name: string; value: string }[];
           };
+          const scope = mcpServerScope(this.#executionId, stdio.name);
           const transport = new StdioClientTransport({
             command: stdio.command,
             args: stdio.args,
             cwd: this.#cwd,
-            env: {
-              ...toolEnvironment(this.#env),
-              ...Object.fromEntries(
-                stdio.env.map((item) => [item.name, item.value]),
-              ),
-            },
+            env: mcpChildEnvironment(
+              toolEnvironment(this.#env),
+              stdio.env,
+              this.#executionId,
+              scope,
+            ),
             stderr: "ignore",
             maxBufferSize: budgets.chatInputBytes + budgets.toolOutputBytes,
           });
@@ -258,43 +291,39 @@ export class ModelToolSession {
             signal,
             timeout: budgets.toolTimeoutMs,
           });
-          let cursor: string | undefined;
-          const cursors = new Set<string>();
-          do {
-            const result = await client.listTools(cursor ? { cursor } : {}, {
-              signal,
-              timeout: budgets.toolTimeoutMs,
-            });
-            for (const tool of result.tools) {
-              if (this.#tools.size >= budgets.maximumToolDefinitions)
-                throw new Error("MCP catalog exceeds Available tools budget.");
-              const name = `mcp_${index}_${createHash("sha256").update(tool.name).digest("hex").slice(0, 16)}`;
-              if (this.#tools.has(name))
-                throw new Error("MCP server returned duplicate tools.");
-              this.#register(
-                {
-                  name,
-                  description: `${stdio.name}: ${tool.name}. ${tool.description ?? ""}`,
-                  parameters: tool.inputSchema,
-                },
-                async (args, callSignal, limits) => {
-                  const result = await client.callTool(
-                    { name: tool.name, arguments: args },
-                    undefined,
-                    { signal: callSignal, timeout: limits.toolTimeoutMs },
-                  );
-                  return {
-                    failed: result.isError === true,
-                    text: JSON.stringify(result),
-                  };
-                },
-              );
-            }
-            cursor = result.nextCursor;
-            if (cursor && cursors.has(cursor))
-              throw new Error("MCP server repeated its catalog cursor.");
-            if (cursor) cursors.add(cursor);
-          } while (cursor);
+          const listed = await readMcpTools(client, {
+            signal,
+            timeout: budgets.toolTimeoutMs,
+            maximum: budgets.maximumToolDefinitions - this.#tools.size,
+          });
+          for (const tool of listed) {
+            const name = `mcp_${index}_${createHash("sha256").update(tool.name).digest("hex").slice(0, 16)}`;
+            if (this.#tools.has(name))
+              throw new Error("MCP server returned duplicate tools.");
+            const original = tool.inputSchema;
+            this.#register(
+              {
+                name,
+                description: `${stdio.name}: ${tool.name}. ${tool.description ?? ""}`,
+                parameters: presentMcpSchema(original),
+              },
+              async (args, callSignal, limits) => {
+                const result = await client.callTool(
+                  { name: tool.name, arguments: args },
+                  undefined,
+                  { signal: callSignal, timeout: limits.toolTimeoutMs },
+                );
+                return {
+                  failed: result.isError === true,
+                  text: JSON.stringify(result),
+                };
+              },
+              {
+                validateParameters: original,
+                bind: (args) => bindRuntimeMcpArguments(original, args, scope),
+              },
+            );
+          }
         }
         this.#ready = true;
       } catch (error) {
@@ -323,34 +352,52 @@ export class ModelToolSession {
     signal.throwIfAborted();
     const tool = this.#tools.get(call.name);
     if (!tool) throw new Error("Unknown tool.");
+    let args: Record<string, unknown>;
+    let invalidText = "Arguments do not match the offered tool schema. Nothing executed.";
+    try {
+      const normalized = normalizeOptionalNullArguments(
+        tool.validateParameters,
+        JSON.parse(call.arguments),
+      );
+      if (
+        !normalized ||
+        typeof normalized !== "object" ||
+        Array.isArray(normalized)
+      )
+        throw new Error("invalid");
+      const record = normalized as Record<string, unknown>;
+      const bound = tool.bind
+        ? tool.bind(record)
+        : { ok: true as const, arguments: record };
+      if (!bound.ok) {
+        invalidText = bound.text;
+        throw new Error(bound.text);
+      }
+      const parsed = tool.validate(bound.arguments);
+      if (!parsed.valid) throw new Error(parsed.errorMessage);
+      args = parsed.data;
+    } catch {
+      const activity: ToolActivity = {
+        id: call.id,
+        name: call.name,
+        cwd: this.#cwd,
+        input: call.arguments,
+        status: "failed",
+        output: invalidText,
+      };
+      await approval.update(activity);
+      return JSON.stringify({
+        status: "invalid_arguments",
+        text: invalidText,
+      });
+    }
     const activity: ToolActivity = {
       id: call.id,
       name: call.name,
       cwd: this.#cwd,
-      input: call.arguments,
+      input: JSON.stringify(args),
       status: "pending",
     };
-    let args: Record<string, unknown>;
-    try {
-      const parsed = tool.validate(
-        normalizeOptionalNullArguments(
-          tool.definition.parameters,
-          JSON.parse(call.arguments),
-        ),
-      );
-      if (!parsed.valid) throw new Error(parsed.errorMessage);
-      args = parsed.data;
-    } catch {
-      await approval.update({
-        ...activity,
-        status: "failed",
-        output: "Invalid tool arguments; nothing executed.",
-      });
-      return JSON.stringify({
-        status: "invalid_arguments",
-        text: "Arguments do not match the offered tool schema. Nothing executed.",
-      });
-    }
     await approval.update(activity);
     // Approval failure, cancellation or unsupported clients all fail closed.
     const allowed = await approval.approve(activity, signal);

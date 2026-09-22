@@ -310,6 +310,9 @@ test("real host HTTP surface preserves auth, runtime validation, payloads and bi
       ],
     });
     await request("POST", "/v1/mcp-servers", { servers: [{ name: "bad" }] }, 400);
+    await request("GET", "/v1/mcp-servers/health");
+    await request("POST", "/v1/mcp-servers/probe", { name: "synthetic-mcp" });
+    await request("POST", "/v1/mcp-servers/probe", { name: "missing" }, 400);
     await request("GET", "/v1/catalog/nvidia");
     await request("POST", "/v1/catalog/nvidia", {
       id: "synthetic/model",

@@ -14,6 +14,7 @@ import {
   type GuiModel,
   type KieCatalog,
   type McpServerCatalog,
+  type McpServerHealth,
   type MemorySnapshot,
   type NvidiaCatalog,
   type ProjectBootstrapConfig,
@@ -100,6 +101,8 @@ export function createHttpClient(options: HttpClientOptions) {
     loadMcpServers: (signal?: AbortSignal) => loadMcpServers(options, signal),
     saveMcpServers: (servers: McpServerCatalog["servers"]) =>
       saveMcpServers(options, servers),
+    loadMcpHealth: (signal?: AbortSignal) => loadMcpHealth(options, signal),
+    probeMcpServer: (name: string) => probeMcpServer(options, name),
     generateImage: (prompt: string) => generateImage(options, prompt),
     checkFrame: (url: string) => checkFrame(options, url),
     loadZeroCostCatalog: (signal?: AbortSignal) =>
@@ -466,6 +469,38 @@ export async function loadMcpServers(
       messageFromBody(body, "Could not load MCP servers."),
     );
   return body as McpServerCatalog;
+}
+
+export async function loadMcpHealth(
+  client: HttpClientOptions,
+  signal?: AbortSignal,
+): Promise<McpServerHealth> {
+  const { response, body } = await requestJson(
+    client,
+    "/v1/mcp-servers/health",
+    withSignal(signal),
+  );
+  if (!response.ok)
+    throw new Error(messageFromBody(body, "Could not load MCP health."));
+  return body as McpServerHealth;
+}
+
+export async function probeMcpServer(
+  client: HttpClientOptions,
+  name: string,
+): Promise<McpServerHealth> {
+  const { response, body } = await requestJson(
+    client,
+    "/v1/mcp-servers/probe",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name }),
+    },
+  );
+  if (!response.ok)
+    throw new Error(messageFromBody(body, "Could not test the MCP server."));
+  return body as McpServerHealth;
 }
 
 export async function saveMcpServers(

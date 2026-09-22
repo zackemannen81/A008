@@ -104,6 +104,12 @@ import {
 } from "../providers/zero-cost-model-catalog.js";
 import { fetchLatestZeroCostCatalog } from "./zero-cost-radar.js";
 import {
+  McpProbeMemory,
+  McpRuntimeLedger,
+  mcpHealthView,
+  probeSavedMcpServer,
+} from "./mcp-health.js";
+import {
   bindingFor,
   handleDirectoryList,
   handleExistingProjectRegister,
@@ -323,13 +329,17 @@ export async function startGuiHost(
   const v2ServerInstanceId = options.accessToken
     ? undefined
     : `server_${randomUUID()}`;
+  const mcpSessions = new McpRuntimeLedger();
+  const mcpProbes = new McpProbeMemory();
   const v2Sessions = options.accessToken
     ? undefined
     : new V2SessionService({
         env: runtimeBaseEnv(),
         projectsPath,
+        catalogPath,
         registry: projectRegistry,
         serverInstanceId: v2ServerInstanceId!,
+        mcpSessions,
         ...(options.stderr ? { stderr: options.stderr } : {}),
       });
   const v2Auth = options.accessToken
@@ -361,6 +371,7 @@ export async function startGuiHost(
               env: acpEnv(),
               cwd: workspace.cwd,
               mcpServers: () => configuredMcpServers(catalogPath),
+              mcpSessions,
             }),
         )
         .then((created) => {
@@ -589,6 +600,8 @@ export async function startGuiHost(
       getBridge,
       fetchImpl,
       catalogPath,
+      mcpSessions,
+      mcpProbes,
       secretsPath,
       projectsPath,
       applyWorkspace,
@@ -748,6 +761,8 @@ async function handleHttp(input: {
   readonly getBridge: () => Promise<AcpBridge>;
   readonly fetchImpl: FetchLike;
   readonly catalogPath: string;
+  readonly mcpSessions: McpRuntimeLedger;
+  readonly mcpProbes: McpProbeMemory;
   readonly secretsPath: string;
   readonly projectsPath: string;
   readonly applyWorkspace: (next: {
@@ -859,6 +874,44 @@ async function handleHttp(input: {
         response,
         200,
         handleMcpServersPost(input.catalogPath, await readJsonBody(request)),
+      );
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/mcp-servers/health") {
+      sendJson(
+        response,
+        200,
+        mcpHealthView({
+          catalogPath: input.catalogPath,
+          ledger: input.mcpSessions,
+          probes: input.mcpProbes,
+        }),
+      );
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/mcp-servers/probe") {
+      if (!isJsonContentType(request)) {
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
+        return;
+      }
+      const body = await readJsonBody(request);
+      if (!isRecord(body) || typeof body.name !== "string" || !body.name.trim())
+        throw new ChatError("configuration", "MCP server name is required.");
+      sendJson(
+        response,
+        200,
+        await probeSavedMcpServer({
+          catalogPath: input.catalogPath,
+          name: body.name,
+          cwd: input.cwd,
+          env: input.env,
+          ledger: input.mcpSessions,
+          probes: input.mcpProbes,
+        }),
       );
       return;
     }

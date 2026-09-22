@@ -309,6 +309,33 @@ export const mcpServerCatalogSchema = z.object({
 });
 export type McpServerCatalog = z.infer<typeof mcpServerCatalogSchema>;
 export const mcpServerCatalogInputSchema = z.object({ servers: z.unknown() });
+export const mcpServerHealthStatusSchema = z.enum([
+  "ready",
+  "failed",
+  "restart_required",
+  "untested",
+]);
+export const mcpProbeStageSchema = z.enum([
+  "process",
+  "handshake",
+  "catalog",
+  "close",
+]);
+export const mcpServerHealthEntrySchema = z.object({
+  name: nonempty,
+  status: mcpServerHealthStatusSchema,
+  stage: mcpProbeStageSchema.optional(),
+  toolCount: count.optional(),
+  testedAt: text.optional(),
+  lines: z.array(nonempty).readonly(),
+});
+export type McpServerHealthEntry = z.infer<typeof mcpServerHealthEntrySchema>;
+export const mcpServerHealthSchema = z.object({
+  restartRequired: z.boolean(),
+  servers: z.array(mcpServerHealthEntrySchema).readonly(),
+});
+export type McpServerHealth = z.infer<typeof mcpServerHealthSchema>;
+export const mcpServerProbeInputSchema = z.object({ name: nonempty });
 export const providerSettingsSchema = z.object({
   nvidiaApiKeyConfigured: z.boolean(),
   kieApiKeyConfigured: z.boolean(),
@@ -434,6 +461,8 @@ export const v1HttpSchemas = {
   zeroCostCatalog: zeroCostCatalogSchema,
   mcpServerCatalog: mcpServerCatalogSchema,
   mcpServerCatalogInput: mcpServerCatalogInputSchema,
+  mcpServerHealth: mcpServerHealthSchema,
+  mcpServerProbeInput: mcpServerProbeInputSchema,
   providerSettings: providerSettingsSchema,
   providerSettingsUpdate: providerSettingsUpdateSchema,
   providerSettingsInput: providerSettingsInputSchema,

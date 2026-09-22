@@ -344,6 +344,44 @@
   color: var(--a008-good);
   font-size: 0.8rem;
 }
+.a008-mcp ul {
+  list-style: none;
+  margin: 0.8rem 0;
+  padding: 0;
+}
+.a008-mcp li {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--a008-border);
+}
+.a008-mcp-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: baseline;
+}
+.a008-mcp-status {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.a008-mcp-status-ready { color: var(--a008-success); }
+.a008-mcp-status-failed { color: var(--a008-danger); }
+.a008-mcp-status-restart_required { color: var(--a008-warning); }
+.a008-mcp-status-untested { color: var(--a008-muted); }
+.a008-mcp code { font-size: 0.75rem; }
+.a008-mcp-lines {
+  display: grid;
+  color: var(--a008-muted);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+.a008-mcp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
 .a008-parameter-group .a008-budget-note {
   color: var(--a008-accent);
 }
