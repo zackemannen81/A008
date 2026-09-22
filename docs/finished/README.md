@@ -2,7 +2,7 @@
 
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 
-Latest archive: [A008-0149_stage5-client-sdk-web-migration.md](A008-0149_stage5-client-sdk-web-migration.md) — Complete; independent `@a008/client` and bundled GUI SDK consumption.
+Latest archive: [A008-0154_mcp-health-and-session-lifecycle.md](A008-0154_mcp-health-and-session-lifecycle.md) — Complete; ephemeral MCP health probe and runtime-owned session scope.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

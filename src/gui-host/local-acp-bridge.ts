@@ -7,6 +7,7 @@ import { EngineHost } from "../engine/engine-host.js";
 import type { McpServer } from "@agentclientprotocol/sdk";
 import { ProjectRuntimeRegistry } from "../engine/project-runtime-registry.js";
 import type { AcpBridge, AcpPromptHandlers } from "./acp-bridge.js";
+import type { McpRuntimeLedger } from "./mcp-health.js";
 
 /** V1 adapter with a fixed project binding and bridge-owned sessions only. */
 export function createLocalAcpBridge(options: {
@@ -14,6 +15,7 @@ export function createLocalAcpBridge(options: {
   env: NodeJS.ProcessEnv;
   cwd: string;
   mcpServers?: () => readonly McpServer[];
+  mcpSessions?: McpRuntimeLedger;
 }): AcpBridge {
   const project = options.registry.openConfigured(options.cwd, options.env);
   const host = new EngineHost({
@@ -80,8 +82,9 @@ export function createLocalAcpBridge(options: {
   return {
     async newSession(model) {
       if (closed) throw new Error("Project bridge is closed.");
+      const mcpServers = [...(options.mcpServers?.() ?? [])];
       const created = await host.newSession(
-        { cwd: project.cwd, mcpServers: [...(options.mcpServers?.() ?? [])] },
+        { cwd: project.cwd, mcpServers },
         {
           notify,
           requestPermission: (params) => {
@@ -106,12 +109,14 @@ export function createLocalAcpBridge(options: {
           ...(model === undefined ? {} : { initialModel: model }),
         },
       );
+      options.mcpSessions?.note(created.sessionId, mcpServers);
       try {
         if (closed)
           throw new Error("Project bridge closed during session creation.");
         sessions.add(created.sessionId);
         return { sessionId: created.sessionId };
       } catch (error) {
+        options.mcpSessions?.release(created.sessionId);
         await host.closeSession(created.sessionId);
         throw error;
       }
@@ -185,6 +190,7 @@ export function createLocalAcpBridge(options: {
     async closeSession(id) {
       requireSession(id);
       deny(id);
+      options.mcpSessions?.release(id);
       await host.closeSession(id);
       sessions.delete(id);
     },
@@ -199,7 +205,10 @@ export function createLocalAcpBridge(options: {
     async close() {
       if (closed) return;
       closed = true;
-      for (const id of sessions) deny(id);
+      for (const id of sessions) {
+        deny(id);
+        options.mcpSessions?.release(id);
+      }
       await host.close();
       sessions.clear();
       handlers.clear();

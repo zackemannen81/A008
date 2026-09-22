@@ -20,6 +20,18 @@ export const v1HttpRoutes = [
   ],
   [
     "GET",
+    "/v1/mcp-servers/health",
+    "ephemeral MCP probe state and session catalog drift",
+    "mcp-health",
+  ],
+  [
+    "POST",
+    "/v1/mcp-servers/probe",
+    "ephemeral stdio MCP handshake and catalog check",
+    "mcp-health",
+  ],
+  [
+    "GET",
     "/v1/catalog/zero-cost",
     "bundled validated zero-cost model discovery",
     "zero-cost-catalog",

@@ -37,6 +37,11 @@ const payloads: Readonly<Record<string, Payloads>> = {
     body: "mcpServerCatalogInput",
     response: "mcpServerCatalog",
   },
+  "GET /v1/mcp-servers/health": { response: "mcpServerHealth" },
+  "POST /v1/mcp-servers/probe": {
+    body: "mcpServerProbeInput",
+    response: "mcpServerHealth",
+  },
   "GET /v1/catalog/zero-cost": { response: "zeroCostCatalog" },
   "POST /v1/catalog/zero-cost": { response: "zeroCostCatalog" },
   "POST /v1/catalog/zero-cost/models": {
