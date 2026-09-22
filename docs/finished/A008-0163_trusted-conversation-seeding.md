@@ -78,4 +78,18 @@ the internal ownership/dataflow; no external provider behavior claim.
 
 ## Progress / verification
 
-Ready; update progress and results without redefining goal/scope/gates.
+Completed on `codex/a008-0163-conversation-seeding` from base
+`5f417b15cd490321a200fc12861565455af2457c`.
+
+- Added the trusted internal `conversationSeed` composition path through
+  `EngineHost`, `A008AcpAgent`, `createAcpRuntime`, and
+  `LocalMemoryRuntime.openSession`.
+- Runtime validation parses the canonical conversation ID, permits only
+  committed user/assistant messages, validates canonical chat content, and
+  copies the accepted history before session construction.
+- Seed/workspace conflicts reject before workspace-store activity. Seeded
+  sessions neither read nor write the legacy workspace conversation store.
+- Local implementation verification: `npm run typecheck`; `npm run build:client`;
+  `npm run build`; `node --test dist/test/local-memory-runtime.test.js
+  dist/test/acp-agent.test.js dist/test/engine-host.test.js` — 39 passing,
+  0 failed. No live-product-provider call was made.

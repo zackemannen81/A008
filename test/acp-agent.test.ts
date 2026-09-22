@@ -53,6 +53,62 @@ test("ACP agent advertises stable v1 and the verified model", () => {
   );
 });
 
+test("ACP carries a trusted internal conversation seed as a copied creation option", async () => {
+  const seed = {
+    conversationId: "A008_v1_conversation_00000000-0000-4000-8000-000000000163",
+    messages: [
+      { role: "user" as const, content: "Seeded question." },
+      { role: "assistant" as const, content: "Seeded answer." },
+    ],
+  };
+  let captured: unknown;
+  const agent = new A008AcpAgent({
+    createSession(_model, options) {
+      captured = options;
+      return new ChatSession({
+        model: "nvidia/nemotron-3.5-lightning-30b-a3b",
+        transport: {
+          async complete() {
+            return { message: { role: "assistant", content: "New answer." } };
+          },
+        },
+        ...(options?.conversationSeed === undefined
+          ? {}
+          : { initialMessages: options.conversationSeed.messages }),
+      });
+    },
+    createSessionId: () => SESSION_ID,
+  });
+
+  agent.newSession(NEW_SESSION, { conversationSeed: seed });
+  seed.messages[0]!.content = "Caller mutation.";
+  await agent.prompt(
+    {
+      sessionId: SESSION_ID,
+      prompt: [{ type: "text", text: "New question." }],
+    },
+    async () => undefined,
+  );
+
+  assert.deepEqual(captured, {
+    conversationSeed: {
+      conversationId: seed.conversationId,
+      messages: [
+        { role: "user", content: "Seeded question." },
+        { role: "assistant", content: "Seeded answer." },
+      ],
+    },
+  });
+  assert.throws(
+    () =>
+      agent.newSession(NEW_SESSION, {
+        workspaceConversation: true,
+        conversationSeed: seed,
+      }),
+    (error: unknown) => error instanceof RequestError && error.code === -32602,
+  );
+});
+
 test("ACP prompt streams thought and answer through one ChatSession", async () => {
   let request: ChatRequest | undefined;
   const transport: ChatTransport = {

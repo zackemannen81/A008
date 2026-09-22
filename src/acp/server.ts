@@ -56,6 +56,9 @@ export function createAcpRuntime(options: {
         ...(sessionOptions?.workspaceConversation === undefined
           ? {}
           : { workspaceConversation: sessionOptions.workspaceConversation }),
+        ...(sessionOptions?.conversationSeed === undefined
+          ? {}
+          : { conversationSeed: sessionOptions.conversationSeed }),
       }),
     resolveImageAttachment: (locator) =>
       runtime.resolveImageAttachment(locator),

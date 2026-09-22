@@ -12,7 +12,10 @@ import {
 } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { ChatSession, type SendMessageOptions } from "../core/chat-session.js";
-import type { GeneratedImageTerminalUpdate } from "../core/chat-content.js";
+import {
+  cloneChatMessage,
+  type GeneratedImageTerminalUpdate,
+} from "../core/chat-content.js";
 import {
   Utf8ByteChatMessageMeasurer,
   type ChatInvocationBudget,
@@ -40,6 +43,7 @@ import {
 import type {
   ChatCompletion,
   ChatImageAttachment,
+  ChatMessage,
   ChatTransport,
 } from "../core/types.js";
 import { IdentityError } from "../identity/errors.js";
@@ -128,6 +132,7 @@ import {
 } from "./nvidia-session.js";
 import { createConfiguredChatTransport } from "./chat-dispatch.js";
 import { defaultCatalogPath } from "../core/user-catalog.js";
+import { chatContentSchema } from "../../packages/protocol/src/index.js";
 
 export const LOCAL_MEMORY_SCOPES = ["local"] as const;
 export const LIVE_PROJECTION_REINFORCEMENT = 0;
@@ -224,11 +229,59 @@ export interface LocalMemoryRuntimeOptions {
   readonly readSourceBytes?: (path: string) => Uint8Array;
 }
 
+export interface ConversationSeed {
+  readonly conversationId: string;
+  readonly messages: readonly ChatMessage[];
+}
+
 export interface LocalMemorySessionOptions {
   readonly model?: string;
   readonly systemMessage?: string;
   /** Internal standalone-workspace policy; generic sessions omit this. */
   readonly workspaceConversation?: "restore" | "fresh";
+  /**
+   * Trusted backend composition only. This is deliberately absent from ACP
+   * request payloads: platform-owned committed history enters through the
+   * existing runtime, never through an untrusted client request.
+   */
+  readonly conversationSeed?: ConversationSeed;
+}
+
+export function validateConversationSeed(
+  seed: ConversationSeed,
+): {
+  readonly conversationId: ConversationId;
+  readonly messages: ChatMessage[];
+} {
+  const conversationId = parseRuntimeId(seed.conversationId, "conversation");
+  if (!Array.isArray(seed.messages)) {
+    throw new ChatError(
+      "configuration",
+      "Conversation seed messages must be an array.",
+    );
+  }
+  const messages = seed.messages.map((candidate, index): ChatMessage => {
+    if (
+      typeof candidate !== "object" ||
+      candidate === null ||
+      (candidate.role !== "user" && candidate.role !== "assistant")
+    ) {
+      throw new ChatError(
+        "configuration",
+        `Conversation seed message ${index} must be a committed user or assistant message.`,
+      );
+    }
+    const parsed = chatContentSchema.safeParse(candidate.content);
+    if (!parsed.success) {
+      throw new ChatError(
+        "configuration",
+        `Conversation seed message ${index} has invalid content.`,
+        { cause: parsed.error },
+      );
+    }
+    return cloneChatMessage({ role: candidate.role, content: parsed.data });
+  });
+  return { conversationId, messages };
 }
 
 export interface LocalMemoryTurnResult {
@@ -1081,6 +1134,19 @@ export class LocalMemoryRuntime {
     if (this.#closed) {
       throw new ChatError("configuration", "Local memory runtime is closed.");
     }
+    if (
+      options.conversationSeed !== undefined &&
+      options.workspaceConversation !== undefined
+    ) {
+      throw new ChatError(
+        "configuration",
+        "Conversation seeds cannot be combined with workspace conversations.",
+      );
+    }
+    const seed =
+      options.conversationSeed === undefined
+        ? undefined
+        : validateConversationSeed(options.conversationSeed);
     const restored =
       options.workspaceConversation === "restore"
         ? this.#conversationStore.load()
@@ -1089,14 +1155,20 @@ export class LocalMemoryRuntime {
       restored?.model ?? options.model ?? DEFAULT_MODEL_ID,
     );
     const conversationId =
-      restored?.conversationId ?? this.#identityFactory.create("conversation");
+      restored?.conversationId ??
+      seed?.conversationId ??
+      this.#identityFactory.create("conversation");
     const chatSession = new ChatSession({
       model: profile.id,
       transport: this.#transport,
       ...(options.systemMessage === undefined
         ? {}
         : { systemMessage: options.systemMessage }),
-      ...(restored === undefined ? {} : { initialMessages: restored.messages }),
+      ...(restored !== undefined
+        ? { initialMessages: restored.messages }
+        : seed === undefined
+          ? {}
+          : { initialMessages: seed.messages }),
       // Profile defaults first, operator overrides on top. The profile means
       // "checked against the model card" and is not edited to tune a run.
       generation: { ...profile.defaults, ...this.#chatGeneration },
