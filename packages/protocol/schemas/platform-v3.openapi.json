@@ -1,0 +1,2211 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "A008 Platform V3 contract",
+    "version": "3.0.0"
+  },
+  "paths": {
+    "/v3/info": {
+      "get": {
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Public protocol metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-info"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/projects/{projectId}/conversations": {
+      "get": {
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounded conversation snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-conversation-list-response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/platform-v3-conversation-create-request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created conversation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-conversation-response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/conversations/{conversationId}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conversation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-conversation-response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/conversations/{conversationId}/runs": {
+      "post": {
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/platform-v3-run-create-request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Accepted or replayed run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-run-create-response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/runs/{runId}": {
+      "get": {
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-run-response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/runs/{runId}/cancel": {
+      "post": {
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/platform-v3-run-cancel-request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Revision-controlled run",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-run-response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v3/events": {
+      "get": {
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 100
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scoped body-free change notifications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-events-response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "platform-v3-info": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "protocolVersion": {
+            "type": "string",
+            "const": "a008.platform.v3"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "protocolVersion",
+          "available",
+          "capabilities"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-conversation": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "tenantId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "messages": {
+            "maxItems": 10000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "role": {
+                  "type": "string",
+                  "enum": [
+                    "user",
+                    "assistant"
+                  ]
+                },
+                "content": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "readOnly": true,
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "text"
+                              },
+                              "text": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "text"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "const": "generated_image"
+                              },
+                              "generationId": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "prompt": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "pending",
+                                  "completed",
+                                  "failed",
+                                  "cancelled"
+                                ]
+                              },
+                              "locator": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "mediaType": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "filename": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "error": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "generationId",
+                              "prompt",
+                              "status"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "createdAt": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "runId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                }
+              },
+              "required": [
+                "id",
+                "role",
+                "content",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "title",
+          "createdAt",
+          "updatedAt",
+          "revision",
+          "messages"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-run": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "tenantId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "conversationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "principalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "commandId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "cancel_requested",
+              "needs_reconciliation",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "leaseGeneration": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "effectStatus": {
+            "type": "string",
+            "enum": [
+              "none",
+              "unknown",
+              "known"
+            ]
+          },
+          "answerStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "completed",
+              "failed",
+              "unknown"
+            ]
+          },
+          "memoryStatus": {
+            "type": "string",
+            "enum": [
+              "not_requested",
+              "pending",
+              "completed",
+              "failed",
+              "unknown"
+            ]
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "UNAUTHENTICATED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "INVALID_REQUEST",
+                  "REVISION_CONFLICT",
+                  "CONVERSATION_BUSY",
+                  "COMMAND_CONFLICT",
+                  "CAPACITY_EXCEEDED",
+                  "LEASE_LOST",
+                  "NEEDS_RECONCILIATION",
+                  "INTERNAL_ERROR"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "tenantId",
+          "projectId",
+          "conversationId",
+          "principalId",
+          "commandId",
+          "model",
+          "status",
+          "revision",
+          "createdAt",
+          "updatedAt",
+          "leaseGeneration",
+          "effectStatus",
+          "answerStatus",
+          "memoryStatus"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-command-receipt": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "tenantId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "principalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "operation": {
+            "type": "string",
+            "const": "run.create"
+          },
+          "payloadDigest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "runId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "commandId",
+          "tenantId",
+          "principalId",
+          "operation",
+          "payloadDigest",
+          "runId",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-event": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "cursor": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "tenantId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "conversationId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "runId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "conversation.created",
+              "run.queued",
+              "run.updated",
+              "conversation.updated"
+            ]
+          },
+          "resourceRevision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "cursor",
+          "tenantId",
+          "projectId",
+          "conversationId",
+          "type",
+          "resourceRevision",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-error": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "UNAUTHENTICATED",
+              "FORBIDDEN",
+              "NOT_FOUND",
+              "INVALID_REQUEST",
+              "REVISION_CONFLICT",
+              "CONVERSATION_BUSY",
+              "COMMAND_CONFLICT",
+              "CAPACITY_EXCEEDED",
+              "LEASE_LOST",
+              "NEEDS_RECONCILIATION",
+              "INTERNAL_ERROR"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-error-response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "UNAUTHENTICATED",
+                  "FORBIDDEN",
+                  "NOT_FOUND",
+                  "INVALID_REQUEST",
+                  "REVISION_CONFLICT",
+                  "CONVERSATION_BUSY",
+                  "COMMAND_CONFLICT",
+                  "CAPACITY_EXCEEDED",
+                  "LEASE_LOST",
+                  "NEEDS_RECONCILIATION",
+                  "INTERNAL_ERROR"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-conversation-list-response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "conversations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "tenantId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "createdAt": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "updatedAt": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "revision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "messages": {
+                  "maxItems": 10000,
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "user",
+                          "assistant"
+                        ]
+                      },
+                      "content": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "readOnly": true,
+                            "minItems": 1,
+                            "type": "array",
+                            "items": {
+                              "oneOf": [
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "const": "text"
+                                    },
+                                    "text": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "text"
+                                  ]
+                                },
+                                {
+                                  "type": "object",
+                                  "properties": {
+                                    "type": {
+                                      "type": "string",
+                                      "const": "generated_image"
+                                    },
+                                    "generationId": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "prompt": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "status": {
+                                      "type": "string",
+                                      "enum": [
+                                        "pending",
+                                        "completed",
+                                        "failed",
+                                        "cancelled"
+                                      ]
+                                    },
+                                    "locator": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "mediaType": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "filename": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "error": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "type",
+                                    "generationId",
+                                    "prompt",
+                                    "status"
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      },
+                      "createdAt": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "runId": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 256
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "role",
+                      "content",
+                      "createdAt"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "tenantId",
+                "projectId",
+                "title",
+                "createdAt",
+                "updatedAt",
+                "revision",
+                "messages"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "conversations"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-conversation-create-request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-conversation-response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "conversation": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "tenantId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "projectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "createdAt": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "updatedAt": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "messages": {
+                "maxItems": 10000,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "user",
+                        "assistant"
+                      ]
+                    },
+                    "content": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "readOnly": true,
+                          "minItems": 1,
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "text"
+                                  },
+                                  "text": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "text"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "generated_image"
+                                  },
+                                  "generationId": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "prompt": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "enum": [
+                                      "pending",
+                                      "completed",
+                                      "failed",
+                                      "cancelled"
+                                    ]
+                                  },
+                                  "locator": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "mediaType": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "filename": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "error": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "generationId",
+                                  "prompt",
+                                  "status"
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    "createdAt": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "runId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "role",
+                    "content",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "id",
+              "tenantId",
+              "projectId",
+              "title",
+              "createdAt",
+              "updatedAt",
+              "revision",
+              "messages"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "conversation"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-run-create-request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 65536
+          }
+        },
+        "required": [
+          "commandId",
+          "expectedRevision",
+          "model",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-run-create-response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "tenantId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "projectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "conversationId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "principalId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "commandId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "queued",
+                  "running",
+                  "cancel_requested",
+                  "needs_reconciliation",
+                  "succeeded",
+                  "failed",
+                  "cancelled"
+                ]
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "createdAt": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "updatedAt": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "leaseGeneration": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "effectStatus": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "unknown",
+                  "known"
+                ]
+              },
+              "answerStatus": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "completed",
+                  "failed",
+                  "unknown"
+                ]
+              },
+              "memoryStatus": {
+                "type": "string",
+                "enum": [
+                  "not_requested",
+                  "pending",
+                  "completed",
+                  "failed",
+                  "unknown"
+                ]
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "UNAUTHENTICATED",
+                      "FORBIDDEN",
+                      "NOT_FOUND",
+                      "INVALID_REQUEST",
+                      "REVISION_CONFLICT",
+                      "CONVERSATION_BUSY",
+                      "COMMAND_CONFLICT",
+                      "CAPACITY_EXCEEDED",
+                      "LEASE_LOST",
+                      "NEEDS_RECONCILIATION",
+                      "INTERNAL_ERROR"
+                    ]
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "tenantId",
+              "projectId",
+              "conversationId",
+              "principalId",
+              "commandId",
+              "model",
+              "status",
+              "revision",
+              "createdAt",
+              "updatedAt",
+              "leaseGeneration",
+              "effectStatus",
+              "answerStatus",
+              "memoryStatus"
+            ],
+            "additionalProperties": false
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "run",
+          "replayed"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-run-response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "tenantId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "projectId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "conversationId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "principalId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "commandId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "model": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "queued",
+                  "running",
+                  "cancel_requested",
+                  "needs_reconciliation",
+                  "succeeded",
+                  "failed",
+                  "cancelled"
+                ]
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "createdAt": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "updatedAt": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "leaseGeneration": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "effectStatus": {
+                "type": "string",
+                "enum": [
+                  "none",
+                  "unknown",
+                  "known"
+                ]
+              },
+              "answerStatus": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "completed",
+                  "failed",
+                  "unknown"
+                ]
+              },
+              "memoryStatus": {
+                "type": "string",
+                "enum": [
+                  "not_requested",
+                  "pending",
+                  "completed",
+                  "failed",
+                  "unknown"
+                ]
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": [
+                      "UNAUTHENTICATED",
+                      "FORBIDDEN",
+                      "NOT_FOUND",
+                      "INVALID_REQUEST",
+                      "REVISION_CONFLICT",
+                      "CONVERSATION_BUSY",
+                      "COMMAND_CONFLICT",
+                      "CAPACITY_EXCEEDED",
+                      "LEASE_LOST",
+                      "NEEDS_RECONCILIATION",
+                      "INTERNAL_ERROR"
+                    ]
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "tenantId",
+              "projectId",
+              "conversationId",
+              "principalId",
+              "commandId",
+              "model",
+              "status",
+              "revision",
+              "createdAt",
+              "updatedAt",
+              "leaseGeneration",
+              "effectStatus",
+              "answerStatus",
+              "memoryStatus"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "run"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-run-cancel-request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-events-query": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "after": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "limit": {
+            "default": 100,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "projectId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false
+      },
+      "platform-v3-events-response": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "events": {
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "cursor": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "tenantId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "projectId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "conversationId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "runId": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "conversation.created",
+                    "run.queued",
+                    "run.updated",
+                    "conversation.updated"
+                  ]
+                },
+                "resourceRevision": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "createdAt": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "cursor",
+                "tenantId",
+                "projectId",
+                "conversationId",
+                "type",
+                "resourceRevision",
+                "createdAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "nextCursor": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "events",
+          "nextCursor",
+          "hasMore"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}
