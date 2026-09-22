@@ -33,7 +33,10 @@ function existingDraft(): ExistingProjectRegistration {
   };
 }
 
-export function ProjectsPage(props: { readonly onOpened: () => void }) {
+export function ProjectsPage(props: {
+  readonly onOpened: () => void;
+  readonly active?: boolean;
+}) {
   const [mode, setMode] = useState<"new" | "existing">("new");
   const [draft, setDraft] = useState(draftConfig);
   const [existing, setExisting] = useState(existingDraft);
@@ -46,7 +49,7 @@ export function ProjectsPage(props: { readonly onOpened: () => void }) {
     void listProjects()
       .then((result) => setRecent(result.projects))
       .catch(() => undefined);
-  }, [plan]);
+  }, [plan, props.active]);
   const update = (next: ProjectBootstrapConfig) => {
     setDraft(next);
     setPlan(undefined);

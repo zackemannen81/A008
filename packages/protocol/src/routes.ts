@@ -73,6 +73,24 @@ export const v1HttpRoutes = [
   ["GET", "/v1/projects", "host project registry", "project-routes"],
   [
     "GET",
+    "/v1/projects/sidebar",
+    "host project registry and conversation summaries",
+    "project-routes",
+  ],
+  [
+    "POST",
+    "/v1/projects/update",
+    "host project display metadata",
+    "project-routes",
+  ],
+  [
+    "POST",
+    "/v1/projects/chat",
+    "host workspace conversation selection",
+    "project-routes",
+  ],
+  [
+    "GET",
     "/v1/projects/browse",
     "host absolute filesystem path",
     "project-routes",

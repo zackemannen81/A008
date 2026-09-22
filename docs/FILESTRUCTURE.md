@@ -36,6 +36,13 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+A008-0155 adds `gui/src/projects/project-sidebar.tsx` and `project-sidebar.css`
+for the theme-aware project/chat tree and details dialog. Existing project routes,
+SDK/protocol owners and `src/runtime/conversation-state-store.ts` own metadata,
+summary projection, saved chats and selection. The synthetic real-host/production
+GUI preview is `gui/test/project-sidebar-preview.mjs`; regression tests extend
+the existing project GUI, HTTP contract and local runtime suites.
+
 `docs/A008_SYSTEM_ARCHITECTURE.md` owns the target logical architecture for local/hosted A008 with embedded `@acme-engine/model-runtime` and the A008/ACME/provider ownership boundary.
 
 A008-0111 extends the existing `src/bootstrap/` registry/service/validator and `src/gui-host/project-routes.ts` with read-only adoption of an already-existing root. `packages/protocol/src/{routes,http-schemas,http-operations}.ts` owns the additive `POST /v1/projects/register` contract and regenerated OpenAPI. `gui/src/projects/` owns the separate New/Add existing modes. No new persistence owner or project-tree metadata file is introduced; registration writes only the existing external projects registry.

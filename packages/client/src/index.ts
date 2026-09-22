@@ -1,4 +1,9 @@
 export {
+  listSidebarProjects,
+  updateProject,
+  changeProjectChat,
+} from "./v1-http.js";
+export {
   bearerCredentials,
   cookieCredentials,
   detectBrowserCredentials,

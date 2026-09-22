@@ -27,6 +27,7 @@ import {
 } from "./artifact/code-artifact-panel.js";
 import type { HtmlArtifactCandidate } from "./artifact/code-artifact.js";
 import { ProjectsPage } from "./projects/projects-page.js";
+import { ProjectSidebar } from "./projects/project-sidebar.js";
 
 const STATUS_LABEL = {
   idle: "Not connected",
@@ -57,6 +58,7 @@ export function App() {
   const parametersButton = useRef<HTMLButtonElement>(null);
   const parametersTrigger = useRef<HTMLElement | null>(null);
   const [page, setPage] = useState<Page>("chat");
+  const [projectsRevision, setProjectsRevision] = useState(0);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -90,6 +92,13 @@ export function App() {
     setNavigationOpen(false);
     if (next === "chat") setToolsOpen(false);
     else setCanvasOpen(false);
+  }
+
+  async function projectOpened() {
+    await Promise.resolve(session.endSession?.()).catch(() => undefined);
+    await session.connect();
+    setProjectsRevision((revision) => revision + 1);
+    navigate("chat");
   }
 
   function openTools(surface: ToolSurface) {
@@ -230,24 +239,25 @@ export function App() {
           >
             <span aria-hidden="true">?</span> Help
           </button>
-          <button
-            aria-current={page === "projects" ? "page" : undefined}
-            onClick={() => navigate("projects")}
-          >
-            <span aria-hidden="true">▣</span> Projects
-          </button>
         </nav>
-        <div className="a008-sidebar-workspace">
-          <p className="a008-sidebar-caption">Workspace</p>
-          <p className="a008-workspace-name" title={cwd}>
-            {workspace ?? "Local workspace"}
-          </p>
-          <p className="a008-sidebar-hint">
-            {cwd ?? "Connect to see your working directory."}
-          </p>
-        </div>
+        <ProjectSidebar
+          session={session}
+          revision={projectsRevision}
+          onManage={() => navigate("projects")}
+          onOpened={projectOpened}
+          onChat={() => navigate("chat")}
+        />
         <details className="a008-runtime-details">
           <summary>Runtime details</summary>
+          <div className="a008-sidebar-workspace">
+            <p className="a008-sidebar-caption">Workspace</p>
+            <p className="a008-workspace-name" title={cwd}>
+              {workspace ?? "Local workspace"}
+            </p>
+            <p className="a008-sidebar-hint">
+              {cwd ?? "Connect to see your working directory."}
+            </p>
+          </div>
           <SettingsPane session={session} />
         </details>
         <div className="a008-sidebar-footer">
@@ -386,14 +396,8 @@ export function App() {
       </main>
       <main className="a008-help-main" hidden={page !== "projects"}>
         <ProjectsPage
-          onOpened={() => {
-            void Promise.resolve(session.endSession?.())
-              .catch(() => undefined)
-              .finally(() => {
-                void session.connect();
-              });
-            navigate("chat");
-          }}
+          active={page === "projects"}
+          onOpened={() => void projectOpened()}
         />
       </main>
       <ShortcutDock
