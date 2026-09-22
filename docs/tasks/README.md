@@ -11,6 +11,9 @@ the template before push.
 
 ## Records
 
+- [A008-0164_platform-local-backend.md](A008-0164_platform-local-backend.md) — Draft; host integration pending dependency APIs.
+- [A008-0165_platform-client.md](A008-0165_platform-client.md) — Ready; execute after protocol integration.
+
 - [A008-0163_trusted-conversation-seeding.md](A008-0163_trusted-conversation-seeding.md) — Ready; backend-owned history through the shared runtime.
 
 - [A008-0160_platform-implementation-program.md](A008-0160_platform-implementation-program.md) — In Progress; operator-owned platform task graph.
