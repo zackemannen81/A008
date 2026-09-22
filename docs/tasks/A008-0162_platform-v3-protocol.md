@@ -2,7 +2,7 @@
 
 Task ID: A008-0162
 Parent Task: A008-0160
-Status: Ready
+Status: Complete
 Owner: Codex GPT-5.6 Terra (worker)
 Created: 2026-09-22
 Charter frozen at: 2026-09-22 after main claim d4ebfa6; execute only after ADR 0048 integration
@@ -79,8 +79,21 @@ A completed process is not task acceptance.
 
 ## Verification
 
-Pending execution.
+- PASS (local): `npm run build` after regeneration.
+- PASS (local): `npm run typecheck`.
+- PASS (fixture): `node --test dist/test/protocol-contract.test.js` — 8/8.
+- PASS (local package): `npm run verify:protocol` — packed protocol and packed
+  Zod installed offline into a temporary consumer; independent TypeScript
+  consumer compiled and ran.
+- PASS (review): V1/V2 generated artifacts have no diff; generated V3 artifacts
+  are separate `platform-v3*` files and match their schema owner.
+- PASS (revalidation): rebased onto `5f417b1`; its accepted clarification
+  confirms strict V3-owned envelopes while retaining exact chat-content parity.
+- Not run: live-provider verification, by the frozen zero-call/zero-SEK budget.
 
 ## Progress
 
-Ready; immutable goal/scope/gates. Worker may update progress and results only.
+Complete. The protocol package now exports strict V3 resource/request/response
+schemas, generated JSON Schema/OpenAPI artifacts and route metadata. It does not
+add host routes, storage, authentication, provider execution or a V3 availability
+claim. The archive and handoff record final integration details.

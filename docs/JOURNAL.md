@@ -2527,3 +2527,28 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Existing ModelToolSession approval, cancellation, timeout and catalog/tool-budget behavior remains the execution boundary; unsupported transports are rejected. No session restore/hot reload or A008-0147 lifecycle work was introduced.
 - Verification: root/GUI typecheck; 703/703 core, 4/4 membership and 187/187 GUI tests; `git diff --check` passed. Real-host HTTP coverage includes valid and malformed MCP configuration requests.
 - [Handoff](handoffs/A008-0148.md). Signature: A008
+
+## 2026-09-22 — A008-0160 platform implementation starts
+
+- Operator: Codex. Owner-authorized platform direction adopted as PC-07/ADR 0048
+  through PR #99 at 86466ed. Separate V3 durable-work boundary; V1/V2 and memory
+  semantics preserved. A008-0161/0162 IDs and Ready charters published before
+  isolated Terra worker execution. A008-0163 adds the trusted-history prerequisite.
+- Verification: authority/contract review, nonoverlapping scopes, Markdown/status
+  checks, exact CURRENT_TASK template and diff hygiene. No live provider calls.
+- Contract clarification: new V3-owned objects reject extra keys; reused nested
+  chatContentSchema retains existing parsing semantics for compatibility.
+- Signature: Codex (operator)
+## 2026-09-22 — A008-0162 platform protocol integrated
+
+- Operator: Codex. PR #103 merged at 7e63fde after bounded contract/scope review,
+  worker build/typecheck, 8/8 protocol tests and independent packed-consumer proof.
+  Operator reran the 8 focused tests and checked the unchanged V1/V2 artifacts.
+- New strict V3 resource/request/response contracts are available; no V3 host
+  endpoint or background-runtime capability is claimed. Existing nested chat
+  content retains its accepted compatibility behavior.
+- A008-0165 Ready SDK charter was published through PR #102 at 1312e79 before
+  delegation to a new isolated clone. A008-0164 remains Draft pending storage
+  and trusted-seeding integration. Baseline npm test: 924 tests, zero failures.
+- All verification in this wave is local/fixture-based. No live provider calls.
+- Signature: Codex (operator)

@@ -5,9 +5,13 @@ belongs in `docs/PROJECT_BRIEF.md`.
 
 A008-0160 starts the owner-authorized platform implementation program under
 PC-07 and ADR 0048. PLATFORM_V3_CONTRACT freezes a separate durable-work wire
-boundary; current V1/V2 disconnect/restart semantics remain unchanged. First-wave
-tasks A008-0161 (SQLite platform store) and A008-0162 (protocol) are Ready.
-No V3 runtime capability is implemented or advertised by this adoption.
+boundary; current V1/V2 disconnect/restart semantics remain unchanged.
+A008-0162 delivers the additive V3 protocol schemas and generated artifacts;
+focused tests and the independently packed consumer pass. A008-0163 adds trusted
+internal conversation seeding through EngineHost/ACP/local runtime, with 39
+focused tests passing and no legacy-chat persistence or historical semantic
+replay. The SQLite store remains under review. No V3 host endpoint or runtime
+capability is implemented or advertised by the protocol delivery.
 
 A008-0159 adopts bounded live-verification authority in TASK_WORKFLOW, AGENTS,
 CONTRIBUTING, MULTIAGENT and the task template. In-scope tests on approved routes

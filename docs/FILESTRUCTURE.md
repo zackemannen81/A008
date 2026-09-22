@@ -36,6 +36,13 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+`docs/platform/CONVERSATION_SEED.md` documents the trusted internal history
+option across EngineHost, ACP composition and LocalMemoryRuntime (A008-0163).
+
+A008-0162 adds `packages/protocol/src/platform-v3.ts`, generated
+`packages/protocol/schemas/platform-v3*` artifacts and
+`docs/platform/PROTOCOL.md` for the additive platform wire contracts.
+
 `docs/PLATFORM_V3_CONTRACT.md` owns the accepted first durable-work contract
 under ADR 0048. `docs/tasks/A008-0160_platform-implementation-program.md` owns
 the implementation dependency graph; child charters freeze each delivery.

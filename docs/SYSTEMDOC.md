@@ -3,6 +3,27 @@
 This document describes durable behavior that exists now. Intended product
 architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
+## Platform V3 protocol foundation
+
+`packages/protocol/src/platform-v3.ts` owns the additive durable-work wire
+schemas, exported types and generated `platform-v3*` JSON Schema/OpenAPI files.
+V3-owned envelopes are strict; message content reuses `chatContentSchema` and
+its existing nested parsing behavior. V1/V2 artifacts are unchanged. These
+contracts do not implement HTTP endpoints, persistence or execution. See
+`docs/platform/PROTOCOL.md` and `docs/PLATFORM_V3_CONTRACT.md`.
+
+## Trusted backend conversation history
+
+A008-0163 adds internal `conversationSeed: { conversationId, messages }` to
+EngineHost session construction and the existing ACP/local runtime composition.
+The runtime validates a canonical conversation ID and committed user/assistant
+content, and copies the history. Seed input is absent from client request DTOs
+and cannot be combined with legacy workspace-conversation persistence. Opening
+it performs no provider call, semantic replay or legacy-store mutation. The next
+new turn uses the existing cognition/memory/provider pipeline. See
+`docs/platform/CONVERSATION_SEED.md`. Durable platform run coordination is a
+separate pending integration.
+
 ## Project sidebar and saved chats
 
 A008-0155 / ADR 0047 adds a sidebar project tree below workspace navigation.

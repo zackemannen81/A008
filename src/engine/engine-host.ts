@@ -15,6 +15,7 @@ import {
   type ProjectRuntime,
 } from "./project-runtime-registry.js";
 import type { SessionControl, SessionSnapshot } from "../core/session-control.js";
+import type { ChatMessage } from "../core/types.js";
 import type { GeneratedImage } from "../../packages/protocol/src/index.js";
 import { defaultCatalogPath } from "../core/user-catalog.js";
 import {
@@ -48,6 +49,18 @@ interface EngineSession {
   answer: string;
   activities: Map<string, Extract<GuiHostServerMessage, { type: "tool" }>>;
   generations: Map<string, AbortController>;
+}
+
+export interface EngineConversationSeed {
+  readonly conversationId: string;
+  readonly messages: readonly ChatMessage[];
+}
+
+export interface EngineNewSessionOptions {
+  readonly initialModel?: string;
+  readonly workspaceConversation?: boolean;
+  /** Trusted backend composition only; never decoded from ACP/WebSocket input. */
+  readonly conversationSeed?: EngineConversationSeed;
 }
 
 export interface EngineHostOptions {
@@ -118,10 +131,7 @@ export class EngineHost {
       requestPermission?: RequestToolPermission;
       notify?: ToolNotifier;
     } = {},
-    options: {
-      initialModel?: string;
-      workspaceConversation?: boolean;
-    } = {},
+    options: EngineNewSessionOptions = {},
   ) {
     const work = this.#newSession(params, client, options);
     this.#initializing.add(work);
@@ -137,10 +147,7 @@ export class EngineHost {
       requestPermission?: RequestToolPermission;
       notify?: ToolNotifier;
     },
-    options: {
-      initialModel?: string;
-      workspaceConversation?: boolean;
-    },
+    options: EngineNewSessionOptions,
   ) {
     if (this.#closed) throw new Error("Engine is stopping.");
     const project = this.#project(params.cwd),
@@ -152,6 +159,9 @@ export class EngineHost {
       ...(options.workspaceConversation === undefined
         ? {}
         : { workspaceConversation: options.workspaceConversation }),
+      ...(options.conversationSeed === undefined
+        ? {}
+        : { conversationSeed: options.conversationSeed }),
     });
     const tools = new ModelToolSession({
       cwd,

@@ -176,3 +176,6 @@ never whether work is active or complete. Task state belongs in
 | A008-0160 | platform implementation program | Codex (operator) | 2026-09-22 | adopt platform direction, own dependency graph, bounded delegation, verified PR integration and release gates |
 | A008-0161 | platform durable work store | Codex (operator) | 2026-09-22 | local scoped SQLite conversations, runs, receipts, outbox and fenced recovery under the platform contract |
 | A008-0162 | platform V3 protocol contracts | Codex (operator) | 2026-09-22 | separately versioned durable-work wire schemas and independent protocol verification without changing V1/V2 |
+| A008-0163 | trusted platform conversation seeding | Codex (operator) | 2026-09-22 | seed existing shared runtime sessions from backend-owned committed history without writing the legacy workspace store |
+| A008-0164 | platform local backend integration | Codex (operator) | 2026-09-22 | compose durable store, trusted runtime and authenticated V3 HTTP with background scheduling and real process recovery proof |
+| A008-0165 | platform independent V3 client | Codex (operator) | 2026-09-22 | thin authenticated SDK for V3 conversations/runs/events with explicit command identity and no automatic mutation retry |

@@ -54,6 +54,10 @@ import {
   parseRuntimeId,
   RuntimeIdentityFactory,
 } from "../identity/runtime-id.js";
+import {
+  validateConversationSeed,
+  type ConversationSeed,
+} from "../runtime/local-memory-runtime.js";
 import { promptToTurnInput } from "./prompt-content.js";
 
 export interface AcpTurnSession {
@@ -79,6 +83,7 @@ export interface AcpTurnSession {
 interface AcpSessionState {
   model: string;
   workspaceConversation: boolean;
+  conversationSeed?: ConversationSeed;
   chat?: AcpTurnSession;
   activeTurn?: AbortController;
 }
@@ -86,10 +91,13 @@ interface AcpSessionState {
 export interface AcpNewSessionOptions {
   readonly initialModel?: string;
   readonly workspaceConversation?: boolean;
+  /** Trusted EngineHost composition only; ACP request payloads cannot set this. */
+  readonly conversationSeed?: ConversationSeed;
 }
 
 export interface AcpCreateSessionOptions {
   readonly workspaceConversation?: "restore" | "fresh";
+  readonly conversationSeed?: ConversationSeed;
 }
 
 /**
@@ -445,6 +453,15 @@ export class A008AcpAgent {
     _params: NewSessionRequest,
     options: AcpNewSessionOptions = {},
   ): NewSessionResponse {
+    if (
+      options.workspaceConversation === true &&
+      options.conversationSeed !== undefined
+    ) {
+      throw RequestError.invalidParams(
+        {},
+        "Conversation seeds cannot be combined with workspace conversations.",
+      );
+    }
     let sessionId: string;
     try {
       sessionId = parseRuntimeId(this.#createSessionId(), "acp_session");
@@ -467,9 +484,16 @@ export class A008AcpAgent {
       options.initialModel === undefined
         ? DEFAULT_MODEL_ID
         : this.#resolveProfile(options.initialModel).id;
+    const conversationSeed =
+      options.conversationSeed === undefined
+        ? undefined
+        : validateConversationSeed(options.conversationSeed);
     this.#sessions.set(sessionId, {
       model,
       workspaceConversation: options.workspaceConversation === true,
+      ...(conversationSeed === undefined
+        ? {}
+        : { conversationSeed }),
     });
     return {
       sessionId,
@@ -738,7 +762,9 @@ export class A008AcpAgent {
         state.model,
         state.workspaceConversation
           ? { workspaceConversation: "restore" }
-          : undefined,
+          : state.conversationSeed === undefined
+            ? undefined
+            : { conversationSeed: state.conversationSeed },
       );
       state.chat.enableSessionControls?.();
       state.model = state.chat.model ?? state.model;

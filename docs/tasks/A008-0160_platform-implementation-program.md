@@ -30,10 +30,13 @@ Electron remains conditional on a concrete need. Do not invent that need.
 
 | Task/stage | Dependencies | Status | Exit |
 | --- | --- | --- | --- |
-| P0 adoption/contracts | owner authorization | In Progress | ADR 0048 and frozen first-slice contract merged |
-| A008-0161 durable store | P0 | Ready | SQLite isolation/atomicity/idempotency/lease/recovery/reopen proof |
-| A008-0162 wire schemas | P0 | Ready | Strict V3 schemas, independent package checks, V1/V2 regression |
-| P1 host/coordinator/client integration | 0161 + 0162 | Not started | Real host background execution, scoped auth, polling and restart proof |
+| P0 adoption/contracts | owner authorization | Complete | ADR 0048 and frozen first-slice contract merged in PR #99 |
+| A008-0161 durable store | P0 | Review | PR #104; targeted cancellation/recovery and rollback corrections requested |
+| A008-0162 wire schemas | P0 | Complete | PR #103; strict V3 schemas, packed consumer and V1/V2 artifact regression pass |
+| A008-0163 trusted conversation seeding | P0 | Complete | PR #106; 39 focused tests, no legacy-store writes or semantic replay |
+| P1 host/coordinator/client integration | 0161 + 0162 + 0163 | Not started | Real host background execution, scoped auth, polling and restart proof |
+| A008-0164 backend integration | 0161 + 0162 + 0163 | Draft | Actual scoped durable background host and process-recovery proof |
+| A008-0165 V3 SDK | 0162 | In Progress | Validated independent client, no implicit mutation retry |
 | P1 GUI/import/admin closure | integrated host | Not started | Parallel projects, durable chats incl memory-off, migration/restore gates |
 | M1 coordination/target adapter | P1 owners | Not started | A25/A27/A29/A30 |
 | M2 context governance | M1 | Not started | A26/A31 |
@@ -80,4 +83,12 @@ platform completion claim until required stage gates actually pass.
 
 - Canonical main and origin/main verified equal and clean before work.
 - IDs claimed and pushed before delegation.
-- P0 authority and first wave Ready charters being integrated.
+- P0 authority and first wave Ready charters merged through PR #99 at 86466ed.
+- Existing runtime inspection identified the bounded trusted-history prerequisite
+  A008-0163; it is independent of the storage/protocol workers.
+- Initial three isolated Terra workers executed 0161/0162/0163. Canonical baseline
+  npm test passes 728 core + 4 membership + 192 GUI, 0 failures. No live calls.
+- 0162 merged in PR #103 at 7e63fde after acceptance review. 0165 now executes
+  in a new isolated clone. 0161 PR #104 needs targeted corrections before merge.
+- 0164 remains Draft until prerequisite APIs and acceptance are reviewed.
+  No speculative integration against unmerged APIs.
