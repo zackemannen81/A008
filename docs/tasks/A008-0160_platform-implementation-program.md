@@ -35,7 +35,7 @@ Electron remains conditional on a concrete need. Do not invent that need.
 | A008-0162 wire schemas | P0 | Complete | PR #103; strict V3 schemas, packed consumer and V1/V2 artifact regression pass |
 | A008-0163 trusted conversation seeding | P0 | Complete | PR #106; 39 focused tests, no legacy-store writes or semantic replay |
 | P1 host/coordinator/client integration | 0161 + 0162 + 0163 | Not started | Real host background execution, scoped auth, polling and restart proof |
-| A008-0164 backend integration | 0161 + 0162 + 0163 | Draft | Actual scoped durable background host and process-recovery proof |
+| A008-0164 backend integration | 0161 + 0162 + 0163 | Ready | Actual scoped durable background host and process-recovery proof |
 | A008-0165 V3 SDK | 0162 | In Progress | Validated independent client, no implicit mutation retry |
 | P1 GUI/import/admin closure | integrated host | Not started | Parallel projects, durable chats incl memory-off, migration/restore gates |
 | M1 coordination/target adapter | P1 owners | Not started | A25/A27/A29/A30 |
@@ -90,5 +90,5 @@ platform completion claim until required stage gates actually pass.
   npm test passes 728 core + 4 membership + 192 GUI, 0 failures. No live calls.
 - 0162 merged in PR #103 at 7e63fde after acceptance review. 0165 now executes
   in a new isolated clone. 0161 PR #104 corrections passed targeted verification.
-- 0164 remains Draft until prerequisite APIs and acceptance are reviewed.
-  No speculative integration against unmerged APIs.
+- 0161/0162/0163 are integrated through f9ae0f5. 0164 is now frozen Ready with
+  actual storage/seed APIs, scoped auth, limits, failure and process-recovery gates.
