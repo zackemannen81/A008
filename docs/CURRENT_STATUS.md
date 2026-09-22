@@ -3,7 +3,15 @@
 Reality as of 2026-09-22. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
-A008-0158 updates [A008 Platform](A008_PLATFORM_SPEC.md) to proposal v1.1.
+A008-0159 adopts bounded live-verification authority in TASK_WORKFLOW, AGENTS,
+CONTRIBUTING, MULTIAGENT and the task template. In-scope tests on approved routes
+inherit 10 SEK and finite call/token/time limits without per-call approval;
+model-aware reservations and shared worker accounting preserve those limits.
+[A008 Platform](A008_PLATFORM_SPEC.md) v1.2 incorporates the owner's revised
+section 27 and future budget checks. This is documentation/working policy;
+automatic product enforcement is not implemented. No live calls were made.
+
+A008-0158 updated the platform proposal to v1.1.
 Execution Verification Evidence is explicitly technical execution observation,
 with separate contracts, identities and ingestion from semantic evidence.
 Unknown effects remain unknown; transport/process success cannot confer truth,
@@ -474,8 +482,9 @@ unexecuted. The replacement exists only in ignored `.env.local` as
 
 ## Known gaps and risks
 
-- Live NVIDIA verification still requires explicit credential/cost authority;
-  rotation alone did not authorize or perform a provider call.
+- Live NVIDIA verification uses approved credentials/routes and the resolved
+  TASK_WORKFLOW verification budget; credential rotation alone does not approve
+  a route or establish that a provider call was performed.
 - OpenHands `dev:minimal` has a 30-second Agent Server readiness timeout while
   the pinned backend needed about 42 seconds on this Windows host. The exact
   locked backend and Vite processes work when started separately.
@@ -501,8 +510,8 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   them.
 - Image uploads are stored but not extracted. The `ImageDescriber` port and
   its NVIDIA implementation exist and are fake-verified, but the registry holds
-  no vision-capable model and a live vision call is a paid call needing explicit
-  authority.
+  no vision-capable model. Live verification uses an approved model/route and
+  the TASK_WORKFLOW budget; the budget does not itself add registry capability.
 - A contested slot is permanent, and slots contested before A008-0062 stay
   contested. The defect that was creating them constantly is fixed — a statement
   slot is a set now, so two different true facts about one entity no longer read

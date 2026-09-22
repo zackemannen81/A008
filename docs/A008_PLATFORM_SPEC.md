@@ -1,12 +1,12 @@
 # A008 Platform
 
-Version: 1.1 — explicit gräns för Execution Verification Evidence
+Version: 1.2 — delegerad verifieringsbudget med modellspecifika kostnadsgränser
 
 Datum: 2026-09-22
 
-Dokumentuppgift: A008-0158; vidareutvecklar A008-0156 och A008-0157
+Dokumentuppgift: A008-0159; vidareutvecklar A008-0156–0158
 
-Avstämd mot A008: `a4319c1`; tidigare referensrevisioner anges i avsnitt 3.1
+Avstämd mot A008: `dc7c3ae`; tidigare referensrevisioner anges i avsnitt 3.1
 
 ## 1. Syfte, status och läsanvisning
 
@@ -62,6 +62,10 @@ M1–M4 och avsnitt 27 dess acceptanskriterier.
 Ändringen i version 1.1 finns främst i avsnitt 7.1: definition, datakontrakt
 och tillåtna användningar av execution verification evidence. Terminologin
 är även avstämd i recovery, lagring, multi-agent-kommunikation och audit.
+
+Version 1.2 uppdaterar avsnitt 21.1 och 27: live-verifiering delegeras inom
+godkänd budget, med modellberoende kostnadsberäkning och ändliga gränser även
+för gratisproviders. Arbetsregeln är antagen; automatisk enforcement är föreslagen.
 
 ## 2. Produktutfall och omfattning
 
@@ -1342,6 +1346,61 @@ event-/receiptretention, backupintervall samt mål för dataförlust (RPO) och
 återställningstid (RTO). Hosted release får inte godkännas med dessa odefinierade.
 Inga otestade tillgänglighetsprocent eller prestandatal utlovas av denna version.
 
+### 21.1 Delegerad budget för live-verifiering
+
+**Verifieringsbudget är ett tak, inte ett mål.**
+
+En verifieringsbudget anger den högsta autonoma kostnads- och resursram som en
+uppgift får använda för verifiering utan ytterligare godkännande. Budgeten är
+inte ett konsumtionsmål, en rekommenderad spend eller en signal om att hela
+ramen bör användas.
+
+Verifieringsmetoden ska väljas efter den konkreta osäkerhet som behöver
+undanröjas och den minsta rimliga verifieringsinsats som ger tillräckligt starkt
+underlag. Tillgänglig budget får inte i sig motivera:
+
+- en dyrare modell;
+- fler provideranrop;
+- större tokenvolym;
+- längre verifiering;
+- bredare testscope;
+- eller fler externa effekter.
+
+Outnyttjad budget är ett normalt och önskat utfall när verifieringsbehovet redan
+är uppfyllt. Agenten ska optimera för **tillräcklig verifieringsstyrka till lägsta
+rimliga totala kostnad och risk**, inte för högsta möjliga användning av tilldelad
+budget. Total kostnad inkluderar ingenjörsarbete enligt avsnitt 27.
+
+Verifieringsscope tillsammans med godkända providers/credentials och en begränsad
+budget utgör mandat att välja och köra relevanta live-prov. Betalstatus ensam
+utlöser inget separat godkännande. Budgetökning, ny kostnadsbärande tjänst eller
+väsentligt annan extern effekt behöver däremot separat auktoritet.
+
+Task/budget-kontraktet ska bära `max_live_verification_cost` med valuta samt
+ändliga tak för fysiska anropsförsök, input/output och tid. A008-repots antagna
+[arbetsregel](TASK_WORKFLOW.md#live-verification-budget) äger standardvärdena
+(10 SEK per uppgift) och hur de ärvs. Deploymentprofiler kan anta egna uttryckliga
+tak. Detta är inget påstående om redan implementerad produktkontroll.
+
+Kostnadsreservationen utgår från den faktiska modellens och routens aktuella
+prisvillkor: input, output, eventuell debiterad reasoning/cache och övriga avgifter,
+utan dubbelräkning. Prisreferens, kontrolltid, valuta/omräkning och konservativ
+marginal ska framgå. Ett enda exempelpris per miljon tokens räcker inte som
+generell prisregel. Gratis kräver bekräftade villkor; gratisanrop förbrukar
+fortfarande anrops-, token- och tidsbudget. Ingen implicit uppgradering till
+betald tjänst tillåts när gratisutrymme tar slut.
+
+Budgeten delas av workers, barnuppgifter och retries; restart ger inget nytt
+utrymme. A008 ska reservera gemensamt utrymme atomärt före dispatch. Fram tills
+det finns används separata workerallokeringar eller serialiserade prov.
+Observerad kostnad, reservation och okänd kostnad hålls isär. Vid osäker usage
+behålls reservationen; utan trovärdig kostnadsgräns behövs ett godkänt providersidetak
+eller avgränsat undantag. Lokal timeout betyder inte att debiteringen upphört.
+
+A008 äger budget och dispatchauktoritet. ACME rapporterar den usage och execution
+som det observerar inom gränsen för execution verification evidence. Kostnad
+avgör inte semantic truth, reinforcement, HEAD eller resultatets kvalitet.
+
 ## 22. Deployment och driftsansvar
 
 | Läge | Placering |
@@ -1534,9 +1593,17 @@ M2–M4. Ingen ny beslutspunkt frågar om swarm-metoden först måste bevisas.
 
 ## 27. Acceptansmatris
 
-Detta är krav på framtida verifiering. Ingen rad är godkänd av att denna
-Markdownfil har skapats. Fake providers/tools ska användas för deterministiska
-felprov; live/paid-providerprov behöver separat uppgiftsauktoritet.
+Detta är krav på framtida verifiering. Ingen rad är godkänd av att denna Markdownfil har skapats.
+Fake providers/tools ska användas där deterministisk felinjektion, reproducerbarhet eller säker isolering kräver det. De verifierar A008 beteende mot det simulerade kontraktet och får inte ensamma användas som bevis för en extern providers faktiska beteende.
+Live-providerprov ska användas när verklig providerintegration, wire-kompatibilitet, capabilities eller providerbeteende är en del av det som behöver verifieras.
+Betalda live-anrop kräver inte separat uppgiftsauktoritet när de ligger inom uppgiftens verifieringsscope, använder redan godkända credentials/providers och hålls inom en uttrycklig begränsad testbudget. Separat godkännande krävs när verifieringen behöver överskrida den budgeten, använda en ny kostnadsbärande tjänst eller medföra annan väsentlig extern effekt.
+Verifieringsunderlaget ska ange om ett resultat kommer från deterministic fake/fixture, lokal implementation eller faktisk live-provider.
+
+Verifieringsmetod väljs efter osäkerheten som behöver undanröjas och den samlade
+arbetskostnaden. Omfattande simulering ska inte byggas enbart för att undvika
+en mindre providerkostnad inom godkänd budget. Ett prov av en billigare modell
+verifierar inte automatiskt målmodellens beteende. Budgetreglerna i avsnitt 21.1
+gäller även här.
 
 För M1–M4 är detta integrations- och regressionskrav på ny programvara.
 Befintliga workerflöden och dokumenterade incidenter återanvänds som underlag.
@@ -1581,6 +1648,10 @@ ytterligare metodexperiment som ägaren måste genomföra.
 | A34 | PL-08/17 | Försök lämna en execution verification record till semantic ingestion, även med semantiskt giltigt resultat i responsreferensen. Fel kontraktsklass nekas; inga claims, supportrelationer, reinforcement eller HEAD ändras |
 | A35 | PL-05/17 | Observera timeout utan verifierat effektutfall, därefter en tekniskt lyckad respons med felaktigt innehåll. Första utfallet förblir unknown/unverified; det andra ger ingen automatisk semantic truth, kvalitetsacceptans eller task completion |
 | A36 | PL-01/17 | ACME observerar endast ett eget anrop medan en opak CLI gör annat arbete. Execution verification evidence tillskrivs endast faktisk producent/observerad gräns; saknad insyn blir explicit och kontrakts-/ID-klasser förblir separata |
+| A37 | PL-06/11 | Använd kontrollerade prisprofiler för billig, dyr och bekräftat gratis route. Samma tokenmängd ger olika kostnadsreservation; dyrt anrop över återstående budget nekas och gratisanrop stoppas vid anrops-/token-/tidsgräns |
+| A38 | PL-04/11/13 | Två workers reserverar sista budgetutrymmet samtidigt, därefter sker retry och workerbyte. Inget dubbelutnyttjande; parentbudget, försöksräkning och okända kostnadsreservationer överlever återupptagning |
+| A39 | PL-05/06/11 | Pris saknas, usage uteblir efter timeout eller gratistjänsten kräver betald route. Inga antaganden om nollkostnad eller implicit uppgradering; giltigt tak/avgränsad auktoritet behövs före ny dispatch |
+| A40 | PL-11/17 | Granska verifieringsrapport med fixture, lokal implementation och live-resultat. Ursprung och faktisk modell/route framgår; fake eller billigare modell godkänner inte den externa målmodellens beteende |
 
 Godkända bevis ska ange version, deploymentprofil, utförda felinjektioner,
 observerat utfall och kvarvarande begränsningar. Kodtester, paketering,

@@ -113,8 +113,14 @@ code or a vague robustness claim cannot supply product authority.
 - Do not execute the legacy client. Its exposed credential was revoked and
   rotated on 2026-09-01, but the raw script still embeds the retired value and
   remains unsafe provenance. Use the new environment-backed A008 adapter.
-- No push, deployment, publication, paid call, live provider test, or destructive
-  operation without explicit task authority.
+- Live-provider verification, including paid calls, is authorized within the
+  task's verification scope, approved credentials/providers and the resolved
+  budget in `docs/TASK_WORKFLOW.md#live-verification-budget`. No per-call owner
+  approval is needed within those limits. Model-specific prices determine cost;
+  free calls still consume call/token/time limits. Escalate budget increases,
+  new cost-bearing services or materially different external effects.
+- No push, deployment, publication or destructive operation without explicit
+  task authority. A verification budget does not grant those permissions.
 - OpenHands host mode and local agent processes can access the host filesystem.
   Treat sandbox and permission decisions as explicit security work.
 
