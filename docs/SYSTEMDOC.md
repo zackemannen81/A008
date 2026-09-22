@@ -71,6 +71,16 @@ call. `cancel-run` sends one cancel. Failures print the SDK code and exit
 non-zero. Device credentials remain in the host device registry. See
 `docs/platform/ADMIN.md`.
 
+## Bundled platform surface
+
+`gui/src/platform/platform-page.tsx` is an additional workspace page. It reads
+`GET /v3/info` and, when the host is available and the existing PIN cookie or
+an injected device credential allows it, uses `createPlatformV3Client` for one
+project the GUI already lists. Run creation sends one `commandId` per click.
+Retry reuses that id. Event polling stops when the page is inactive and does
+not cancel the run. V1 chat remains the default conversation surface. See
+`docs/platform/GUI.md`.
+
 ## Project sidebar and saved chats
 
 A008-0155 / ADR 0047 adds a sidebar project tree below workspace navigation.

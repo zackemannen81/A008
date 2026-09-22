@@ -12,7 +12,7 @@ the template before push.
 ## Records
 
 - [A008-0168_platform-admin-cli.md](A008-0168_platform-admin-cli.md) — Complete; inspect and cancel through the existing V3 client. [Archive](../finished/A008-0168_platform-admin-cli.md).
-- [A008-0167_platform-gui-surface.md](A008-0167_platform-gui-surface.md) — Ready; additive bundled V3 page, V1 chat unchanged.
+- [A008-0167_platform-gui-surface.md](A008-0167_platform-gui-surface.md) — Complete; additive bundled V3 page, V1 chat unchanged. [Archive](../finished/A008-0167_platform-gui-surface.md).
 - [A008-0166_host-fixture-catalog-isolation.md](A008-0166_host-fixture-catalog-isolation.md) — Complete; isolate verification from user MCP configuration.
 - [A008-0164_platform-local-backend.md](A008-0164_platform-local-backend.md) — Complete; local `/v3` host backend. [Archive](../finished/A008-0164_platform-local-backend.md).
 - [A008-0165_platform-client.md](A008-0165_platform-client.md) — Merged; independent V3 SDK, PR #108.

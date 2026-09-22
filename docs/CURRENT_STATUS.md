@@ -29,6 +29,16 @@ Operator rerun on head `b64ef68`: the CLI host tests passed 2/2. Worker
 `test:core` was 758/758, membership 4/4, and GUI 192/192. No new HTTP route,
 store, or reconciliation command. No live provider call.
 
+A008-0167 is merged through PR #113 at 2afaaf2. The bundled GUI has a Platform
+page beside Memory, Tools and Help. It lists projects the GUI already knows,
+creates an opted-in V3 conversation and starts one text run with the selected
+chat model through `createPlatformV3Client`. Unavailable and login-required
+states are explicit. Closing the page does not cancel the run. V1 chat, project
+chats, reset and model change stay in place. Operator rerun on head `1930ea3`:
+GUI tests 204/204, including the real-host two-client proof, plus GUI typecheck
+and production build. No browser session was available for a manual click-through.
+No live provider call. Saved chats are not migrated.
+
 A008-0166 is merged through PR #110 at a690141. `isolatedMemoryEnv` sets
 `A008_CATALOG_PATH` to a missing temporary `catalog.json` before caller
 overrides, so shared host fixtures do not load `~/.a008/catalog.json` or start

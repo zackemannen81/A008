@@ -56,6 +56,9 @@ adds read-only `lookupRunReceipt`. `test/platform-host.test.ts` and
 child-process restart. A008-0168 adds `src/platform/admin-cli.ts`,
 `test/platform-admin-cli.test.ts` and `docs/platform/ADMIN.md`. Root
 `package.json` adds `platform-admin` and registers that test in `test:core`.
+A008-0167 adds `gui/src/platform/` and `docs/platform/GUI.md`. `gui/src/app.tsx`
+adds the Platform page beside the existing navigation. No protocol, host, or
+V1 chat owner changes in that task.
 
 `test/helpers.ts` defaults `A008_CATALOG_PATH` inside `isolatedMemoryEnv` to a
 missing temporary catalog so shared host fixtures do not load the operator

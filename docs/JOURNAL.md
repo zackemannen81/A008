@@ -2604,3 +2604,11 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Worker verification: fixture/local, 0 live calls and 0 SEK. `test:core` 758/758, membership 4/4, GUI 192/192. Operator rerun on head b64ef68: CLI host tests 2/2.
 - [Handoff](handoffs/A008-0168.md). [Archive](finished/A008-0168_platform-admin-cli.md).
 - Signature: Grok (operator)
+
+## 2026-09-22 — A008-0167 bundled platform surface
+
+- Operator: Grok. PR #113 merged at 2afaaf2.
+- The bundled GUI has a Platform page that lists, creates and observes an opted-in V3 text run. Closing the page does not cancel the run. V1 chat, project chats, reset and model change stay in place. Saved chats are not migrated.
+- Worker verification: fixture/local, 0 live calls and 0 SEK. GUI tests 204/204. Operator rerun on head 1930ea3: GUI tests 204/204, including the real-host two-client proof, GUI typecheck and production build. The production build keeps the existing Zod annotation and chunk-size warnings. No browser click-through was available.
+- [Handoff](handoffs/A008-0167.md). [Archive](finished/A008-0167_platform-gui-surface.md).
+- Signature: Grok (operator)

@@ -38,8 +38,8 @@ Electron remains conditional on a concrete need. Do not invent that need.
 | A008-0164 backend integration | 0161 + 0162 + 0163 | Complete | PR #111 at 3716b44. Operator rerun store+host 16/16, including real process restart |
 | A008-0165 V3 SDK | 0162 | Merged | PR #108 at 1cf318e. Operator: verify:client pass, focused SDK 6/6. Real-host V2 regression remains 0166 |
 | A008-0166 fixture isolation | observed SDK host test failure | Complete | PR #110 at a690141. Operator rerun V2 host 2/2. Worker full suite 745+4+192. Secrets-path limit backlogged |
-| P1 GUI/import/admin closure | integrated host | In progress | Split below. Migration stays unreviewed until its own charter |
-| A008-0167 bundled platform surface | 0164 + 0165 | Ready | Additive V3 page; V1 chat and saved history stay untouched |
+| P1 GUI/import/admin closure | integrated host | Partial | Surface and admin CLI are merged. Explicit import/migration remains unreviewed |
+| A008-0167 bundled platform surface | 0164 + 0165 | Complete | PR #113 at 2afaaf2. Operator rerun GUI 204/204 plus production build |
 | A008-0168 platform admin CLI | 0164 + 0165 | Complete | PR #112 at d057c22. Operator rerun CLI host tests 2/2. No retry and no new route |
 | M1 coordination/target adapter | P1 owners | Not started | A25/A27/A29/A30 |
 | M2 context governance | M1 | Not started | A26/A31 |
@@ -113,3 +113,7 @@ platform completion claim until required stage gates actually pass.
 - A008-0168 merged through PR #112 at d057c22. Operator reran the CLI host
   tests 2/2 on head b64ef68. `info` exits 0 when the platform is off; resource
   failures exit non-zero. A008-0167 remains in execution.
+- A008-0167 merged through PR #113 at 2afaaf2. Operator reran GUI tests
+  204/204 on head 1930ea3, including the real-host two-client proof, plus GUI
+  typecheck and production build. No browser click-through was available.
+  Explicit chat import remains unreviewed.
