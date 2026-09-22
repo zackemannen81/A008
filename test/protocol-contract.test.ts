@@ -222,6 +222,16 @@ test("platform V3 exports strict bounded durable resource contracts", () => {
   );
   assert.equal(
     platformV3RunCreateRequestSchema.safeParse({
+      commandId: "command_1",
+      expectedRevision: 0,
+      model: "model",
+      text: "hello",
+      tenantId: "client-selected-authority",
+    }).success,
+    false,
+  );
+  assert.equal(
+    platformV3RunCreateRequestSchema.safeParse({
       commandId: "",
       expectedRevision: 0,
       model: "model",
