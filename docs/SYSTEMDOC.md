@@ -3,6 +3,15 @@
 This document describes durable behavior that exists now. Intended product
 architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
+## Platform V3 protocol foundation
+
+`packages/protocol/src/platform-v3.ts` owns the additive durable-work wire
+schemas, exported types and generated `platform-v3*` JSON Schema/OpenAPI files.
+V3-owned envelopes are strict; message content reuses `chatContentSchema` and
+its existing nested parsing behavior. V1/V2 artifacts are unchanged. These
+contracts do not implement HTTP endpoints, persistence or execution. See
+`docs/platform/PROTOCOL.md` and `docs/PLATFORM_V3_CONTRACT.md`.
+
 ## Project sidebar and saved chats
 
 A008-0155 / ADR 0047 adds a sidebar project tree below workspace navigation.
