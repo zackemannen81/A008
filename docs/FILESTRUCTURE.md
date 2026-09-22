@@ -36,6 +36,10 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+`docs/PLATFORM_V3_CONTRACT.md` owns the accepted first durable-work contract
+under ADR 0048. `docs/tasks/A008-0160_platform-implementation-program.md` owns
+the implementation dependency graph; child charters freeze each delivery.
+
 `docs/A008_PLATFORM_SPEC.md` is the proposed distributed platform specification,
 created by A008-0156 and updated to v1.2 by A008-0159. Sections 21.1 and 27
 define model-aware verification budgets; TASK_WORKFLOW owns the adopted working
