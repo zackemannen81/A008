@@ -10,6 +10,13 @@ import {
   isRuntimePreferencesSnapshot,
   v1JsonSchemas,
   v1HttpRoutes,
+  chatContentSchema,
+  platformV3ConversationMessageSchema,
+  platformV3ConversationSchema,
+  platformV3EventsQuerySchema,
+  platformV3JsonSchemas,
+  platformV3OpenApiDocument,
+  platformV3RunCreateRequestSchema,
 } from "../packages/protocol/src/index.js";
 import { parseClientMessage } from "../src/gui-host/protocol.js";
 
@@ -180,4 +187,119 @@ test("v1 prompt accepts one additive image locator while legacy prompt shape sta
     }).success,
     false,
   );
+});
+
+test("platform V3 exports strict bounded durable resource contracts", () => {
+  const conversation = {
+    id: "conversation_1",
+    tenantId: "tenant_1",
+    projectId: "project_1",
+    title: "Platform work",
+    createdAt: 1,
+    updatedAt: 1,
+    revision: 0,
+    messages: [],
+  };
+  assert.equal(
+    platformV3ConversationSchema.safeParse(conversation).success,
+    true,
+  );
+  assert.equal(
+    platformV3ConversationSchema.safeParse({
+      ...conversation,
+      authority: "client",
+    }).success,
+    false,
+  );
+  assert.equal(
+    platformV3RunCreateRequestSchema.safeParse({
+      commandId: "command_1",
+      expectedRevision: Number.MAX_SAFE_INTEGER + 1,
+      model: "model",
+      text: "hello",
+    }).success,
+    false,
+  );
+  assert.equal(
+    platformV3RunCreateRequestSchema.safeParse({
+      commandId: "command_1",
+      expectedRevision: 0,
+      model: "model",
+      text: "hello",
+      tenantId: "client-selected-authority",
+    }).success,
+    false,
+  );
+  assert.equal(
+    platformV3RunCreateRequestSchema.safeParse({
+      commandId: "",
+      expectedRevision: 0,
+      model: "model",
+      text: "hello",
+    }).success,
+    false,
+  );
+  assert.equal(
+    platformV3RunCreateRequestSchema.safeParse({
+      commandId: "command_1",
+      expectedRevision: 0,
+      model: "model",
+      text: "x".repeat(65_537),
+    }).success,
+    false,
+  );
+  assert.equal(
+    platformV3EventsQuerySchema.safeParse({ projectId: "project_1" }).data
+      ?.limit,
+    100,
+  );
+});
+
+test("platform V3 reuses established chat content while retaining strict V3 envelopes", () => {
+  const establishedContent = [{ type: "text", text: "hello", extension: true }];
+  assert.equal(chatContentSchema.safeParse(establishedContent).success, true);
+  assert.equal(
+    platformV3ConversationMessageSchema.safeParse({
+      id: "message_1",
+      role: "user",
+      content: establishedContent,
+      createdAt: 1,
+    }).success,
+    true,
+  );
+  assert.equal(
+    platformV3ConversationMessageSchema.safeParse({
+      id: "message_1",
+      role: "user",
+      content: "hello",
+      createdAt: 1,
+      extension: true,
+    }).success,
+    false,
+  );
+});
+
+test("platform V3 generated artifacts match the shared protocol owner", () => {
+  for (const [name, schema] of Object.entries(platformV3JsonSchemas())) {
+    assert.deepEqual(
+      schema,
+      JSON.parse(
+        readFileSync(
+          resolve(`packages/protocol/schemas/${name}.schema.json`),
+          "utf8",
+        ),
+      ),
+    );
+  }
+  const openApi = platformV3OpenApiDocument();
+  assert.deepEqual(
+    openApi,
+    JSON.parse(
+      readFileSync(
+        resolve("packages/protocol/schemas/platform-v3.openapi.json"),
+        "utf8",
+      ),
+    ),
+  );
+  assert.ok(openApi.paths["/v3/events"]?.get);
 });

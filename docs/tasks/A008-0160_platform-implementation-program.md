@@ -30,9 +30,9 @@ Electron remains conditional on a concrete need. Do not invent that need.
 
 | Task/stage | Dependencies | Status | Exit |
 | --- | --- | --- | --- |
-| P0 adoption/contracts | owner authorization | In Progress | ADR 0048 and frozen first-slice contract merged |
+| P0 adoption/contracts | owner authorization | Complete | ADR 0048 and frozen first-slice contract merged in PR #99 |
 | A008-0161 durable store | P0 | Ready | SQLite isolation/atomicity/idempotency/lease/recovery/reopen proof |
-| A008-0162 wire schemas | P0 | Ready | Strict V3 schemas, independent package checks, V1/V2 regression |
+| A008-0162 wire schemas | P0 | Complete | PR #103; strict V3 schemas, packed consumer and V1/V2 artifact regression pass |
 | A008-0163 trusted conversation seeding | P0 | Ready | Existing engine consumes committed history without legacy-store writes or semantic replay |
 | P1 host/coordinator/client integration | 0161 + 0162 + 0163 | Not started | Real host background execution, scoped auth, polling and restart proof |
 | A008-0164 backend integration | 0161 + 0162 + 0163 | Draft | Actual scoped durable background host and process-recovery proof |

@@ -6,6 +6,8 @@ import {
   v2AuthJsonSchemas,
   v2AuthOpenApiDocument,
   v2SessionJsonSchemas,
+  platformV3JsonSchemas,
+  platformV3OpenApiDocument,
 } from "../dist/packages/protocol/src/index.js";
 const directory = new URL("../packages/protocol/schemas/", import.meta.url);
 mkdirSync(directory, { recursive: true });
@@ -13,6 +15,7 @@ for (const [name, schema] of Object.entries({
   ...v1JsonSchemas(),
   ...v2AuthJsonSchemas(),
   ...v2SessionJsonSchemas(),
+  ...platformV3JsonSchemas(),
 })) {
   writeFileSync(
     fileURLToPath(new URL(`${name}.schema.json`, directory)),
@@ -26,4 +29,8 @@ writeFileSync(
 writeFileSync(
   fileURLToPath(new URL("v2-auth.openapi.json", directory)),
   JSON.stringify(v2AuthOpenApiDocument(), null, 2) + "\n",
+);
+writeFileSync(
+  fileURLToPath(new URL("platform-v3.openapi.json", directory)),
+  JSON.stringify(platformV3OpenApiDocument(), null, 2) + "\n",
 );
