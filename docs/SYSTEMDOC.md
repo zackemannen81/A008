@@ -63,8 +63,9 @@ committed assistant after dispatch stays unknown until lease recovery marks
 ## Platform admin CLI
 
 `src/platform/admin-cli.ts` inspects and cancels through the merged V3 client.
-`npm run platform-admin` does not load `.env.local` or open the platform
-database. Origin is `--origin` or `A008_PLATFORM_ORIGIN`. `info` prints
+`npm run platform-admin` compiles the repository before launch, because the
+CLI runs from `dist/` and that directory is not committed. It does not load
+`.env.local` or open the platform database. Origin is `--origin` or `A008_PLATFORM_ORIGIN`. `info` prints
 `available` and capability names without a bearer and exits 0. Resource
 commands take the bearer only from `A008_DEVICE_TOKEN` and perform one SDK
 call. `cancel-run` sends one cancel. Failures print the SDK code and exit

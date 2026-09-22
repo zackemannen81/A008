@@ -3,8 +3,9 @@
 Local inspection and cancellation for one opted-in platform host. It is not an
 admin console, a second credential store, or a reconciliation tool.
 
-`npm run platform-admin` runs `src/platform/admin-cli.ts`. The script does not
-load `.env.local`. Origin comes from `--origin` or `A008_PLATFORM_ORIGIN`. The
+`npm run platform-admin` compiles the repository, then runs
+`dist/src/platform/admin-cli.js`. That output is not committed. The source is
+`src/platform/admin-cli.ts`. The script does not load `.env.local`. Origin comes from `--origin` or `A008_PLATFORM_ORIGIN`. The
 device token comes only from `A008_DEVICE_TOKEN`. There is no credential flag,
 URL userinfo, query credential, or prompt argument.
 

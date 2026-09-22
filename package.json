@@ -54,7 +54,7 @@
     "verify:client": "npm run build:client && node scripts/verify-client-package.mjs",
     "protocol:schemas": "npm run build && node scripts/generate-protocol-schemas.mjs",
     "device": "node dist/src/gui-host/device-cli.js",
-    "platform-admin": "node dist/src/platform/admin-cli.js"
+    "platform-admin": "npm run build --silent && node dist/src/platform/admin-cli.js"
   },
   "dependencies": {
     "@a008/protocol": "file:packages/protocol",

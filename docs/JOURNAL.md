@@ -2612,3 +2612,9 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Worker verification: fixture/local, 0 live calls and 0 SEK. GUI tests 204/204. Operator rerun on head 1930ea3: GUI tests 204/204, including the real-host two-client proof, GUI typecheck and production build. The production build keeps the existing Zod annotation and chunk-size warnings. No browser click-through was available.
 - [Handoff](handoffs/A008-0167.md). [Archive](finished/A008-0167_platform-gui-surface.md).
 - Signature: Grok (operator)
+
+## 2026-09-23 — platform-admin compiles before launch
+
+- Operator: Grok. `npm run platform-admin` failed with `MODULE_NOT_FOUND` for `dist/src/platform/admin-cli.js` because `dist/` is not committed and the script started that file directly.
+- The script now runs `npm run build` first, matching `gui-host`. No CLI behavior, credential rule, or HTTP route changed.
+- Signature: Grok (operator)
