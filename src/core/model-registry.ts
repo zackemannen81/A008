@@ -162,8 +162,12 @@ export function acceptsModality(
 
 export class ModelRegistry {
   readonly #profiles: ReadonlyMap<string, ModelProfile>;
+  readonly #dynamicProfiles: () => readonly ModelProfile[];
 
-  constructor(profiles: readonly ModelProfile[]) {
+  constructor(
+    profiles: readonly ModelProfile[],
+    dynamicProfiles: () => readonly ModelProfile[] = () => [],
+  ) {
     const byId = new Map<string, ModelProfile>();
 
     for (const profile of profiles) {
@@ -177,14 +181,21 @@ export class ModelRegistry {
     }
 
     this.#profiles = byId;
+    this.#dynamicProfiles = dynamicProfiles;
   }
 
   list(): readonly ModelProfile[] {
-    return [...this.#profiles.values()];
+    const merged = new Map(this.#profiles);
+    for (const profile of this.#dynamicProfiles()) {
+      if (!merged.has(profile.id)) merged.set(profile.id, profile);
+    }
+    return [...merged.values()];
   }
 
   get(id: string): ModelProfile | undefined {
-    return this.#profiles.get(id);
+    const owned = this.#profiles.get(id);
+    if (owned !== undefined) return owned;
+    return this.#dynamicProfiles().find((profile) => profile.id === id);
   }
 
   require(id: string): ModelProfile {

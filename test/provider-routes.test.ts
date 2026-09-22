@@ -5,6 +5,11 @@ import { join } from "node:path";
 import test from "node:test";
 import { defaultModelRegistry } from "../src/core/model-registry.js";
 import {
+  McpProbeMemory,
+  McpRuntimeLedger,
+  mcpHealthView,
+} from "../src/gui-host/mcp-health.js";
+import {
   configuredMcpServers,
   handleMcpServersPost,
   handleImageGenerate,
@@ -52,6 +57,49 @@ test("MCP configuration persists enabled stdio servers and rejects unsupported t
     /MCP server/u,
   );
 });
+test("MCP health reports restart only while a session holds another catalog", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a008-mcp-health-"));
+  const catalogPath = join(dir, "catalog.json");
+  const server = {
+    name: "fixture",
+    command: "node",
+    args: ["a"],
+    env: [] as { name: string; value: string }[],
+    enabled: true,
+  };
+  handleMcpServersPost(catalogPath, { servers: [server] });
+  const ledger = new McpRuntimeLedger();
+  const probes = new McpProbeMemory();
+  const view = () => mcpHealthView({ catalogPath, ledger, probes });
+  assert.equal(view().restartRequired, false);
+  assert.equal(view().servers[0]?.status, "untested");
+  ledger.note("s1", [{ ...server, args: ["a"] }]);
+  assert.equal(view().restartRequired, false);
+  handleMcpServersPost(catalogPath, {
+    servers: [{ ...server, args: ["b"] }],
+  });
+  const drifted = view();
+  assert.equal(drifted.restartRequired, true);
+  assert.equal(drifted.servers[0]?.status, "restart_required");
+  assert.deepEqual(drifted.servers[0]?.lines, [
+    "configuration saved",
+    "active chat still uses previous MCP catalog",
+  ]);
+  probes.remember(
+    { name: "fixture", command: "node", args: ["b"], env: [] },
+    {
+      status: "failed",
+      stage: "handshake",
+      testedAt: "2026-09-22T00:00:00.000Z",
+      lines: ["process started", "MCP handshake failed"],
+    },
+  );
+  assert.equal(view().servers[0]?.status, "failed");
+  ledger.release("s1");
+  assert.equal(view().restartRequired, false);
+  assert.equal(view().servers[0]?.status, "failed");
+});
+
 test("merged models include user-catalog additions with unverified controls", () => {
   const dir = mkdtempSync(join(tmpdir(), "a008-cat-"));
   const catalogPath = join(dir, "catalog.json");

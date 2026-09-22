@@ -1,4 +1,9 @@
 export {
+  listSidebarProjects,
+  updateProject,
+  changeProjectChat,
+} from "./v1-http.js";
+export {
   bearerCredentials,
   cookieCredentials,
   detectBrowserCredentials,
@@ -38,6 +43,7 @@ export {
   generatedImageSrc,
   listProjects,
   loadKieCatalog,
+  loadMcpHealth,
   loadMcpServers,
   loadMemory,
   loadModels,
@@ -48,6 +54,7 @@ export {
   refreshZeroCostCatalog,
   openProject,
   previewProject,
+  probeMcpServer,
   registerExistingProject,
   saveMcpServers,
   saveProviderSettings,

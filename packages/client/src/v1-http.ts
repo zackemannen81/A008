@@ -14,11 +14,15 @@ import {
   type GuiModel,
   type KieCatalog,
   type McpServerCatalog,
+  type McpServerHealth,
   type MemorySnapshot,
   type NvidiaCatalog,
   type ProjectBootstrapConfig,
   type ProjectBootstrapPlan,
   type ProjectCreated,
+  type ProjectSidebar,
+  type ProjectUpdate,
+  type ProjectChatAction,
   type ProjectsResponse,
   type ProviderSettings,
   type ProviderSettingsUpdate,
@@ -87,6 +91,10 @@ export function createHttpClient(options: HttpClientOptions) {
     registerExistingProject: (config: ExistingProjectRegistration) =>
       registerExistingProject(options, config),
     listProjects: () => listProjects(options),
+    listSidebarProjects: () => listSidebarProjects(options),
+    updateProject: (input: ProjectUpdate) => updateProject(options, input),
+    changeProjectChat: (input: ProjectChatAction) =>
+      changeProjectChat(options, input),
     openProject: (projectId: string) => openProject(options, projectId),
     loadNvidiaCatalog: (signal?: AbortSignal) =>
       loadNvidiaCatalog(options, signal),
@@ -100,6 +108,8 @@ export function createHttpClient(options: HttpClientOptions) {
     loadMcpServers: (signal?: AbortSignal) => loadMcpServers(options, signal),
     saveMcpServers: (servers: McpServerCatalog["servers"]) =>
       saveMcpServers(options, servers),
+    loadMcpHealth: (signal?: AbortSignal) => loadMcpHealth(options, signal),
+    probeMcpServer: (name: string) => probeMcpServer(options, name),
     generateImage: (prompt: string) => generateImage(options, prompt),
     checkFrame: (url: string) => checkFrame(options, url),
     loadZeroCostCatalog: (signal?: AbortSignal) =>
@@ -294,6 +304,30 @@ export function formatShellHostResult(result: ShellHostResult): string {
   return `${lines.join("\n")}\n`;
 }
 
+export function listSidebarProjects(
+  client: HttpClientOptions,
+): Promise<ProjectSidebar> {
+  return projectJson(client, "/v1/projects/sidebar");
+}
+export function updateProject(
+  client: HttpClientOptions,
+  input: ProjectUpdate,
+): Promise<RegisteredProject> {
+  return projectJson(client, "/v1/projects/update", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+export function changeProjectChat(
+  client: HttpClientOptions,
+  input: ProjectChatAction,
+): Promise<WorkspaceBinding> {
+  return projectJson(client, "/v1/projects/chat", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 async function projectJson<T>(
   client: HttpClientOptions,
   path: string,
@@ -466,6 +500,38 @@ export async function loadMcpServers(
       messageFromBody(body, "Could not load MCP servers."),
     );
   return body as McpServerCatalog;
+}
+
+export async function loadMcpHealth(
+  client: HttpClientOptions,
+  signal?: AbortSignal,
+): Promise<McpServerHealth> {
+  const { response, body } = await requestJson(
+    client,
+    "/v1/mcp-servers/health",
+    withSignal(signal),
+  );
+  if (!response.ok)
+    throw new Error(messageFromBody(body, "Could not load MCP health."));
+  return body as McpServerHealth;
+}
+
+export async function probeMcpServer(
+  client: HttpClientOptions,
+  name: string,
+): Promise<McpServerHealth> {
+  const { response, body } = await requestJson(
+    client,
+    "/v1/mcp-servers/probe",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name }),
+    },
+  );
+  if (!response.ok)
+    throw new Error(messageFromBody(body, "Could not test the MCP server."));
+  return body as McpServerHealth;
 }
 
 export async function saveMcpServers(

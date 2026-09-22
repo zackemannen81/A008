@@ -1,7 +1,7 @@
 /* Standalone workspace composition. Shared feature styles retain their tokens. */
 .a008-app {
   position: relative;
-  grid-template-columns: 15rem minmax(0, 1fr);
+  grid-template-columns: 17.5rem minmax(0, 1fr);
   grid-template-rows: 3.75rem minmax(0, 1fr);
   background: var(--a008-bg);
   font-size: .9rem;
@@ -11,8 +11,10 @@
 .a008-app :focus-visible { outline: 2px solid var(--a008-focus-ring); outline-offset: 3px; }
 .a008-app .a008-rail {
   grid-column: 1; grid-row: 1 / -1; display: flex; flex-direction: column;
-  gap: 1.25rem; padding: 1.2rem .75rem .75rem; border: 0;
+  gap: .65rem; padding: 1.2rem .75rem .75rem; border: 0; overflow: hidden;
 }
+.a008-sidebar-brand, .a008-sidebar-nav, .a008-sidebar-footer { flex-shrink: 0; }
+.a008-app .a008-runtime-details { flex-shrink: 0; max-height: 30vh; overflow: auto; }
 .a008-sidebar-brand { padding: .1rem .55rem .8rem; }
 .a008-brand-name { letter-spacing: .03em; font-size: 1.1rem; }
 .a008-brand-tagline { display: none; }
@@ -43,6 +45,7 @@
 }
 .a008-header { grid-column: 2 / -1; grid-row: 1; display: flex; justify-content: space-between; gap: .75rem; padding: .65rem 1.5rem; background: var(--a008-bg); border: 0; }
 .a008-header-title { display: flex; align-items: center; gap: .75rem; min-width: 0; font-weight: 600; }
+@media (max-width: 600px) { .a008-header-title > span { display: none; } }
 .a008-header-workspace { color: var(--a008-muted); font-size: .8rem; font-weight: 400; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
 .a008-header-actions { gap: .6rem; flex-shrink: 0; }
 .a008-header-status { font-size: .7rem; text-transform: none; letter-spacing: normal; }

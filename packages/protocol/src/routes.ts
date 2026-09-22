@@ -20,6 +20,18 @@ export const v1HttpRoutes = [
   ],
   [
     "GET",
+    "/v1/mcp-servers/health",
+    "ephemeral MCP probe state and session catalog drift",
+    "mcp-health",
+  ],
+  [
+    "POST",
+    "/v1/mcp-servers/probe",
+    "ephemeral stdio MCP handshake and catalog check",
+    "mcp-health",
+  ],
+  [
+    "GET",
     "/v1/catalog/zero-cost",
     "bundled validated zero-cost model discovery",
     "zero-cost-catalog",
@@ -59,6 +71,24 @@ export const v1HttpRoutes = [
   ],
   ["GET", "/v1/blobs/{sha256}/{name}", "host source store", "source-store"],
   ["GET", "/v1/projects", "host project registry", "project-routes"],
+  [
+    "GET",
+    "/v1/projects/sidebar",
+    "host project registry and conversation summaries",
+    "project-routes",
+  ],
+  [
+    "POST",
+    "/v1/projects/update",
+    "host project display metadata",
+    "project-routes",
+  ],
+  [
+    "POST",
+    "/v1/projects/chat",
+    "host workspace conversation selection",
+    "project-routes",
+  ],
   [
     "GET",
     "/v1/projects/browse",

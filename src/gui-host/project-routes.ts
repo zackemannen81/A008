@@ -19,7 +19,11 @@ import {
   parseExistingProjectRegistration,
   parseProjectBootstrapConfig,
 } from "../bootstrap/validate.js";
-import { readProjectRegistry } from "../bootstrap/registry.js";
+import {
+  readProjectRegistry,
+  writeProjectRegistry,
+} from "../bootstrap/registry.js";
+import { projectUpdateSchema } from "../../packages/protocol/src/index.js";
 import type {
   ProjectBootstrapPlan,
   RegisteredProject,
@@ -77,6 +81,33 @@ export function handleProjectOpen(
   }
   const project = openRegisteredProject(projectId, store);
   return bindingFor(project);
+}
+
+export function handleProjectUpdate(
+  store: ProjectBootstrapStore,
+  body: unknown,
+): RegisteredProject {
+  const parsed = projectUpdateSchema.safeParse(body);
+  if (!parsed.success)
+    throw new ChatError("configuration", "Invalid project update.");
+  const { projectId, name, pinned } = parsed.data;
+  const registry = readProjectRegistry(store.registryPath);
+  const existing = registry.projects.find(
+    (project) => project.projectId === projectId,
+  );
+  if (!existing) throw new ChatError("configuration", "Unknown project.");
+  const updated = {
+    ...existing,
+    ...(name === undefined ? {} : { name }),
+    ...(pinned === undefined ? {} : { pinned }),
+  };
+  writeProjectRegistry(store.registryPath, {
+    ...registry,
+    projects: registry.projects.map((project) =>
+      project.projectId === projectId ? updated : project,
+    ),
+  });
+  return updated;
 }
 
 export function bindingFor(project: RegisteredProject): WorkspaceBinding {

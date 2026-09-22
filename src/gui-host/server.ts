@@ -3,7 +3,11 @@ import type {
   HttpError,
   UploadedSource,
   ShellHostResult,
+  ProjectSidebar,
+  WorkspaceBinding,
 } from "../../packages/protocol/src/index.js";
+import { projectChatActionSchema } from "../../packages/protocol/src/index.js";
+import { readProjectConversations } from "../runtime/conversation-state-store.js";
 
 import {
   createHash,
@@ -104,6 +108,12 @@ import {
 } from "../providers/zero-cost-model-catalog.js";
 import { fetchLatestZeroCostCatalog } from "./zero-cost-radar.js";
 import {
+  McpProbeMemory,
+  McpRuntimeLedger,
+  mcpHealthView,
+  probeSavedMcpServer,
+} from "./mcp-health.js";
+import {
   bindingFor,
   handleDirectoryList,
   handleExistingProjectRegister,
@@ -111,6 +121,7 @@ import {
   handleProjectList,
   handleProjectOpen,
   handleProjectPreview,
+  handleProjectUpdate,
 } from "./project-routes.js";
 import {
   readProjectRegistry,
@@ -323,13 +334,17 @@ export async function startGuiHost(
   const v2ServerInstanceId = options.accessToken
     ? undefined
     : `server_${randomUUID()}`;
+  const mcpSessions = new McpRuntimeLedger();
+  const mcpProbes = new McpProbeMemory();
   const v2Sessions = options.accessToken
     ? undefined
     : new V2SessionService({
         env: runtimeBaseEnv(),
         projectsPath,
+        catalogPath,
         registry: projectRegistry,
         serverInstanceId: v2ServerInstanceId!,
+        mcpSessions,
         ...(options.stderr ? { stderr: options.stderr } : {}),
       });
   const v2Auth = options.accessToken
@@ -361,6 +376,7 @@ export async function startGuiHost(
               env: acpEnv(),
               cwd: workspace.cwd,
               mcpServers: () => configuredMcpServers(catalogPath),
+              mcpSessions,
             }),
         )
         .then((created) => {
@@ -398,6 +414,73 @@ export async function startGuiHost(
     const lease = sessionLeases.get(sessionId);
     if (lease?.releaseTimer !== undefined) clearTimeout(lease.releaseTimer);
     sessionLeases.delete(sessionId);
+  };
+
+  const sidebarProjects = (): ProjectSidebar => {
+    const registry = readProjectRegistry(projectsPath);
+    return {
+      currentId: workspace.projectId ?? null,
+      projects: registry.projects.map((project) => ({
+        ...project,
+        conversations:
+          projectRegistry
+            .findByProjectId(project.projectId)
+            ?.runtime.listWorkspaceConversations() ??
+          (project.memory.useGlobalA008Memory
+            ? readProjectConversations(
+                env[SQLITE_PATH_ENV]?.trim() || defaultSqlitePath(),
+                project.projectId,
+              )
+            : []),
+      })),
+    };
+  };
+  let changingChat = false;
+  const changeProjectChat = async (
+    body: unknown,
+  ): Promise<WorkspaceBinding> => {
+    const parsed = projectChatActionSchema.safeParse(body);
+    if (
+      !parsed.success ||
+      (parsed.data.action === "open" && !parsed.data.conversationId)
+    ) {
+      throw new ChatError("configuration", "Invalid project chat action.");
+    }
+    if (changingChat)
+      throw new ChatError(
+        "configuration",
+        "A project chat switch is already in progress.",
+      );
+    changingChat = true;
+    try {
+      const { projectId, action, conversationId } = parsed.data;
+      const project = readProjectRegistry(projectsPath).projects.find(
+        (entry) => entry.projectId === projectId,
+      );
+      if (!project) throw new ChatError("configuration", "Unknown project.");
+      const target = projectRegistry.openConfigured(project.rootFolder, {
+        ...runtimeBaseEnv(),
+        [PROJECT_ID_ENV]: projectId,
+        [SQLITE_PATH_ENV]: project.memory.useGlobalA008Memory
+          ? env[SQLITE_PATH_ENV]?.trim() || defaultSqlitePath()
+          : ":memory:",
+      });
+      if (
+        action === "open" &&
+        !target.runtime
+          .listWorkspaceConversations()
+          .some((chat) => chat.conversationId === conversationId)
+      ) {
+        throw new ChatError("configuration", "Unknown project conversation.");
+      }
+      // Close and settle the old session before changing the selected chat.
+      await applyWorkspace(bindingFor(project));
+      if (action === "new") target.runtime.createWorkspaceConversation();
+      else target.runtime.selectWorkspaceConversation(conversationId!);
+      return handleProjectOpen({ registryPath: projectsPath }, { projectId });
+    } finally {
+      changingChat = false;
+    }
   };
 
   const releaseDetachedSession = async (sessionId: string): Promise<void> => {
@@ -589,9 +672,13 @@ export async function startGuiHost(
       getBridge,
       fetchImpl,
       catalogPath,
+      mcpSessions,
+      mcpProbes,
       secretsPath,
       projectsPath,
       applyWorkspace,
+      sidebarProjects,
+      changeProjectChat,
     });
   });
 
@@ -748,8 +835,12 @@ async function handleHttp(input: {
   readonly getBridge: () => Promise<AcpBridge>;
   readonly fetchImpl: FetchLike;
   readonly catalogPath: string;
+  readonly mcpSessions: McpRuntimeLedger;
+  readonly mcpProbes: McpProbeMemory;
   readonly secretsPath: string;
   readonly projectsPath: string;
+  readonly sidebarProjects: () => ProjectSidebar;
+  readonly changeProjectChat: (body: unknown) => Promise<WorkspaceBinding>;
   readonly applyWorkspace: (next: {
     cwd: string;
     projectId: string;
@@ -859,6 +950,44 @@ async function handleHttp(input: {
         response,
         200,
         handleMcpServersPost(input.catalogPath, await readJsonBody(request)),
+      );
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/mcp-servers/health") {
+      sendJson(
+        response,
+        200,
+        mcpHealthView({
+          catalogPath: input.catalogPath,
+          ledger: input.mcpSessions,
+          probes: input.mcpProbes,
+        }),
+      );
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/mcp-servers/probe") {
+      if (!isJsonContentType(request)) {
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
+        return;
+      }
+      const body = await readJsonBody(request);
+      if (!isRecord(body) || typeof body.name !== "string" || !body.name.trim())
+        throw new ChatError("configuration", "MCP server name is required.");
+      sendJson(
+        response,
+        200,
+        await probeSavedMcpServer({
+          catalogPath: input.catalogPath,
+          name: body.name,
+          cwd: input.cwd,
+          env: input.env,
+          ledger: input.mcpSessions,
+          probes: input.mcpProbes,
+        }),
       );
       return;
     }
@@ -1004,6 +1133,35 @@ async function handleHttp(input: {
     if (method === "GET" && blob) {
       if (handleBlobGet(input.storeRoot, blob[1]!, blob[2]!, response)) return;
       sendJson(response, 404, errorBody("Image not found."));
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/projects/sidebar") {
+      sendJson(response, 200, input.sidebarProjects());
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/projects/update") {
+      if (!isJsonContentType(request)) {
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
+        return;
+      }
+      const body = await readJsonBody(request);
+      sendJson(
+        response,
+        200,
+        handleProjectUpdate({ registryPath: input.projectsPath }, body),
+      );
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/projects/chat") {
+      if (!isJsonContentType(request)) {
+        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        return;
+      }
+      sendJson(response, 200, await input.changeProjectChat(await readJsonBody(request)));
       return;
     }
     if (method === "GET" && pathname === "/v1/projects") {

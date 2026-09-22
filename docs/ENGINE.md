@@ -111,7 +111,12 @@ Commands run with host filesystem access in the displayed working directory.
 This is not a filesystem sandbox. Shell children receive basic OS environment
 variables; provider credentials and process injection options are omitted.
 Approved MCP servers receive their explicit private environment from the client's
-policy. Cancelling pending approval executes nothing; cancelling running work
+policy, plus `A008_MCP_EXECUTION_ID` and `A008_MCP_SERVER_SCOPE` for that tool
+session and server. Those two values are runtime-owned. A published string
+`session` argument is filled from the server scope and is not offered to the
+model. Domain containment combined with restore or state replay is rejected
+before the call. Parameters → MCP can probe a saved server through a temporary
+process; that probe does not change an open chat. Cancelling pending approval executes nothing; cancelling running work
 stops local shell processes and reports no confirmed success. Actions already
 performed cannot be rolled back by cancellation. A remote side effect performed
 by an MCP server may already have happened when cancellation arrives.

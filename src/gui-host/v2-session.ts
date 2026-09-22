@@ -27,6 +27,7 @@ import {
   SQLITE_PATH_ENV,
 } from "../runtime/local-runtime-config.js";
 import { sameCommittedMessageIdentity } from "../core/chat-content.js";
+import type { McpRuntimeLedger } from "./mcp-health.js";
 import { configuredMcpServers } from "./provider-routes.js";
 import type { V2Principal } from "./v2-auth.js";
 import { V2AuthError, V2_LIMITS } from "./v2-auth.js";
@@ -78,6 +79,7 @@ export class V2SessionService {
   readonly #env: NodeJS.ProcessEnv;
   readonly #projectsPath: string;
   readonly #catalogPath?: string;
+  readonly #mcpSessions?: McpRuntimeLedger;
   readonly #registry: ProjectRuntimeRegistry;
   readonly #serverInstanceId: string;
   readonly #host: EngineHost;
@@ -91,6 +93,7 @@ export class V2SessionService {
     env: NodeJS.ProcessEnv;
     projectsPath: string;
     catalogPath?: string;
+    mcpSessions?: McpRuntimeLedger;
     registry: ProjectRuntimeRegistry;
     serverInstanceId: string;
     stderr?: NodeJS.WritableStream;
@@ -101,6 +104,8 @@ export class V2SessionService {
     this.#env = { ...options.env };
     this.#projectsPath = options.projectsPath;
     this.#catalogPath = options.catalogPath ?? "";
+    if (options.mcpSessions !== undefined)
+      this.#mcpSessions = options.mcpSessions;
     this.#registry = options.registry;
     this.#serverInstanceId = options.serverInstanceId;
     this.#now = options.now ?? Date.now;
@@ -305,12 +310,13 @@ export class V2SessionService {
   }): Promise<V2SessionState> {
     const project = this.#project(input.projectId);
     const notify = (message: SessionNotification) => this.#notify(message);
+    const mcpServers = this.#catalogPath
+      ? [...configuredMcpServers(this.#catalogPath)]
+      : [];
     const created = await this.#host.newSession(
       {
         cwd: project.rootFolder,
-        mcpServers: this.#catalogPath
-          ? [...configuredMcpServers(this.#catalogPath)]
-          : [],
+        mcpServers,
       },
       {
         notify,
@@ -353,6 +359,7 @@ export class V2SessionService {
       messages: [],
     };
     this.#sessions.set(created.sessionId, owned);
+    this.#mcpSessions?.note(created.sessionId, mcpServers);
     try {
       if (input.model !== undefined)
         this.#host.control(created.sessionId, {
@@ -364,6 +371,7 @@ export class V2SessionService {
         this.#host.control(created.sessionId, { action: "inspect" }),
       );
     } catch (error) {
+      this.#mcpSessions?.release(created.sessionId);
       this.#sessions.delete(created.sessionId);
       await this.#host.closeSession(created.sessionId).catch(() => undefined);
       throw error;
@@ -487,6 +495,7 @@ export class V2SessionService {
       );
       this.#denyPermissions(sessionId);
       this.#clearLease(owned);
+      this.#mcpSessions?.release(sessionId);
       await this.#host.closeSession(sessionId);
       this.#sessions.delete(sessionId);
       return { ...state, active: false, closed: true };
@@ -571,7 +580,10 @@ export class V2SessionService {
     for (const permission of this.#permissions.values())
       permission.resolve({ outcome: { outcome: "cancelled" } });
     this.#permissions.clear();
-    for (const session of this.#sessions.values()) this.#clearLease(session);
+    for (const session of this.#sessions.values()) {
+      this.#clearLease(session);
+      this.#mcpSessions?.release(session.sessionId);
+    }
     this.#sessions.clear();
     await this.#host.close();
   }
@@ -649,6 +661,7 @@ export class V2SessionService {
     } else {
       this.#denyPermissions(owned.sessionId);
     }
+    this.#mcpSessions?.release(owned.sessionId);
     await this.#host.closeSession(owned.sessionId).catch(() => undefined);
     if (this.#sessions.get(owned.sessionId) === owned)
       this.#sessions.delete(owned.sessionId);

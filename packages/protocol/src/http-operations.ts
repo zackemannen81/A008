@@ -37,6 +37,11 @@ const payloads: Readonly<Record<string, Payloads>> = {
     body: "mcpServerCatalogInput",
     response: "mcpServerCatalog",
   },
+  "GET /v1/mcp-servers/health": { response: "mcpServerHealth" },
+  "POST /v1/mcp-servers/probe": {
+    body: "mcpServerProbeInput",
+    response: "mcpServerHealth",
+  },
   "GET /v1/catalog/zero-cost": { response: "zeroCostCatalog" },
   "POST /v1/catalog/zero-cost": { response: "zeroCostCatalog" },
   "POST /v1/catalog/zero-cost/models": {
@@ -63,6 +68,15 @@ const payloads: Readonly<Record<string, Payloads>> = {
     response: "binary",
   },
   "GET /v1/projects": { response: "projects" },
+  "GET /v1/projects/sidebar": { response: "projectSidebar" },
+  "POST /v1/projects/update": {
+    body: "projectUpdate",
+    response: "registeredProject",
+  },
+  "POST /v1/projects/chat": {
+    body: "projectChatAction",
+    response: "workspaceBinding",
+  },
   "GET /v1/projects/browse": {
     query: "directoryQuery",
     response: "directoryList",

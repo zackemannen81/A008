@@ -164,9 +164,17 @@ never whether work is active or complete. Task state belongs in
 | A008-0148 | user-configured MCP servers and Settings surface | Rickard (operator) | 2026-09-21 | product/GUI configuration and lifecycle for existing MCP tool support |
 | A008-0149 | Stage 5 independent client SDK and bundled web migration | Grok (operator) | 2026-09-21 | platform-independent @a008/client, credential adapters, GUI consumes SDK |
 | A008-0150 | normalize strict-provider null sentinels for optional MCP arguments | Rickard (operator) | 2026-09-21 | restore OpenAI strict-schema nullable-required optional MCP fields before local validation |
-<<<<<<< HEAD
-| A008-0151 | ZeroCostRadar live refresh and model import | ChatGPT (operator) | 2026-09-21 | add explicit live update check against ZeroCostRadar and bounded one-click import for executable discovered models |
-=======
-| A008-0151 | ZeroCostRadar live refresh and model import | ChatGPT (operator) | 2026-09-21 | explicit live discovery refresh plus bounded import for already-executable routes |
+| A008-0151 | ZeroCostRadar live refresh and model import | ChatGPT (operator) | 2026-09-21 | explicit live discovery refresh, add live update check against ZeroCostRadar, and bounded one-click import for executable discovered models |
 | A008-0152 | ZeroCostRadar provider execution support | ChatGPT (operator) | 2026-09-21 | explicit host-owned execution and credentials for currently discovery-only zero-cost providers |
->>>>>>> e9bd538b1cd272102403ff8e0e99fc2a7458b4e4
+=======
+| A008-0153 | catalog-backed runtime model registry | ChatGPT (operator) | 2026-09-22 | make user-catalog models first-class runtime/session profiles instead of UI-only extras |
+| A008-0154 | MCP health probe and isolated session lifecycle | Grok (operator) | 2026-09-22 | ephemeral stdio health probe, session-catalog indicator, and runtime-owned MCP session scope |
+| A008-0155 | themed project sidebar | Codex (operator) | 2026-09-22 | owner-requested project navigation and project details following the active app theme |
+| A008-0156 | distributed platform specification | Codex (operator) | 2026-09-22 | complete the owner's platform draft with background-run, multiproject, ownership, recovery and migration contracts; documentation only |
+| A008-0157 | platform specification with established multi-agent workflow | Codex (operator) | 2026-09-22 | integrate the four optional add-on contracts and productize the owner's practiced Docs-First multi-agent workflow; documentation only |
+| A008-0158 | execution verification evidence boundary | Codex (operator) | 2026-09-22 | reserve execution verification evidence for runtime verification and separate it from A008 semantic evidence, cognition and memory; specification only |
+| A008-0159 | model-aware live verification budgets | Codex (operator) | 2026-09-22 | replace blanket paid-call escalation with bounded delegated verification authority, model-aware cost estimates and shared task limits; documentation only |
+| A008-0160 | platform implementation program | Codex (operator) | 2026-09-22 | adopt platform direction, own dependency graph, bounded delegation, verified PR integration and release gates |
+| A008-0161 | platform durable work store | Codex (operator) | 2026-09-22 | local scoped SQLite conversations, runs, receipts, outbox and fenced recovery under the platform contract |
+| A008-0162 | platform V3 protocol contracts | Codex (operator) | 2026-09-22 | separately versioned durable-work wire schemas and independent protocol verification without changing V1/V2 |
+>>>>>>> d4ebfa685ffe32214f8dee61a1e6e7ba8c09e3d8

@@ -79,10 +79,13 @@ request set (no provider is called):
 node scripts/check-semantic-extraction.mjs --model moonshotai/kimi-k3
 ```
 
-After explicit live-provider authority, the same command may add `--live` and
+Within approved routes and the resolved [verification budget](TASK_WORKFLOW.md#live-verification-budget), the same command may add `--live` and
 use Node's existing `--env-file-if-exists=.env.local` loading. Confirm the actual
 failing model first. The check sends at most three extraction calls, with the
 normal semantic sampling, at most 16384 output tokens per call and no retries.
+That harness ceiling exceeds the default verification output allowance: inspect
+the effective request limit and use a task-approved matching ceiling before live
+dispatch. This documentation update does not change the script's parameters.
 It uses the existing generator, NVIDIA transport and pure stager; it never opens
 a memory store. It prints synthetic claim results for human semantic review,
 separate from strict-JSON, count and source-span checks. A successful sample does

@@ -310,6 +310,9 @@ test("real host HTTP surface preserves auth, runtime validation, payloads and bi
       ],
     });
     await request("POST", "/v1/mcp-servers", { servers: [{ name: "bad" }] }, 400);
+    await request("GET", "/v1/mcp-servers/health");
+    await request("POST", "/v1/mcp-servers/probe", { name: "synthetic-mcp" });
+    await request("POST", "/v1/mcp-servers/probe", { name: "missing" }, 400);
     await request("GET", "/v1/catalog/nvidia");
     await request("POST", "/v1/catalog/nvidia", {
       id: "synthetic/model",
@@ -339,6 +342,7 @@ test("real host HTTP surface preserves auth, runtime validation, payloads and bi
     assert.deepEqual(Buffer.from(await blob.arrayBuffer()), png);
     covered.add("GET /v1/blobs/{sha256}/{name}");
     await request("GET", "/v1/projects");
+    await request("GET", "/v1/projects/sidebar");
     await request(
       "GET",
       "/v1/projects/browse?path=" + encodeURIComponent(directory),
@@ -358,6 +362,62 @@ test("real host HTTP surface preserves auth, runtime validation, payloads and bi
     assert.equal(
       readFileSync(join(existingRoot, "keep.txt"), "utf8"),
       "unchanged",
+    );
+    const sidebarProjectId = (registered.value as { projectId: string })
+      .projectId;
+    await request("POST", "/v1/projects/update", {
+      projectId: sidebarProjectId,
+      name: "Renamed",
+      pinned: true,
+    });
+    await request(
+      "POST",
+      "/v1/projects/update",
+      { projectId: sidebarProjectId, name: " " },
+      400,
+    );
+    await request(
+      "POST",
+      "/v1/projects/update",
+      { projectId: sidebarProjectId, rootFolder: "different" },
+      400,
+    );
+    await request("POST", "/v1/projects/chat", {
+      projectId: sidebarProjectId,
+      action: "new",
+    });
+    const sidebar = (await request("GET", "/v1/projects/sidebar"))
+      .value as import("../packages/protocol/src/index.js").ProjectSidebar;
+    const selectedProject = sidebar.projects.find(
+      (project) => project.projectId === sidebarProjectId,
+    )!;
+    assert.equal(selectedProject.name, "Renamed");
+    assert.equal(selectedProject.pinned, true);
+    assert.equal(selectedProject.conversations.length, 1);
+    await request("POST", "/v1/projects/chat", {
+      projectId: sidebarProjectId,
+      action: "new",
+    });
+    await request("POST", "/v1/projects/chat", {
+      projectId: sidebarProjectId,
+      action: "open",
+      conversationId: selectedProject.conversations[0]!.conversationId,
+    });
+    await request(
+      "POST",
+      "/v1/projects/chat",
+      {
+        projectId: sidebarProjectId,
+        action: "open",
+        conversationId: "missing",
+      },
+      400,
+    );
+    await request(
+      "POST",
+      "/v1/projects/chat",
+      { projectId: sidebarProjectId, action: "open" },
+      400,
     );
     const config = {
       projectName: "Contract fixture",

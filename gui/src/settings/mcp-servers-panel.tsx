@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
-import type { McpServer } from "../../../packages/protocol/src/index.js";
-import { loadMcpServers, saveMcpServers } from "./mcp-servers.js";
+import type {
+  McpServer,
+  McpServerHealth,
+  McpServerHealthEntry,
+} from "../../../packages/protocol/src/index.js";
+import { loadMcpHealth, loadMcpServers, probeMcpServer, saveMcpServers } from "./mcp-servers.js";
 
 type DraftServer = McpServer;
 
@@ -11,6 +15,13 @@ const blank = (): DraftServer => ({
   env: [],
   enabled: true,
 });
+
+const STATUS_LABEL = {
+  ready: "READY",
+  failed: "FAILED",
+  restart_required: "RESTART REQUIRED",
+  untested: "NOT TESTED",
+} as const;
 
 function draftValid(server: DraftServer): boolean {
   const names = new Set<string>();
@@ -27,18 +38,120 @@ function draftValid(server: DraftServer): boolean {
   );
 }
 
+function testedClock(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "Tested";
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `Tested ${hours}:${minutes}`;
+}
+
+export function McpServerList(props: {
+  servers: readonly DraftServer[];
+  health?: McpServerHealth;
+  busy: boolean;
+  onEdit: (index: number) => void;
+  onToggle: (index: number) => void;
+  onRemove: (index: number) => void;
+  onTest: (name: string) => void;
+}) {
+  return (
+    <ul>
+      {props.servers.map((server, index) => {
+        const health = props.health?.servers.find(
+          (entry) => entry.name === server.name,
+        );
+        return (
+          <li key={`${server.name}/${index}`}>
+            <McpServerStatus server={server} health={health} />
+            <div className="a008-mcp-actions">
+              <button
+                type="button"
+                disabled={props.busy}
+                onClick={() => props.onEdit(index)}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                disabled={props.busy}
+                onClick={() => props.onTest(server.name)}
+              >
+                Reload & Test
+              </button>
+              <button
+                type="button"
+                disabled={props.busy}
+                onClick={() => props.onToggle(index)}
+              >
+                {server.enabled ? "Disable" : "Enable"}
+              </button>
+              <button
+                type="button"
+                disabled={props.busy}
+                onClick={() => props.onRemove(index)}
+              >
+                Remove
+              </button>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function McpServerStatus(props: {
+  server: DraftServer;
+  health?: McpServerHealthEntry;
+}) {
+  const status = props.health?.status ?? "untested";
+  return (
+    <div>
+      <div className="a008-mcp-heading">
+        <strong>{props.server.name}</strong>
+        <span className={`a008-mcp-status a008-mcp-status-${status}`}>
+          {`● ${STATUS_LABEL[status]}`}
+        </span>
+      </div>
+      <code>{[props.server.command, ...props.server.args].join(" ")}</code>
+      <div className="a008-mcp-lines">
+        {(props.health?.lines ?? ["Not tested"]).map((line, index) => (
+          <span key={`${index}:${line}`}>{line}</span>
+        ))}
+        {status === "ready" && props.health?.testedAt ? (
+          <span>{testedClock(props.health.testedAt)}</span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function McpServersPanel() {
   const [servers, setServers] = useState<readonly DraftServer[]>([]);
+  const [health, setHealth] = useState<McpServerHealth>();
   const [draft, setDraft] = useState<DraftServer>(blank);
   const [editing, setEditing] = useState<number>();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const refreshHealth = (signal?: AbortSignal) =>
+    loadMcpHealth(signal).then((next) => {
+      if (!signal?.aborted) setHealth(next);
+    });
+
   useEffect(() => {
     const controller = new AbortController();
-    void loadMcpServers(controller.signal)
-      .then((catalog) => setServers(catalog.servers))
+    void Promise.all([
+      loadMcpServers(controller.signal),
+      loadMcpHealth(controller.signal),
+    ])
+      .then(([catalog, nextHealth]) => {
+        if (controller.signal.aborted) return;
+        setServers(catalog.servers);
+        setHealth(nextHealth);
+      })
       .catch((reason) => {
         if (!controller.signal.aborted)
           setError(
@@ -64,6 +177,13 @@ export function McpServersPanel() {
     setError("");
     setNotice("");
   };
+  const saved = (catalog: { servers: readonly DraftServer[] }) => {
+    setServers(catalog.servers);
+    setNotice(
+      "Saved. An active chat keeps its current MCP catalog until a new session starts.",
+    );
+    return refreshHealth();
+  };
   const save = () => {
     if (!draftValid(draft)) {
       setError(
@@ -79,12 +199,9 @@ export function McpServersPanel() {
     setNotice("");
     void saveMcpServers(next)
       .then((catalog) => {
-        setServers(catalog.servers);
         setDraft(blank());
         setEditing(undefined);
-        setNotice(
-          "Saved. Start a new session to use the updated MCP tool catalog.",
-        );
+        return saved(catalog);
       })
       .catch((reason) =>
         setError(reason instanceof Error ? reason.message : "Save failed."),
@@ -96,14 +213,11 @@ export function McpServersPanel() {
     setError("");
     void saveMcpServers(servers.filter((_, current) => current !== index))
       .then((catalog) => {
-        setServers(catalog.servers);
         if (editing === index) {
           setEditing(undefined);
           setDraft(blank());
         }
-        setNotice(
-          "Saved. Existing sessions retain their current tool catalog.",
-        );
+        return saved(catalog);
       })
       .catch((reason) =>
         setError(reason instanceof Error ? reason.message : "Remove failed."),
@@ -116,14 +230,23 @@ export function McpServersPanel() {
     );
     setBusy(true);
     void saveMcpServers(next)
-      .then((catalog) => {
-        setServers(catalog.servers);
-        setNotice(
-          "Saved. Existing sessions retain their current tool catalog.",
-        );
-      })
+      .then((catalog) => saved(catalog))
       .catch((reason) =>
         setError(reason instanceof Error ? reason.message : "Save failed."),
+      )
+      .finally(() => setBusy(false));
+  };
+  const test = (name: string) => {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    void probeMcpServer(name)
+      .then((next) => {
+        setHealth(next);
+        setNotice("Tested with a temporary MCP process. The active chat was not changed.");
+      })
+      .catch((reason) =>
+        setError(reason instanceof Error ? reason.message : "MCP test failed."),
       )
       .finally(() => setBusy(false));
   };
@@ -134,39 +257,18 @@ export function McpServersPanel() {
       <p>
         Configure approved local stdio servers. A008 starts them only through
         the shared tool session, and each MCP tool call still needs approval.
-        Changes apply when a new session is constructed; they do not alter an
-        active session.
+        Reload &amp; Test uses a temporary process and does not change an active
+        chat. Saved changes apply when a new session is constructed.
       </p>
-      <ul>
-        {servers.map((server, index) => (
-          <li key={`${server.name}/${index}`}>
-            <div>
-              <strong>{server.name}</strong>
-              <code>{server.command}</code>
-              <span>{server.enabled ? "Enabled" : "Disabled"}</span>
-            </div>
-            <div>
-              <button type="button" disabled={busy} onClick={() => edit(index)}>
-                Edit
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => toggle(index)}
-              >
-                {server.enabled ? "Disable" : "Enable"}
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => remove(index)}
-              >
-                Remove
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <McpServerList
+        servers={servers}
+        health={health}
+        busy={busy}
+        onEdit={edit}
+        onToggle={toggle}
+        onRemove={remove}
+        onTest={test}
+      />
       <div className="a008-mcp-editor">
         <h4>{editing === undefined ? "Add MCP server" : "Edit MCP server"}</h4>
         <label>

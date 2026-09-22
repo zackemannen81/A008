@@ -1,7 +1,52 @@
 # Current Status
 
-Reality as of 2026-09-21. This document records observed state; intended design
+Reality as of 2026-09-22. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
+
+A008-0159 adopts bounded live-verification authority in TASK_WORKFLOW, AGENTS,
+CONTRIBUTING, MULTIAGENT and the task template. In-scope tests on approved routes
+inherit 10 SEK and finite call/token/time limits without per-call approval;
+model-aware reservations and shared worker accounting preserve those limits.
+[A008 Platform](A008_PLATFORM_SPEC.md) v1.2 incorporates the owner's revised
+section 27 and future budget checks. This is documentation/working policy;
+automatic product enforcement is not implemented. No live calls were made.
+
+A008-0158 updated the platform proposal to v1.1.
+Execution Verification Evidence is explicitly technical execution observation,
+with separate contracts, identities and ingestion from semantic evidence.
+Unknown effects remain unknown; transport/process success cannot confer truth,
+memory state, HEAD, quality or task acceptance. Cognition, memory semantics and
+the shipped ACME boundary remain unchanged. Documentation only.
+
+A008-0157 updated the proposal to v1.0 with
+the owner's established Docs-First multi-agent workflow and four independent
+add-on contracts. It integrates task/delegation identities, bounded context,
+routed communication, worker/master replacement and a product integration
+roadmap. Existing practice is input, not a new conceptual proof requirement.
+Read-only source evidence distinguishes the process supervisor from proposed
+add-on capabilities. No runtime feature, accepted ADR or API schema changed.
+
+A008-0156 created the initial documentation-only review draft,
+[A008 Platform](A008_PLATFORM_SPEC.md), for the owner's distributed-platform
+direction and parallel background/multiproject work. It distinguishes current
+V2/ACME/memory contracts from proposed run ownership, recovery, device execution,
+isolation, migration and acceptance gates. No platform capability, API contract,
+accepted ADR or implementation status changes in this task.
+
+A008-0155 adds the themed Projects sidebar with collapsible folders, nested saved
+chats, active selection and New chat. The details menu shows chat count and path,
+and supports registry-owned pinning and display-name editing. Pinned projects
+sort first, then names alphabetically; opening a project does not move its row.
+Standalone projects now retain multiple conversations through the existing SQLite
+owner, with an additive migration of the previous current chat. New chat preserves
+other chats; reset/model change still replace only the selected chat. Projects
+with global memory disabled retain chats only during the host lifetime. The
+authenticated host routes and independent SDK expose sidebar/update/chat actions.
+Verification for this local branch is recorded in the A008-0155 task/handoff.
+
+A008-0154 makes stdio MCP health and session identity host-owned. Parameters → MCP can Reload & Test a saved server: the host spawns a temporary process, completes MCP initialize, `tools/list`, and catalog validation, then closes it. The row shows READY with the tool count, FAILED with the stage that stopped (`process did not start`, `MCP handshake failed`, catalog validation, or close), or RESTART REQUIRED when an open host session was constructed with a different enabled catalog. The probe does not replace that session's `ModelToolSession`. Each tool session publishes `A008_MCP_EXECUTION_ID` and a stable `A008_MCP_SERVER_SCOPE`. A string `session` argument published by the server is hidden from the model and filled from that scope. Domain containment combined with restore or state replay is rejected before execution. No server name is special-cased. V2 session construction now receives the same catalog path the bundled bridge already used. Verification: 726/726 core + 4/4 membership + 190/190 GUI = 920/920, root and GUI typecheck, GUI production build, packed protocol verification, and `git diff --check` pass. No live provider call.
+
+A008-0153 removes the remaining split-brain between the model list and runtime session registry. `ModelRegistry` can now compose dynamic profiles while preserving shipped-profile precedence, and the ACP/local runtime owns one catalog-backed registry whose dynamic source is the current configured user catalog. A model added after runtime startup is therefore immediately resolvable by `LocalMemoryRuntime.sessionParameters()` and a newly created ACP session without host restart; no imported model ids are hardcoded. Focused model/runtime tests pass 17/17, the full repository gate passes 722/722 core + 4/4 membership + 189/189 GUI = 915/915, root typecheck, GUI production build and `git diff --check` pass, and a read-only smoke against the operator catalog resolved `thinkingmachines/inkling:free`, `moonshotai/kimi-k2.6` and `openai/gpt-oss-120b` without provider calls.
 
 A008-0152 completes the execution side of the Zero Cost Radar boundary introduced by A008-0151. Catalog execution no longer coerces an unknown provider to NVIDIA: shipped and user-added models resolve only through explicit execution providers, and unknown/unsupported providers fail before network dispatch. Validated ZeroCostRadar Chat-Completions routes for OpenRouter, Groq, Google Gemini OpenAI compatibility and OpenCode Zen can now be imported and executed in both direct/reference mode and the default embedded ACME runtime. Compatible user models persist the exact provider, normalized base URL and API style; the runtime accepts only the approved provider/base-url pair and keeps `openai-responses` routes blocked until that protocol is separately owned. Parameters → Provider adds write-only OpenRouter/Groq/Gemini/OpenCode credentials through the existing host secrets owner; only configured/source metadata reaches the renderer. Zero Cost import now posts only a Radar route key to `POST /v1/catalog/zero-cost/models`; the host re-fetches and validates the current published feed, resolves that exact key, and only then persists the route, so the endpoint cannot be used as a generic compatible-provider injector. The legacy NVIDIA catalog mutation accepts only NVIDIA/kie models. Existing NVIDIA, kie and native OpenAI routes remain intact and there is no automatic provider/model/paid fallback. A008 continues to use `acme-engine@0.1.6`; no ACME source/release change was required. Full repository verification passes 720/720 core + 4/4 membership + 189/189 GUI = 913 tests with zero failures/skips; root typecheck, GUI production build, packed protocol/client verification and `git diff --check` pass. No live model inference or paid call was made.
 
@@ -437,8 +482,9 @@ unexecuted. The replacement exists only in ignored `.env.local` as
 
 ## Known gaps and risks
 
-- Live NVIDIA verification still requires explicit credential/cost authority;
-  rotation alone did not authorize or perform a provider call.
+- Live NVIDIA verification uses approved credentials/routes and the resolved
+  TASK_WORKFLOW verification budget; credential rotation alone does not approve
+  a route or establish that a provider call was performed.
 - OpenHands `dev:minimal` has a 30-second Agent Server readiness timeout while
   the pinned backend needed about 42 seconds on this Windows host. The exact
   locked backend and Vite processes work when started separately.
@@ -464,8 +510,8 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   them.
 - Image uploads are stored but not extracted. The `ImageDescriber` port and
   its NVIDIA implementation exist and are fake-verified, but the registry holds
-  no vision-capable model and a live vision call is a paid call needing explicit
-  authority.
+  no vision-capable model. Live verification uses an approved model/route and
+  the TASK_WORKFLOW budget; the budget does not itself add registry capability.
 - A contested slot is permanent, and slots contested before A008-0062 stay
   contested. The defect that was creating them constantly is fixed — a statement
   slot is a set now, so two different true facts about one entity no longer read

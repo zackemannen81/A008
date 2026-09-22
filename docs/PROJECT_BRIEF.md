@@ -45,7 +45,7 @@ client surfaces, and optional persistent semantic memory.
   media persistence and semantic-memory provenance remain separately owned.
   Preserve source provenance and explicit unsupported outcomes; a listed
   capability alone does not implement or authorize it. See ADR 0020, 0025-0027,
-  0030-0033, 0044 and 0045.
+  0030-0033 and 0044-0047.
 
 Apply the [Necessity Gate](TASK_WORKFLOW.md#necessity-gate) to each substantive
 change. Cite the exact PC clause and the accepted detailed constraint needed
@@ -64,6 +64,12 @@ NVIDIA CLI with a modern GUI/client derived from OpenHands Agent Canvas and an
 add-on model for capabilities such as semantic memory.
 
 ## Approved product direction
+
+- ADR 0047 adopts the owner's themed project-sidebar workflow: registered
+  projects expose multiple saved chats through the existing host/runtime and
+  SQLite conversation owner. It supersedes ADR 0046's single-current-chat limit
+  while retaining ephemeral session authority, project isolation and existing
+  reset/model-change semantics for the selected chat.
 
 - ADR 0045 withdraws the inherited text-only committed-chat restriction. A008's canonical conversation model may carry provider-neutral typed multimodal content, including generated-image references, while raw media remains in the source store and image content does not automatically become semantic knowledge. Existing string messages remain a compatibility form during migration.
 

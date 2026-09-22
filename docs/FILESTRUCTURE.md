@@ -1,3 +1,5 @@
+A008-0154 adds `src/tools/mcp-runtime.ts` for the ephemeral stdio probe, execution identity, server scope, and schema-driven session binding. `src/gui-host/mcp-health.ts` owns the process-local catalog ledger and probe memory behind `GET /v1/mcp-servers/health` and `POST /v1/mcp-servers/probe`. Parameters → MCP renders READY, FAILED, and RESTART REQUIRED. `ModelToolSession` remains the only owner that executes MCP tools for a chat.
+
 A008-0152 adds `src/providers/compatible/{provider-routes,openai-compatible-chat-transport}.ts` as the explicit OpenAI-compatible execution boundary for validated Radar routes. `src/core/{execution-provider,user-catalog,provider-secrets}.ts` owns exact provider resolution, persisted route metadata and host-owned credentials; `src/providers/acme/embedded-acme-chat-transport.ts` composes the same routes into ACME `compatible[]`; `src/runtime/chat-dispatch.ts` owns the direct/reference switch. Protocol/client/GUI add the revalidated `POST /v1/catalog/zero-cost/models` route and write-only provider-key fields. Unknown providers no longer coerce to NVIDIA.
 
 A008-0151 adds `src/gui-host/zero-cost-radar.ts` as the bounded live-feed fetch/validation owner while preserving `src/providers/zero-cost-model-catalog.ts` as the bundled offline snapshot. `packages/protocol/src/{routes,http-operations}.ts` and generated HTTP OpenAPI add explicit `POST /v1/catalog/zero-cost`; `packages/client` exposes the same refresh operation. `gui/src/settings/zero-cost-radar*.ts*` owns Update check, current-model availability and bounded one-click import through the existing user catalog. No new provider adapter is introduced.
@@ -34,6 +36,26 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+`docs/A008_PLATFORM_SPEC.md` is the proposed distributed platform specification,
+created by A008-0156 and updated to v1.2 by A008-0159. Sections 21.1 and 27
+define model-aware verification budgets; TASK_WORKFLOW owns the adopted working
+defaults and template_CURRENT_TASK records resolved task allocations.
+Section 7.1 separates
+Execution Verification Evidence from semantic evidence and memory ingestion.
+It includes durable parallel
+runs, multi-project/client ownership, devices, isolation, migration and the
+established Docs-First multi-agent workflow. Section 8.1–8.7 integrates the four
+add-on contracts; source baselines and product integration gates distinguish
+practice from newly proposed implementation. Accepted API/ACME/memory contracts
+are not superseded and no new runtime behavior is claimed.
+
+A008-0155 adds `gui/src/projects/project-sidebar.tsx` and `project-sidebar.css`
+for the theme-aware project/chat tree and details dialog. Existing project routes,
+SDK/protocol owners and `src/runtime/conversation-state-store.ts` own metadata,
+summary projection, saved chats and selection. The synthetic real-host/production
+GUI preview is `gui/test/project-sidebar-preview.mjs`; regression tests extend
+the existing project GUI, HTTP contract and local runtime suites.
+
 `docs/A008_SYSTEM_ARCHITECTURE.md` owns the target logical architecture for local/hosted A008 with embedded `@acme-engine/model-runtime` and the A008/ACME/provider ownership boundary.
 
 A008-0111 extends the existing `src/bootstrap/` registry/service/validator and `src/gui-host/project-routes.ts` with read-only adoption of an already-existing root. `packages/protocol/src/{routes,http-schemas,http-operations}.ts` owns the additive `POST /v1/projects/register` contract and regenerated OpenAPI. `gui/src/projects/` owns the separate New/Add existing modes. No new persistence owner or project-tree metadata file is introduced; registration writes only the existing external projects registry.
@@ -69,7 +91,7 @@ no provider or user data. Regression coverage stays in the existing
 
 A008-0085 adds `scripts/check-semantic-extraction.mjs`: a dry-run-by-default
 synthetic extraction check through the existing built generator/transport/stager.
-Live mode requires an explicit flag, selected model and separate task authority;
+Live mode requires an explicit flag, selected model and resolved verification budget;
 it opens no memory store. Instruction and diagnostic fixes stay in the existing
 `src/orchestration/semantic-json-model.ts`; no new runtime/API/schema owner.
 

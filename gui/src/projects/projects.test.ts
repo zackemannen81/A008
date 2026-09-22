@@ -7,8 +7,91 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { registerExistingProject } from "./bootstrap-client.js";
 import { ProjectsPage } from "./projects-page.js";
+import { ProjectList } from "./project-sidebar.js";
+import {
+  changeProjectChat,
+  updateProject,
+} from "../../../packages/client/src/index.js";
+import { guiHttp } from "../client.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
+
+test("sidebar renders isolated nested chats, active selection, pinned order and escaped names", () => {
+  const project = {
+    projectId: "one",
+    name: "<unsafe>",
+    rootFolder: "C:/fixture",
+    createdAt: "today",
+    repository: { initialize: false, name: "fixture" },
+    continuity: { docsFirst: false, multiAgent: { enabled: false as const } },
+    memory: { useGlobalA008Memory: true },
+    conversations: [
+      {
+        conversationId: "chat-one",
+        title: "First <chat>",
+        current: true,
+        updatedAt: "today",
+      },
+    ],
+  };
+  const html = renderToStaticMarkup(
+    createElement(ProjectList, {
+      data: {
+        currentId: "one",
+        projects: [
+          project,
+          {
+            ...project,
+            projectId: "two",
+            name: "Pinned project",
+            pinned: true,
+            conversations: [],
+          },
+        ],
+      },
+      busy: false,
+      collapsed: new Set(["two"]),
+      onToggle() {},
+      onOpen() {},
+      onNew() {},
+      onMenu() {},
+    }),
+  );
+  assert.ok(html.indexOf("Pinned project") < html.indexOf("&lt;unsafe&gt;"));
+  assert.match(html, /aria-current="page"/u);
+  assert.match(html, /First &lt;chat&gt;/u);
+  assert.match(html, /id="chats-two"[^>]*hidden/u);
+  assert.match(html, /aria-haspopup="dialog"/u);
+  assert.equal(html.includes("<unsafe>"), false);
+});
+
+test("sidebar SDK sends explicit host chat selection and bounded project metadata", async () => {
+  const seen: { url: string; body: unknown }[] = [];
+  const client = guiHttp(async (url, init) => {
+    seen.push({ url: String(url), body: JSON.parse(String(init?.body)) });
+    return Response.json({});
+  });
+  await changeProjectChat(client, {
+    projectId: "p",
+    action: "open",
+    conversationId: "c",
+  });
+  await updateProject(client, {
+    projectId: "p",
+    name: "Renamed",
+    pinned: true,
+  });
+  assert.deepEqual(seen, [
+    {
+      url: "/v1/projects/chat",
+      body: { projectId: "p", action: "open", conversationId: "c" },
+    },
+    {
+      url: "/v1/projects/update",
+      body: { projectId: "p", name: "Renamed", pinned: true },
+    },
+  ]);
+});
 
 test("Projects wizard renders New, Recent and continuity controls", () => {
   const html = renderToStaticMarkup(

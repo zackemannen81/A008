@@ -404,6 +404,100 @@
         ]
       }
     },
+    "/v1/mcp-servers/health": {
+      "get": {
+        "summary": "ephemeral MCP probe state and session catalog drift",
+        "x-a008-owner": "mcp-health",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mcpServerHealth"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/mcp-servers/probe": {
+      "post": {
+        "summary": "ephemeral stdio MCP handshake and catalog check",
+        "x-a008-owner": "mcp-health",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/mcpServerProbeInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/mcpServerHealth"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
     "/v1/catalog/zero-cost": {
       "get": {
         "summary": "bundled validated zero-cost model discovery",
@@ -892,6 +986,152 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/projects"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/sidebar": {
+      "get": {
+        "summary": "host project registry and conversation summaries",
+        "x-a008-owner": "project-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/projectSidebar"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/update": {
+      "post": {
+        "summary": "host project display metadata",
+        "x-a008-owner": "project-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/projectUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/registeredProject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/chat": {
+      "post": {
+        "summary": "host workspace conversation selection",
+        "x-a008-owner": "project-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/projectChatAction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceBinding"
                 }
               }
             }
@@ -1993,6 +2233,9 @@
           "createdAt": {
             "$ref": "#/components/schemas/registeredProject/$defs/__schema0"
           },
+          "pinned": {
+            "type": "boolean"
+          },
           "repository": {
             "type": "object",
             "properties": {
@@ -2115,6 +2358,9 @@
                 "createdAt": {
                   "$ref": "#/components/schemas/projects/$defs/__schema0"
                 },
+                "pinned": {
+                  "type": "boolean"
+                },
                 "repository": {
                   "type": "object",
                   "properties": {
@@ -2209,6 +2455,216 @@
         "$defs": {
           "__schema0": {
             "type": "string"
+          }
+        }
+      },
+      "projectSidebar": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "currentId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/projectSidebar/$defs/__schema0"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "projects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "projectId": {
+                  "$ref": "#/components/schemas/projectSidebar/$defs/__schema0"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/projectSidebar/$defs/__schema0"
+                },
+                "rootFolder": {
+                  "$ref": "#/components/schemas/projectSidebar/$defs/__schema0"
+                },
+                "createdAt": {
+                  "$ref": "#/components/schemas/projectSidebar/$defs/__schema0"
+                },
+                "pinned": {
+                  "type": "boolean"
+                },
+                "repository": {
+                  "type": "object",
+                  "properties": {
+                    "initialize": {
+                      "type": "boolean"
+                    },
+                    "name": {
+                      "$ref": "#/components/schemas/projectSidebar/$defs/__schema0"
+                    }
+                  },
+                  "required": [
+                    "initialize",
+                    "name"
+                  ]
+                },
+                "continuity": {
+                  "type": "object",
+                  "properties": {
+                    "docsFirst": {
+                      "type": "boolean"
+                    },
+                    "multiAgent": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "const": false
+                            }
+                          },
+                          "required": [
+                            "enabled"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "const": true
+                            },
+                            "maxWorkers": {
+                              "type": "number"
+                            },
+                            "workerCloneRoot": {
+                              "$ref": "#/components/schemas/projectSidebar/$defs/__schema0"
+                            }
+                          },
+                          "required": [
+                            "enabled",
+                            "maxWorkers",
+                            "workerCloneRoot"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "docsFirst",
+                    "multiAgent"
+                  ]
+                },
+                "memory": {
+                  "type": "object",
+                  "properties": {
+                    "useGlobalA008Memory": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "useGlobalA008Memory"
+                  ]
+                },
+                "conversations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "conversationId": {
+                        "$ref": "#/components/schemas/projectSidebar/$defs/__schema0"
+                      },
+                      "title": {
+                        "$ref": "#/components/schemas/projectSidebar/$defs/__schema0"
+                      },
+                      "updatedAt": {
+                        "$ref": "#/components/schemas/projectSidebar/$defs/__schema0"
+                      },
+                      "current": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "conversationId",
+                      "title",
+                      "updatedAt",
+                      "current"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "projectId",
+                "name",
+                "rootFolder",
+                "createdAt",
+                "repository",
+                "continuity",
+                "memory",
+                "conversations"
+              ]
+            }
+          }
+        },
+        "required": [
+          "currentId",
+          "projects"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "projectUpdate": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "pinned": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "projectId"
+        ],
+        "additionalProperties": false
+      },
+      "projectChatAction": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "$ref": "#/components/schemas/projectChatAction/$defs/__schema0"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "new",
+              "open"
+            ]
+          },
+          "conversationId": {
+            "$ref": "#/components/schemas/projectChatAction/$defs/__schema0"
+          }
+        },
+        "required": [
+          "projectId",
+          "action"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "type": "string",
+            "minLength": 1
           }
         }
       },
@@ -2336,6 +2792,9 @@
               },
               "createdAt": {
                 "$ref": "#/components/schemas/projectCreated/$defs/__schema0"
+              },
+              "pinned": {
+                "type": "boolean"
               },
               "repository": {
                 "type": "object",
@@ -2843,6 +3302,91 @@
         },
         "required": [
           "servers"
+        ]
+      },
+      "mcpServerHealth": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "restartRequired": {
+            "type": "boolean"
+          },
+          "servers": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "$ref": "#/components/schemas/mcpServerHealth/$defs/__schema0"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ready",
+                    "failed",
+                    "restart_required",
+                    "untested"
+                  ]
+                },
+                "stage": {
+                  "type": "string",
+                  "enum": [
+                    "process",
+                    "handshake",
+                    "catalog",
+                    "close"
+                  ]
+                },
+                "toolCount": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "testedAt": {
+                  "$ref": "#/components/schemas/mcpServerHealth/$defs/__schema1"
+                },
+                "lines": {
+                  "readOnly": true,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/mcpServerHealth/$defs/__schema0"
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "status",
+                "lines"
+              ]
+            }
+          }
+        },
+        "required": [
+          "restartRequired",
+          "servers"
+        ],
+        "$defs": {
+          "__schema0": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/mcpServerHealth/$defs/__schema1"
+          },
+          "__schema1": {
+            "type": "string"
+          }
+        }
+      },
+      "mcpServerProbeInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "name"
         ]
       },
       "providerSettings": {

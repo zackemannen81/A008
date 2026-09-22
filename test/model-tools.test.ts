@@ -18,8 +18,14 @@ import {
   ModelToolSession,
   boundedToolText,
   normalizeOptionalNullArguments,
+  toolEnvironment,
   type ToolActivity,
 } from "../src/tools/model-tools.js";
+import {
+  bindRuntimeMcpArguments,
+  presentMcpSchema,
+  probeStdioMcpServer,
+} from "../src/tools/mcp-runtime.js";
 import { DEFAULT_RUNTIME_BUDGETS as budgets } from "../src/core/runtime-preferences.js";
 import { RuntimePreferencesStore } from "../src/runtime/runtime-preferences-store.js";
 import { runTerminalCommand } from "../src/tools/terminal.js";
@@ -780,6 +786,195 @@ test("approved stdio MCP server is discovered, schema validated, executed and cl
     });
   } finally {
     await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("runtime MCP binding owns session and rejects containment with replay", () => {
+  const schema = {
+    type: "object",
+    properties: {
+      url: { type: "string" },
+      session: { type: "string" },
+      allowedDomains: { type: "array", items: { type: "string" } },
+      restore: { type: "string" },
+    },
+    required: ["url", "session"],
+    additionalProperties: false,
+  };
+  const presented = presentMcpSchema(schema);
+  const properties = presented.properties as Record<string, unknown>;
+  assert.equal(properties.session, undefined);
+  assert.deepEqual(presented.required, ["url"]);
+  const bound = bindRuntimeMcpArguments(
+    schema,
+    { url: "https://example.com", session: "model-picked" },
+    "scope-a",
+  );
+  assert.equal(bound.ok, true);
+  if (bound.ok) assert.equal(bound.arguments.session, "scope-a");
+  const blocked = bindRuntimeMcpArguments(
+    schema,
+    {
+      url: "https://example.com",
+      allowedDomains: ["example.com"],
+      restore: "snap",
+    },
+    "scope-a",
+  );
+  assert.equal(blocked.ok, false);
+});
+
+test("tool sessions keep distinct stable MCP scopes and do not execute containment with replay", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-mcp-scope-"));
+  const server = {
+    name: "fixture",
+    command: process.execPath,
+    args: [resolve("dist/test/fixtures/tool-mcp.js")],
+    env: [{ name: "MODE", value: "probe" }],
+  };
+  const env = { ...process.env, NVIDIA_API_KEY: "supersecret-mcp" };
+  const open = (executionId: string) =>
+    new ModelToolSession({ cwd, env, executionId, mcpServers: [server] });
+  const first = open("chat-a");
+  const second = open("chat-b");
+  const approval = { approve: async () => true, update: async () => undefined };
+  try {
+    const portA = await first.prepare(budgets, approval, new AbortController().signal);
+    const portB = await second.prepare(budgets, approval, new AbortController().signal);
+    const definition = portA.definitions.find((item) =>
+      item.description.includes("fixture_scope"),
+    )!;
+    const properties = definition.parameters.properties as Record<string, unknown>;
+    assert.equal(properties.session, undefined);
+    const call = async (
+      port: typeof portA,
+      id: string,
+      args: Record<string, unknown>,
+    ) =>
+      JSON.parse(
+        await port.execute({ id, name: definition.name, arguments: JSON.stringify(args) }),
+      ) as { status: string; text: string };
+    const read = (output: { text: string }) =>
+      JSON.parse(JSON.parse(output.text).content[0].text) as {
+        arguments: { session?: string };
+        scope: string;
+        execution: string;
+        secret: boolean;
+      };
+    const a1 = await call(portA, "a1", {
+      url: "https://example.com",
+      session: "model-picked",
+    });
+    const a2 = await call(portA, "a2", { url: "https://example.com" });
+    const b1 = await call(portB, "b1", { url: "https://www.iana.org" });
+    assert.equal(a1.status, "completed");
+    const firstScope = read(a1);
+    assert.equal(firstScope.execution, "chat-a");
+    assert.equal(firstScope.secret, false);
+    assert.equal(firstScope.arguments.session, firstScope.scope);
+    assert.notEqual(firstScope.arguments.session, "model-picked");
+    assert.equal(read(a2).arguments.session, firstScope.scope);
+    const secondScope = read(b1);
+    assert.equal(secondScope.execution, "chat-b");
+    assert.notEqual(secondScope.scope, firstScope.scope);
+    rmSync(join(cwd, "mcp-scope-called.txt"), { force: true });
+    const blocked = await call(portA, "blocked", {
+      url: "https://example.com",
+      allowedDomains: ["example.com"],
+      restore: "snap",
+    });
+    assert.equal(blocked.status, "invalid_arguments");
+    assert.match(blocked.text, /fresh context/u);
+    assert.equal(existsSync(join(cwd, "mcp-scope-called.txt")), false);
+  } finally {
+    await first.close();
+    await second.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("ephemeral MCP probe reports ready, handshake failure, catalog failure, and a missing process", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-mcp-probe-"));
+  const report = join(cwd, "report.json");
+  const fixture = {
+    name: "fixture",
+    command: process.execPath,
+    args: [resolve("dist/test/fixtures/tool-mcp.js")],
+    env: [] as { name: string; value: string }[],
+  };
+  try {
+    const ready = await probeStdioMcpServer({
+      server: {
+        ...fixture,
+        env: [
+          { name: "A008_PROBE_REPORT", value: report },
+          { name: "MODE", value: "probe" },
+          { name: "A008_MCP_SERVER_SCOPE", value: "configured-must-lose" },
+        ],
+      },
+      cwd,
+      env: toolEnvironment({ ...process.env, NVIDIA_API_KEY: "supersecret-mcp" }),
+      executionId: "probe-1",
+    });
+    assert.equal(ready.status, "ready");
+    assert.equal(ready.toolCount, 3);
+    assert.deepEqual([...ready.lines], ["3 tools discovered"]);
+    const observed = JSON.parse(readFileSync(report, "utf8")) as {
+      pid: number;
+      secret: boolean;
+      mode: string;
+      scope: string;
+      execution: string;
+    };
+    assert.equal(observed.secret, false);
+    assert.equal(observed.mode, "probe");
+    assert.equal(observed.execution, "probe-1");
+    assert.notEqual(observed.scope, "configured-must-lose");
+    assert.equal(observed.scope.length, 32);
+    assert.throws(() => process.kill(observed.pid, 0));
+    const handshake = await probeStdioMcpServer({
+      server: {
+        ...fixture,
+        env: [{ name: "FIXTURE_MODE", value: "exit" }],
+      },
+      cwd,
+      env: toolEnvironment(process.env),
+    });
+    assert.equal(handshake.status, "failed");
+    assert.equal(handshake.stage, "handshake");
+    assert.deepEqual([...handshake.lines], [
+      "process started",
+      "MCP handshake failed",
+    ]);
+    const invalid = await probeStdioMcpServer({
+      server: {
+        ...fixture,
+        env: [{ name: "FIXTURE_MODE", value: "bad-catalog" }],
+      },
+      cwd,
+      env: toolEnvironment(process.env),
+    });
+    assert.equal(invalid.status, "failed");
+    assert.equal(invalid.stage, "catalog");
+    assert.deepEqual([...invalid.lines], [
+      "process started",
+      "MCP catalog validation failed",
+    ]);
+    const missing = await probeStdioMcpServer({
+      server: {
+        name: "missing",
+        command: "a008-missing-mcp-binary",
+        args: [],
+        env: [],
+      },
+      cwd,
+      env: toolEnvironment(process.env),
+    });
+    assert.equal(missing.status, "failed");
+    assert.equal(missing.stage, "process");
+    assert.deepEqual([...missing.lines], ["process did not start"]);
+  } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
 });
