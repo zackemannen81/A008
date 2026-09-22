@@ -6,6 +6,7 @@ import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { ChatError } from "./errors.js";
 import { catalogExecutionProvider } from "./execution-provider.js";
+import { ModelRegistry } from "./model-registry.js";
 import type {
   ChatGenerationOptions,
   ModelModality,
@@ -275,6 +276,19 @@ export function userModelProfile(model: UserChatModel): ModelProfile {
     defaults,
     inputModalities: model.inputModalities,
   };
+}
+
+export function catalogBackedModelRegistry(
+  base: ModelRegistry,
+  catalogPath: string,
+): ModelRegistry {
+  return new ModelRegistry(base.list(), () => {
+    try {
+      return loadUserCatalog(catalogPath).chatModels.map(userModelProfile);
+    } catch {
+      return [];
+    }
+  });
 }
 
 export function defaultCatalogPath(

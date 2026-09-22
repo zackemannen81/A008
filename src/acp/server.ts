@@ -9,10 +9,10 @@ import { ModelToolSession } from "../tools/model-tools.js";
 import { prepareAcpTools } from "../tools/acp-tools.js";
 import { nativeToolCatalog } from "../tools/repository-tools.js";
 import {
+  catalogBackedModelRegistry,
   defaultCatalogPath,
-  loadUserCatalog,
-  userModelProfile,
 } from "../core/user-catalog.js";
+import { defaultModelRegistry } from "../core/model-registry.js";
 
 export interface AcpServerOptions {
   readonly env?: NodeJS.ProcessEnv;
@@ -28,23 +28,21 @@ export function createAcpRuntime(options: {
   ownershipAlreadyHeld?: boolean;
 }) {
   const { env, stderr } = options;
+  const registry = catalogBackedModelRegistry(
+    defaultModelRegistry,
+    defaultCatalogPath(env),
+  );
   const runtime = createLocalMemoryRuntime({
     env,
     surface: "acp",
     stderr,
+    registry,
     ...(options.ownershipAlreadyHeld ? { ownershipAlreadyHeld: true } : {}),
   });
   const agent = new A008AcpAgent({
     sessionControls: true,
-    extraProfiles: () => {
-      try {
-        return loadUserCatalog(defaultCatalogPath(env)).chatModels.map(
-          userModelProfile,
-        );
-      } catch {
-        return [];
-      }
-    },
+    registry,
+    extraProfiles: () => [],
     runtimeInfo: () => ({
       cwd: options.cwd ?? process.cwd(),
       projectId: runtime.projectId,

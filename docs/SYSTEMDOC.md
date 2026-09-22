@@ -143,6 +143,8 @@ A008-0136 established the typed bundled Zero Cost Radar projection; A008-0151 ke
 
 A008-0152 adds a separate authenticated host mutation, `POST /v1/catalog/zero-cost/models`, that accepts only a Radar route key. The host re-fetches and validates the published feed, resolves that exact key, validates the provider/base-URL/API-style tuple against A008-owned execution policy, and only then persists the model. Compatible user-model rows retain provider, normalized base URL and API style across restart. OpenRouter, Groq, Google Gemini OpenAI compatibility and OpenCode Zen Chat-Completions routes are executable through explicit provider credentials in both direct/reference dispatch and embedded ACME `compatible[]` profiles. Unknown providers, missing credentials, mismatched endpoints and unsupported API styles fail before provider network execution; `openai-responses` Radar rows remain blocked. Parameters → Provider owns write-only compatible-provider credentials and exposes only configured/source state. Parameters → Zero Cost derives Add availability from the same supported route policy. Import never changes the active/default model/provider and never introduces provider/model/paid fallback.
 
+A008-0153 makes the model registry itself catalog-backed instead of letting only the host/ACP listing layer know about user models. Shipped profiles remain the static authoritative base; a dynamic profile source reads the configured user catalog at `list/get/require` time and is merged without overriding shipped IDs. `createAcpRuntime` passes that same registry instance to `LocalMemoryRuntime` and `A008AcpAgent`, so model listing, session parameter resolution and new-session creation share one model truth. Because the dynamic source is evaluated on lookup, adding a validated user model does not require restarting an already-open project runtime before opening a new session with it.
+
 A008-0148 makes the existing stdio-only MCP catalog configurable in Parameters → MCP. The host persists one operator-managed catalog in the existing user catalog, validates name/command/argument/environment structure before it reaches execution, and exposes it through authenticated V1 host routes. Renderer code only reads/writes that configuration; it never spawns MCP processes. The bundled V1 bridge and V2 session service each read the same enabled definitions only while constructing a new `EngineHost` session; `EngineHost` passes them to the existing `ModelToolSession`, which remains the sole MCP process/catalog/tool execution owner. Existing sessions retain their already constructed catalog, and the Settings UI explicitly requires a new session after changes. stdio remains the only supported transport; approval, cancellation, timeouts and tool/catalog budgets remain inside `ModelToolSession`. This flow does not restore or migrate sessions and does not alter A008-0147 lifecycle ownership.
 
 `ChatSession` owns in-memory conversation history. It constructs a pending turn,
@@ -1059,7 +1061,11 @@ metadata, credentials, endpoints and execution controls into
 `acme-engine@0.1.6`; no separately started ACME process or
 `A008_ACME_MODEL_RUNTIME_URL`/token/build configuration is needed. The embedded
 runtime is rebuilt for subsequent calls when the user catalog fingerprint
-changes. Explicit `A008_CHAT_TRANSPORT=direct` uses the existing direct provider
+changes. The runtime model registry is independently catalog-backed and resolves
+the current user catalog at lookup time, so session parameters/new-session
+validation sees a model added after runtime startup without requiring a host
+restart. Shipped profiles retain precedence over dynamic catalog entries.
+Explicit `A008_CHAT_TRANSPORT=direct` uses the existing direct provider
 dispatch. Explicit `A008_CHAT_TRANSPORT=acme` retains the remote compatibility
 mode, where `A008_ACME_MODEL_RUNTIME_URL` is required and optional token/build
 settings describe that remote runtime. NVIDIA-hosted embedded profiles share the
