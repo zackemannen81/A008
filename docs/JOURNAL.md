@@ -2587,3 +2587,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Known limit, routed to the backlog: the A008-0149 fixture still leaves `A008_SECRETS_PATH` unset, so host startup can read `~/.a008/secrets.json` for providers whose environment keys are absent.
 - [Handoff](handoffs/A008-0166.md). [Archive](finished/A008-0166_host-fixture-catalog-isolation.md).
 - Signature: Grok (operator)
+
+## 2026-09-22 — A008-0164 local platform backend
+
+- Operator: Grok. PR #111 merged at 3716b44.
+- Opt-in GUI-host `/v3` composes PlatformStore, the V3 contract and trusted seeding. Client disconnect does not cancel accepted text work. A killed process leaves dispatched work in `needs_reconciliation` without sending that prompt again. V1/V2 behavior stays in place. No tools, approvals, migration, or public reconciliation API.
+- Store change shares the existing `acceptRun` digest with read-only `lookupRunReceipt`. It does not change cancellation or recovery semantics.
+- Worker verification: fixture/local, 0 live calls and 0 SEK. `test:core` 755/755, membership 4/4, GUI 192/192. Operator rerun on head eaecebd: platform store and host tests 16/16, including the real child-process restart.
+- [Handoff](handoffs/A008-0164.md). [Archive](finished/A008-0164_platform-local-backend.md).
+- Signature: Grok (operator)

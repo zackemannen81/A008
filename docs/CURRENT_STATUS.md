@@ -6,9 +6,20 @@ belongs in `docs/PROJECT_BRIEF.md`.
 A008-0165 is merged through PR #108 at 1cf318e. `@a008/client` exports
 `createPlatformV3Client`: strict request and response validation, safe path
 encoding, and one HTTP attempt per mutation. Operator verification on this main
-passed `npm run verify:client` and the focused SDK file 6/6. No V3 host endpoint
-or background run exists. A008-0164 is Ready and has no implementation on main.
-No live provider call.
+passed `npm run verify:client` and the focused SDK file 6/6. No live provider
+call for the SDK.
+
+A008-0164 is merged through PR #111 at 3716b44. The GUI host serves opt-in `/v3`
+when `GuiHostOptions.platformPath` or `A008_PLATFORM_PATH` points at one
+exclusive SQLite file outside the repository. Without that path, `/v3/info`
+stays unavailable and no platform database opens. V1/V2 behavior is unchanged.
+Accepted text runs use the existing project runtime once, without tools.
+Disconnect does not cancel them. A killed process leaves dispatched work in
+`needs_reconciliation` and does not send that prompt again. Operator rerun on
+PR head `eaecebd`: platform store and host tests 16/16, including the real
+child-process restart. Worker `test:core` was 755/755, membership 4/4, and GUI
+192/192. This slice has no tools, approvals, migration, or public reconciliation
+API.
 
 A008-0166 is merged through PR #110 at a690141. `isolatedMemoryEnv` sets
 `A008_CATALOG_PATH` to a missing temporary `catalog.json` before caller

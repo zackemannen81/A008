@@ -12,7 +12,7 @@ the template before push.
 ## Records
 
 - [A008-0166_host-fixture-catalog-isolation.md](A008-0166_host-fixture-catalog-isolation.md) — Ready; isolate verification from user MCP configuration.
-- [A008-0164_platform-local-backend.md](A008-0164_platform-local-backend.md) — Ready; dependencies accepted, scoped host integration.
+- [A008-0164_platform-local-backend.md](A008-0164_platform-local-backend.md) — Complete; local `/v3` host backend. [Archive](../finished/A008-0164_platform-local-backend.md).
 - [A008-0165_platform-client.md](A008-0165_platform-client.md) — Ready; execute after protocol integration.
 
 - [A008-0163_trusted-conversation-seeding.md](A008-0163_trusted-conversation-seeding.md) — Complete; internal history seed, PR #106.

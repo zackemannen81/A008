@@ -34,8 +34,8 @@ Electron remains conditional on a concrete need. Do not invent that need.
 | A008-0161 durable store | P0 | Complete | PR #104; SQLite atomicity, scope, lease and corrected cancellation/recovery gates pass |
 | A008-0162 wire schemas | P0 | Complete | PR #103; strict V3 schemas, packed consumer and V1/V2 artifact regression pass |
 | A008-0163 trusted conversation seeding | P0 | Complete | PR #106; 39 focused tests, no legacy-store writes or semantic replay |
-| P1 host/coordinator/client integration | 0161 + 0162 + 0163 | Not started | Real host background execution, scoped auth, polling and restart proof |
-| A008-0164 backend integration | 0161 + 0162 + 0163 | Ready | Actual scoped durable background host and process-recovery proof |
+| P1 host/coordinator/client integration | 0161 + 0162 + 0163 | Complete | PR #111 at 3716b44 plus merged V3 SDK #108. GUI closure remains the next P1 row |
+| A008-0164 backend integration | 0161 + 0162 + 0163 | Complete | PR #111 at 3716b44. Operator rerun store+host 16/16, including real process restart |
 | A008-0165 V3 SDK | 0162 | Merged | PR #108 at 1cf318e. Operator: verify:client pass, focused SDK 6/6. Real-host V2 regression remains 0166 |
 | A008-0166 fixture isolation | observed SDK host test failure | Complete | PR #110 at a690141. Operator rerun V2 host 2/2. Worker full suite 745+4+192. Secrets-path limit backlogged |
 | P1 GUI/import/admin closure | integrated host | Not started | Parallel projects, durable chats incl memory-off, migration/restore gates |
@@ -102,3 +102,6 @@ platform completion claim until required stage gates actually pass.
 - A008-0166 merged through PR #110 at a690141 after operator rerun of the V2
   real-host file, 2/2, on head 2537f1a. `A008_SECRETS_PATH` remains unset in
   that fixture and is backlog, not part of 0166.
+- A008-0164 merged through PR #111 at 3716b44. Operator reran platform store
+  and host tests 16/16 on head eaecebd, including the real child-process
+  restart. No live provider call. P1 GUI closure is the next unfrozen row.

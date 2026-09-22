@@ -47,7 +47,13 @@ A008-0162 adds `packages/protocol/src/platform-v3.ts`, generated
 `packages/protocol/schemas/platform-v3*` artifacts and
 `docs/platform/PROTOCOL.md` for the additive platform wire contracts.
 A008-0165 adds `packages/client/src/platform-v3.ts` and the implemented
-`docs/platform/CLIENT.md` SDK. V3 host composition remains A008-0164.
+`docs/platform/CLIENT.md` SDK. A008-0164 adds `src/platform/coordinator.ts`,
+`src/platform/runtime-adapter.ts`, `src/platform/local-config.ts`,
+`src/gui-host/platform-v3-http.ts` and `docs/platform/BACKEND.md`.
+`src/gui-host/server.ts` opts the host in. `src/platform/platform-store.ts`
+adds read-only `lookupRunReceipt`. `test/platform-host.test.ts` and
+`test/fixtures/platform-host-process.ts` prove the real host, including
+child-process restart.
 
 `test/helpers.ts` defaults `A008_CATALOG_PATH` inside `isolatedMemoryEnv` to a
 missing temporary catalog so shared host fixtures do not load the operator

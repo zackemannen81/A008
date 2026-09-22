@@ -32,7 +32,7 @@ while dispatched uncertainty requires reconciliation. An accepted pre-dispatch
 cancellation survives lease expiry. Unknown external effects cannot be confirmed
 as cancelled. Memory outcome metadata is independent of the committed answer.
 The store has no scheduler, HTTP routes, semantic intake or process-lifetime lock.
-See `docs/platform/STORE.md`; host composition remains pending.
+See `docs/platform/STORE.md`. Host composition is the local platform backend below.
 
 ## Trusted backend conversation history
 
@@ -43,8 +43,22 @@ content, and copies the history. Seed input is absent from client request DTOs
 and cannot be combined with legacy workspace-conversation persistence. Opening
 it performs no provider call, semantic replay or legacy-store mutation. The next
 new turn uses the existing cognition/memory/provider pipeline. See
-`docs/platform/CONVERSATION_SEED.md`. Durable platform run coordination is a
-separate pending integration.
+`docs/platform/CONVERSATION_SEED.md`.
+
+## Local platform backend
+
+When `A008_PLATFORM_PATH` or `GuiHostOptions.platformPath` is set,
+`src/gui-host/server.ts` serves `/v3` through `src/gui-host/platform-v3-http.ts`
+and `src/platform/coordinator.ts`. The tenant is `local`. V2 PIN or device
+authentication with the `session` capability authorizes project resources before
+existence is revealed. `PlatformStore.lookupRunReceipt` replays an identical
+`run.create` before capacity or model checks, using the same canonical digest
+as `acceptRun`. The runtime adapter opens the already-owned project runtime
+with `conversationSeed` excluding the new user message and performs one
+tool-free `turn`. Answer commit and memory outcome are separate. A missing
+committed assistant after dispatch stays unknown until lease recovery marks
+`needs_reconciliation`. There is no public reconciliation mutation. See
+`docs/platform/BACKEND.md`.
 
 ## Project sidebar and saved chats
 
