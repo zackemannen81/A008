@@ -127,7 +127,10 @@ export interface ClaimedPlatformRun {
   readonly lease: PlatformLease;
 }
 
-export interface RenewPlatformLease extends PlatformLease {
+export interface RenewPlatformLease {
+  readonly runId: string;
+  readonly ownerToken: string;
+  readonly generation: number;
   readonly leaseDurationMs: number;
 }
 

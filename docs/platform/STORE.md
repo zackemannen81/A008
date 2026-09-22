@@ -99,6 +99,36 @@ recordMemoryOutcome(scope, input): PlatformRun
 recoverExpiredLeases(scope): readonly PlatformRun[]
 ```
 
+The coordinator-facing arguments are deliberately small and exact:
+
+```ts
+new PlatformStore({ filename, clock?, identityFactory?, idFactory?, database? })
+
+acceptRun(scope, {
+  conversationId, commandId, expectedRevision, model, text,
+  runId?, messageId?, memoryRequested?
+})
+claimRun(scope, { runId, ownerToken, leaseDurationMs })
+renewLease(scope, { runId, ownerToken, generation, leaseDurationMs })
+recordDispatch(scope, { runId, ownerToken, generation, expectedRevision })
+commitAnswer(scope, { runId, ownerToken, generation, expectedRevision, content, messageId? })
+failRun(scope, { runId, ownerToken, generation, expectedRevision, error: { code, message } })
+requestCancel(scope, { runId, expectedRevision })
+confirmCancellation(scope, { runId, ownerToken, generation, expectedRevision })
+recordMemoryOutcome(scope, { runId, expectedRevision, status })
+recoverExpiredLeases(scope)
+readEvents(scope, { after?: number, limit?: number })
+```
+
+`clock` returns a nonnegative epoch-millisecond safe integer. `leaseDurationMs`
+is a positive safe integer. `ownerToken` is the worker-owned opaque lease token;
+`generation` is the store-issued fencing value returned by `claimRun` and never
+selected by a caller. `recordDispatch` has no provider payload: it durably marks
+the boundary before external execution. `commitAnswer` takes only canonical chat
+content and has no raw response or reasoning field. Recovery receives only its
+trusted scope and uses the store clock; it never accepts a client-selected
+recovery outcome.
+
 `acceptRun` is one immediate SQLite transaction: it checks a matching command
 receipt first, then validates the conversation revision and one nonterminal
 writer, appends the user message, creates the queued run and receipt, and writes
