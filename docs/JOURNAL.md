@@ -2618,3 +2618,8 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Operator: Grok. `npm run platform-admin` failed with `MODULE_NOT_FOUND` for `dist/src/platform/admin-cli.js` because `dist/` is not committed and the script started that file directly.
 - The script now runs `npm run build` first, matching `gui-host`. No CLI behavior, credential rule, or HTTP route changed.
 - Signature: Grok (operator)
+
+## 2026-09-23 — platform development plan
+
+- Operator: Grok. Added `docs/A008_Platform-devplan.md` as the readable stage and milestone plan. Spec, ADR 0048 and A008-0160 remain the authority. No product behavior changed.
+- Signature: Grok (operator)

@@ -65,6 +65,10 @@ missing temporary catalog so shared host fixtures do not load the operator
 model/MCP catalog. `test/A008-0149-client-v2-host.test.ts` asserts that
 default, override precedence, and the real-host V2 prompt (A008-0166).
 
+`docs/A008_Platform-devplan.md` is the stage and milestone plan. The spec,
+ADR 0048 and the A008-0160 program remain the authority; the plan does not
+close a stage by itself.
+
 `docs/PLATFORM_V3_CONTRACT.md` owns the accepted first durable-work contract
 under ADR 0048. `docs/tasks/A008-0160_platform-implementation-program.md` owns
 the implementation dependency graph; child charters freeze each delivery.
