@@ -36,6 +36,10 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 
 # File Structure
 
+`src/platform/{types,sqlite-schema,platform-store,index}.ts` owns durable local
+platform records; `docs/platform/STORE.md` documents the internal storage API.
+`test/platform-store.test.ts` verifies SQLite transaction/lease/recovery boundaries.
+
 `docs/platform/CONVERSATION_SEED.md` documents the trusted internal history
 option across EngineHost, ACP composition and LocalMemoryRuntime (A008-0163).
 
