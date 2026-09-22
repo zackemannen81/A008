@@ -37,7 +37,7 @@ Electron remains conditional on a concrete need. Do not invent that need.
 | P1 host/coordinator/client integration | 0161 + 0162 + 0163 | Not started | Real host background execution, scoped auth, polling and restart proof |
 | A008-0164 backend integration | 0161 + 0162 + 0163 | Ready | Actual scoped durable background host and process-recovery proof |
 | A008-0165 V3 SDK | 0162 | Merged | PR #108 at 1cf318e. Operator: verify:client pass, focused SDK 6/6. Real-host V2 regression remains 0166 |
-| A008-0166 fixture isolation | observed SDK host test failure | Ready | Temporary catalog isolates existing host verification from user MCP config |
+| A008-0166 fixture isolation | observed SDK host test failure | Complete | PR #110 at a690141. Operator rerun V2 host 2/2. Worker full suite 745+4+192. Secrets-path limit backlogged |
 | P1 GUI/import/admin closure | integrated host | Not started | Parallel projects, durable chats incl memory-off, migration/restore gates |
 | M1 coordination/target adapter | P1 owners | Not started | A25/A27/A29/A30 |
 | M2 context governance | M1 | Not started | A26/A31 |
@@ -99,3 +99,6 @@ platform completion claim until required stage gates actually pass.
   `A008-0164-platform-local-backend`, `A008-0165-platform-client` and
   `A008-0166-host-fixture-isolation` hold uncommitted files and are not the
   continuation baseline.
+- A008-0166 merged through PR #110 at a690141 after operator rerun of the V2
+  real-host file, 2/2, on head 2537f1a. `A008_SECRETS_PATH` remains unset in
+  that fixture and is backlog, not part of 0166.

@@ -49,6 +49,11 @@ A008-0162 adds `packages/protocol/src/platform-v3.ts`, generated
 A008-0165 adds `packages/client/src/platform-v3.ts` and the implemented
 `docs/platform/CLIENT.md` SDK. V3 host composition remains A008-0164.
 
+`test/helpers.ts` defaults `A008_CATALOG_PATH` inside `isolatedMemoryEnv` to a
+missing temporary catalog so shared host fixtures do not load the operator
+model/MCP catalog. `test/A008-0149-client-v2-host.test.ts` asserts that
+default, override precedence, and the real-host V2 prompt (A008-0166).
+
 `docs/PLATFORM_V3_CONTRACT.md` owns the accepted first durable-work contract
 under ADR 0048. `docs/tasks/A008-0160_platform-implementation-program.md` owns
 the implementation dependency graph; child charters freeze each delivery.

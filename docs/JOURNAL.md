@@ -2578,3 +2578,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
   was not rerun; A008-0166 owns that fixture isolation. No live provider call.
 - A008-0164 and A008-0166 remain Ready and unimplemented on main.
 - Signature: Grok (operator)
+
+## 2026-09-22 — A008-0166 host fixture catalog isolation
+
+- Operator: Grok. PR #110 merged at a690141.
+- `isolatedMemoryEnv` sets `A008_CATALOG_PATH` to a missing temporary catalog before caller overrides. Shared host fixtures no longer load `~/.a008/catalog.json` or start the operator's MCP servers. Product catalog resolution is unchanged, so SYSTEMDOC has no new product rule.
+- Worker verification: typecheck, client and root builds, V2 real-host 2/2, gui-host 44/44, v2-auth 16/16, full `npm test` 745 core + 4 membership + 192 GUI, 0 failures. Operator rerun on PR head 2537f1a: V2 real-host 2/2. No live provider call. 0 SEK.
+- Known limit, routed to the backlog: the A008-0149 fixture still leaves `A008_SECRETS_PATH` unset, so host startup can read `~/.a008/secrets.json` for providers whose environment keys are absent.
+- [Handoff](handoffs/A008-0166.md). [Archive](finished/A008-0166_host-fixture-catalog-isolation.md).
+- Signature: Grok (operator)

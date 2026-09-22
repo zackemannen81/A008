@@ -7,8 +7,16 @@ A008-0165 is merged through PR #108 at 1cf318e. `@a008/client` exports
 `createPlatformV3Client`: strict request and response validation, safe path
 encoding, and one HTTP attempt per mutation. Operator verification on this main
 passed `npm run verify:client` and the focused SDK file 6/6. No V3 host endpoint
-or background run exists. The V2 real-host regression remains A008-0166.
-A008-0164 is Ready and has no implementation on main. No live provider call.
+or background run exists. A008-0164 is Ready and has no implementation on main.
+No live provider call.
+
+A008-0166 is merged through PR #110 at a690141. `isolatedMemoryEnv` sets
+`A008_CATALOG_PATH` to a missing temporary `catalog.json` before caller
+overrides, so shared host fixtures do not load `~/.a008/catalog.json` or start
+the operator's MCP servers. Operator rerun of the V2 real-host file on the PR
+head passed 2/2. Worker full `npm test` passed 745 core + 4 membership + 192
+GUI. The same fixture still leaves `A008_SECRETS_PATH` unset; that limit is
+backlogged and was not absorbed into this task.
 
 A008-0160 starts the owner-authorized platform implementation program under
 PC-07 and ADR 0048. PLATFORM_V3_CONTRACT freezes a separate durable-work wire
