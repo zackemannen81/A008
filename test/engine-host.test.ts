@@ -220,3 +220,67 @@ test("explicit legacy attachment preserves its store and reports model and close
     rmSync(f.directory, { recursive: true, force: true });
   }
 });
+
+test("engine host passes a trusted conversation seed through ACP to the existing runtime", async () => {
+  const provider = await startSessionControlProvider();
+  const fixture = isolatedMemoryEnv();
+  fixture.env.NVIDIA_CHAT_COMPLETIONS_URL = provider.endpoint;
+  fixture.env.A008_ENGINE_DATA_PATH = join(fixture.directory, "engine");
+  const workspace = join(fixture.directory, "project");
+  mkdirSync(workspace);
+  const engine = new EngineHost({ env: fixture.env });
+  const seed = {
+    conversationId: "A008_v1_conversation_00000000-0000-4000-8000-000000000163",
+    messages: [
+      { role: "user" as const, content: "Seeded question." },
+      { role: "assistant" as const, content: "Seeded answer." },
+    ],
+  };
+  try {
+    const created = await engine.newSession(
+      { cwd: workspace, mcpServers: [] },
+      {},
+      { conversationSeed: seed },
+    );
+    await engine.prompt(
+      {
+        sessionId: created.sessionId,
+        prompt: [{ type: "text", text: "New question." }],
+      },
+      async () => undefined,
+    );
+    const chatRequest = provider.requests.find((request) => {
+      try {
+        return (
+          JSON.parse(request.messages?.at(-1)?.content ?? "").operation ===
+          undefined
+        );
+      } catch {
+        return true;
+      }
+    });
+    assert.ok(chatRequest);
+    assert.deepEqual(
+      chatRequest.messages
+        .filter((message: { role: string }) => message.role !== "system")
+        .slice(0, 2)
+        .map((message: { content: string }) => message.content),
+      ["Seeded question.", "Seeded answer."],
+    );
+    assert.deepEqual(
+      engine
+        .control(created.sessionId, { action: "inspect" })
+        .messages.map((message) => message.content),
+      [
+        "Seeded question.",
+        "Seeded answer.",
+        "New question.",
+        "Fixture answer 1.",
+      ],
+    );
+  } finally {
+    await engine.close();
+    await provider.close();
+    rmSync(fixture.directory, { recursive: true, force: true });
+  }
+});
