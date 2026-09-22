@@ -89,6 +89,25 @@ export {
   V2ClientError,
 } from "./v2-http.js";
 export {
+  createPlatformV3Client,
+  PlatformV3ClientError,
+  type PlatformV3Client,
+  type PlatformV3ClientErrorCode,
+  type PlatformV3ClientOptions,
+  type PlatformV3Conversation,
+  type PlatformV3ConversationCreateRequest,
+  type PlatformV3ConversationListResponse,
+  type PlatformV3ConversationResponse,
+  type PlatformV3EventsQuery,
+  type PlatformV3EventsResponse,
+  type PlatformV3Info,
+  type PlatformV3Run,
+  type PlatformV3RunCancelRequest,
+  type PlatformV3RunCreateRequest,
+  type PlatformV3RunCreateResponse,
+  type PlatformV3RunResponse,
+} from "./platform-v3.js";
+export {
   createV2SessionClient,
   type V2SessionClient,
   type V2SessionClientOptions,

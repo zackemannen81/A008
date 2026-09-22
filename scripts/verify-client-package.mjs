@@ -67,7 +67,7 @@ try {
   );
   writeFileSync(
     join(consumer, "proof.ts"),
-    `import { cookieCredentials, bearerCredentials, createGuiSessionClient, createV2SessionClient, V2ClientError } from '@a008/client';
+    `import { cookieCredentials, bearerCredentials, createGuiSessionClient, createPlatformV3Client, createV2SessionClient, V2ClientError } from '@a008/client';
 const cookie = cookieCredentials();
 if (cookie.kind !== 'cookie' || cookie.applySocketUrl('ws://x/v2/session').includes('access=')) throw new Error('cookie adapter leaked a secret');
 const bearer = bearerCredentials('secret');
@@ -85,6 +85,12 @@ try { await v2.prompt('x', 'command_a'); } catch {}
 try { await v2.prompt('x', 'command_a'); throw new Error('replayed'); } catch (error) {
   if (!(error instanceof V2ClientError) || error.code !== 'COMMAND_CONFLICT') throw error;
 }
+const v3 = createPlatformV3Client({
+  origin: 'http://127.0.0.1:9',
+  credentials: cookie,
+  fetch: async () => ({ok:true,status:200,statusText:'OK',json:async()=>({protocolVersion:'a008.platform.v3',available:false,capabilities:[]})}),
+});
+if ((await v3.info()).protocolVersion !== 'a008.platform.v3') throw new Error('V3 SDK contract missing');
 `,
   );
   execFileSync(

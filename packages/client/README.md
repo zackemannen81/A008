@@ -31,6 +31,36 @@ and in-session image generation keep working. Independent consumers use the
 V2 adapter. The SDK never auto-resubmits a mutation after `COMMAND_UNKNOWN`
 or `SESSION_EXPIRED`.
 
+## Platform V3
+
+`createPlatformV3Client` is the thin HTTP client for the accepted Platform V3
+resource contract. It takes the same injected `fetch`, `origin` and credential
+adapter as the existing HTTP helpers. It validates request bodies before network
+I/O and validates every response before returning it. It performs one attempt
+per operation: callers retain `commandId` and explicitly reissue an identical
+`createRun` only when they choose to recover a durable receipt.
+
+```ts
+import { bearerCredentials, createPlatformV3Client } from "@a008/client";
+
+const platform = createPlatformV3Client({
+  origin: "https://a008.example",
+  credentials: bearerCredentials(deviceSecret),
+  fetch,
+});
+const { run } = await platform.createRun("conversation_1", {
+  commandId: "caller_generated_command_1",
+  expectedRevision: 0,
+  model: "model_1",
+  text: "Hello",
+});
+```
+
+`PlatformV3ClientError` exposes a typed `code`, optional HTTP `status`, and
+message. Transport and malformed-response failures are not returned as success.
+The SDK has no hidden polling, retry, cancellation-on-disposal or server-run
+ownership. V3 schema availability does not imply a V3 host is available.
+
 `createHttpClient` also exposes `listSidebarProjects`, `updateProject` (display
 name/pin) and `changeProjectChat` (`new` or `open` with a conversation ID). These
 use the authenticated V1 standalone workspace routes. After changing the selected
