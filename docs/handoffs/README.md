@@ -3,8 +3,8 @@
 Discoverability: naming convention `A008-NNNN.md`.
 Member state: required. Every member declares a `Status:` line.
 
-Latest specification handoff: [A008-0157](A008-0157.md) — platform v1.0,
-established Docs-First multi-agent workflow and four add-on contracts;
+Latest specification handoff: [A008-0158](A008-0158.md) — platform v1.1,
+Execution Verification Evidence separated from semantic evidence;
 documentation only.
 
 A writing worker writes one handoff when it opens a pull request, after

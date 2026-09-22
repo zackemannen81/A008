@@ -37,7 +37,9 @@ Standalone GUI authentication remains inside the existing host boundary: `src/gu
 # File Structure
 
 `docs/A008_PLATFORM_SPEC.md` is the proposed distributed platform specification,
-created by A008-0156 and updated to v1.0 by A008-0157. It includes durable parallel
+created by A008-0156 and updated to v1.1 by A008-0158. Section 7.1 separates
+Execution Verification Evidence from semantic evidence and memory ingestion.
+It includes durable parallel
 runs, multi-project/client ownership, devices, isolation, migration and the
 established Docs-First multi-agent workflow. Section 8.1–8.7 integrates the four
 add-on contracts; source baselines and product integration gates distinguish

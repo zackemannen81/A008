@@ -3,7 +3,14 @@
 Reality as of 2026-09-22. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
-A008-0157 updates [A008 Platform](A008_PLATFORM_SPEC.md) to proposal v1.0 with
+A008-0158 updates [A008 Platform](A008_PLATFORM_SPEC.md) to proposal v1.1.
+Execution Verification Evidence is explicitly technical execution observation,
+with separate contracts, identities and ingestion from semantic evidence.
+Unknown effects remain unknown; transport/process success cannot confer truth,
+memory state, HEAD, quality or task acceptance. Cognition, memory semantics and
+the shipped ACME boundary remain unchanged. Documentation only.
+
+A008-0157 updated the proposal to v1.0 with
 the owner's established Docs-First multi-agent workflow and four independent
 add-on contracts. It integrates task/delegation identities, bounded context,
 routed communication, worker/master replacement and a product integration

@@ -2,7 +2,7 @@
 
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 
-Latest archive: [A008-0157_platform-multiagent-specification.md](A008-0157_platform-multiagent-specification.md) — Complete; platform v1.0 with established Docs-First multi-agent integration.
+Latest archive: [A008-0158_execution-verification-boundary.md](A008-0158_execution-verification-boundary.md) — Complete; platform v1.1 separates execution verification from semantic evidence.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

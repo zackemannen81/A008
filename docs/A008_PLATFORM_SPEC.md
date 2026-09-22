@@ -1,12 +1,12 @@
 # A008 Platform
 
-Version: 1.0 — uppdaterat plattformsförslag med Docs-First multi-agent
+Version: 1.1 — explicit gräns för Execution Verification Evidence
 
 Datum: 2026-09-22
 
-Dokumentuppgift: A008-0157; vidareutvecklar A008-0156
+Dokumentuppgift: A008-0158; vidareutvecklar A008-0156 och A008-0157
 
-Avstämd mot A008: `d91f010`; referensrevisioner anges i avsnitt 3.1
+Avstämd mot A008: `a4319c1`; tidigare referensrevisioner anges i avsnitt 3.1
 
 ## 1. Syfte, status och läsanvisning
 
@@ -31,6 +31,8 @@ bearbetar ägarens 24-delade utkast och fyller luckor kring parallellitet,
 återhämtning, isolation och migration. Version 1.0 integrerar de fyra
 add-on-kontrakten och erfarenheterna från befintliga repositories. Det startar
 ingen implementation och kräver inget nytt konceptbevis för arbetsmetoden.
+Version 1.1 inför ägarens uttryckliga separation mellan execution verification
+evidence och A008:s semantic evidence. Cognition- och memorysemantiken ändras inte.
 
 Följande statusgränser gäller:
 
@@ -57,6 +59,10 @@ avsnitt 8.1–8.7 beskriver den sammanhängande multi-agent-profilen.
 API och GUI följer i avsnitt 14 och 19. Avsnitt 25 innehåller integrationsspåret
 M1–M4 och avsnitt 27 dess acceptanskriterier.
 
+Ändringen i version 1.1 finns främst i avsnitt 7.1: definition, datakontrakt
+och tillåtna användningar av execution verification evidence. Terminologin
+är även avstämd i recovery, lagring, multi-agent-kommunikation och audit.
+
 ## 2. Produktutfall och omfattning
 
 Den första produktvinsten är att kunna starta arbete i projekt A, arbeta vidare
@@ -82,7 +88,8 @@ Plattformens grundkrav är:
 | PL-13 | Varje skrivande worker har spårbar delegation, egen arbetsyta och avgränsat ansvar; koordinering använder plattformens gemensamma run- och behörighetsägare. |
 | PL-14 | Master och workers får versionsbundna contextpaket efter ansvar, med källor, urvalsskäl och kontrollerad expansion. |
 | PL-15 | Agentmeddelanden routas till berörda mottagare med proveniens; leverans, konsumtion och semantisk acceptans hålls isär. |
-| PL-16 | Workers och master kan ersättas från förenliga checkpoints och aktuell auktoritet; add-on-evidens får aldrig bli konkurrerande projekt- eller memorysanning. |
+| PL-16 | Workers och master kan ersättas från förenliga checkpoints och aktuell auktoritet; add-on-underlag får aldrig bli konkurrerande projekt- eller memorysanning. |
+| PL-17 | Execution verification evidence är tekniskt executionunderlag med egna datakontrakt; det får inte behandlas som semantic evidence, claim support, HEAD-auktoritet eller kvalitets-/taskacceptans. |
 
 Tunna klienter får äga presentation, interaktion, utkast, notifieringar och
 lokal cache. De får inte äga egen orchestration, provider-routing eller
@@ -106,7 +113,7 @@ plattform som beskrivs här.
 | GUI och projekt | Sparade chattar per projekt; standalone-hostens valda workspace är fortfarande globalt | Vald vy per klient; varje kommando och run har egen projektbindning |
 | V2-session | En ansluten writer och en aktiv turn per session; disconnect avbryter aktivt arbete | Klienter observerar beständiga runs; disconnect avslutar endast anslutningen |
 | Reconnect | 45 sekunders processlokal sessionlease, ingen överlevnad vid processdöd | Beständigt arbete och snapshot/replay; körning återupptas endast när det är säkert |
-| Idempotency | Processlokala command receipts med begränsad retention | Beständiga command receipts och separat dispatch-/effektevidens |
+| Idempotency | Processlokala command receipts med begränsad retention | Beständiga command receipts och separat dispatchstatus och execution verification evidence |
 | GUI SDK | `@a008/client` finns; bundled chat använder V1-adaptern | Samma uttryckliga plattformskontrakt för fristående klienter |
 | ACME | Modell-only execution; A008 äger approval och tool-loop | Samma kognitiva ägarskap; eventuell mekanisk tool-execution i ACME kräver ändrat kontrakt |
 | Identitet | Ägarwebbprofil och avgränsade V2-deviceprincipals | Instance/tenant/user/membership och separat execution-deviceidentitet |
@@ -239,13 +246,14 @@ bestå av flera API- och workerprocesser över samma kontrollerade stateägare.
 | Delegation | Oföränderlig tilldelning av ansvar, läs-/skrivscope, basrevision, arbetsyta, budget och acceptanskrav |
 | Worker slot | Logisk roll i en delegation; består när en agentprocess eller provider ersätts |
 | Context projection | Oföränderligt identifierat paket med utvald auktoritet, källrevisioner och urvalsskäl |
-| Agent message | Riktad operativ observation/förfrågan med avsändar- och evidensreferenser |
+| Agent message | Riktad operativ observation/förfrågan med avsändarreferenser och klassade verifieringsreferenser |
 | Execution checkpoint | Versionsbundet underlag för fortsättning; måste stämmas av mot faktisk repository-/executionstatus |
+| Execution verification record | Separat teknisk post om observerad execution, med egen identitet och producent-/attemptreferens; ingen claim/evidence-identitet från memorymodellen |
 | Conversation | Beständig ordnad arbetsdialog med revision och stabila message-ID:n |
 | Runtime session | A008:s execution-/agentcontext med explicit scope, version och checkpointstatus |
 | Run | Beständig accepterad arbetsbegäran med auktoritet, tillstånd, budget och resultat |
 | Attempt | Ett bestämt försök att utföra ett steg i en run; ny lease/dispatch betyder inte ny Run |
-| Tool run | En konkret tool-operation med argument, target, approval och effektevidens |
+| Tool run | En konkret tool-operation med argument, target, approval och execution verification evidence |
 | Job | Schemaläggningsenhet för en run eller ett efterarbete; ingen alternativ produktägare |
 | Device Runtime | Registrerad exekveringsagent på en maskin |
 | Execution target | Adresserbar server- eller device-runtime med verifierade capabilities |
@@ -308,7 +316,8 @@ auktoritetsordning från ett annat repo ersätter inte A008:s ägargränser.
 | Logiskt lager | Äger eller lagrar |
 | --- | --- |
 | Application DB | Identiteter, memberships, projects, conversations/messages, runtime metadata, runs/attempts/tool runs, receipts, approvals, devices, policies och konfigurationsrevisioner |
-| A008 Memory Store | Claims, evidence/provenance, semantic addresses, HEAD/history, relationer, lifecycle och härledda index |
+| A008 Memory Store | Claims, semantic evidence/provenance, semantic addresses, HEAD/history, relationer, lifecycle och härledda index |
+| Execution verification store | Execution verification evidence med eget kontrakt, validering och retention; ingen semantic ingestion |
 | Object storage | Uppladdat och genererat innehåll, bilder, dokument, stora tool-output och exporter |
 | Durable jobs / outbox | Beständigt schemaläggnings- och leveransunderlag knutet till accepterat state |
 | Cache / eventtransport | Härledda vyer och leverans; får återskapas utan att bli alternativ sanning |
@@ -320,7 +329,7 @@ jobbscheduler eller taskdatabas.
 
 Ett fristående add-ons raderbara runtimejournal och A008:s canonical databas
 är olika gränser. Utgångna checkpoints/cachear kan rensas utan att ändra
-repositorysanning. Accepterade commands, grants, oklara effekter och dedupeevidens
+repositorysanning. Accepterade commands, grants, oklara effekter och dedupeunderlag
 följer plattformens retention och får inte raderas som ett generellt add-on-test.
 
 Databasvalet är separat från det semantiska kontraktet. SQLite får behållas för
@@ -345,17 +354,98 @@ conversation, checkpoint, receipt, eventreplay eller memory.
 
 ## 7. Gränsen mellan A008 och ACME
 
-**A008 bestämmer vad, varför, när och med vilken auktoritet. ACME genomför
-den tillåtna modell-exekveringen.**
+**A008 owns cognition, semantics, memory, policy and authority.
+ACME owns execution mechanics and execution verification evidence.**
+
+ACME:s ägarskap gäller execution som ACME utför eller direkt observerar inom
+den auktoriserade gränsen. Det ger ingen ny behörighet att äga A008:s
+tool-loop, agentorkestrering eller canonical state.
 
 A008 äger modellval, providerpolicy, instruktioner, context build, agentplan,
 toolval, approvals, tool-loop, tenantbehörighet och tolkningen av resultat.
 ACME får äga providertransport, normalisering, streaming, timeout,
-cancellationmekanik och verifierbar executionevidens.
+cancellationmekanik och execution verification evidence.
 
 A008:s Run och ToolRun är canonical produktstate. ACME:s execution-ID och
-attemptstatus är underliggande evidens som A008 översätter; de ersätter inte
+attemptstatus ingår i execution verification evidence som A008 tolkar; de ersätter inte
 Run, message-ID eller A008:s eventordning.
+
+### 7.1 Execution Verification Evidence
+
+När dokumentet använder **execution verification evidence** avses tekniskt
+verifieringsunderlag för en utförd eller försökt execution. Det är en runtime-/
+execution concern, åtskild från A008:s knowledge-, cognition-, memory- och
+semantiska evidensmodell. Termen används fullt utskriven för denna klass.
+
+Execution verification evidence kan beskriva:
+
+- vilken execution som startades och vilken komponent som faktiskt observerade den;
+- provider, modell och request-/execution-/attemptidentiteter;
+- attempts, retries samt start- och sluttid när de är observerade;
+- transportstatus, timeout, cancellationbegäran och faktisk cancellationkvittens;
+- observerad providerrespons eller fel, resultatdigest och tillåtna responsreferenser;
+- observerad usage och vilka mätvärden som saknas;
+- om executionutfallet är känt, verifierat misslyckat eller unknown/unverified.
+
+Syftet är att verifiera vad executionlagret faktiskt gjorde och vilket
+observerbart utfall det fick. En lyckad transport, giltig JSON, ett resultatdigest
+eller en avslutad process visar inte i sig att innehållet är korrekt.
+Transportutfall och execution-/effektutfall redovisas separat så att ett känt
+transportfel kan samexistera med okänt externt utfall.
+
+Execution verification evidence avgör inte semantic truth, claim acceptance,
+memory state, Current State / HEAD, retrieval, salience, projektauktoritet,
+task completion eller resultatets kvalitet. Dessa beslut tillhör respektive
+A008-ägare ovanför executionlagret.
+
+ACME får producera och bevara execution verification evidence för det som ACME
+utför eller direkt observerar. A008 använder detta som tekniskt underlag för
+egna canonical transitions, recoverybeslut, audit och felsökning. En Device
+Runtime eller annan adapter ansvarar på motsvarande sätt för sina egna
+observationer; ett vidarebefordrat påstående märks med den faktiska producenten.
+Det får inte presenteras som direkt verifierat av ACME när ACME saknar insyn.
+
+Om utfallet inte kan verifieras ska posten uttrycka **unknown / unverified
+outcome**. Den får inte inferera framgång eller misslyckande. En observerad
+timeout är ett känt transportfel, men kan lämna den externa effekten okänd.
+Verifierat executionfel är ett möjligt känt utfall; utebliven kvittens är inte
+i sig verifierat fel eller bevis på att ingen effekt inträffat.
+
+Semantic evidence och execution verification evidence besvarar skilda frågor.
+Även test- och granskningsunderlag har ett eget ansvar:
+
+| Klass | Fråga | Ägare och betydelse |
+| --- | --- | --- |
+| Semantic evidence | Varför har systemet en claim, och vilket semantiskt stöd/proveniens finns? | A008:s befintliga knowledge-/memorymodell |
+| Execution verification evidence | Vad gjorde executionlagret och vilket utfall kunde det observera? | ACME eller faktisk executionproducent inom sin observerade gräns; A008 tolkar underlaget för produktbeslut |
+| Test- och granskningsunderlag | Uppfyller resultatet avtalade krav och får det accepteras? | A008:s verifierings-/reviewägare och repositoryts workflow |
+
+**Datakontrakten ska vara separata.** Execution verification evidence får inte
+återanvända semantic evidence-DTO, schema, ID-namespace, claim-supportrelation
+eller semantisk ingestionväg. En gemensam generisk `Evidence`-post med en
+typflagga räcker inte som gräns. Samma fysiska databastjänst är möjlig, men
+logiska lagringskontrakt, validering och konsumenter måste vara åtskilda.
+
+Referenser i messages, audit och andra kuvert ska ange sin klass, exempelvis
+`execution_verification_refs`, `artifact_refs` och `review_result_refs`.
+Ett odifferentierat `evidenceRefs` får inte låta runtimeunderlag passera som
+semantic support. Exakta wireformat fryses i egna kontrakt; detta inför inga
+ändringar av befintliga memorystrukturer.
+
+Memorymotorn ska inte konsumera execution verification evidence som knowledge,
+claim evidence eller sanning. Ingen automatisk omvandling från runtimeposter
+till claims, reinforcement eller HEAD tillåts genom plattformsintegrationen.
+Ett normalt modellresultat går fortfarande genom A008:s befintliga resultat-,
+cognition- och post-output-pipeline enligt dess egna regler. Resultatinnehållet
+och verifieringsposten om dess execution är separata inputs med skilda ägare.
+
+Exempel: att ett provideranrop returnerade `200`, avslutades och producerade
+digest D kan verifieras tekniskt. Det fastställer inte om svarets claim är
+sann eller om en uppgift är färdig. På motsvarande sätt kan en tests process-
+start/exit beskrivas tekniskt, medan testassertionernas betydelse och
+resultatets acceptans hanteras av A008:s test-/reviewägare.
+
+### 7.2 Auktoriserad execution och adaptergränser
 
 Ägarens utkast önskar också ACME-exekverade tools och MCP. Det går längre än
 [ADR 0043](adr/0043-acme-execution-boundary.md), som uttryckligen förbjuder
@@ -452,8 +542,8 @@ för basprotokollet.
 | --- | --- | --- |
 | Context Governance | Reproducerbara contextprojektioner, revisionsidentitet och expansion | A008 contextbyggare med auktoritetsresolver; begränsad vy för master och workers |
 | Coordination & Gatekeeper | Delegationer, meddelanden, start-/slutgates och processbindningar | Gemensam run-coordinator och targetadaptrar; samma reservations- och behörighetsägare |
-| Execution Continuity | Checkpoints, reconciliation och ersättningsbriefing | A008:s beständiga run-/attemptlager med Git- och processevidens |
-| Execution Economics & Audit | Kostnads-/capabilityevidens, budgetbeslut och auditresultat | Gemensamma budgets, providerpolicy och usageportar; ingen konkurrerande routingägare |
+| Execution Continuity | Checkpoints, reconciliation och ersättningsbriefing | A008:s beständiga run-/attemptlager med Git-state och execution verification evidence |
+| Execution Economics & Audit | Usage-/capabilityobservationer, budgetbeslut och auditresultat | Gemensamma budgets, providerpolicy och usageportar; ingen konkurrerande routingägare |
 
 Varje modul deklarerar tillgängliga capabilities. Manuellt granskade briefs
 kan användas innan automatisk projection finns. Saknad checkpointpersistens
@@ -512,7 +602,7 @@ inte automatiskt.
 
 Masterpaketet innehåller mål, task-/beroendegraf, ansvar, kompakt runstatus,
 blockerare, verifieringsutfall, budgetavvikelser och beslutspunkter med
-evidensreferenser. Master begär detaljer inför ett visst beslut. En reviewer
+käll-/verifieringsreferenser. Master begär detaljer inför ett visst beslut. En reviewer
 får det diff-/kontraktsunderlag granskningen behöver; en mastersammanfattning
 ersätter inte faktisk verifiering.
 
@@ -551,7 +641,7 @@ inte förlorar inkorgen. Avsändande attempt och behörighet verifieras och
 stämplas av backend.
 
 Meddelandet bär `message_id`, tenant/project, avsändande execution/task,
-mottagande delegation/task, typ, ämne, begränsad payload, evidensreferenser,
+mottagande delegation/task, typ, ämne, begränsad payload, klassade artifact-/verifieringsreferenser,
 auktoritetsklass, relevant revision och eventuell expiry. Idempotency och
 mottagarscope kontrolleras även vid retry. Payloaden får inte själv höja
 auktoritetsklass, ge rättigheter eller räknas som systeminstruktion.
@@ -606,7 +696,7 @@ uppgiftens kvalitet eller acceptans.
 
 Review och auktoriserad integration följer repositoryts workflow.
 En beroendeändring eller senare merge kan kräva ny combined verification.
-Backend kan registrera `run=succeeded` för levererad workerevidens medan
+Backend kan registrera `run=succeeded` för levererade workerresultat och verifieringsunderlag medan
 repo task väntar på integration. UI visar båda tillstånden; workerprocessen
 får inte ensam sätta tasken till Finished.
 
@@ -625,7 +715,7 @@ oförenlig bas eller oklar tidigare execution stoppar blind resume.
 PID ensam räcker inte som executionidentitet efter omstart.
 
 Master ersätts från taskgraf, reservationer, öppna beslut, inkorg och
-verifierad evidens. Workers skickar inte hela sin historik till den nya
+kontrollerade artifacts och verifieringsresultat. Workers skickar inte hela sin historik till den nya
 mastern. Bara aktuell koordinator får delegera/integrera inom sin lease;
 en återvändande gammal master får inte skapa dubbla workers.
 
@@ -637,7 +727,7 @@ finns kvar; backendmetadata återskapar inte filer från en förlorad disk.
 
 Usage-/tids-/attempt-/contextobservationer samlas från början där adaptern
 kan rapportera dem. Okänd usage/kostnad är okänd, inte noll. Ekonomimodulen
-kan även göra audit av importerad evidens utan egen execution.
+kan även göra audit av importerade usage-/verifieringsposter utan egen execution.
 
 Budgethierarkin är tenant/project-policy → uppgift/delegation → run/attempt.
 Master, workers, retries och modelldriven review räknas med. Mät kostnad och
@@ -683,12 +773,12 @@ target, behörig beslutsfattare och expiry. Flera klienter får visa det, men
 bara en giltig resolution får vinna. En ändrad operation kräver ny approval.
 Väntan har deadline; uteblivet svar beviljar aldrig operationen.
 
-Återhämtning från `needs_reconciliation` kräver observerad evidens om tidigare
+Återhämtning från `needs_reconciliation` kräver execution verification evidence om tidigare
 utfall eller en uttrycklig operatörsresolution som dokumenterar osäkerheten.
 Det får inte fabricera bevis på att en extern effekt uteblivit. Ett eventuellt
 nytt försök är separat spårat och kräver att dupliceringsrisken hanteras.
 
-Om evidens inte går att återfå får en behörig operatör avsluta orchestrationen
+Om execution verification evidence inte går att återfå får en behörig operatör avsluta orchestrationen
 som `failed` med `failure_kind=unresolved_external_effect` och bibehållet
 `effect_status=unknown`. Det frigör conversation för nytt, uttryckligt arbete
 men innebär varken cancellationbevis eller att samma effekt får upprepas.
@@ -696,7 +786,7 @@ Berörd target/workspace hålls spärrad för kolliderande dispatches tills dess
 executionstatus har kontrollerats eller en separat auditerad riskresolution
 har fattats. Run-status och faktisk extern effekt får inte sammanblandas.
 
-Huvudresultat, effektevidens och efterarbete redovisas separat: exempelvis
+Huvudresultat, execution verification evidence och efterarbete redovisas separat: exempelvis
 `answer_status=completed`, `memory_status=failed`. En memoryretry får inte
 återgenerera svaret. Ett känt fel kan ha kända partiella effekter; `failed`
 betyder inte rollback.
@@ -710,13 +800,13 @@ worker får efter leaseförlust inte committa state eller skapa nya dispatches.
 
 Detta hindrar dubbla canonical writes. Det gör inte en redan skickad extern
 operation ogjord. En förlorad worker kan ha hunnit skriva en fil eller skicka
-ett provideranrop före nätverksfelet; därför behövs effektevidens och osäkerhetsläge.
+ett provideranrop före nätverksfelet; därför behövs execution verification evidence och osäkerhetsläge.
 
 | Händelse | Krävt beteende |
 | --- | --- |
 | Klientens svar försvinner efter accept | Slå upp samma command receipt; skapa ingen ny run |
 | Worker dör före dispatch | Ny lease får fortsätta från verifierat ej skickat steg |
-| Worker dör efter dispatch, före resultatcommit | Fråga adapter/target om evidens; annars `needs_reconciliation` |
+| Worker dör efter dispatch, före resultatcommit | Fråga adapter/target om execution verification evidence; annars `needs_reconciliation` |
 | Resultat committat men event ej levererat | Outbox levererar igen; klient deduplicerar |
 | Samma devicekommando anländer två gånger | Samma dispatchidentitet ger befintligt resultat eller explicit osäkerhet |
 | Gammal worker återkommer | Avvisa sena writes/nya dispatches med gammal generation |
@@ -784,8 +874,11 @@ semantic retrieval väljer tillåten kunskap för modellens arbete. Båda ägs a
 A008 men svarar på olika frågor. Relevansscore får inte göra en gammal
 memoryträff överordnad ett aktuellt källkontrakt. Sammanställningen bevarar
 modellens regler för additivt context, proveniens och redovisad budget.
-Operativa agentobservationer kan representeras som sådana när memorykontraktet
-tillåter det; det gör dem inte till accepterad repositoryauktoritet.
+Domäninnehåll som en agent observerar kan behandlas genom den befintliga
+knowledgepipelinens regler; det gör det inte automatiskt till accepterad
+repositoryauktoritet. Execution verification evidence är en separat teknisk
+klass och får inte matas in via denna formulering. Inga regler för semantic
+evidence, claim acceptance, reinforcement, HEAD eller retrieval ändras här.
 
 ## 12. Identity, tenants och authorization
 
@@ -843,7 +936,7 @@ Ett praktiskt livscykelkontrakt omfattar:
 2. Runtime publicerar version, capabilityinventering och tillgänglighet.
 3. Backend binder godkända workspace-/toolgrants, deadlines och begränsningar.
 4. Runtime tar emot konkreta dispatches, validerar scope och deduplicerar.
-5. Heartbeats och progress rapporteras; resultat/effektevidens kvitteras och
+5. Heartbeats och progress rapporteras; resultat och execution verification evidence kvitteras och
    återlevereras efter reconnect inom annonserade gränser.
 6. Revoke eller expiry stoppar nya operationer och initierar cancellation.
 
@@ -907,7 +1000,7 @@ Om appavslut stänger runtime ska användaren se vilken target som försvinner.
 | User API | Projects, conversations, memory, files, runs och användarens kontroller |
 | Admin API | Policy, konfiguration, identitetsadministration, drift och audit |
 | Realtime | Auktoriserade ändringar, runprogress och återanslutning |
-| Execution/device channel | Registrering, dispatch, lease, cancellation och effektevidens |
+| Execution/device channel | Registrering, dispatch, lease, cancellation och execution verification evidence |
 
 Dagens V2 använder `WS /v2/session`, subprotocol `a008.v2` och redan definierade
 session-/disconnectregler. De får inte ändras i smyg till background run-semantik.
@@ -967,7 +1060,7 @@ Task-authority-listan är en projektion över registrerad repoauktoritet;
 den ger ingen separat route att direkt skriva över repoets taskstatus.
 Checkpointinlämning från en worker autentiseras och binds till aktuell
 execution via worker-/devicekontraktet. Vanlig klientläsning av checkpoints
-ger inte rätt att fabricera workerevidens.
+ger inte rätt att fabricera workerresultat eller verifieringsunderlag.
 
 Meddelandekommandot anger om det ska skapa en run; standard för skickad
 chatprompt är ett atomärt message+run-kommando. Klienten får då tillbaka
@@ -1024,7 +1117,7 @@ sequenceDiagram
     BE-->>B: Run queued, ny revision
     BE->>W: Auktoriserad dispatch
     Note over A,BE: A kopplar från; run fortsätter
-    W-->>BE: Resultat och executionevidens
+    W-->>BE: Resultat och execution verification evidence
     BE->>BE: Commit resultat och event
     BE-->>B: Run slutförd
     A->>BE: Återanslut med cursor
@@ -1106,7 +1199,7 @@ HTML/preview körs i avgränsad visning. Artifactpersistens gör inte innehålle
 till semantisk kunskap; memoryintake har en separat provenance-/acceptanceväg.
 
 Retention definieras separat för conversations, memory/provenance, råa filer,
-executionevidens, receipts, events, audit och backups. Kort eventretention får
+execution verification evidence, receipts, events, audit och backups. Kort eventretention får
 inte ta bort den enda kopian av ett run-resultat.
 
 Arkivering, conversation-reset och permanent radering är skilda operationer.
@@ -1184,7 +1277,7 @@ Docs-First Multi-Agent visas som ett sammanhållet val i projektets arbetsprofil
 ```
 
 Aktivering konfigurerar profilen. En faktisk uppgift/delegation startar arbetet.
-Avaktivering stoppar nya delegationer men raderar inte evidens eller lämnar
+Avaktivering stoppar nya delegationer men raderar inte operativa underlag eller lämnar
 aktiva workers utan kontroll; deras avslut/cancellation har eget tydligt val.
 
 Arbetsvyn visar task-/beroendegraf, workeransvar, arbetsyta/branch, verkligt
@@ -1269,7 +1362,7 @@ Device Runtime med rätt binding. Backend utan en viss PC ska fortfarande
 kunna visa dess tidigare resultat och aktuellt vänteläge.
 
 Backend/workerdrift ska ha graceful shutdown: stoppa nya leases, dränera eller
-avbryt kontrollerat, spara evidens och lämna återhämtningsbar status.
+avbryt kontrollerat, spara execution verification evidence och lämna återhämtningsbar status.
 Backup omfattar application state, memory och artifactreferenser med
 konsistenspunkt samt separat hantering av secret-/nyckelmaterial.
 Restoretest ska kontrollera referenser, grants, index och oklara runs.
@@ -1380,7 +1473,7 @@ necessity gate, fryst scope och verifiering.
 | P0 — Integrationskontrakt och beslut | Versionsstrategi, task/run/delegation-identiteter, background-semantik, context-/meddelandeägare, writescope, ACMEgräns och migration | Disposition för D1–D5 och närmast berörda D13–D16; befintlig praxis ligger till grund för kontrakten |
 | P1 — Beständigt parallellt arbete lokalt | Scoped local tenant/principal, durable conversations/runs/receipts/outbox, leases, konfliktkontroll, minsta admin CLI/API | Två projekt och två conversations kan arbeta parallellt; klientstängning och processkrasch hanteras enligt A01–A08 |
 | P2 — Remote web och fler användare | Auth/memberships, full server-side isolation, eventreplay/snapshot, GUI som fristående klient | Hela milstolpen i avsnitt 24; A09–A15 och relevant migrations-/restorebevis |
-| P3 — Hybrid execution | Enrollment, Device Runtime, scoped capabilities/workspaces, devicekanal och effektevidens | Samma run kan initieras från web/mobiltestklient mot lokal target; A16–A18 |
+| P3 — Hybrid execution | Enrollment, Device Runtime, scoped capabilities/workspaces, devicekanal och execution verification evidence | Samma run kan initieras från web/mobiltestklient mot lokal target; A16–A18 |
 | P4 — Administrativ produkt och drift | Admin Console över redan befintliga adminkontrakt; quotas, health, cost, audit och driftprofiler | Behörighets-/driftprov A19–A21; dokumenterad self-hosted release |
 | P5 — Tauri | Primär desktop-host och valfri bakgrundstjänst med samma API/devicekontrakt | Appfönsterstängning respektive runtimestopp ger korrekt olika beteende |
 | P6 — Expo iOS / Android | Mobil UX och notifieringar över samma resurser | Fortsätt samma conversation, approval, artifact och targetarbete efter app-suspend |
@@ -1397,7 +1490,7 @@ execution-targetadapter kan användas innan P3 levererar remote enrollment.
 | M1 — Coordination & Gatekeeper | Bind befintliga charters/arbetsytor till delegationer och runs; integrera vald lokal processadapter, scopes/reservationer, riktad inbox och GUI-status | Dubbletter, scopekonflikter och gamla ägare hanteras; uppgiftsacceptans följer repo-workflow. A25, A27, A29, A30 |
 | M2 — Context Governance | Automatisera master-/workerpaket, källmanifest, expansion och versionsbunden cache; behåll granskade briefs som explicit tillgänglig nivå | Paket kan återskapas, behörighetsgränser hålls och stale källor fångas. A26, A31 |
 | M3 — Execution Continuity | Bind checkpoints, inboxposition och target/Git-reconciliation till P1:s återhämtning; stötta worker- och masterbyte | Integrationsfel och omstarter återhämtas utan dubbla workers eller fabricerad providerreplay. A28, A32 |
-| M4 — Economics & Audit | Bygg spårbar budget-/usage-/auditvy över evidens som samlats från första integrationen | Kostnad och okända värden redovisas korrekt; audit ändrar inte tidigare utfall. A33 |
+| M4 — Economics & Audit | Bygg spårbar budget-/usage-/auditvy över usage-/verifieringsposter som samlats från första integrationen | Kostnad och okända värden redovisas korrekt; audit ändrar inte tidigare utfall. A33 |
 
 Varje rad delas vid behov i bounded implementationsuppgifter. Acceptance
 verifierar A008-koden och dess adaptrar mot det etablerade arbetssättet.
@@ -1426,7 +1519,7 @@ som inte redan fattats. Endast beslut som blockerar nästa etapp behöver tas nu
 | D8 | Vad händer vid modellbyte/reset och dataflytt? | Bevara historik; nästa-run-inställning och explicit reset/fork. Ändra befintlig semantik genom separat kontrakt | GUI-migration |
 | D9 | Deviceförtroende, sandbox och credentialprofil? | Utgående kanal, tenantbunden runtime, scoped grants, explicit shellförtroende och korta executionleases | P3 |
 | D10 | Retention, RPO/RTO, limits och prestandamål? | Frys mätbara värden per faktisk deploymentprofil efter kapacitets-/restoreprov; inga generella löften | Respektive release |
-| D11 | Hur återställs oklara externa effekter? | Adapterevidens först; auditerad reconciliation med explicit dupliceringsrisk när evidens saknas | P1 |
+| D11 | Hur återställs oklara externa effekter? | Adapterns execution verification evidence först; auditerad reconciliation med explicit dupliceringsrisk när evidens saknas | P1 |
 | D12 | Delning, admininsyn och radering? | Projektskopad åtkomst, ingen implicit promptinsyn för driftadmin, separat retention/deletionkontrakt | P2 / delning |
 | D13 | Vilken workeradapter integreras först? | Bind den befintliga lokala processupervisorn genom en A008-targetadapter där den passar; redovisa CLI-insyn och begränsningar separat från ACME-agentloop | M1 |
 | D14 | Vilken rollprofil tillåter selektiv auktoritetsläsning? | Anta obligatorisk regelkärna, verifierbara källfragment och policybaserad expansion; ändra inte AGENTS indirekt | M2 |
@@ -1457,7 +1550,7 @@ ytterligare metodexperiment som ägaren måste genomföra.
 | A03 | PL-03/08 | Kör två conversations i P med samtidiga memoryförslag. Context/approvals hålls isär; en HEAD per adress och bevarad provenance |
 | A04 | PL-03/09 | Två klienter skickar olika prompts mot samma revision. Exakt en accepteras; den andra får konflikt och inget provideranrop |
 | A05 | PL-04 | Tappa HTTP-svaret efter commit; upprepa samma command-ID/payload. Samma receipt/run återfås, en usermessage och en execution |
-| A06 | PL-04/05 | Döda worker före respektive efter extern dispatch. Före får säker omstart ske; efter krävs evidens eller reconciliation, aldrig blind retry |
+| A06 | PL-04/05 | Döda worker före respektive efter extern dispatch. Före får säker omstart ske; efter krävs execution verification evidence eller reconciliation, aldrig blind retry |
 | A07 | PL-03/05 | Låt lease löpa ut och återintroducera gammal worker. Sena writes/dispatches nekas; redan möjliga externa effekter redovisas |
 | A08 | PL-05 | Tävla cancel mot completion och låt target tappa nät. Ett terminalt utfall; ingen falsk stoppbekräftelse och inga nya steg efter fencing |
 | A09 | PL-09 | Leverera dubbla, försenade och saknade events vid snapshotgräns. Klienterna konvergerar till samma revision utan dubbla messages |
@@ -1468,7 +1561,7 @@ ytterligare metodexperiment som ägaren måste genomföra.
 | A14 | PL-08 | Duplicera memoryjob och injicera extractionfel. Ingen dubbel reinforcement/HEAD; färdigt svar består och memoryfelet syns separat |
 | A15 | PL-01/10 | Installera SDK/öppna GUI utan interna hostimports. Samma remoteflöden fungerar; usercredential ensam ger inte admin- eller device-dispatchrätt |
 | A16 | PL-07 | Mobiltestklient startar lokalt arbete mot registrerad target. Rätt binding/grant används; offline target ger väntan, ingen dold serverfallback |
-| A17 | PL-05/07 | Duplicera device dispatch och bryt kanalen efter lokal effekt. Befintlig evidens återlevereras eller osäkerhet visas; effekten upprepas inte automatiskt |
+| A17 | PL-05/07 | Duplicera device dispatch och bryt kanalen efter lokal effekt. Befintlig execution verification evidence återlevereras eller osäkerhet visas; effekten upprepas inte automatiskt |
 | A18 | PL-03/07 | Två writers begär samma workspace och en filpath går via junction utanför root. Konflikt/isolerad worktree respektive avvisad filoperation |
 | A19 | PL-06/11 | Driftadmin granskar health och roterar en secret. Audit finns; otillåten promptinsyn och klartextåterläsning nekas |
 | A20 | PL-11 | Nå kö-, token-, kostnads- och storagegränser med parallella/child runs. Admission/fortsättning begränsas synligt; reservationsbokföring är konsekvent |
@@ -1483,8 +1576,11 @@ ytterligare metodexperiment som ägaren måste genomföra.
 | A29 | PL-01/13 | Worker rapporterar klar med saknad eller stale verifiering. Slutgate nekar; succeeded execution får inte automatiskt sätta repo task till Finished |
 | A30 | PL-07/13 | Kör samma profil via lokal supervisor och annan workeradapter. Rapporten skiljer verkligt enforced från advisory/unavailable; stdin-signal blir inte falskt cancellationbevis |
 | A31 | PL-06/14 | Begär tillåten och otillåten context-expansion samt försök ta bort obligatorisk regelkärna. Tillåten expansion versioneras; övrigt nekas/eskaleras utan gissning |
-| A32 | PL-01/05/16 | Ändra charter medan worker är borta och rensa utgången checkpointcache. Stale resume nekas; repoauktoritet består och aktiv dedupe-/effektevidens skyddas |
+| A32 | PL-01/05/16 | Ändra charter medan worker är borta och rensa utgången checkpointcache. Stale resume nekas; repoauktoritet består och aktiva dedupeposter och execution verification evidence skyddas |
 | A33 | PL-11/16 | Importera kostnad med okända fält och skapa ny audit över samma execution. Okänt förblir okänt; tidigare resultat/audit skrivs inte om och policy aktiveras inte automatiskt |
+| A34 | PL-08/17 | Försök lämna en execution verification record till semantic ingestion, även med semantiskt giltigt resultat i responsreferensen. Fel kontraktsklass nekas; inga claims, supportrelationer, reinforcement eller HEAD ändras |
+| A35 | PL-05/17 | Observera timeout utan verifierat effektutfall, därefter en tekniskt lyckad respons med felaktigt innehåll. Första utfallet förblir unknown/unverified; det andra ger ingen automatisk semantic truth, kvalitetsacceptans eller task completion |
+| A36 | PL-01/17 | ACME observerar endast ett eget anrop medan en opak CLI gör annat arbete. Execution verification evidence tillskrivs endast faktisk producent/observerad gräns; saknad insyn blir explicit och kontrakts-/ID-klasser förblir separata |
 
 Godkända bevis ska ange version, deploymentprofil, utförda felinjektioner,
 observerat utfall och kvarvarande begränsningar. Kodtester, paketering,
