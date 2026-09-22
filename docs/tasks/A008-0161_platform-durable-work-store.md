@@ -81,8 +81,8 @@ A completed process is not task acceptance.
 
 - [x] `npm run typecheck` — pass (local implementation).
 - [x] `npm run build` — pass (local implementation).
-- [x] `node --test dist/test/platform-store.test.js` — 4/4 pass (temporary
-  SQLite fixtures and independent reopen).
+- [x] `node --test dist/test/platform-store.test.js` — 5/5 pass (temporary
+  SQLite fixtures, injected receipt-trigger rollback, and independent reopen).
 - [x] `npm run test:membership` — 4/4 pass.
 - [x] No provider calls, credentials, dependency or lockfile changes.
 

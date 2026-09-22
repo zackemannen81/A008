@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -21,6 +22,12 @@ const OTHER_TENANT: PlatformScope = {
   tenantId: "tenant-b",
   projectId: "project-a",
   principalId: "principal-b",
+};
+
+const OTHER_PROJECT: PlatformScope = {
+  tenantId: "tenant-a",
+  projectId: "project-b",
+  principalId: "principal-a",
 };
 
 function expectCode(code: string): (error: unknown) => boolean {
@@ -136,7 +143,12 @@ test("accept is atomic, replay precedes revision/busy checks, and scopes isolate
     () => f.store.getConversation(OTHER_TENANT, conversation.id),
     expectCode("NOT_FOUND"),
   );
+  assert.throws(
+    () => f.store.getConversation(OTHER_PROJECT, conversation.id),
+    expectCode("NOT_FOUND"),
+  );
   assert.deepEqual(f.store.listConversations(OTHER_TENANT), []);
+  assert.deepEqual(f.store.listConversations(OTHER_PROJECT), []);
   assert.equal(f.store.readEvents(OTHER_TENANT).events.length, 0);
   assert.equal(f.store.readEvents(SCOPE).events.length, 3);
   assert.deepEqual(f.store.listRuns(SCOPE, { statuses: ["queued"] }), [
@@ -162,6 +174,26 @@ test("leases fence stale writers and recovery distinguishes pre-dispatch from un
     ownerToken: "worker-a",
     leaseDurationMs: 10,
   });
+  assert.throws(
+    () =>
+      f.store.renewLease(SCOPE, {
+        runId: first.run.id,
+        ownerToken: "worker-a",
+        generation: firstLease.lease.generation - 1,
+        leaseDurationMs: 10,
+      }),
+    expectCode("LEASE_LOST"),
+  );
+  assert.throws(
+    () =>
+      f.store.recordDispatch(SCOPE, {
+        runId: first.run.id,
+        ownerToken: "worker-a",
+        generation: firstLease.lease.generation - 1,
+        expectedRevision: firstLease.run.revision,
+      }),
+    expectCode("LEASE_LOST"),
+  );
   const dispatched = f.store.recordDispatch(SCOPE, {
     runId: first.run.id,
     ownerToken: "worker-a",
@@ -182,6 +214,14 @@ test("leases fence stale writers and recovery distinguishes pre-dispatch from un
         leaseDurationMs: 10,
       }),
     expectCode("LEASE_LOST"),
+  );
+  assert.throws(
+    () =>
+      f.store.requestCancel(SCOPE, {
+        runId: first.run.id,
+        expectedRevision: f.store.getRun(SCOPE, first.run.id).revision,
+      }),
+    expectCode("NEEDS_RECONCILIATION"),
   );
   assert.throws(
     () =>
@@ -222,6 +262,33 @@ test("leases fence stale writers and recovery distinguishes pre-dispatch from un
     leaseDurationMs: 10,
   });
   assert.equal(replacement.lease.generation, secondLease.lease.generation + 1);
+
+  const cancelledConversation = f.store.createConversation(SCOPE, {
+    title: "cancel recovery",
+  });
+  const cancelled = f.store.acceptRun(SCOPE, {
+    conversationId: cancelledConversation.id,
+    commandId: "cancel-before-dispatch",
+    expectedRevision: 0,
+    model: "model-a",
+    text: "cancel me",
+  });
+  const cancelledLease = f.store.claimRun(SCOPE, {
+    runId: cancelled.run.id,
+    ownerToken: "worker-c",
+    leaseDurationMs: 10,
+  });
+  f.store.requestCancel(SCOPE, {
+    runId: cancelled.run.id,
+    expectedRevision: cancelledLease.run.revision,
+  });
+  f.advance(10);
+  assert.equal(
+    f.store
+      .recoverExpiredLeases(SCOPE)
+      .find((run) => run.id === cancelled.run.id)?.status,
+    "cancelled",
+  );
 });
 
 test("answer, message, event and memory outcome commit with one terminal winner", async (t) => {
@@ -283,6 +350,73 @@ test("answer, message, event and memory outcome commit with one terminal winner"
     limit: 100,
   });
   assert.ok(next.events.every((event) => event.cursor > page.nextCursor));
+
+  const dispatchedConversation = f.store.createConversation(SCOPE, {
+    title: "unknown cancellation",
+  });
+  const dispatched = f.store.acceptRun(SCOPE, {
+    conversationId: dispatchedConversation.id,
+    commandId: "unknown-cancel",
+    expectedRevision: 0,
+    model: "model-a",
+    text: "unknown",
+  });
+  const dispatchedLease = f.store.claimRun(SCOPE, {
+    runId: dispatched.run.id,
+    ownerToken: "worker-b",
+    leaseDurationMs: 100,
+  });
+  const dispatch = f.store.recordDispatch(SCOPE, {
+    runId: dispatched.run.id,
+    ownerToken: "worker-b",
+    generation: dispatchedLease.lease.generation,
+    expectedRevision: dispatchedLease.run.revision,
+  });
+  const requested = f.store.requestCancel(SCOPE, {
+    runId: dispatched.run.id,
+    expectedRevision: dispatch.revision,
+  });
+  assert.throws(
+    () =>
+      f.store.confirmCancellation(SCOPE, {
+        runId: dispatched.run.id,
+        ownerToken: "worker-b",
+        generation: dispatchedLease.lease.generation,
+        expectedRevision: requested.revision,
+      }),
+    expectCode("NEEDS_RECONCILIATION"),
+  );
+});
+
+test("a receipt trigger aborts a partially started acceptance without durable fragments", async (t) => {
+  const f = await fixture();
+  t.after(f.dispose);
+  const conversation = f.store.createConversation(SCOPE, { title: "rollback" });
+  const injection = new Database(f.filename);
+  injection.exec(`
+    CREATE TRIGGER A008_platform_abort_receipt
+    BEFORE INSERT ON A008_platform_command_receipts
+    BEGIN SELECT RAISE(ABORT, 'injected receipt failure'); END;
+  `);
+  assert.throws(
+    () =>
+      f.store.acceptRun(SCOPE, {
+        conversationId: conversation.id,
+        commandId: "injected-failure",
+        expectedRevision: 0,
+        model: "model-a",
+        text: "must roll back",
+      }),
+    /injected receipt failure/u,
+  );
+  injection.close();
+  assert.equal(f.store.getConversation(SCOPE, conversation.id).revision, 0);
+  assert.equal(
+    f.store.getConversation(SCOPE, conversation.id).messages.length,
+    0,
+  );
+  assert.deepEqual(f.store.listRuns(SCOPE), []);
+  assert.equal(f.store.readEvents(SCOPE).events.length, 1);
 });
 
 test("state survives independent reopen, future schemas fail, and closed stores reject writes", async (t) => {
@@ -315,9 +449,21 @@ test("state survives independent reopen, future schemas fail, and closed stores 
     )
     .run();
   database.close();
+  const before = readFileSync(futurePath);
   t.after(async () => rm(futurePath, { force: true }));
   assert.throws(
     () => new PlatformStore({ filename: futurePath }),
     expectCode("INVALID_REQUEST"),
   );
+  assert.deepEqual(readFileSync(futurePath), before);
+  const inspect = new Database(futurePath, { readonly: true });
+  assert.equal(
+    (
+      inspect
+        .prepare("SELECT version FROM A008_platform_schema WHERE singleton = 1")
+        .get() as { readonly version: number }
+    ).version,
+    2,
+  );
+  inspect.close();
 });

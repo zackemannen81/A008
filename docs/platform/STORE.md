@@ -40,6 +40,9 @@ through 1000 (default 100), and returns `{ events, nextCursor, hasMore }`.
 Scoped pages may have cursor gaps. The first snapshot is bounded to 10,000
 messages; `acceptRun` reserves space for both its user message and eventual
 assistant answer, and rejects admission with `CAPACITY_EXCEEDED` when it cannot.
+`listRuns` is a scoped status inspection for recovery and queue views. It is
+intentionally unpaged and does not establish admission, scheduler or capacity
+limits.
 
 ## Mutations and leases
 
@@ -137,14 +140,18 @@ event.
 
 Lease writes require the owner token, increasing generation, unexpired lease and
 expected run revision. `recordDispatch` marks the effect `unknown` before the
-external boundary. `recoverExpiredLeases` requeues only work with no recorded
-dispatch; it moves dispatched work to `needs_reconciliation`. It never replays
-an unknown effect. A stale worker receives `LEASE_LOST`.
+external boundary. `recoverExpiredLeases` requeues only running work with no
+recorded dispatch; an expired pre-dispatch cancellation becomes `cancelled`,
+while dispatched work moves to `needs_reconciliation`. It never replays an
+unknown effect. A stale worker receives `LEASE_LOST`.
 
 Queued cancellation is terminal immediately. A running cancellation becomes
 `cancel_requested`, which is only a request: the lease holder can still commit a
-known answer guarded by the new revision, or confirm cancellation. Whichever
-revision-controlled terminal transition commits first is the only winner.
+known answer guarded by the new revision, or confirm cancellation when no
+unknown effect was recorded. Unknown dispatched work stays
+`needs_reconciliation`; the first slice has no verified-stop input and never
+converts that uncertainty to `cancelled`. Whichever revision-controlled terminal
+transition commits first is the only winner.
 `commitAnswer` atomically appends the assistant message, updates conversation
 revision, completes the run and emits outbox events. Memory status is recorded
 later and independently, so a failed memory outcome cannot regenerate or remove

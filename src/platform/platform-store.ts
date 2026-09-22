@@ -571,6 +571,12 @@ export class PlatformStore {
         result = this.#run(scope, run.id);
         return;
       }
+      if (run.status === "needs_reconciliation") {
+        throw new PlatformStoreError(
+          "NEEDS_RECONCILIATION",
+          "A run with an unknown effect cannot be cancelled without reconciliation.",
+        );
+      }
       this.#requireRevision(run, input.expectedRevision);
       const status: PlatformRunStatus =
         run.status === "queued" ? "cancelled" : "cancel_requested";
@@ -602,6 +608,12 @@ export class PlatformStore {
       input,
       "cancel_requested",
       (run, now) => {
+        if (run.effect_status === "unknown") {
+          throw new PlatformStoreError(
+            "NEEDS_RECONCILIATION",
+            "An unknown dispatched effect cannot be confirmed as cancelled.",
+          );
+        }
         const revision = run.revision + 1;
         this.#database
           .prepare(
@@ -684,7 +696,11 @@ export class PlatformStore {
         .all(scope.tenantId, scope.projectId, now) as RunRow[];
       for (const run of rows) {
         const status: PlatformRunStatus =
-          run.dispatch_recorded === 1 ? "needs_reconciliation" : "queued";
+          run.dispatch_recorded === 1
+            ? "needs_reconciliation"
+            : run.status === "cancel_requested"
+              ? "cancelled"
+              : "queued";
         const revision = run.revision + 1;
         this.#database
           .prepare(

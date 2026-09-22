@@ -53,8 +53,9 @@ than only a schema happy path.
 
 - `npm run typecheck` — pass (local implementation).
 - `npm run build` — pass (local implementation).
-- `node --test dist/test/platform-store.test.js` — pass, 4 tests / 4 assertions
-  groups using temporary SQLite fixtures and independent reopen.
+- `node --test dist/test/platform-store.test.js` — pass, 5 tests / 5 assertion
+  groups using temporary SQLite fixtures, receipt-trigger rollback injection and
+  independent reopen.
 - `npm run test:membership` — pass, 4 tests / 4 assertions groups.
 - Live provider verification: not run; task allowance was 0 SEK and 0 calls.
 
