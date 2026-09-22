@@ -173,3 +173,6 @@ never whether work is active or complete. Task state belongs in
 | A008-0157 | platform specification with established multi-agent workflow | Codex (operator) | 2026-09-22 | integrate the four optional add-on contracts and productize the owner's practiced Docs-First multi-agent workflow; documentation only |
 | A008-0158 | execution verification evidence boundary | Codex (operator) | 2026-09-22 | reserve execution verification evidence for runtime verification and separate it from A008 semantic evidence, cognition and memory; specification only |
 | A008-0159 | model-aware live verification budgets | Codex (operator) | 2026-09-22 | replace blanket paid-call escalation with bounded delegated verification authority, model-aware cost estimates and shared task limits; documentation only |
+| A008-0160 | platform implementation program | Codex (operator) | 2026-09-22 | adopt platform direction, own dependency graph, bounded delegation, verified PR integration and release gates |
+| A008-0161 | platform durable work store | Codex (operator) | 2026-09-22 | local scoped SQLite conversations, runs, receipts, outbox and fenced recovery under the platform contract |
+| A008-0162 | platform V3 protocol contracts | Codex (operator) | 2026-09-22 | separately versioned durable-work wire schemas and independent protocol verification without changing V1/V2 |
