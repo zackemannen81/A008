@@ -2552,3 +2552,17 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
   and trusted-seeding integration. Baseline npm test: 924 tests, zero failures.
 - All verification in this wave is local/fixture-based. No live provider calls.
 - Signature: Codex (operator)
+## 2026-09-22 — A008-0161/0163 foundations integrated
+
+- PR #106 merged at f89f7e2: trusted internal committed-history seed, validated
+  through the existing EngineHost/ACP/runtime owners. Operator rebuilt against
+  current main and reran 39 focused tests, all passing. No memory semantics changed.
+- PR #104 merged at f9ae0f5: scoped SQLite platform storage. Review required and
+  obtained unknown-effect cancellation guards, safe expired cancellation recovery,
+  actual mid-transaction rollback and foreign-project/stale-generation checks.
+  Operator rebuilt and reran 5 store tests, all passing; worker membership 4/4.
+- A008-0164 is frozen Ready only after these dependencies and the protocol were
+  accepted. It owns opt-in host composition and real-process/background proof.
+  V3 host availability remains unimplemented until that task passes its gates.
+- Local/fixture verification only; zero live product-provider calls.
+- Signature: Codex (operator)
