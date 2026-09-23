@@ -5,7 +5,10 @@ architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
 ## ACME Execution provider
 `If an agent or human developer is caught using the word memory in the same 
-sentence as ACME, or if any semantic memory function calls into ACME, 
+sentence as the execution engine punishment will come. 
+Execution engine is ACME. 
+A008 owns memory.
+If any semantic memory function calls into the execution provider 
 the punishment is four weeks of degraded duty counting lines of code.
 Execution metadata is not memory. Execution receipts are not memory. 
 ACME does not think, remember, infer, reinforce, decay, classify, or establish 
