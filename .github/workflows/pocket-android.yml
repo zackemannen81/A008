@@ -26,7 +26,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: android-actions/setup-android@v3
+      # ubuntu-latest already provides Android SDK; setup-android@v3 attempts to install removed 'tools'.
       - name: Build A008 SDK
         run: |
           npm ci --no-audit --no-fund
