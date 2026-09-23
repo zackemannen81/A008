@@ -1046,10 +1046,13 @@ the read path already owns them; no second retrieval occurs after the answer.
 Source extraction remains a separate locator/content contract.
 Dialogue analyzer output is split into `new_knowledge`, `state_updates`,
 `relation_updates` and `reinforcements`. New/state/relation candidates remain
-untrusted staged proposals; reinforcement may reference only an artifact from
-the supplied retrieved projection and resolves to its runtime-owned evidence ID.
-Caller-verified scopes and conservative authority, relevance, activation,
-source-backed, keep-alive, and provenance defaults remain runtime-owned.
+untrusted staged proposals. Reinforcement must copy the exact retrieved-item
+`id`; `evidenceId` is runtime/provenance metadata and is never a substitute.
+A state update must copy a current-state semantic address from the same retrieved
+projection and its `attribute_binding` must resolve to that same slot. Intake
+rejects mismatches before classifier/commit. Caller-verified scopes and
+conservative authority, relevance, activation, source-backed, keep-alive, and
+provenance defaults remain runtime-owned.
 
 Staging normalizes semantic labels, rejects duplicates and malformed results,
 enforces structural limits plus an exact stable serialized-batch budget, and
@@ -1087,7 +1090,10 @@ persisted; effort-capable models default to `none` unless the operator selects a
 supported level. Luna/Terra semantic calls omit unsupported temperature, while
 chat keeps its separate session reasoning choice.
 The classifier instruction distinguishes the input envelope from the output
-decision and gives concrete JSON shapes (A008-0083).
+decision and gives concrete JSON shapes (A008-0083). Its semantic relation
+contract is intentionally narrower than state ownership: restatement/supersede/
+conflict require the same resolved semantic address, while runtime reconciliation
+owns Current State, History, canonical identity and lifecycle.
 A008-0085 adds serialized, fictional extractor examples covering empty social
 exchange, a greeting with a durable fact and an ingested source. All example
 outputs pass the existing stager. Analyzer support is an exact `quote` from the

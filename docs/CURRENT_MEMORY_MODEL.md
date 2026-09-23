@@ -1696,7 +1696,7 @@ userMessage
 responseText
 ```
 
-`retrievedContext` bär stabilt knowledge/evidence-ID och semantic address där de redan finns. Extractorn får återanvända dessa identiteter men får inte hitta på nya semantic identities bara för att fylla schema.
+`retrievedContext` bär stabilt retrieved-item-ID, evidence-ID och semantic address där de redan finns. Extractorn får återanvända dessa identiteter men får inte hitta på nya semantic identities bara för att fylla schema. För reinforcement är `knowledgeId` alltid det exakta retrieved-item-`id`:t; `evidenceId` är runtime/provenance-metadata och får inte användas som ersättare.
 
 Dialogue-resultatet separerar:
 
@@ -1710,6 +1710,8 @@ reinforcements
 För new/state/relation-kandidater ska extractorn försöka producera proposition, kind, entities, tags, domains, severity, temporal qualifiers och structured semantic proposition när det går säkert.
 
 Knowledge som redan fanns i retrieved context ska inte skapas igen bara för att workern upprepar den. Om samma knowledge faktiskt återanvändes eller återbekräftades i den fullbordade turnen blir den i stället en reinforcement-kandidat. State change vid samma semantic address är inte en duplicate utan en state-update-kandidat.
+
+En `state_update` får bara uppdatera en current-state-post som faktiskt fanns i samma retrieved baseline. Semantic address ska kopieras exakt från baseline och den strukturerade `attribute_binding`-propositionen måste beskriva samma slot. Intake validerar detta fail-closed innan relation classification/commit. Metadata ska vara sparse: tags/domains/entities används bara när de hjälper framtida retrieval för just den kunskapsposten, inte som generiska turn-labels.
 
 Commit-time dedupe kvarstår alltid: extraction-time jämförelsen ersätter aldrig global/relevant dedupe mot knowledge store.
 
@@ -1728,6 +1730,8 @@ extend
 supersede
 conflict
 ```
+
+Classifiern klassificerar relation, inte truth ownership. `supersede` och `conflict` kräver samma semantic address; olika attribute slots får aldrig slås ihop bara för att prosan är lik. Runtime/commit äger Current State, History, canonical IDs och lifecycle.
 
 Classifiern beskriver semantisk relation.
 
