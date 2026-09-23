@@ -1707,11 +1707,11 @@ relation_updates
 reinforcements
 ```
 
-För new/state/relation-kandidater ska extractorn försöka producera proposition, kind, entities, tags, domains, severity, temporal qualifiers och structured semantic proposition när det går säkert.
+För new/state/relation-kandidater ska extractorn producera proposition, kind, severity och andra säkra semantiska fält. För varje durable artifact vars ämne kan klassificeras säkert ska den dessutom ange den minsta användbara mängden breda reusable domains, normalt exakt en och högst två när kunskapen faktiskt är cross-domain. Domain är retrieval-klassificering, inte ett faktapåstående, och får därför härledas från artifactets ämne även när domänfrasen inte står ordagrant i källan. Tags och entities är däremot optional och sparse.
 
 Knowledge som redan fanns i retrieved context ska inte skapas igen bara för att workern upprepar den. Om samma knowledge faktiskt återanvändes eller återbekräftades i den fullbordade turnen blir den i stället en reinforcement-kandidat. State change vid samma semantic address är inte en duplicate utan en state-update-kandidat.
 
-En `state_update` får bara uppdatera en current-state-post som faktiskt fanns i samma retrieved baseline. Semantic address ska kopieras exakt från baseline och den strukturerade `attribute_binding`-propositionen måste beskriva samma slot. Intake validerar detta fail-closed innan relation classification/commit. Metadata ska vara sparse: tags/domains/entities används bara när de hjälper framtida retrieval för just den kunskapsposten, inte som generiska turn-labels.
+En `state_update` får bara uppdatera en current-state-post som faktiskt fanns i samma retrieved baseline. Semantic address ska kopieras exakt från baseline och den strukturerade `attribute_binding`-propositionen måste beskriva samma slot. Intake validerar detta fail-closed innan relation classification/commit. Generic turn-wide workflow labels ska inte stampas på varje artifact, och runtime ska inte maskera utebliven klassificering med en påhittad catch-all-domain.
 
 Commit-time dedupe kvarstår alltid: extraction-time jämförelsen ersätter aldrig global/relevant dedupe mot knowledge store.
 

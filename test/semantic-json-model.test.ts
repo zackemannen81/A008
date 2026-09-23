@@ -598,8 +598,17 @@ test("the dialogue extractor freezes librarian identity and state-update rules",
     /structuredProposition MUST describe the same semantic slot/iu,
   );
   assert.match(instruction, /Never use words such as "current" as the interval value/iu);
-  assert.match(instruction, /Metadata is optional and sparse/iu);
   assert.match(instruction, /Do not stamp every artifact with generic workflow labels/iu);
+});
+
+test("the dialogue extractor preserves domain classification while keeping fine metadata sparse", () => {
+  const instruction = KNOWLEDGE_EXTRACTOR_INSTRUCTION;
+  assert.match(instruction, /For every durable artifact whose subject is clear enough to classify, emit domains/iu);
+  assert.match(instruction, /Normally emit exactly one domain/iu);
+  assert.match(instruction, /Omit domains only when the subject cannot be classified safely, never merely to keep metadata sparse/iu);
+  assert.match(instruction, /Domains are retrieval classification metadata, not factual claims/iu);
+  assert.match(instruction, /Tags and entities are optional and sparse/iu);
+  assert.match(instruction, /Domain classification.*need not copy an exact phrase from the source/iu);
 });
 
 test("relation classification cannot supersede across semantic addresses", () => {

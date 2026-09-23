@@ -1,8 +1,8 @@
-# A008-0172 — Restore durable knowledge domain classification
+# A008-0172 â€” Restore durable knowledge domain classification
 
 Task ID: A008-0172
 Parent Task: A008-0171
-Status: Ready
+Status: In Progress
 Owner: ChatGPT (operator/worker)
 Created: 2026-09-24
 Last updated: 2026-09-24
@@ -68,11 +68,11 @@ sufficient for this regression.
 
 ## References
 
-- docs/PROJECT_BRIEF.md — PC-02, PC-04
-- docs/CURRENT_MEMORY_MODEL.md — Domains and retrieval sections
+- docs/PROJECT_BRIEF.md â€” PC-02, PC-04
+- docs/CURRENT_MEMORY_MODEL.md â€” Domains and retrieval sections
 - src/prompt-contracts/KNOWLEDGE_EXTRACTOR_INSTRUCTION.ts
 - test/semantic-json-model.test.ts
-- C:\log\a008-log.txt — observed regression: 16 non-empty extraction responses, only one with domains; post-0171 outputs omit domains while still emitting tags
+- C:\log\a008-log.txt â€” observed regression: 16 non-empty extraction responses, only one with domains; post-0171 outputs omit domains while still emitting tags
 
 ## Checklist
 
