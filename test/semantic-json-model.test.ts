@@ -9,6 +9,7 @@ import type {
 } from "../src/core/types.js";
 import {
   ChatTransportSemanticJsonGenerator,
+  KNOWLEDGE_EXTRACTOR_INSTRUCTION,
   KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION,
   ModelBackedKnowledgeRelationClassifier,
   ModelBackedPostOutputKnowledgeAnalyzer,
@@ -425,7 +426,14 @@ test("model-backed adapters allocate stable semantic-only inputs on one shared g
     async generate(input) {
       calls.push(input);
       return input.operation === "knowledge_analysis"
-        ? [{ proposition: "Keep answers only", kind: "rule" }]
+        ? {
+            new_knowledge: [
+              { proposition: "Keep answers only", kind: "rule" },
+            ],
+            state_updates: [],
+            relation_updates: [],
+            reinforcements: [{ knowledgeId: "state:memory-mode" }],
+          }
         : { type: "new" };
     },
   };
@@ -436,13 +444,34 @@ test("model-backed adapters allocate stable semantic-only inputs on one shared g
   assert.deepEqual(
     await analyzer.analyze(
       {
-        message: "Question",
-        answer: "Final answer",
+        kind: "dialogue",
+        retrievedContext: {
+          items: [
+            {
+              id: "state:memory-mode",
+              semanticAddress: "memory.mode",
+              evidenceId: "claim-memory-mode",
+              currentState: "context-first",
+              proposition: "context-first",
+              kind: "state",
+              tags: ["memory"],
+              scope: ["runtime"],
+              authority: 1,
+            },
+          ],
+        },
+        userMessage: "Question",
+        responseText: "Final answer",
         reasoning: "must not cross",
       } as never,
       { signal: controller.signal },
     ),
-    [{ proposition: "Keep answers only", kind: "rule" }],
+    {
+      new_knowledge: [{ proposition: "Keep answers only", kind: "rule" }],
+      state_updates: [],
+      relation_updates: [],
+      reinforcements: [{ knowledgeId: "state:memory-mode" }],
+    },
   );
   assert.deepEqual(
     await classifier.classify(
@@ -472,13 +501,28 @@ test("model-backed adapters allocate stable semantic-only inputs on one shared g
     "signal",
   ]);
   assert.equal(calls[0]?.operation, "knowledge_analysis");
-  assert.equal(
-    calls[0]?.systemInstruction,
-    POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION,
-  );
+  assert.equal(calls[0]?.systemInstruction, KNOWLEDGE_EXTRACTOR_INSTRUCTION);
   assert.equal(
     calls[0]?.serializedInput,
-    '{"message":"Question","answer":"Final answer"}',
+    JSON.stringify({
+      retrievedContext: {
+        items: [
+          {
+            id: "state:memory-mode",
+            semanticAddress: "memory.mode",
+            evidenceId: "claim-memory-mode",
+            currentState: "context-first",
+            proposition: "context-first",
+            kind: "state",
+            tags: ["memory"],
+            scope: ["runtime"],
+            authority: 1,
+          },
+        ],
+      },
+      userMessage: "Question",
+      responseText: "Final answer",
+    }),
   );
   assert.equal(calls[0]?.serializedInput.includes("reasoning"), false);
   assert.equal(calls[1]?.operation, "relation_classification");
@@ -526,7 +570,18 @@ test("semantic JSON output budget fits a full extraction", () => {
   assert.equal(SEMANTIC_JSON_GENERATION.stream, false);
 });
 
-test("the analyzer instruction keeps its two structural guarantees", () => {
+test("the dialogue knowledge extractor freezes baseline-aware four-bucket semantics", () => {
+  const instruction = KNOWLEDGE_EXTRACTOR_INSTRUCTION;
+  assert.match(instruction, /exact knowledge projection supplied to the worker/iu);
+  assert.match(instruction, /NEW_KNOWLEDGE/iu);
+  assert.match(instruction, /STATE_UPDATE/iu);
+  assert.match(instruction, /RELATION_UPDATE/iu);
+  assert.match(instruction, /REINFORCEMENT/iu);
+  assert.match(instruction, /Merely retrieving an artifact is NOT reinforcement/iu);
+  assert.match(instruction, /responseText is never quotation evidence/iu);
+});
+
+test("the source analyzer instruction keeps its two structural guarantees", () => {
   const instruction = POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION;
 
   // Untrusted-data framing. This is what stops an injection attempt inside

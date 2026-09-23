@@ -1102,7 +1102,11 @@ test("tool continuations retain one instruction snapshot without contaminating h
       { role: "assistant", content: "Final fixture answer." },
     ]);
     assert.deepEqual(analyzed, [
-      { message: "Original fixture question", answer: "Final fixture answer." },
+      {
+        retrievedContext: { items: [] },
+        userMessage: "Original fixture question",
+        responseText: "Final fixture answer.",
+      },
     ]);
     await session.send("Next question");
     assert.equal(

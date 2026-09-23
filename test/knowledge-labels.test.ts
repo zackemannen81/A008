@@ -344,8 +344,8 @@ test("a proposition's words do not become entity aliases", async () => {
       memoryAwareFakeTransport({
         chat: () => ({ content: "Noterat." }),
         analyze: (input) => {
-          const raw = input as { readonly message?: unknown };
-          if (raw.message !== HORSE) {
+          const raw = input as { readonly userMessage?: unknown };
+          if (raw.userMessage !== HORSE) {
             return [];
           }
           return [
@@ -660,10 +660,10 @@ test("many unstructured statements remain evidence without synthetic state owner
       memoryAwareFakeTransport({
         chat: () => ({ content: "Noterat." }),
         analyze: (input) => {
-          const raw = input as { readonly message?: unknown };
+          const raw = input as { readonly userMessage?: unknown };
           if (
-            typeof raw.message !== "string" ||
-            !raw.message.includes("Fresca")
+            typeof raw.userMessage !== "string" ||
+            !raw.userMessage.includes("Fresca")
           ) {
             return [];
           }

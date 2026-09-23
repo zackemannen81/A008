@@ -217,8 +217,9 @@ test("trusted conversation seed reaches the next turn without workspace persiste
       (request) => semanticOperation(request) === "knowledge_analysis",
     );
     assert.deepEqual(semanticInput(analysis!), {
-      message: "New question.",
-      answer: "New answer.",
+      retrievedContext: { items: [] },
+      userMessage: "New question.",
+      responseText: "New answer.",
     });
     assert.deepEqual(runtime.listWorkspaceConversations(), []);
   } finally {
@@ -341,10 +342,10 @@ function assertionTransport() {
     },
     analyze: (input) => {
       const raw = input as {
-        readonly message?: unknown;
-        readonly answer?: unknown;
+        readonly userMessage?: unknown;
+        readonly responseText?: unknown;
       };
-      if (raw.message === ASSERTION) {
+      if (raw.userMessage === ASSERTION) {
         return [
           {
             severity: "important",
@@ -411,10 +412,15 @@ test("two-turn runtime commits an explicit user assertion and rereads it", async
       false,
     );
     const firstAnalyze = semanticInput(analyzeRequests[0]!) as {
-      readonly message: string;
-      readonly answer: string;
+      readonly retrievedContext: { readonly items: readonly unknown[] };
+      readonly userMessage: string;
+      readonly responseText: string;
     };
-    assert.deepEqual(firstAnalyze, { message: ASSERTION, answer: "Noted." });
+    assert.deepEqual(firstAnalyze, {
+      retrievedContext: { items: [] },
+      userMessage: ASSERTION,
+      responseText: "Noted.",
+    });
     assert.equal(
       chatRequests[1]?.messages.filter((message) => message.role !== "system")
         .length,
@@ -970,7 +976,7 @@ function restatementTransport() {
   return memoryAwareFakeTransport({
     chat: () => ({ content: "Noted." }),
     analyze: (input) => {
-      const message = (input as { readonly message?: unknown }).message;
+      const message = (input as { readonly userMessage?: unknown }).userMessage;
       if (typeof message === "string" && message.trim().endsWith("?")) {
         return [];
       }

@@ -198,6 +198,7 @@ export class KnowledgeMemoryReader {
     const projected = projectionItems({
       taskId: request.taskId,
       payload: result.projected.payload,
+      records: result.projected.diagnostics.records,
       measurer: this.#measurer,
       ...(this.#maximumProjectionBytes === undefined
         ? {}
@@ -211,39 +212,9 @@ export class KnowledgeMemoryReader {
     const serialized = serializeContextProjection(projection);
     const measuredUnits = this.#measurer.measure(serialized);
 
-    // Retrieval/filter/projection above remain read-only. Once the admitted set
-    // is fixed, semantically actual evidence is reinforced as a separate
-    // lifecycle write. One task/evidence receipt makes retries and repeated
-    // reads of the same turn idempotent.
-    const actualEvidenceIds = [
-      ...new Set(
-        result.filtered.admitted.flatMap((record) =>
-          record.evidenceId !== undefined &&
-          this.#context.lifecycle.get(record.evidenceId) !== undefined
-            ? [record.evidenceId]
-            : [],
-        ),
-      ),
-    ];
-    if (actualEvidenceIds.length > 0) {
-      const occurrenceId = `memory-read:${request.conversationId}:${request.taskId}`;
-      const reinforceActual = () => {
-        const at = this.#context.lifecycle.now();
-        for (const evidenceId of actualEvidenceIds) {
-          this.#context.lifecycle.reinforceOccurrence({
-            occurrenceId,
-            evidenceId,
-            at,
-          });
-        }
-      };
-      if (this.#context.atomic !== undefined) {
-        this.#context.atomic(reinforceActual);
-      } else {
-        reinforceActual();
-      }
-    }
-
+    // Retrieval/filter/projection is read-only. Reinforcement belongs to
+    // post-output extraction, where A008 can distinguish knowledge that merely
+    // appeared in context from knowledge the completed turn materially reused.
     return {
       plan,
       projection: {

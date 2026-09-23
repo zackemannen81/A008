@@ -170,6 +170,74 @@ test("A09: severity is per claim, invalid drafts are reported, model numbers can
   assert.equal(raw.pinned, false);
 });
 
+test("explicit post-response reinforcement strengthens the retrieved artifact without duplicating knowledge", async () => {
+  const context = createKnowledgeContext(() => day(0));
+  const first = await batch(90);
+  await new KnowledgeEngineCommit({
+    context,
+    classifier: classifier("new"),
+  }).commit({ batch: first, proposalIndex: 0 });
+
+  const claim = context.evidence
+    .listClaims()
+    .find((entry) => entry.label === proposition);
+  assert.ok(claim);
+  const beforeClaims = context.evidence.listClaims().length;
+  const before = context.lifecycle.get(claim.id)!.lifecycle.strength;
+
+  const staged = await new PostOutputKnowledgeIntake({
+    analyzer: {
+      async analyze() {
+        return {
+          new_knowledge: [],
+          state_updates: [],
+          relation_updates: [],
+          reinforcements: [{ knowledgeId: "retrieved:fixture-valve" }],
+        };
+      },
+    },
+    context: { projectId, conversationId, agentId },
+    budget: {
+      maximum: 16384,
+      measurer: new Utf8ByteKnowledgeIntakeMeasurer(),
+    },
+  }).stage({
+    taskId: taskId(91),
+    message: "Use the fixture valve fact.",
+    answer: "The fixture valve fact was relevant to the result.",
+    retrievedContext: [
+      {
+        id: "retrieved:fixture-valve",
+        evidenceId: claim.id,
+        proposition,
+        kind: "claim",
+        tags: ["fixture"],
+        scope: ["local"],
+        authority: 0.4,
+      },
+    ],
+    applicabilityScopes: ["local"],
+  });
+
+  assert.equal(staged.proposals.length, 0);
+  assert.equal(staged.reinforcements?.length, 1);
+
+  const writer = new KnowledgeEngineCommit({
+    context,
+    classifier: classifier("new"),
+  });
+  const applied = await writer.commitReinforcements(staged);
+  assert.equal(applied[0]?.status, "applied");
+  assert.equal(context.evidence.listClaims().length, beforeClaims);
+  assert.ok(context.lifecycle.get(claim.id)!.lifecycle.strength > before);
+
+  const afterFirst = context.lifecycle.get(claim.id)!.lifecycle.strength;
+  const duplicate = await writer.commitReinforcements(staged);
+  assert.equal(duplicate[0]?.status, "duplicate_or_creation");
+  assert.equal(context.lifecycle.get(claim.id)!.lifecycle.strength, afterFirst);
+  assert.equal(context.evidence.listClaims().length, beforeClaims);
+});
+
 test("A10-A13: exact horizons, lazy evaluation, decayed reinforcement, cap refresh and no activation floor", () => {
   const store = new EvidenceLifecycleStore(() => day(0));
   for (const severity of ["minor", "important", "critical"] as const)

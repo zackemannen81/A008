@@ -77,6 +77,12 @@ export interface MemoryTask {
 
 export interface ContextKnowledgeItem {
   readonly id: string;
+  /** Stable semantic address when the retrieved record resolves to one. */
+  readonly semanticAddress?: string;
+  /** Lifecycle/evidence identity used for exact reinforcement when available. */
+  readonly evidenceId?: string;
+  /** Current value for state-surface records. */
+  readonly currentState?: unknown;
   readonly proposition: string;
   readonly kind: string;
   readonly tags: readonly string[];
