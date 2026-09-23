@@ -23,15 +23,20 @@ function Button({ label, onPress, secondary = false, disabled = false }: { label
 }
 function ParticleField() {
   const opacity = useRef(new Animated.Value(0.16)).current;
+  const drift = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const animation = Animated.loop(Animated.sequence([
       Animated.timing(opacity, { toValue: 0.34, duration: 9500, useNativeDriver: true }),
       Animated.timing(opacity, { toValue: 0.16, duration: 9500, useNativeDriver: true }),
     ]));
-    animation.start();
-    return () => animation.stop();
-  }, [opacity]);
-  return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity }]}>
+    const movement = Animated.loop(Animated.sequence([
+      Animated.timing(drift, { toValue: 1, duration: 19000, useNativeDriver: true }),
+      Animated.timing(drift, { toValue: 0, duration: 19000, useNativeDriver: true }),
+    ]));
+    animation.start(); movement.start();
+    return () => { animation.stop(); movement.stop(); };
+  }, [opacity, drift]);
+  return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { opacity, transform: [{ translateX: drift.interpolate({ inputRange: [0, 1], outputRange: [-4, 7] }) }, { translateY: drift.interpolate({ inputRange: [0, 1], outputRange: [3, -8] }) }] }]}>
     {Array.from({ length: 19 }, (_, i) => <View key={i} style={{
       position: "absolute", left: `${(i * 37 + 13) % 94}%`, top: `${(i * 23 + 8) % 88}%`,
       width: i % 4 === 0 ? 2 : 1, height: i % 4 === 0 ? 2 : 1,
