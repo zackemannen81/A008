@@ -89,6 +89,10 @@ import {
 import { MemoryAwareChatSession } from "../orchestration/memory-aware-chat-session.js";
 import type { MemoryReadPort } from "../orchestration/memory-aware-chat-session.js";
 import {
+  createInstructionTemplateValues,
+  renderInstructionTemplate,
+} from "../orchestration/instruction-template.js";
+import {
   PostOutputKnowledgeIntake,
   Utf8ByteKnowledgeIntakeMeasurer,
 } from "../orchestration/post-output-knowledge-intake.js";
@@ -195,6 +199,7 @@ export interface LocalMemoryRuntimeOptions {
   /** Internal composition only: the project registry already holds both leases. */
   readonly ownershipAlreadyHeld?: boolean;
   readonly env: NodeJS.ProcessEnv;
+  readonly workingDirectory?: string;
   readonly surface: DebugTraceSurface;
   readonly registry?: ModelRegistry;
   readonly stderr?: NodeJS.WritableStream;
@@ -911,6 +916,7 @@ export class LocalMemoryRuntime {
   readonly projectId: ProjectId;
   readonly agentId: AgentId;
   readonly sqlitePath: string;
+  readonly workingDirectory: string;
   readonly tracer: DebugTraceObserver;
   readonly #knowledge: SqliteKnowledgeContextHandle;
   readonly #conversationStore: ProjectConversationStateStore;
@@ -932,6 +938,7 @@ export class LocalMemoryRuntime {
     readonly projectId: ProjectId;
     readonly agentId: AgentId;
     readonly sqlitePath: string;
+    readonly workingDirectory: string;
     readonly tracer: DebugTraceObserver;
     readonly knowledge: SqliteKnowledgeContextHandle;
     readonly conversationStore: ProjectConversationStateStore;
@@ -952,6 +959,7 @@ export class LocalMemoryRuntime {
     this.projectId = options.projectId;
     this.agentId = options.agentId;
     this.sqlitePath = options.sqlitePath;
+    this.workingDirectory = options.workingDirectory;
     this.tracer = options.tracer;
     this.#knowledge = options.knowledge;
     this.#conversationStore = options.conversationStore;
@@ -1214,6 +1222,17 @@ export class LocalMemoryRuntime {
   createTurn(chatSession: ChatSession, conversationId: ConversationId) {
     const settings = this.preferences.current;
     const limits = settings.budgets;
+    const profile = this.#registry.require(chatSession.model);
+    const systemInstructions =
+      settings.instructions.length === 0
+        ? ""
+        : renderInstructionTemplate(
+            settings.instructions,
+            createInstructionTemplateValues({
+              profile,
+              workingDirectory: this.workingDirectory,
+            }),
+          );
     const memoryAware = new MemoryAwareChatSession({
       chat: chatSession,
       memoryReader: this.#createReader(limits),
@@ -1227,7 +1246,7 @@ export class LocalMemoryRuntime {
         "Chat input (Parameters → Budgets)",
       ),
       recentMessageLimit: limits.recentMessages,
-      systemInstructions: settings.instructions,
+      systemInstructions,
     });
     const semanticProfile = this.#registry.require(settings.semantic.model);
     const generator = new ChatTransportSemanticJsonGenerator({
@@ -1695,6 +1714,7 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
     projectId,
     agentId,
     sqlitePath: config.sqlitePath,
+    workingDirectory: resolve(options.workingDirectory ?? process.cwd()),
     tracer,
     knowledge,
     conversationStore,

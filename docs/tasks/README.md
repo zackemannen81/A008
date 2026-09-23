@@ -11,6 +11,7 @@ the template before push.
 
 ## Records
 
+- [A008-0170_instruction-inline-template.md](A008-0170_instruction-inline-template.md) — Complete; strict runtime `{{...}}` fields for system Instructions. [Archive](../finished/A008-0170_instruction-inline-template.md).
 - [A008-0169_retrieved-context-knowledge-extraction.md](A008-0169_retrieved-context-knowledge-extraction.md) — Complete; same-turn retrieved knowledge baseline for post-output extraction. [Archive](../finished/A008-0169_retrieved-context-knowledge-extraction.md).
 - [A008-0168_platform-admin-cli.md](A008-0168_platform-admin-cli.md) — Complete; inspect and cancel through the existing V3 client. [Archive](../finished/A008-0168_platform-admin-cli.md).
 - [A008-0167_platform-gui-surface.md](A008-0167_platform-gui-surface.md) — Complete; additive bundled V3 page, V1 chat unchanged. [Archive](../finished/A008-0167_platform-gui-surface.md).

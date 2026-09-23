@@ -287,6 +287,12 @@ early. An explicit base equal to the fallback remains explicit configuration.
 The invocation plan can substitute provider-visible current user content, bound
 the outgoing dialogue tail and enforce the hard budget over the exact composed
 role/content serialization. Envelope serialization and retrieval are unchanged.
+Before chat composition, global Instructions render only the allowlisted inline
+fields `provider_model`, `model_capabilities`, `working_directory`,
+`is_git_repo`, `platform`, `os_version`, and `today_date`. The selected
+model/profile and canonical project working directory provide those values.
+Unknown `{{...}}` fields fail visibly and are never resolved from process
+environment variables. Rendered Instructions stay in the system role.
 Tool continuations reuse the same instruction/settings snapshot. The pending
 committed turn uses the original normalized user text and actual final answer;
 the automatically selected fallback and contextual rule are never committed as

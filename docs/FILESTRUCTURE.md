@@ -556,15 +556,18 @@ at a stable owned path first.
 
 ## Product paths
 
+- `src/orchestration/instruction-template.ts`: strict allowlisted `{{...}}` expansion for global system Instructions using model/runtime-owned facts only.
+
 `src/core/` is provider- and UI-neutral. Provider adapters live under
 `src/providers/`; `src/runtime/` composes environment-owned adapters,
 identity/SQLite/debug configuration, and the local memory application root.
 CLI and `src/acp/server.ts` are separate I/O composition surfaces; neither owns
 a second provider implementation. `src/memory/` is provider- and UI-neutral,
 with a locally configured SQLite boundary. `src/orchestration/` owns the
-exported verified-context read-before-chat, reasoning-free post-output staging,
-stateless semantic JSON calls, sequential post-output coordination, and
-relation-gated write/index boundaries. Live CLI/ACP construct those services
+exported verified-context read-before-chat, strict runtime Instructions template
+rendering, reasoning-free post-output staging, stateless semantic JSON calls,
+sequential post-output coordination, and relation-gated write/index boundaries.
+Live CLI/ACP construct those services
 only through `createLocalMemoryRuntime`.
 `src/benchmark/` contains deterministic local architecture
 proofs, not production runtime composition. `src/identity/` owns

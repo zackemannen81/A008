@@ -25,6 +25,15 @@ No chat message, source file or retrieved memory is automatically promoted into
 instructions. Optional prompt files are neither auto-loaded nor bundled.
 Delivery is deterministic; model compliance is not guaranteed by persistence.
 
+Instructions support seven A008-owned inline fields: `{{provider_model}}`,
+`{{model_capabilities}}`, `{{working_directory}}`, `{{is_git_repo}}`,
+`{{platform}}`, `{{os_version}}`, and `{{today_date}}`. Whitespace inside
+the braces is allowed. Values are resolved from the selected model/profile and
+the bound project/runtime environment for the current turn. Unknown fields fail
+as configuration errors; there is no generic Mustache engine and no environment
+variable expansion. Rendering happens before provider composition and remains
+system-role content.
+
 A008-0080 delivers those instructions in one system message with any explicit
 session base and the applicable memory-handling rule. The generic assistant
 fallback is used only when neither session nor global instructions are set.
@@ -37,8 +46,9 @@ The shared runtime captures settings once per operation. Mid-turn saves apply
 to the next operation. Prior dialogue remains stored in session history even
 when the configured projection sends fewer messages. Semantic retrieval scope,
 analysis and classification use their own budgets and exclude global instruction
-text from their system prompts. Post-output receives original question and final
-answer only. A cancelled scope call does not become a successful empty scope.
+text from their system prompts. Post-output dialogue extraction receives the
+same-turn retrieved knowledge baseline, original question and final answer. A
+cancelled scope call does not become a successful empty scope.
 
 ## Storage and control
 

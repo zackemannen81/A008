@@ -3,8 +3,17 @@
 Reality as of 2026-09-23. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
-A008-0169 is complete on `codex/a008-0169-knowledge-extractor-context` and awaits
-operator merge. Dialogue post-output extraction now receives the exact same-turn
+A008-0170 is complete on `codex/a008-0170-instruction-inline-template` and
+awaits operator merge. Global Instructions now support seven strict A008-owned
+inline fields: `provider_model`, `model_capabilities`, `working_directory`,
+`is_git_repo`, `platform`, `os_version`, and `today_date`. They render
+per turn into the system instruction plane from the selected model profile and
+bound project runtime. Unknown fields fail visibly and never resolve process
+environment variables. User/memory envelope composition is unchanged; the
+generic helpful-assistant message remains fallback-only. Verification: focused
+22/22; full core 763/763, membership 4/4, GUI 204/204; 0 live calls / 0 SEK.
+
+A008-0169 is merged through PR #114 at 5714bc6. Dialogue post-output extraction now receives the exact same-turn
 retrieved knowledge projection plus the user message and final provider response.
 Projected items preserve stable item/evidence identity, semantic address and
 current state where the read path owns them. Extraction returns separate new
