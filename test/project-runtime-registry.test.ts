@@ -48,6 +48,7 @@ test("canonical aliases and concurrent callers reuse one engine runtime, dispose
     );
     assert.ok(results.every((result) => result === results[0]));
     assert.equal(created, 1);
+    assert.equal(results[0]!.runtime.workingDirectory, resolve(cwd));
     if (process.platform === "win32")
       assert.equal(registry.openEngine(cwd.toUpperCase()), results[0]);
     const projectId = results[0]!.runtime.projectId;

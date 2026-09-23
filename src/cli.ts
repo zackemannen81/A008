@@ -270,6 +270,7 @@ async function runChat(
   const profile = deps.registry.require(options.model);
   const runtime = createLocalMemoryRuntime({
     env: deps.env,
+    workingDirectory: deps.cwd,
     surface: "cli",
     registry: deps.registry,
     stderr: deps.stderr,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import {
   DEFAULT_RUNTIME_BUDGETS,
   parseRuntimePreferences,
@@ -251,6 +251,87 @@ test("input-budget repair retains history; global instructions survive zero hist
     assert.equal(
       instruction(fake.requests.filter((r) => !operation(r)).at(-1)!),
       `${DEFAULT_SYSTEM_MESSAGE}\n\n${MEMORY_CONTEXT_SYSTEM_INSTRUCTION}`,
+    );
+  } finally {
+    runtime.close();
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
+});
+
+test("Instructions inline fields render in the system role and never enter the user envelope", async () => {
+  const isolated = isolatedMemoryEnv();
+  writeFileSync(join(isolated.directory, ".git"), "gitdir: fixture");
+  const fake = fakeTransport();
+  const runtime = createLocalMemoryRuntime({
+    env: isolated.env,
+    workingDirectory: isolated.directory,
+    surface: "cli",
+    createTransport: () => fake.transport,
+  });
+  try {
+    update(
+      runtime.preferences,
+      {},
+      [
+        "Model={{provider_model}}",
+        "Caps={{model_capabilities}}",
+        "cwd={{ working_directory }}",
+        "git={{ is_git_repo }}",
+        "platform={{ platform }}",
+        "os={{ os_version }}",
+        "date={{ today_date }}",
+      ].join("\n"),
+    );
+    await runtime.openSession({ model: "gpt-5.6-luna" }).send("Template question");
+    const request = fake.requests.filter((entry) => !operation(entry)).at(-1)!;
+    const system = instruction(request);
+    assert.match(system, /Model=openai\/gpt-5\.6-luna/u);
+    assert.match(system, /Input modalities: text, image/u);
+    assert.match(system, /max output tokens: 128000/u);
+    assert.match(system, /cwd=/u);
+    assert.equal(system.includes(resolve(isolated.directory)), true);
+    assert.match(system, /git=yes/u);
+    assert.equal(system.includes("{{"), false);
+    assert.equal(system.includes(DEFAULT_SYSTEM_MESSAGE), false);
+    assert.equal(system.endsWith(MEMORY_CONTEXT_SYSTEM_INSTRUCTION), true);
+    const user = JSON.parse(request.messages.at(-1)!.content) as Record<
+      string,
+      unknown
+    >;
+    assert.deepEqual(Object.keys(user).sort(), [
+      "message",
+      "retrievedContext",
+      "version",
+    ]);
+    assert.equal(user.message, "Template question");
+    assert.equal(JSON.stringify(user).includes("provider_model"), false);
+    assert.equal(JSON.stringify(user).includes(resolve(isolated.directory)), false);
+  } finally {
+    runtime.close();
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
+});
+
+test("unknown Instructions inline fields fail instead of reading environment values", async () => {
+  const isolated = isolatedMemoryEnv();
+  const fake = fakeTransport();
+  const runtime = createLocalMemoryRuntime({
+    env: { ...isolated.env, OPENAI_API_KEY: "fixture-secret-value" },
+    workingDirectory: isolated.directory,
+    surface: "cli",
+    createTransport: () => fake.transport,
+  });
+  try {
+    update(runtime.preferences, {}, "Never expose {{ OPENAI_API_KEY }}");
+    await assert.rejects(
+      runtime.openSession().send("Question"),
+      /Unsupported Instructions template field.*OPENAI_API_KEY/u,
+    );
+    assert.equal(
+      fake.requests.some((request) =>
+        JSON.stringify(request.messages).includes("fixture-secret-value"),
+      ),
+      false,
     );
   } finally {
     runtime.close();
