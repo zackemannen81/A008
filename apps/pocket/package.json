@@ -1,0 +1,27 @@
+{
+  "name": "a008-pocket",
+  "version": "0.1.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "typecheck": "tsc --noEmit",
+    "prebuild": "expo prebuild --platform android --non-interactive"
+  },
+  "dependencies": {
+    "@a008/client": "file:../../packages/client",
+    "@a008/protocol": "file:../../packages/protocol",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "expo": "~54.0.37",
+    "expo-secure-store": "~15.0.8",
+    "expo-status-bar": "~3.0.9",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "typescript": "~5.9.2"
+  }
+}
