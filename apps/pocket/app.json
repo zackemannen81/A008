@@ -23,6 +23,10 @@
       ],
       "expo-asset"
     ],
-    "newArchEnabled": true
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "dev.a008.pocket",
+      "supportsTablet": true
+    }
   }
 }
