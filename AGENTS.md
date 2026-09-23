@@ -61,7 +61,7 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
   local CLI/ACP composition. The owner-supplied Context-First document remains
   architecture input, not an external code baseline. `C:\code\acme` is not an
   adopted source baseline; A008 does, however, deliberately consume the bounded
-  published `acme-engine@0.1.5` package surface for default model execution.
+  published `acme-engine@0.1.6` package surface for default model execution.
 - Bootstrap and protocol/add-on copies in the repository root are ignored
   reference inputs, not shipped A008 content.
 

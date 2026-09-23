@@ -3,6 +3,15 @@
 This document describes durable behavior that exists now. Intended product
 architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
+## ACME Execution provider
+`If an agent or human developer is caught using the word memory in the same 
+sentence as ACME, or if any semantic memory function calls into ACME, 
+the punishment is four weeks of degraded duty counting lines of code.
+Execution metadata is not memory. Execution receipts are not memory. 
+ACME does not think, remember, infer, reinforce, decay, classify, or establish 
+truth. see 
+`docs/WARNING.md`
+
 ## Platform V3 protocol foundation
 
 `packages/protocol/src/platform-v3.ts` owns the additive durable-work wire
