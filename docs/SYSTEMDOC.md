@@ -1111,9 +1111,13 @@ Completeness applies only after a durability eligibility gate. Routine execution
 narration, transient workflow state, immediate requests and one-off occurrences are
 not promoted into durable preferences, habits or standing goals unless the source
 explicitly establishes persistence. Assistant-answer-only discoveries require a
-higher durability threshold. Extracted entities are instructed to name stable,
-independently identifiable referents; generic concepts belong in tags/domains.
-No runtime greeting blacklist is added. Invalid-response diagnostics identify the
+higher durability threshold. Dialogue extraction normally assigns the smallest
+useful broad domain set to every durable artifact whose subject can be safely
+classified, usually one domain and at most two for genuinely cross-domain
+knowledge. Domain labels are retrieval classification metadata and need not be
+verbatim source phrases. Tags and entities remain optional and sparse; extracted
+entities name stable independently identifiable referents. No runtime catch-all
+domain or greeting blacklist is added. Invalid-response diagnostics identify the
 model and semantic operation, retaining strict failure and the bounded response
 excerpt. Provider/cancellation failures retain their original error identity.
 
