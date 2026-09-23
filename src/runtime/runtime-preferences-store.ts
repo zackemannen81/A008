@@ -53,7 +53,7 @@ export class RuntimePreferencesStore {
       env.NVIDIA_API_KEY?.trim()
         ? DEFAULT_MODEL_ID
         : env.OPENAI_API_KEY?.trim()
-          ? "gpt-5.6-luna"
+          ? DEFAULT_MODEL_ID
           : DEFAULT_MODEL_ID;
     this.#defaults = parseRuntimePreferences({
       instructions: "",
