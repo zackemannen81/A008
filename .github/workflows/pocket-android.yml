@@ -1,4 +1,4 @@
-name: A008 Pocket Android debug APK
+name: A008 Pocket Android standalone APK
 
 on:
   push:
@@ -39,13 +39,24 @@ jobs:
       - name: Generate native Android project
         working-directory: apps/pocket
         run: npx expo prebuild --platform android --non-interactive --no-install
-      - name: Build debug APK
+      - name: Build standalone preview APK with embedded JS
         working-directory: apps/pocket/android
-        run: chmod +x ./gradlew && ./gradlew assembleDebug --no-daemon
+        run: chmod +x ./gradlew && ./gradlew assembleRelease --no-daemon
+      - name: Verify embedded JavaScript bundle
+        run: |
+          python3 - <<'PY'
+          import zipfile
+          apk = 'apps/pocket/android/app/build/outputs/apk/release/app-release.apk'
+          with zipfile.ZipFile(apk) as z:
+              names = z.namelist()
+              bundles = [n for n in names if n.endswith('index.android.bundle')]
+              assert bundles, 'No embedded index.android.bundle; APK would require Metro'
+              print('Standalone JS bundle verified:', bundles)
+          PY
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: a008-pocket-debug-apk
-          path: apps/pocket/android/app/build/outputs/apk/debug/app-debug.apk
+          name: a008-pocket-standalone-apk
+          path: apps/pocket/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
