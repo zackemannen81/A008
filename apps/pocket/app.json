@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "A008 Pocket",
+    "slug": "a008-pocket",
+    "scheme": "a008pocket",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#1c1c1c",
+    "android": {
+      "package": "dev.a008.pocket",
+      "adaptiveIcon": {
+        "backgroundColor": "#202020"
+      },
+      "permissions": []
+    },
+    "plugins": [
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ]
+    ],
+    "newArchEnabled": true
+  }
+}
