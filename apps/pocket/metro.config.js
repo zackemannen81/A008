@@ -5,5 +5,4 @@ const repoRoot = path.resolve(projectRoot, "../..");
 const config = getDefaultConfig(projectRoot);
 config.watchFolders = [repoRoot];
 config.resolver.nodeModulesPaths = [path.join(projectRoot, "node_modules"), path.join(repoRoot, "node_modules")];
-config.resolver.disableHierarchicalLookup = true;
 module.exports = config;
