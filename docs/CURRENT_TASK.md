@@ -1,90 +1,131 @@
-# A008-0172 â€” Restore durable knowledge domain classification
+# Current Task
 
-Task ID: A008-0172
-Parent Task: A008-0171
-Status: In Progress
-Owner: ChatGPT (operator/worker)
-Created: 2026-09-24
-Last updated: 2026-09-24
-Charter frozen at: 2026-09-24
+Task ID:
+Parent Task: None
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
 
-## Goal
+## Read First
 
-Restore reliable broad-domain classification for durable dialogue knowledge without
-reintroducing noisy generic metadata stamping.
+- `AGENTS.md`
+- `docs/TASK_WORKFLOW.md`
+- `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/SYSTEMDOC.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant records under `docs/adr/`
 
-## Primary Deliverable
+## Task Summary
 
-A bounded extractor-contract repair plus regression coverage proving that
-classifiable durable knowledge is instructed to carry the smallest useful domain
-set while tags and entities remain sparse.
+Describe why this bounded task is active now and its intended outcome.
 
-## In Scope
+## Task Charter
 
-- Refine the normal dialogue knowledge extractor prompt's domain guidance.
-- Keep tags and entities optional/sparse.
-- Add prompt-contract regression coverage for the domain-vs-sparse distinction.
-- Update current memory/system documentation only where behavior wording changes.
+### Goal
 
-## Out of Scope
+Define one primary outcome.
 
-- Runtime fallback domains such as "general".
-- Changes to label persistence, retrieval ranking, current scope, state semantics,
-  relation classification, or source-ingestion extraction.
-- Live-provider verification unless deterministic coverage is insufficient.
-- Reclassifying already stored unlabeled records.
+### Primary Deliverable
 
-## Definition of Done
+Name the concrete artifact or behavior.
 
-- The extractor contract states that classifiable durable artifacts normally
-  carry the smallest useful domain set, usually one domain.
-- Sparsity guidance no longer permits omitting a domain solely for sparsity.
-- Generic workflow labels remain discouraged.
-- Existing staging/commit domain persistence remains unchanged.
-- Focused prompt tests pass and git diff --check passes.
+### In Scope
 
-## Necessity Gate
+- List work required for the deliverable.
 
-Contract: docs/PROJECT_BRIEF.md, Core Product Contract
-Contract revision: ddbadb93207207bffd4726c4981083f34f66e908
+### Out of Scope
+
+- List adjacent work that must not be absorbed.
+
+### Definition of Done
+
+- State objective completion conditions.
+
+### Necessity Gate
+
+Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
+Contract revision: <Git commit containing the reviewed contract>
+
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
 
 | Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
 | --- | --- | --- | --- | --- |
-| Restore dialogue domain classification | PC-02 requires project-scoped retrieval using stored labels, classified domains and accumulating domain scope; PC-04 requires durable post-turn proposals to persist through the accepted knowledge model | Newly extracted durable records currently arrive without domains and collapse into the Unlabelled retrieval cluster, weakening domain/current-scope retrieval | Change extractor instructions only; do not add runtime defaults or new classifiers | Prompt-contract test distinguishing expected domain classification from sparse tags/entities; focused memory tests |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
 
-## Minimum Verification Gates
+### Minimum Verification Gates
 
-- [ ] Prompt-contract regression passes.
-- [ ] Existing focused semantic-json/extractor tests pass.
-- [ ] git diff --check passes.
+- [ ] Define checks that may be strengthened but not removed after Ready.
 
-## Verification Budget
+### Verification Budget
 
-No live provider call is required. Deterministic contract verification is
-sufficient for this regression.
+Resolve before live dispatch using [Live verification budget](TASK_WORKFLOW.md#live-verification-budget).
+Inheritance authorizes in-scope calls without per-call approval; record the
+policy revision and effective numeric ceilings. Use not-needed/zero for tasks
+that do not require live verification. Credentials are references only.
+Budget is a ceiling, not a target: stop once the verification need is satisfied.
 
-- max_live_verification_cost: 0 SEK
-- max_live_verification_calls: 0
+- Live verification purpose / required provider behavior:
+- Budget owner / parent allocation:
+- Policy revision / inherited or explicit approved limits:
+- max_live_verification_cost (amount + currency):
+- max_live_verification_calls (all physical attempts):
+- max_input_tokens_per_call / max_output_tokens_per_call:
+- live_call_timeout_seconds:
+- Approved provider/model routes / credential-source references:
+- Price reference and checked-at / billing units / currency conversion / allowance:
+- Observed spend / outstanding reservations / unknown cost / attempts / remaining allowance:
+- Worker allocations or serialized dispatch; resume retains prior usage:
 
 ## References
 
-- docs/PROJECT_BRIEF.md â€” PC-02, PC-04
-- docs/CURRENT_MEMORY_MODEL.md â€” Domains and retrieval sections
-- src/prompt-contracts/KNOWLEDGE_EXTRACTOR_INSTRUCTION.ts
-- test/semantic-json-model.test.ts
-- C:\log\a008-log.txt â€” observed regression: 16 non-empty extraction responses, only one with domains; post-0171 outputs omit domains while still emitting tags
+- Add owned documents, source revisions, contracts, and decisions.
 
 ## Checklist
 
-- [ ] Claim task and create isolated worktree.
-- [ ] Patch extractor domain guidance.
-- [ ] Add deterministic regression assertion.
-- [ ] Run focused verification.
-- [ ] Update owned docs/handoff and archive task.
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
 
 ## Decisions and Notes
 
-- Do not add a runtime default domain. An invented catch-all would hide
-  classification failure and pollute retrieval.
-- Domain is treated as broad knowledge classification; tags/entities remain
-  optional sparse retrieval metadata.
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+
+## Charter Amendment Log
+
+- none
+
+## Verification
+
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
+
+## Documentation Updates
+
+- [ ] `docs/CURRENT_STATUS.md`
+- [ ] `docs/SYSTEMDOC.md`
+- [ ] `docs/JOURNAL.md`
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
+
+## Handoff and Follow-ups
+
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task.
+- Append a signed `docs/JOURNAL.md` entry.
