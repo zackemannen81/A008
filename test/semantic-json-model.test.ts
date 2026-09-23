@@ -10,6 +10,7 @@ import type {
 import {
   ChatTransportSemanticJsonGenerator,
   KNOWLEDGE_EXTRACTOR_INSTRUCTION,
+  KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION,
   KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION,
   ModelBackedKnowledgeRelationClassifier,
   ModelBackedPostOutputKnowledgeAnalyzer,
@@ -572,13 +573,53 @@ test("semantic JSON output budget fits a full extraction", () => {
 
 test("the dialogue knowledge extractor freezes baseline-aware four-bucket semantics", () => {
   const instruction = KNOWLEDGE_EXTRACTOR_INSTRUCTION;
-  assert.match(instruction, /exact knowledge projection supplied to the worker/iu);
+  assert.match(instruction, /exact retrieved knowledge baseline.*supplied to the worker/iu);
   assert.match(instruction, /NEW_KNOWLEDGE/iu);
   assert.match(instruction, /STATE_UPDATE/iu);
   assert.match(instruction, /RELATION_UPDATE/iu);
   assert.match(instruction, /REINFORCEMENT/iu);
   assert.match(instruction, /Merely retrieving an artifact is NOT reinforcement/iu);
   assert.match(instruction, /responseText is never quotation evidence/iu);
+});
+
+test("the dialogue extractor freezes librarian identity and state-update rules", () => {
+  const instruction = KNOWLEDGE_EXTRACTOR_INSTRUCTION;
+  assert.match(instruction, /Never put evidenceId in knowledgeId/iu);
+  assert.match(
+    instruction,
+    /knowledgeId to an exact retrievedContext\.items\[\]\.id value/iu,
+  );
+  assert.match(
+    instruction,
+    /update MUST copy semanticAddress exactly from the retrieved item/iu,
+  );
+  assert.match(
+    instruction,
+    /structuredProposition MUST describe the same semantic slot/iu,
+  );
+  assert.match(instruction, /Never use words such as "current" as the interval value/iu);
+  assert.match(instruction, /Metadata is optional and sparse/iu);
+  assert.match(instruction, /Do not stamp every artifact with generic workflow labels/iu);
+});
+
+test("relation classification cannot supersede across semantic addresses", () => {
+  for (const instruction of [
+    KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION,
+    KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION,
+  ]) {
+    assert.match(
+      instruction,
+      /supersede is forbidden when semantic addresses differ/iu,
+    );
+    assert.match(
+      instruction,
+      /Different attribute slots are different semantic addresses/iu,
+    );
+    assert.match(
+      instruction,
+      /does not choose Current State or History/iu,
+    );
+  }
 });
 
 test("the source analyzer instruction keeps its two structural guarantees", () => {
@@ -854,6 +895,8 @@ test("the scope instruction asks for related labels and for reuse", () => {
   // becoming lexical matching again.
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /retrieve=false for greetings/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Prefer precision over recall/u);
+  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /ceilings, never targets/u);
+  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Return the smallest useful label set/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Prefer a known label/u);
   assert.match(
     RETRIEVAL_SCOPE_INSTRUCTION,

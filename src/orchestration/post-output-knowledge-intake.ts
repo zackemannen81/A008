@@ -12,6 +12,7 @@ import type {
 import { MemoryError } from "../memory/errors.js";
 import { deserializeInterval } from "../memory/knowledge/clocks.js";
 import { parseClaimProposition } from "../memory/knowledge/claim-proposition.js";
+import { entitySlug } from "../memory/knowledge/registry.js";
 import type { Interval } from "../memory/knowledge/types.js";
 import type {
   ContextKnowledgeItem,
@@ -703,6 +704,7 @@ export class PostOutputKnowledgeIntake {
     );
     let proposalValues: readonly unknown[];
     let reinforcementValues: readonly unknown[] = [];
+    let stateUpdateValues = new Set<unknown>();
     if (analyzerInput.kind === "source" || Array.isArray(untrusted)) {
       if (!Array.isArray(untrusted)) {
         throw new MemoryError(
@@ -735,10 +737,14 @@ export class PostOutputKnowledgeIntake {
         }
         return value;
       };
+      const newKnowledge = bucket("new_knowledge");
+      const stateUpdates = bucket("state_updates");
+      const relationUpdates = bucket("relation_updates");
+      stateUpdateValues = new Set(stateUpdates);
       proposalValues = [
-        ...bucket("new_knowledge"),
-        ...bucket("state_updates"),
-        ...bucket("relation_updates"),
+        ...newKnowledge,
+        ...stateUpdates,
+        ...relationUpdates,
       ];
       reinforcementValues = bucket("reinforcements");
     }
@@ -839,6 +845,42 @@ export class PostOutputKnowledgeIntake {
           );
         }
       }
+      if (stateUpdateValues.has(value)) {
+        if (analyzerInput.kind !== "dialogue") {
+          throw new MemoryError(
+            "policy",
+            `proposal ${index + 1} state update is valid only for dialogue extraction`,
+          );
+        }
+        const semanticAddress = nonEmpty(
+          raw.semanticAddress,
+          `proposal ${index + 1} state update semanticAddress`,
+        );
+        const target = analyzerInput.retrievedContext.items.find(
+          (item) =>
+            item.kind === "state" && item.semanticAddress === semanticAddress,
+        );
+        if (target === undefined) {
+          throw new MemoryError(
+            "policy",
+            `proposal ${index + 1} state update semanticAddress was not retrieved as current state`,
+          );
+        }
+        if (structuredProposition?.kind !== "attribute_binding") {
+          throw new MemoryError(
+            "policy",
+            `proposal ${index + 1} state update requires attribute_binding structuredProposition`,
+          );
+        }
+        const structuredAddress = `${entitySlug(structuredProposition.entityLabel)}.${structuredProposition.attribute}`;
+        if (structuredAddress !== semanticAddress) {
+          throw new MemoryError(
+            "policy",
+            `proposal ${index + 1} state update semanticAddress does not match structuredProposition slot`,
+          );
+        }
+      }
+
       let aboutInterval: Interval | undefined;
       if (raw.aboutInterval !== undefined) {
         try {

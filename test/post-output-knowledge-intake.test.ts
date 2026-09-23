@@ -66,7 +66,7 @@ const input = {
   retrievedContext: [
     {
       id: "state:memory-loop:current",
-      semanticAddress: "memory.loop.mode",
+      semanticAddress: "memory_loop.mode",
       evidenceId: "claim-memory-loop-mode",
       currentState: "context-first",
       proposition: "context-first",
@@ -200,7 +200,7 @@ test("intake exposes retrieved knowledge, user message and final response and ap
       items: [
         {
           id: "state:memory-loop:current",
-          semanticAddress: "memory.loop.mode",
+          semanticAddress: "memory_loop.mode",
           evidenceId: "claim-memory-loop-mode",
           currentState: "context-first",
           proposition: "context-first",
@@ -282,9 +282,9 @@ test("four-bucket extraction separates reinforcement from new and changed knowle
         state_updates: [
           {
             severity: "important",
-            proposition: "memory.loop.mode is now context-aware",
+            proposition: "memory_loop.mode is now context-aware",
             kind: "state",
-            semanticAddress: "memory.loop.mode",
+            semanticAddress: "memory_loop.mode",
             structuredProposition: {
               kind: "attribute_binding",
               entityLabel: "memory.loop",
@@ -297,7 +297,7 @@ test("four-bucket extraction separates reinforcement from new and changed knowle
         reinforcements: [
           {
             knowledgeId: "state:memory-loop:current",
-            semanticAddress: "memory.loop.mode",
+            semanticAddress: "memory_loop.mode",
           },
         ],
       };
@@ -309,7 +309,7 @@ test("four-bucket extraction separates reinforcement from new and changed knowle
     {
       knowledgeId: "state:memory-loop:current",
       evidenceId: "claim-memory-loop-mode",
-      semanticAddress: "memory.loop.mode",
+      semanticAddress: "memory_loop.mode",
     },
   ]);
   assert.equal(
@@ -317,6 +317,37 @@ test("four-bucket extraction separates reinforcement from new and changed knowle
     "attribute_binding",
   );
   assert.equal(staged.serialized.includes("claim-memory-loop-mode"), true);
+});
+
+test("mismatched state-update address is skipped before classification or commit", async () => {
+  const staged = await intake({
+    async analyze() {
+      return {
+        new_knowledge: [],
+        state_updates: [
+          {
+            severity: "important",
+            proposition: "The project worktree is clean.",
+            kind: "state",
+            semanticAddress: "memory_loop.mode",
+            structuredProposition: {
+              kind: "attribute_binding",
+              entityLabel: "project",
+              attribute: "worktree_status",
+              value: "clean",
+            },
+          },
+        ],
+        relation_updates: [],
+        reinforcements: [],
+      };
+    },
+  }).stage(input);
+
+  assert.equal(staged.proposals.length, 0);
+  assert.deepEqual(staged.skippedProposals, [
+    "proposal 1 state update semanticAddress does not match structuredProposition slot",
+  ]);
 });
 
 test("intake enforces the exact multibyte serialized budget", async () => {

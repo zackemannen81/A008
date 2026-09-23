@@ -3,8 +3,20 @@
 Reality as of 2026-09-23. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
-A008-0170 is complete on `codex/a008-0170-instruction-inline-template` and
-awaits operator merge. Global Instructions now support seven strict A008-owned
+A008-0171 is complete on `codex/a008-0171-librarian-prompts` and awaits
+operator merge. Normal chat-turn memory prompts now follow the simpler
+librarian contract: retrieval asks for the smallest useful label set; extractor
+identity is copied from the same-turn baseline; reinforcement uses exact
+retrieved item IDs; state updates must target a retrieved current-state semantic
+address and match the same structured slot; relation classification cannot
+supersede/restatement/conflict across different semantic addresses; generic
+turn-wide metadata is discouraged. Intake now fail-closes mismatched state-update
+addresses before classification/commit. Verification: focused 86/86, membership
+4/4, GUI 204/204. Core is 765/766 with one pre-existing main failure caused by
+hotfix 8b2796a semantic default-model selection; the identical test fails on
+main. No live provider calls / 0 SEK.
+
+A008-0170 is merged through PR #115. Global Instructions now support seven strict A008-owned
 inline fields: `provider_model`, `model_capabilities`, `working_directory`,
 `is_git_repo`, `platform`, `os_version`, and `today_date`. They render
 per turn into the system instruction plane from the selected model profile and

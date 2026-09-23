@@ -2623,3 +2623,25 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 
 - Operator: Grok. Added `docs/A008_Platform-devplan.md` as the readable stage and milestone plan. Spec, ADR 0048 and A008-0160 remain the authority. No product behavior changed.
 - Signature: Grok (operator)
+
+## 2026-09-23 — A008-0171 librarian prompt contract simplification
+
+- Reviewed `C:\log\a008-log.txt` across two fresh-memory turns. The first turn
+  retrieved zero records; the second retrieved six records (one current state
+  plus five claims) and no history. Worker request bodies were materially smaller
+  than the earlier oldschool trace, but continued to grow across tool loops.
+- The live trace exposed two dialogue-extractor contract failures:
+  reinforcement used provenance/evidence IDs instead of exact retrieved item IDs,
+  and a state update copied `nd_0002.status` while its structured proposition
+  described `project.worktree_status`. It also showed generic metadata stamping.
+- Dialogue extraction, retrieval-scope, relation-classification and memory-context
+  prompts were aligned to the simpler librarian model. Source-ingestion-only
+  analysis prompt was reviewed but intentionally left unchanged.
+- Intake now fail-closes a state update unless the target semantic address was a
+  current state item in the same retrieved baseline and the attribute binding
+  resolves to that exact slot.
+- Verification: focused 86/86; membership 4/4; GUI 204/204; diff check passed.
+  Core is 765/766 solely because the pre-existing Luna semantic-temperature test
+  also fails on main after hotfix `8b2796a` changed default semantic model
+  selection. No live provider calls; 0 SEK.
+- Signature: ChatGPT (operator/worker)
