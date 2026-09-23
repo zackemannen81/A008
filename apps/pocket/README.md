@@ -15,7 +15,7 @@ This is an experimental Stage-6 client, not a completed Stage-6 real-device proo
 
 ## Build
 
-From repository root: `npm ci && npm run build:client`. Then `cd apps/pocket && npm install && npm run typecheck && npx expo prebuild --platform android --non-interactive && cd android && ./gradlew assembleDebug` (Windows: `gradlew.bat assembleDebug`). The debug APK appears at `apps/pocket/android/app/build/outputs/apk/debug/app-debug.apk` after a successful build. Requires Android SDK and Java 17. Alternatively, the isolated GitHub Actions workflow builds a debug APK artifact on this experimental branch.
+From repository root: `npm ci && npm run build:client`. Then `cd apps/pocket && npm install && npm run typecheck && npx expo prebuild --platform android --non-interactive && cd android && ./gradlew assembleDebug` (Windows: `gradlew.bat assembleDebug`). For a standalone installable test APK, build `assembleRelease` instead of `assembleDebug`. The generated Expo release build embeds the JavaScript bundle and currently uses the generated Android debug signing key **only for testing**. The standalone APK appears at `apps/pocket/android/app/build/outputs/apk/release/app-release.apk`. A regular `assembleDebug` APK expects a running Metro development server and will show a red “Unable to load script” screen when installed by itself. Requires Android SDK and Java 17. Alternatively, the isolated GitHub Actions workflow builds a debug APK artifact on this experimental branch.
 
 ## Pairing
 
