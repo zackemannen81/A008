@@ -30,8 +30,8 @@ test("CLI two-turn chat commits a user assertion and projects it next turn", asy
       reasoning: "PRIVATE_CLI_MEMORY",
     }),
     analyze: (input) => {
-      const raw = input as { readonly message?: unknown };
-      return raw.message === ASSERTION
+      const raw = input as { readonly userMessage?: unknown };
+      return raw.userMessage === ASSERTION
         ? [
             {
               severity: "important",

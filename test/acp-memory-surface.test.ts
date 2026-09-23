@@ -29,8 +29,8 @@ test("ACP agent streams thought/answer then settles memory without protocol diag
       reasoning: "ACP_PRIVATE",
     }),
     analyze: (input) => {
-      const raw = input as { readonly message?: unknown };
-      return raw.message === ASSERTION
+      const raw = input as { readonly userMessage?: unknown };
+      return raw.userMessage === ASSERTION
         ? [
             {
               severity: "important",

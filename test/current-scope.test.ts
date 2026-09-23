@@ -276,7 +276,7 @@ function request(message: string): MemoryReadRequest {
   };
 }
 
-test("0143 admitted retrieval reinforces actual evidence exactly once per turn", async () => {
+test("retrieval is read-only and does not reinforce merely admitted evidence", async () => {
   const context = storeWith([
     {
       content: "Hippocampus fungerar som en växelstation för minnen",
@@ -294,28 +294,23 @@ test("0143 admitted retrieval reinforces actual evidence exactly once per turn",
   const reader = new KnowledgeMemoryReader({ context });
   const first = request("Vad gör hippocampus med minnen?");
 
-  await reader.read(first);
-  assert.ok(
-    Math.abs(context.lifecycle.get(utterance.id)!.lifecycle.strength - 0.6) <
-      1e-12,
-  );
-  assert.equal(context.lifecycle.snapshot().receipts!.length, 1);
+  const selected = await reader.read(first);
+  assert.ok(selected.projection.projection.items.length > 0);
+  assert.equal(context.lifecycle.get(utterance.id)!.lifecycle.strength, 0.4);
+  assert.equal(context.lifecycle.snapshot().receipts!.length, 0);
 
   await reader.read(first);
-  assert.ok(
-    Math.abs(context.lifecycle.get(utterance.id)!.lifecycle.strength - 0.6) <
-      1e-12,
-    "same turn/evidence pair is idempotent",
-  );
-  assert.equal(context.lifecycle.snapshot().receipts!.length, 1);
-
   await reader.read({
     ...first,
     taskId:
       "A008_v1_task_70000000-0000-4000-8000-000000000005" as RuntimeTaskId,
   });
-  assert.equal(context.lifecycle.get(utterance.id)!.lifecycle.strength, 0.8);
-  assert.equal(context.lifecycle.snapshot().receipts!.length, 2);
+  assert.equal(
+    context.lifecycle.get(utterance.id)!.lifecycle.strength,
+    0.4,
+    "retrieval alone is never a semantic recurrence",
+  );
+  assert.equal(context.lifecycle.snapshot().receipts!.length, 0);
 });
 
 function scripted(

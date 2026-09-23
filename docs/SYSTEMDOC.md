@@ -782,9 +782,12 @@ the existing analyzer; one operation time evaluates a persisted exponential
 baseline. Direct dormant matches stay eligible. Inspection exposes baseline and
 evaluated values; model projection contains no lifecycle numbers.
 
-Live lifecycle reinforcement is occurrence-based. Once retrieval has fixed the
-admitted set, existing lifecycle-backed evidence that became semantically
-actual/relevant in that distinct occurrence may be reinforced exactly once.
+Live lifecycle reinforcement is occurrence-based. Retrieval, admission and
+projection are read-only: they do not strengthen an item merely because it was
+selected. Post-output extraction compares the completed turn with the exact
+same-turn retrieved projection and may explicitly identify existing
+lifecycle-backed evidence that was materially reused/reaffirmed. That evidence
+is reinforced exactly once for the turn occurrence.
 Exact quote/span/provenance support is validated independently for evidence and
 association attachment; missing or ambiguous proof is not a lifecycle veto.
 Entity commit reuses an existing registry identity when a later label slugs to
@@ -793,8 +796,7 @@ register.
 Writes execute synchronously under the knowledge transaction/lock and durable
 occurrence/evidence receipts make retries idempotent. In-memory writes restore
 the prior snapshot on failure. DEFINE/RETRIEVE/EXPAND/FILTER/COMPOSE/PROJECT
-remain non-mutating; reinforcement is the separate lifecycle write after
-admission. Schema 3 converts legacy baselines
+remain non-mutating; reinforcement is a separate post-output lifecycle write. Schema 3 converts legacy baselines
 without inventing severity, history or elapsed age; see the constitution's
 backup/restore procedure. Settings format 4 holds advanced creation policy in
 the existing runtime owner; existing-client saves preserve it.
@@ -1030,12 +1032,18 @@ commits only `completion.message`. Consequently reasoning is absent from chat
 history, bounded retrieval history, and later provider-visible messages.
 
 `PostOutputKnowledgeIntake` establishes a narrow provider-neutral staging
-boundary. It validates runtime context outside the analyzer and allocates a new
-analyzer input containing exactly normalized original message and final answer.
-It explicitly materializes only proposition, kind, tags, domains, entities, and
-confidence from untrusted analyzer output. Caller-verified scopes and
-conservative authority, relevance, activation, source-backed, keep-alive, and
-provenance defaults remain runtime-owned.
+boundary. For dialogue turns it validates runtime context outside the analyzer
+and supplies exactly the retrieved projection used by the worker, the normalized
+original user message and the final provider response. The retrieved projection
+preserves stable item/evidence identity plus semantic address/current state where
+the read path already owns them; no second retrieval occurs after the answer.
+Source extraction remains a separate locator/content contract.
+Dialogue analyzer output is split into `new_knowledge`, `state_updates`,
+`relation_updates` and `reinforcements`. New/state/relation candidates remain
+untrusted staged proposals; reinforcement may reference only an artifact from
+the supplied retrieved projection and resolves to its runtime-owned evidence ID.
+Caller-verified scopes and conservative authority, relevance, activation,
+source-backed, keep-alive, and provenance defaults remain runtime-owned.
 
 Staging normalizes semantic labels, rejects duplicates and malformed results,
 enforces structural limits plus an exact stable serialized-batch budget, and
@@ -1054,9 +1062,13 @@ the exact serialized role/content array, forces non-streaming mode, and makes
 one transport call. It does not use `ChatSession`, so semantic prompts and
 responses cannot become committed dialogue.
 
-`ModelBackedPostOutputKnowledgeAnalyzer` supplies only normalized original
-message and final answer. `ModelBackedKnowledgeRelationClassifier` supplies the
-existing exact ID-free proposal/candidate envelope. Both may share one generator
+`ModelBackedPostOutputKnowledgeAnalyzer` supplies dialogue extraction with
+`retrievedContext`, `userMessage` and `responseText`. Stable retrieved
+knowledge/evidence IDs and semantic addresses are intentionally present so the
+extractor can name the exact artifact it reused or changed; lifecycle scores,
+retrieval reasons, runtime/project/session IDs and provider reasoning remain
+absent. `ModelBackedKnowledgeRelationClassifier` still receives the separate
+bounded local-handle proposal/candidate envelope. Both may share one generator
 and therefore one transport/model configuration without constructing another
 provider implementation or credential owner.
 
@@ -1287,15 +1299,20 @@ persistent user data remains prohibited until classification, authorization,
 encryption, retention, deletion, and export policies are owned.
 
 The memory-aware orchestration code likewise reads no environment, credential,
-file, database, or network directly. Its prompt strips routing and memory
-control data. Canonical propositions can still contain adversarial text; JSON
-data framing and a fixed trust instruction reduce authority confusion but do
-not establish complete prompt-injection resistance.
+file, database, or network directly. Its provider prompt strips routing,
+runtime/project/session control data and lifecycle/retrieval scoring, while
+deliberately retaining the bounded knowledge identity and semantic address
+needed for same-turn extraction. Canonical propositions can still contain
+adversarial text; JSON data framing and a fixed trust instruction reduce
+authority confusion but do not establish complete prompt-injection resistance.
 
 The post-output intake service receives no reasoning or complete provider
-result and owns no write port. Its staged drafts remain untrusted. The separate
-relation gate exposes only materialized meaning and local handles to its
-classifier; it retains control IDs and canonical authority at runtime. The
+result and owns no write port. For dialogue it receives the exact retrieved
+knowledge projection, normalized user message and final response text; its
+staged drafts and explicit reinforcement references remain untrusted until
+runtime validation. The separate relation gate exposes only materialized
+meaning and local handles to its classifier; it retains canonical authority at
+runtime. The
 benchmark and relation tests use in-memory SQLite and fake/local components
 only.
 

@@ -221,7 +221,9 @@ test("memory-aware turns use one read/call, bounded history, and canonical state
   assert.equal(providerText.includes(CONVERSATION), false);
   assert.equal(providerText.includes(TASK), false);
   assert.equal(providerText.includes(AGENT), false);
-  assert.equal(providerText.includes("knowledge-control-id"), false);
+  // Knowledge identity is deliberately provider-visible now: the same exact
+  // retrieved artifact identity is reused by post-response extraction.
+  assert.equal(providerText.includes("knowledge-control-id"), true);
   assert.equal(providerText.includes("projection-control-plane"), false);
   assert.equal(providerText.includes("candidateThreshold"), false);
   assert.equal(providerText.includes("Selected canonical memory."), true);
@@ -561,7 +563,7 @@ test("real hybrid read remains non-mutating across the composed provider turn", 
   );
   assert.equal(
     JSON.stringify(request?.messages).includes("canonical-memory"),
-    false,
+    true,
   );
   assert.deepEqual(
     await repository.read((view) => view.listAll()),

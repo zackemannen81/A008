@@ -8,7 +8,10 @@ import {
 import type { SemanticOperationContext } from "../../orchestration/semantic-operation.js";
 import { atomicKnowledge } from "./knowledge-transaction.js";
 import { createHash, randomUUID } from "node:crypto";
-import { Utf8ByteKnowledgeIntakeMeasurer } from "../../orchestration/post-output-knowledge-intake.js";
+import {
+  Utf8ByteKnowledgeIntakeMeasurer,
+  type StagedKnowledgeBatch,
+} from "../../orchestration/post-output-knowledge-intake.js";
 import type {
   RelationClassifierDecision,
   RelationClassifierCandidate,
@@ -21,6 +24,7 @@ import type {
   UpdatedRelationIndex,
 } from "../../orchestration/relation-gated-memory-commit.js";
 import type {
+  PostOutputMemoryReinforcementRecord,
   RelationBatchCommitInput,
   RelationBatchCommitStep,
   StagedProposalCommitter,
@@ -108,6 +112,49 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     operation: SemanticOperationContext = {},
   ): Promise<RelationGatedCommitResult> {
     return this.#commitInternal(input, operation);
+  }
+
+  async commitReinforcements(
+    batch: StagedKnowledgeBatch,
+    operation: SemanticOperationContext = {},
+  ): Promise<readonly PostOutputMemoryReinforcementRecord[]> {
+    operation.signal?.throwIfAborted();
+    if (batch.origin.kind !== "dialogue") {
+      if ((batch.reinforcements ?? []).length > 0) {
+        throw new Error("source batches cannot carry dialogue reinforcements");
+      }
+      return [];
+    }
+    const occurrenceId = `turn:${batch.conversationId}:${batch.taskId}`;
+    const at = this.#context.lifecycle.now();
+    return atomicKnowledge(this.#context, () =>
+      (batch.reinforcements ?? []).map((entry) => {
+        operation.signal?.throwIfAborted();
+        if (this.#context.lifecycle.get(entry.evidenceId) === undefined) {
+          return {
+            knowledgeId: entry.knowledgeId,
+            evidenceId: entry.evidenceId,
+            ...(entry.semanticAddress === undefined
+              ? {}
+              : { semanticAddress: entry.semanticAddress }),
+            status: "unresolved_target" as const,
+          };
+        }
+        const applied = this.#context.lifecycle.reinforceOccurrence({
+          occurrenceId,
+          evidenceId: entry.evidenceId,
+          at,
+        });
+        return {
+          knowledgeId: entry.knowledgeId,
+          evidenceId: entry.evidenceId,
+          ...(entry.semanticAddress === undefined
+            ? {}
+            : { semanticAddress: entry.semanticAddress }),
+          status: applied ? ("applied" as const) : ("duplicate_or_creation" as const),
+        };
+      }),
+    );
   }
 
   async #commitInternal(

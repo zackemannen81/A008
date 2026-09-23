@@ -10,8 +10,8 @@ import type {
   ChatTransport,
 } from "../core/types.js";
 import type {
-  AnalyzedKnowledgeDraft,
   PostOutputAnalyzerInput,
+  PostOutputKnowledgeAnalysis,
   PostOutputKnowledgeAnalyzer,
 } from "./post-output-knowledge-intake.js";
 import {
@@ -48,6 +48,8 @@ export interface ChatTransportSemanticJsonGeneratorOptions {
 /** Owner-authored extraction semantics; A008-0085 clarifies response syntax and
  * durable selection without weakening source fidelity, untrusted-data framing,
  * array-only output, or completeness for qualifying claims. */
+import { KNOWLEDGE_EXTRACTOR_INSTRUCTION } from "../prompt-contracts/KNOWLEDGE_EXTRACTOR_INSTRUCTION.js";
+export { KNOWLEDGE_EXTRACTOR_INSTRUCTION };
 import { POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION } from "../prompt-contracts/POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION.js";
 export { POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION };
 import { KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION } from "../prompt-contracts/KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION.js";
@@ -387,20 +389,33 @@ export class ModelBackedPostOutputKnowledgeAnalyzer implements PostOutputKnowled
   async analyze(
     input: PostOutputAnalyzerInput,
     context: SemanticOperationContext = {},
-  ): Promise<readonly AnalyzedKnowledgeDraft[]> {
+  ): Promise<PostOutputKnowledgeAnalysis> {
     const untrusted = await this.#generator.generate({
       operation: "knowledge_analysis",
-      systemInstruction: POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION,
-      // Each variant is serialized under its own field names. A document is
-      // neither a message nor an answer, and the payload is what the model
-      // reads as untrusted data, so naming it wrongly would frame it wrongly.
+      systemInstruction:
+        input.kind === "source"
+          ? POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION
+          : KNOWLEDGE_EXTRACTOR_INSTRUCTION,
+      // Source extraction remains source-only. Dialogue extraction receives
+      // exactly the knowledge projection used by the worker plus the user
+      // message and final provider response; it never performs a second read.
       serializedInput:
         input.kind === "source"
           ? JSON.stringify({ locator: input.locator, content: input.content })
-          : JSON.stringify({ message: input.message, answer: input.answer }),
+          : JSON.stringify({
+              retrievedContext: {
+                items: input.retrievedContext.items.map((item) => ({
+                  ...item,
+                  tags: [...item.tags],
+                  scope: [...item.scope],
+                })),
+              },
+              userMessage: input.userMessage,
+              responseText: input.responseText,
+            }),
       ...(context.signal === undefined ? {} : { signal: context.signal }),
     });
-    return untrusted as readonly AnalyzedKnowledgeDraft[];
+    return untrusted as PostOutputKnowledgeAnalysis;
   }
 }
 

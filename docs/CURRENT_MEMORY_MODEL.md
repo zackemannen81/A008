@@ -1024,13 +1024,16 @@ candidate
 ranking / admission
       │
       ▼
-actually used / admitted
+provider execution
+      │
+      ▼
+post-output extraction proves material reuse
       │
       ▼
 reinforcement
 ```
 
-Annars skulle candidate search själv hålla hela databasen levande.
+Retrieval/admission är read-only ur lifecycle-perspektiv. Ett item förstärks först när den fullbordade turnen visar att kunskapen faktiskt återanvändes, återbekräftades eller på nytt etablerades semantiskt. Annars skulle candidate search själv hålla hela databasen levande.
 
 ---
 
@@ -1637,15 +1640,22 @@ Efter varje fullbordad turn sker en kontrollerad write-process.
 USER INPUT
     │
     ▼
-MODEL EXECUTION
+RETRIEVED CURRENT KNOWLEDGE
     │
-    ▼
-FINAL OUTPUT
-    │
-    ▼
+    └──────────────┐
+                   ▼
+MODEL EXECUTION → FINAL OUTPUT
+                   │
+                   ▼
 KNOWLEDGE EXTRACTION
-    │
-    ▼
+(retrieved baseline + user input + final output)
+                   │
+                   ├── new knowledge
+                   ├── state updates
+                   ├── relation updates
+                   └── reinforcements
+                   │
+                   ▼
 SEMANTIC RESOLUTION
     │
     ▼
@@ -1676,22 +1686,32 @@ Operationen ska där det krävs vara atomär.
 
 # 47. Extraction
 
-Extractorn identifierar atomic knowledge.
+Extractorn identifierar atomic knowledge relativt den exakta retrieved-context som workern fick i samma turn.
 
-Den ska försöka producera:
+Dialogue-inputen är:
 
 ```text
-proposition
-kind
-entities
-tags
-domains
-severity
-temporal qualifiers
-structured semantic proposition when possible
+retrievedContext
+userMessage
+responseText
 ```
 
-Extractorn får inte hitta på semantic identities bara för att fylla schema.
+`retrievedContext` bär stabilt knowledge/evidence-ID och semantic address där de redan finns. Extractorn får återanvända dessa identiteter men får inte hitta på nya semantic identities bara för att fylla schema.
+
+Dialogue-resultatet separerar:
+
+```text
+new_knowledge
+state_updates
+relation_updates
+reinforcements
+```
+
+För new/state/relation-kandidater ska extractorn försöka producera proposition, kind, entities, tags, domains, severity, temporal qualifiers och structured semantic proposition när det går säkert.
+
+Knowledge som redan fanns i retrieved context ska inte skapas igen bara för att workern upprepar den. Om samma knowledge faktiskt återanvändes eller återbekräftades i den fullbordade turnen blir den i stället en reinforcement-kandidat. State change vid samma semantic address är inte en duplicate utan en state-update-kandidat.
+
+Commit-time dedupe kvarstår alltid: extraction-time jämförelsen ersätter aldrig global/relevant dedupe mot knowledge store.
 
 ---
 

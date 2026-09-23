@@ -118,9 +118,12 @@ test("holy invariant: no emitted reasoning substring reaches knowledge surfaces"
       .map((message) => message.content)
       .join("\n");
     const analyzer = analyzerInputs[0] as {
-      readonly input?: { readonly answer?: string; readonly message?: string };
+      readonly input?: {
+        readonly responseText?: string;
+        readonly userMessage?: string;
+      };
     };
-    const answer = analyzer.input?.answer ?? "";
+    const answer = analyzer.input?.responseText ?? "";
     assert.equal(answer, live.expectedAnswer);
     assertNoReasoningPath(live.reasoning, answer, "analyzer input");
     assertNoReasoningPath(live.reasoning, committed, "committed history");

@@ -113,7 +113,7 @@ function projection(items = 1): ProjectionResult {
   };
 }
 
-test("memory prompt exposes semantic data and strips all identity/control fields", () => {
+test("memory prompt exposes bounded semantic identity while stripping runtime control fields", () => {
   const prompt = new DeterministicMemoryPromptComposer().compose(
     projection(),
     "Hur fungerar minnet?",
@@ -128,6 +128,7 @@ test("memory prompt exposes semantic data and strips all identity/control fields
   assert.equal(envelope.message, "Hur fungerar minnet?");
   assert.deepEqual(envelope.retrievedContext.items, [
     {
+      id: "knowledge-private-0",
       proposition: "Use SQLite locally.",
       kind: "architecture",
       tags: ["memory"],
@@ -136,7 +137,7 @@ test("memory prompt exposes semantic data and strips all identity/control fields
     },
   ]);
   assert.equal(prompt.userEnvelope.includes("A008_v1_"), false);
-  assert.equal(prompt.userEnvelope.includes("knowledge-private"), false);
+  assert.equal(prompt.userEnvelope.includes("knowledge-private-0"), true);
   assert.equal(
     prompt.userEnvelope.includes("CONTROL_PLANE_SERIALIZATION_MUST_NOT_LEAK"),
     false,

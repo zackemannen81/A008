@@ -7,6 +7,13 @@ export function serializeContextProjection(
     taskId: projection.taskId,
     items: projection.items.map((item) => ({
       id: item.id,
+      ...(item.semanticAddress === undefined
+        ? {}
+        : { semanticAddress: item.semanticAddress }),
+      ...(item.evidenceId === undefined ? {} : { evidenceId: item.evidenceId }),
+      ...(item.currentState === undefined
+        ? {}
+        : { currentState: item.currentState }),
       proposition: item.proposition,
       kind: item.kind,
       tags: [...item.tags],

@@ -189,13 +189,24 @@ try {
           );
           assertProof(
             JSON.stringify(Object.keys(envelope.input).sort()) ===
-              JSON.stringify(["answer", "message"]),
-            "analyzer input must contain only answer and message",
+              JSON.stringify([
+                "responseText",
+                "retrievedContext",
+                "userMessage",
+              ]),
+            "analyzer input must contain retrieved context, user message and response",
           );
           assertProof(
-            envelope.input.message === FIRST_MESSAGE &&
-              envelope.input.answer === FIRST_ANSWER,
+            envelope.input.userMessage === FIRST_MESSAGE &&
+              envelope.input.responseText === FIRST_ANSWER,
             "analyzer must receive the original first message and final answer",
+          );
+          const baseline = envelope.input.retrievedContext as
+            | { readonly items?: readonly { readonly id?: unknown }[] }
+            | undefined;
+          assertProof(
+            baseline?.items?.[0]?.id === KNOWLEDGE_ID,
+            "analyzer must receive the exact retrieved knowledge identity",
           );
           const reasoning = "BENCH_PRIVATE_ANALYZER_REASONING";
           semanticReasoning.push(reasoning);
@@ -355,6 +366,7 @@ try {
     taskId: TASK,
     message: FIRST_MESSAGE,
     answer: first.completion.message.content,
+    retrievedContext: first.memory.projection.projection.items,
     applicabilityScopes: ["runtime"],
   });
   assertProof(
@@ -406,7 +418,7 @@ try {
   const semanticRequestSerialized = JSON.stringify(
     semanticRequests.map((request) => request.messages),
   );
-  const controlValues = [PROJECT, CONVERSATION, TASK, AGENT, KNOWLEDGE_ID];
+  const runtimeControlValues = [PROJECT, CONVERSATION, TASK, AGENT];
   const auditTypes = (await memory.getAudit()).map((event) => event.type);
 
   assertProof(
@@ -480,11 +492,14 @@ try {
   assertProof(
     !semanticRequestSerialized.includes("BENCH_PRIVATE_CHAT_REASONING") &&
       !semanticRequestSerialized.includes("A008_v1_") &&
-      !semanticRequestSerialized.includes(KNOWLEDGE_ID),
-    "semantic requests must exclude reasoning and durable/runtime IDs",
+      semanticRequestSerialized.includes(KNOWLEDGE_ID),
+    "semantic requests must exclude reasoning/runtime IDs while preserving retrieved knowledge identity",
   );
   assertProof(
-    controlValues.every((value) => !userChatSerialized.includes(value)) &&
+    runtimeControlValues.every(
+      (value) => !userChatSerialized.includes(value),
+    ) &&
+      userChatSerialized.includes(KNOWLEDGE_ID) &&
       !userChatSerialized.includes("candidate_1") &&
       !userChatSerialized.includes("knowledge_analysis") &&
       !userChatSerialized.includes("relation_classification"),
@@ -539,8 +554,8 @@ try {
         semanticResultsContainProviderReasoning: semanticReasoning.some(
           (reasoning) => semanticResultSerialized.includes(reasoning),
         ),
-        providerMessagesContainControlIds: controlValues.some((value) =>
-          userChatSerialized.includes(value),
+        providerMessagesContainControlIds: runtimeControlValues.some(
+          (value: string) => userChatSerialized.includes(value),
         ),
         newDraftAutoActivationProven: false,
         observedChatTurnElapsedMs: elapsedMs,

@@ -1,7 +1,23 @@
 # Current Status
 
-Reality as of 2026-09-22. This document records observed state; intended design
+Reality as of 2026-09-23. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
+
+A008-0169 is complete on `codex/a008-0169-knowledge-extractor-context` and awaits
+operator merge. Dialogue post-output extraction now receives the exact same-turn
+retrieved knowledge projection plus the user message and final provider response.
+Projected items preserve stable item/evidence identity, semantic address and
+current state where the read path owns them. Extraction returns separate new
+knowledge, state-update, relation-update and reinforcement candidates. Retrieval
+and admission are lifecycle-read-only; an existing artifact is reinforced only
+when post-output extraction identifies material reuse/reaffirmation in the
+completed turn. Reinforcement targets the retrieved artifact directly, while
+new/state/relation candidates continue through the existing one extraction →
+one batch relation-classifier call → batch commit path. Commit-time dedupe,
+state/history reconciliation and A008 semantic ownership remain unchanged; ACME
+is untouched. Verification: focused memory/extraction 111/111, core 761/761,
+membership 4/4 and GUI 204/204; 0 live provider calls and 0 SEK.
+
 
 A008-0165 is merged through PR #108 at 1cf318e. `@a008/client` exports
 `createPlatformV3Client`: strict request and response validation, safe path

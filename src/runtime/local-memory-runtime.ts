@@ -836,6 +836,8 @@ export class LocalMemorySession {
                 taskId,
                 message,
                 answer,
+                retrievedContext:
+                  memoryResult.memory.projection.projection.items,
                 applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
               },
               options.signal === undefined ? {} : { signal: options.signal },
