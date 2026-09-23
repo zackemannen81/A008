@@ -20,7 +20,8 @@
         {
           "configureAndroidBackup": true
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "newArchEnabled": true
   }
