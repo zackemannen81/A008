@@ -4,3 +4,4 @@ android/
 ios/
 *.apk
 *.aab
+.expo-export-test/
