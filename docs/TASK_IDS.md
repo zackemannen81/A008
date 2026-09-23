@@ -183,3 +183,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0167 | bundled platform conversation surface | Grok (operator) | 2026-09-22 | additive GUI for opted-in V3 conversations and text runs without replacing V1 chat or migrating history |
 | A008-0168 | platform admin CLI | Grok (operator) | 2026-09-22 | local inspect and cancel commands over the existing V3 client, without a reconciliation API |
 | A008-0169 | retrieved-context knowledge extraction contract | ChatGPT (operator/worker) | 2026-09-23 | inject exact retrieved knowledge, user message and provider response into extraction; explicit reinforcement/state/relation candidates |
+| A008-0170 | instruction inline template | ChatGPT (operator/worker) | 2026-09-23 | render strict A008-owned runtime fields inside system Instructions without leaking them into user content |
