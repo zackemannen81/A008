@@ -3,11 +3,39 @@
 This document describes durable behavior that exists now. Intended product
 architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
-The current dialogue extractor requires minimal broad domain classification for
-classifiable durable artifacts. It normally emits one domain and at most two for
-genuinely cross-domain knowledge; domains may be derived from the subject even
-when the exact domain phrase is absent. Tags and entities remain sparse, generic
-workflow labels are discouraged, and no catch-all fallback domain is added.
+The dialogue extractor classifies each durable artifact by its own subject,
+using 1–4 useful domains and 1–16 useful tags under the owner's updated bounds,
+without padding or report-wide labels. Domains may be derived from the subject
+even when the exact domain phrase is absent. Entities remain independently
+identifiable referents; no catch-all fallback domain is added.
+
+A008-0175 distinguishes facts in completed reports from mere execution narration.
+Both the user message and final answer may establish eligible knowledge. It
+splits independently mutable facts into separate proposals and uses existing
+attribute/relationship bindings when resolved, without inventing identities.
+Attribution and conditions remain in the proposition. Optional confidence is
+specified as a number in [0,1]; unused optional fields are omitted. Empty results
+must still be the exact four-array JSON object, with no explanatory prose.
+
+A008-0174 requires useful specific concept tags on classifiable dialogue
+artifacts; sparse labels mean no padding, not omitted classification. Existing
+suitable baseline labels are reused. The scope classifier receives bounded
+`currentDomains` from the existing per-conversation scope so indirect follow-up
+questions and changes can retrieve their referent. Social turns may still skip
+retrieval. Extraction preserves the retrieved entity/attribute when resolving
+an unambiguous follow-up and recognizes actual property use in a recommendation
+as reinforcement. No extra transcript, identity fallback or database backfill
+is introduced. Scope remains subject context, not canonical knowledge.
+
+A008-0173 preserves each retrieved record's stored tags and domains through the
+provider projection and the same-turn extractor baseline. Query tags/entities
+are not relabelled as record metadata; item scope is empty where the read record
+has no applicability scope. Dialogue extraction compares the actual property
+and value: a known file's new explicit property is structured new knowledge,
+not merely reinforcement of its existing description. Reinforcement with an
+optional semantic address is rejected if the exact retrieved target does not
+carry that address. The worker, extractor and shared relation-classifier prompts
+state these boundaries; runtime continues to own identity, state and lifecycle.
 
 `If an agent or human developer is caught using the word memory in the same
 sentence as the name of the execution engine punishment will come.

@@ -17,6 +17,7 @@ export function serializeContextProjection(
       proposition: item.proposition,
       kind: item.kind,
       tags: [...item.tags],
+      ...(item.domains === undefined ? {} : { domains: [...item.domains] }),
       scope: [...item.scope],
       authority: item.authority,
     })),

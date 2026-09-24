@@ -86,6 +86,204 @@ async function commitOne(
   return writer.commit({ batch, proposalIndex: 0 });
 }
 
+test("0176 structured restatement reaches SQLite state and same-binding reuse stays idempotent", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "a008-0176-"));
+  const filename = join(directory, "memory.sqlite");
+  let handle = createSqliteKnowledgeContext({ filename, projectId: PROJECT });
+  try {
+    const message = "Beacon uses TCP and listens on port 9000.";
+    await commitOne(
+      handle.context,
+      await stage(1760, message, "Recorded.", [
+        {
+          proposition: message,
+          kind: "fact",
+          severity: "important",
+        },
+      ]),
+      () => ({ type: "new" }),
+    );
+    assert.equal(handle.context.state.snapshot().bindings.length, 0);
+    const port = {
+      proposition: "Beacon listens on port 9000.",
+      kind: "property",
+      severity: "important" as const,
+      structuredProposition: {
+        kind: "attribute_binding" as const,
+        entityLabel: "Beacon",
+        attribute: "port",
+        value: 9000,
+      },
+      tags: ["port"],
+      domains: ["networking"],
+    };
+    await commitOne(
+      handle.context,
+      await stage(1761, message, "Recorded.", [port]),
+      (input) => ({
+        type: "restatement",
+        targetHandle: input.candidates[0]!.handle,
+      }),
+    );
+    let binding = handle.context.state.snapshot().bindings[0]!;
+    assert.equal(binding.kind, "attribute");
+    assert.equal(handle.context.state.currentValue(binding.slot), 9000);
+    assert.equal(
+      handle.context.evidence.listClaims().length,
+      2,
+      "unresolved source claim remains, new resolved claim owns state",
+    );
+    const carrier = binding.claimId;
+    await commitOne(
+      handle.context,
+      await stage(1762, message, "Recorded.", [port]),
+      (input) => ({
+        type: "restatement",
+        targetHandle: input.candidates.find(
+          (c) => c.proposition === port.proposition,
+        )!.handle,
+      }),
+    );
+    assert.equal(
+      handle.context.evidence.listClaims().length,
+      2,
+      "ordinary same-slot reuse creates no duplicate claim",
+    );
+    assert.equal(handle.context.state.snapshot().bindings[0]!.claimId, carrier);
+
+    await commitOne(
+      handle.context,
+      await stage(1765, "Beacon's admin port is also 9000.", "Recorded.", [
+        {
+          ...port,
+          proposition: "Beacon's admin port is 9000.",
+          structuredProposition: {
+            ...port.structuredProposition,
+            attribute: "admin_port",
+          },
+        },
+      ]),
+      (input) => ({
+        type: "restatement",
+        targetHandle: input.candidates.find(
+          (c) => c.proposition === port.proposition,
+        )!.handle,
+      }),
+    );
+    assert.equal(
+      handle.context.state.snapshot().bindings.length,
+      2,
+      "equal values in different properties must not merge",
+    );
+
+    // Wrong classifier target/value must not swallow the independently resolved fact.
+    await commitOne(
+      handle.context,
+      await stage(1763, "Beacon now listens on port 9100.", "Recorded.", [
+        {
+          ...port,
+          proposition: "Beacon listens on port 9100.",
+          structuredProposition: { ...port.structuredProposition, value: 9100 },
+        },
+      ]),
+      (input) => ({
+        type: "restatement",
+        targetHandle: input.candidates.find(
+          (c) => c.proposition === port.proposition,
+        )!.handle,
+      }),
+    );
+    assert.equal(handle.context.state.currentValue(binding.slot), 9100);
+    assert.equal(handle.context.state.history(binding.slot).length, 2);
+    handle.close();
+    handle = createSqliteKnowledgeContext({ filename, projectId: PROJECT });
+    binding = handle.context.state
+      .snapshot()
+      .bindings.find(
+        (b) =>
+          b.interval.to === null &&
+          b.kind === "attribute" &&
+          b.slot.name === "port",
+      )!;
+    assert.equal(handle.context.state.currentValue(binding.slot), 9100);
+    assert.equal(handle.context.state.history(binding.slot).length, 2);
+    assert.match(
+      JSON.stringify(
+        readKnowledge(
+          {
+            message: "Beacon port",
+            verifiedScope: { verified: true, entities: ["Beacon"] },
+          },
+          handle.context,
+        ).projected.payload,
+      ),
+      /9100/,
+    );
+  } finally {
+    handle.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("0176 same-batch relation restatements preserve distinct subjects and targets", async () => {
+  const context = createKnowledgeContext();
+  const message =
+    "a.js and b.js implement Beacon; a.js also implements Lantern.";
+  const relations = [
+    ["a.js", "Beacon"],
+    ["b.js", "Beacon"],
+    ["a.js", "Lantern"],
+  ] as const;
+  const batch = await stage(1764, message, "Recorded.", [
+    { proposition: message, kind: "fact", severity: "important" },
+    ...relations.map(([subjectLabel, objectLabel]) => ({
+      proposition: `${subjectLabel} implements ${objectLabel}.`,
+      kind: "relation",
+      severity: "important" as const,
+      structuredProposition: {
+        kind: "relationship_binding" as const,
+        subjectLabel,
+        relation: "implements",
+        objectLabel,
+      },
+    })),
+  ]);
+  const writer = new KnowledgeEngineCommit({
+    context,
+    classifier: {
+      classify: async () => ({ type: "new" }),
+      classifyBatch: async () => [
+        { proposalHandle: "proposal_1", type: "new" },
+        ...[2, 3, 4].map((n) => ({
+          proposalHandle: `proposal_${n}`,
+          type: "restatement" as const,
+          targetHandle: "proposal_1",
+        })),
+      ],
+    },
+  });
+  const result = await writer.commitBatch({ batch, startProposalIndex: 0 });
+  assert.ok(result.every((r) => "result" in r));
+  const bindings = context.state.snapshot().bindings;
+  assert.equal(bindings.length, 3);
+  assert.equal(
+    context.entities.list().some((e) => e.labels.includes("a.js and b.js")),
+    false,
+  );
+  const relation = batch.proposals[3]!;
+  await commitOne(context, { ...batch, proposals: [relation] }, (input) => ({
+    type: "restatement",
+    targetHandle: input.candidates.find(
+      (c) => c.proposition === "a.js implements Beacon.",
+    )!.handle,
+  }));
+  assert.equal(
+    context.state.snapshot().bindings.length,
+    3,
+    "different object is reconciled without losing either relation",
+  );
+});
+
 test("0122 identity keeps co-mentioned referents distinct and normalizes lexical identity", () => {
   const context = createKnowledgeContext();
   const lower = context.entities.ensure("react");
@@ -329,12 +527,14 @@ test("0143 live semantic state behaves like HEAD: later valid value owns current
   assert.equal(context.state.claim(firstEvidenceClaim.id)?.status, "accepted");
 
   const entity = context.entities.findByIdentity("Rickard")!;
-  const slot = context.slots.list().find(
-    (definition) =>
-      definition.ref.kind === "attribute" &&
-      definition.ref.entity === entity.id &&
-      definition.ref.name === "preferred_name",
-  )!;
+  const slot = context.slots
+    .list()
+    .find(
+      (definition) =>
+        definition.ref.kind === "attribute" &&
+        definition.ref.entity === entity.id &&
+        definition.ref.name === "preferred_name",
+    )!;
   assert.equal(slot.ref.kind, "attribute");
   assert.equal(context.state.current(slot.ref).length, 1);
   assert.equal(context.state.currentValue(slot.ref), "Bertil");
@@ -479,12 +679,14 @@ test("0143 task status advances atomically from Draft to In Progress", async () 
   await commitStatus(46, "In Progress");
 
   const entity = context.entities.findByIdentity("A008-0142")!;
-  const slot = context.slots.list().find(
-    (definition) =>
-      definition.ref.kind === "attribute" &&
-      definition.ref.entity === entity.id &&
-      definition.ref.name === "status",
-  )!;
+  const slot = context.slots
+    .list()
+    .find(
+      (definition) =>
+        definition.ref.kind === "attribute" &&
+        definition.ref.entity === entity.id &&
+        definition.ref.name === "status",
+    )!;
   assert.equal(context.state.currentValue(slot.ref), "In Progress");
   assert.equal(context.state.current(slot.ref).length, 1);
   const history = context.state.history(slot.ref);
@@ -555,12 +757,14 @@ test("0143 closed past interval is history and does not replace HEAD", async () 
   await commitOne(context, past, () => ({ type: "new" }));
 
   const entity = context.entities.findByIdentity("Anders scarf")!;
-  const slot = context.slots.list().find(
-    (definition) =>
-      definition.ref.kind === "attribute" &&
-      definition.ref.entity === entity.id &&
-      definition.ref.name === "status",
-  )!;
+  const slot = context.slots
+    .list()
+    .find(
+      (definition) =>
+        definition.ref.kind === "attribute" &&
+        definition.ref.entity === entity.id &&
+        definition.ref.name === "status",
+    )!;
   assert.equal(context.state.currentValue(slot.ref), "home");
   assert.equal(context.state.current(slot.ref).length, 1);
   const bindings = context.state.history(slot.ref);
@@ -581,9 +785,7 @@ test("0143 closed past interval is history and does not replace HEAD", async () 
 });
 
 test("0143 future event remains evidence and never becomes current state", async () => {
-  const context = createKnowledgeContext(
-    () => "2026-09-20T06:00:00.000Z",
-  );
+  const context = createKnowledgeContext(() => "2026-09-20T06:00:00.000Z");
   const message = "On 2026-10-20 Brittan will go fishing.";
   const batch = await stage(44, message, "Acknowledged.", [
     {
@@ -605,7 +807,9 @@ test("0143 future event remains evidence and never becomes current state", async
   ]);
   await commitOne(context, batch, () => ({ type: "new" }));
 
-  const claim = context.evidence.listClaims().find((item) => item.label === message)!;
+  const claim = context.evidence
+    .listClaims()
+    .find((item) => item.label === message)!;
   assert.equal(claim.proposition.kind, "event_occurrence");
   assert.deepEqual(claim.aboutInterval, {
     from: "2026-10-20T00:00:00.000Z",
@@ -647,12 +851,14 @@ test("0144 resolved assistant-derived observation can own HEAD while remaining a
 
   const entity = context.entities.findByIdentity("ND-0001");
   assert.ok(entity);
-  const slot = context.slots.list().find(
-    (item) =>
-      item.ref.kind === "attribute" &&
-      item.ref.entity === entity.id &&
-      item.ref.name === "status",
-  );
+  const slot = context.slots
+    .list()
+    .find(
+      (item) =>
+        item.ref.kind === "attribute" &&
+        item.ref.entity === entity.id &&
+        item.ref.name === "status",
+    );
   assert.ok(slot);
   assert.equal(context.state.currentValue(slot.ref), "In Progress");
   assert.equal(context.state.current(slot.ref).length, 1);
@@ -692,7 +898,9 @@ test("0122 answer-only discoveries use assistant provenance and never user accep
     "unstructured answer evidence must not invent current state",
   );
   assert.equal(
-    context.state.snapshot().bindings.some((binding) => binding.claimId === claim.id),
+    context.state
+      .snapshot()
+      .bindings.some((binding) => binding.claimId === claim.id),
     false,
   );
   assert.ok(
@@ -769,8 +977,14 @@ test("0122 single and batch relation prompts share the same explicit semantics",
   ]) {
     assert.match(instruction, /restatement means the same semantic assertion/u);
     assert.match(instruction, /supersede.*SAME semantic address/iu);
-    assert.match(instruction, /supersede is forbidden when semantic addresses differ/iu);
-    assert.match(instruction, /Different attribute slots are different semantic addresses/u);
+    assert.match(
+      instruction,
+      /supersede is forbidden when semantic addresses differ/iu,
+    );
+    assert.match(
+      instruction,
+      /Different attribute slots are different semantic addresses/u,
+    );
     assert.match(instruction, /does not choose Current State or History/u);
     assert.match(instruction, /do not output attraction/iu);
     assert.match(instruction, /graph adjacency.*not new source evidence/iu);

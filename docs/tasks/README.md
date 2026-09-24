@@ -11,6 +11,12 @@ the template before push.
 
 ## Records
 
+- [A008-0175_atomic-dialogue-extraction.md](A008-0175_atomic-dialogue-extraction.md) — Complete on task branch; coherent report eligibility, atomic bindings and owner label ranges. [Archive](../finished/A008-0175_atomic-dialogue-extraction.md), [handoff](../handoffs/A008-0175.md).
+
+- [A008-0174_memory-tags-continuity.md](A008-0174_memory-tags-continuity.md) — Complete on task branch; useful semantic tags and scoped indirect follow-ups. [Archive](../finished/A008-0174_memory-tags-continuity.md), [handoff](../handoffs/A008-0174.md).
+
+- [A008-0173_faithful-memory-property-intake.md](A008-0173_faithful-memory-property-intake.md) — Complete on task branch; preserves stored retrieval metadata and extracts new properties of known entities. [Archive](../finished/A008-0173_faithful-memory-property-intake.md), [handoff](../handoffs/A008-0173.md).
+
 - [A008-0172_domain-classification-regression.md](A008-0172_domain-classification-regression.md) — Complete; restores minimal broad-domain classification for classifiable durable dialogue knowledge while keeping tags/entities sparse. [Archive](../finished/A008-0172_domain-classification-regression.md).
 - [A008-0171_librarian-prompt-contract-simplification.md](A008-0171_librarian-prompt-contract-simplification.md) — Complete; normal chat memory prompts aligned to current-state librarian semantics with fail-closed state-address validation. [Archive](../finished/A008-0171_librarian-prompt-contract-simplification.md).
 - [A008-0170_instruction-inline-template.md](A008-0170_instruction-inline-template.md) — Complete; strict runtime `{{...}}` fields for system Instructions. [Archive](../finished/A008-0170_instruction-inline-template.md).
@@ -135,3 +141,4 @@ the template before push.
 - [A008-0082_association-lifecycle.md](A008-0082_association-lifecycle.md) — Complete; independent L3 associations and one-hop eligibility.
 
 - [A008-0106_client-api-decisions.md](A008-0106_client-api-decisions.md) - Complete; accepted next-stage decisions.
+- [A008-0176_resolved-extraction.md](A008-0176_resolved-extraction.md) — Ready; resolved extraction and structured restatement.

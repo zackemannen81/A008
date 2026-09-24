@@ -63,7 +63,7 @@ Price checked 2026-09-24 against official model page:
 https://developers.openai.com/api/docs/models/gpt-5.6-luna
 USD 0.20 input / 1.20 output per million. Conservative input estimate includes 1.25x cache-write surcharge.
 Conservative allowance 20 SEK/USD, reserve 0.25 SEK per attempt; unknown usage
-retains reservation. Fixed English test input is additionally bounded to 18000 serialized bytes;
+retains reservation. Fixed English test input is additionally bounded to 24000 serialized bytes;
 conservative 2 bytes/token estimate plus 512 framing tokens is below 16384.
 Initial accounting: 0 attempts, 0 spend, 0 reservations; 25 SEK / 10 calls left.
 

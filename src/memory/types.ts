@@ -86,6 +86,8 @@ export interface ContextKnowledgeItem {
   readonly proposition: string;
   readonly kind: string;
   readonly tags: readonly string[];
+  /** Stored subject classifications, when supplied by the knowledge reader. */
+  readonly domains?: readonly string[];
   readonly scope: readonly string[];
   readonly authority: number;
 }

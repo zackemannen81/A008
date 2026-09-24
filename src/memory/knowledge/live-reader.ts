@@ -102,6 +102,7 @@ export class KnowledgeMemoryReader {
           message: request.message,
           knownDomains: vocabulary.domains,
           knownTags: vocabulary.tags,
+          currentDomains: this.#scopes.current(request.conversationId),
         },
         options,
       );

@@ -1698,6 +1698,12 @@ responseText
 
 `retrievedContext` bär stabilt retrieved-item-ID, evidence-ID och semantic address där de redan finns. Extractorn får återanvända dessa identiteter men får inte hitta på nya semantic identities bara för att fylla schema. För reinforcement är `knowledgeId` alltid det exakta retrieved-item-`id`:t; `evidenceId` är runtime/provenance-metadata och får inte användas som ersättare.
 
+Retrieved metadata ska komma från respektive lagrad post. Sökfrågans tags och
+entities får inte kopieras till alla retrieved items som om de beskrev lagrad
+kunskap. Postens egna domains följer med som klassificering. Där läsytan saknar
+postspecifik applicability scope lämnas itemets scope tomt; query entities är
+inte applicability scope. Metadata är inte ytterligare sakpåståenden.
+
 Dialogue-resultatet separerar:
 
 ```text
@@ -1707,13 +1713,42 @@ relation_updates
 reinforcements
 ```
 
-För new/state/relation-kandidater ska extractorn producera proposition, kind, severity och andra säkra semantiska fält. För varje durable artifact vars ämne kan klassificeras säkert ska den dessutom ange den minsta användbara mängden breda reusable domains, normalt exakt en och högst två när kunskapen faktiskt är cross-domain. Domain är retrieval-klassificering, inte ett faktapåstående, och får därför härledas från artifactets ämne även när domänfrasen inte står ordagrant i källan. Tags och entities är däremot optional och sparse.
+För new/state/relation-kandidater ska extractorn producera proposition, kind, severity och andra säkra semantiska fält. För varje durable artifact vars ämne kan klassificeras säkert anges 1–4 användbara återanvändbara domäner enligt ägarens uppdaterade intervall. Varje posts eget ämne klassificeras, inte bara hela projektets eller rapportens. Domain är retrieval-klassificering, inte ett faktapåstående, och får därför härledas från ämnet även när domänfrasen inte står ordagrant i källan. Tags klassificerar specifika återanvändbara ämnesbegrepp; 1–16 användbara tags får anges när sådana kan identifieras. Intervallen är gränser, inte konsumtionsmål eller skäl till utfyllnad. Lämpliga labels från baseline återanvänds. Sparse betyder ingen utfyllnad, inte utebliven klassificering. Entities är fortsatt optional och avser självständigt identifierbara referenter.
+
+En projektrapport kan innehålla bestående kunskap även när användaren bara bad
+om en rapport. Vad som kvalificerar för extraktion avgörs per sakuppgift från input och
+slutligt svar; ren arbetsnarration filtreras separat. Fakta som kan ändras
+oberoende delas upp. Upplösta egenskaper/relationer använder befintliga binding-
+format i stället för sammanfattande predicates eller stora metadataobjekt.
+Nödvändiga villkor, osäkerhet och källangivelser bevaras i propositionen.
+Ett optional `confidence` anges som tal mellan 0 och 1; oanvända optional-fält
+utelämnas. Ett tomt resultat är fortfarande exakt de fyra arrayerna ovan, utan
+förklarande text. Reinforcement bedöms separat från ny kunskaps eligibility.
+
+Retrieval-klassificeraren får samtalets befintliga, begränsade domänscope som
+`currentDomains`. En indirekt följdfråga eller ändring ska kunna hämta aktuellt
+state även utan upprepat filnamn; en ren social tur kan fortfarande avstå.
+Scope tillhör respektive conversation och ersätter inte retrieved baseline.
+Extractorn får lösa indirekta referenter mot denna baseline och ska bevara den
+befintliga entity/attribute-identiteten. Flera möjliga referenter ger ingen rätt
+att gissa en state-adress. Att faktiskt använda en känd egenskap för en
+rekommendation, exempelvis kontrast mot aktuell textfärg, är reinforcement även
+utan att användaren upprepar påståendet. Enbart topical overlap är inte reuse.
 
 Knowledge som redan fanns i retrieved context ska inte skapas igen bara för att workern upprepar den. Om samma knowledge faktiskt återanvändes eller återbekräftades i den fullbordade turnen blir den i stället en reinforcement-kandidat. State change vid samma semantic address är inte en duplicate utan en state-update-kandidat.
 
 En `state_update` får bara uppdatera en current-state-post som faktiskt fanns i samma retrieved baseline. Semantic address ska kopieras exakt från baseline och den strukturerade `attribute_binding`-propositionen måste beskriva samma slot. Intake validerar detta fail-closed innan relation classification/commit. Generic turn-wide workflow labels ska inte stampas på varje artifact, och runtime ska inte maskera utebliven klassificering med en påhittad catch-all-domain.
 
 Commit-time dedupe kvarstår alltid: extraction-time jämförelsen ersätter aldrig global/relevant dedupe mot knowledge store.
+
+En känd entity innebär inte att alla dess egenskaper redan är kända. En ny
+uttryckligen etablerad egenskap och dess värde ska extraheras självständigt från
+eventuell reinforcement av tidigare kunskap. När entity/attribute/value är
+upplösta används source-grounded `attribute_binding`; runtime äger canonical
+address. En allmän beskrivning av en fil får inte ersätta dess nya färgegenskap.
+Om en reinforcement innehåller `semanticAddress` måste den finnas på och exakt
+matcha samma retrieved item. Saknar posten adress utelämnas fältet; ett filnamn
+är inte en semantic address.
 
 ---
 

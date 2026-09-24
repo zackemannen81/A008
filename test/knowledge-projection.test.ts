@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { Utf8ByteContextMeasurer } from "../src/memory/serialization.js";
+import {
+  Utf8ByteContextMeasurer,
+  serializeContextProjection,
+} from "../src/memory/serialization.js";
 import {
   DEFAULT_PROJECTION_BUDGET_BYTES,
   SURFACE_AUTHORITY,
@@ -27,6 +30,64 @@ const MEASURER = new Utf8ByteContextMeasurer();
 const TASK = "A008_v1_task_20000000-0000-4000-8000-000000000004";
 const NOW = { unknown: true } as const;
 const OPEN = { from: NOW, to: null } as const;
+
+test("A008-0173: provider projection preserves each record's labels, never query labels", () => {
+  const tags = ["animation"];
+  const domains = ["development"];
+  const source = payload({
+    scope: {
+      tags: ["query-new-color"],
+      entities: ["query-other-file"],
+      slots: [],
+    },
+    claims: [
+      claim("panel.html is a standalone animation"),
+      claim("unlabelled note"),
+    ],
+  });
+  const result = projectionItems({
+    taskId: TASK,
+    measurer: MEASURER,
+    payload: source,
+    records: source.claims.map((entry, i) => ({
+      id: `claim:${i}`,
+      surface: "claim",
+      matchKind: "direct",
+      retrievalScore: 1,
+      reasons: [],
+      required: false,
+      label: entry.label,
+      tags: i === 0 ? tags : [],
+      domains: i === 0 ? domains : [],
+    })),
+  });
+  tags.push("later-mutation");
+  domains.push("later-mutation");
+  assert.deepEqual(
+    result.items.map((i) => [i.tags, i.domains, i.scope]),
+    [
+      [["animation"], ["development"], []],
+      [[], [], []],
+    ],
+  );
+  const serialized = serializeContextProjection({
+    taskId: TASK as RuntimeTaskId,
+    items: result.items,
+  });
+  assert.equal(serialized.includes("development"), true);
+  assert.equal(serialized.includes("query-"), false);
+  const fallback = projectionItems({
+    taskId: TASK,
+    measurer: MEASURER,
+    payload: source,
+  });
+  assert.ok(
+    fallback.items.every(
+      (i) =>
+        i.tags.length === 0 && i.scope.length === 0 && i.domains === undefined,
+    ),
+  );
+});
 
 function payload(
   overrides: Partial<ProjectionPayload> = {},

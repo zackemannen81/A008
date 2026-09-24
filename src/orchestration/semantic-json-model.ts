@@ -407,6 +407,9 @@ export class ModelBackedPostOutputKnowledgeAnalyzer implements PostOutputKnowled
                 items: input.retrievedContext.items.map((item) => ({
                   ...item,
                   tags: [...item.tags],
+                  ...(item.domains === undefined
+                    ? {}
+                    : { domains: [...item.domains] }),
                   scope: [...item.scope],
                 })),
               },
@@ -495,6 +498,8 @@ export interface RetrievalScopeRequest {
   readonly message: string;
   readonly knownDomains: readonly string[];
   readonly knownTags: readonly string[];
+  /** Existing conversation subject scope, not a second knowledge baseline. */
+  readonly currentDomains?: readonly string[];
 }
 
 export interface RetrievalScopeDraft {
@@ -542,6 +547,13 @@ export class ModelBackedRetrievalScopeClassifier implements RetrievalScopeClassi
         // load-bearing axis, so they are offered whole for far longer than tags.
         knownDomains: request.knownDomains.slice(0, this.#maximumVocabulary),
         knownTags: request.knownTags.slice(0, this.#maximumVocabulary),
+        ...(request.currentDomains === undefined
+          ? {}
+          : {
+              currentDomains: request.currentDomains.slice(
+                -this.#maximumVocabulary,
+              ),
+            }),
       }),
       ...(context.signal === undefined ? {} : { signal: context.signal }),
     });

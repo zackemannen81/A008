@@ -3,6 +3,39 @@
 Reality as of 2026-09-24. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
+A008-0175 repairs the owner-edited dialogue extraction prompt on
+`codex/a008-0175-atomic-extraction`, retaining checkpoint `efbc1f4` and the local
+0173/0174 dependency. The observed report produced valid empty arrays, not a
+parser failure. The repaired prompt separates report facts from narration,
+requires atomic bindings for resolved properties and preserves the owner's
+expanded label ranges. A synthetic live report produced twelve independently
+addressable items across relevant subjects; SQLite update/history, reinforcement,
+valid empty output and qualified/conditional assertions were also checked.
+See `docs/handoffs/A008-0175.md` for probe iterations and limitations. No owner
+database repair, host restart, push or merge is represented as complete.
+
+A008-0174 is implemented on `codex/a008-0174-memory-tags-continuity`, retaining
+the local A008-0173 dependency; neither is represented here as merged. The owner
+log's eleven new/state proposals omitted tags, and an indirect follow-up skipped
+retrieval before creating a different entity/property. Dialogue contracts now
+request useful specific tags and preserve resolved baseline identity. Existing
+conversation domains are passed to retrieval classification. Bounded actual
+Luna probes produced stored tags, retrieved indirect follow-up context, applied
+reinforcement and changed the same slot with history retained across SQLite
+reopen. Tag-only retrieval and social skip passed. Existing owner records are
+not backfilled; see `docs/handoffs/A008-0174.md` for limits and verification.
+
+A008-0173 is verified on the owner-supplied
+`mrwhite81/a008-0173_secure-current-memory-model-bevaviour` branch, pending
+integration. Retrieved records retain their own tags/domains instead of query
+labels. The extractor distinguishes a known entity from a newly established
+property, and optional reinforcement addresses must match the exact target.
+Verification: focused + membership 89/89; full core 769/770, with the same
+standard-model-selection failure reproduced on untouched HEAD `a4280b1`.
+Six live Luna calls passed new-property, changed-state/history, SQLite reopen,
+reinforcement and request-versus-completed-state checks on a synthetic store.
+See `docs/handoffs/A008-0173.md` for verification provenance and limitations.
+
 The current working tree includes the completed A008-0172 domain-classification
 implementation on branch `grok/research/A008`; it is not represented as merged
 main history. Dialogue extraction now requests minimal broad domains for

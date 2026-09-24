@@ -48,8 +48,8 @@ import {
 } from "./evidence-types.js";
 import { asEntityId } from "./ids.js";
 import { entitySlug, slotKey } from "./registry.js";
-import type { KnowledgeState } from "./state.js";
-import type { ReconcileDecision } from "./state-types.js";
+import { valuesEqual, type KnowledgeState } from "./state.js";
+import type { Binding, ReconcileDecision } from "./state-types.js";
 import { ingest } from "./ingest.js";
 import { viewLifecycle } from "./lifecycle.js";
 import type { KnowledgeReadContext } from "./read-types.js";
@@ -151,7 +151,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
           ...(entry.semanticAddress === undefined
             ? {}
             : { semanticAddress: entry.semanticAddress }),
-          status: applied ? ("applied" as const) : ("duplicate_or_creation" as const),
+          status: applied
+            ? ("applied" as const)
+            : ("duplicate_or_creation" as const),
         };
       }),
     );
@@ -384,6 +386,15 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       if (
         resolved &&
         classifierDecision.type === "restatement" &&
+        this.#reusePreservesBinding(
+          staged.proposal.structuredProposition,
+          targetBinding,
+        ) &&
+        ((staged.proposal.structuredProposition?.kind !== "attribute_binding" &&
+          staged.proposal.structuredProposition?.kind !==
+            "relationship_binding") ||
+          (aboutInterval.to === null &&
+            !startsAfter(aboutInterval.from, at))) &&
         !["contested", "retracted", "rejected"].includes(
           currentTarget.status,
         ) &&
@@ -553,7 +564,10 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
               })
             : [];
         const associationResults = applyAssociations(evidenceClaim?.id ?? "");
-        const mappedDecision = mappedReconciliation(classifierDecision, relation);
+        const mappedDecision = mappedReconciliation(
+          classifierDecision,
+          relation,
+        );
         return {
           classifierDecision,
           reconciliationDecision: mappedDecision,
@@ -622,7 +636,8 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         stateEligible: stateReconciliationEligible,
         status: accepted ? "accepted" : "asserted",
         aboutInterval,
-        resolveEntity: (label) => this.#context.entities.ensure(label, "entity").id,
+        resolveEntity: (label) =>
+          this.#context.entities.ensure(label, "entity").id,
       });
       if (this.#context.state.claim(slotClaim.id) === undefined) {
         this.#context.state.recordClaim(slotClaim);
@@ -666,7 +681,8 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
                 policy: { id: SEMANTIC_STATE_POLICY_ID },
                 authority: {
                   verified: true,
-                  speakerRole: claimOrigin === "message" ? "user" : "third_party",
+                  speakerRole:
+                    claimOrigin === "message" ? "user" : "third_party",
                 },
                 reconcileOutcome: "conflict",
                 competingClaimIds: appliedConflict.competingClaimIds.flatMap(
@@ -1271,6 +1287,35 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       : [...staged.entities, owner];
   }
 
+  // A semantic restatement can add a resolved slot to previously unstructured
+  // evidence. Only reuse a carrier when its current binding already represents
+  // that exact slot and value; otherwise let normal reconciliation materialize it.
+  #reusePreservesBinding(
+    proposition: ClaimProposition | undefined,
+    binding: Binding | undefined,
+  ): boolean {
+    if (proposition?.kind === "attribute_binding") {
+      return (
+        binding?.kind === "attribute" &&
+        binding.slot.entity ===
+          this.#context.entities.findByIdentity(proposition.entityLabel)?.id &&
+        binding.slot.name === proposition.attribute &&
+        valuesEqual(binding.value, proposition.value)
+      );
+    }
+    if (proposition?.kind === "relationship_binding") {
+      return (
+        binding?.kind === "relationship" &&
+        binding.slot.subject ===
+          this.#context.entities.findByIdentity(proposition.subjectLabel)?.id &&
+        binding.slot.name === proposition.relation &&
+        binding.object ===
+          this.#context.entities.findByIdentity(proposition.objectLabel)?.id
+      );
+    }
+    return true;
+  }
+
   #ensureSlot(
     structuredProposition: ClaimProposition | undefined,
     proposition: string,
@@ -1304,7 +1349,10 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
         structuredProposition.subjectLabel,
         "entity",
       );
-      this.#context.entities.ensure(structuredProposition.objectLabel, "entity");
+      this.#context.entities.ensure(
+        structuredProposition.objectLabel,
+        "entity",
+      );
       const ref = {
         kind: "relation" as const,
         subject: subject.id,
