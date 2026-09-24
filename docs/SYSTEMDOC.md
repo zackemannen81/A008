@@ -3,6 +3,11 @@
 This document describes durable behavior that exists now. Intended product
 architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
+# Actual
+
+Nothing solidified yet.
+
+# Legacy / history
 The dialogue extractor classifies each durable artifact by its own subject,
 using 1–4 useful domains and 1–16 useful tags under the owner's updated bounds,
 without padding or report-wide labels. Domains may be derived from the subject

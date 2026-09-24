@@ -9,18 +9,5 @@ when its status changes.
 
 ## Proposals
 
-| Proposal | Status | Outcome |
-| --- | --- | --- |
-| [host-client-api-boundary.md](host-client-api-boundary.md) | Accepted — ADR 0040 / A008-0103 | A008-0102: source-grounded plan for a versioned client API, explicit project/session ownership, SDK and independent Expo proof; implementation tracked by the frozen program. |
-| [instruction-plane-and-memory-lifecycle.md](instruction-plane-and-memory-lifecycle.md) | Accepted | Frozen by ADR 0035, including P1–P6. A008-0080 completes L1; A008-0081 completes L2; A008-0082 completes L3 with its own charter and acceptance evidence. |
-| [runtime-proof-reference-repair.md](runtime-proof-reference-repair.md) | Open | Resolve three pre-existing runtime-proof references after checking original evidence and stable paths. |
-| [`legacy-credential-remediation.md`](legacy-credential-remediation.md) | Completed | Credential revoked/rotated; secure provider-neutral intake delivered by A008-0003. |
-| [`first-shared-chat-slice.md`](first-shared-chat-slice.md) | Completed | A008-0003 through A008-0005 prove CLI/core, ACP, and visible Canvas loopback behavior. |
-| [`semantic-memory-addon.md`](semantic-memory-addon.md) | Partially implemented | V0 contract and in-memory engine exist; integration, semantic analysis, durable storage, identity, and privacy remain. |
-| [`multiagent-process-layer.md`](multiagent-process-layer.md) | Open | Decide whether to install and verify the optional local process supervisor. |
-| [`document-ingest-granularity.md`](document-ingest-granularity.md) | Open — now due | `ingest()` makes one utterance from any length of content. Correct for a dialogue turn, wrong for a document. Also carries the correction that `ContentKind`, not this, was wrongly named the upload blocker in the A008-0040 records. A008-0056 made real documents readable, so this is no longer theoretical: every file ingested from now on is stored at file granularity. |
-| [`discovery-based-core-suite.md`](discovery-based-core-suite.md) | Closed | A008-0057 took the membership check. `test:core` still names every file by hand, but a forgotten one now fails the suite by name instead of quietly reducing the count. Globbing compiled output stays rejected: `build` does not clean `dist/`. |
-| [`gui-hardening.md`](gui-hardening.md) | Partially closed | Five follow-ups routed out of A008-0030. Items 1, 2, and 4 closed by A008-0038 and A008-0039. Items 3 (`messages` on `GuiSession`) and 5 (the redaction trade) remain open. |
-| [`multimodal-chat-content.md`](multimodal-chat-content.md) | Superseded by ADR 0045 / A008-0142 | The inherited text-only `ChatMessage.content` restriction is withdrawn. ADR 0045 owns canonical multimodal committed conversation content; A008-0142 owns the active migration and generated-image transcript behavior. |
-| [`current-scope-retrieval.md`](current-scope-retrieval.md) | Built by A008-0063 | The owner's retrieval mechanism written down precisely: classify each message into domains and related domains, accumulate them into a `current_scope` that resets only on an empty intersection, and match a record on any tag, domain or scope hit. Carries five open questions, the sharpest being that gradual topic drift never triggers the reset. |
-| [`host-fixture-secrets-isolation.md`](host-fixture-secrets-isolation.md) | Open | A008-0166 left `A008_SECRETS_PATH` unset in `isolatedMemoryEnv`. A later child should point that fixture at a missing temporary secrets file without changing product secret resolution. |
+## History / _legacy
+for reference purpose you can find old longer authority docs under _legacy

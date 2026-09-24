@@ -2,6 +2,21 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+
+## 2026-09-19 — GLOBAL: Accepted V1 Application.
+
+- Task: GLOBAL; operator: mrwhite81; branch: `main`
+- A008 Reached accepted V1. Next MS V1.5 Application. This means old ADR and Governancy is now classified as history / legacy and no longer have authority,.
+- [Handoff](<>). [). [](<>).
+- Signature: mrWhite
+
+- Task: A008-0133; operator: ChatGPT; branch: `chatGPT/A008-0133-gpt-56-terra-profile`; merged via PR #71 at `0a0629e`.
+- Added shipped `gpt-5.6-terra` beside Luna through the existing native OpenAI Responses composition; Luna remains the existing default/fallback.
+- Terra advertises text/image input, 128K output capability and reasoning efforts `none/low/medium/high/xhigh/max`.
+- Verification: focused 28/28; root typecheck/build and `git diff --check` pass; no live provider call.
+- [Handoff](handoffs/A008-0133.md). [Archive](finished/A008-0133_openai-gpt-56-terra-selectable-profile.md).
+- Signature: ChatGPT
+
 ## 2026-09-19 — A008-0133: GPT-5.6 Terra selectable profile
 
 - Task: A008-0133; operator: ChatGPT; branch: `chatGPT/A008-0133-gpt-56-terra-profile`; merged via PR #71 at `0a0629e`.
