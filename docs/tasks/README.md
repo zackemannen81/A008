@@ -141,3 +141,4 @@ the template before push.
 - [A008-0082_association-lifecycle.md](A008-0082_association-lifecycle.md) — Complete; independent L3 associations and one-hop eligibility.
 
 - [A008-0106_client-api-decisions.md](A008-0106_client-api-decisions.md) - Complete; accepted next-stage decisions.
+- [A008-0176_resolved-extraction.md](A008-0176_resolved-extraction.md) — Ready; resolved extraction and structured restatement.
