@@ -30,6 +30,7 @@ Authenticated host/session API and GUI project details surface for parallel work
 - Add explicit confirmation before merge, create-PR, keep and discard choices.
 - Binding a running chat/tool session to a worktree cwd.
 - Remote push, PR creation, or branch deletion.
+- Github integrations settings
 
 ### Out of Scope
 
