@@ -3,6 +3,17 @@
 Reality as of 2026-09-24. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
+A008-0175 repairs the owner-edited dialogue extraction prompt on
+`codex/a008-0175-atomic-extraction`, retaining checkpoint `efbc1f4` and the local
+0173/0174 dependency. The observed report produced valid empty arrays, not a
+parser failure. The repaired prompt separates report facts from narration,
+requires atomic bindings for resolved properties and preserves the owner's
+expanded label ranges. A synthetic live report produced twelve independently
+addressable items across relevant subjects; SQLite update/history, reinforcement,
+valid empty output and qualified/conditional assertions were also checked.
+See `docs/handoffs/A008-0175.md` for probe iterations and limitations. No owner
+database repair, host restart, push or merge is represented as complete.
+
 A008-0174 is implemented on `codex/a008-0174-memory-tags-continuity`, retaining
 the local A008-0173 dependency; neither is represented here as merged. The owner
 log's eleven new/state proposals omitted tags, and an indirect follow-up skipped

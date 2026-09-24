@@ -3,11 +3,19 @@
 This document describes durable behavior that exists now. Intended product
 architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
-The current dialogue extractor requires minimal broad domain classification for
-classifiable durable artifacts. It normally emits one domain and at most two for
-genuinely cross-domain knowledge; domains may be derived from the subject even
-when the exact domain phrase is absent. Tags and entities remain sparse, generic
-workflow labels are discouraged, and no catch-all fallback domain is added.
+The dialogue extractor classifies each durable artifact by its own subject,
+using 1–4 useful domains and 1–16 useful tags under the owner's updated bounds,
+without padding or report-wide labels. Domains may be derived from the subject
+even when the exact domain phrase is absent. Entities remain independently
+identifiable referents; no catch-all fallback domain is added.
+
+A008-0175 distinguishes facts in completed reports from mere execution narration.
+Both the user message and final answer may establish eligible knowledge. It
+splits independently mutable facts into separate proposals and uses existing
+attribute/relationship bindings when resolved, without inventing identities.
+Attribution and conditions remain in the proposition. Optional confidence is
+specified as a number in [0,1]; unused optional fields are omitted. Empty results
+must still be the exact four-array JSON object, with no explanatory prose.
 
 A008-0174 requires useful specific concept tags on classifiable dialogue
 artifacts; sparse labels mean no padding, not omitted classification. Existing

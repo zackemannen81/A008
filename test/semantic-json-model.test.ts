@@ -603,8 +603,8 @@ test("the dialogue extractor freezes librarian identity and state-update rules",
 
 test("the dialogue extractor preserves domain classification while keeping fine metadata sparse", () => {
   const instruction = KNOWLEDGE_EXTRACTOR_INSTRUCTION;
-  assert.match(instruction, /For every durable artifact whose subject is clear enough to classify, emit domains/iu);
-  assert.match(instruction, /Normally emit exactly one domain/iu);
+  assert.match(instruction, /For every durable artifact whose subject is clear enough to classify, emit 1-4 useful reusable subject domains/iu);
+  assert.match(instruction, /Classify each artifact by its own subject/iu);
   assert.match(instruction, /Omit domains only when the subject cannot be classified safely, never merely to keep metadata sparse/iu);
   assert.match(instruction, /Domains are retrieval classification metadata, not factual claims/iu);
   assert.match(instruction, /emit a small useful set of specific reusable tags/iu);

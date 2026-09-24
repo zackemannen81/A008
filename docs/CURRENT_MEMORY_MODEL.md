@@ -1713,7 +1713,17 @@ relation_updates
 reinforcements
 ```
 
-För new/state/relation-kandidater ska extractorn producera proposition, kind, severity och andra säkra semantiska fält. För varje durable artifact vars ämne kan klassificeras säkert ska den dessutom ange den minsta användbara mängden breda reusable domains, normalt exakt en och högst två när kunskapen faktiskt är cross-domain. Domain är retrieval-klassificering, inte ett faktapåstående, och får därför härledas från artifactets ämne även när domänfrasen inte står ordagrant i källan. Tags klassificerar specifika återanvändbara ämnesbegrepp och ska anges när sådana kan identifieras; normalt räcker en till fyra, utan kvot eller utfyllnad. Lämpliga labels från baseline återanvänds. Sparse betyder ingen utfyllnad, inte utebliven klassificering. Entities är fortsatt optional och avser självständigt identifierbara referenter.
+För new/state/relation-kandidater ska extractorn producera proposition, kind, severity och andra säkra semantiska fält. För varje durable artifact vars ämne kan klassificeras säkert anges 1–4 användbara återanvändbara domäner enligt ägarens uppdaterade intervall. Varje posts eget ämne klassificeras, inte bara hela projektets eller rapportens. Domain är retrieval-klassificering, inte ett faktapåstående, och får därför härledas från ämnet även när domänfrasen inte står ordagrant i källan. Tags klassificerar specifika återanvändbara ämnesbegrepp; 1–16 användbara tags får anges när sådana kan identifieras. Intervallen är gränser, inte konsumtionsmål eller skäl till utfyllnad. Lämpliga labels från baseline återanvänds. Sparse betyder ingen utfyllnad, inte utebliven klassificering. Entities är fortsatt optional och avser självständigt identifierbara referenter.
+
+En projektrapport kan innehålla bestående kunskap även när användaren bara bad
+om en rapport. Vad som kvalificerar för extraktion avgörs per sakuppgift från input och
+slutligt svar; ren arbetsnarration filtreras separat. Fakta som kan ändras
+oberoende delas upp. Upplösta egenskaper/relationer använder befintliga binding-
+format i stället för sammanfattande predicates eller stora metadataobjekt.
+Nödvändiga villkor, osäkerhet och källangivelser bevaras i propositionen.
+Ett optional `confidence` anges som tal mellan 0 och 1; oanvända optional-fält
+utelämnas. Ett tomt resultat är fortfarande exakt de fyra arrayerna ovan, utan
+förklarande text. Reinforcement bedöms separat från ny kunskaps eligibility.
 
 Retrieval-klassificeraren får samtalets befintliga, begränsade domänscope som
 `currentDomains`. En indirekt följdfråga eller ändring ska kunna hämta aktuellt
