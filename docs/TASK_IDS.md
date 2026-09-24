@@ -191,3 +191,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0175 | restore atomic dialogue extraction | Codex (operator/worker) | 2026-09-24 | repair empty project-report extraction and atomic state-bearing claims while retaining owner label ranges |
 | A008-0176 | resolved extraction and structured restatement | Codex (operator) | 2026-09-24 | iterate owner report extraction and preserve explicit bindings through claim reuse |
 | A008-0177 | A008 parallell session functions | A008 (operator) | 2026-09-24 | Git worktree, paralell isolated sessions (chats / project)|
+| A008-0178 | parallel sessions GUI and workspace settings | Rickard (operator) | 2026-09-24 | expose worktree sessions, lifecycle controls and configurable workspace root |
