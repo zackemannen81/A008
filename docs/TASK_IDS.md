@@ -187,3 +187,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0171 | librarian prompt contract simplification | ChatGPT (operator/worker) | 2026-09-23 | align dialogue retrieval/extraction/relation prompts with current-state librarian model |
 | A008-0172 | restore durable knowledge domain classification | ChatGPT (operator/worker) | 2026-09-24 | prevent Librarian sparsity guidance from collapsing classifiable knowledge into unlabeled retrieval records |
 | A008-0173 | secure current memory-model bevaviour| mrWhite & Codex (operator&worker) | 2026-09-24 | fix verify validate baseline memory function secure |
+| A008-0174 | restore semantic tags and scoped follow-up retrieval | Codex (operator/worker) | 2026-09-24 | repair missing extracted tags and continuity of existing state addresses across indirect follow-up turns |
