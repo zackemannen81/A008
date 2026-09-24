@@ -1713,7 +1713,17 @@ relation_updates
 reinforcements
 ```
 
-För new/state/relation-kandidater ska extractorn producera proposition, kind, severity och andra säkra semantiska fält. För varje durable artifact vars ämne kan klassificeras säkert ska den dessutom ange den minsta användbara mängden breda reusable domains, normalt exakt en och högst två när kunskapen faktiskt är cross-domain. Domain är retrieval-klassificering, inte ett faktapåstående, och får därför härledas från artifactets ämne även när domänfrasen inte står ordagrant i källan. Tags och entities är däremot optional och sparse.
+För new/state/relation-kandidater ska extractorn producera proposition, kind, severity och andra säkra semantiska fält. För varje durable artifact vars ämne kan klassificeras säkert ska den dessutom ange den minsta användbara mängden breda reusable domains, normalt exakt en och högst två när kunskapen faktiskt är cross-domain. Domain är retrieval-klassificering, inte ett faktapåstående, och får därför härledas från artifactets ämne även när domänfrasen inte står ordagrant i källan. Tags klassificerar specifika återanvändbara ämnesbegrepp och ska anges när sådana kan identifieras; normalt räcker en till fyra, utan kvot eller utfyllnad. Lämpliga labels från baseline återanvänds. Sparse betyder ingen utfyllnad, inte utebliven klassificering. Entities är fortsatt optional och avser självständigt identifierbara referenter.
+
+Retrieval-klassificeraren får samtalets befintliga, begränsade domänscope som
+`currentDomains`. En indirekt följdfråga eller ändring ska kunna hämta aktuellt
+state även utan upprepat filnamn; en ren social tur kan fortfarande avstå.
+Scope tillhör respektive conversation och ersätter inte retrieved baseline.
+Extractorn får lösa indirekta referenter mot denna baseline och ska bevara den
+befintliga entity/attribute-identiteten. Flera möjliga referenter ger ingen rätt
+att gissa en state-adress. Att faktiskt använda en känd egenskap för en
+rekommendation, exempelvis kontrast mot aktuell textfärg, är reinforcement även
+utan att användaren upprepar påståendet. Enbart topical overlap är inte reuse.
 
 Knowledge som redan fanns i retrieved context ska inte skapas igen bara för att workern upprepar den. Om samma knowledge faktiskt återanvändes eller återbekräftades i den fullbordade turnen blir den i stället en reinforcement-kandidat. State change vid samma semantic address är inte en duplicate utan en state-update-kandidat.
 

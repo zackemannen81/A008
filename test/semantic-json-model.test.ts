@@ -607,8 +607,10 @@ test("the dialogue extractor preserves domain classification while keeping fine 
   assert.match(instruction, /Normally emit exactly one domain/iu);
   assert.match(instruction, /Omit domains only when the subject cannot be classified safely, never merely to keep metadata sparse/iu);
   assert.match(instruction, /Domains are retrieval classification metadata, not factual claims/iu);
-  assert.match(instruction, /Tags and entities are optional and sparse/iu);
-  assert.match(instruction, /Domain classification.*need not copy an exact phrase from the source/iu);
+  assert.match(instruction, /emit a small useful set of specific reusable tags/iu);
+  assert.match(instruction, /Sparse means no padding, not no classification/iu);
+  assert.match(instruction, /Entities remain optional/iu);
+  assert.match(instruction, /Tag\/domain classification.*need not copy an exact phrase from the source/iu);
 });
 
 test("relation classification cannot supersede across semantic addresses", () => {
@@ -889,14 +891,17 @@ test("the offered vocabulary is bounded; a prompt is not a database dump", async
     message: "x",
     knownDomains: Array.from({ length: 50 }, (_, index) => `d${index}`),
     knownTags: Array.from({ length: 50 }, (_, index) => `t${index}`),
+    currentDomains: Array.from({ length: 50 }, (_, index) => `c${index}`),
   });
 
   const payload = JSON.parse(sent) as {
     readonly knownDomains: readonly string[];
     readonly knownTags: readonly string[];
+    readonly currentDomains: readonly string[];
   };
   assert.deepEqual(payload.knownDomains, ["d0", "d1", "d2"]);
   assert.deepEqual(payload.knownTags, ["t0", "t1", "t2"]);
+  assert.deepEqual(payload.currentDomains, ["c47", "c48", "c49"]);
 });
 
 test("the scope instruction asks for related labels and for reuse", () => {

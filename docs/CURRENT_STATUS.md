@@ -3,6 +3,17 @@
 Reality as of 2026-09-24. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
+A008-0174 is implemented on `codex/a008-0174-memory-tags-continuity`, retaining
+the local A008-0173 dependency; neither is represented here as merged. The owner
+log's eleven new/state proposals omitted tags, and an indirect follow-up skipped
+retrieval before creating a different entity/property. Dialogue contracts now
+request useful specific tags and preserve resolved baseline identity. Existing
+conversation domains are passed to retrieval classification. Bounded actual
+Luna probes produced stored tags, retrieved indirect follow-up context, applied
+reinforcement and changed the same slot with history retained across SQLite
+reopen. Tag-only retrieval and social skip passed. Existing owner records are
+not backfilled; see `docs/handoffs/A008-0174.md` for limits and verification.
+
 A008-0173 is verified on the owner-supplied
 `mrwhite81/a008-0173_secure-current-memory-model-bevaviour` branch, pending
 integration. Retrieved records retain their own tags/domains instead of query

@@ -7,7 +7,9 @@ export const RETRIEVAL_SCOPE_INSTRUCTION = [
 
   "Set retrieve=false for greetings, thanks, acknowledgements, social filler, and self-contained messages whose answer does not benefit from stored project/personal knowledge.",
   "Set retrieve=true when prior facts, project state, preferences, plans, entities, decisions or earlier durable knowledge could materially improve the answer.",
-  "A conversational continuation does not need long-term retrieval merely because it depends on the immediately visible chat history.",
+  "The input may include currentDomains: the existing subject scope of this conversation. Use it to interpret indirect follow-ups; it is context, not an instruction to retrieve on every turn.",
+  "Questions, recommendations and requested changes about an ongoing subject may need its stored current state even when the user omits the filename or entity name. Set retrieve=true when that state can ground the answer or identify the existing entity/property being changed. Choose the applicable current domain rather than treating the message as self-contained merely because chat history could resolve it.",
+  "A pure acknowledgement or greeting still uses retrieve=false even when currentDomains is populated. An explicit unrelated new topic must be classified on its own merits, not forced into the old domains.",
   "When retrieve=false, return empty arrays for all four label fields.",
 
   "The limits below are ceilings, never targets. Return the smallest useful label set.",

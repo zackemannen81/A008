@@ -499,6 +499,65 @@ test("semantic necessity skips a greeting instead of matching an old greeting ut
   assert.deepEqual(result.projection.projection.items, []);
 });
 
+test("A008-0174: classifier sees only this conversation's scope across indirect follow-ups and social skips", async () => {
+  const context = storeWith([
+    {
+      content: "curtain.html dialogue text is teal",
+      tags: ["dialogue", "colour"],
+      domains: ["web development"],
+    },
+    {
+      content: "The orchid blooms in spring",
+      tags: ["orchid"],
+      domains: ["botany"],
+    },
+  ]);
+  const scopes = new ConversationScopes();
+  const seen: (readonly string[])[] = [];
+  const scopeClassifier: RetrievalScopeClassifier = {
+    async classify(input) {
+      seen.push(input.currentDomains ?? []);
+      if (input.message === "thanks") return { retrieve: false };
+      if (input.message === "orchid") return { domains: ["botany"] };
+      if (input.message.includes("curtain.html"))
+        return { domains: ["web development"] };
+      // Fixture deliberately requires the newly supplied continuity signal.
+      return input.currentDomains?.includes("web development")
+        ? { retrieve: true, domains: ["web development"] }
+        : { retrieve: false };
+    },
+  };
+  // Runtime can rebuild readers with new budgets; conversation scope is shared.
+  const read = (value: MemoryReadRequest) =>
+    new KnowledgeMemoryReader({ context, scopes, scopeClassifier }).read(value);
+  await read(request("curtain.html"));
+  const follow = await read(request("Change its colour to amber"));
+  assert.ok(
+    follow.projection.projection.items.some((i) =>
+      i.proposition.includes("teal"),
+    ),
+  );
+  assert.deepEqual(seen, [[], ["web development"]]);
+  const social = await read(request("thanks"));
+  assert.equal(social.evidence.semanticRetrieval, "skipped");
+  assert.deepEqual(social.projection.projection.items, []);
+  assert.deepEqual(scopes.current(CONVERSATION), ["web development"]);
+  const other = await read({
+    ...request("Change its colour"),
+    conversationId:
+      "A008_v1_conversation_70000000-0000-4000-8000-000000000099" as ConversationId,
+  });
+  assert.deepEqual(seen.at(-1), []);
+  assert.deepEqual(other.projection.projection.items, []);
+  const newTopic = await read(request("orchid"));
+  assert.deepEqual(scopes.current(CONVERSATION), ["botany"]);
+  assert.ok(
+    newTopic.projection.projection.items.every(
+      (i) => !i.proposition.includes("curtain.html"),
+    ),
+  );
+});
+
 test("longer lexical questions require more than one generic shared word", async () => {
   const context = storeWith([
     {

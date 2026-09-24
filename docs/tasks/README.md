@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0174_memory-tags-continuity.md](A008-0174_memory-tags-continuity.md) — Complete on task branch; useful semantic tags and scoped indirect follow-ups. [Archive](../finished/A008-0174_memory-tags-continuity.md), [handoff](../handoffs/A008-0174.md).
+
 - [A008-0173_faithful-memory-property-intake.md](A008-0173_faithful-memory-property-intake.md) — Complete on task branch; preserves stored retrieval metadata and extracts new properties of known entities. [Archive](../finished/A008-0173_faithful-memory-property-intake.md), [handoff](../handoffs/A008-0173.md).
 
 - [A008-0172_domain-classification-regression.md](A008-0172_domain-classification-regression.md) — Complete; restores minimal broad-domain classification for classifiable durable dialogue knowledge while keeping tags/entities sparse. [Archive](../finished/A008-0172_domain-classification-regression.md).

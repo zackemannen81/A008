@@ -9,6 +9,16 @@ genuinely cross-domain knowledge; domains may be derived from the subject even
 when the exact domain phrase is absent. Tags and entities remain sparse, generic
 workflow labels are discouraged, and no catch-all fallback domain is added.
 
+A008-0174 requires useful specific concept tags on classifiable dialogue
+artifacts; sparse labels mean no padding, not omitted classification. Existing
+suitable baseline labels are reused. The scope classifier receives bounded
+`currentDomains` from the existing per-conversation scope so indirect follow-up
+questions and changes can retrieve their referent. Social turns may still skip
+retrieval. Extraction preserves the retrieved entity/attribute when resolving
+an unambiguous follow-up and recognizes actual property use in a recommendation
+as reinforcement. No extra transcript, identity fallback or database backfill
+is introduced. Scope remains subject context, not canonical knowledge.
+
 A008-0173 preserves each retrieved record's stored tags and domains through the
 provider projection and the same-turn extractor baseline. Query tags/entities
 are not relabelled as record metadata; item scope is empty where the read record
