@@ -31,8 +31,8 @@ Read these in order before changing the repository:
 8. `docs/JOURNAL.md`
 9. `docs/FILESTRUCTURE.md`
 
-Read relevant decisions under `docs/adr/` and the multi-agent rules in
-`docs/MULTIAGENT.md` when a task delegates work.
+Read relevant accepted top-level decisions under `docs/adr/` and the multi-agent rules in
+`docs/MULTIAGENT.md` when a task delegates work. `docs/adr/_legacy/` is historical provenance only and never current authority.
 
 ## Truth Ownership
 
@@ -46,7 +46,7 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
 - `docs/JOURNAL.md`: append-only, dated work waves.
 - `docs/FILESTRUCTURE.md`: repository map.
 - `docs/TASK_IDS.md`: identity allocation only.
-- `docs/adr/`: durable decisions and consequences.
+- `docs/adr/`: accepted current decisions and consequences; `_legacy/` is historical only.
 - `docs/backlog/`: in-scope work that is not active.
 - `docs/concepts_sandbox/`: non-authoritative ideas.
 - `docs/_legacy/`: local provenance boundary; never current authority.

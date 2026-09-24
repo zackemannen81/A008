@@ -3,6 +3,17 @@
 Reality as of 2026-09-24. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
+## Current head summary
+
+- `main` includes the A008-0177 project-workspace foundation and A008-0178 GUI/host exposure for isolated Git worktree sessions.
+- Project details can configure a worktree root and create, list, open, keep and cleanly discard isolated sessions. Manual merge and Create PR are still follow-up capabilities; no automatic merge or remote mutation is current behavior.
+- The accepted product direction is local-first and standalone-capable. Optional sync/backend services may extend A008 but do not own the local runtime, semantic memory or project state.
+- A008 owns cognition, semantic memory and context policy; ACME remains the model-execution boundary. `docs/CURRENT_MEMORY_MODEL.md` and accepted ADR 0052 own the current semantic direction.
+- Accepted ADR 0053 owns the current multi-session/worktree direction.
+- `docs/CURRENT_TASK.md` on `main` is the empty task template; active implementation must be represented by a claimed/frozen task before work proceeds.
+
+The remainder of this file is a chronological status and verification record. Older statements such as "pending integration", "not merged" or "next implementation" describe their historical point in time and do not override this summary, current Git state, or later entries.
+
 A008-0175 repairs the owner-edited dialogue extraction prompt on
 `codex/a008-0175-atomic-extraction`, retaining checkpoint `efbc1f4` and the local
 0173/0174 dependency. The observed report produced valid empty arrays, not a
@@ -140,7 +151,7 @@ A008-0159 adopts bounded live-verification authority in TASK_WORKFLOW, AGENTS,
 CONTRIBUTING, MULTIAGENT and the task template. In-scope tests on approved routes
 inherit 10 SEK and finite call/token/time limits without per-call approval;
 model-aware reservations and shared worker accounting preserve those limits.
-[A008 Platform](A008_PLATFORM_SPEC.md) v1.2 incorporates the owner's revised
+[A008 Platform](_legacy/A008_PLATFORM_SPEC.md) v1.2 incorporates the owner's revised
 section 27 and future budget checks. This is documentation/working policy;
 automatic product enforcement is not implemented. No live calls were made.
 
@@ -160,7 +171,7 @@ Read-only source evidence distinguishes the process supervisor from proposed
 add-on capabilities. No runtime feature, accepted ADR or API schema changed.
 
 A008-0156 created the initial documentation-only review draft,
-[A008 Platform](A008_PLATFORM_SPEC.md), for the owner's distributed-platform
+[A008 Platform](_legacy/A008_PLATFORM_SPEC.md), for the owner's distributed-platform
 direction and parallel background/multiproject work. It distinguishes current
 V2/ACME/memory contracts from proposed run ownership, recovery, device execution,
 isolation, migration and acceptance gates. No platform capability, API contract,
@@ -264,7 +275,7 @@ A008-0111 adds host-owned registration of already-existing project directories. 
 A008-0110 adds V2 authentication foundation: public discovery, authenticated scoped
 one-use tickets, local device grant/list/revoke and hashed expiring credentials.
 PIN-disabled V1 hosts do not grant anonymous V2 access. Real host/CLI checks cover
-scope, Origin, expiry/revocation and ticket reuse/capacity. `auth.tickets` is joined by `session.websocket`; A008-0112 supplies authenticated session dispatch and live-socket revoke/expiry enforcement. See [CLIENT_AUTH.md](CLIENT_AUTH.md). No owner credentials or live grants were used.
+scope, Origin, expiry/revocation and ticket reuse/capacity. `auth.tickets` is joined by `session.websocket`; A008-0112 supplies authenticated session dispatch and live-socket revoke/expiry enforcement. See the retired historical record [_legacy/CLIENT_AUTH.md](_legacy/CLIENT_AUTH.md). No owner credentials or live grants were used.
 
 A008-0109 moves the default standalone host to a fixed-project in-process adapter
 over EngineHost session/tools/permissions and ProjectRuntimeRegistry. Bridges
@@ -289,7 +300,7 @@ sessions; the registry refuses disposal while sessions remain. Engine layout and
 v1/ACP panels are unchanged. Standalone facade migration and legacy process
 coverage are delivered by A008-0109; no V2 availability is implied.
 
-A008-0106 accepts ADR 0041 and CLIENT_API_V2.md for the next implementation stages.
+A008-0106 accepted ADR 0041 and the now-retired `_legacy/CLIENT_API_V2.md` for the next implementation stages at that point in project history.
 Stage 1 is complete: v1 contracts/inventory and the V2 decision gate are covered.
 The shared project/session facade is implemented by A008-0107 through A008-0109.
 V2 endpoints, device auth and recovery guarantees remain accepted targets.
@@ -315,7 +326,7 @@ also passes discovery, ACP/panel history, tool approval, upload/memory and stop
 checks with synthetic data. Full tests: 573 core, 4 membership, 161 GUI pass.
 GUI production build passes with a 526.22 kB main chunk (159.20 kB gzip) and
 Rollup's size/annotation warnings after adding shared Zod validation to the GUI.
-The [operation inventory](HOST_PROTOCOL_V1_INVENTORY.md) identified HTTP payload
+The [operation inventory](_legacy/HOST_PROTOCOL_V1_INVENTORY.md) identified HTTP payload
 extraction completed by A008-0105 above. Stage 1 is now complete; the program remains In Progress:
 V2/auth, explicit project ownership, SDK and Expo are not implemented.
 Integrated through PR #45 on remote main c3970d5; no running-host restart
@@ -417,9 +428,9 @@ payload/commit regression passes, as do 524 core, 116 GUI and 4 membership tests
 The reported malformed JSON is still rejected; live model compliance has not
 been re-evaluated. See [handoff](handoffs/A008-0083.md).
 
-A008-0079's [instruction and memory specification](backlog/instruction-plane-and-memory-lifecycle.md)
+A008-0079's [instruction and memory specification](backlog/_legacy/instruction-plane-and-memory-lifecycle.md)
 is owner-reviewed and frozen as an Accepted target by
-[ADR 0035](adr/0035-frozen-instruction-and-memory-target.md), including P1–P6.
+[ADR 0035](adr/_legacy/0035-frozen-instruction-and-memory-target.md), including P1–P6.
 A008-0080 implements L1: one final chat system instruction, late fallback
 selection, integrated memory handling and explicit CLI/session-base provenance.
 The 501 core and 116 GUI tests pass, including real local host/ACP/engine and
@@ -441,7 +452,7 @@ Schema 4 adds association persistence transactionally. L2 baselines remain
 unchanged; old links retain untracked traversal until exact supporting evidence
 initializes the corresponding edge. Settings format 4 adds the independent
 association policy and preserves it through older-client saves. See the
-[association contract](KNOWLEDGE_MEMORY_MODEL.md#75-independent-semantic-associations).
+[current memory model](CURRENT_MEMORY_MODEL.md).
 
 Verification: 521 core tests, 116 GUI tests and 4 membership checks pass, with
 no failures/skips. The ten new groups in
@@ -459,12 +470,12 @@ charters. Existing L1 and
 state/history/direct-retrieval regressions remain passing. Tests use synthetic
 semantic decisions; live model source-support judgments and the user's running
 database were not evaluated or migrated. The
-[constitution](KNOWLEDGE_MEMORY_MODEL.md#12-storage-deliberately-deferred)
+[current memory model](CURRENT_MEMORY_MODEL.md)
 describes backup/restore before opening existing data with the new build.
 
 A008-0078 adopts the Core Product Contract in `docs/PROJECT_BRIEF.md` and the
 Necessity Gate in `docs/TASK_WORKFLOW.md`, under
-[ADR 0034](adr/0034-product-contract-and-necessity-gate.md). The local task
+[ADR 0034](adr/_legacy/0034-product-contract-and-necessity-gate.md). The local task
 template records exact authority, observable necessity, smallest sufficient
 approach and verification. This is a required development review practice;
 it changes no runtime behavior and makes no claim of automatic enforcement or
@@ -483,29 +494,29 @@ environment/sources card, moves that catalog to Help, adds empty-chat shortcuts
 (Review, Terminal, Browser, Files, Workbench) and lays out the Memory
 Relationship Map as a domain-clustered radial graph. Git status in the card is a
 host-shell observation; writes still go through chat approvals. See
-[ADR 0031](adr/0031-workbench-context-and-memory-map.md).
+[ADR 0031](adr/_legacy/0031-workbench-context-and-memory-map.md).
 
 A008-0069 gives the standalone GUI neutral surfaces, left navigation, a centred
 conversation and integrated composer. Runtime details and thought blocks start
 collapsed. Desktop/narrow navigation retains chat drafts and exposes tools,
-memory, help and parameters. See [ADR 0030](adr/0030-focused-standalone-workspace.md).
+memory, help and parameters. See [ADR 0030](adr/_legacy/0030-focused-standalone-workspace.md).
 
 A008-0068 adds standalone GUI repository work: the connected tool catalog,
 cwd, read/root/Git shortcuts, native UTF-8 file tools and literal-argument Git.
 The real standalone GUI-host → ACP → synthetic-provider loop verifies approved
 file creation/editing and Git observations, plus denied writes. See
-[repository runbook](GUI_REPOSITORY_TOOLS.md). User instructions remain editable.
+[repository runbook](_legacy/GUI_REPOSITORY_TOOLS.md). User instructions remain editable.
 
 A008-0067 adds the portable engine and generic companion-client panel/permission
 integration. A real extracted package runs through the client's actual process
 host, shares its session with the panel, executes approved isolated commands,
 returns tool observations to a synthetic provider, uploads sources, and shuts
 down cleanly. Desktop/narrow-browser panel proof exists; this is not installed
-Electron product or live-provider proof. See [engine runbook](ENGINE.md) and
+Electron product or live-provider proof. See [engine runbook](_legacy/ENGINE.md) and
 [verification](evidence/A008-0067_engine-package.md).
 
 A008-0066's owner-merged preferences are now documented in
-[runtime settings](RUNTIME_SETTINGS.md). Version 1 settings retain their values;
+[runtime settings](_legacy/RUNTIME_SETTINGS.md). Version 1 settings retain their values;
 an explicit save upgrades to version 2 with four editable tool limits.
 
 | Surface                         | Observed state                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -550,7 +561,7 @@ an explicit save upgrades to version 2 with four editable tool limits.
 | Committed memory-loop proof     | `npm run benchmark:memory-loop` composes actual in-memory SQLite read/write/index state with two memory-aware chat turns and one shared fake transport. Exact call order is chat/analyze/classify/chat; active canon extends from revision one to two and the second turn projects the new proposition. New-draft auto-activation remains explicitly unproven.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Runtime identity core           | Exported branded/parser-validated project, conversation, runtime-task, agent, and ACP-session IDs use versioned lowercase UUIDv4 values. A namespaced external-reference contract, atomic in-memory ACP binding repository, conflict/idempotency rules, and defensive lookup surfaces exist. No complete external conversation binding is created at runtime.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Live knowledge projection       | ADR 0023: a surface may not suppress another surface. `projection-items.ts` collects all seven — state, claim, event, history, utterance, artifact, provenance — then deduplicates identical propositions to the highest-ranked carrier, ranks by surface weight with a stable tiebreak, and applies a 32768-byte default budget. All three reasons a record can be missing are reported in `omittedKnowledgeIds`; one item larger than the whole budget is still sent. Until A008-0058 the projection returned state, or failing that claims, or failing that utterances, and never read the other four surfaces at all, so one current-state hit discarded everything else the read had admitted. `live-reader.ts` had no tests; it has fourteen now, with a fixture that reproduces the reported live failure rather than a tidied version of it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| Retrieval matching              | Records carry their own tags and domains. `KnowledgeLabelStore` holds them beside the record the way `EvidenceLifecycleStore` holds strength, normalised on both sides of every comparison, merged rather than replaced on re-attach, and introduced in knowledge schema 2 and preserved by L2 schema 3 migration. `live-commit` attaches what the analyzer already produced to both the claim and the utterance. A label retrieval channel makes a record reachable because it is _about_ the subject even when the message names none of its entities, and the claim's binding is reachable the same way. `filter()` matches on either axis and treats unlabelled as unlabelled rather than unmatched, and a label hit is exempt from the entity gate that would otherwise undo it. `channelCounts.tag` and `channelCounts.domain` were hardcoded to zero because nothing could set them; they count now. Matching is lexical: the message is compared against the labels the store holds. The semantic step — classify into domains and _related_ domains and accumulate a `current_scope` — is a provider call and is specified in `docs/backlog/current-scope-retrieval.md`, not built.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Retrieval matching              | Records carry their own tags and domains. `KnowledgeLabelStore` holds them beside the record the way `EvidenceLifecycleStore` holds strength, normalised on both sides of every comparison, merged rather than replaced on re-attach, and introduced in knowledge schema 2 and preserved by L2 schema 3 migration. `live-commit` attaches what the analyzer already produced to both the claim and the utterance. A label retrieval channel makes a record reachable because it is _about_ the subject even when the message names none of its entities, and the claim's binding is reachable the same way. `filter()` matches on either axis and treats unlabelled as unlabelled rather than unmatched, and a label hit is exempt from the entity gate that would otherwise undo it. `channelCounts.tag` and `channelCounts.domain` were hardcoded to zero because nothing could set them; they count now. Matching is lexical: the message is compared against the labels the store holds. The semantic step — classify into domains and _related_ domains and accumulate a `current_scope` — is a provider call and is specified in `docs/backlog/_legacy/current-scope-retrieval.md`, not built.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | Automated tests                 | A008-0092 verification on 2026-09-09: 543 core, 4 membership and 129 GUI tests pass; the production GUI typecheck/Vite build passes. Root `npm test` remains the full gate: `test:core` compiles and runs the named core suite, `test:membership` verifies suite membership, and `test:gui` discovers `gui/src/**/*.test.ts` through the shared loader. No test loads `.env.local` or makes a live provider call.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 ## Security observation
@@ -648,8 +659,8 @@ unexecuted. The replacement exists only in ignored `.env.local` as
 - A contested slot is permanent, and slots contested before A008-0062 stay
   contested. The defect that was creating them constantly is fixed — a statement
   slot is a set now, so two different true facts about one entity no longer read
-  as disagreement — but who resolves a genuine contested slot is still open
-  question 2 in `docs/KNOWLEDGE_MEMORY_MODEL.md`.
+  as disagreement — but genuine contested-slot resolution remains governed by
+  the current semantic model in `docs/CURRENT_MEMORY_MODEL.md`.
 - A semantic JSON parse failure now names the cause. It reports the content
   length, the finish reason and a bounded excerpt, and says explicitly when the
   answer was cut off by the output budget. A markdown fence wrapping the whole
@@ -662,14 +673,14 @@ unexecuted. The replacement exists only in ignored `.env.local` as
 - Retrieval matches a label the message literally contains. A question that does
   not name the subject area — "hur fungerar människans minne?" against records
   tagged `neurologi` — still finds nothing. Closing that needs the classification
-  call in `docs/backlog/current-scope-retrieval.md`.
+  call in `docs/backlog/_legacy/current-scope-retrieval.md`.
 - `taskApplies` drops an expanded record whose text names none of the message's
   entities, including one reached over a relation hop that has already justified
   itself. Pre-existing, arguably a gate too many, deliberately not changed by
   A008-0060.
 - An uploaded source produces exactly one `Utterance`, whatever its length, and
   `classifySpeech()` picks its kind with heuristics written for chat messages.
-  Recorded in `docs/backlog/document-ingest-granularity.md`.
+  Recorded in `docs/backlog/_legacy/document-ingest-granularity.md`.
 - Nothing prunes the source store, and `A008_SOURCE_STORE_PATH` validation is
   duplicated between `src/gui-host/source-store.ts` and
   `src/runtime/local-runtime-config.ts` because the two were sibling write
@@ -776,7 +787,7 @@ unexecuted. The replacement exists only in ignored `.env.local` as
   real NVIDIA key were not read.
 - The safe proof, screenshot, Windows findings, OpenHands warnings, ancillary
   no-credential control-plane behavior, and negative evidence are recorded in
-  `docs/evidence/A008-0005_agent-canvas-runtime-proof.md`.
+  `docs/evidence/A007-0005_agent-canvas-runtime-proof.md`.
 - All spawned proof processes were stopped and their four ports were free.
 
 ## Verification performed for semantic memory v0

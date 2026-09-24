@@ -112,12 +112,12 @@ messages remain covered by existing tests. No provider credentials enter fixture
 ## Scope beyond this package
 
 `src/routes.ts` inventories every current HTTP operation with its context/owner.
-It does not route requests or advertise authorization capabilities. The complete
-auth/context inventory is in `docs/HOST_PROTOCOL_V1_INVENTORY.md` in the A008
-repository; `docs/HOST_PROTOCOL.md` specifies v1 behavior. HTTP payload contracts
-now live here; their runtime behavior remains with the existing owners. Auth
-profiles depend on host configuration, so the OpenAPI alternatives include both
-unauthenticated standalone mode and configured cookie/engine-token access.
+It does not route requests or advertise authorization capabilities. HTTP payload
+contracts and generated schemas live in this package; current host/runtime behavior
+is documented in the repository `docs/SYSTEMDOC.md`, with observed availability
+and gaps in `docs/CURRENT_STATUS.md`. Auth profiles depend on host configuration,
+so the OpenAPI alternatives include both unauthenticated standalone mode and
+configured cookie/engine-token access.
 
 V2 authentication/session schemas are now exported, but event ordering, replay/reconnect, idempotency and native platform support remain outside the protocol package guarantee until their owning stages land.
 

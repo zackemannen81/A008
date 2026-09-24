@@ -18,7 +18,7 @@ Charter frozen at:
 - `docs/SYSTEMDOC.md`
 - `docs/JOURNAL.md`
 - `docs/FILESTRUCTURE.md`
-- Relevant records under `docs/adr/`
+- Relevant accepted top-level records under `docs/adr/`; never use `docs/adr/_legacy/` as current authority
 
 ## Task Summary
 

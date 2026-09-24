@@ -5,9 +5,9 @@ architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
 # Actual
 
-Nothing solidified yet.
+This document is the current implementation record for durable behavior that exists in the repository. Task IDs and older implementation notes are retained as provenance, but they do not override current code, `docs/CURRENT_STATUS.md`, `docs/PROJECT_BRIEF.md`, or accepted current ADRs.
 
-# Legacy / history
+# Current implementation
 The dialogue extractor classifies each durable artifact by its own subject,
 using 1–4 useful domains and 1–16 useful tags under the owner's updated bounds,
 without padding or report-wide labels. Domains may be derived from the subject
@@ -60,7 +60,7 @@ schemas, exported types and generated `platform-v3*` JSON Schema/OpenAPI files.
 V3-owned envelopes are strict; message content reuses `chatContentSchema` and
 its existing nested parsing behavior. V1/V2 artifacts are unchanged. These
 contracts do not implement HTTP endpoints, persistence or execution. See
-`docs/platform/PROTOCOL.md` and `docs/PLATFORM_V3_CONTRACT.md`.
+`docs/platform/PROTOCOL.md`; current implemented behavior remains documented here.
 
 ## Independent Platform V3 client
 
@@ -175,7 +175,7 @@ the shared semantic runtime-budget checks described in the package README.
 
 The root and portable engine ship `dist/packages/protocol/src`; the independent
 tarball ships its own `dist`. V1 message tolerance, errors, ACP sessions and
-permission behavior remain unchanged. The [HTTP/WS inventory](HOST_PROTOCOL_V1_INVENTORY.md)
+permission behavior remain unchanged. The route inventory in `packages/protocol/src/routes.ts`
 records current ownership. A008-0105 adds shared HTTP request/response shapes,
 legacy upload/shell/frame/memory parsing and generated OpenAPI from the same
 owner. Existing core/host HTTP producer types and GUI consumers use these DTOs;
@@ -238,8 +238,7 @@ process. Native ACP chat and authenticated web panels borrow the same session.
 Disconnecting a panel preserves that session. Explicit close and engine EOF cancel
 active turns, settle approval requests, close MCP children, panels and SQLite.
 The engine package includes compiled CLI/ACP/GUI, a matching Node executable,
-production dependencies and notices. Data lives outside the installation. Full
-lifecycle, attachment and protocol details are in [ENGINE.md](ENGINE.md).
+production dependencies and notices. Data lives outside the installation. Lifecycle, attachment and protocol behavior is documented in the relevant current sections of this document.
 
 Model tools enter through typed definitions and structured JSON/SSE calls. Native
 `exec_command` and client-approved stdio MCP tools require per-action approval.
@@ -253,7 +252,7 @@ The normalized arguments are the values shown for approval and supplied to MCP.
 Observations re-enter an ephemeral provider transcript. Only the original user
 message and final answer reach committed history and post-output intake.
 
-[Runtime settings](RUNTIME_SETTINGS.md) configure global instructions and local
+Runtime settings configure global instructions and local
 budgets. Each turn captures one snapshot; model generation settings remain scoped
 to its session. Saving settings neither calls a model nor mutates knowledge.
 
@@ -463,7 +462,7 @@ at startup; cwd defaults to the host's launch directory. It applies to native
 file tools, Git and shell commands. It does not automatically select a different
 standalone memory store. Session snapshots expose optional `runtime.tools`
 native catalog metadata. Tools → Repository shows the catalog, cwd and explicit
-model-request shortcuts. See [GUI repository tools](GUI_REPOSITORY_TOOLS.md).
+model-request shortcuts. Current repository-tool behavior is owned by these implementation surfaces and this document.
 
 The shared executor offers `list_files`, `read_file`, `create_file`, `edit_file`
 and `git` alongside `exec_command`. File edits require a matching SHA-256 and
@@ -519,7 +518,7 @@ arrives as `thought` frames and is never concatenated into an `answer` frame.
 provider finishes and returns that snapshot immediately; later `session/activity`
 snapshots resolve the same item. No Agent Server schema and no OpenHands
 TypeScript client participate. `session/control` and `session/control/ok`
-carry the session operations and snapshots specified in HOST_PROTOCOL.md.
+carry the session operations and snapshots defined by the shared protocol package and current host implementation.
 
 Credentials stay in the host process. `NVIDIA_API_KEY`, `KIE_API_KEY`,
 `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`
@@ -766,7 +765,7 @@ renderer-local`a008.preferences`as`{ appearance: { theme } }`, not in runtime
 settings or session state. Missing or unknown values default to Neutral. Graph
 and Memory kind colours use a separate `--a008-viz-_` family. The Code Canvas
 host chrome may follow the theme; the sandboxed preview document does not.
-See [ADR 0031](adr/0031-workbench-context-and-memory-map.md) and
+See [ADR 0031](adr/_legacy/0031-workbench-context-and-memory-map.md) and
 [ADR 0038](adr/0038-global-app-theme-system.md).
 
 ### GUI session operations and parameters (A008-0065)
@@ -812,13 +811,13 @@ the conversation while open. Navigation preserves chat, draft and workbench stat
 The modal traps focus natively, restores it on Escape or close, and scrolls
 independently on a phone-sized viewport.
 
-See [ADR 0026](adr/0026-gui-session-controls.md) for endpoint sources and
+See [ADR 0026](adr/_legacy/0026-gui-session-controls.md) for endpoint sources and
 [the proof](evidence/A008-0065_session-controls-proof.md) for browser/payload gates.
 
 ## Evidence lifecycle (L2)
 
 A008-0081 implements ADR 0035 P1-P5 in the existing knowledge engine. The
-[constitution](KNOWLEDGE_MEMORY_MODEL.md#72-the-lifecycle-record) owns the
+current semantic model in `CURRENT_MEMORY_MODEL.md` owns the
 policy, occurrence and migration rules. Claims receive validated severity from
 the existing analyzer; one operation time evaluates a persisted exponential
 baseline. Direct dormant matches stay eligible. Inspection exposes baseline and
@@ -869,7 +868,7 @@ all processing to constant time. Reads and lazy L2/L3 decay remain write-free.
 ## Independent association lifecycle (L3)
 
 A008-0082 implements ADR 0035 P6 alongside RelationIndex. Its
-[constitution contract](KNOWLEDGE_MEMORY_MODEL.md#75-independent-semantic-associations)
+current semantic model in `CURRENT_MEMORY_MODEL.md`
 owns identity, source proof and numeric policy. A directed edge is keyed by the
 project namespace, canonical endpoints, exact semantic relation and sorted unique
 applicability scope. No binding interval or endpoint strength participates.
@@ -929,7 +928,7 @@ aborts obsolete client requests. It does not poll or cache memory in localStorag
 `GET /v1/memory` reaches custom ACP `memory/inspect`, then
 `LocalMemoryRuntime.inspectMemory` and `inspectKnowledge` on the same knowledge
 context chat owns. No provider invocation or additional SQLite owner is created.
-The contract and limits are specified in [HOST_PROTOCOL.md](HOST_PROTOCOL.md).
+The current contract and limits are defined by the shared protocol package and the host behavior documented here.
 
 Overview shows actual inventory, lifecycle and contested-slot counts plus domain
 attachments. Knowledge Manager provides substring search, surface/domain/status
@@ -1280,7 +1279,7 @@ records `chatStatus` and `memoryStatus`.
 
 Live read uses `KnowledgeMemoryReader` over SQLite knowledge tables. Direct
 matches ignore evidence dormancy. Vector RAG remains a v0 optional adapter, not
-live. See `docs/LOCAL_MEMORY_SURFACES.md` and `docs/DEBUG_TRACE.md`.
+live. Current semantic behavior is owned by `docs/CURRENT_MEMORY_MODEL.md`; tracing details remain in `docs/DEBUG_TRACE.md`.
 
 ## Runtime identity core
 

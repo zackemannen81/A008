@@ -1,14 +1,14 @@
 # Decision Records
 
-## Records
+Top-level ADR files in this directory are accepted current decisions that still refine the product contract or implemented system.
 
-# ADR-0052
+## Authority rule
 
-A008 will implement the memory engine semantic state, retrieval, and associative propagation model with the following core mechanisms:
+- `docs/PROJECT_BRIEF.md` owns product direction and the Core Product Contract.
+- Accepted top-level ADRs may refine a bounded product or implementation decision.
+- `docs/CURRENT_STATUS.md` owns observed current reality.
+- `docs/SYSTEMDOC.md` owns durable behavior that actually exists.
+- `docs/adr/_legacy/` contains retired historical decisions for provenance only and is never current authority.
+- Historical task, journal, handoff, or legacy text cannot override a current owner.
 
-# ADR-0053
-
-A008 will implement isolated multi-session project environments (v1) using Git worktrees with the following topology, configuration contracts, and UI integration:
-
-## History / _legacy
-for reference purpose you can find old retired / no authority docs under _legacy
+When an ADR no longer represents a current durable decision, move it to `_legacy/` rather than leaving stale authority in the active set.

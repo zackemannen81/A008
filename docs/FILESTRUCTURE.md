@@ -1,114 +1,89 @@
-Current filestructure.
-+---adr
-¦   +---_legacy
-+---backlog
-¦   +---_legacy
-+---concepts_sandbox
-¦   +---gui
-¦       +---cognitive_memory_assistant_gui
-¦           +---a008_cybernetic_control_plane
-¦           +---chat_view
-¦           +---memory_map
-¦           +---memory_view
-¦           +---new_project_setup
-¦           +---settings
-+---evidence
-+---finished
-+---handoffs
-+---Ny mapp
-+---paused
-+---platform
-+---prompts
-¦   +---coding
-+---tasks
-+---_legacy
-    +---agenten007
-        +---mango
-        +---node_modules
-        ¦   +---agent-base
-        ¦   ¦   +---dist
-        ¦   ¦   ¦   +---src
-        ¦   ¦   +---src
-        ¦   +---asynckit
-        ¦   ¦   +---lib
-        ¦   +---axios
-        ¦   ¦   +---dist
-        ¦   ¦   ¦   +---browser
-        ¦   ¦   ¦   +---esm
-        ¦   ¦   ¦   +---node
-        ¦   ¦   +---lib
-        ¦   ¦       +---adapters
-        ¦   ¦       +---cancel
-        ¦   ¦       +---core
-        ¦   ¦       +---defaults
-        ¦   ¦       +---env
-        ¦   ¦       ¦   +---classes
-        ¦   ¦       +---helpers
-        ¦   ¦       +---platform
-        ¦   ¦           +---browser
-        ¦   ¦           ¦   +---classes
-        ¦   ¦           +---common
-        ¦   ¦           +---node
-        ¦   ¦               +---classes
-        ¦   +---call-bind-apply-helpers
-        ¦   ¦   +---.github
-        ¦   ¦   +---test
-        ¦   +---combined-stream
-        ¦   ¦   +---lib
-        ¦   +---debug
-        ¦   ¦   +---src
-        ¦   +---delayed-stream
-        ¦   ¦   +---lib
-        ¦   +---dunder-proto
-        ¦   ¦   +---.github
-        ¦   ¦   +---test
-        ¦   +---es-define-property
-        ¦   ¦   +---.github
-        ¦   ¦   +---test
-        ¦   +---es-errors
-        ¦   ¦   +---.github
-        ¦   ¦   +---test
-        ¦   +---es-object-atoms
-        ¦   ¦   +---.github
-        ¦   ¦   +---test
-        ¦   +---es-set-tostringtag
-        ¦   ¦   +---test
-        ¦   +---follow-redirects
-        ¦   +---form-data
-        ¦   ¦   +---lib
-        ¦   +---function-bind
-        ¦   ¦   +---.github
-        ¦   ¦   +---test
-        ¦   +---get-intrinsic
-        ¦   ¦   +---.github
-        ¦   ¦   +---test
-        ¦   +---get-proto
-        ¦   ¦   +---.github
-        ¦   ¦   +---test
-        ¦   +---gopd
-        ¦   ¦   +---.github
-        ¦   ¦   +---test
-        ¦   +---has-symbols
-        ¦   ¦   +---.github
-        ¦   ¦   +---test
-        ¦   ¦       +---shams
-        ¦   +---has-tostringtag
-        ¦   ¦   +---.github
-        ¦   ¦   +---test
-        ¦   ¦       +---shams
-        ¦   +---hasown
-        ¦   ¦   +---.github
-        ¦   +---https-proxy-agent
-        ¦   ¦   +---dist
-        ¦   +---math-intrinsics
-        ¦   ¦   +---.github
-        ¦   ¦   +---constants
-        ¦   ¦   +---test
-        ¦   +---mime-db
-        ¦   +---mime-types
-        ¦   +---ms
-        ¦   +---proxy-from-env
-        +---Ny mapp
-        +---output
-        +---päron
-        +---äpplen
+# File Structure
+
+This is the current high-level repository map. It intentionally omits generated output, dependencies, screenshots, and the internal contents of historical provenance trees. Detailed behavior belongs in `SYSTEMDOC.md`; product direction belongs in `PROJECT_BRIEF.md`.
+
+## Repository root
+
+```text
+A008/
+â”œâ”€â”€ AGENTS.md                 repository working rules and authority order
+â”œâ”€â”€ README.md                 public project entry point
+â”œâ”€â”€ src/                      A008 runtime and application implementation
+â”œâ”€â”€ gui/                      A008-owned web GUI
+â”œâ”€â”€ packages/                 independently consumable protocol/client packages
+â”œâ”€â”€ scripts/                  build, verification, benchmark and packaging scripts
+â”œâ”€â”€ test/                     root runtime/integration/contract tests
+â”œâ”€â”€ docs/                     current project documentation and historical records
+â”œâ”€â”€ public/                   public GUI/static assets
+â””â”€â”€ package.json              root build/test/runtime commands
+```
+
+## Runtime source
+
+`src/` is organized by responsibility rather than by historical task:
+- `acp/` â€” ACP compatibility/server surfaces.
+- `bootstrap/` â€” project bootstrap and registry helpers.
+- `core/` â€” core chat/invocation contracts.
+- `engine/` â€” portable/shared engine host.
+- `gui-host/` â€” local GUI HTTP/WebSocket host and project/session routes.
+- `identity/` â€” application/runtime identity primitives.
+- `ingest/` â€” source/document ingestion.
+- `memory/` â€” A008-owned semantic memory, persistence, retrieval and knowledge state.
+- `orchestration/` â€” application orchestration and semantic model coordination.
+- `platform/` â€” currently implemented optional platform/durable-work components.
+- `prompt-contracts/` â€” maintained prompt contracts.
+- `providers/` â€” provider/model adapters and catalogs.
+- `runtime/` â€” project runtime, workspace/session ownership and local composition.
+- `tools/` â€” model/tool execution surfaces.
+
+## GUI
+
+`gui/src/` contains the product GUI. Major current surfaces include:
+- `chat/`, `composer/`, `session/` â€” conversation/session UX.
+- `projects/` â€” project tree, saved chats and parallel workspace controls.
+- `memory/` â€” memory inspection and relationship map.
+- `settings/` â€” runtime/provider/appearance settings.
+- `tools/`, `terminal/`, `files/`, `workbench/` â€” operator/developer surfaces.
+- `platform/` â€” optional platform UI.
+- `browser/`, `images/`, `upload/`, `artifact/` â€” supporting product surfaces.
+
+## Packages
+
+```text
+packages/
+â”œâ”€â”€ protocol/                 shared schemas, parsers, routes and generated OpenAPI/JSON Schema
+â””â”€â”€ client/                   typed A008 client adapters for supported protocol surfaces
+```
+## Documentation
+
+The docs root is deliberately small. New topic-specific authority documents should not be added when one of the current owners below can hold the information.
+
+```text
+docs/
+â”œâ”€â”€ PROJECT_BRIEF.md          approved product direction and Core Product Contract
+â”œâ”€â”€ CURRENT_STATUS.md         current observed state, gaps and chronological verification record
+â”œâ”€â”€ SYSTEMDOC.md              durable behavior that actually exists
+â”œâ”€â”€ CURRENT_MEMORY_MODEL.md   current semantic memory/context model
+â”œâ”€â”€ CURRENT_TASK.md           active branch task; empty template on main
+â”œâ”€â”€ TASK_WORKFLOW.md          task lifecycle, necessity gate and completion rules
+â”œâ”€â”€ CONTRIBUTING.md           contributor workflow
+â”œâ”€â”€ MULTIAGENT.md             multi-agent working rules
+â”œâ”€â”€ FILESTRUCTURE.md          this repository map
+â”œâ”€â”€ JOURNAL.md                append-only dated integration history
+â”œâ”€â”€ TASK_IDS.md               task identity allocation
+â”œâ”€â”€ adr/                      accepted current decisions plus _legacy history
+â”œâ”€â”€ backlog/                  current deferred work plus _legacy retired backlog
+â”œâ”€â”€ tasks/                    durable task/program records
+â”œâ”€â”€ finished/                 immutable completed task records
+â”œâ”€â”€ handoffs/                 task handoffs
+â”œâ”€â”€ paused/                   paused task records
+â”œâ”€â”€ evidence/                 verification evidence
+â”œâ”€â”€ platform/                 implementation-local docs for existing optional platform components
+â”œâ”€â”€ prompts/                  maintained prompt documentation
+â”œâ”€â”€ concepts_sandbox/         non-authoritative concepts and design exploration
+â””â”€â”€ _legacy/                  historical provenance; never current authority
+```
+
+### Documentation ownership rule
+
+Prefer updating `PROJECT_BRIEF.md`, `CURRENT_STATUS.md`, `SYSTEMDOC.md`, `CURRENT_MEMORY_MODEL.md`, or this map over creating a new root-level topic document. Accepted ADRs record bounded durable decisions. Historical records remain available under task/history/legacy collections but do not override current owners.

@@ -1,100 +1,99 @@
 # Project Brief
 
-Status: Approved product direction. Current accepted decisions refine the
-original bootstrap proof described below; new behavior needs bounded authority.
+Status: Approved product direction
+System: A008 Local-First Agent Runtime & Semantic Memory Engine
+
+A008 is a local-first autonomous agent environment for deep software development, semantic memory and parallel project work. The product must remain useful as a standalone local application; hosted infrastructure is an optional extension rather than the foundation of the runtime.
 
 ## Core Product Contract
 
-PROJECT BRIEF UNDERLAG: A008 Local-First Agent Engine & Multi-Session ArchitectureDokumentversion: 1.0
-Status: Accepted Arkitekturfundament
-System: A008 Agent Platform & Semantic Memory Engine1. 
-Executive Summary & ProduktvisionA008 är en Local-First, autonom agentmiljö utformad för djupgående mjukvaruutveckling, semantisk minneshantering och parallell exekvering. Till skillnad från klassiska molnbaserade AI-plattformar (SaaS-first) är A008 i sin grundstomi ett lokalt körbart system som fungerar helt utan internetuppkoppling eller central backend.Huvudprincip: "Dra ut nätverkskabeln"-regelnOm man drar ut nätverkskabeln ska A008 fortfarande vara 100 % A008.Lokal databas, semantisk minnesmotor (A008 Knowledge Engine), lokala projekt, verktygsanrop (MCP), exekveringsmotor (ACME) och källkodshantering via Git är autonoma och lokalt authoritative. 
-Backend och molntjänster är valfria utökningar (add-ons) som tillför synkronisering, backup, fjärrstyrning och team-samarbete utan att äga agentens kognitiva kärna.2. Arkitekturöversikt & TopologiA008 byggs kring en tydlig uppdelning mellan den lokala körmiljön (Local Runtime) och ett valfritt synkroniseringslager (Sync Backend) via ett standardiserat gränssnitt (SyncAdapter).                              
-A008 Systemtopologi
-       
-                      ┌─────────────────────────────────┐
-                      │          A008 Runtime           │
-                      │          (Local-First)          │
-                      ├─────────────────────────────────┤
-                      │ • Local Sessions & Workspaces   │
-                      │ • Semantic Memory Engine        │
-                      │ • Tooling / MCP Integration     │
-                      │ • ACME Task Execution Engine    │
-                      │ • Git Worktree Manager          │
-                      │ • Local Database (SQLite WAL)   │
-                      └────────────────┬────────────────┘
-                                       │
-                               SyncAdapter (Interface)
-                                       │
-                      ┌────────────────▼────────────────┐
-                      │     Optional Sync Backend       │
-                      ├─────────────────────────────────┤
-                      │ • Identity & Access (Auth)      │
-                      │ • Cross-Device Memory Sync      │
-                      │ • Project Metadata & Backup     │
-                      │ • Remote Session Coordination   │
-                      │ • Web / Mobile Client Proxy     │
-                      └─────────────────────────────────┘
-2.1 Driftlägen (Operational Modes)Läge A: Standalone (100 % Lokalt)Fullständigt isolerad körning på en enskild dator. Ingen registrering, inget konto, ingen serverinfrastruktur och noll nätverksberoende.Komponenter: Local DB, Local Memory Engine, Git Worktrees, MCP-verktyg, ACME-exekvering.Fördelar: Maximal integritet, noll latens till filsystemet, fungerar offline.Läge B: Standalone + Sync (Multi-Device / Team)A008 körs fortfarande lokalt på användarens maskin(er), men kopplas mot en frivillig A008 Sync Backend för automatisk tillståndssynkronisering mellan enheter (t.ex. Laptop, Desktop, Mobil).Funktioner: Bakgrundssynkronisering av minne, sessionsmetadata och projektstatus via händelseströmmar (append-only sync events).3. Parallella Sessioner & FilsystemsisoleringEn av de största utmaningarna i fleragent-system är hanteringen av delat filsystem. Om två agenter arbetar samtidigt i samma katalog uppstår filkollisioner, låsningsfel och osäkra git diffs.A008 löser detta genom Git Worktrees som primär isoleringsmekanism.3.1 Filarkitektur & KatalogstrukturProject Root
-│
-├── Canonical Repository (.git)
-│
-├── session-A ───> Git Worktree A ───> Branch: a008/session-A
-├── session-B ───> Git Worktree B ───> Branch: a008/session-B
-├── session-C ───> Git Worktree C ───> Branch: a008/session-C
-│
-└── A008 Project State (Shared Local Core)
-      ├── SQLite Database (Current State & History)
-      ├── Memory Engine Index
-      ├── Task Claims & Locks
-      └── Multi-Session Coordination Log
-3.2 Git Worktree vs. Repo CloneEgenskapGit Worktree (Standard)Repo Clone (Fallback)IskopplingFullständig filsystemsisoleringFullständig filsystemsisoleringDiskförbrukningLåg (Delar .git-objektdatabas)Hög (Duplicerar .git-katalogen)SkapandetidBlixtsnabb (< 100 ms)Långsam (Beror på repots storlek)Git-historikGemensam, omedelbart tillgängligSeparerad, kräver fetch/pushAnvändningsfallAlla standardiserade Git-projektIcke-Git-projekt eller trasiga build-verktygFallback-princip: Om ett projekt saknar Git eller om specifika verktyg misslyckas i en worktree-miljö, faller A008 automatiskt tillbaka till en komplett kopia/klon.3.3 Separering: A008 Session $\neq$ Git WorkspaceFör att undvika att skapa en ny worktree för enkla konversationer eller efterforskningar skiljer A008 strikt på Session (chatt/kontext) och Workspace (filsystem).Project: Foo
-│
-├── Session 001 (Research/Chat)       ───> Workspace: NONE
-├── Session 002 (Refactoring task)    ───> Workspace: Worktree-002 (a008/session-002)
-├── Session 003 (Bugfix task)         ───> Workspace: Worktree-003 (a008/session-003)
-└── Session 004 (Code Reviewer)        ───> Workspace: MAIN (Read-Only)
-3.4 Livscykel för Parallell Exekvering                 [Skapa Parallell Session]
-                            │
-              Behöver sessionen skriva filer?
-                            │
-             ┌──────────────┴──────────────┐
-             NEJ                           JA
-             │                             │
-    [Delat Read-Only Workspace]   [Skapa Git Worktree]
-             │                             │
-             │                    [Skapa Dedikerad Branch]
-             │                             │
-             │                    [Session Låser Workspace]
-             │                             │
-             └──────────────┬──────────────┘
-                            │
-                     [Agent Exekvering]
-                            │
-                    [Git Commit / Diff]
-                            │
-               [Merge / PR / Decision Alert]
-                            │
-                   [Rensa Worktree]
-4. Local-First Datamodell & SynkroniseringsstrategiA008 använder inte remote-databasen som en Single Source of Truth (SSOT). Istället genererar den lokala klienten append-only händelser (Sync Events) som replikeras asynkront.4.1 Synkroniserbara EntiteterFöljande objekt ingår i SyncAdapter-gränssnittet:Project (Metadata och konfiguration)Session (Chatthistorik och status)Turn (Enskilda dialogsteg)KnowledgeOccurrence (Råa observationer)Claim (Strukturerade påståenden)Relationship (Grafkopplingar)Task (Uppgifter och status)Execution (Körningsloggar och ACME-utdata)Artifact Metadata (Filreferenser och hashar)Settings Subset (Användarinställningar)4.2 Append-Only Sync Events (Händelsebaserad synk)Istället för att ersätta hela rader i databasen vid samtidiga ändringar (vilket skapar konflikter), skickar A008 atomära händelser:[Laptop]  ──────> Event 9812: occurrence_created(...) ──────> [Backend] ──────> [Desktop]
-[Desktop] ──────> Event 9813: claim_reinforced(...)   ──────> [Backend] ──────> [Laptop]
-Detta överensstämmer med A008:s minnesmodell: Nuvarande tillstånd är summan av alla genomförda förändringar över tid.5. Produktstratifiering & Kommersiell ModellGenom att hålla A008 local-first slipper projektet byggas som en tung SaaS-plattform från dag ett. Det ger en modulär produkt- och affärsmodell:┌────────────────────────────────────────────────────────────────────────┐
-│ A008 Core (Open / Local / Standalone)                                  │
-│ Inget konto, ingen cloud DB, fullständigt lokal agent & minnesmotor.   │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Optional Add-on
-┌───────────────────────────────────▼────────────────────────────────────┐
-│ A008 Sync (Managed Synchronization Service)                            │
-│ Synk mellan enheter, automatiska backups, privat krypterat moln.       │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ Framtida utökningar
-┌───────────────────────────────────┴────────────────────────────────────┐
-│ A008 Remote  ──> Fjärrexekvering i molnet / tunga GPU-modeller         │
-│ A008 Teams   ──> Flera utvecklare delar projektgraf & minne          │
-│ A008 Cloud   ──> Managed LLM-proxies & företagsintegrationer          │
-└────────────────────────────────────────────────────────────────────────┘
-6. Fördelar med RiktningenReducerad Inledande Complexitet: Vi slipper bygga multitenancy, användarhantering, komplexa databas-migrationer i molnet och serverdrift innan själva agenten och minnesmotorn är färdigutvecklade.Robusthet & Blixtsnabb Prestanda: Inga nätverks-timeouts blockerar agentens arbete med den lokala kodbasen.Ingen Leverantörsinlåsning (Data Sovereignty): Användaren äger sin källkod och sin minnesdatabas i standardiserade filer (SQLite, Git).
+These clauses are the stable product-authority addresses used by the Necessity Gate. Accepted ADRs may refine a clause, but implementation history, old task records and legacy documents do not override this contract.
 
-## Legacy / History
+- **PC-LF-01 — Local-first core.** A008's project/session runtime, local storage, semantic memory, tools, Git integration and operator controls must remain usable without an A008-hosted backend. External model providers may still require network access when selected.
+- **PC-LF-02 — Backend is optional capability.** Sync, backup, remote execution, collaboration and hosted access may be added behind explicit interfaces, but must not own the local cognitive/runtime core.
+- **PC-LF-03 — A008 owns cognition and semantic memory.** Knowledge, state, retrieval, reinforcement, lifecycle, context construction and semantic authority belong to A008. Execution metadata is not semantic memory.
+- **PC-LF-04 — ACME owns execution, not cognition.** ACME may execute model/provider work and report execution evidence; it must not become the authority for A008 memory, truth, retrieval or reasoning policy.
+- **PC-LF-05 — Session and workspace are separate concepts.** A conversation/session may exist without a writable workspace. Filesystem isolation is allocated only when work requires it.
+- **PC-LF-06 — Parallel writes are isolated.** Writable parallel project sessions use isolated Git worktrees by default; a full clone/copy is a fallback when Git or project tooling makes worktrees unsuitable.
+- **PC-LF-07 — Local state remains authoritative.** Optional synchronization replicates explicit state/events between installations; a remote database is not required to become the canonical owner of local A008 state.
 
-For reference you can find historic no longer authority docs under _legacy
+## Product direction
+
+The practical rule is the **network-cable test**: removing access to an A008-hosted backend must not stop the local A008 runtime from owning projects, sessions, memory, tools, Git workspaces and local state. A selected cloud model provider may of course require its own network connection.
+A008 therefore separates the local product from optional remote services:
+
+```text
+A008 Runtime (local-first)
+├── projects and sessions
+├── semantic memory and current state
+├── MCP/tool integration
+├── ACME model-execution boundary
+├── Git/worktree management
+└── local persistence (SQLite)
+        │
+        └── optional sync/service interface
+                 │
+                 └── sync, backup, remote access, collaboration
+```
+
+The backend is a capability provider, not the cognitive owner of A008.
+
+## Operational modes
+
+### Standalone
+
+A008 can run on one machine with local project state, memory, tools, Git integration and local persistence. No A008 account, central database or hosted control plane is required.
+
+### Standalone + optional sync
+
+A local A008 installation may connect to a sync/service provider for cross-device state, backup, remote access or collaboration. The local runtime remains authoritative for its local work and must degrade cleanly when that service is unavailable.
+
+## Parallel project sessions
+
+A008 distinguishes a **session** from a **workspace**.
+
+- Research/chat sessions may require no writable workspace.
+- A writable parallel development session receives an isolated workspace.
+- Git worktrees are the default isolation mechanism for Git projects.
+- A clone/copy may be used when a project or toolchain cannot safely operate in a worktree.
+- Session-specific tools and processes execute with the session workspace as their CWD.
+The target topology is intentionally simple:
+
+```text
+Project
+├── Session A -> shared/read-only project context
+├── Session B -> worktree B -> branch a008/session-B
+└── Session C -> worktree C -> branch a008/session-C
+```
+
+Session completion may expose explicit user-controlled outcomes such as merge, pull request, keep branch or discard workspace. Current implementation status belongs in `CURRENT_STATUS.md` and `SYSTEMDOC.md`, not in this direction document.
+
+## Synchronization direction
+
+A008 does not require a remote database to become the project SSOT. Optional synchronization should transport explicit state/events or other mergeable representations while A008 retains ownership of semantic meaning and conflict/state rules.
+
+Sync may eventually cover project/session metadata, conversation turns, semantic knowledge/state, relationships, task/execution metadata, artifacts and selected settings. The exact transport and storage provider are implementation choices, not product identity.
+
+## Product shape
+
+- **A008 Core** — local/standalone product and runtime.
+- **A008 Sync** — optional synchronization/backup capability.
+- **A008 Remote / Teams / Cloud** — possible future service layers for remote execution, collaboration or managed infrastructure.
+
+These service layers are optional extensions. They must not turn the local runtime into a thin client that requires a central A008 service to function.
+
+## Why this direction
+
+- Keep the agent/runtime itself as the primary product.
+- Avoid forcing account, multitenancy and hosted-database complexity into the core.
+- Keep project data and source code close to the user and local filesystem.
+- Make parallel development practical without sharing one dirty working tree.
+- Allow hosted services to evolve independently behind explicit boundaries.
+
+## Documentation authority
+
+- `PROJECT_BRIEF.md` owns product direction and non-negotiable product boundaries.
+- Accepted ADRs under `docs/adr/` refine bounded current decisions.
+- `CURRENT_STATUS.md` records where the project is now.
+- `SYSTEMDOC.md` records behavior that actually exists.
+- Historical material under `_legacy/`, completed tasks and journals is provenance only and cannot override current owners.
