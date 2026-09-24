@@ -741,27 +741,25 @@ skips the animation loop. Empty chat also offers Review, Terminal, Browser, File
 a Shortcuts control restores it, and the choice is remembered in localStorage.
 Keyboard shortcuts still work while the dock is hidden. Workbench opens a floating
 environment/sources card: git branch and change counts from host-shell
-`git status -sb` / shortstat, session uploads, and clipboard ingest through
-`POST /v1/upload`. It is not the tool catalog. Help hosts that catalog and the
+`git status -sb`/ shortstat, session uploads, and clipboard ingest through`POST /v1/upload`. It is not the tool catalog. Help hosts that catalog and the
 shortcut reference. Tools keeps Terminal, Files, Browser and Upload as working
 panes. The Browser pane is a sandboxed iframe; sites that set
-`frame-ancestors` or `X-Frame-Options` (ChatGPT, NVIDIA Build, …) are not
+`frame-ancestors`or`X-Frame-Options`(ChatGPT, NVIDIA Build, …) are not
 framed. The host probes those headers and the pane offers Open in the system
 browser instead. On a narrow screen the workbench card occupies the main area; the same
-button closes it. `brand/themes.css` defines Neutral (the extracted current charcoal palette),
+button closes it.`brand/themes.css`defines Neutral (the extracted current charcoal palette),
 Deep Space (blue-black/navy with restrained electric-blue interaction), and
 Oldscool (dark CRT surfaces, phosphor-green controls, warm retro highlights, a static
 pointer-inert scanline layer, and selected-control phosphor bloom)
-as semantic custom properties on `html[data-a008-theme]`. `brand/a008.css` aliases the older
-`--a008-*` names onto that model so unmigrated feature CSS follows the selected
-theme; `brand/workspace.css` is loaded last for shell and responsive composition.
+as semantic custom properties on`html[data-a008-theme]`. `brand/a008.css`aliases the older`--a008-_`names onto that model so unmigrated feature CSS follows the selected
+theme;`brand/workspace.css`is loaded last for shell and responsive composition.
 Parameters → Appearance → App theme switches immediately. Oldscool alone also adds a static
 pointer-inert scanline layer plus restrained phosphor bloom to selected chrome and primary
 controls; it does not affect input, runtime/session state, Neutral/Deep Space, or the sandboxed
 Code Canvas preview. The choice is stored in
-renderer-local `a008.preferences` as `{ appearance: { theme } }`, not in runtime
+renderer-local`a008.preferences`as`{ appearance: { theme } }`, not in runtime
 settings or session state. Missing or unknown values default to Neutral. Graph
-and Memory kind colours use a separate `--a008-viz-*` family. The Code Canvas
+and Memory kind colours use a separate `--a008-viz-_` family. The Code Canvas
 host chrome may follow the theme; the sandboxed preview document does not.
 See [ADR 0031](adr/0031-workbench-context-and-memory-map.md) and
 [ADR 0038](adr/0038-global-app-theme-system.md).
@@ -1452,3 +1450,7 @@ A008-0139 adds the V2 reconnect/resume lease without creating another runtime ow
 A008-0140 closes Stage 4 without adding persistence. Every standalone V2 GUI-host process already creates a fresh `serverInstanceId`; A008-0140 proves that process death therefore invalidates the in-memory receipt registry and detached-session lease. A receipt known to be running on the dead instance is `COMMAND_UNKNOWN` on the new instance, the old session/resume capability is `SESSION_EXPIRED`, and the host does not infer success/failure or automatically resubmit the mutation. A real host also proves answer/memory independence by returning a completed answer while post-output semantic extraction fails as `memoryStatus=staging_failed`. The combined Stage-4 matrix covers snapshot/event ordering, duplicate commands, cancellation/tool approval, lease expiry, restart uncertainty and project/session isolation.
 
 Public `GET /v2/info` now advertises the complete bounded Stage-4 surface: A008-0132 identity/order/snapshot/terminal features, A008-0138 command receipts/idempotency, A008-0139 `session.reconnect-resume`, and A008-0140 `session.restart-uncertainty`, with the same bounded limits. The bundled GUI Parameters → Runtime view reports `STAGE 4 COMPLETE`. A008-0149 adds `@a008/client`: bundled GUI session and HTTP I/O go through that SDK. Chat still uses the V1 session adapter for PIN-disabled, engine-panel, attachment and in-session image parity; independent consumers use the V2 adapter. Existing V1 reconnect compatibility remains separate from the V2 contract. Stage 6 is the Expo/native proof.
+
+## Project worktree session foundation
+
+A008-0177 adds src/runtime/project-workspace-store.ts, a local SQLite owner for explicit shared or Git-worktree project sessions. A worktree session verifies a registered project root is a Git worktree, creates an 008/session-<suffix> branch in a sibling <project>-workspaces directory, and records its base branch and workspace path. It reports modified-file count and commits ahead. Keep retains the branch/worktree. Discard refuses a dirty worktree and removes only the owned clean worktree through literal Git arguments; it never merges, pushes or deletes a remote branch. No host HTTP, GUI, chat-session or repository-tool binding exists yet.

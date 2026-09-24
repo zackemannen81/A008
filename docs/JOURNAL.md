@@ -15,14 +15,15 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 
 - Task: A008-0125; operator: mrwhite81; branch: `mrwhite81/A008-0125-code-sanitize`
 - Installed eslint and prettier + scripts. IMPORTANT - Not to be implemented as requirements yet.
-- [Handoff](). [). []().
+- [Handoff](<>). [). [](<>).
 - Signature: mrWhite
-- 
+-
+
 ## 2026-09-16 — A008-0120: Prompts refactoring
 
 - Task: A008-0120; operator: mrwhite81; branch: `mrwhite81/A008-0120_prompts-refactoring`
 - Moved prompts for extraction and classification aso. to src/prompt-contracts
-- [Handoff](). [Archive](finished/A008-0120_refactoring-prompts.md). []().
+- [Handoff](<>). [Archive](finished/A008-0120_refactoring-prompts.md). [](<>).
 - Signature: mrWhite
 
 ## 2026-09-15 — A008-0118: ACME runtime/2 consumer and Stage 3.5 GO
@@ -465,8 +466,8 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Verified by running the owner's own worked sequence rather than by describing
   it. Three memory questions widen one scope and find both neuroscience records;
   then "och vad händer när vi sover efter att vi lärt oss något?" — classified
-  as sleep science and cognitive science, *neither of which is on the stored
-  records* — brings the hippocampus record back anyway, because neuroscience is
+  as sleep science and cognitive science, _neither of which is on the stored
+  records_ — brings the hippocampus record back anyway, because neuroscience is
   still in the accumulated scope from three turns earlier. Then the Porsche
   question shares no domain, the intersection is empty, and the scope is
   replaced.
@@ -475,13 +476,13 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   topic change before the continuity question, so of course the scope had gone.
   Worth recording because the instinct on seeing an empty result is to change
   the code.
-- Three things that were not obvious. The *related* halves are the mechanism: a
+- Three things that were not obvious. The _related_ halves are the mechanism: a
   classifier returning only the domains a message contains adds nothing a
   substring search could not do. The two semantic calls must share one taxonomy,
   because in the owner's trace retrieval answered in English and extraction in
   Swedish and those sets never intersect however they are normalised — so the
   prompt now carries the store's own vocabulary and asks the model to prefer it.
-  And a *related* domain overlapping is enough to hold the discussion, which is
+  And a _related_ domain overlapping is enough to hold the discussion, which is
   easy to implement in the stricter, wrong form by accident.
 - The ceiling is mine and is marked as mine. The reset fires only on an empty
   intersection, so a discussion that drifts one step at a time overlaps at every
@@ -515,11 +516,11 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Branch: `main`
 - Identity evidence: claimed on `main` as `7be97c6` before the branch existed.
 - Origin: a live GUI host run — `memory commit failed at proposal 2: UPDATE
-  fails when the slot is contested`.
+fails when the slot is contested`.
 - Reproduced before touching anything, which is the only reason the diagnosis
   held. Three facts stated in one message about one subject: `committed 0 of 3`
   — not two of three, the batch rolled back — `contested slots
-  ['attribute:zorro:statement']`, and the next turn failing at its first
+['attribute:zorro:statement']`, and the next turn failing at its first
   proposal. Three facts stated, all three lost, subject permanently unwritable
   across restarts.
 - The cause was a slot registered with `single` cardinality. That encodes "an
@@ -586,7 +587,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Branch: `main`
 - Identity evidence: claimed on `main` as `05c56e8` before the branch existed.
 - Origin: a live GUI host run — `memory staging failed: invalid_response:
-  Semantic model assistant content must be strict JSON.` The message named the
+Semantic model assistant content must be strict JSON.` The message named the
   rule and not the length, not the finish reason, not one character of what
   arrived. Three causes need three different responses — a larger budget, an
   unwrapping, or a look at the prompt — and it distinguished none of them.
@@ -608,7 +609,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   unanchored fence pattern would find a fenced block anywhere in the content,
   which is fragment extraction under another name. Mutation testing is what
   established that: removing the anchors changed no test, because the suite had
-  a case for prose without a fence and none for prose *around* a fence. The
+  a case for prose without a fence and none for prose _around_ a fence. The
   property that keeps this recovery honest was untested until it was mutated.
 - The diagnostic reports content length, finish reason, and a bounded one-line
   excerpt of the model's own output; when the finish reason is `length` it says
@@ -657,7 +658,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   `EvidenceLifecycleStore` already keeps strength and state. A label set is not
   part of what a claim asserts; it is how the claim is found.
 - The capability, not the refactor: a label retrieval channel, so a record is
-  reachable because it is *about* the subject even when the message names none
+  reachable because it is _about_ the subject even when the message names none
   of its entities and shares none of its words. Deliberately not gated on
   retrieval intent, because a subject-area match is orthogonal to whether the
   question is about current state or history, and gating it would disable the
@@ -689,7 +690,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   length had no case at all; and removing the utterance attach changed nothing
   because every case found the claim instead. Each got a case.
 - Not performed: no provider call was added. The semantic half — classify a
-  message into domains and *related* domains, which the message does not
+  message into domains and _related_ domains, which the message does not
   contain, and accumulate them into a `current_scope` — is the owner's design
   and is still ahead. What exists now is the lexical half plus `vocabulary()`,
   which is what that classifier should be seeded with so the two calls stop
@@ -722,7 +723,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   were discarded over a metadata field.
 - Reproduced before touching anything, two proposals differing only in that
   field: accepted 1, skipped 1, `"proposal 1 confidence must be a finite number
-  between 0 and 1"`. An extraction where every item says "high" — which is what
+between 0 and 1"`. An extraction where every item says "high" — which is what
   a model asked for confidence usually writes — stored nothing, and reported it
   as a skip rather than as a failure.
 - Change: `parseProposalConfidence` reads a number as a number, an ordinal word
@@ -802,7 +803,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   budget is still sent, because an empty projection is not a smaller answer.
 - The first regression fixture passed for the wrong reason and that was the most
   useful thing that happened. Built with honest entity labels — `["Zorros
-  häst", "Fresca"]` — the state binding was never retrieved at all, so there was
+häst", "Fresca"]` — the state binding was never retrieved at all, so there was
   nothing to suppress. The live store does not have honest labels:
   `live-commit.ts` writes `...tokenize(proposition)` into `Entity.labels` and
   `tokenize` keeps every word of four characters or more, so `heter` is an alias
@@ -1041,7 +1042,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   two hardcoded places: `#ingestOnce` ingests `batch.sourceMessage` as
   `speaker: "user"` with a `turn:` locator, and `accept()` runs
   `user-assertion-v1` over it. `isExplicitUserAssertion` activates a proposal
-  when the source message *contains* the proposition, and a document contains
+  when the source message _contains_ the proposition, and a document contains
   every proposition extracted from it. Routing a source through that path would
   have accepted an entire uploaded file as though the user had personally stated
   every fact in it, and duplicated the utterance while replacing the provenance
@@ -1490,7 +1491,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
   `ce6fc9b`; the Ready charter was committed before implementation in
   `7766176`.
 - Decision: ADR 0017. Live Nemotron returned `{ relation: "new", targetHandle:
-  null }`. Runtime accepts `type` or `relation` for the five canonical names,
+null }`. Runtime accepts `type` or `relation` for the five canonical names,
   trims and case-folds them, treats JSON `null` as omitted, and still fails
   closed on unknown, missing, or conflicting names. The instruction now names
   field `type`.
@@ -2219,6 +2220,7 @@ Newest first. Append only: entries are never edited or reflowed after commit.
 - Live-provider status: no OpenAI API call was made. The operator-created key remains external to Git and must be entered through Parameters → Provider before live use.
 - Handoff: `docs/handoffs/A008-0087.md`.
 - Signature: Codex
+
 ## 2026-09-09 — A008-0088 Luna tool-call compatibility
 
 - Date: 2026-09-09
@@ -2493,6 +2495,7 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Verification: 177 GUI tests passed with 0 failures/skips; GUI typecheck, production build and `git diff --check` passed. The production build retains only existing Zod annotation and >500 kB chunk warnings.
 - No provider call, runtime/session/memory/tool/host/API change, remote push or PR was made. [Handoff](handoffs/A008-0141.md).
 - Signature: A008
+
 ## 2026-09-19 — A008-0138 Stage 4 command receipts and bounded idempotency
 
 - Operator: ChatGPT. A008-0138 merged through PR #79 at `344d5c2` after rebasing cleanly onto the current integration main.
@@ -2539,6 +2542,7 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Contract clarification: new V3-owned objects reject extra keys; reused nested
   chatContentSchema retains existing parsing semantics for compatibility.
 - Signature: Codex (operator)
+
 ## 2026-09-22 — A008-0162 platform protocol integrated
 
 - Operator: Codex. PR #103 merged at 7e63fde after bounded contract/scope review,
@@ -2552,6 +2556,7 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
   and trusted-seeding integration. Baseline npm test: 924 tests, zero failures.
 - All verification in this wave is local/fixture-based. No live provider calls.
 - Signature: Codex (operator)
+
 ## 2026-09-22 — A008-0161/0163 foundations integrated
 
 - PR #106 merged at f89f7e2: trusted internal committed-history seed, validated
@@ -2645,3 +2650,10 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
   also fails on main after hotfix `8b2796a` changed default semantic model
   selection. No live provider calls; 0 SEK.
 - Signature: ChatGPT (operator/worker)
+
+## 2026-09-24 � A008-0177 project worktree session foundation
+
+- Added ProjectWorkspaceStore for durable shared/worktree metadata and explicit local Git worktree creation, status, keep and clean-only discard.
+- Temporary Git fixture verifies branch/worktree lifecycle. No provider calls; 0 SEK.
+- GUI/API controls and runtime cwd binding were intentionally not claimed; they need a follow-up protocol/bridge slice.
+- Signature: A008
