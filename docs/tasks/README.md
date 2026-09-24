@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0173_faithful-memory-property-intake.md](A008-0173_faithful-memory-property-intake.md) — Complete on task branch; preserves stored retrieval metadata and extracts new properties of known entities. [Archive](../finished/A008-0173_faithful-memory-property-intake.md), [handoff](../handoffs/A008-0173.md).
+
 - [A008-0172_domain-classification-regression.md](A008-0172_domain-classification-regression.md) — Complete; restores minimal broad-domain classification for classifiable durable dialogue knowledge while keeping tags/entities sparse. [Archive](../finished/A008-0172_domain-classification-regression.md).
 - [A008-0171_librarian-prompt-contract-simplification.md](A008-0171_librarian-prompt-contract-simplification.md) — Complete; normal chat memory prompts aligned to current-state librarian semantics with fail-closed state-address validation. [Archive](../finished/A008-0171_librarian-prompt-contract-simplification.md).
 - [A008-0170_instruction-inline-template.md](A008-0170_instruction-inline-template.md) — Complete; strict runtime `{{...}}` fields for system Instructions. [Archive](../finished/A008-0170_instruction-inline-template.md).

@@ -62,7 +62,7 @@ export const DEFAULT_PROJECTION_BUDGET_BYTES = 32_768;
 export interface ProjectionItemsInput {
   readonly taskId: string;
   readonly payload: ProjectionPayload;
-  /** Exact retrieved records behind the payload, used only to preserve identity. */
+  /** Exact retrieved records behind the payload, preserving identity and labels. */
   readonly records?: readonly RetrievedRecord[];
   readonly measurer: SerializedContextMeasurer;
   readonly maximumBytes?: number;
@@ -95,8 +95,6 @@ function collect(
   payload: ProjectionPayload,
   records: readonly RetrievedRecord[] | undefined,
 ): ContextKnowledgeItem[] {
-  const tags = [...payload.scope.tags];
-  const scope = [...payload.scope.entities];
   const recordsBySurface = new Map<RetrievedSurface, RetrievedRecord[]>();
   for (const record of records ?? []) {
     const bucket = recordsBySurface.get(record.surface) ?? [];
@@ -123,8 +121,11 @@ function collect(
         : {}),
       proposition,
       kind: surface,
-      tags,
-      scope,
+      tags: [...(record?.tags ?? [])],
+      ...(record === undefined ? {} : { domains: [...record.domains] }),
+      // Query entities describe why we searched, not the record's applicability.
+      // This read representation carries no per-record applicability scope.
+      scope: [],
       authority: SURFACE_AUTHORITY[surface],
     };
   };
@@ -132,12 +133,7 @@ function collect(
   const items: ContextKnowledgeItem[] = [];
   for (const [index, entry] of payload.state.entries()) {
     items.push(
-      item(
-        "state",
-        index,
-        propositionOf(entry.value, entry.slot),
-        entry.value,
-      ),
+      item("state", index, propositionOf(entry.value, entry.slot), entry.value),
     );
   }
   for (const [index, entry] of payload.claims.entries()) {

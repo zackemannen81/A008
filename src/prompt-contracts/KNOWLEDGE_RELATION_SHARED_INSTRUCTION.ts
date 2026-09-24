@@ -9,6 +9,7 @@ export const KNOWLEDGE_RELATION_TYPE_RULES = [
   "When both sides carry structuredProposition, use it to resolve semantic identity before comparing prose.",
   "For attribute_binding, semantic identity is the entityLabel + attribute slot. Same slot and same value strongly indicates restatement; same slot and changed applicable value may be supersede or conflict.",
   "Different attribute slots are different semantic addresses: never classify them as restatement, supersede or conflict merely because their prose is related.",
+  "An existing description of an entity does not already express every property of that entity. A new property/value must remain distinct knowledge, even when the candidate mentions the same file or shares retrieval labels.",
   "For relationship_binding, identity is subjectLabel + relation + objectLabel. Preserve direction.",
   "The classifier does not choose Current State or History. It does not decide canonical IDs, commit order, lifecycle strength, activation, decay, attraction or final state ownership. Runtime commit owns those operations.",
 ] as const;

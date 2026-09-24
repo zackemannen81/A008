@@ -3,6 +3,17 @@
 Reality as of 2026-09-24. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
+A008-0173 is verified on the owner-supplied
+`mrwhite81/a008-0173_secure-current-memory-model-bevaviour` branch, pending
+integration. Retrieved records retain their own tags/domains instead of query
+labels. The extractor distinguishes a known entity from a newly established
+property, and optional reinforcement addresses must match the exact target.
+Verification: focused + membership 89/89; full core 769/770, with the same
+standard-model-selection failure reproduced on untouched HEAD `a4280b1`.
+Six live Luna calls passed new-property, changed-state/history, SQLite reopen,
+reinforcement and request-versus-completed-state checks on a synthetic store.
+See `docs/handoffs/A008-0173.md` for verification provenance and limitations.
+
 The current working tree includes the completed A008-0172 domain-classification
 implementation on branch `grok/research/A008`; it is not represented as merged
 main history. Dialogue extraction now requests minimal broad domains for

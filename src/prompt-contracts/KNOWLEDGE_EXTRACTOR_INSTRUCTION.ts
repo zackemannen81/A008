@@ -6,7 +6,8 @@ export const KNOWLEDGE_EXTRACTOR_INSTRUCTION = [
   "Return exactly one valid JSON object and nothing else.",
 
   "INPUT contains retrievedContext.items, userMessage and responseText.",
-  "Each retrieved item may contain id, semanticAddress, evidenceId, currentState, proposition, kind, tags, scope and authority.",
+  "Each retrieved item may contain id, semanticAddress, evidenceId, currentState, proposition, kind, tags, domains, scope and authority.",
+  "The proposition/currentState describes what is known. Tags, domains, scope, identity and retrieval rank are metadata, not additional facts or proof that a new property is already known.",
   "id is the retrieved-item identity exposed to this extractor. evidenceId is runtime/provenance metadata. Never substitute evidenceId for id.",
   "Never invent id, evidenceId or semanticAddress.",
 
@@ -16,7 +17,11 @@ export const KNOWLEDGE_EXTRACTOR_INSTRUCTION = [
   "NEW_KNOWLEDGE:",
   "Emit durable atomic knowledge established by the completed turn that is not already represented by equivalent retrieved knowledge.",
   "Do not create a duplicate merely because retrieved knowledge is repeated in the response.",
+  "A known entity is not a known value for every property of that entity. Compare the specific property or relationship and its value, not just the entity name or topic.",
+  "Preserve every materially distinct durable assertion established by this turn. Reinforcing an existing artifact never substitutes for extracting a newly established property, value or relationship.",
   "A new structured attribute or relationship may define new knowledge, but do not invent a semanticAddress string for it.",
+  "When the turn explicitly establishes an identifiable entity's attribute and value, emit its source-grounded attribute_binding in structuredProposition, even if other properties of the entity are already retrieved. Runtime resolves its canonical address.",
+  "If the entity, attribute or value cannot be resolved without guessing, retain eligible knowledge as an unstructured proposition; do not fabricate a slot.",
 
   "STATE_UPDATE:",
   "Use state_updates only when the completed turn changes an existing retrieved current-state artifact.",
@@ -38,12 +43,13 @@ export const KNOWLEDGE_EXTRACTOR_INSTRUCTION = [
   "Never put evidenceId in knowledgeId.",
   "semanticAddress is optional, but when present it MUST be copied exactly from the same retrieved item.",
   "Merely retrieving an artifact is NOT reinforcement. Semantic similarity alone is NOT reinforcement.",
+  "Sharing an entity name does not establish that the retrieved proposition was reused or reaffirmed. New knowledge and legitimate reinforcement may coexist in the same output.",
   "Do not also emit the same unchanged artifact as new_knowledge.",
 
   "ARTIFACT FORMAT:",
   "Every new_knowledge, state_updates and relation_updates item requires proposition, kind and severity.",
   'severity must be exactly "critical", "important", or "minor".',
-  "Optional fields are semanticAddress, structuredProposition, aboutInterval, tags, entities, confidence and support.",
+  "Additional fields are semanticAddress, structuredProposition, aboutInterval, domains, tags, entities, confidence and support, subject to the rules below.",
   "Each proposition expresses one main semantic assertion with all qualifiers needed to preserve meaning. Split facts that can independently change.",
   "DOMAIN CLASSIFICATION:",
   "For every durable artifact whose subject is clear enough to classify, emit domains with the smallest useful set of broad reusable subject areas.",
@@ -74,6 +80,11 @@ export const KNOWLEDGE_EXTRACTOR_INSTRUCTION = [
 
   "REINFORCEMENT FORMAT:",
   'Each reinforcement is {"knowledgeId":string,"semanticAddress"?:string}. knowledgeId is required and is always a copied retrieved item id, never evidenceId.',
+  "If the retrieved item has no semanticAddress, omit it from reinforcement. A filename or entity label is not a substitute address.",
+
+  "BOUNDARY EXAMPLES (fictional illustrations only, never facts to extract):",
+  'Baseline says "panel.html is a standalone animation"; user says "The caption text in panel.html is now amber"; answer acknowledges it. Emit new_knowledge with proposition describing that caption colour and structuredProposition {"kind":"attribute_binding","entityLabel":"panel.html","attribute":"caption_text_color","value":"amber"}. The old description does not already contain the colour. Do not emit only reinforcement.',
+  'If the baseline instead contains current-state panel_html.caption_text_color = amber, "it is now violet" belongs in state_updates with the exact copied address and the same structured slot. If it remains amber and is actually reaffirmed or used, reinforce that exact retrieved item. Do not create a duplicate.',
 
   "Output JSON only. Do not add explanations, markdown, wrapper text or additional top-level fields.",
 ].join("\n");

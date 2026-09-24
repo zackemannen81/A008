@@ -272,7 +272,8 @@ test("four-bucket extraction separates reinforcement from new and changed knowle
         new_knowledge: [
           {
             severity: "important",
-            proposition: "The extractor compares against the same-turn baseline.",
+            proposition:
+              "The extractor compares against the same-turn baseline.",
             kind: "mechanism",
             tags: ["memory"],
             domains: ["orchestration"],
@@ -317,6 +318,47 @@ test("four-bucket extraction separates reinforcement from new and changed knowle
     "attribute_binding",
   );
   assert.equal(staged.serialized.includes("claim-memory-loop-mode"), true);
+});
+
+test("A008-0173: an entity name cannot masquerade as a retrieved claim's semantic address", async () => {
+  let observed: PostOutputAnalyzerInput | undefined;
+  const staged = await intake({
+    async analyze(value) {
+      observed = value;
+      return {
+        new_knowledge: [],
+        state_updates: [],
+        relation_updates: [],
+        reinforcements: [
+          { knowledgeId: "claim:panel", semanticAddress: "panel.html" },
+          { knowledgeId: "claim:panel" },
+        ],
+      };
+    },
+  }).stage({
+    ...input,
+    retrievedContext: [
+      {
+        id: "claim:panel",
+        evidenceId: "panel-claim",
+        proposition: "panel.html is an animation",
+        kind: "claim",
+        tags: ["animation"],
+        domains: ["development"],
+        scope: [],
+        authority: 0.4,
+      },
+    ],
+  });
+  assert.ok(observed?.kind === "dialogue");
+  assert.deepEqual(observed.retrievedContext.items[0]?.domains, [
+    "development",
+  ]);
+  assert.equal(staged.reinforcements?.length, 1);
+  assert.equal(staged.reinforcements?.[0]?.semanticAddress, undefined);
+  assert.deepEqual(staged.skippedProposals, [
+    "reinforcement 1 target identity/address mismatch",
+  ]);
 });
 
 test("mismatched state-update address is skipped before classification or commit", async () => {

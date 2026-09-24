@@ -96,8 +96,7 @@ export interface DialogueKnowledgeExtraction {
 }
 
 export type PostOutputKnowledgeAnalysis =
-  | readonly AnalyzedKnowledgeDraft[]
-  | DialogueKnowledgeExtraction;
+  readonly AnalyzedKnowledgeDraft[] | DialogueKnowledgeExtraction;
 
 export type SupportQuoteResolution =
   | { readonly ok: true; readonly span: KnowledgeSupportSpan }
@@ -541,6 +540,15 @@ function normalizedRetrievedContext(
       `retrievedContext item ${index + 1} proposition`,
     ),
     kind: nonEmpty(item.kind, `retrievedContext item ${index + 1} kind`),
+    ...(item.domains === undefined
+      ? {}
+      : {
+          domains: normalizedStrings(
+            item.domains,
+            `retrievedContext item ${index + 1} domains`,
+            Number.MAX_SAFE_INTEGER,
+          ),
+        }),
     tags: normalizedStrings(
       item.tags,
       `retrievedContext item ${index + 1} tags`,
@@ -741,11 +749,7 @@ export class PostOutputKnowledgeIntake {
       const stateUpdates = bucket("state_updates");
       const relationUpdates = bucket("relation_updates");
       stateUpdateValues = new Set(stateUpdates);
-      proposalValues = [
-        ...newKnowledge,
-        ...stateUpdates,
-        ...relationUpdates,
-      ];
+      proposalValues = [...newKnowledge, ...stateUpdates, ...relationUpdates];
       reinforcementValues = bucket("reinforcements");
     }
     if (
@@ -884,7 +888,9 @@ export class PostOutputKnowledgeIntake {
       let aboutInterval: Interval | undefined;
       if (raw.aboutInterval !== undefined) {
         try {
-          aboutInterval = deserializeInterval(JSON.stringify(raw.aboutInterval));
+          aboutInterval = deserializeInterval(
+            JSON.stringify(raw.aboutInterval),
+          );
         } catch (error) {
           throw new MemoryError(
             "policy",
@@ -1010,10 +1016,7 @@ export class PostOutputKnowledgeIntake {
               );
             }
             target = matches[0];
-          } else if (
-            target.semanticAddress !== undefined &&
-            target.semanticAddress !== semanticAddress
-          ) {
+          } else if (target.semanticAddress !== semanticAddress) {
             throw new MemoryError(
               "policy",
               `reinforcement ${index + 1} target identity/address mismatch`,

@@ -1698,6 +1698,12 @@ responseText
 
 `retrievedContext` bär stabilt retrieved-item-ID, evidence-ID och semantic address där de redan finns. Extractorn får återanvända dessa identiteter men får inte hitta på nya semantic identities bara för att fylla schema. För reinforcement är `knowledgeId` alltid det exakta retrieved-item-`id`:t; `evidenceId` är runtime/provenance-metadata och får inte användas som ersättare.
 
+Retrieved metadata ska komma från respektive lagrad post. Sökfrågans tags och
+entities får inte kopieras till alla retrieved items som om de beskrev lagrad
+kunskap. Postens egna domains följer med som klassificering. Där läsytan saknar
+postspecifik applicability scope lämnas itemets scope tomt; query entities är
+inte applicability scope. Metadata är inte ytterligare sakpåståenden.
+
 Dialogue-resultatet separerar:
 
 ```text
@@ -1714,6 +1720,15 @@ Knowledge som redan fanns i retrieved context ska inte skapas igen bara för att
 En `state_update` får bara uppdatera en current-state-post som faktiskt fanns i samma retrieved baseline. Semantic address ska kopieras exakt från baseline och den strukturerade `attribute_binding`-propositionen måste beskriva samma slot. Intake validerar detta fail-closed innan relation classification/commit. Generic turn-wide workflow labels ska inte stampas på varje artifact, och runtime ska inte maskera utebliven klassificering med en påhittad catch-all-domain.
 
 Commit-time dedupe kvarstår alltid: extraction-time jämförelsen ersätter aldrig global/relevant dedupe mot knowledge store.
+
+En känd entity innebär inte att alla dess egenskaper redan är kända. En ny
+uttryckligen etablerad egenskap och dess värde ska extraheras självständigt från
+eventuell reinforcement av tidigare kunskap. När entity/attribute/value är
+upplösta används source-grounded `attribute_binding`; runtime äger canonical
+address. En allmän beskrivning av en fil får inte ersätta dess nya färgegenskap.
+Om en reinforcement innehåller `semanticAddress` måste den finnas på och exakt
+matcha samma retrieved item. Saknar posten adress utelämnas fältet; ett filnamn
+är inte en semantic address.
 
 ---
 

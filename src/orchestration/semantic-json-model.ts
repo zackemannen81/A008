@@ -407,6 +407,9 @@ export class ModelBackedPostOutputKnowledgeAnalyzer implements PostOutputKnowled
                 items: input.retrievedContext.items.map((item) => ({
                   ...item,
                   tags: [...item.tags],
+                  ...(item.domains === undefined
+                    ? {}
+                    : { domains: [...item.domains] }),
                   scope: [...item.scope],
                 })),
               },

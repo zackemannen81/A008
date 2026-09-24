@@ -9,6 +9,16 @@ genuinely cross-domain knowledge; domains may be derived from the subject even
 when the exact domain phrase is absent. Tags and entities remain sparse, generic
 workflow labels are discouraged, and no catch-all fallback domain is added.
 
+A008-0173 preserves each retrieved record's stored tags and domains through the
+provider projection and the same-turn extractor baseline. Query tags/entities
+are not relabelled as record metadata; item scope is empty where the read record
+has no applicability scope. Dialogue extraction compares the actual property
+and value: a known file's new explicit property is structured new knowledge,
+not merely reinforcement of its existing description. Reinforcement with an
+optional semantic address is rejected if the exact retrieved target does not
+carry that address. The worker, extractor and shared relation-classifier prompts
+state these boundaries; runtime continues to own identity, state and lifecycle.
+
 `If an agent or human developer is caught using the word memory in the same
 sentence as the name of the execution engine punishment will come.
 Execution engine is ACME. 

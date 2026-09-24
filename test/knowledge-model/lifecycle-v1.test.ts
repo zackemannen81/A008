@@ -45,6 +45,10 @@ import type {
   KnowledgeRelationClassifier,
 } from "../../src/orchestration/relation-gated-memory-commit.js";
 import { parseRuntimeId } from "../../src/identity/runtime-id.js";
+import { projectionItems } from "../../src/memory/knowledge/projection-items.js";
+import { Utf8ByteContextMeasurer } from "../../src/memory/serialization.js";
+import { ModelBackedPostOutputKnowledgeAnalyzer } from "../../src/orchestration/semantic-json-model.js";
+import type { ContextKnowledgeItem } from "../../src/memory/types.js";
 
 const day = (n: number) =>
   new Date(Date.parse("2026-01-01T00:00:00.000Z") + n * 86400000).toISOString();
@@ -65,6 +69,169 @@ const taskId = (n: number) =>
     "task",
   );
 const proposition = "The fixture valve is blue";
+
+test("A008-0173: known file gains a property, reinforces once, changes state and survives SQLite reopen", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "a008-0173-"));
+  const filename = join(directory, "knowledge.sqlite");
+  let handle = createSqliteKnowledgeContext({ filename, projectId });
+  let turn = 1730;
+  const project = () => {
+    const result = readKnowledge(
+      {
+        message: "panel.html",
+        verifiedScope: {
+          verified: true,
+          entities: ["panel.html"],
+          tags: ["query-only-color"],
+        },
+      },
+      handle.context,
+    );
+    return projectionItems({
+      taskId: taskId(turn),
+      payload: result.projected.payload,
+      records: result.projected.diagnostics.records,
+      measurer: new Utf8ByteContextMeasurer(),
+    }).items;
+  };
+  // Deterministic model fixture: proves local boundaries, not model semantics.
+  const stage = async (
+    response: unknown,
+    retrievedContext: readonly ContextKnowledgeItem[] = [],
+  ) => {
+    const staged = await new PostOutputKnowledgeIntake({
+      analyzer: new ModelBackedPostOutputKnowledgeAnalyzer({
+        async generate(request) {
+          const sent = JSON.parse(request.serializedInput);
+          assert.deepEqual(sent.retrievedContext.items, retrievedContext);
+          return response;
+        },
+      }),
+      context: { projectId, conversationId, agentId },
+      budget: {
+        maximum: 16384,
+        measurer: new Utf8ByteKnowledgeIntakeMeasurer(),
+      },
+    }).stage({
+      taskId: taskId(++turn),
+      message: "Synthetic explicit property assertion",
+      answer: "Acknowledged",
+      retrievedContext,
+      applicabilityScopes: ["local"],
+    });
+    assert.deepEqual(staged.skippedProposals, []);
+    return staged;
+  };
+  const buckets = (
+    new_knowledge: unknown[] = [],
+    state_updates: unknown[] = [],
+    reinforcements: unknown[] = [],
+  ) => ({ new_knowledge, state_updates, relation_updates: [], reinforcements });
+  const property = (value: string) => ({
+    proposition: `panel.html caption text is ${value}`,
+    severity: "minor",
+    kind: "state",
+    tags: ["caption"],
+    domains: ["development"],
+    entities: ["panel.html"],
+    aboutInterval: { from: day(turn - 1730), to: null },
+    structuredProposition: {
+      kind: "attribute_binding",
+      entityLabel: "panel.html",
+      attribute: "caption_text_color",
+      value,
+    },
+  });
+  try {
+    const original = await stage(
+      buckets([
+        {
+          proposition: "panel.html is a standalone animation",
+          severity: "minor",
+          kind: "fact",
+          tags: ["animation"],
+          domains: ["development"],
+          entities: ["panel.html"],
+        },
+      ]),
+    );
+    await commit(handle.context, original);
+    const baseline = project();
+    assert.ok(
+      baseline.some(
+        (i) => i.proposition === "panel.html is a standalone animation",
+      ),
+    );
+    assert.ok(baseline.every((i) => !i.tags.includes("query-only-color")));
+    const initial = await stage(buckets([property("amber")]), baseline);
+    await commit(handle.context, initial);
+    let current = project().find((i) => i.kind === "state");
+    assert.equal(current?.currentState, "amber");
+    assert.deepEqual(current?.domains, ["development"]);
+    assert.deepEqual(current?.tags, ["caption"]);
+    assert.ok(current?.semanticAddress && current.evidenceId);
+    const claimCount = handle.context.evidence.listClaims().length;
+    const before = handle.context.lifecycle.get(current.evidenceId)!.lifecycle
+      .strength;
+    const reuse = await stage(
+      buckets(
+        [],
+        [],
+        [{ knowledgeId: current.id, semanticAddress: current.semanticAddress }],
+      ),
+      project(),
+    );
+    const writer = new KnowledgeEngineCommit({
+      context: handle.context,
+      classifier: classifier("new"),
+    });
+    assert.equal(
+      (await writer.commitReinforcements(reuse))[0]?.status,
+      "applied",
+    );
+    assert.equal(
+      (await writer.commitReinforcements(reuse))[0]?.status,
+      "duplicate_or_creation",
+    );
+    assert.equal(handle.context.evidence.listClaims().length, claimCount);
+    assert.ok(
+      handle.context.lifecycle.get(current.evidenceId)!.lifecycle.strength >
+        before,
+    );
+    const changed = await stage(
+      buckets(
+        [],
+        [{ ...property("violet"), semanticAddress: current.semanticAddress }],
+      ),
+      project(),
+    );
+    // Existing slot mutation is owned by the semantic commit, not metadata.
+    await commit(handle.context, changed);
+    handle.close();
+    handle = createSqliteKnowledgeContext({ filename, projectId });
+    current = project().find((i) => i.kind === "state");
+    assert.equal(current?.currentState, "violet");
+    assert.equal(project().filter((i) => i.kind === "state").length, 1);
+    const history = readKnowledge(
+      {
+        message: "panel.html previous caption colors",
+        verifiedScope: { verified: true, entities: ["panel.html"] },
+      },
+      handle.context,
+    );
+    assert.ok(
+      history.projected.payload.history.some((i) => i.value === "amber"),
+    );
+    assert.ok(
+      handle.context.evidence
+        .listClaims()
+        .some((c) => c.label === "panel.html is a standalone animation"),
+    );
+  } finally {
+    handle.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
 function intake(drafts: readonly AnalyzedKnowledgeDraft[]) {
   return new PostOutputKnowledgeIntake({
     analyzer: {
