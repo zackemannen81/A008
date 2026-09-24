@@ -1,6 +1,6 @@
 # ADR 0052 — A008 Memory Engine Semantic State, Retrieval, and Associative Propagation Model
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-09-24
 

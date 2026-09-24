@@ -1,11 +1,11 @@
 # Contributing
 
-A008 uses a docs-first workflow. The active task is always defined in
+ACME uses a docs-first workflow. The active task is always defined in
 `docs/CURRENT_TASK.md`.
 
 ## License
 
-A008 repository source is licensed under Apache License 2.0. Unless a file
+ACME repository source is licensed under Apache License 2.0. Unless a file
 explicitly says otherwise, contributions submitted for inclusion are expected
 to be distributable under the same license. Do not submit code or assets whose
 terms are incompatible, and never commit credentials or personal data.
@@ -33,7 +33,7 @@ Create or update `docs/CURRENT_TASK.md` before implementation. Include:
 - success criteria
 - in-scope and out-of-scope work
 - references
-- ordered checklist (Keep the checklist updated during your work)
+- ordered checklist
 - verification plan
 - documentation targets
 
@@ -50,7 +50,7 @@ The Task Charter is editable in `Draft` and frozen at `Ready`.
   - blocking prerequisite → paused parent plus child task
   - non-blocking new work → backlog proposal
   - invalid original objective → supersede and create a new task
-- Add / Supersede or update ADRs when a durable architectural decision is made.
+- Add or update ADRs when a durable architectural decision is made.
 - Update system/status documentation with the implementation, not later.
 
 ### 3. Verify
@@ -59,6 +59,9 @@ Run the task-specific checks. Future code changes should normally include:
 
 - typecheck
 - unit tests
+- package boundary checks
+- relevant conformance/integration tests
+- deterministic scenario tests
 
 Live model evaluations are separate from deterministic tests.
 
@@ -77,7 +80,7 @@ Add the summary to `docs/JOURNAL.md`.
 ### 5. Finish
 
 - Archive the completed task in `docs/finished/`.
-- Restore  `docs/CURRENT_TASK.md`with `docs/template_CURRENT_TASK.md` or populate for the actual next task.
+- Restore or populate `docs/CURRENT_TASK.md` for the actual next task.
 
 ## Scope Freeze
 
@@ -100,10 +103,21 @@ under `docs/paused/`; non-activated proposals live under `docs/backlog/`.
 
 - Use focused branches and commits.
 - Suggested branch prefixes: `feat/`, `fix/`, `docs/`, `chore/`.
-llm-agents:
-- Suggested branch prefixes: `provider/`
 - Do not mix mechanical cleanup with behavioral changes.
 - A commit message should describe the outcome, not merely the files touched.
+
+## Files Cited by Documentation
+
+- Do not rename, move or delete a file that documentation cites. Citations from
+  `docs/JOURNAL.md`, `docs/finished/`, accepted ADRs and `docs/acceptance/`
+  cannot be repaired afterwards, because those records may not be edited.
+- This binds source files, tests, fixtures and mocks, not only Markdown. An
+  acceptance record naming a test file freezes that test's path.
+- Do not cite disposable material from an immutable record. Give it a stable
+  path first, or describe it instead of linking it. A directory called `temp`
+  stops being temporary the moment an archived task names a file inside it.
+- Express state in content and in the collection index. A filename is an
+  address, not a status field.
 
 ## Architecture Changes
 
@@ -118,10 +132,31 @@ Create an ADR when a decision affects:
 - compatibility or versioning
 - security or privacy
 
-The live integration / provider calls needs real traffic, so it cannot gate every
+## Verification Tiers
+
+ADR-0044 separates verification into three tiers. Each supports a different
+claim, and a claim from one tier may never be reported as a claim from
+another.
+
+| Tier | Commands | Substrate | Provider | Claim it supports |
+| --- | --- | --- | --- | --- |
+| Offline deterministic | `pnpm test` (`test:unit`, `test:conformance`, `test:integration`, `test:scenario`) | in-memory, file, SQLite | mock | the code behaves as specified |
+| Live integration | `pnpm test:postgres`, `pnpm test:supabase-auth` | real PostgreSQL, real object store | real where configured | the composition works against real infrastructure |
+| POC acceptance | `pnpm test:live` | real PostgreSQL, real object store, real case | real | the product performs a real evidence workflow |
+
+The offline tier is fast, free and reproducible. It gates CI and runs
+continuously. It is the only tier that may be assumed green.
+
+The live integration tier needs real infrastructure, so it cannot gate every
 commit. Run it before any acceptance attempt: it is what narrows the window in
 which a live regression reaches acceptance undetected.
-User gpt-5.6-luna or NVIDIA Nemotron for live Calls
+
+Only a POC acceptance run may state that POC #1 works. A green offline suite
+says nothing about transaction boundaries, persistence, reconnects, case
+isolation, migrations, partial failures or real projection state — the
+properties the product exists to provide. ACME-0131 is the standing example:
+the offline suite was green while the worker mutated product state before its
+own guard.
 
 Cost is measured, not capped. `summarizeModelCallUsage` reads recorded calls
 and reports counts, tokens and provider-supplied cost; an acceptance run

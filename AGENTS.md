@@ -55,8 +55,6 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
 
 - Raw legacy material under `docs/_legacy/agenten007/` is local provenance. It
   is ignored by Git and must not be executed or copied wholesale.
-- `C:\code\OpenHands` is an external MIT-licensed Agent Canvas source clone.
-  Its repository instructions govern changes made there; it is not A008 truth.
 - The A008 memory engine lives in `src/memory/` with SQLite persistence and
   local CLI/ACP composition. The owner-supplied Context-First document remains
   architecture input, not an external code baseline. `C:\code\acme` is not an

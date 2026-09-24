@@ -1,10 +1,10 @@
 # ADR 0053 — Multi-Session Worktree Architecture (v1 Parallel Project Sessions)
 
-Status: Proposed
+Status: Accepted
 
 Date: 2026-09-24
 
-Decision owner: mrWhite81 and felixnissen
+Decision owner: mrWhite81
 
 ## Context
 
@@ -67,4 +67,4 @@ Rejected because cloning duplicate copies of large repositories uses excessive d
 
 - A008 core runtime must manage process current working directories (CWD) on a per-session basis.
 - Git operation utilities must handle worktree cleanup failures gracefully (e.g., locked files on Windows environments).
-- Memory extraction (`A008 Knowledge Extractor`) will tag extracted claims with their originating session branch I
+- Memory extraction (`A008 Knowledge Extractor`) will tag extracted claims with their originating session branch.
