@@ -1,94 +1,457 @@
-![A008](https://github.com/zackemannen81/A008/blob/main/A008hero.jpg?raw=true)
-
 # A008
 
-A008 is a provider-neutral AI client and local engine with one shared runtime for
-chat, tools, projects and persistent semantic memory. It currently ships a CLI,
-an A008-owned web GUI/host, an ACP compatibility bridge, a portable engine
-bundle, shared protocol contracts, an independently installable client SDK, and
-an authenticated V2 WebSocket surface plus an opt-in durable-work V3 surface for
-independent/native clients.
+A008 är en provider-oberoende AI-klient med ett gemensamt runtime för projekt, chat, verktyg och lokal semantisk memory. Repositoryt är den aktiva canonical successor till A007.
 
-The repository is the canonical successor to A007. A007 is retired; A008 is the
-current Single Source of Truth.
+Media:
+public/screenshots
 
-## Current state
+## Implementationsstatus
 
-| Area | Implemented state |
+Statusen nedan är inventerad från koden i repositoryt, inte från äldre projektdokument.
+
+| Område | Status | Faktisk implementation |
+| --- | --- | --- |
+| Delat runtime | Implementerat | `ProjectRuntimeRegistry`, `EngineHost`, projektbundna sessioner, workspace/chat-ägarskap och portable engine-bundle. |
+| Projekt | Implementerat | Skapa projekt, registrera befintlig katalog, öppna projekt, projektregister, sparade conversations och workspace-sessioner. |
+| Chat/sessioner | Implementerat | Streamad thought/answer, rollback vid misslyckad turn, session controls, reconnect/resume inom samma process och stabil turn/message-identitet i V2. |
+| Memory-vy | Implementerat | Read-only Overview, Relationship Map/graf och Knowledge Manager med sökning, filter, domän/status och pagination. |
+| CLI | Implementerat | Interaktiv chat, `/help`, `/model`, `/status`, `/history`, `/undo`, `/reset`, `/cwd`, `/tools`, `/shell` och `/exit`. |
+| Web-GUI | Implementerat | A008-ägd React/Vite-GUI med Chat, Memory, Tools, Help, Projects, Settings, Upload, Files, Terminal, Browser och Code Canvas. |
+| Native desktop | Ej implementerat | Ingen Tauri- eller annan native desktop-klient finns i repositoryt. |
+| Expo/native proof | Ej implementerat | Client-API-programmets Stage 6 är inte startad. |
+| SDK | Implementerat | `packages/client` innehåller plattformsoberoende `@a008/client` för V1, V2 och Platform V3-kontrakt. |
+| API | Implementerat | V1 host/ACP-yta, autentiserad V2 HTTP/WebSocket-yta och opt-in V3 durable-work-yta. |
+| SQLite | Implementerat | `better-sqlite3` används för lokal semantisk memory och, när aktiverad, Platform V3:s conversations/runs/leases/receipts/outbox. |
+| SQLite optional | Implementerat | Memory använder konfigurerad SQLite eller in-memory-läge; Platform V3 öppnas endast med explicit lokal konfiguration. |
+
+## Workflow och ytor
+
+### Projekt
+
+Projekt är host-ägda och kan skapas med valfri Git-initiering, Docs-First starter och multi-agent-policy. En befintlig absolut katalog kan registreras utan att dess filer ändras. Projektet kan ha flera sparade chatkonversationer och separata workspace-sessioner.
+
+### Chat
+
+CLI, GUI, ACP och V2 använder samma runtime- och providerkomposition. Den fristående GUI:n använder kompatibla V1-sessioner för aktuell funktionalitet; oberoende klienter använder V2-adaptern.
+
+### Memory
+
+Memory-vyn är diagnostik och läsning. Den exponerar Overview, Relationship Map som lagrade noder/associationer och Knowledge Manager med sökning, filter, status, domän och detaljinspektion. Vyn är read-only; den är inte ett visuellt redigeringsverktyg för knowledge.
+
+## Agent-funktioner och capabilities
+
+| Capability | Status | Detalj |
+| --- | --- | --- |
+| Provider/model-oberoende runtime | Implementerat | `ChatTransport`, model registry och providerdispatch separerar klienten från modellutförandet. |
+| Textchat | Implementerat | NVIDIA Build, kie.ai och OpenAI har direkta transportvägar; embedded ACME är standardkompositionen. |
+| Thought/content-separation | Implementerat | Reasoning/thought streamas separat och privata reasoning-data skrivs inte till committed memory. |
+| Tool calling | Implementerat | Strukturerade tool calls, explicit permission/approval, budgeter och receipts. |
+| Repository/file tools | Implementerat | Läs, skapa och redigera filer samt literal Git-operationer via godkända verktyg. |
+| Shell/terminal | Implementerat | Host-ägd terminal med timeout, output-budget och truncation. |
+| MCP | Implementerat | Konfigurerbara stdio MCP-servrar, tool-integration och health probing. |
+| File upload | Implementerat | `POST /v1/upload`, content-addressed blob store, size cap, media sniffing samt text/Markdown/PDF-textlager/DOCX-extraktion. |
+| Bildgenerering | Delvis implementerat | NVIDIA NIM och kie Market jobs; resultat sparas som ordnade bilditems i chatten. |
+| Multimodal input | Delvis implementerat | Native image attachment stöds i modeller/transportvägar som deklarerar image-input. Det är inte en generell multimodal garanti för alla modeller. |
+| Vision-kapabel | Delvis implementerat | Registry innehåller image-kompatibla modeller och native image-input; capabilityn beror på valt modell/provider. |
+| Video/audio/music | Ej implementerat som generell runtime-capability | Unwired native-provider-endpoints körs inte som om de vore stödda. |
+| Browser | Implementerat som GUI-yta | Sandboxed renderer/browser frame-check finns; det ger inte automatiskt modellen fria browser tools. |
+| Code Canvas | Implementerat | HTML-artifacts renderas i sandboxad, network-denying preview. |
+
+## Klienter
+
+### Web-GUI
+
+Startas med `npm run gui`. Default host är `http://127.0.0.1:8787`. GUI:n har Chat, Memory, Projects, Tools, Settings, Help, Upload, provider/model-parameterar, themes, workspaces, terminal, files, browser, imagevisning och Code Canvas.
+
+### CLI
+
+```powershell
+npm run build
+node .\dist\src\cli.js models
+npm run cli -- chat
+```
+
+CLI:n använder samma projekt- och memory-aware runtime som ACP.
+
+### ACP / Agent Canvas
+
+`A008-acp` är en fungerande ACP-kompatibilitetsväg för Agent Canvas/Agent Server. Den är en operator-/integrationsyta och inte den primära produkt-GUI:n.
+
+### Native/desktop/Tauri
+
+Det finns ingen Tauri-app, native desktop-app eller Expo-klient i detta repository. Däremot finns ett plattformsoberoende SDK och V2-protokoll avsett för framtida native/independent clients.
+
+## API och protokoll
+
+V1 hosten har WebSocket-sessioner på `/v1/session` samt routes för memory inspection, upload, projekt/workspace, provider/model, image generation, MCP, shell och browser.
+
+V2 innehåller `GET /v2/info`, scoped device grants/revoke, one-use short-lived auth tickets och `WS /v2/session` med `a008.v2`. Actions är `session/new`, `session/inspect`, `session/prompt`, `session/cancel`, `session/control` och `tool/permission`. Eventsekvensering, terminal outcomes, bounded command receipts/idempotency, same-process reconnect/resume och explicit restart uncertainty finns. Detta är processlokala garantier, inte durable exactly-once execution eller durable sessioner efter processrestart.
+
+Platform V3 är en opt-in lokal durable-work backend med SQLite för conversations, runs, leases, receipts, outbox events, cancellation och recovery boundaries. SDK-kontraktet finns, men V3 öppnas inte utan explicit platform-konfiguration. Public reconciliation är inte implementerad.
+
+## Providers och modeller
+
+Runtime har embedded `acme-engine` som default execution substrate, direkta transportvägar för NVIDIA Build, kie.ai och OpenAI samt en explicit ACME sidecar-route. Bildgenerering går via NVIDIA NIM eller kie Market. Provider credentials kommer från environment eller hostens lokala secret store och skickas inte till renderer-klienten.
+
+### Zero Cost Radar
+
+Zero Cost Radar är implementerat som GUI-/host-katalog med bundlad validerad snapshot, explicit live update och import endast när A008 redan har en ärlig execution path för route-provider. Unsupported routes kan visas discovery-only; katalogen garanterar inte att varje route är gratis eller körbar.
+
+## Semantic memory
+
+A008 äger semantisk memory; modellexekvering är separat. Memory är project-namespaced och använder SQLite när persistent store är konfigurerad. Live-implementationen finns främst i `src/memory/` och `src/orchestration/`. Den äldre `SemanticMemory`/`KnowledgeItem`-modellen finns kvar som ett v0-kompatibilitetslager, men lokal CLI/ACP använder live knowledge-modellen.
+
+### A008 memory (BASE)
+
+A008: Pre-Provider Call Memory Retrieval
+Mental Modell: Tänk dig Git med enbart en gren (main).
+
+Nuvarande tillstånd = EXAKT NU
+
+Historik = Tidigare tillstånd
+
+A008 Retrieval = Din intelligenta bibliotekarie
+
+🎭 Scentag: Besöket i Biblioteket
+1. Förfrågan från Användaren
+Användare: "Jag har en WORKER som ska jobba med loadfile.c för att ändra en C-funktion så att den enbart listar .md-filer och inte allt (*). Det vore också hjälpsamt att veta om någon annan har frågat om detta tidigare."
+
+2. A008 Retrieval (Den Intelligenta Bibliotekarien)
+A008: "Jaha, okej! Jag sammanställer en brief-mapp till dig... Låt mig se vad jag vet om filläsning. Jag hämtar relevant kunskap som fortfarande finns i biblioteket, sorterad efter relevans och prioritet:"
+
+📁 Innehåll i Kontext-Kuvertet (Briefing Folder):
+Exakta Taggar (Senaste nytt):
+Taggar: Files, fileformat, programming, coding, C files, I/O, Disk Operations
+
+Domänkontext:
+Allt inom domänen: Development
+
+Närliggande Kunskap:
+Relaterad information via luddig logik (fuzzy logic) eller existerande kopplingar.
+
+Aktuell Samtalskontext:
+Eftersom vårt förra samtal handlade om Unreal Engine hämtade jag även allt inom Game Engines och Game Development.
+
+Glömd/Passiv Kunskap (Dormant Knowledge Hit):
+"Jag ringde det gamla biblioteket och hittade den här dammiga, glömda informationen: loadfile.c - reading and Writing files in C. Ingen har läst den på flera år, men eftersom den matchade din förfrågan exakt skickar jag med den."
+
+Historik & Tidigare Versioner:
+
+"Du är inte den första som frågar om detta! Tillsammans med den senaste uppdaterade versionen skickar jag med alla tidigare ersatta versioner av loadfile.c som vi har sparade."
+
+3. Överlämning till Worker
+Användare: "Hallå min lojala WORKER, jag har en CURRENT_TASK till dig:
+Hjälp mig med denna utvecklingsuppgift: Ändra i loadfile.c så att den enbart listar .md-filer istället för *.
+Läs igenom denna brief-mapp med all den senaste informationen innan du sätter igång."
+
+4. Exekvering & Resultat
+Worker: "WOW, det här är allt jag behöver och ingenting överflödigt! Jag är färdig! Tjena Användaren, jag har löst uppgiften:
+loadfile.c läste tidigare in alla filändelser. Det är nu fixat.
+Jag behövde inkludera <stdlib.h> för att det skulle fungera.
+Nu listar loadfile.c enbart .md-filer och läser därefter in dem."*
+
+5. Tillbakakoppling via Extraktorn
+Extraktorn: *Knack knack*
+
+"Det är bara jag, Extraktorn! Jag tar en kopia av ditt resultat, analyserar det och skickar tillbaka det till A008-bibliotekarien för klassificering och kategorisering. Jag behöver veta om detta ändrar något eller om ny information har lagts till."
+
+6. Arkivering & Uppdatering
+A008 (Bibliotekarien): "Äntligen! Nu har jag klassificerat och taggat den nya kunskapen. Vem kunde tro att den där gamla informationen om loadfile.c faktiskt skulle komma till användning igen? Jag ser till att den får stanna kvar i det aktiva biblioteket eftersom ämnet verkar bli populärt igen."
+
+1. -> Not your standard Retrieval-Augmented Generation (RAG) & Kontext-berikning
+Innan utvecklaren ("Worker") får sin uppgift, går bibliotekarien (A008) igenom minnet och samlar ihop ett paket ("context envelope") med allt som kan vara relevant:
+Exakta taggar & domäner: Relevant kunskap om C-programmering och I/O.
+Samtalskontext: Vad ni pratade om nyligen (Unreal Engine).
+Dormant Knowledge (Passiv kunskap): Gammal information som inte använts på länge, men som "väcks till liv" för att den matchar exakt.
+Historik: Tidigare versioner av koden.
+
+2. Git-analogin för minneshantering
+Genom att se minnet som en Git-gren med enbart main:
+Exakt nu (Current state): Den senaste kända versionen av världen/koden.
+Historik: Tidigare tillstånd som fortfarande finns spårade om man behöver backa eller jämföra.
+
+3. Feedback Loop & Minnesuppdatering (Extractorn)
+När Worker är klar med uppgiften slutar det inte där:
+
+En Extractor analyserar svaret (t.ex. att <stdlib.h> behövdes läggas till).
+Denna nya information skickas tillbaka till A008 (Bibliotekarien).
+Bibliotekarien taggar och sparar den nya kunskapen, och gör den gamla koden/kunskapen "aktiv" igen eftersom den återigen blivit relevant.
+
+### Flödesdiagram
+
+```mermaid
+flowchart LR
+
+    %% =========================================================
+    %% INPUT / EXECUTION LOOP
+    %% =========================================================
+
+    Input["User input / observation"]
+
+    Input --> Retrieval
+    Retrieval --> Context["Budgeted context projection<br/>required knowledge first"]
+    Context --> Model["Model execution"]
+    Model --> Output["Final answer"]
+
+    %% =========================================================
+    %% SEMANTIC MEMORY
+    %% =========================================================
+
+    subgraph Memory["A008 Semantic Memory"]
+        direction TB
+
+        Claims["Claims & evidence ledger"]
+        Provenance["Provenance / support"]
+        State["Current state / HEAD<br/>+ immutable history"]
+        Associations["Associations<br/>signed attraction"]
+        Lifecycle["Lifecycle / salience<br/>strength · decay · severity<br/>active · dormant · pinned"]
+
+        Claims --> Provenance
+        Claims --> State
+    end
+
+    %% =========================================================
+    %% RETRIEVAL
+    %% =========================================================
+
+    subgraph Retrieval["Retrieval Pipeline"]
+        direction TB
+
+        Query["Query / task context"]
+        Intent{"Intent"}
+
+        Direct["Direct lookup<br/>entity · slot · semantic address"]
+        HistoryLookup["History / attribution lookup<br/>state history + provenance"]
+        Broad["Broad / associative lookup<br/>lexical · tags · domains · entities<br/>+ association expansion"]
+
+        Filter["Lifecycle + relevance filter"]
+        Compose["Compose candidates"]
+        Required["Required knowledge first"]
+        Budget{"Fits context budget?"}
+        Trim["Drop lower-priority<br/>optional candidate"]
+        ProjectionError["Explicit projection error<br/>required item cannot fit"]
+        Project["Provider-safe projection"]
+
+        Query --> Intent
+
+        Intent -->|"Current state"| Direct
+        Intent -->|"History / why / attribution"| HistoryLookup
+        Intent -->|"Broad / associative"| Broad
+
+        Direct --> Compose
+        HistoryLookup --> Compose
+        Broad --> Filter
+        Filter --> Compose
+
+        Compose --> Required
+        Required --> Budget
+
+        Budget -->|"Yes"| Project
+        Budget -->|"No · optional"| Trim
+        Trim --> Compose
+        Budget -->|"No · required"| ProjectionError
+    end
+
+    Input --> Query
+
+    State --> Direct
+    State --> HistoryLookup
+    Provenance --> HistoryLookup
+
+    Lifecycle --> Filter
+    Associations --> Broad
+    Claims --> Broad
+
+    Project --> Context
+
+    %% =========================================================
+    %% POST-OUTPUT KNOWLEDGE EXTRACTION
+    %% =========================================================
+
+    subgraph Intake["Post-output Knowledge Intake"]
+        direction TB
+
+        Extraction["Post-output extraction<br/>new knowledge · state updates<br/>relation updates · reinforcements"]
+
+        Classification["Relation classification<br/>new · restatement · extend<br/>supersede · conflict"]
+
+        Validation["Runtime-owned validation<br/>canonical IDs · revision guards<br/>scope · provenance · idempotency"]
+
+        Commit["Atomic commit"]
+    end
+
+    Input --> Extraction
+    Output --> Extraction
+    Context --> Extraction
+
+    Extraction --> Classification
+    Classification --> Validation
+    Validation --> Commit
+
+    %% =========================================================
+    %% CURRENT STATE RESOLUTION
+    %% =========================================================
+
+    subgraph Resolution["Current State Resolution"]
+        direction TB
+
+        Resolved["Resolved claim"]
+        Address["Semantic address"]
+        HasHead{"Existing current binding?"}
+
+        First["Create first<br/>current binding"]
+        Relation{"Relation to HEAD"}
+
+        Restatement["Keep HEAD<br/>optional reinforcement"]
+        Extend["Add compatible knowledge<br/>HEAD remains valid"]
+        Supersede["Close previous binding"]
+        Conflict["Preserve competing evidence<br/>do not silently replace HEAD"]
+
+        NewHead["Create new open binding"]
+        History["Previous binding retained<br/>as immutable history"]
+
+        Current["Current state / HEAD"]
+
+        Resolved --> Address
+        Address --> HasHead
+
+        HasHead -->|"No"| First
+        First --> Current
+
+        HasHead -->|"Yes"| Relation
+
+        Relation -->|"restatement"| Restatement
+        Relation -->|"extend"| Extend
+        Relation -->|"supersede / new value"| Supersede
+        Relation -->|"conflict"| Conflict
+
+        Restatement --> Current
+        Extend --> Current
+        Conflict --> Current
+
+        Supersede --> NewHead
+        Supersede --> History
+        NewHead --> Current
+        History --> Current
+    end
+
+    Commit --> Claims
+    Commit --> Resolved
+
+    Current --> State
+    History --> State
+
+    %% =========================================================
+    %% MEMORY LIFECYCLE / SALIENCE
+    %% =========================================================
+
+    subgraph Salience["Memory Lifecycle / Salience"]
+        direction TB
+
+        Active["Active"]
+        Dormant["Dormant"]
+
+        Active -->|"decay below threshold"| Dormant
+        Dormant -->|"material reuse / reinforcement"| Active
+        Active -->|"reinforcement"| Active
+        Dormant -->|"no relevant reuse"| Dormant
+
+        SalienceNote["Salience affects retrieval priority only.<br/>It does NOT determine truth,<br/>authority or current state."]
+
+        DormantNote["Dormant knowledge remains reachable<br/>through exact state/entity/slot matches."]
+
+        Active -.-> SalienceNote
+        Dormant -.-> DormantNote
+    end
+
+    Commit -->|"new evidence / reinforcement"| Active
+    Active --> Lifecycle
+    Dormant --> Lifecycle
+```
+
+```text
+input -> retrieval -> budgeted context -> model execution
+      -> post-output extraction -> relation classification
+      -> runtime-owned commit -> current state/history
+```
+
+### Knowledge, state och provenance
+
+- Claims/evidence, provenance och current state är separata lager. En resolved semantic address har en current binding; tidigare bindings behålls som historik.
+- Current state hämtas normalt. Historik, attribution och evidence hämtas när uppgiften uttryckligen kräver det eller när relevant konflikt behöver visas.
+- Truth-bearing attribute- och relationship-bindings är skilda från associationskanter, som enbart hjälper retrieval.
+- Runtime/store äger canonical IDs, revisionsguards, state reconciliation och atomiska commits. Modellen får föreslå men kan inte själv etablera canonical state eller identitet.
+
+### Retrieval och context
+
+Live-retrieval följer `DEFINE -> RETRIEVE -> EXPAND -> FILTER -> COMPOSE -> PROJECT`. Den använder direkta slot/entity-träffar, lexical matchning, tags, domains och högst ett associationshopp. Exakta current-state-träffar kan hitta dormant knowledge och blockeras inte av lifecycle.
+
+Projection byggs mot en explicit budget på exakt serialiserad payload, normalt mätt som UTF-8-byte. Required knowledge tas med först och ett obligatoriskt item som inte ryms ger ett explicit fel. Provider-kontext innehåller bara stabil knowledge-identitet, proposition, typ, tags, scope och authority — inte scores, lifecyclevärden, provenance eller audit. Provider-visible samtalshistorik begränsas separat.
+
+### Extraktion, klassificering och commit
+
+Efter en lyckad turn analyserar en strikt JSON-extraktor den exakta retrieved baseline som modellen såg, originalmeddelandet och slutsvaret. Den kan föreslå `new_knowledge`, `state_updates`, `relation_updates` och `reinforcements`. Reasoning/thought committas inte till dialogue eller memory.
+
+`state_update` valideras fail-closed: den måste referera till samma current-state-item och semantic address som fanns i turnens baseline. Relationsklassificeraren kan klassificera `new`, `restatement`, `extend`, `supersede` eller `conflict`, men runtime validerar resultatet och äger den faktiska reconciliationen och commiten.
+
+### Lifecycle: strength, decay och severity
+
+Lifecycle beskriver retrieval-salience, aldrig sanningsgrad eller authority. Evidence carriers har `strength`, exponential decay, threshold, `active`/`dormant`, `pinned` och severity. Standardpolicyerna är:
+
+| Severity | Initial strength | Halveringstid |
+| --- | ---: | ---: |
+| `critical` | 1.0 | 365 dagar |
+| `important` | 0.8 | 90 dagar |
+| `minor` | 0.4 | 14 dagar |
+| association | 0.4 | 45 dagar |
+
+Severity påverkar initial lifecycle-policy, inte truth eller vilken binding som är current. Reinforcement sker först efter en genomförd turn när knowledge faktiskt återanvänts eller återbekräftats, och högst en gång per `occurrenceId × evidenceId`. Retrieval i sig är read-only och förstärker inte kandidater. Det äldre v0-lagret använder i stället `relevanceScore`, `activationThreshold`, `keepAlive` och `activationStatus`; de fälten beskriver inte live-modellens generella lifecycle.
+
+### Relationer och associations
+
+Associations har egen lifecycle och signerad `attraction` (`-1..1`). Positiv attraction kan öka associativ relevans, negativ attraction kräver en explicit negativ signal och decay går mot neutralitet (`0`). Associations kan inte ändra current state eller blockera exakt/direct lookup.
+
+Centrala live-typer omfattar `Artifact`, `Entity`, `SlotDefinition`, `AttributeSlotRef`, `RelationSlotRef`, `Utterance`, `Claim`, `ProvenanceRecord`, `SlotClaim`, `Binding`, `StateTransition`, `CorrectionRecord`, `MemoryLifecycle` och association lifecycle. SQLite-schema version 5 lagrar bland annat artifacts, entities, slots, bindings, claims, provenance, lifecycle, receipts, labels, relationer, associations och FTS.
+
+`docs/CURRENT_MEMORY_MODEL.md` beskriver den normativa målmodellen. Aktuellt implementerat beteende dokumenteras i `docs/SYSTEMDOC.md` och verifieras av koden.
+
+## GUI-funktioner
+
+| Yta | Status |
 | --- | --- |
-| Shared engine | Project-bound `ProjectRuntimeRegistry` / `EngineHost`, shared sessions, process ownership fencing, portable engine packaging, and trusted internal conversation seeding |
-| Web client | A008-owned Vite/React GUI using the compatible V1 host surface, the independent `@a008/client` SDK, saved project chats, and the bundled Platform page |
-| Native/external API | V2 discovery, scoped device auth, one-use tickets, authenticated `WS /v2/session`, stable turn/message identity, event ordering, command receipts, reconnect/resume, and explicit restart uncertainty |
-| Durable platform | Opt-in local V3 host backend with SQLite conversations, runs, leases, receipts, outbox events, cancellation/recovery boundaries, admin CLI, and GUI surface; public reconciliation is not implemented |
-| Semantic memory | Project-namespaced SQLite, semantic scope retrieval, additive projection, post-output extraction/reconciliation, L2/L3 lifecycle, and current-state librarian/domain-classification rules |
-| Providers | NVIDIA Build, kie.ai, OpenAI chat dispatch; validated compatible Radar routes; NVIDIA/kie image generation; embedded ACME is the default execution substrate |
-| Discovery | Zero Cost Radar starts from 26 bundled validated routes, supports explicit live update, and imports routes only when A008 has a truthful execution path |
-| Projects | Create new projects or register/open an existing root without mutating its files; multiple saved chats are retained per project |
-| Tools | Approved repository/file/Git/shell tools plus configurable stdio MCP tools and health probing |
-| Compatibility | Stable V1 web/ACP paths remain covered while V2 and opt-in V3 are available to independent clients |
+| Chat, thought/answer, image transcript | Implementerat |
+| Projects, sidebar, saved chats, workspaces | Implementerat |
+| Memory overview, graph, manager, inspector | Implementerat, read-only |
+| Context/runtime budgets och instruktioner | Implementerat i runtime preferences/settings |
+| Provider/model settings | Implementerat; secrets exponeras inte i renderer |
+| Themes | Implementerat: neutral, deep-space och oldscool |
+| Commands/shortcuts | Implementerat i CLI och GUI surfaces |
+| Tools/terminal/files/browser/MCP | Implementerat med approval/boundaries |
+| Upload/source intake | Implementerat |
+| Memory editing och full graph editing | Ej implementerat |
 
-The stable-client API programme has completed Stages 1–5. Stable application turn/message identity, event ordering, snapshot boundaries, terminal outcomes, bounded command receipts/idempotency, same-process reconnect/resume and explicit restart uncertainty are verified. Independent `@a008/client` plus bundled-web consumption of that SDK are verified. Stage 6 — independent Expo proof — is the next programme gate.
-See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_stable-client-api-program.md).
+## Databas och lagring
 
-A008-0171 and A008-0172 are complete in the current implementation history.
-Normal chat extraction now uses the same-turn retrieved baseline and fail-closed
-state addresses, while durable classifiable artifacts receive minimal broad
-domains and keep tags/entities sparse. Existing unlabeled records are not
-retroactively reclassified.
+- SQLite via `better-sqlite3` för lokal memory.
+- Separat lokal workspace-store för GUI workspace-sessioner.
+- Content-addressed source/image blob store utanför repositoryt.
+- Lokal user catalog för modeller, provider/image settings och MCP-konfiguration.
+- Provider secrets i environment eller reviewed local secret store.
+- In-memory-läge där projektet inte ska använda global persistent memory.
 
+## Docs-First Continuity Protocol
 
-- Transactional chat sessions with streamed thought/content separation, rollback
-  on failed turns and model-aware generation controls.
-- Committed conversation content supports ordered generated-image items: manual
-  and structured model-tool generation reserve one placeholder and resolve it
-  in place without reordering surrounding text.
-- The standalone workspace persists one current canonical conversation per
-  project in the existing SQLite owner. Reopening a project or restarting the
-  host reconstructs committed text/images under a new ephemeral session; generic
-  ACP/V2 sessions remain independent and stale paid image jobs are never replayed.
-- One runtime/provider/memory ownership model shared by CLI, ACP, standalone GUI,
-  portable engine and V2 session transport.
-- Eight built-in chat profiles plus a user catalog. Chat model selection is
-  session-scoped; the separate global semantic-model choice owns retrieval and
-  knowledge processing rather than inferring it from configured credentials.
-  Live dispatch selects NVIDIA Build, kie.ai or OpenAI from the selected
-  model/provider configuration.
-- Persistent semantic memory with exact/entity/lexical/tag/domain retrieval,
-  accumulated semantic discussion scope, bounded provider context, current/history
-  separation and durable provenance.
-- Post-output knowledge intake from the original user/source content and final
-  answer only. Model proposals are validated, relation-classified and reconciled
-  through runtime-owned canonical state; reasoning never becomes memory.
-- Independent evidence and association lifecycle with reinforcement, dormant
-  state, decay policy, receipts and audit in knowledge schema 4.
-- Read-only memory diagnostics: overview, relationship map and knowledge manager.
-- Parameters exposes Zero Cost Radar plus current V2/Stage-4 runtime discovery. Radar opens from the bundled validated snapshot, offers an explicit live Update check against the published ZeroCostRadar A008 feed, and can add a discovered route only when the current A008 runtime already supports its execution provider. Unsupported provider rows stay discovery-only instead of pretending to be runnable. The bundled GUI consumes `@a008/client`; chat still uses the V1 session adapter so PIN-disabled/engine/attachment/image behavior is preserved, while independent clients use the V2 adapter.
-- Structured model tools with explicit approval: repository read/create/edit,
-  literal Git operations, shell execution and stdio MCP.
-- Source intake with content-addressed storage and extraction for UTF-8 text,
-  Markdown, PDF text layers and Word documents.
-- Sandboxed renderer-local Code Canvas for completed HTML artifacts.
-- Standalone PIN gate, same-origin enforcement, secret redaction and write-only
-  provider-key settings.
-- Short-loss V1 web-session recovery with heartbeat and a 45-second in-memory
-  resume capability. This is a V1 GUI behavior, not the V2 Stage-4 contract.
+Repositoryt följer Docs-First Continuity Protocol för task records, current status, handoffs, finished archives och authority order. Project bootstrap kan skapa Docs-First starterfiler och multi-agent policy.
 
-For the detailed observed state, use
-[`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md) and
-[`docs/SYSTEMDOC.md`](docs/SYSTEMDOC.md).
+Docs-First Multi-Agent Orchestrator Add-on används som inspekterad policy-/template-input för bootstrap. Det är inte en runtime-MCP dependency och ingen separat orchestrator-tjänst körs av produkt-runtime.
 
-## Requirements
+## Third party och licens
 
-- Node.js `>=24.0.0 <25`
-- npm
-- At least one provider credential for live chat: `NVIDIA_API_KEY`, `KIE_API_KEY`
-  or `OPENAI_API_KEY`
+A008-owned material är Apache-2.0. Viktiga runtime-dependencies är `acme-engine`, `@agentclientprotocol/sdk`, `@modelcontextprotocol/sdk`, `better-sqlite3`, `pdfjs-dist`, `zod` och `highlight.js`. Fullständig inventering finns i [`docs/THIRD_PARTY.md`](docs/THIRD_PARTY.md); dependencies behåller sina egna villkor.
 
-Model listing, help, contract verification and most automated tests do not need a
-provider credential. Automated tests do not load `.env.local` or make live
-provider calls.
+## Installera och verifiera
 
-## Install and verify
+Krav: Node.js `>=24.0.0 <25` och npm.
 
 ```powershell
 npm ci
@@ -99,330 +462,22 @@ npm run verify:protocol
 npm --prefix gui run build
 ```
 
-The latest documented full-suite verification passed **707 core + 4 membership +
-187 GUI = 898 tests** with zero failures/skips. Root and GUI typechecks, GUI
-production build, `verify:protocol` and `git diff --check` also passed. No live
-or paid provider call was made.
+Provider credentials behövs endast för live provider execution. Tester och typecheck ska inte göra live provider calls.
 
-Useful additional checks:
-
-```powershell
-npm run benchmark:memory-loop
-npm run package:engine
-```
-
-## CLI quick start
-
-List available models without loading a credential:
-
-```powershell
-npm run build
-node .\dist\src\cli.js models
-```
-
-For local chat, copy `.env.example` to `.env.local`, configure one supported
-provider key, then run:
-
-```powershell
-npm run cli -- chat
-```
-
-Interactive commands include `/help`, `/model`, `/status`, `/history`, `/undo`,
-`/reset`, `/cwd`, `/tools`, `/shell` (or `/!`) and `/exit`.
-
-The CLI uses the same project-scoped memory-aware runtime as ACP. Provider
-reasoning is display-only; committed chat and semantic intake receive the final
-answer, not private reasoning.
-
-See [`docs/LOCAL_MEMORY_SURFACES.md`](docs/LOCAL_MEMORY_SURFACES.md),
-[`docs/RUNTIME_SETTINGS.md`](docs/RUNTIME_SETTINGS.md) and
-[`docs/DEBUG_TRACE.md`](docs/DEBUG_TRACE.md).
-
-## Standalone A008 GUI
-
-```powershell
-npm run gui
-```
-That builds `gui/` and starts the A008 GUI host. By default the single-origin
-application is served at `http://127.0.0.1:8787`.
-
-For hot-reload renderer development, run host and Vite separately:
-
-```powershell
-npm run gui-host
-npm --prefix gui run dev
-```
-
-The bundled web GUI intentionally remains on the compatible V1 surface while the
-new independent-client API is developed. It includes Chat, Memory, Tools, Help,
-Projects, provider/model parameters, appearance themes, source upload, repository
-work and Code Canvas.
-
-Standalone mode can use `A008_GUI_PIN` with exactly six digits. Provider keys stay
-in the host process and are never returned to the renderer. Shell and upload
-requests use the same authenticated host boundary.
-
-See [`docs/HOST_PROTOCOL.md`](docs/HOST_PROTOCOL.md) for V1 behavior and
-[`docs/GUI_REPOSITORY_TOOLS.md`](docs/GUI_REPOSITORY_TOOLS.md) for repository
-work from the GUI.
-
-## Projects
-
-Projects supports two distinct creation paths:
-
-- **New project** — preview and create a root, optional Git, Docs-First starter
-  and multi-agent policy.
-- **Add existing** — register an already-existing absolute directory and open it
-  through the shared runtime owner without modifying files inside that project.
-
-Existing-project registration generates the A008 project identity and writes only
-the external project registry. It does not guess, merge or migrate legacy memory.
-
-## V2 API for native and independent clients
-
-Stage 3 provides a usable authenticated session transport for clients such as
-Tauri or Expo.
-
-Discovery is public:
+## Repository map
 
 ```text
-GET /v2/info
+src/                 runtime, providers, memory, ACP, GUI host, tools
+gui/                 A008-owned React/Vite GUI
+packages/protocol/   shared schemas and protocol contracts
+packages/client/     independent HTTP/WebSocket SDK
+scripts/              build, package and verification scripts
+test/                core, integration and contract tests
+docs/                current authority docs and task records
 ```
 
-Owner-local device credentials are created after a build:
+Läs [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md), [`docs/SYSTEMDOC.md`](docs/SYSTEMDOC.md), [`docs/CURRENT_MEMORY_MODEL.md`](docs/CURRENT_MEMORY_MODEL.md) och [`docs/THIRD_PARTY.md`](docs/THIRD_PARTY.md) för fördjupning.
 
-```powershell
-npm run build
-npm run device -- grant --name MyClient --project PROJECT_ID --capability session
-npm run device -- list
-npm run device -- revoke DEVICE_ID
-```
+## Licens
 
-The raw device credential is printed once. Only its SHA-256 hash and bounded
-metadata are stored in A008. Keep the raw credential in the platform secure
-store; never place it in a URL, repository or provider prompt.
-
-A device obtains a short-lived one-use ticket with authenticated
-`POST /v2/auth/ticket`, then opens:
-
-```text
-WS /v2/session
-Sec-WebSocket-Protocol: a008.v2
-```
-
-The first frame must authenticate within five seconds:
-```json
-{ "type": "authenticate", "ticket": "..." }
-```
-
-Implemented Stage-3 actions are:
-
-```text
-session/new
-session/inspect
-session/prompt
-session/cancel
-session/control
-tool/permission
-```
-
-Each connection is bound to one authenticated principal/project and at most one
-attached session. Device existence, project scope, capability and expiry are
-rechecked on every operation. Revocation or expiry closes the live socket,
-cancels owned work and denies pending tool approvals.
-
-Current limits include 4 KiB pre-auth frames, 1 MiB authenticated input, 8 MiB
-output and 64 KiB prompt text. The shared wire schemas live in
-`packages/protocol/src/v2-auth.ts` and `packages/protocol/src/v2-session.ts`.
-
-See [`docs/CLIENT_AUTH.md`](docs/CLIENT_AUTH.md) for the implemented contract and
-[`docs/CLIENT_API_V2.md`](docs/CLIENT_API_V2.md) for the accepted complete V2
-target.
-
-### Important Stage-4 boundary
-
-V2 now has stable application turn/message identity, per-session event sequencing, authoritative snapshot capture/drain ordering and explicit terminal turn outcomes from A008-0132, process-local bounded command receipts/idempotency from A008-0138, a same-process 45-second reconnect/resume lease from A008-0139, and explicit restart uncertainty from A008-0140. Process restart changes `serverInstanceId`, invalidates process-local receipt/resume state and surfaces lost work as unknown rather than replaying or inventing a result. These are bounded process-local guarantees, not durable exactly-once execution or durable sessions.
-
-## Providers and models
-
-A008 dispatches chat through the shared `ChatTransport` boundary. The default
-composition is `EmbeddedAcmeChatTransport` over `acme-engine@0.1.5`, with A008
-supplying model/provider configuration and ACME owning model execution. Explicit
-`A008_CHAT_TRANSPORT=direct` keeps the provider-native reference/debug paths:
-
-- NVIDIA Build through `NvidiaChatTransport`
-- kie.ai through `KieChatTransport`
-- OpenAI through `OpenAiChatTransport`
-
-`A008_CHAT_TRANSPORT=acme` keeps the remote `acme-model-runtime/2` sidecar as an
-explicit compatibility/deployment route; it is not the default.
-
-The built-in registry currently contains eight verified profiles. User-added chat
-models and provider/image settings live in the A008 user catalog rather than in
-project source. Explicit model identity owns routing, so a saved provider
-preference cannot silently hijack a selected model from another provider.
-
-Provider keys may be supplied by environment or the reviewed local secret store.
-The GUI receives only configured/source metadata, never key values.
-
-Image generation is available through NVIDIA NIMs or kie Market jobs. Listed
-video/music/native-provider endpoints that are marked unwired remain unsupported.
-
-## Semantic memory
-
-The live local runtime uses project-namespaced SQLite knowledge storage. A turn
-can retrieve through exact/entity, lexical, stored tag/domain and classified
-semantic-scope signals, then project matching state/history/events/utterances/
-claims/artifacts/provenance additively under a hard context budget.
-
-After a delivered answer, A008 can analyze durable claims, compare each proposal
-to bounded current candidates, apply one of `new`, `restatement`, `extend`,
-`supersede` or `conflict`, update indexes and persist canonical knowledge.
-User/source attribution and exact support spans gate reinforcement and acceptance.
-
-Evidence and semantic associations have independent lifecycle metadata,
-reinforcement receipts, decay policy and audit. Reads and inspection do not
-strengthen memory merely by observing it.
-See [`docs/KNOWLEDGE_MEMORY_MODEL.md`](docs/KNOWLEDGE_MEMORY_MODEL.md) for the
-accepted knowledge model and [`docs/SEMANTIC_MEMORY.md`](docs/SEMANTIC_MEMORY.md)
-for the lower-level memory contract.
-
-## Portable engine
-
-A008 can be packaged with its own Node runtime and production dependencies:
-
-```powershell
-npm run package:engine
-```
-
-The extracted engine carries the compiled core, host, GUI, ACP surface and shared
-protocol contract. Runtime data remains outside the installation. The package is
-verified from an extracted copy rather than only from the source checkout.
-
-See [`docs/ENGINE.md`](docs/ENGINE.md).
-
-## Agent Canvas / ACP compatibility
-
-Agent Canvas remains a supported operator compatibility path, not the primary
-A008 product GUI. After building, its Custom ACP command can point to:
-
-```text
-node C:/code/A008/dist/src/acp/server.js
-```
-
-`A008-acp` uses the official ACP SDK, shares the same local runtime/memory
-composition, streams thought and answer separately, supports session controls and
-structured tool approvals, and has been exercised through a real local Agent
-Canvas / Agent Server browser path against a deterministic loopback provider.
-
-See [`docs/AGENT_CANVAS_INTEGRATION.md`](docs/AGENT_CANVAS_INTEGRATION.md).
-
-## Architecture boundary
-
-```text
-CLI --------------------------.
-A008 web GUI -> V1 host ------|----> shared ProjectRuntimeRegistry / EngineHost
-native client -> V2 host -----'                 |
-                                                v
-                                      project-bound session
-                                                |
-                      .-------------------------+----------------------.
-                      |                         |                      |
-                      v                         v                      v
-                 ChatSession              approved tools       semantic memory
-                      |                                            read + write
-                      v
-              provider dispatch
-          .-----------+-----------.
-          |           |           |
-          v           v           v
-       NVIDIA       kie.ai      OpenAI
-
-Agent Canvas -> Agent Server -> A008-acp -------^
-```
-
-The core does not read provider credentials itself. Composition roots own
-environment/storage concerns and inject provider transports, project identity,
-SQLite and tool boundaries. Supported clients converge on the same runtime owner
-instead of implementing independent chat or memory engines.
-
-The public contract package is `packages/protocol/`. It has no provider,
-filesystem, runtime or React dependency and is independently packed/installed as
-part of verification.
-
-## Stable client API programme
-
-| Stage | Status |
-| --- | --- |
-| 1. Current contract | Complete |
-| 2. Project/session ownership | Complete |
-| 3. V2 and authentication | Complete |
-| 4. Turns and recovery | Complete — identity/order/snapshot/terminal + receipts + reconnect + restart uncertainty verified |
-| 5. SDK and web migration | Complete — independent `@a008/client` and bundled GUI consumption |
-| 6. Independent Expo proof | Not started |
-| 7. Compatibility release | Not started |
-
-Stage 5 is complete. A008-0149 adds the independently installable `@a008/client` SDK with cookie/bearer/engine adapters, a V1 session adapter for current bundled-GUI parity, and a V2 session adapter for independent consumers. Stage 6 — Expo/native proof — is the next programme gate.
-
-## Security boundaries
-
-- Provider credentials never belong in browser/native source, project files,
-  URLs or model prompts.
-- Native V2 devices use scoped expiring credentials and short-lived one-use WS
-  tickets; owner grant/revoke remains local administration.
-- Tool execution requires structured calls and explicit approval. Retrieved text
-  or command-shaped assistant prose cannot grant execution authority.
-- Source paths and project bindings are host-owned; ordinary V2 clients select
-  registered project IDs, not arbitrary storage paths.
-- The HTML Code Canvas preview is a unique-origin sandbox with network-denying
-  policy and no host credential/tool handles.
-- Raw legacy A007 material is provenance only and must not be executed or
-  recommitted. Its historical exposed credential has been revoked.
-
-For the complete current constraints and known gaps, read
-[`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md).
-
-## Configuration highlights
-
-- `A008_GUI_HOST_PORT` — standalone host port.
-- `A008_GUI_PIN` — optional six-digit standalone browser gate.
-- `A008_GUI_HOST_ALLOWED_ORIGINS` — additional reviewed browser origins.
-- `A008_SOURCE_STORE_PATH` — source/image blob store; must be outside the repo.
-- `A008_PROVIDER_TIMEOUT_MS` — single provider-request timeout.
-Chat generation controls also have deployment overrides such as
-`A008_CHAT_TEMPERATURE`, `A008_CHAT_TOP_P`, `A008_CHAT_MAX_TOKENS`,
-`A008_CHAT_REASONING_BUDGET` and `A008_CHAT_THINKING`. Runtime/global settings are
-revision-guarded and documented in
-[`docs/RUNTIME_SETTINGS.md`](docs/RUNTIME_SETTINGS.md).
-
-## Docs-first workflow
-
-Repository authority lives in the repository, not in chat history or agent
-memory. Start with [`AGENTS.md`](AGENTS.md), then follow the reading order in
-`docs/CURRENT_TASK.md`.
-
-The key truth surfaces are:
-
-- [`docs/PROJECT_BRIEF.md`](docs/PROJECT_BRIEF.md) — approved product contract.
-- [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md) — observed current reality.
-- [`docs/SYSTEMDOC.md`](docs/SYSTEMDOC.md) — durable implemented behavior.
-- [`docs/JOURNAL.md`](docs/JOURNAL.md) — append-only work history.
-- [`docs/FILESTRUCTURE.md`](docs/FILESTRUCTURE.md) — repository map.
-- [`docs/adr/`](docs/adr/) — accepted architecture decisions.
-- [`docs/tasks/`](docs/tasks/) — active/frozen programme and task records.
-- [`docs/finished/`](docs/finished/) — immutable completed-task archives.
-
-## Project lineage
-
-```text
-A007  original project — retired
-  |
-  `-- A008  active canonical repository / SSOT
-```
-
-Downstream A007-derived frontends are not upstream authority for A008.
-
-## License
-
-A008-owned repository contents are licensed under the Apache License 2.0.
-Third-party code and dependencies retain their own licenses and notices.
+A008-owned repository contents: Apache License 2.0.
