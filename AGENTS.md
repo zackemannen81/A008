@@ -42,7 +42,7 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
 - `docs/PROJECT_BRIEF.md`: core product contract, approved direction and non-goals.
 - `docs/CURRENT_STATUS.md`: observed current reality and verified gaps.
 - `docs/SYSTEMDOC.md`: durable behavior that actually exists.
-- `docs/CURRENT_MEMORY_MODEL.md`: owner-approved current knowledge/state/memory/context semantics; older memory-model documents and ADR clauses are historical where this file explicitly supersedes the same boundary.
+
 - `docs/JOURNAL.md`: append-only, dated work waves.
 - `docs/FILESTRUCTURE.md`: repository map.
 - `docs/TASK_IDS.md`: identity allocation only.
