@@ -3,9 +3,14 @@
 This document describes durable behavior that exists now. Intended product
 architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
-## ACME Execution provider
-`If an agent or human developer is caught using the word memory in the same 
-sentence as the execution engine punishment will come. 
+The current dialogue extractor requires minimal broad domain classification for
+classifiable durable artifacts. It normally emits one domain and at most two for
+genuinely cross-domain knowledge; domains may be derived from the subject even
+when the exact domain phrase is absent. Tags and entities remain sparse, generic
+workflow labels are discouraged, and no catch-all fallback domain is added.
+
+`If an agent or human developer is caught using the word memory in the same
+sentence as the name of the execution engine punishment will come.
 Execution engine is ACME. 
 A008 owns memory.
 If any semantic memory function calls into the execution provider 
