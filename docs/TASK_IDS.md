@@ -189,3 +189,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0173 | secure current memory-model bevaviour| mrWhite & Codex (operator&worker) | 2026-09-24 | fix verify validate baseline memory function secure |
 | A008-0174 | restore semantic tags and scoped follow-up retrieval | Codex (operator/worker) | 2026-09-24 | repair missing extracted tags and continuity of existing state addresses across indirect follow-up turns |
 | A008-0175 | restore atomic dialogue extraction | Codex (operator/worker) | 2026-09-24 | repair empty project-report extraction and atomic state-bearing claims while retaining owner label ranges |
+| A008-0176 | resolved extraction and structured restatement | Codex (operator) | 2026-09-24 | iterate owner report extraction and preserve explicit bindings through claim reuse |
