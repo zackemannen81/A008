@@ -5,7 +5,8 @@
 A008 is a provider-neutral AI client and local engine with one shared runtime for
 chat, tools, projects and persistent semantic memory. It currently ships a CLI,
 an A008-owned web GUI/host, an ACP compatibility bridge, a portable engine
-bundle, shared protocol contracts and an authenticated V2 WebSocket surface for
+bundle, shared protocol contracts, an independently installable client SDK, and
+an authenticated V2 WebSocket surface plus an opt-in durable-work V3 surface for
 independent/native clients.
 
 The repository is the canonical successor to A007. A007 is retired; A008 is the
@@ -15,20 +16,26 @@ current Single Source of Truth.
 
 | Area | Implemented state |
 | --- | --- |
-| Shared engine | Project-bound `ProjectRuntimeRegistry` / `EngineHost`, shared sessions, process ownership fencing and portable engine packaging |
-| Web client | A008-owned Vite/React GUI using the compatible V1 host surface |
-| Native/external API | V2 discovery, scoped device auth, one-use tickets and authenticated `WS /v2/session` |
-| Semantic memory | Project-namespaced SQLite, semantic scope retrieval, additive projection, post-output extraction/reconciliation and L2/L3 lifecycle |
-| Providers | NVIDIA Build, kie.ai and OpenAI chat dispatch; NVIDIA/kie image generation |
-| Discovery | Zero Cost Radar starts from 26 bundled validated routes, supports explicit live update check, and can import routes only when A008 already has a truthful execution path |
-| Projects | Create new projects or register/open an existing root without mutating its files |
-| Tools | Approved repository/file/Git/shell tools plus approved stdio MCP tools |
-| Compatibility | Stable V1 web/ACP paths remain covered while V2 is built out |
+| Shared engine | Project-bound `ProjectRuntimeRegistry` / `EngineHost`, shared sessions, process ownership fencing, portable engine packaging, and trusted internal conversation seeding |
+| Web client | A008-owned Vite/React GUI using the compatible V1 host surface, the independent `@a008/client` SDK, saved project chats, and the bundled Platform page |
+| Native/external API | V2 discovery, scoped device auth, one-use tickets, authenticated `WS /v2/session`, stable turn/message identity, event ordering, command receipts, reconnect/resume, and explicit restart uncertainty |
+| Durable platform | Opt-in local V3 host backend with SQLite conversations, runs, leases, receipts, outbox events, cancellation/recovery boundaries, admin CLI, and GUI surface; public reconciliation is not implemented |
+| Semantic memory | Project-namespaced SQLite, semantic scope retrieval, additive projection, post-output extraction/reconciliation, L2/L3 lifecycle, and current-state librarian/domain-classification rules |
+| Providers | NVIDIA Build, kie.ai, OpenAI chat dispatch; validated compatible Radar routes; NVIDIA/kie image generation; embedded ACME is the default execution substrate |
+| Discovery | Zero Cost Radar starts from 26 bundled validated routes, supports explicit live update, and imports routes only when A008 has a truthful execution path |
+| Projects | Create new projects or register/open an existing root without mutating its files; multiple saved chats are retained per project |
+| Tools | Approved repository/file/Git/shell tools plus configurable stdio MCP tools and health probing |
+| Compatibility | Stable V1 web/ACP paths remain covered while V2 and opt-in V3 are available to independent clients |
 
 The stable-client API programme has completed Stages 1–5. Stable application turn/message identity, event ordering, snapshot boundaries, terminal outcomes, bounded command receipts/idempotency, same-process reconnect/resume and explicit restart uncertainty are verified. Independent `@a008/client` plus bundled-web consumption of that SDK are verified. Stage 6 — independent Expo proof — is the next programme gate.
 See [`docs/tasks/A008-0103_stable-client-api-program.md`](docs/tasks/A008-0103_stable-client-api-program.md).
 
-## What works now
+A008-0171 and A008-0172 are complete in the current implementation history.
+Normal chat extraction now uses the same-turn retrieved baseline and fail-closed
+state addresses, while durable classifiable artifacts receive minimal broad
+domains and keep tags/entities sparse. Existing unlabeled records are not
+retroactively reclassified.
+
 
 - Transactional chat sessions with streamed thought/content separation, rollback
   on failed turns and model-aware generation controls.

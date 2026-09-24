@@ -1,7 +1,14 @@
 # Current Status
 
-Reality as of 2026-09-23. This document records observed state; intended design
+Reality as of 2026-09-24. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
+
+The current working tree includes the completed A008-0172 domain-classification
+implementation on branch `grok/research/A008`; it is not represented as merged
+main history. Dialogue extraction now requests minimal broad domains for
+classifiable durable artifacts while retaining sparse tags/entities. Existing
+unlabeled records are not retroactively reclassified. Focused verification,
+typecheck and diff hygiene are recorded in `docs/handoffs/A008-0172.md`.
 
 A008-0171 is complete on `codex/a008-0171-librarian-prompts` and awaits
 operator merge. Normal chat-turn memory prompts now follow the simpler
