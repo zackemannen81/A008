@@ -31,6 +31,9 @@ import {
   type UploadedSource,
   type V2Info,
   type WorkspaceBinding,
+  type WorkspaceSession,
+  type WorkspaceSessions,
+  type WorkspaceSettings,
   type ZeroCostCatalog,
 } from "@a008/protocol";
 import type { CredentialAdapter } from "./credentials.js";
@@ -96,6 +99,13 @@ export function createHttpClient(options: HttpClientOptions) {
     changeProjectChat: (input: ProjectChatAction) =>
       changeProjectChat(options, input),
     openProject: (projectId: string) => openProject(options, projectId),
+    loadWorkspaceSessions: (projectId: string) => loadWorkspaceSessions(options, projectId),
+    createWorkspaceSession: (projectId: string, baseBranch?: string) => createWorkspaceSession(options, projectId, baseBranch),
+    keepWorkspaceSession: (projectId: string, workspaceId: string) => keepWorkspaceSession(options, projectId, workspaceId),
+    openWorkspaceSession: (projectId: string, workspaceId: string) => openWorkspaceSession(options, projectId, workspaceId),
+    discardWorkspaceSession: (projectId: string, workspaceId: string) => discardWorkspaceSession(options, projectId, workspaceId),
+    loadWorkspaceSettings: () => loadWorkspaceSettings(options),
+    saveWorkspaceSettings: (workspaceRoot: string) => saveWorkspaceSettings(options, workspaceRoot),
     loadNvidiaCatalog: (signal?: AbortSignal) =>
       loadNvidiaCatalog(options, signal),
     addNvidiaModel: (id: string, provider = "nvidia") =>
@@ -134,6 +144,36 @@ export function browserHttpClient(options: {
     credentials:
       options.credentials ?? detectBrowserCredentials(options.location),
   };
+}
+
+async function workspaceRequest<T>(client: HttpClientOptions, path: string, method = "GET", body?: unknown): Promise<T> {
+  const result = await requestJson(client, path, {
+    method,
+    ...(body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),
+  });
+  if (!result.response.ok) throw new Error(messageFromBody(result.body, "Workspace request failed."));
+  return result.body as T;
+}
+export function loadWorkspaceSessions(client: HttpClientOptions, projectId: string): Promise<WorkspaceSessions> {
+  return workspaceRequest(client, `/v1/projects/${encodeURIComponent(projectId)}/workspaces`);
+}
+export function createWorkspaceSession(client: HttpClientOptions, projectId: string, baseBranch?: string): Promise<WorkspaceSession> {
+  return workspaceRequest(client, `/v1/projects/${encodeURIComponent(projectId)}/workspaces`, "POST", baseBranch ? { baseBranch } : {});
+}
+export function keepWorkspaceSession(client: HttpClientOptions, projectId: string, workspaceId: string): Promise<WorkspaceSession> {
+  return workspaceRequest(client, `/v1/projects/${encodeURIComponent(projectId)}/workspaces/${encodeURIComponent(workspaceId)}/keep`, "POST", {});
+}
+export function openWorkspaceSession(client: HttpClientOptions, projectId: string, workspaceId: string): Promise<WorkspaceBinding> {
+  return workspaceRequest(client, `/v1/projects/${encodeURIComponent(projectId)}/workspaces/${encodeURIComponent(workspaceId)}/open`, "POST", {});
+}
+export function discardWorkspaceSession(client: HttpClientOptions, projectId: string, workspaceId: string): Promise<WorkspaceSession> {
+  return workspaceRequest(client, `/v1/projects/${encodeURIComponent(projectId)}/workspaces/${encodeURIComponent(workspaceId)}/discard`, "POST", {});
+}
+export function loadWorkspaceSettings(client: HttpClientOptions): Promise<WorkspaceSettings> {
+  return workspaceRequest(client, "/v1/workspace-settings");
+}
+export function saveWorkspaceSettings(client: HttpClientOptions, workspaceRoot: string): Promise<WorkspaceSettings> {
+  return workspaceRequest(client, "/v1/workspace-settings", "POST", { workspaceRoot });
 }
 
 export async function loadModels(

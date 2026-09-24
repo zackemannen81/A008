@@ -89,6 +89,13 @@ export const v1HttpRoutes = [
     "host workspace conversation selection",
     "project-routes",
   ],
+  ["GET", "/v1/projects/{projectId}/workspaces", "host workspace session status", "workspace-routes"],
+  ["POST", "/v1/projects/{projectId}/workspaces", "host worktree creation", "workspace-routes"],
+  ["POST", "/v1/projects/{projectId}/workspaces/{workspaceId}/keep", "host worktree keep", "workspace-routes"],
+  ["POST", "/v1/projects/{projectId}/workspaces/{workspaceId}/open", "host worktree workspace binding", "workspace-routes"],
+  ["POST", "/v1/projects/{projectId}/workspaces/{workspaceId}/discard", "host clean worktree discard", "workspace-routes"],
+  ["GET", "/v1/workspace-settings", "host workspace-root setting", "workspace-routes"],
+  ["POST", "/v1/workspace-settings", "host workspace-root setting", "workspace-routes"],
   [
     "GET",
     "/v1/projects/browse",

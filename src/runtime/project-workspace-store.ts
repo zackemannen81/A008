@@ -69,6 +69,7 @@ export class ProjectWorkspaceStore {
     projectId: string;
     root: string;
     baseBranch?: string;
+    workspaceRoot?: string;
   }): ProjectWorkspaceSession {
     const root = canonicalDirectory(input.root);
     ensureGitRepository(root);
@@ -81,9 +82,8 @@ export class ProjectWorkspaceStore {
     const id = `workspace_${randomUUID()}`;
     const branchName = `a008/session-${id.slice(-8)}`;
     const workspacePath = join(
-      dirname(root),
-      `${basename(root)}-workspaces`,
-      id.slice(-8),
+      input.workspaceRoot ? canonicalWorkspaceRoot(input.workspaceRoot, root) : join(dirname(root), `${basename(root)}-workspaces`),
+      `${basename(root)}-${id.slice(-8)}`,
     );
     mkdirSync(dirname(workspacePath), { recursive: true });
     git(root, ["worktree", "add", workspacePath, "-b", branchName, baseBranch]);
@@ -222,6 +222,15 @@ function canonicalDirectory(path: string): string {
       "Project root must be an existing absolute directory.",
     );
   return realpathSync(path);
+}
+function canonicalWorkspaceRoot(path: string, projectRoot: string): string {
+  if (!isAbsolute(path))
+    throw new ProjectWorkspaceError("Workspace root must be an absolute directory.");
+  const root = resolve(path);
+  if (relative(projectRoot, root) === "" || !relative(projectRoot, root).startsWith(".."))
+    throw new ProjectWorkspaceError("Workspace root must be outside the project repository.");
+  mkdirSync(root, { recursive: true });
+  return realpathSync(root);
 }
 function ensureGitRepository(cwd: string): void {
   if (git(cwd, ["rev-parse", "--is-inside-work-tree"]) !== "true")

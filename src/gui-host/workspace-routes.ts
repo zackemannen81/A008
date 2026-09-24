@@ -35,7 +35,13 @@ export class GuiWorkspaceStore {
   }
 
   create(projectId: string, root: string, baseBranch?: string): WorkspaceSessionView {
-    const session = this.#sessions.createWorktree({ projectId, root, baseBranch });
+    const workspaceRoot = this.workspaceRoot();
+    const session = this.#sessions.createWorktree({
+      projectId,
+      root,
+      ...(baseBranch === undefined ? {} : { baseBranch }),
+      ...(workspaceRoot === undefined ? {} : { workspaceRoot }),
+    });
     return { ...session, status: this.#sessions.status(session.id) };
   }
 

@@ -1451,6 +1451,12 @@ A008-0140 closes Stage 4 without adding persistence. Every standalone V2 GUI-hos
 
 Public `GET /v2/info` now advertises the complete bounded Stage-4 surface: A008-0132 identity/order/snapshot/terminal features, A008-0138 command receipts/idempotency, A008-0139 `session.reconnect-resume`, and A008-0140 `session.restart-uncertainty`, with the same bounded limits. The bundled GUI Parameters → Runtime view reports `STAGE 4 COMPLETE`. A008-0149 adds `@a008/client`: bundled GUI session and HTTP I/O go through that SDK. Chat still uses the V1 session adapter for PIN-disabled, engine-panel, attachment and in-session image parity; independent consumers use the V2 adapter. Existing V1 reconnect compatibility remains separate from the V2 contract. Stage 6 is the Expo/native proof.
 
+## GUI parallel worktree sessions
+
+A008-0178 exposes the existing local `ProjectWorkspaceStore` only through authenticated V1 GUI-host routes. `GuiWorkspaceStore` owns the external SQLite `workspaceRoot` setting and passes it to new worktree creation; the root must be absolute and outside the registered project repository. `GET/POST /v1/workspace-settings` reads/writes that setting. `GET/POST /v1/projects/:projectId/workspaces` lists status or creates an isolated worktree; `POST .../:workspaceId/keep` and `POST .../:workspaceId/discard` retain or cleanly remove it. Routes first validate the registered project and retain host origin/PIN/engine authentication.
+
+Project details show branch, base, path, changed-file count and commits ahead. Create, Keep and Discard require browser confirmation. Merge and Create PR are explicitly unavailable controls: this slice performs no merge, push, remote PR creation or branch deletion. Opening an active worktree is explicit and closes the old bridge before binding its cwd for the next chat/tool session.
+
 ## Project worktree session foundation
 
 A008-0177 adds src/runtime/project-workspace-store.ts, a local SQLite owner for explicit shared or Git-worktree project sessions. A worktree session verifies a registered project root is a Git worktree, creates an 008/session-<suffix> branch in a sibling <project>-workspaces directory, and records its base branch and workspace path. It reports modified-file count and commits ahead. Keep retains the branch/worktree. Discard refuses a dirty worktree and removes only the owned clean worktree through literal Git arguments; it never merges, pushes or deletes a remote branch. No host HTTP, GUI, chat-session or repository-tool binding exists yet.

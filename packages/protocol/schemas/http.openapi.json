@@ -1161,6 +1161,316 @@
         ]
       }
     },
+    "/v1/projects/{projectId}/workspaces": {
+      "get": {
+        "summary": "host workspace session status",
+        "x-a008-owner": "workspace-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceSessions"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "host worktree creation",
+        "x-a008-owner": "workspace-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workspaceCreateInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceSession"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/workspaces/{workspaceId}/keep": {
+      "post": {
+        "summary": "host worktree keep",
+        "x-a008-owner": "workspace-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceSession"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/workspaces/{workspaceId}/open": {
+      "post": {
+        "summary": "host worktree workspace binding",
+        "x-a008-owner": "workspace-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceBinding"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/projects/{projectId}/workspaces/{workspaceId}/discard": {
+      "post": {
+        "summary": "host clean worktree discard",
+        "x-a008-owner": "workspace-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceSession"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/workspace-settings": {
+      "get": {
+        "summary": "host workspace-root setting",
+        "x-a008-owner": "workspace-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceSettings"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "host workspace-root setting",
+        "x-a008-owner": "workspace-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workspaceSettingsInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceSettings"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
     "/v1/projects/browse": {
       "get": {
         "summary": "host absolute filesystem path",
@@ -2667,6 +2977,230 @@
             "minLength": 1
           }
         }
+      },
+      "workspaceSession": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/workspaceSession/$defs/__schema0"
+          },
+          "projectId": {
+            "$ref": "#/components/schemas/workspaceSession/$defs/__schema0"
+          },
+          "workspaceMode": {
+            "type": "string",
+            "enum": [
+              "shared",
+              "worktree"
+            ]
+          },
+          "workspacePath": {
+            "$ref": "#/components/schemas/workspaceSession/$defs/__schema1"
+          },
+          "branchName": {
+            "$ref": "#/components/schemas/workspaceSession/$defs/__schema1"
+          },
+          "baseBranch": {
+            "$ref": "#/components/schemas/workspaceSession/$defs/__schema1"
+          },
+          "disposition": {
+            "type": "string",
+            "enum": [
+              "active",
+              "kept",
+              "discarded"
+            ]
+          },
+          "createdAt": {
+            "$ref": "#/components/schemas/workspaceSession/$defs/__schema1"
+          },
+          "status": {
+            "type": "object",
+            "properties": {
+              "modifiedFiles": {
+                "$ref": "#/components/schemas/workspaceSession/$defs/__schema2"
+              },
+              "commitsAhead": {
+                "$ref": "#/components/schemas/workspaceSession/$defs/__schema2"
+              },
+              "clean": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "modifiedFiles",
+              "commitsAhead",
+              "clean"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "workspaceMode",
+          "workspacePath",
+          "disposition",
+          "createdAt",
+          "status"
+        ],
+        "$defs": {
+          "__schema0": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/workspaceSession/$defs/__schema1"
+          },
+          "__schema1": {
+            "type": "string"
+          },
+          "__schema2": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "workspaceSessions": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "workspaceRoot": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/workspaceSessions/$defs/__schema0"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/workspaceSessions/$defs/__schema1"
+                },
+                "projectId": {
+                  "$ref": "#/components/schemas/workspaceSessions/$defs/__schema1"
+                },
+                "workspaceMode": {
+                  "type": "string",
+                  "enum": [
+                    "shared",
+                    "worktree"
+                  ]
+                },
+                "workspacePath": {
+                  "$ref": "#/components/schemas/workspaceSessions/$defs/__schema0"
+                },
+                "branchName": {
+                  "$ref": "#/components/schemas/workspaceSessions/$defs/__schema0"
+                },
+                "baseBranch": {
+                  "$ref": "#/components/schemas/workspaceSessions/$defs/__schema0"
+                },
+                "disposition": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "kept",
+                    "discarded"
+                  ]
+                },
+                "createdAt": {
+                  "$ref": "#/components/schemas/workspaceSessions/$defs/__schema0"
+                },
+                "status": {
+                  "type": "object",
+                  "properties": {
+                    "modifiedFiles": {
+                      "$ref": "#/components/schemas/workspaceSessions/$defs/__schema2"
+                    },
+                    "commitsAhead": {
+                      "$ref": "#/components/schemas/workspaceSessions/$defs/__schema2"
+                    },
+                    "clean": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "modifiedFiles",
+                    "commitsAhead",
+                    "clean"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "projectId",
+                "workspaceMode",
+                "workspacePath",
+                "disposition",
+                "createdAt",
+                "status"
+              ]
+            }
+          }
+        },
+        "required": [
+          "workspaceRoot",
+          "sessions"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          },
+          "__schema1": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/workspaceSessions/$defs/__schema0"
+          },
+          "__schema2": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        }
+      },
+      "workspaceSettings": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "workspaceRoot": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "workspaceRoot"
+        ]
+      },
+      "workspaceSettingsInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "workspaceRoot": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "workspaceRoot"
+        ],
+        "additionalProperties": false
+      },
+      "workspaceCreateInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "baseBranch": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
       },
       "projectCreated": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
