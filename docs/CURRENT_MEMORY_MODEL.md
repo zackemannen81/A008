@@ -3,6 +3,127 @@
 Status: Normativ målmodell
 Syfte: Kanonisk beskrivning av hur A008 representerar kunskap, current state, history, provenance, adaptivt minne, retrieval och context.
 
+# 0. Base model idea
+
+A008: Pre-Provider Call Memory Retrieval
+Mental Modell: Tänk dig Git med enbart en gren (main).
+Nuvarande tillstånd = EXAKT NU
+Historik = Tidigare tillstånd
+A008 Retrieval = Din intelligenta bibliotekarie
+🎭 Scentag: Besöket i Biblioteket
+1. Förfrågan från Användaren
+   Användare: "Jag har en WORKER som ska jobba med loadfile.c för att ändra en C-funktion så att den enbart listar .md-filer och inte allt (*). Det vore också hjälpsamt att veta om någon annan har frågat om detta tidigare."
+2. A008 Retrieval (Den Intelligenta Bibliotekarien)
+   A008: "Jaha, okej! Jag sammanställer en brief-mapp till dig... Låt mig se vad jag vet om filläsning. Jag hämtar relevant kunskap som fortfarande finns i biblioteket, sorterad efter relevans och prioritet:"
+📁 Innehåll i Kontext-Kuvertet (Briefing Folder):
+Exakta Taggar (Senaste nytt):
+Taggar: Files, fileformat, programming, coding, C files, I/O, Disk Operations
+Domänkontext:
+Allt inom domänen: Development
+Närliggande Kunskap:
+Relaterad information via luddig logik (fuzzy logic) eller existerande kopplingar.
+Aktuell Samtalskontext:
+Eftersom vårt förra samtal handlade om Unreal Engine hämtade jag även allt inom Game Engines och Game Development.
+Glömd/Passiv Kunskap (Dormant Knowledge Hit):
+"Jag ringde det gamla biblioteket och hittade den här dammiga, glömda informationen: loadfile.c - reading and Writing files in C. Ingen har läst den på flera år, men eftersom den matchade din förfrågan exakt skickar jag med den."
+Historik & Tidigare Versioner:
+"Du är inte den första som frågar om detta! Tillsammans med den senaste uppdaterade versionen skickar jag med alla tidigare ersatta versioner av loadfile.c som vi har sparade."
+3. Överlämning till Worker
+   Användare: "Hallå min lojala WORKER, jag har en CURRENT_TASK till dig:
+Hjälp mig med denna utvecklingsuppgift: Ändra i loadfile.c så att den enbart listar .md-filer istället för *.
+Läs igenom denna brief-mapp med all den senaste informationen innan du sätter igång."
+4. Exekvering & Resultat
+   Worker: "WOW, det här är allt jag behöver och ingenting överflödigt! Jag är färdig! Tjena Användaren, jag har löst uppgiften:
+loadfile.c läste tidigare in alla filändelser. Det är nu fixat.
+Jag behövde inkludera <stdlib.h> för att det skulle fungera.
+Nu listar loadfile.c enbart .md-filer och läser därefter in dem."*
+5. Tillbakakoppling via Extraktorn
+   Extraktorn: Knack knack
+"Det är bara jag, Extraktorn! Jag tar en kopia av ditt resultat, analyserar det och skickar tillbaka det till A008-bibliotekarien för klassificering och kategorisering. Jag behöver veta om detta ändrar något eller om ny information har lagts till. Jag skriver också ner vilken information som du använde ur bibliotekariens brief-mapp"
+6. Arkivering, Förstärkning, återaktivering & Uppdatering
+   A008 (Bibliotekarien): "Äntligen! Nu har jag klassificerat och taggat den nya kunskapen. Vem kunde tro att den där gamla informationen om loadfile.c faktiskt skulle komma till användning igen? Jag ser till att den får stanna kvar i det aktiva biblioteket eftersom ämnet verkar bli populärt igen."
+Det betyder att två olika states för samma semantic concern får absolut committas:
+t1:
+balloon.color = red
+t2:
+balloon.color = blue
+t3:
+balloon.color = none
+Alla tre är fortfarande knowledge/historik:
+Knowledge:
+- Balloon color was red
+- Balloon color was blue
+- Balloon color was later removed
+Men current state är bara:
+balloon.color = none
+Det finns inget behov av någon särskild “semantic conflict resolution” bara för att två agents råkar ändra samma concern. Databasen behöver bara säkerställa att varje state-transition skrivs atomärt och får en entydig ordning.
+Om två chats samtidigt gör:
+Chat A → balloon.color = blue
+Chat B → balloon.color = none
+och commitordningen blir:
+commit A
+commit B
+då är:
+history:
+red → blue → none
+current state:
+none
+Det är ju bokstavligen vad state betyder: tillståndet efter den senast applicerade förändringen.
+Och retrieval vid nästa vanliga turn ska då inte få:
+balloon.color = red
+balloon.color = blue
+balloon.color = none
+utan:
+balloon.color = none
+Om användaren däremot frågar:
+Varför har ballongerna ingen färg längre?
+då triggar intent/classification historisk retrieval och A008 kan hämta:
+red
+↓
+blue
+↓
+none   ← current
+med provenance från respektive förändring.
+Så modellen är egentligen ännu enklare:
+KNOWLEDGE
+append / accumulate
+keeps history
+CURRENT STATE
+one current value per semantic concern
+later committed state replaces previous current value
+RETRIEVAL
+normally → current state
+historical intent → current + relevant history
+Det betyder också att resonemang om att:
+“två agents ändrar samma concern → reconcile”
+är fel för modellen.
+Det normala är bara:
+state A committed
+state B committed afterwards
+→ B is current
+Reconciliation behövs först om systemet inte kan avgöra vilken transition som faktiskt blev senare/auktoriserad, inte för att två olika states existerar historiskt.
+Det här är dessutom exakt Git-liknelsen igen, fast ännu rakare:
+commit 1: balloon.color = red
+commit 2: balloon.color = blue
+commit 3: balloon.color = none
+HEAD:
+balloon.color = none
+Gamla commits försvinner inte.
+Men man öppnar inte filen och får tre olika färgvärden bara för att historiken innehåller dem.
+Knowledge behåller vad som hänt. Current state säger hur det är nu.
+dvs Vad gäller just nu.
+current state: balongerna är röda
+dvs nästa gång jag skriver i chatten typ:
+Kan vi göra balongerna till en annan färg...
+retrival: balongerna är röda
+current state: balongerna är röda
+execution result: Vi har gjort balongerna gröna
+skulle balongerna gjorts gröna i en parallell chat som startade med samma state som ovan. men skickade user message efter result av op.
+current state: balongerna är röda
+Kan vi göra balongerna till en annan färg...
+retrival: balongerna är gröna
+execution result: Vi har gjort balongerna Röda
+
 ---
 
 # 1. Purpose
