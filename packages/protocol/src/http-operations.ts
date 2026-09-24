@@ -77,6 +77,13 @@ const payloads: Readonly<Record<string, Payloads>> = {
     body: "projectChatAction",
     response: "workspaceBinding",
   },
+  "GET /v1/projects/{projectId}/workspaces": { response: "workspaceSessions" },
+  "POST /v1/projects/{projectId}/workspaces": { body: "workspaceCreateInput", response: "workspaceSession" },
+  "POST /v1/projects/{projectId}/workspaces/{workspaceId}/keep": { response: "workspaceSession" },
+  "POST /v1/projects/{projectId}/workspaces/{workspaceId}/open": { response: "workspaceBinding" },
+  "POST /v1/projects/{projectId}/workspaces/{workspaceId}/discard": { response: "workspaceSession" },
+  "GET /v1/workspace-settings": { response: "workspaceSettings" },
+  "POST /v1/workspace-settings": { body: "workspaceSettingsInput", response: "workspaceSettings" },
   "GET /v1/projects/browse": {
     query: "directoryQuery",
     response: "directoryList",

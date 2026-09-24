@@ -2,12 +2,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   changeProjectChat,
+  createWorkspaceSession,
+  discardWorkspaceSession,
+  keepWorkspaceSession,
   listSidebarProjects,
+  loadWorkspaceSessions,
+  loadWorkspaceSettings,
+  openWorkspaceSession,
+  saveWorkspaceSettings,
   updateProject,
 } from "../../../packages/client/src/index.js";
 import type {
   ProjectSidebar as SidebarData,
   ProjectChatAction,
+  WorkspaceSession,
 } from "../../../packages/protocol/src/index.js";
 import type { GuiSession } from "../session/types.js";
 import { guiHttp } from "../client.js";
@@ -139,11 +147,49 @@ export function ProjectList(props: {
   );
 }
 
+function WorkspaceSessions({ project, onOpened }: { project: Project; onOpened: () => Promise<void> }) {
+  const [sessions, setSessions] = useState<readonly WorkspaceSession[]>([]);
+  const [workspaceRoot, setWorkspaceRoot] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const refresh = useCallback(async () => {
+    const [listed, settings] = await Promise.all([
+      loadWorkspaceSessions(guiHttp(), project.projectId),
+      loadWorkspaceSettings(guiHttp()),
+    ]);
+    setSessions(listed.sessions);
+    setWorkspaceRoot(settings.workspaceRoot ?? "");
+  }, [project.projectId]);
+  useEffect(() => { void refresh().catch((caught) => setError(caught instanceof Error ? caught.message : "Could not load parallel sessions.")); }, [refresh]);
+  async function run(action: () => Promise<unknown>, confirmation?: string) {
+    if (confirmation && !window.confirm(confirmation)) return;
+    setBusy(true); setError("");
+    try { await action(); await refresh(); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : "Workspace action failed."); }
+    finally { setBusy(false); }
+  }
+  return <section className="a008-workspace-sessions" aria-label="Parallel sessions">
+    <h2>Parallel sessions</h2>
+    <label>Worktree root<input value={workspaceRoot} placeholder="Absolute folder (optional)" onChange={(event) => setWorkspaceRoot(event.target.value)} /></label>
+    <button disabled={busy || !workspaceRoot.trim()} onClick={() => void run(() => saveWorkspaceSettings(guiHttp(), workspaceRoot.trim()))}>Save worktree root</button>
+    <button disabled={busy} onClick={() => void run(() => createWorkspaceSession(guiHttp(), project.projectId), "Create an isolated worktree session?")}>Create isolated session</button>
+    {sessions.length === 0 ? <p>No isolated sessions.</p> : <ul>{sessions.map((session) => <li key={session.id}>
+      <strong>{session.branchName ?? "shared"}</strong><br />
+      <span>{session.baseBranch ?? "?"} ? {session.status.modifiedFiles} changed ? {session.status.commitsAhead} ahead</span><br />
+      <code>{session.workspacePath}</code><br />
+      <span>{session.disposition}</span>
+      {session.disposition === "active" ? <><button disabled={busy} onClick={() => void run(async () => { await openWorkspaceSession(guiHttp(), project.projectId, session.id); await onOpened(); }, "Open this worktree for the next chat/tool session?")}>Open</button><button disabled={busy} onClick={() => void run(() => keepWorkspaceSession(guiHttp(), project.projectId, session.id), "Keep this worktree and branch?")}>Keep</button><button disabled={busy} onClick={() => void run(() => discardWorkspaceSession(guiHttp(), project.projectId, session.id), "Discard this clean worktree? This cannot be undone.")}>Discard</button><button disabled title="Merge is not available in this task.">Merge</button><button disabled title="Create PR is not available in this task.">Create PR</button></> : null}
+    </li>)}</ul>}
+    {error ? <p role="alert">{error}</p> : null}
+  </section>;
+}
+
 function ProjectDetails(props: {
   project: Project;
   trigger: HTMLElement;
   onClose: () => void;
   onSave: (values: { name?: string; pinned?: boolean }) => Promise<void>;
+  onWorkspaceOpened: () => Promise<void>;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [editing, setEditing] = useState(false);
@@ -235,6 +281,7 @@ function ProjectDetails(props: {
         <ProjectIcon name="folder" />
         <span>{props.project.rootFolder}</span>
       </p>
+      <WorkspaceSessions project={props.project} onOpened={props.onWorkspaceOpened} />
       {!props.project.memory.useGlobalA008Memory ? (
         <p className="a008-project-storage-note">
           Chats are available until the host stops. Global memory is disabled
@@ -439,6 +486,7 @@ export function ProjectSidebar(props: {
           project={menu.project}
           trigger={menu.trigger}
           onClose={() => setMenu(undefined)}
+          onWorkspaceOpened={async () => { await props.onOpened(); await refresh(); }}
           onSave={async (values) => {
             await updateProject(guiHttp(), {
               projectId: menu.project.projectId,

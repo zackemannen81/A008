@@ -6,8 +6,9 @@ import type {
   ProjectSidebar,
   WorkspaceBinding,
 } from "../../packages/protocol/src/index.js";
-import { projectChatActionSchema } from "../../packages/protocol/src/index.js";
+import { projectChatActionSchema, workspaceCreateInputSchema, workspaceSettingsInputSchema } from "../../packages/protocol/src/index.js";
 import { readProjectConversations } from "../runtime/conversation-state-store.js";
+import { GuiWorkspaceStore } from "./workspace-routes.js";
 
 import {
   createHash,
@@ -30,6 +31,7 @@ import {
 } from "node:http";
 import {
   basename,
+  dirname,
   extname,
   isAbsolute,
   join,
@@ -209,6 +211,7 @@ export interface GuiHostOptions {
   readonly catalogPath?: string;
   readonly secretsPath?: string;
   readonly projectsPath?: string;
+  readonly workspacePath?: string;
   /** Host WebSocket ping cadence; defaults to 25 seconds. */
   readonly webSocketHeartbeatMs?: number;
   /** How long a disconnected ACP session may be resumed; defaults to 45 seconds. */
@@ -253,6 +256,7 @@ export async function startGuiHost(
   if (!statSync(cwd).isDirectory())
     throw new ChatError("configuration", "GUI workspace must be a directory.");
   const projectsPath = options.projectsPath ?? resolveProjectsPath(env);
+  const workspaceStore = new GuiWorkspaceStore(options.workspacePath ?? resolve(dirname(projectsPath), "workspaces.sqlite"));
   const workspace = {
     cwd,
     projectId: undefined as string | undefined,
@@ -724,6 +728,7 @@ export async function startGuiHost(
       applyWorkspace,
       sidebarProjects,
       changeProjectChat,
+      workspaceStore,
     });
   });
 
@@ -911,6 +916,7 @@ async function handleHttp(input: {
   readonly mcpProbes: McpProbeMemory;
   readonly secretsPath: string;
   readonly projectsPath: string;
+  readonly workspaceStore: GuiWorkspaceStore;
   readonly sidebarProjects: () => ProjectSidebar;
   readonly changeProjectChat: (body: unknown) => Promise<WorkspaceBinding>;
   readonly applyWorkspace: (next: {
@@ -1234,6 +1240,49 @@ async function handleHttp(input: {
         return;
       }
       sendJson(response, 200, await input.changeProjectChat(await readJsonBody(request)));
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/workspace-settings") {
+      sendJson(response, 200, { workspaceRoot: input.workspaceStore.workspaceRoot() ?? null });
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/workspace-settings") {
+      if (!isJsonContentType(request)) { sendJson(response, 415, errorBody("Content-Type must be application/json.")); return; }
+      const parsed = workspaceSettingsInputSchema.safeParse(await readJsonBody(request));
+      if (!parsed.success) throw new ChatError("configuration", "Invalid workspace settings.");
+      sendJson(response, 200, { workspaceRoot: input.workspaceStore.setWorkspaceRoot(parsed.data.workspaceRoot) });
+      return;
+    }
+    const workspaceRoute = /^\/v1\/projects\/([^/]+)\/workspaces(?:\/([^/]+)\/(keep|discard|open))?$/u.exec(pathname);
+    if (workspaceRoute) {
+      const projectId = decodeURIComponent(workspaceRoute[1]!);
+      const project = readProjectRegistry(input.projectsPath).projects.find((entry) => entry.projectId === projectId);
+      if (!project) throw new ChatError("configuration", "Unknown project.");
+      const workspaceId = workspaceRoute[2] ? decodeURIComponent(workspaceRoute[2]) : undefined;
+      const action = workspaceRoute[3];
+      if (method === "GET" && !workspaceId) {
+        sendJson(response, 200, { workspaceRoot: input.workspaceStore.workspaceRoot() ?? null, sessions: input.workspaceStore.list(projectId) });
+        return;
+      }
+      if (method !== "POST") { sendJson(response, 405, errorBody("Workspace route supports GET or POST only.")); return; }
+      if (!isJsonContentType(request)) { sendJson(response, 415, errorBody("Content-Type must be application/json.")); return; }
+      const body = await readJsonBody(request);
+      if (!workspaceId) {
+        const parsed = workspaceCreateInputSchema.safeParse(body);
+        if (!parsed.success) throw new ChatError("configuration", "Invalid workspace creation request.");
+        sendJson(response, 200, input.workspaceStore.create(projectId, project.rootFolder, parsed.data.baseBranch));
+        return;
+      }
+      if (action === "open") {
+        const session = input.workspaceStore.list(projectId).find((entry) => entry.id === workspaceId);
+        if (!session || session.disposition === "discarded") throw new ChatError("configuration", "Unknown active workspace session.");
+        await input.applyWorkspace({ cwd: session.workspacePath, projectId, useGlobalMemory: project.memory.useGlobalA008Memory });
+        sendJson(response, 200, { cwd: session.workspacePath, projectId, useGlobalMemory: project.memory.useGlobalA008Memory });
+        return;
+      }
+      if (action === "keep") { sendJson(response, 200, input.workspaceStore.keep(workspaceId)); return; }
+      if (action === "discard") { sendJson(response, 200, input.workspaceStore.discard(workspaceId)); return; }
+      sendJson(response, 404, errorBody("Unknown workspace route."));
       return;
     }
     if (method === "GET" && pathname === "/v1/projects") {

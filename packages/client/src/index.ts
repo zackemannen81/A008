@@ -2,6 +2,13 @@ export {
   listSidebarProjects,
   updateProject,
   changeProjectChat,
+  loadWorkspaceSessions,
+  createWorkspaceSession,
+  keepWorkspaceSession,
+  openWorkspaceSession,
+  discardWorkspaceSession,
+  loadWorkspaceSettings,
+  saveWorkspaceSettings,
 } from "./v1-http.js";
 export {
   bearerCredentials,

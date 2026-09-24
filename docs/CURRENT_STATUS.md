@@ -1082,3 +1082,6 @@ Latest implementation merge: 138bf30. Execution stopped at owner request after
 A008-0110; CURRENT_TASK is restored and no subsequent child is active.
 
 A008-0177 adds a local ProjectWorkspaceStore foundation on the active branch. It can record shared sessions and create/keep/discard isolated Git worktrees with status observation, tested against a temporary Git repository. It does not yet expose host/API/GUI controls, agent-triggered transition or tool cwd rebinding; those remain follow-up work and no automatic merge/push exists.
+
+
+A008-0178 adds authenticated V1 workspace-session and workspace-root routes over the existing ProjectWorkspaceStore. The GUI project-details dialog can configure an external absolute worktree root, create/list isolated worktrees, inspect branch/base/path/modified/ahead state, and confirm keep/discard. Merge and Create PR remain disabled; no automatic merge, remote mutation or branch deletion is introduced.
