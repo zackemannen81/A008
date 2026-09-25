@@ -67,6 +67,9 @@ const payloads: Readonly<Record<string, Payloads>> = {
     pathParameters: "blobPath",
     response: "binary",
   },
+  "GET /v1/files": { query: "directoryQuery", response: "workspaceFiles" },
+  "GET /v1/file": { query: "directoryQuery", response: "workspaceTextFile" },
+  "POST /v1/file": { body: "workspaceTextFileSave", response: "workspaceTextFile" },
   "GET /v1/projects": { response: "projects" },
   "GET /v1/projects/sidebar": { response: "projectSidebar" },
   "POST /v1/projects/update": {

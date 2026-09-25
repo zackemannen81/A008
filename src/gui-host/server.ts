@@ -9,6 +9,7 @@ import type {
 import { projectChatActionSchema, workspaceCreateInputSchema, workspaceSettingsInputSchema } from "../../packages/protocol/src/index.js";
 import { readProjectConversations } from "../runtime/conversation-state-store.js";
 import { GuiWorkspaceStore } from "./workspace-routes.js";
+import { listWorkspaceFiles, readWorkspaceTextFile, writeWorkspaceTextFile } from "./file-routes.js";
 
 import {
   createHash,
@@ -1211,6 +1212,23 @@ async function handleHttp(input: {
     if (method === "GET" && blob) {
       if (handleBlobGet(input.storeRoot, blob[1]!, blob[2]!, response)) return;
       sendJson(response, 404, errorBody("Image not found."));
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/files") {
+      const path = new URL(request.url ?? "/", "http://localhost").searchParams.get("path") ?? ".";
+      sendJson(response, 200, { path, entries: listWorkspaceFiles(input.cwd, path) });
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/file") {
+      const path = new URL(request.url ?? "/", "http://localhost").searchParams.get("path") ?? "";
+      sendJson(response, 200, readWorkspaceTextFile(input.cwd, path));
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/file") {
+      if (!isJsonContentType(request)) { sendJson(response, 415, errorBody("Content-Type must be application/json.")); return; }
+      const body = await readJsonBody(request);
+      if (!isRecord(body) || typeof body.path !== "string" || typeof body.expectedSha256 !== "string" || typeof body.content !== "string") throw new ChatError("configuration", "Invalid file save request.");
+      sendJson(response, 200, writeWorkspaceTextFile(input.cwd, body.path, body.expectedSha256, body.content));
       return;
     }
     if (method === "GET" && pathname === "/v1/projects/sidebar") {

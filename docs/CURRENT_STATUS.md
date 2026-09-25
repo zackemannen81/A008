@@ -1098,3 +1098,7 @@ A008-0177 adds a local ProjectWorkspaceStore foundation on the active branch. It
 
 
 A008-0178 adds authenticated V1 workspace-session and workspace-root routes over the existing ProjectWorkspaceStore. The GUI project-details dialog can configure an external absolute worktree root, create/list isolated worktrees, inspect branch/base/path/modified/ahead state, and confirm keep/discard. Merge and Create PR remain disabled; no automatic merge, remote mutation or branch deletion is introduced.
+
+A008-0182 adds a local authenticated Files pane. The GUI lists contained workspace directories, opens bounded UTF-8 text files, renders them through the existing escaped syntax-highlight editor, and saves only when the SHA-256 revision still matches. The host refuses traversal, `.git`, symbolic links, binary text and files above 256 KiB. No renderer filesystem or shell authority was added.
+
+Verification: root and GUI typechecks pass; focused file-route test 2/2; GUI-host test 44/44; `git diff --check` passes. The existing GUI suite ran 205/206: `gui/src/settings/parameters-panel.test.ts` incorrectly reads `./parameters-panel.tsx` and `./workspace-sessions-panel.tsx` relative to the GUI root rather than `src/settings`; this is unrelated to A008-0182 and remains unmodified. No provider calls; 0 SEK.

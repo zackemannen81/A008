@@ -239,6 +239,12 @@ export const workspaceBindingSchema = z.object({
 export type WorkspaceBinding = z.infer<typeof workspaceBindingSchema>;
 export const directoryListSchema = z.object({ path: text, entries: strings });
 export type DirectoryList = z.infer<typeof directoryListSchema>;
+export const workspaceFileEntrySchema = z.object({ name: nonempty, path: nonempty, type: z.enum(["directory", "file"]) });
+export const workspaceFilesSchema = z.object({ path: text, entries: z.array(workspaceFileEntrySchema).readonly() });
+export type WorkspaceFiles = z.infer<typeof workspaceFilesSchema>;
+export const workspaceTextFileSchema = z.object({ path: nonempty, content: text.max(256 * 1024), sha256: z.string().regex(/^[a-f0-9]{64}$/u) });
+export type WorkspaceTextFile = z.infer<typeof workspaceTextFileSchema>;
+export const workspaceTextFileSaveSchema = workspaceTextFileSchema.pick({ path: true, content: true }).extend({ expectedSha256: z.string().regex(/^[a-f0-9]{64}$/u) });
 // V1 accepts missing/non-object optional groups and normalizes defaults in the
 // bootstrap owner. This input envelope must not claim its normalized DTO is required.
 export const projectBootstrapInputSchema = z.object({
@@ -523,6 +529,9 @@ export const v1HttpSchemas = {
   projectOpen: projectOpenSchema,
   workspaceBinding: workspaceBindingSchema,
   directoryList: directoryListSchema,
+  workspaceFiles: workspaceFilesSchema,
+  workspaceTextFile: workspaceTextFileSchema,
+  workspaceTextFileSave: workspaceTextFileSaveSchema,
   nvidiaCatalog: nvidiaCatalogSchema,
   kieCatalog: kieCatalogSchema,
   zeroCostCatalog: zeroCostCatalogSchema,

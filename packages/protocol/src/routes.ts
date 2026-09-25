@@ -70,6 +70,9 @@ export const v1HttpRoutes = [
     "provider-routes",
   ],
   ["GET", "/v1/blobs/{sha256}/{name}", "host source store", "source-store"],
+  ["GET", "/v1/files", "contained workspace directory listing", "file-routes"],
+  ["GET", "/v1/file", "contained workspace UTF-8 text", "file-routes"],
+  ["POST", "/v1/file", "SHA-256 guarded workspace text replacement", "file-routes"],
   ["GET", "/v1/projects", "host project registry", "project-routes"],
   [
     "GET",

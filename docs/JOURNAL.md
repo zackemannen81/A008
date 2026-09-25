@@ -2697,3 +2697,9 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Engine sessions retain the selected worktree CWD for model tools, panel hosting and snapshots while project identity, conversations and semantic memory remain shared.
 - Parallel-session creation now creates and opens the worktree in one action; list entries retain reopen, keep and discard controls.
 - Verification: typecheck; focused bridge regression 4/4; GUI suite 205/205. No provider calls; 0 SEK.
+
+## 2026-09-25 — A008-0182 local file browser and basic editor
+
+- Added authenticated host-owned workspace file routes plus the GUI Files browser/editor. Filesystem authority remains in the host; saves use a matching SHA-256 revision and source display uses the existing escaped syntax highlighter.
+- Verification: root/GUI typecheck; focused file-route test 2/2; GUI-host test 44/44; diff check. The GUI suite is 205/206 due to the pre-existing `parameters-panel.test.ts` root-relative source-path defect; no task change was made for that unrelated failure. No provider calls; 0 SEK.
+- Signature: A008 (operator)
