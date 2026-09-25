@@ -177,4 +177,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0160 | platform implementation program | Codex (operator) | 2026-09-22 | adopt platform direction, own dependency graph, bounded delegation, verified PR integration and release gates |
 | A008-0161 | platform durable work store | Codex (operator) | 2026-09-22 | local scoped SQLite conversations, runs, receipts, outbox and fenced recovery under the platform contract |
 | A008-0162 | platform V3 protocol contracts | Codex (operator) | 2026-09-22 | separately versioned durable-work wire schemas and independent protocol verification without changing V1/V2 |
->>>>>>> d4ebfa685ffe32214f8dee61a1e6e7ba8c09e3d8
+
