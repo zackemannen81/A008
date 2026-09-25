@@ -14,7 +14,10 @@ import {
   ProjectRuntimeRegistry,
   type ProjectRuntime,
 } from "./project-runtime-registry.js";
-import type { SessionControl, SessionSnapshot } from "../core/session-control.js";
+import type {
+  SessionControl,
+  SessionSnapshot,
+} from "../core/session-control.js";
 import type { ChatMessage } from "../core/types.js";
 import type { GeneratedImage } from "../../packages/protocol/src/index.js";
 import { defaultCatalogPath } from "../core/user-catalog.js";
@@ -38,6 +41,7 @@ type Project = ProjectRuntime;
 type Listener = (message: GuiHostServerMessage) => void;
 interface EngineSession {
   project: Project;
+  cwd: string;
   panel?: GuiHost;
   tools: ModelToolSession;
   requestPermission?: RequestToolPermission;
@@ -150,8 +154,8 @@ export class EngineHost {
     options: EngineNewSessionOptions,
   ) {
     if (this.#closed) throw new Error("Engine is stopping.");
-    const project = this.#project(params.cwd),
-      cwd = project.cwd;
+    const project = this.#project(params.cwd);
+    const cwd = params.cwd;
     const created = project.agent.newSession(params, {
       ...(options.initialModel === undefined
         ? {}
@@ -175,6 +179,7 @@ export class EngineHost {
     const token = randomBytes(32).toString("hex");
     const session: EngineSession = {
       project,
+      cwd,
       ...client,
       tools,
       listeners: new Set(),
@@ -241,10 +246,7 @@ export class EngineHost {
       sessionId,
       active: !!session.active,
       ...(session.input ? { text: session.input } : {}),
-      state: session.project.agent.controlSession({
-        sessionId,
-        action: "inspect",
-      }),
+      state: this.#state(sessionId, session),
     });
     if (session.active) {
       if (session.thought)
@@ -265,10 +267,13 @@ export class EngineHost {
     if (normalized.length < 3)
       throw new Error("Image prompt must be at least 3 characters.");
     const generationId = "image_" + randomUUID();
-    const state = session.project.agent.reserveGeneratedImage(
-      sessionId,
-      generationId,
-      normalized,
+    const state = this.#withWorkspaceCwd(
+      session,
+      session.project.agent.reserveGeneratedImage(
+        sessionId,
+        generationId,
+        normalized,
+      ),
     );
     const controller = new AbortController();
     session.generations.set(generationId, controller);
@@ -441,10 +446,7 @@ export class EngineHost {
 
   control(sessionId: string, control: SessionControl) {
     const session = this.#require(sessionId);
-    const state = session.project.agent.controlSession({
-      sessionId,
-      ...control,
-    });
+    const state = this.#state(sessionId, session, control);
     this.#emit(session, {
       type: "session/activity",
       sessionId,
@@ -586,6 +588,23 @@ export class EngineHost {
     return generated;
   }
 
+  #state(
+    sessionId: string,
+    session: EngineSession,
+    control: SessionControl = { action: "inspect" },
+  ): SessionSnapshot {
+    return this.#withWorkspaceCwd(
+      session,
+      session.project.agent.controlSession({ sessionId, ...control }),
+    );
+  }
+
+  #withWorkspaceCwd(
+    session: EngineSession,
+    state: SessionSnapshot,
+  ): SessionSnapshot {
+    return { ...state, runtime: { ...state.runtime, cwd: session.cwd } };
+  }
   #require(id: string) {
     const session = this.#sessions.get(id);
     if (!session) throw new Error("Unknown engine session.");
@@ -595,10 +614,7 @@ export class EngineHost {
     for (const listener of session.listeners) listener(message);
   }
   #snapshot(sessionId: string, session: EngineSession) {
-    const state = session.project.agent.controlSession({
-      sessionId,
-      action: "inspect",
-    });
+    const state = this.#state(sessionId, session);
     this.#emit(session, {
       type: "session/activity",
       sessionId,

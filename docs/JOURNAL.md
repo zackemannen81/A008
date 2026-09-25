@@ -2672,3 +2672,10 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Temporary Git fixture verifies branch/worktree lifecycle. No provider calls; 0 SEK.
 - GUI/API controls and runtime cwd binding were intentionally not claimed; they need a follow-up protocol/bridge slice.
 - Signature: A008
+
+## 2026-09-25 — A008-0179 parallel worktree runtime and UX repair
+
+- Worktree bridges now borrow the already-owned project runtime by project ID rather than opening a competing SQLite namespace owner.
+- Engine sessions retain the selected worktree CWD for model tools, panel hosting and snapshots while project identity, conversations and semantic memory remain shared.
+- Parallel-session creation now creates and opens the worktree in one action; list entries retain reopen, keep and discard controls.
+- Verification: typecheck; focused bridge regression 4/4; GUI suite 205/205. No provider calls; 0 SEK.

@@ -10,6 +10,53 @@ import { isolatedMemoryEnv } from "./helpers.js";
 import { startSessionControlProvider } from "./fixtures/session-control-provider.js";
 import { WireClient } from "./fixtures/gui-wire-client.js";
 
+test("worktree bridge reuses the registered project runtime while keeping its session cwd", async () => {
+  const f = isolatedMemoryEnv();
+  const projectPath = join(f.directory, "project");
+  const worktreePath = join(f.directory, "worktree");
+  mkdirSync(projectPath);
+  mkdirSync(worktreePath);
+  const projectId = "A008_v1_project_40000000-0000-4000-8000-000000000179";
+  const env = { ...f.env, A008_PROJECT_ID: projectId };
+  const registry = new ProjectRuntimeRegistry({ env: f.env });
+  const projectBridge = createLocalAcpBridge({
+    registry,
+    env,
+    cwd: projectPath,
+  });
+  const worktreeBridge = createLocalAcpBridge({
+    registry,
+    env,
+    cwd: worktreePath,
+  });
+  try {
+    const projectSession = await projectBridge.newSession();
+    const worktreeSession = await worktreeBridge.newSession();
+    assert.equal(registry.findByProjectId(projectId)?.cwd, projectPath);
+    assert.equal(
+      (
+        await worktreeBridge.controlSession!(worktreeSession.sessionId, {
+          action: "inspect",
+        })
+      ).runtime.cwd,
+      worktreePath,
+    );
+    assert.equal(
+      (
+        await projectBridge.controlSession!(projectSession.sessionId, {
+          action: "inspect",
+        })
+      ).runtime.cwd,
+      projectPath,
+    );
+  } finally {
+    await projectBridge.close();
+    await worktreeBridge.close();
+    registry.close();
+    rmSync(f.directory, { recursive: true, force: true });
+  }
+});
+
 test("fixed project bridges isolate sessions while sharing project knowledge and borrowing lifetime", async () => {
   const provider = await startSessionControlProvider();
   const f = isolatedMemoryEnv({
@@ -115,7 +162,6 @@ test("fixed project bridges isolate sessions while sharing project knowledge and
   }
 });
 
-
 test("standalone workspace restores project A across switches and restart without leaking into B", async () => {
   const provider = await startSessionControlProvider();
   const f = isolatedMemoryEnv({
@@ -127,13 +173,11 @@ test("standalone workspace restores project A across switches and restart withou
   mkdirSync(bPath);
   const envA = {
     ...f.env,
-    A008_PROJECT_ID:
-      "A008_v1_project_40000000-0000-4000-8000-000000000147",
+    A008_PROJECT_ID: "A008_v1_project_40000000-0000-4000-8000-000000000147",
   };
   const envB = {
     ...f.env,
-    A008_PROJECT_ID:
-      "A008_v1_project_40000000-0000-4000-8000-000000000148",
+    A008_PROJECT_ID: "A008_v1_project_40000000-0000-4000-8000-000000000148",
   };
   let registry = new ProjectRuntimeRegistry({ env: f.env });
   let bridge = createLocalAcpBridge({ registry, env: envA, cwd: aPath });
@@ -161,8 +205,8 @@ test("standalone workspace restores project A across switches and restart withou
     bridge = createLocalAcpBridge({ registry, env: envB, cwd: bPath });
     const b = await bridge.newSession();
     assert.equal(
-      (await bridge.controlSession!(b.sessionId, { action: "inspect" })).messages
-        .length,
+      (await bridge.controlSession!(b.sessionId, { action: "inspect" }))
+        .messages.length,
       0,
     );
     await bridge.close();

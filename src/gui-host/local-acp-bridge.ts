@@ -17,7 +17,9 @@ export function createLocalAcpBridge(options: {
   mcpServers?: () => readonly McpServer[];
   mcpSessions?: McpRuntimeLedger;
 }): AcpBridge {
-  const project = options.registry.openConfigured(options.cwd, options.env);
+  const project =
+    options.registry.findByProjectId(options.env.A008_PROJECT_ID ?? "") ??
+    options.registry.openConfigured(options.cwd, options.env);
   const host = new EngineHost({
     env: options.env,
     registry: options.registry,
@@ -84,7 +86,7 @@ export function createLocalAcpBridge(options: {
       if (closed) throw new Error("Project bridge is closed.");
       const mcpServers = [...(options.mcpServers?.() ?? [])];
       const created = await host.newSession(
-        { cwd: project.cwd, mcpServers },
+        { cwd: options.cwd, mcpServers },
         {
           notify,
           requestPermission: (params) => {

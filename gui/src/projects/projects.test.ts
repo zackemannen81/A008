@@ -107,6 +107,15 @@ test("Projects wizard renders New, Recent and continuity controls", () => {
   assert.equal(html.includes("worker-01"), false);
 });
 
+test("parallel-session controls create and open a worktree in one action", () => {
+  const source = readFileSync(join(here, "project-sidebar.tsx"), "utf8");
+  assert.match(source, /New parallel session/u);
+  assert.match(source, /await createWorkspaceSession/u);
+  assert.match(source, /await openWorkspaceSession/u);
+  assert.equal(source.includes("Create isolated session"), false);
+  assert.equal(source.includes("Save worktree root"), false);
+});
+
 test("GUI bootstrap client module does not import node:fs", () => {
   const source = readFileSync(join(here, "bootstrap-client.ts"), "utf8");
   const sdk = readFileSync(
