@@ -194,3 +194,5 @@ never whether work is active or complete. Task state belongs in
 | A008-0178 | parallel sessions GUI and workspace settings | Rickard (operator) | 2026-09-24 | expose worktree sessions, lifecycle controls and configurable workspace root |
 | A008-0179 | repair parallel worktree session runtime and UX | Rickard (operator) | 2026-09-25 | reuse project runtime for worktree sessions; session-bound CWD; first-class create-and-open UX |
 | A008-0180 | repair agent-browser MCP startup diagnostics | A008 (operator) | 2026-09-25 | reproduce and repair first-call MCP startup failures with deterministic diagnostics |
+
+| A008-0181 | relocate multi-session controls to Parameters | A008 (operator) | 2026-09-25 | top-menu access and Parameters-owned workspace configuration |
