@@ -14,6 +14,8 @@ import { McpServersPanel } from "./mcp-servers-panel.js";
 import { ZeroCostRadarPanel } from "./zero-cost-radar-panel.js";
 import { RuntimeCapabilitiesPanel } from "./runtime-capabilities-panel.js";
 import { WorkspaceSessionsPanel } from "./workspace-sessions-panel.js";
+import { SkillsPanel } from "../skills/skills-panel.js";
+import type { InstalledSkill } from "../skills/skills.js";
 
 type ParameterPage =
   | "model"
@@ -25,7 +27,8 @@ type ParameterPage =
   | "budgets"
   | "instructions"
   | "appearance"
-  | "sessions";
+  | "sessions"
+  | "skills";
 
 const PARAMETER_TABS: readonly { id: ParameterPage; label: string }[] = [
   { id: "model", label: "Model" },
@@ -38,6 +41,7 @@ const PARAMETER_TABS: readonly { id: ParameterPage; label: string }[] = [
   { id: "instructions", label: "Instructions" },
   { id: "appearance", label: "Appearance" },
   { id: "sessions", label: "Parallel sessions" },
+  { id: "skills", label: "Skills" },
 ];
 
 const numberValue = (value: number | null): number | "" =>
@@ -432,6 +436,8 @@ function ParameterForm(props: {
 export function ParametersPanel(props: {
   session: GuiSession;
   onClose: () => void;
+  selectedSkill?: InstalledSkill;
+  onSkillSelected?: (skill: InstalledSkill | undefined) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [models, setModels] = useState<readonly GuiModel[]>([]);
@@ -584,6 +590,9 @@ export function ParametersPanel(props: {
         </div>
         <div hidden={page !== "sessions"}>
           <WorkspaceSessionsPanel />
+        </div>
+        <div hidden={page !== "skills"}>
+          <SkillsPanel selected={props.selectedSkill} onSelect={props.onSkillSelected ?? (() => undefined)} />
         </div>
         <div hidden={page !== "appearance"}>
           <AppearancePanel />

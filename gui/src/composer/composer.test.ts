@@ -29,6 +29,8 @@ test("composer is a compact card with send action and session chips", () => {
   assert.match(html, /Attach image/u);
   assert.match(html, /Attach from path/u);
   assert.match(html, /Generate image/u);
+  assert.match(html, /Selected skill/u);
+  assert.match(html, /No skill/u);
   assert.match(html, /Commands/u);
   assert.match(html, /Enter to send/u);
 });

@@ -298,6 +298,21 @@ export const kieCatalogSchema = z.object({
 });
 export type KieCatalog = z.infer<typeof kieCatalogSchema>;
 
+export const skillSchema = z.object({
+  id: nonempty,
+  name: nonempty,
+  description: text,
+  instructions: text.max(65_536),
+  sourcePath: nonempty,
+});
+export type Skill = z.infer<typeof skillSchema>;
+export const installedSkillsSchema = z.object({ skills: z.array(skillSchema).readonly() });
+export const skillCatalogEntrySchema = skillSchema.omit({ instructions: true }).extend({ installed: z.boolean() });
+export const skillDiscoverySchema = z.object({ source: nonempty, skills: z.array(skillCatalogEntrySchema).readonly() });
+export const skillInstallInputSchema = z.object({ sourcePath: nonempty });
+export const skillInstalledSchema = z.object({ skill: skillSchema });
+export const skillRemovedSchema = z.object({ removed: nonempty });
+
 export const zeroCostAccessSchema = z.enum([
   "free-endpoint",
   "free-model",
@@ -534,6 +549,11 @@ export const v1HttpSchemas = {
   workspaceTextFileSave: workspaceTextFileSaveSchema,
   nvidiaCatalog: nvidiaCatalogSchema,
   kieCatalog: kieCatalogSchema,
+  installedSkills: installedSkillsSchema,
+  skillDiscovery: skillDiscoverySchema,
+  skillInstallInput: skillInstallInputSchema,
+  skillInstalled: skillInstalledSchema,
+  skillRemoved: skillRemovedSchema,
   zeroCostCatalog: zeroCostCatalogSchema,
   mcpServerCatalog: mcpServerCatalogSchema,
   mcpServerCatalogInput: mcpServerCatalogInputSchema,

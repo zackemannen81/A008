@@ -8,6 +8,7 @@ export const httpContractSchemas = {
   frameQuery: z.object({ url: z.string() }),
   directoryQuery: z.object({ path: z.string() }),
   catalogRemoveQuery: z.object({ id: z.string() }),
+  skillPath: z.object({ skillId: z.string() }),
   blobPath: z.object({
     sha256: z.string().regex(/^[a-f0-9]{64}$/u),
     name: z.string().min(1),
@@ -32,6 +33,10 @@ const payloads: Readonly<Record<string, Payloads>> = {
     response: "frameCheck",
   },
   "GET /v1/catalog/kie": { response: "kieCatalog" },
+  "GET /v1/skills": { response: "installedSkills" },
+  "POST /v1/skills/discover": { response: "skillDiscovery" },
+  "POST /v1/skills/install": { body: "skillInstallInput", response: "skillInstalled" },
+  "DELETE /v1/skills/{skillId}": { pathParameters: "skillPath", response: "skillRemoved" },
   "GET /v1/mcp-servers": { response: "mcpServerCatalog" },
   "POST /v1/mcp-servers": {
     body: "mcpServerCatalogInput",

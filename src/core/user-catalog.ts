@@ -50,10 +50,19 @@ export type UserMcpServer = Extract<McpServer, { command: string }> & {
   readonly enabled: boolean;
 };
 
+export interface UserSkill {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly instructions: string;
+  readonly sourcePath: string;
+}
+
 export interface UserCatalog {
   readonly version: 1;
   readonly mcpServers: readonly UserMcpServer[];
   readonly chatModels: readonly UserChatModel[];
+  readonly skills: readonly UserSkill[];
   readonly image: UserImageSettings;
   readonly chatProvider: ChatCatalogProvider;
   readonly imageProvider: CatalogProvider;
@@ -70,6 +79,7 @@ const EMPTY: UserCatalog = {
   version: 1,
   mcpServers: [],
   chatModels: [],
+  skills: [],
   image: {
     model: DEFAULT_USER_IMAGE_MODEL,
     endpoint: DEFAULT_USER_IMAGE_ENDPOINT,
@@ -146,6 +156,39 @@ export function parseUserCatalog(value: unknown): UserCatalog {
           value: String(entry.value),
         })),
         enabled: item.enabled !== false,
+      });
+    }
+  }
+  const skills: UserSkill[] = [];
+  if (value.skills !== undefined) {
+    if (!Array.isArray(value.skills)) {
+      throw new ChatError("configuration", "Skills must be an array.");
+    }
+    const ids = new Set<string>();
+    for (const item of value.skills) {
+      if (
+        !isRecord(item) ||
+        typeof item.id !== "string" ||
+        !/^[a-z0-9][a-z0-9_-]{0,63}$/u.test(item.id) ||
+        ids.has(item.id) ||
+        typeof item.name !== "string" ||
+        !item.name.trim() ||
+        typeof item.description !== "string" ||
+        typeof item.instructions !== "string" ||
+        item.instructions.length === 0 ||
+        item.instructions.length > 65_536 ||
+        typeof item.sourcePath !== "string" ||
+        !/^skills\/[a-z0-9][a-z0-9_-]{0,63}\/SKILL\.md$/u.test(item.sourcePath)
+      ) {
+        throw new ChatError("configuration", "Skill is malformed or unsupported.");
+      }
+      ids.add(item.id);
+      skills.push({
+        id: item.id,
+        name: item.name.trim(),
+        description: item.description.trim(),
+        instructions: item.instructions,
+        sourcePath: item.sourcePath,
       });
     }
   }
@@ -254,6 +297,7 @@ export function parseUserCatalog(value: unknown): UserCatalog {
     version: 1,
     mcpServers,
     chatModels,
+    skills,
     image,
     chatProvider: chatProvider(value.chatProvider),
     imageProvider: imageProvider(value.imageProvider),
@@ -341,6 +385,30 @@ export function replaceUserMcpServers(
   mcpServers: readonly UserMcpServer[],
 ): UserCatalog {
   return { ...catalog, mcpServers: [...mcpServers] };
+}
+
+export function replaceUserSkills(
+  catalog: UserCatalog,
+  skills: readonly UserSkill[],
+): UserCatalog {
+  return { ...catalog, skills: [...skills] };
+}
+
+export function addUserSkill(
+  catalog: UserCatalog,
+  skill: UserSkill,
+): UserCatalog {
+  return replaceUserSkills(catalog, [
+    ...catalog.skills.filter((entry) => entry.id !== skill.id),
+    skill,
+  ]);
+}
+
+export function removeUserSkill(
+  catalog: UserCatalog,
+  id: string,
+): UserCatalog {
+  return replaceUserSkills(catalog, catalog.skills.filter((entry) => entry.id !== id));
 }
 
 export function addUserChatModel(

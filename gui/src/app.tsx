@@ -29,6 +29,7 @@ import type { HtmlArtifactCandidate } from "./artifact/code-artifact.js";
 import { ProjectsPage } from "./projects/projects-page.js";
 import { ProjectSidebar } from "./projects/project-sidebar.js";
 import { PlatformPage } from "./platform/platform-page.js";
+import type { InstalledSkill } from "./skills/skills.js";
 import {
   clampSidebarWidth,
   persistSidebarHidden,
@@ -87,6 +88,7 @@ export function App() {
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [artifact, setArtifact] = useState<CodeArtifactView>();
   const [pendingArtifact, setPendingArtifact] = useState<HtmlArtifactCandidate>();
+  const [selectedSkill, setSelectedSkill] = useState<InstalledSkill>();
   const artifactSessionId = useRef<string | undefined>(session.sessionId);
   const cwd = session.details?.runtime.cwd;
   const workspace = cwd?.split(/[\\/]/u).filter(Boolean).at(-1);
@@ -493,6 +495,7 @@ export function App() {
             const work = session.generateImage?.(prompt);
             void work?.catch(() => undefined);
           }}
+          skill={selectedSkill}
         />
       </main>
       <main className="a008-memory-main" hidden={page !== "memory"}>
@@ -605,6 +608,8 @@ export function App() {
       {parametersOpen ? (
         <ParametersPanel
           session={session}
+          selectedSkill={selectedSkill}
+          onSkillSelected={setSelectedSkill}
           onClose={() => {
             setParametersOpen(false);
             (parametersTrigger.current ?? parametersButton.current)?.focus();

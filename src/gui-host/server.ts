@@ -139,6 +139,12 @@ import {
   SQLITE_PATH_ENV,
 } from "../runtime/local-runtime-config.js";
 import {
+  installedSkills,
+  discoverSkills,
+  importSkill,
+  removeInstalledSkill,
+} from "./skill-library.js";
+import {
   configuredMcpServers,
   handleMcpServersPost,
   mcpServersView,
@@ -1010,6 +1016,36 @@ async function handleHttp(input: {
       sendJson(response, 200, {
         models: mergedModels(input.registry, input.catalogPath),
       });
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/skills") {
+      sendJson(response, 200, { skills: installedSkills(input.catalogPath) });
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/skills/discover") {
+      const installed = new Set(installedSkills(input.catalogPath).map((skill) => skill.id));
+      sendJson(response, 200, {
+        source: "https://github.com/anthropics/skills",
+        skills: (await discoverSkills(input.fetchImpl)).map((skill) => ({ ...skill, installed: installed.has(skill.id) })),
+      });
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/skills/install") {
+      if (!isJsonContentType(request)) {
+        sendJson(response, 415, errorBody("Content-Type must be application/json."));
+        return;
+      }
+      const body = await readJsonBody(request);
+      if (!isRecord(body) || typeof body.sourcePath !== "string") {
+        throw new ChatError("configuration", "Skill sourcePath is required.");
+      }
+      sendJson(response, 200, { skill: await importSkill({ catalogPath: input.catalogPath, sourcePath: body.sourcePath, fetch: input.fetchImpl }) });
+      return;
+    }
+    const skillDelete = /^\/v1\/skills\/([a-z0-9][a-z0-9_-]{0,63})$/u.exec(pathname);
+    if (method === "DELETE" && skillDelete) {
+      removeInstalledSkill(input.catalogPath, skillDelete[1]!);
+      sendJson(response, 200, { removed: skillDelete[1] });
       return;
     }
     if (method === "GET" && pathname === "/v1/mcp-servers") {

@@ -12,9 +12,10 @@ function pageLocation(): ClientLocation | undefined {
 }
 
 export function guiHttp(fetchImpl: typeof fetch = fetch) {
+  const location = pageLocation();
   return browserHttpClient({
     fetch: fetchImpl as unknown as ClientFetch,
-    location: pageLocation(),
-    credentials: detectBrowserCredentials(pageLocation()),
+    ...(location === undefined ? {} : { location }),
+    credentials: detectBrowserCredentials(location),
   });
 }

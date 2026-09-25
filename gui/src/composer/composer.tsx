@@ -1,4 +1,5 @@
-import { useId, useRef, useState, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type ClipboardEvent, type DragEvent, type FormEvent, type KeyboardEvent } from "react";
+import { loadInstalledSkills, type InstalledSkill } from "../skills/skills.js";
 import type { GuiSession, PromptImageAttachment } from "../session/types.js";
 import { uploadSource, uploadSourcePath, type UploadedSource } from "../upload/upload-source.js";
 import { runShellCommand } from "../terminal/terminal-pane.js";
@@ -32,6 +33,7 @@ export function Composer(props: {
   readonly session: GuiSession;
   readonly onParameters?: () => void;
   readonly onImage?: (prompt: string) => void;
+  readonly skill?: InstalledSkill;
 }) {
   const inputId = useId();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -44,6 +46,24 @@ export function Composer(props: {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [skills, setSkills] = useState<readonly InstalledSkill[]>([]);
+  const [selectedSkillId, setSelectedSkillId] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const refresh = () => {
+      void loadInstalledSkills(controller.signal).then((next) => {
+        if (!controller.signal.aborted) setSkills(next);
+      }).catch(() => undefined);
+    };
+    refresh();
+    window.addEventListener("a008-skills-changed", refresh);
+    return () => {
+      controller.abort();
+      window.removeEventListener("a008-skills-changed", refresh);
+    };
+  }, []);
+  const selectedSkill = skills.find((skill) => skill.id === selectedSkillId);
 
   async function runCommand(command: string): Promise<void> {
     if (command === "/shell") {
@@ -81,6 +101,7 @@ export function Composer(props: {
         ...(attachment === undefined ? {} : {
           attachment: { type: "image", locator: attachment.locator, mediaType: attachment.mediaType },
         }),
+        ...(props.skill === undefined && selectedSkill === undefined ? {} : { skill: props.skill ?? selectedSkill }),
       });
       if (result.kind === "empty") {
         return;
@@ -291,6 +312,15 @@ export function Composer(props: {
               ) : null}
             </div>
           </details>
+        <select
+          aria-label="Selected skill"
+          value={selectedSkillId}
+          disabled={pending || props.session.busy || uploading}
+          onChange={(event) => setSelectedSkillId(event.target.value)}
+        >
+          <option value="">No skill</option>
+          {skills.map((skill) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
+        </select>
       <div className="a008-session-toolbar" aria-label="Session controls">
         <select
           aria-label="Session commands"

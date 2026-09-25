@@ -1,3 +1,4 @@
+import type { InstalledSkill } from "../skills/skills.js";
 import type { GuiSession, PromptImageAttachment } from "../session/types.js";
 import {
   loadModels,
@@ -15,6 +16,7 @@ export interface ComposerSubmitDeps {
   readonly session: GuiSession;
   readonly runShellCommand: (command: string) => Promise<string>;
   readonly attachment?: PromptImageAttachment;
+  readonly skill?: InstalledSkill;
   readonly models?: typeof loadModels;
 }
 export type ComposerSubmitResult =
@@ -51,6 +53,12 @@ export function formatStatus(
 ): string {
   return `model: ${state.model}\nstatus: ${session.status}\nsession: ${session.sessionId ?? "(none)"}\ncwd: ${state.runtime.cwd}\nproject: ${state.runtime.projectId ?? "(unavailable)"}\nmemory: ${state.runtime.memoryPath ?? "(unavailable)"}\ntools: terminal via /shell, source upload, memory inspection`;
 }
+export function skillPrompt(text: string, skill: InstalledSkill | undefined): string {
+  return skill === undefined
+    ? text
+    : `${text}\n\n[Selected skill: ${skill.name}]\n${skill.instructions}`;
+}
+
 export async function submitComposer(
   input: string,
   deps: ComposerSubmitDeps,
@@ -70,7 +78,8 @@ export async function submitComposer(
     };
   }
   if (parsed === undefined) {
-    await deps.session.prompt(text, deps.attachment);
+    const prompt = skillPrompt(text, deps.skill);
+    await deps.session.prompt(prompt, deps.attachment);
     return { kind: "prompt", text };
   }
   const notice = (message: string): ComposerSubmitResult => ({
