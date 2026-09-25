@@ -1,4 +1,4 @@
-# Current Task
+# A008-0182 Local file browser and basic editor
 
 Task ID: A008-0182
 Parent Task: None
@@ -7,18 +7,6 @@ Owner: A008 (operator)
 Created: 2026-09-25
 Last updated: 2026-09-25
 Charter frozen at: 2026-09-25
-
-## Read First
-
-- `AGENTS.md`
-- `docs/TASK_WORKFLOW.md`
-- `docs/PROJECT_BRIEF.md`
-- `docs/CONTRIBUTING.md`
-- `docs/CURRENT_STATUS.md`
-- `docs/SYSTEMDOC.md`
-- `docs/JOURNAL.md`
-- `docs/FILESTRUCTURE.md`
-- Relevant accepted top-level records under `docs/adr/`; never use `docs/adr/_legacy/` as current authority
 
 ## Task Summary
 
@@ -125,9 +113,3 @@ Contract revision: `6e5daac`
 - Child tasks: none.
 - Resume condition: repository state and this charter.
 - Open questions: none.
-
-## Finalize When Complete
-
-- Archive this task under `docs/finished/`.
-- Restore this template or activate the next approved task. template: template_CURRENT_TASK.md
-- Append a signed `docs/JOURNAL.md` entry.
