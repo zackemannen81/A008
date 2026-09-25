@@ -54,8 +54,8 @@ test("model capability badges derive only from declared metadata", () => {
 });
 
 test("Parameters owns the global parallel-session root without absorbing project lifecycle", () => {
-  const source = readFileSync(new URL("./parameters-panel.tsx", import.meta.url), "utf8");
-  const panel = readFileSync(new URL("./workspace-sessions-panel.tsx", import.meta.url), "utf8");
+  const source = readFileSync("./parameters-panel.tsx", "utf8");
+  const panel = readFileSync("./workspace-sessions-panel.tsx", "utf8");
   assert.match(source, /Parallel sessions/u);
   assert.match(source, /WorkspaceSessionsPanel/u);
   assert.match(panel, /Worktree root/u);
