@@ -10,6 +10,7 @@ belongs in `docs/PROJECT_BRIEF.md`.
 - The accepted product direction is local-first and standalone-capable. Optional sync/backend services may extend A008 but do not own the local runtime, semantic memory or project state.
 - A008 owns cognition, semantic memory and context policy; ACME remains the model-execution boundary. `docs/CURRENT_MEMORY_MODEL.md` and accepted ADR 0052 own the current semantic direction.
 - Accepted ADR 0053 owns the current multi-session/worktree direction.
+- A008-0180 verifies the installed agent-browser 0.38.1 command through A008's stdio MCP probe: initialization, tool discovery, schema validation, and close complete with 29 tools. The reported external MCP timeout was not reproduced as an A008-owned MCP startup failure.
 - `docs/CURRENT_TASK.md` on `main` is the empty task template; active implementation must be represented by a claimed/frozen task before work proceeds.
 
 The remainder of this file is a chronological status and verification record. Older statements such as "pending integration", "not merged" or "next implementation" describe their historical point in time and do not override this summary, current Git state, or later entries.

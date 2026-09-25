@@ -979,6 +979,21 @@ test("ephemeral MCP probe reports ready, handshake failure, catalog failure, and
   }
 });
 
+test("installed agent-browser MCP initializes and publishes its core catalog", async () => {
+  const command =
+    process.platform === "win32"
+      ? resolve("node_modules/.bin/agent-browser.cmd")
+      : resolve("node_modules/.bin/agent-browser");
+  const result = await probeStdioMcpServer({
+    server: { name: "agent-browser", command, args: ["mcp"], env: [] },
+    cwd: process.cwd(),
+    env: toolEnvironment(process.env),
+    timeoutMs: 30_000,
+  });
+  assert.equal(result.status, "ready");
+  assert.equal(result.stage, "close");
+  assert.ok((result.toolCount ?? 0) > 0);
+});
 test("existing version 1 global settings migrate without losing instructions, budgets or revision protection", () => {
   const cwd = mkdtempSync(join(tmpdir(), "a008-settings-v1-"));
   const path = join(cwd, "settings.json");

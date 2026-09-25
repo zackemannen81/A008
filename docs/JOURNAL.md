@@ -2,6 +2,15 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-25 — A008-0180: agent-browser MCP startup diagnostics
+
+- Task: A008-0180; operator: A008; branch: `main`.
+- Added a deterministic regression that probes the installed `agent-browser mcp` command through A008's real stdio initialization/catalog/close path.
+- Verification: focused MCP suite 16/16, root typecheck, GUI suite 205/205 and `git diff --check` pass; no live provider calls.
+- [Handoff](handoffs/A008-0180.md). [Archive](finished/A008-0180_agent-browser-mcp-startup.md).
+- Signature: A008
+
+
 
 ## 2026-09-19 — GLOBAL: Accepted V1 Application.
 
@@ -2673,7 +2682,7 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - GUI/API controls and runtime cwd binding were intentionally not claimed; they need a follow-up protocol/bridge slice.
 - Signature: A008
 
-## 2026-09-25 � A008-0179 parallel worktree runtime and UX repair
+## 2026-09-25 � A008-0179 parallel worktree runtime and UX repair
 
 - Worktree bridges now borrow the already-owned project runtime by project ID rather than opening a competing SQLite namespace owner.
 - Engine sessions retain the selected worktree CWD for model tools, panel hosting and snapshots while project identity, conversations and semantic memory remain shared.
