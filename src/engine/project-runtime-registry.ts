@@ -94,21 +94,31 @@ export class ProjectRuntimeRegistry {
       : storagePath(config.sqlitePath);
     const source =
       config.sourceStorePath && storagePath(config.sourceStorePath);
-    const current = this.#projects.get(pathKey(cwd))?.project;
-    if (current) {
-      if (
-        (config.projectId && config.projectId !== current.binding.projectId) ||
-        pathKey(sqlitePath) !== pathKey(current.binding.sqlitePath) ||
-        (source && pathKey(source)) !==
-          (current.binding.sourceStorePath &&
-            pathKey(current.binding.sourceStorePath))
-      ) {
-        throw new ProjectBindingError(
-          "Project already has a different runtime binding.",
-        );
-      }
-      return current;
-    }
+const current = this.#projects.get(pathKey(cwd))?.project;
+
+if (current) {
+  const projectIdConflict =
+    config.projectId !== undefined &&
+    config.projectId !== current.binding.projectId;
+
+  const sqliteConflict =
+    pathKey(sqlitePath) !== pathKey(current.binding.sqlitePath);
+
+  const sourceConflict =
+    source !== undefined &&
+    pathKey(source) !==
+      (current.binding.sourceStorePath
+        ? pathKey(current.binding.sourceStorePath)
+        : undefined);
+
+  if (projectIdConflict || sqliteConflict || sourceConflict) {
+    throw new ProjectBindingError(
+      "Project already has a different runtime binding.",
+    );
+  }
+
+  return current;
+}
     return this.#open(cwd, {
       ...configured,
       A008_MEMORY_SQLITE_PATH: sqlitePath,

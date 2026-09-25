@@ -6,6 +6,7 @@
 *.key
 .env.local
 
+dfmoa/
 # Local memory runtime state and opt-in diagnostics
 .A008/
 A008-project-id
