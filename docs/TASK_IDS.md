@@ -164,8 +164,9 @@ never whether work is active or complete. Task state belongs in
 | A008-0148 | user-configured MCP servers and Settings surface | Rickard (operator) | 2026-09-21 | product/GUI configuration and lifecycle for existing MCP tool support |
 | A008-0149 | Stage 5 independent client SDK and bundled web migration | Grok (operator) | 2026-09-21 | platform-independent @a008/client, credential adapters, GUI consumes SDK |
 | A008-0150 | normalize strict-provider null sentinels for optional MCP arguments | Rickard (operator) | 2026-09-21 | restore OpenAI strict-schema nullable-required optional MCP fields before local validation |
-| A008-0151 | ZeroCostRadar live refresh and model import | ChatGPT (operator) | 2026-09-21 | explicit live discovery refresh plus bounded import for already-executable routes |
+| A008-0151 | ZeroCostRadar live refresh and model import | ChatGPT (operator) | 2026-09-21 | explicit live discovery refresh, add live update check against ZeroCostRadar, and bounded one-click import for executable discovered models |
 | A008-0152 | ZeroCostRadar provider execution support | ChatGPT (operator) | 2026-09-21 | explicit host-owned execution and credentials for currently discovery-only zero-cost providers |
+=======
 | A008-0153 | catalog-backed runtime model registry | ChatGPT (operator) | 2026-09-22 | make user-catalog models first-class runtime/session profiles instead of UI-only extras |
 | A008-0154 | MCP health probe and isolated session lifecycle | Grok (operator) | 2026-09-22 | ephemeral stdio health probe, session-catalog indicator, and runtime-owned MCP session scope |
 | A008-0155 | themed project sidebar | Codex (operator) | 2026-09-22 | owner-requested project navigation and project details following the active app theme |
@@ -176,19 +177,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0160 | platform implementation program | Codex (operator) | 2026-09-22 | adopt platform direction, own dependency graph, bounded delegation, verified PR integration and release gates |
 | A008-0161 | platform durable work store | Codex (operator) | 2026-09-22 | local scoped SQLite conversations, runs, receipts, outbox and fenced recovery under the platform contract |
 | A008-0162 | platform V3 protocol contracts | Codex (operator) | 2026-09-22 | separately versioned durable-work wire schemas and independent protocol verification without changing V1/V2 |
-| A008-0163 | trusted platform conversation seeding | Codex (operator) | 2026-09-22 | seed existing shared runtime sessions from backend-owned committed history without writing the legacy workspace store |
-| A008-0164 | platform local backend integration | Codex (operator) | 2026-09-22 | compose durable store, trusted runtime and authenticated V3 HTTP with background scheduling and real process recovery proof |
-| A008-0165 | platform independent V3 client | Codex (operator) | 2026-09-22 | thin authenticated SDK for V3 conversations/runs/events with explicit command identity and no automatic mutation retry |
-| A008-0166 | host fixture catalog isolation | Codex (operator) | 2026-09-22 | isolate local test catalog from user MCP configuration and restore reproducible V2 SDK verification |
-| A008-0167 | bundled platform conversation surface | Grok (operator) | 2026-09-22 | additive GUI for opted-in V3 conversations and text runs without replacing V1 chat or migrating history |
-| A008-0168 | platform admin CLI | Grok (operator) | 2026-09-22 | local inspect and cancel commands over the existing V3 client, without a reconciliation API |
-| A008-0169 | retrieved-context knowledge extraction contract | ChatGPT (operator/worker) | 2026-09-23 | inject exact retrieved knowledge, user message and provider response into extraction; explicit reinforcement/state/relation candidates |
-| A008-0170 | instruction inline template | ChatGPT (operator/worker) | 2026-09-23 | render strict A008-owned runtime fields inside system Instructions without leaking them into user content |
-| A008-0171 | librarian prompt contract simplification | ChatGPT (operator/worker) | 2026-09-23 | align dialogue retrieval/extraction/relation prompts with current-state librarian model |
-| A008-0172 | restore durable knowledge domain classification | ChatGPT (operator/worker) | 2026-09-24 | prevent Librarian sparsity guidance from collapsing classifiable knowledge into unlabeled retrieval records |
-| A008-0173 | secure current memory-model bevaviour| mrWhite & Codex (operator&worker) | 2026-09-24 | fix verify validate baseline memory function secure |
-| A008-0174 | restore semantic tags and scoped follow-up retrieval | Codex (operator/worker) | 2026-09-24 | repair missing extracted tags and continuity of existing state addresses across indirect follow-up turns |
-| A008-0175 | restore atomic dialogue extraction | Codex (operator/worker) | 2026-09-24 | repair empty project-report extraction and atomic state-bearing claims while retaining owner label ranges |
-| A008-0176 | resolved extraction and structured restatement | Codex (operator) | 2026-09-24 | iterate owner report extraction and preserve explicit bindings through claim reuse |
-| A008-0177 | A008 parallell session functions | A008 (operator) | 2026-09-24 | Git worktree, paralell isolated sessions (chats / project)|
-| A008-0178 | parallel sessions GUI and workspace settings | Rickard (operator) | 2026-09-24 | expose worktree sessions, lifecycle controls and configurable workspace root |
+
