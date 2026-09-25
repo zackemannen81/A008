@@ -6,8 +6,9 @@ import type {
   ProjectSidebar,
   WorkspaceBinding,
 } from "../../packages/protocol/src/index.js";
-import { projectChatActionSchema } from "../../packages/protocol/src/index.js";
+import { projectChatActionSchema, workspaceCreateInputSchema, workspaceSettingsInputSchema } from "../../packages/protocol/src/index.js";
 import { readProjectConversations } from "../runtime/conversation-state-store.js";
+import { GuiWorkspaceStore } from "./workspace-routes.js";
 
 import {
   createHash,
@@ -30,6 +31,7 @@ import {
 } from "node:http";
 import {
   basename,
+  dirname,
   extname,
   isAbsolute,
   join,
@@ -113,6 +115,9 @@ import {
   mcpHealthView,
   probeSavedMcpServer,
 } from "./mcp-health.js";
+import { openPlatformBackend, type PlatformBackend } from "../platform/coordinator.js";
+import { resolvePlatformLocalConfig } from "../platform/local-config.js";
+import { handlePlatformV3Http } from "./platform-v3-http.js";
 import {
   bindingFor,
   handleDirectoryList,
@@ -206,10 +211,16 @@ export interface GuiHostOptions {
   readonly catalogPath?: string;
   readonly secretsPath?: string;
   readonly projectsPath?: string;
+  readonly workspacePath?: string;
   /** Host WebSocket ping cadence; defaults to 25 seconds. */
   readonly webSocketHeartbeatMs?: number;
   /** How long a disconnected ACP session may be resumed; defaults to 45 seconds. */
   readonly sessionResumeGraceMs?: number;
+  /**
+   * Opt-in platform SQLite file. When omitted, `A008_PLATFORM_PATH` is used.
+   * Without either, `/v3/info` reports unavailable and no platform database opens.
+   */
+  readonly platformPath?: string;
 }
 
 export interface GuiHost {
@@ -245,6 +256,7 @@ export async function startGuiHost(
   if (!statSync(cwd).isDirectory())
     throw new ChatError("configuration", "GUI workspace must be a directory.");
   const projectsPath = options.projectsPath ?? resolveProjectsPath(env);
+  const workspaceStore = new GuiWorkspaceStore(options.workspacePath ?? resolve(dirname(projectsPath), "workspaces.sqlite"));
   const workspace = {
     cwd,
     projectId: undefined as string | undefined,
@@ -269,6 +281,13 @@ export async function startGuiHost(
     options.allowedOrigins ?? parseAllowedOrigins(env[ALLOWED_ORIGINS_ENV]);
   const fetchImpl = options.fetch ?? fetch;
   const repoRoot = findRepositoryRoot(moduleDirectory(import.meta.url));
+  const platformConfig = resolvePlatformLocalConfig({
+    ...(options.platformPath === undefined
+      ? {}
+      : { platformPath: options.platformPath }),
+    env,
+    repoRoot,
+  });
   const catalogPath = options.catalogPath ?? defaultCatalogPath(env);
   const secretsPath = options.secretsPath ?? defaultSecretsPath(env);
   assertPathOutsideRepo(catalogPath, repoRoot, "A008_CATALOG_PATH");
@@ -331,6 +350,14 @@ export async function startGuiHost(
       ? { [SQLITE_PATH_ENV]: defaultSqlitePath() }
       : {}),
   });
+  const projectIsRegistered = (id: string): boolean =>
+    readProjectRegistry(projectsPath).projects.some(
+      (project) => project.projectId === id,
+    );
+  const devices =
+    options.accessToken === undefined || platformConfig !== undefined
+      ? new DeviceRegistry(env)
+      : undefined;
   const v2ServerInstanceId = options.accessToken
     ? undefined
     : `server_${randomUUID()}`;
@@ -347,20 +374,28 @@ export async function startGuiHost(
         mcpSessions,
         ...(options.stderr ? { stderr: options.stderr } : {}),
       });
-  const v2Auth = options.accessToken
-    ? undefined
-    : new V2Auth({
-        devices: new DeviceRegistry(env),
-        serverInstanceId: v2ServerInstanceId!,
-        pin: pinAuth,
-        projectExists: (id) =>
-          readProjectRegistry(projectsPath).projects.some(
-            (project) => project.projectId === id,
-          ),
-        sessionAuthorized: (principal, projectId, sessionId) =>
-          v2Sessions?.sessionAuthorized(principal, projectId, sessionId) ===
-          true,
-      });
+  const v2Auth =
+    options.accessToken !== undefined || devices === undefined
+      ? undefined
+      : new V2Auth({
+          devices,
+          serverInstanceId: v2ServerInstanceId!,
+          pin: pinAuth,
+          projectExists: projectIsRegistered,
+          sessionAuthorized: (principal, projectId, sessionId) =>
+            v2Sessions?.sessionAuthorized(principal, projectId, sessionId) ===
+            true,
+        });
+  const platformAuth =
+    v2Auth ??
+    (platformConfig !== undefined && devices !== undefined
+      ? new V2Auth({
+          devices,
+          serverInstanceId: `server_${randomUUID()}`,
+          pin: pinAuth,
+          projectExists: projectIsRegistered,
+        })
+      : undefined);
 
   const getBridge = async (): Promise<AcpBridge> => {
     if (bridge !== undefined) {
@@ -618,8 +653,22 @@ export async function startGuiHost(
     response.setHeader("set-cookie", pinAuth.sessionCookie(request));
     sendJson(response, 200, { ok: true });
   };
+  let platformBackend: PlatformBackend | undefined;
   const server = createServer((request, response) => {
     const pathname = requestPath(request);
+    if (pathname === "/v3/info" || pathname.startsWith("/v3/")) {
+      void handlePlatformV3Http({
+        backend: platformBackend,
+        auth: platformAuth,
+        env,
+        projectsPath,
+        request,
+        response,
+        originAllowed: requestOriginAllowed(request),
+        sendJson,
+      });
+      return;
+    }
     if (v2Auth && pathname.startsWith("/v2/")) {
       void handleV2AuthHttp({
         auth: v2Auth,
@@ -679,6 +728,7 @@ export async function startGuiHost(
       applyWorkspace,
       sidebarProjects,
       changeProjectChat,
+      workspaceStore,
     });
   });
 
@@ -771,10 +821,36 @@ export async function startGuiHost(
     });
   });
 
-  await listen(server, host, port);
+  try {
+    if (platformConfig !== undefined) {
+      if (devices === undefined || platformAuth === undefined) {
+        throw new ChatError(
+          "configuration",
+          "Platform authentication is unavailable.",
+        );
+      }
+      platformBackend = openPlatformBackend({
+        config: platformConfig,
+        registry: projectRegistry,
+        projectsPath,
+        env,
+        devices,
+        pinEnabled: () => pinAuth.enabled,
+        ...(options.stderr === undefined ? {} : { stderr: options.stderr }),
+      });
+    }
+    await listen(server, host, port);
+  } catch (error) {
+    await platformBackend?.close();
+    platformBackend = undefined;
+    await releaseServer(server);
+    throw error;
+  }
   const address = server.address();
   if (address === null || typeof address === "string") {
-    server.close();
+    await platformBackend?.close();
+    platformBackend = undefined;
+    await releaseServer(server);
     throw new Error("GUI host failed to bind a TCP port.");
   }
 
@@ -782,6 +858,7 @@ export async function startGuiHost(
     host: address.address,
     port: address.port,
     async close() {
+      await platformBackend?.close();
       v2Auth?.clear();
       await v2Sessions?.close();
       for (const socket of sockets) {
@@ -839,6 +916,7 @@ async function handleHttp(input: {
   readonly mcpProbes: McpProbeMemory;
   readonly secretsPath: string;
   readonly projectsPath: string;
+  readonly workspaceStore: GuiWorkspaceStore;
   readonly sidebarProjects: () => ProjectSidebar;
   readonly changeProjectChat: (body: unknown) => Promise<WorkspaceBinding>;
   readonly applyWorkspace: (next: {
@@ -1162,6 +1240,49 @@ async function handleHttp(input: {
         return;
       }
       sendJson(response, 200, await input.changeProjectChat(await readJsonBody(request)));
+      return;
+    }
+    if (method === "GET" && pathname === "/v1/workspace-settings") {
+      sendJson(response, 200, { workspaceRoot: input.workspaceStore.workspaceRoot() ?? null });
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/workspace-settings") {
+      if (!isJsonContentType(request)) { sendJson(response, 415, errorBody("Content-Type must be application/json.")); return; }
+      const parsed = workspaceSettingsInputSchema.safeParse(await readJsonBody(request));
+      if (!parsed.success) throw new ChatError("configuration", "Invalid workspace settings.");
+      sendJson(response, 200, { workspaceRoot: input.workspaceStore.setWorkspaceRoot(parsed.data.workspaceRoot) });
+      return;
+    }
+    const workspaceRoute = /^\/v1\/projects\/([^/]+)\/workspaces(?:\/([^/]+)\/(keep|discard|open))?$/u.exec(pathname);
+    if (workspaceRoute) {
+      const projectId = decodeURIComponent(workspaceRoute[1]!);
+      const project = readProjectRegistry(input.projectsPath).projects.find((entry) => entry.projectId === projectId);
+      if (!project) throw new ChatError("configuration", "Unknown project.");
+      const workspaceId = workspaceRoute[2] ? decodeURIComponent(workspaceRoute[2]) : undefined;
+      const action = workspaceRoute[3];
+      if (method === "GET" && !workspaceId) {
+        sendJson(response, 200, { workspaceRoot: input.workspaceStore.workspaceRoot() ?? null, sessions: input.workspaceStore.list(projectId) });
+        return;
+      }
+      if (method !== "POST") { sendJson(response, 405, errorBody("Workspace route supports GET or POST only.")); return; }
+      if (!isJsonContentType(request)) { sendJson(response, 415, errorBody("Content-Type must be application/json.")); return; }
+      const body = await readJsonBody(request);
+      if (!workspaceId) {
+        const parsed = workspaceCreateInputSchema.safeParse(body);
+        if (!parsed.success) throw new ChatError("configuration", "Invalid workspace creation request.");
+        sendJson(response, 200, input.workspaceStore.create(projectId, project.rootFolder, parsed.data.baseBranch));
+        return;
+      }
+      if (action === "open") {
+        const session = input.workspaceStore.list(projectId).find((entry) => entry.id === workspaceId);
+        if (!session || session.disposition === "discarded") throw new ChatError("configuration", "Unknown active workspace session.");
+        await input.applyWorkspace({ cwd: session.workspacePath, projectId, useGlobalMemory: project.memory.useGlobalA008Memory });
+        sendJson(response, 200, { cwd: session.workspacePath, projectId, useGlobalMemory: project.memory.useGlobalA008Memory });
+        return;
+      }
+      if (action === "keep") { sendJson(response, 200, input.workspaceStore.keep(workspaceId)); return; }
+      if (action === "discard") { sendJson(response, 200, input.workspaceStore.discard(workspaceId)); return; }
+      sendJson(response, 404, errorBody("Unknown workspace route."));
       return;
     }
     if (method === "GET" && pathname === "/v1/projects") {
@@ -2016,6 +2137,17 @@ function resolveStaticDir(
     return fromPackage;
   }
   return undefined;
+}
+
+function releaseServer(server: Server): Promise<void> {
+  return new Promise((resolve) => {
+    const ignore = (): void => undefined;
+    server.on("error", ignore);
+    server.close(() => {
+      server.off("error", ignore);
+      resolve();
+    });
+  });
 }
 
 function listen(server: Server, host: string, port: number): Promise<void> {

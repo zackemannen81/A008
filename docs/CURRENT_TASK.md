@@ -18,7 +18,7 @@ Charter frozen at:
 - `docs/SYSTEMDOC.md`
 - `docs/JOURNAL.md`
 - `docs/FILESTRUCTURE.md`
-- Relevant records under `docs/adr/`
+- Relevant accepted top-level records under `docs/adr/`; never use `docs/adr/_legacy/` as current authority
 
 ## Task Summary
 
@@ -127,5 +127,5 @@ Budget is a ceiling, not a target: stop once the verification need is satisfied.
 ## Finalize When Complete
 
 - Archive this task under `docs/finished/`.
-- Restore this template or activate the next approved task.
+- Restore this template or activate the next approved task. template: template_CURRENT_TASK.md
 - Append a signed `docs/JOURNAL.md` entry.

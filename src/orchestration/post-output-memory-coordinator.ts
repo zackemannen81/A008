@@ -13,6 +13,7 @@ import {
   type StagedBatchOrigin,
   type StagedKnowledgeBatch,
   type StagedKnowledgeProposal,
+  type StagedKnowledgeReinforcement,
 } from "./post-output-knowledge-intake.js";
 import type {
   PendingRelationIndexRepair,
@@ -42,6 +43,13 @@ export type RelationBatchCommitStep =
     }
   | { readonly proposalIndex: number; readonly error: unknown };
 
+export interface PostOutputMemoryReinforcementRecord {
+  readonly knowledgeId: string;
+  readonly evidenceId: string;
+  readonly semanticAddress?: string;
+  readonly status: "applied" | "duplicate_or_creation" | "unresolved_target";
+}
+
 export interface StagedProposalCommitter {
   commit(
     input: RelationCommitInput,
@@ -51,6 +59,10 @@ export interface StagedProposalCommitter {
     input: RelationBatchCommitInput,
     context?: SemanticOperationContext,
   ): Promise<readonly RelationBatchCommitStep[]>;
+  commitReinforcements?(
+    batch: StagedKnowledgeBatch,
+    context?: SemanticOperationContext,
+  ): Promise<readonly PostOutputMemoryReinforcementRecord[]>;
   repairIndex(
     pending: PendingRelationIndexRepair,
   ): Promise<UpdatedRelationIndex>;
@@ -93,6 +105,7 @@ export interface CompletedPostOutputMemoryResult {
   readonly status: "completed";
   readonly batch: StagedKnowledgeBatch;
   readonly records: readonly PostOutputMemoryCommitRecord[];
+  readonly reinforcements: readonly PostOutputMemoryReinforcementRecord[];
   /**
    * Proposals refused deterministically and stepped over. Empty on a clean
    * commit. A batch that skipped everything still reports `completed`, because
@@ -319,6 +332,23 @@ function copyStagedProposal(
   };
 }
 
+function copyStagedReinforcement(
+  staged: StagedKnowledgeReinforcement,
+): StagedKnowledgeReinforcement {
+  return {
+    knowledgeId: nonEmpty(staged.knowledgeId, "staged reinforcement knowledgeId"),
+    evidenceId: nonEmpty(staged.evidenceId, "staged reinforcement evidenceId"),
+    ...(staged.semanticAddress === undefined
+      ? {}
+      : {
+          semanticAddress: nonEmpty(
+            staged.semanticAddress,
+            "staged reinforcement semanticAddress",
+          ),
+        }),
+  };
+}
+
 function validatedBatch(batch: StagedKnowledgeBatch): StagedKnowledgeBatch {
   if (typeof batch !== "object" || batch === null || Array.isArray(batch)) {
     throw new MemoryError("invalid_input", "staged batch must be an object");
@@ -330,11 +360,27 @@ function validatedBatch(batch: StagedKnowledgeBatch): StagedKnowledgeBatch {
   if (!Array.isArray(batch.proposals)) {
     throw new MemoryError("invalid_input", "staged proposals must be an array");
   }
+  if (
+    batch.reinforcements !== undefined &&
+    !Array.isArray(batch.reinforcements)
+  ) {
+    throw new MemoryError(
+      "invalid_input",
+      "staged reinforcements must be an array",
+    );
+  }
   let proposals: StagedKnowledgeProposal[];
+  let reinforcements: StagedKnowledgeReinforcement[];
   let expectedSerialized: string;
   try {
     proposals = batch.proposals.map(copyStagedProposal);
-    expectedSerialized = serializeStagedKnowledgeProposals(proposals);
+    reinforcements = (batch.reinforcements ?? []).map(
+      copyStagedReinforcement,
+    );
+    expectedSerialized = serializeStagedKnowledgeProposals(
+      proposals,
+      reinforcements,
+    );
   } catch (error) {
     throw new MemoryError("invalid_input", "staged proposals are malformed", {
       cause: error,
@@ -382,6 +428,7 @@ function validatedBatch(batch: StagedKnowledgeBatch): StagedKnowledgeBatch {
       ? { answerMessage: nonEmpty(batch.answerMessage, "staged answerMessage") }
       : {}),
     proposals,
+    reinforcements,
     serialized: expectedSerialized,
     measuredUnits,
     measurementUnit,
@@ -579,6 +626,9 @@ function stagingInput(
     taskId,
     message: nonEmpty(input.message, "message"),
     answer: nonEmpty(input.answer, "answer"),
+    ...(input.retrievedContext === undefined
+      ? {}
+      : { retrievedContext: structuredClone(input.retrievedContext) }),
     applicabilityScopes: scopes,
   };
 }
@@ -689,6 +739,50 @@ export class PostOutputMemoryCoordinator {
   ): Promise<PostOutputMemoryResult> {
     const records = priorRecords.map(copyRecord);
     const skipped: SkippedPostOutputProposal[] = [];
+    let reinforcementRecords: readonly PostOutputMemoryReinforcementRecord[] = [];
+    if ((batch.reinforcements ?? []).length > 0) {
+      if (this.#committer.commitReinforcements === undefined) {
+        return {
+          status: "commit_failed",
+          failedProposalIndex: startIndex,
+          checkpoint: {
+            batch: validatedBatch(batch),
+            nextProposalIndex: startIndex,
+            records: records.map(copyRecord),
+          },
+          error: new MemoryError(
+            "illegal_state",
+            "relation committer does not implement explicit reinforcement",
+          ),
+        };
+      }
+      try {
+        reinforcementRecords = (
+          await this.#committer.commitReinforcements(
+            validatedBatch(batch),
+            context.signal === undefined ? {} : { signal: context.signal },
+          )
+        ).map((entry) => ({
+          knowledgeId: entry.knowledgeId,
+          evidenceId: entry.evidenceId,
+          ...(entry.semanticAddress === undefined
+            ? {}
+            : { semanticAddress: entry.semanticAddress }),
+          status: entry.status,
+        }));
+      } catch (error) {
+        return {
+          status: "commit_failed",
+          failedProposalIndex: startIndex,
+          checkpoint: {
+            batch: validatedBatch(batch),
+            nextProposalIndex: startIndex,
+            records: records.map(copyRecord),
+          },
+          error,
+        };
+      }
+    }
     if (
       this.#committer.commitBatch !== undefined &&
       startIndex < batch.proposals.length
@@ -774,6 +868,7 @@ export class PostOutputMemoryCoordinator {
         status: "completed",
         batch: validatedBatch(batch),
         records: records.map(copyRecord),
+        reinforcements: reinforcementRecords.map((entry) => ({ ...entry })),
         skippedProposals: [...skipped],
       };
     }
@@ -860,6 +955,7 @@ export class PostOutputMemoryCoordinator {
       status: "completed",
       batch: validatedBatch(batch),
       records: records.map(copyRecord),
+      reinforcements: reinforcementRecords.map((entry) => ({ ...entry })),
       skippedProposals: [...skipped],
     };
   }

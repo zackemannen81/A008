@@ -200,6 +200,32 @@ export const projectChatActionSchema = z
   })
   .strict();
 export type ProjectChatAction = z.infer<typeof projectChatActionSchema>;
+export const workspaceGitStatusSchema = z.object({
+  modifiedFiles: count,
+  commitsAhead: count,
+  clean: z.boolean(),
+});
+export const workspaceSessionSchema = z.object({
+  id: nonempty,
+  projectId: nonempty,
+  workspaceMode: z.enum(["shared", "worktree"]),
+  workspacePath: text,
+  branchName: text.optional(),
+  baseBranch: text.optional(),
+  disposition: z.enum(["active", "kept", "discarded"]),
+  createdAt: text,
+  status: workspaceGitStatusSchema,
+});
+export type WorkspaceSession = z.infer<typeof workspaceSessionSchema>;
+export const workspaceSessionsSchema = z.object({
+  workspaceRoot: text.nullable(),
+  sessions: z.array(workspaceSessionSchema),
+});
+export type WorkspaceSessions = z.infer<typeof workspaceSessionsSchema>;
+export const workspaceSettingsSchema = z.object({ workspaceRoot: text.nullable() });
+export type WorkspaceSettings = z.infer<typeof workspaceSettingsSchema>;
+export const workspaceSettingsInputSchema = z.object({ workspaceRoot: nonempty }).strict();
+export const workspaceCreateInputSchema = z.object({ baseBranch: text.trim().min(1).optional() }).strict();
 export const projectCreatedSchema = z.object({
   plan: projectPlanSchema,
   project: registeredProjectSchema,
@@ -488,6 +514,11 @@ export const v1HttpSchemas = {
   projectSidebar: projectSidebarSchema,
   projectUpdate: projectUpdateSchema,
   projectChatAction: projectChatActionSchema,
+  workspaceSession: workspaceSessionSchema,
+  workspaceSessions: workspaceSessionsSchema,
+  workspaceSettings: workspaceSettingsSchema,
+  workspaceSettingsInput: workspaceSettingsInputSchema,
+  workspaceCreateInput: workspaceCreateInputSchema,
   projectCreated: projectCreatedSchema,
   projectOpen: projectOpenSchema,
   workspaceBinding: workspaceBindingSchema,

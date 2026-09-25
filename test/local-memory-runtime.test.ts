@@ -64,7 +64,15 @@ test("sidebar conversation migration preserves legacy chat, selection, content a
       ]),
       "2026-09-22T00:00:00Z",
     );
-  legacy.prepare("INSERT INTO A008_project_conversation VALUES (?, ?, ?, ?, ?)").run("unopened-legacy-project", second, "fixture", JSON.stringify([{ role: "user", content: "Unopened legacy title" }]), "2026-09-22T00:00:00Z");
+  legacy
+    .prepare("INSERT INTO A008_project_conversation VALUES (?, ?, ?, ?, ?)")
+    .run(
+      "unopened-legacy-project",
+      second,
+      "fixture",
+      JSON.stringify([{ role: "user", content: "Unopened legacy title" }]),
+      "2026-09-22T00:00:00Z",
+    );
   legacy.close();
   assert.equal(
     readProjectConversations(filename, TEST_PROJECT_ID)[0]?.title,
@@ -75,7 +83,10 @@ test("sidebar conversation migration preserves legacy chat, selection, content a
     parseRuntimeId(TEST_PROJECT_ID, "project"),
   );
   try {
-    assert.equal(readProjectConversations(filename, "unopened-legacy-project")[0]?.title, "Unopened legacy title");
+    assert.equal(
+      readProjectConversations(filename, "unopened-legacy-project")[0]?.title,
+      "Unopened legacy title",
+    );
     assert.equal(store.load()?.messages.length, 2);
     store.save({
       conversationId: second,
@@ -155,6 +166,163 @@ test("workspace new/select preserves chats while reset affects only the selected
   }
 });
 
+test("trusted conversation seed reaches the next turn without workspace persistence or semantic replay", async () => {
+  const fixture = isolatedMemoryEnv();
+  const transport = memoryAwareFakeTransport({
+    chat: (request) => {
+      assert.deepEqual(
+        request.messages
+          .filter((message) => message.role !== "system")
+          .slice(0, 2)
+          .map((message) => message.content),
+        ["Seeded question.", "Seeded answer."],
+      );
+      assert.match(request.messages.at(-1)?.content ?? "", /New question\./u);
+      return { content: "New answer." };
+    },
+    analyze: () => [],
+    classify: () => ({ type: "new" }),
+  });
+  const runtime = createLocalMemoryRuntime({
+    env: fixture.env,
+    surface: "test",
+    createTransport: () => transport,
+  });
+  const seed = {
+    conversationId: "A008_v1_conversation_00000000-0000-4000-8000-000000000163",
+    messages: [
+      { role: "user" as const, content: "Seeded question." },
+      { role: "assistant" as const, content: "Seeded answer." },
+    ],
+  };
+  try {
+    const session = runtime.openSession({ conversationSeed: seed });
+    seed.messages[0]!.content = "Caller mutation.";
+    assert.equal(session.conversationId, seed.conversationId);
+    assert.deepEqual(session.messages, [
+      { role: "user", content: "Seeded question." },
+      { role: "assistant", content: "Seeded answer." },
+    ]);
+    assert.equal(transport.requests.length, 0);
+    assert.deepEqual(runtime.listWorkspaceConversations(), []);
+
+    await session.turn("New question.");
+    assert.equal(
+      transport.requests.filter(
+        (request) => semanticOperation(request) === undefined,
+      ).length,
+      1,
+    );
+    const analysis = transport.requests.find(
+      (request) => semanticOperation(request) === "knowledge_analysis",
+    );
+    assert.deepEqual(semanticInput(analysis!), {
+      retrievedContext: { items: [] },
+      userMessage: "New question.",
+      responseText: "New answer.",
+    });
+    assert.deepEqual(runtime.listWorkspaceConversations(), []);
+  } finally {
+    runtime.close();
+    rmSync(fixture.directory, { recursive: true, force: true });
+  }
+});
+
+test("seeded conversations remain isolated", async () => {
+  const fixture = isolatedMemoryEnv();
+  const transport = memoryAwareFakeTransport({
+    chat: (request) => ({
+      content: request.messages.some((message) => message.content === "Seed B")
+        ? "Answer B"
+        : "Answer A",
+    }),
+    analyze: () => [],
+    classify: () => ({ type: "new" }),
+  });
+  const runtime = createLocalMemoryRuntime({
+    env: fixture.env,
+    surface: "test",
+    createTransport: () => transport,
+  });
+  try {
+    const a = runtime.openSession({
+      conversationSeed: {
+        conversationId:
+          "A008_v1_conversation_00000000-0000-4000-8000-000000000165",
+        messages: [{ role: "user", content: "Seed A" }],
+      },
+    });
+    const b = runtime.openSession({
+      conversationSeed: {
+        conversationId:
+          "A008_v1_conversation_00000000-0000-4000-8000-000000000166",
+        messages: [{ role: "user", content: "Seed B" }],
+      },
+    });
+    await a.turn("Question A");
+    await b.turn("Question B");
+    assert.deepEqual(
+      a.messages.map((message) => message.content),
+      ["Seed A", "Question A", "Answer A"],
+    );
+    assert.deepEqual(
+      b.messages.map((message) => message.content),
+      ["Seed B", "Question B", "Answer B"],
+    );
+  } finally {
+    runtime.close();
+    rmSync(fixture.directory, { recursive: true, force: true });
+  }
+});
+
+test("conversation seeds reject invalid identity/history and workspace composition before store writes", () => {
+  const fixture = isolatedMemoryEnv();
+  const runtime = createLocalMemoryRuntime({
+    env: fixture.env,
+    surface: "test",
+    createTransport: () =>
+      memoryAwareFakeTransport({ chat: () => ({ content: "unused" }) }),
+  });
+  const validId = "A008_v1_conversation_00000000-0000-4000-8000-000000000164";
+  try {
+    assert.throws(
+      () =>
+        runtime.openSession({
+          conversationSeed: { conversationId: "wrong", messages: [] },
+        }),
+      /Runtime ID/u,
+    );
+    for (const message of [
+      { role: "system", content: "injected" },
+      { role: "tool", content: "injected" },
+      { role: "user", content: [{ type: "generated_image" }] },
+    ]) {
+      assert.throws(
+        () =>
+          runtime.openSession({
+            conversationSeed: {
+              conversationId: validId,
+              messages: [message] as never,
+            },
+          }),
+        /Conversation seed message 0/u,
+      );
+    }
+    assert.throws(
+      () =>
+        runtime.openSession({
+          workspaceConversation: "fresh",
+          conversationSeed: { conversationId: validId, messages: [] },
+        }),
+      /cannot be combined/u,
+    );
+    assert.deepEqual(runtime.listWorkspaceConversations(), []);
+  } finally {
+    runtime.close();
+    rmSync(fixture.directory, { recursive: true, force: true });
+  }
+});
+
 function assertionTransport() {
   return memoryAwareFakeTransport({
     chat: (request, chatTurn) => {
@@ -174,10 +342,10 @@ function assertionTransport() {
     },
     analyze: (input) => {
       const raw = input as {
-        readonly message?: unknown;
-        readonly answer?: unknown;
+        readonly userMessage?: unknown;
+        readonly responseText?: unknown;
       };
-      if (raw.message === ASSERTION) {
+      if (raw.userMessage === ASSERTION) {
         return [
           {
             severity: "important",
@@ -244,10 +412,15 @@ test("two-turn runtime commits an explicit user assertion and rereads it", async
       false,
     );
     const firstAnalyze = semanticInput(analyzeRequests[0]!) as {
-      readonly message: string;
-      readonly answer: string;
+      readonly retrievedContext: { readonly items: readonly unknown[] };
+      readonly userMessage: string;
+      readonly responseText: string;
     };
-    assert.deepEqual(firstAnalyze, { message: ASSERTION, answer: "Noted." });
+    assert.deepEqual(firstAnalyze, {
+      retrievedContext: { items: [] },
+      userMessage: ASSERTION,
+      responseText: "Noted.",
+    });
     assert.equal(
       chatRequests[1]?.messages.filter((message) => message.role !== "system")
         .length,
@@ -297,7 +470,9 @@ test("restart with existing SQLite still projects the active assertion", async (
     try {
       const snapshot = store.load();
       assert.equal(
-        snapshot.state.bindings.some((binding) => binding.label === PROPOSITION),
+        snapshot.state.bindings.some(
+          (binding) => binding.label === PROPOSITION,
+        ),
         false,
         "unstructured evidence must not invent current state after restart",
       );
@@ -321,7 +496,6 @@ test("restart with existing SQLite still projects the active assertion", async (
   }
 });
 
-
 test("workspace conversation survives runtime restart while generic sessions stay fresh", async () => {
   const isolated = isolatedMemoryEnv();
   const transport = () =>
@@ -337,7 +511,9 @@ test("workspace conversation survives runtime restart while generic sessions sta
   });
   let conversationId = "";
   try {
-    const session = firstRuntime.openSession({ workspaceConversation: "fresh" });
+    const session = firstRuntime.openSession({
+      workspaceConversation: "fresh",
+    });
     conversationId = session.conversationId;
     await session.turn("Persist this workspace turn.");
     assert.deepEqual(
@@ -374,7 +550,6 @@ test("workspace conversation survives runtime restart while generic sessions sta
   }
 });
 
-
 test("workspace reset and undo persist the resulting canonical conversation", async () => {
   const isolated = isolatedMemoryEnv();
   const transport = () =>
@@ -405,7 +580,9 @@ test("workspace reset and undo persist the resulting canonical conversation", as
     createTransport: transport,
   });
   try {
-    const restored = afterUndo.openSession({ workspaceConversation: "restore" });
+    const restored = afterUndo.openSession({
+      workspaceConversation: "restore",
+    });
     assert.deepEqual(
       restored.messages.map((message) => message.content),
       ["First turn.", "Answer 1."],
@@ -423,7 +600,8 @@ test("workspace reset and undo persist the resulting canonical conversation", as
   });
   try {
     assert.equal(
-      afterReset.openSession({ workspaceConversation: "restore" }).messages.length,
+      afterReset.openSession({ workspaceConversation: "restore" }).messages
+        .length,
       0,
     );
   } finally {
@@ -451,10 +629,14 @@ test("workspace restore terminalizes a stale pending generated image without rep
     const session = first.openSession({ workspaceConversation: "fresh" });
     generationId = "image_pending_restore";
     session.reserveGeneratedImage(generationId, "unfinished image fixture");
-    session.reserveGeneratedImage("image_completed_restore", "completed image fixture");
+    session.reserveGeneratedImage(
+      "image_completed_restore",
+      "completed image fixture",
+    );
     session.resolveGeneratedImage("image_completed_restore", {
       status: "completed",
-      locator: "source:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/completed.png",
+      locator:
+        "source:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/completed.png",
       mediaType: "image/png",
       filename: "completed.png",
     });
@@ -794,7 +976,7 @@ function restatementTransport() {
   return memoryAwareFakeTransport({
     chat: () => ({ content: "Noted." }),
     analyze: (input) => {
-      const message = (input as { readonly message?: unknown }).message;
+      const message = (input as { readonly userMessage?: unknown }).userMessage;
       if (typeof message === "string" && message.trim().endsWith("?")) {
         return [];
       }

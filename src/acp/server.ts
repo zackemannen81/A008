@@ -28,12 +28,14 @@ export function createAcpRuntime(options: {
   ownershipAlreadyHeld?: boolean;
 }) {
   const { env, stderr } = options;
+  const cwd = options.cwd ?? process.cwd();
   const registry = catalogBackedModelRegistry(
     defaultModelRegistry,
     defaultCatalogPath(env),
   );
   const runtime = createLocalMemoryRuntime({
     env,
+    workingDirectory: cwd,
     surface: "acp",
     stderr,
     registry,
@@ -44,7 +46,7 @@ export function createAcpRuntime(options: {
     registry,
     extraProfiles: () => [],
     runtimeInfo: () => ({
-      cwd: options.cwd ?? process.cwd(),
+      cwd,
       projectId: runtime.projectId,
       memoryPath: runtime.sqlitePath,
       tools: nativeToolCatalog(),
@@ -56,6 +58,9 @@ export function createAcpRuntime(options: {
         ...(sessionOptions?.workspaceConversation === undefined
           ? {}
           : { workspaceConversation: sessionOptions.workspaceConversation }),
+        ...(sessionOptions?.conversationSeed === undefined
+          ? {}
+          : { conversationSeed: sessionOptions.conversationSeed }),
       }),
     resolveImageAttachment: (locator) =>
       runtime.resolveImageAttachment(locator),

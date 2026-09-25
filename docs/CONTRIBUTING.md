@@ -1,45 +1,134 @@
 # Contributing
 
-## Required reading
+A008 uses a docs-first workflow. The active task is always defined in
+`docs/CURRENT_TASK.md`.
 
-Read `AGENTS.md` and its ordered authority list before changing the repository.
+## License
 
-## Working loop
+A008 repository source is licensed under Apache License 2.0. Unless a file
+explicitly says otherwise, contributions submitted for inclusion are expected
+to be distributable under the same license. Do not submit code or assets whose
+terms are incompatible, and never commit credentials or personal data.
 
-1. The operator claims a task identity on `main`, reviews the Necessity Gate in
-   `docs/TASK_WORKFLOW.md` against the Core Product Contract in
-   `docs/PROJECT_BRIEF.md`, then freezes/delegates the charter.
-2. A worker may copy that charter into `docs/CURRENT_TASK.md` on its branch.
-3. Work the checklist and keep it truthful.
-4. Review actual changes against necessity and scope, then verify the named gates.
-5. Update owned documents in the same change as behavior.
-6. Archive the task under `docs/finished/`, restore `docs/CURRENT_TASK.md` from
-   the template, write the handoff, then push and open a pull request.
-7. The operator merges to `main` and appends the journal.
+## Required Reading
 
-## Source intake
+1. `AGENTS.md`
+2. `docs/CURRENT_TASK.md`
+3. `docs/TASK_WORKFLOW.md`
+4. `docs/PROJECT_BRIEF.md`
+5. `docs/CURRENT_STATUS.md`
+6. `docs/SYSTEMDOC.md`
+7. relevant ADRs
+8. latest `docs/JOURNAL.md` entry
 
-- Pin source repository, revision, license, and provenance before importing.
-- Prefer an adapter or stable dependency boundary to copying a source tree.
-- Preserve required copyright and license notices.
-- Never import raw legacy dependencies, outputs, credentials, or unrelated
-  artifacts.
-- A source document's MUST language becomes A008 authority only when explicitly
-  adopted by an A008 decision or frozen charter.
+## Standard Task Loop
 
-## Verification baseline
+### 1. Define
 
-Documentation work checks links, fences, collection indexes, staged secrets,
-and `git diff --check`. Product charters must add typecheck, unit, contract,
-integration, packaging, installation, and platform gates in proportion to the
-slice. Choose deterministic fakes for controlled faults and live providers when
-real integration, wire compatibility or provider behavior must be verified.
-In-scope live tests use approved credentials/providers and the task's resolved
-[live verification budget](TASK_WORKFLOW.md#live-verification-budget); paid
-status alone does not require another approval. Label results as fake/fixture,
-local implementation or live provider; a fake cannot prove external behavior.
+Create or update `docs/CURRENT_TASK.md` before implementation. Include:
 
-## Licensing
+- unique Task ID
+- goal and motivation
+- primary deliverable
+- success criteria
+- in-scope and out-of-scope work
+- references
+- ordered checklist (Keep the checklist updated during your work)
+- verification plan
+- documentation targets
 
-Contributions intentionally submitted to A008 are Apache-2.0 unless a file
-states otherwise. Third-party source retains its original license boundary.
+The Task Charter is editable in `Draft` and frozen at `Ready`.
+
+### 2. Implement
+
+- Keep changes within task scope.
+- Preserve unrelated worktree changes.
+- Keep the checklist current.
+- Do not redefine a frozen Goal, Primary Deliverable or Definition of Done.
+- Use `docs/TASK_WORKFLOW.md` to classify discoveries:
+  - required by current DoD → checklist
+  - blocking prerequisite → paused parent plus child task
+  - non-blocking new work → backlog proposal
+  - invalid original objective → supersede and create a new task
+- Add / Supersede or update ADRs when a durable architectural decision is made.
+- Update system/status documentation with the implementation, not later.
+
+### 3. Verify
+
+Run the task-specific checks. Future code changes should normally include:
+
+- typecheck
+- unit tests
+
+Live model evaluations are separate from deterministic tests.
+
+### 4. Handoff
+
+Record:
+
+- completed work
+- verification results
+- known limitations
+- next steps
+- blockers and open questions
+
+Add the summary to `docs/JOURNAL.md`.
+
+### 5. Finish
+
+- Archive the completed task in `docs/finished/`.
+- Restore  `docs/CURRENT_TASK.md`with `docs/template_CURRENT_TASK.md` or populate for the actual next task.
+
+## Scope Freeze
+
+After a task reaches `Ready`, these sections are immutable:
+
+- Goal
+- Primary Deliverable
+- In Scope
+- Out of Scope
+- Definition of Done
+- minimum verification gates
+
+Only non-semantic corrections are allowed, and they must be recorded in the
+task's Charter Amendment Log. A semantic change requires a new task.
+
+At most one task is active in `docs/CURRENT_TASK.md`. Paused parent tasks live
+under `docs/paused/`; non-activated proposals live under `docs/backlog/`.
+
+## Branches and Commits
+
+- Use focused branches and commits.
+- Suggested branch prefixes: `feat/`, `fix/`, `docs/`, `chore/`.
+llm-agents:
+- Suggested branch prefixes: `provider/`
+- Do not mix mechanical cleanup with behavioral changes.
+- A commit message should describe the outcome, not merely the files touched.
+
+## Architecture Changes
+
+Create an ADR when a decision affects:
+
+- a public or cross-package contract
+- dependency direction
+- state or memory semantics
+- persistence or migrations
+- execution/retry/replay behavior
+- provider abstraction
+- compatibility or versioning
+- security or privacy
+
+The live integration / provider calls needs real traffic, so it cannot gate every
+commit. Run it before any acceptance attempt: it is what narrows the window in
+which a live regression reaches acceptance undetected.
+User gpt-5.6-luna or NVIDIA Nemotron for live Calls
+
+Cost is measured, not capped. `summarizeModelCallUsage` reads recorded calls
+and reports counts, tokens and provider-supplied cost; an acceptance run
+reports what it actually consumed rather than stopping at an arbitrary
+threshold.
+
+## External Effects
+
+Do not publish packages, deploy services, push branches, create releases or
+run paid model evaluations unless the active task explicitly authorizes it.

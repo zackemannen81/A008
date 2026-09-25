@@ -12,7 +12,10 @@ import {
 } from "node:fs";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { ChatSession, type SendMessageOptions } from "../core/chat-session.js";
-import type { GeneratedImageTerminalUpdate } from "../core/chat-content.js";
+import {
+  cloneChatMessage,
+  type GeneratedImageTerminalUpdate,
+} from "../core/chat-content.js";
 import {
   Utf8ByteChatMessageMeasurer,
   type ChatInvocationBudget,
@@ -40,6 +43,7 @@ import {
 import type {
   ChatCompletion,
   ChatImageAttachment,
+  ChatMessage,
   ChatTransport,
 } from "../core/types.js";
 import { IdentityError } from "../identity/errors.js";
@@ -85,6 +89,10 @@ import {
 import { MemoryAwareChatSession } from "../orchestration/memory-aware-chat-session.js";
 import type { MemoryReadPort } from "../orchestration/memory-aware-chat-session.js";
 import {
+  createInstructionTemplateValues,
+  renderInstructionTemplate,
+} from "../orchestration/instruction-template.js";
+import {
   PostOutputKnowledgeIntake,
   Utf8ByteKnowledgeIntakeMeasurer,
 } from "../orchestration/post-output-knowledge-intake.js";
@@ -128,6 +136,7 @@ import {
 } from "./nvidia-session.js";
 import { createConfiguredChatTransport } from "./chat-dispatch.js";
 import { defaultCatalogPath } from "../core/user-catalog.js";
+import { chatContentSchema } from "../../packages/protocol/src/index.js";
 
 export const LOCAL_MEMORY_SCOPES = ["local"] as const;
 export const LIVE_PROJECTION_REINFORCEMENT = 0;
@@ -190,6 +199,7 @@ export interface LocalMemoryRuntimeOptions {
   /** Internal composition only: the project registry already holds both leases. */
   readonly ownershipAlreadyHeld?: boolean;
   readonly env: NodeJS.ProcessEnv;
+  readonly workingDirectory?: string;
   readonly surface: DebugTraceSurface;
   readonly registry?: ModelRegistry;
   readonly stderr?: NodeJS.WritableStream;
@@ -224,11 +234,59 @@ export interface LocalMemoryRuntimeOptions {
   readonly readSourceBytes?: (path: string) => Uint8Array;
 }
 
+export interface ConversationSeed {
+  readonly conversationId: string;
+  readonly messages: readonly ChatMessage[];
+}
+
 export interface LocalMemorySessionOptions {
   readonly model?: string;
   readonly systemMessage?: string;
   /** Internal standalone-workspace policy; generic sessions omit this. */
   readonly workspaceConversation?: "restore" | "fresh";
+  /**
+   * Trusted backend composition only. This is deliberately absent from ACP
+   * request payloads: platform-owned committed history enters through the
+   * existing runtime, never through an untrusted client request.
+   */
+  readonly conversationSeed?: ConversationSeed;
+}
+
+export function validateConversationSeed(
+  seed: ConversationSeed,
+): {
+  readonly conversationId: ConversationId;
+  readonly messages: ChatMessage[];
+} {
+  const conversationId = parseRuntimeId(seed.conversationId, "conversation");
+  if (!Array.isArray(seed.messages)) {
+    throw new ChatError(
+      "configuration",
+      "Conversation seed messages must be an array.",
+    );
+  }
+  const messages = seed.messages.map((candidate, index): ChatMessage => {
+    if (
+      typeof candidate !== "object" ||
+      candidate === null ||
+      (candidate.role !== "user" && candidate.role !== "assistant")
+    ) {
+      throw new ChatError(
+        "configuration",
+        `Conversation seed message ${index} must be a committed user or assistant message.`,
+      );
+    }
+    const parsed = chatContentSchema.safeParse(candidate.content);
+    if (!parsed.success) {
+      throw new ChatError(
+        "configuration",
+        `Conversation seed message ${index} has invalid content.`,
+        { cause: parsed.error },
+      );
+    }
+    return cloneChatMessage({ role: candidate.role, content: parsed.data });
+  });
+  return { conversationId, messages };
 }
 
 export interface LocalMemoryTurnResult {
@@ -783,6 +841,8 @@ export class LocalMemorySession {
                 taskId,
                 message,
                 answer,
+                retrievedContext:
+                  memoryResult.memory.projection.projection.items,
                 applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
               },
               options.signal === undefined ? {} : { signal: options.signal },
@@ -856,6 +916,7 @@ export class LocalMemoryRuntime {
   readonly projectId: ProjectId;
   readonly agentId: AgentId;
   readonly sqlitePath: string;
+  readonly workingDirectory: string;
   readonly tracer: DebugTraceObserver;
   readonly #knowledge: SqliteKnowledgeContextHandle;
   readonly #conversationStore: ProjectConversationStateStore;
@@ -877,6 +938,7 @@ export class LocalMemoryRuntime {
     readonly projectId: ProjectId;
     readonly agentId: AgentId;
     readonly sqlitePath: string;
+    readonly workingDirectory: string;
     readonly tracer: DebugTraceObserver;
     readonly knowledge: SqliteKnowledgeContextHandle;
     readonly conversationStore: ProjectConversationStateStore;
@@ -897,6 +959,7 @@ export class LocalMemoryRuntime {
     this.projectId = options.projectId;
     this.agentId = options.agentId;
     this.sqlitePath = options.sqlitePath;
+    this.workingDirectory = options.workingDirectory;
     this.tracer = options.tracer;
     this.#knowledge = options.knowledge;
     this.#conversationStore = options.conversationStore;
@@ -1081,6 +1144,19 @@ export class LocalMemoryRuntime {
     if (this.#closed) {
       throw new ChatError("configuration", "Local memory runtime is closed.");
     }
+    if (
+      options.conversationSeed !== undefined &&
+      options.workspaceConversation !== undefined
+    ) {
+      throw new ChatError(
+        "configuration",
+        "Conversation seeds cannot be combined with workspace conversations.",
+      );
+    }
+    const seed =
+      options.conversationSeed === undefined
+        ? undefined
+        : validateConversationSeed(options.conversationSeed);
     const restored =
       options.workspaceConversation === "restore"
         ? this.#conversationStore.load()
@@ -1089,14 +1165,20 @@ export class LocalMemoryRuntime {
       restored?.model ?? options.model ?? DEFAULT_MODEL_ID,
     );
     const conversationId =
-      restored?.conversationId ?? this.#identityFactory.create("conversation");
+      restored?.conversationId ??
+      seed?.conversationId ??
+      this.#identityFactory.create("conversation");
     const chatSession = new ChatSession({
       model: profile.id,
       transport: this.#transport,
       ...(options.systemMessage === undefined
         ? {}
         : { systemMessage: options.systemMessage }),
-      ...(restored === undefined ? {} : { initialMessages: restored.messages }),
+      ...(restored !== undefined
+        ? { initialMessages: restored.messages }
+        : seed === undefined
+          ? {}
+          : { initialMessages: seed.messages }),
       // Profile defaults first, operator overrides on top. The profile means
       // "checked against the model card" and is not edited to tune a run.
       generation: { ...profile.defaults, ...this.#chatGeneration },
@@ -1140,6 +1222,17 @@ export class LocalMemoryRuntime {
   createTurn(chatSession: ChatSession, conversationId: ConversationId) {
     const settings = this.preferences.current;
     const limits = settings.budgets;
+    const profile = this.#registry.require(chatSession.model);
+    const systemInstructions =
+      settings.instructions.length === 0
+        ? ""
+        : renderInstructionTemplate(
+            settings.instructions,
+            createInstructionTemplateValues({
+              profile,
+              workingDirectory: this.workingDirectory,
+            }),
+          );
     const memoryAware = new MemoryAwareChatSession({
       chat: chatSession,
       memoryReader: this.#createReader(limits),
@@ -1153,7 +1246,7 @@ export class LocalMemoryRuntime {
         "Chat input (Parameters → Budgets)",
       ),
       recentMessageLimit: limits.recentMessages,
-      systemInstructions: settings.instructions,
+      systemInstructions,
     });
     const semanticProfile = this.#registry.require(settings.semantic.model);
     const generator = new ChatTransportSemanticJsonGenerator({
@@ -1621,6 +1714,7 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
     projectId,
     agentId,
     sqlitePath: config.sqlitePath,
+    workingDirectory: resolve(options.workingDirectory ?? process.cwd()),
     tracer,
     knowledge,
     conversationStore,

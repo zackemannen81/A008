@@ -28,6 +28,7 @@ import {
 import type { HtmlArtifactCandidate } from "./artifact/code-artifact.js";
 import { ProjectsPage } from "./projects/projects-page.js";
 import { ProjectSidebar } from "./projects/project-sidebar.js";
+import { PlatformPage } from "./platform/platform-page.js";
 
 const STATUS_LABEL = {
   idle: "Not connected",
@@ -38,7 +39,15 @@ const STATUS_LABEL = {
 const REVIEW_PROMPT =
   "Granska ändringarna i arbetskopian med git status, git diff och git diff --cached. Läs berörda filer vid behov och sammanfatta fynden.";
 
-type Page = "chat" | "memory" | "tools" | "help" | "projects";
+type Page = "chat" | "memory" | "tools" | "help" | "projects" | "platform";
+const PAGE_TITLE: Record<Page, string> = {
+  chat: "Conversation",
+  memory: "Memory",
+  tools: "Tools",
+  help: "Help",
+  projects: "Projects",
+  platform: "Platform",
+};
 type ToolSurface = "terminal" | "files" | "browser" | "upload";
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -239,6 +248,12 @@ export function App() {
           >
             <span aria-hidden="true">?</span> Help
           </button>
+          <button
+            aria-current={page === "platform" ? "page" : undefined}
+            onClick={() => navigate("platform")}
+          >
+            <span aria-hidden="true">▣</span> Platform
+          </button>
         </nav>
         <ProjectSidebar
           session={session}
@@ -282,17 +297,7 @@ export function App() {
           >
             ☰
           </button>
-          <span>
-            {page === "chat"
-              ? "Conversation"
-              : page === "memory"
-                ? "Memory"
-                : page === "help"
-                  ? "Help"
-                  : page === "projects"
-                    ? "Projects"
-                    : "Tools"}
-          </span>
+          <span>{PAGE_TITLE[page]}</span>
           <span className="a008-header-workspace">{workspace}</span>
         </div>
         <div className="a008-header-actions">
@@ -399,6 +404,9 @@ export function App() {
           active={page === "projects"}
           onOpened={() => void projectOpened()}
         />
+      </main>
+      <main className="a008-help-main" hidden={page !== "platform"}>
+        <PlatformPage active={page === "platform"} model={session.model} />
       </main>
       <ShortcutDock
         hidden={page !== "chat" || filesOpen || toolsOpen || canvasOpen}

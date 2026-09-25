@@ -8,6 +8,8 @@ export async function startSessionControlProvider(
   ) => Record<string, unknown> | undefined,
 ) {
   const requests: Record<string, any>[] = [];
+  let chatInFlight = 0;
+  let peakChatInFlight = 0;
   const server = createServer(async (request, response) => {
     let text = "";
     for await (const chunk of request) text += String(chunk);
@@ -19,6 +21,13 @@ export async function startSessionControlProvider(
       operation = JSON.parse(last).operation;
     } catch {
       /* chat text */
+    }
+    if (
+      operation === "knowledge_analysis" &&
+      JSON.stringify(payload).includes("MEMORY-FAIL")
+    ) {
+      response.writeHead(500).end(JSON.stringify({ error: "synthetic memory failure" }));
+      return;
     }
     if (operation !== undefined) {
       const result =
@@ -40,10 +49,16 @@ export async function startSessionControlProvider(
       );
       return;
     }
+    chatInFlight += 1;
+    peakChatInFlight = Math.max(peakChatInFlight, chatInFlight);
+    const releaseChat = (): void => {
+      chatInFlight = Math.max(0, chatInFlight - 1);
+    };
     if (last.includes("FAIL-TURN")) {
       response
         .writeHead(500)
         .end(JSON.stringify({ error: "synthetic failure" }));
+      releaseChat();
       return;
     }
     if (last.includes("WAIT-TURN")) {
@@ -51,7 +66,12 @@ export async function startSessionControlProvider(
       response.write(
         `data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: "Waiting in fixture." } }] })}\n\n`,
       );
+      response.on("close", releaseChat);
       return; // Disconnected by cancellation; no timer or provider spend.
+    }
+    try {
+    if (last.includes("DELAY-ANSWER")) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
     }
     const message = chatReply?.(payload) ?? {
       role: "assistant",
@@ -93,6 +113,9 @@ export async function startSessionControlProvider(
       );
       response.end("data: [DONE]\n\n");
     }
+    } finally {
+      releaseChat();
+    }
   });
   server.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -101,6 +124,8 @@ export async function startSessionControlProvider(
     throw new Error("Fixture failed to bind.");
   return {
     requests,
+    /** Highest number of simultaneous non-semantic chat requests. */
+    peakChatInFlight: () => peakChatInFlight,
     endpoint: `http://127.0.0.1:${address.port}/v1/chat/completions`,
     async close() {
       server.closeAllConnections();

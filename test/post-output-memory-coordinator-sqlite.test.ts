@@ -70,33 +70,39 @@ test("actual SQLite multi-proposal flow observes earlier indexed canon", async (
         };
         if (envelope.operation === "knowledge_analysis") {
           assert.deepEqual(Object.keys(envelope.input).sort(), [
-            "answer",
-            "message",
+            "responseText",
+            "retrievedContext",
+            "userMessage",
           ]);
           return {
             message: {
               role: "assistant",
-              content: JSON.stringify([
-                {
-                  severity: "important",
-                  proposition: "SQLite stores canonical memory.",
-                  kind: "architecture-decision",
-                  tags: ["memory", "sqlite"],
-                  domains: ["architecture"],
-                  entities: ["sqlite"],
-                  confidence: 0.9,
-                },
-                {
-                  severity: "important",
-                  proposition:
-                    "SQLite stores canonical memory and relation decisions.",
-                  kind: "architecture-decision",
-                  tags: ["memory", "relations", "sqlite"],
-                  domains: ["architecture"],
-                  entities: ["relation-gate", "sqlite"],
-                  confidence: 0.92,
-                },
-              ]),
+              content: JSON.stringify({
+                new_knowledge: [
+                  {
+                    severity: "important",
+                    proposition: "SQLite stores canonical memory.",
+                    kind: "architecture-decision",
+                    tags: ["memory", "sqlite"],
+                    domains: ["architecture"],
+                    entities: ["sqlite"],
+                    confidence: 0.9,
+                  },
+                  {
+                    severity: "important",
+                    proposition:
+                      "SQLite stores canonical memory and relation decisions.",
+                    kind: "architecture-decision",
+                    tags: ["memory", "relations", "sqlite"],
+                    domains: ["architecture"],
+                    entities: ["relation-gate", "sqlite"],
+                    confidence: 0.92,
+                  },
+                ],
+                state_updates: [],
+                relation_updates: [],
+                reinforcements: [],
+              }),
             },
             reasoning: "private analyzer reasoning must remain display-only",
           };

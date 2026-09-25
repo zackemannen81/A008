@@ -3,6 +3,127 @@
 Status: Normativ målmodell
 Syfte: Kanonisk beskrivning av hur A008 representerar kunskap, current state, history, provenance, adaptivt minne, retrieval och context.
 
+# 0. Base model idea
+
+A008: Pre-Provider Call Memory Retrieval
+Mental Modell: Tänk dig Git med enbart en gren (main).
+Nuvarande tillstånd = EXAKT NU
+Historik = Tidigare tillstånd
+A008 Retrieval = Din intelligenta bibliotekarie
+🎭 Scentag: Besöket i Biblioteket
+1. Förfrågan från Användaren
+   Användare: "Jag har en WORKER som ska jobba med loadfile.c för att ändra en C-funktion så att den enbart listar .md-filer och inte allt (*). Det vore också hjälpsamt att veta om någon annan har frågat om detta tidigare."
+2. A008 Retrieval (Den Intelligenta Bibliotekarien)
+   A008: "Jaha, okej! Jag sammanställer en brief-mapp till dig... Låt mig se vad jag vet om filläsning. Jag hämtar relevant kunskap som fortfarande finns i biblioteket, sorterad efter relevans och prioritet:"
+📁 Innehåll i Kontext-Kuvertet (Briefing Folder):
+Exakta Taggar (Senaste nytt):
+Taggar: Files, fileformat, programming, coding, C files, I/O, Disk Operations
+Domänkontext:
+Allt inom domänen: Development
+Närliggande Kunskap:
+Relaterad information via luddig logik (fuzzy logic) eller existerande kopplingar.
+Aktuell Samtalskontext:
+Eftersom vårt förra samtal handlade om Unreal Engine hämtade jag även allt inom Game Engines och Game Development.
+Glömd/Passiv Kunskap (Dormant Knowledge Hit):
+"Jag ringde det gamla biblioteket och hittade den här dammiga, glömda informationen: loadfile.c - reading and Writing files in C. Ingen har läst den på flera år, men eftersom den matchade din förfrågan exakt skickar jag med den."
+Historik & Tidigare Versioner:
+"Du är inte den första som frågar om detta! Tillsammans med den senaste uppdaterade versionen skickar jag med alla tidigare ersatta versioner av loadfile.c som vi har sparade."
+3. Överlämning till Worker
+   Användare: "Hallå min lojala WORKER, jag har en CURRENT_TASK till dig:
+Hjälp mig med denna utvecklingsuppgift: Ändra i loadfile.c så att den enbart listar .md-filer istället för *.
+Läs igenom denna brief-mapp med all den senaste informationen innan du sätter igång."
+4. Exekvering & Resultat
+   Worker: "WOW, det här är allt jag behöver och ingenting överflödigt! Jag är färdig! Tjena Användaren, jag har löst uppgiften:
+loadfile.c läste tidigare in alla filändelser. Det är nu fixat.
+Jag behövde inkludera <stdlib.h> för att det skulle fungera.
+Nu listar loadfile.c enbart .md-filer och läser därefter in dem."*
+5. Tillbakakoppling via Extraktorn
+   Extraktorn: Knack knack
+"Det är bara jag, Extraktorn! Jag tar en kopia av ditt resultat, analyserar det och skickar tillbaka det till A008-bibliotekarien för klassificering och kategorisering. Jag behöver veta om detta ändrar något eller om ny information har lagts till. Jag skriver också ner vilken information som du använde ur bibliotekariens brief-mapp"
+6. Arkivering, Förstärkning, återaktivering & Uppdatering
+   A008 (Bibliotekarien): "Äntligen! Nu har jag klassificerat och taggat den nya kunskapen. Vem kunde tro att den där gamla informationen om loadfile.c faktiskt skulle komma till användning igen? Jag ser till att den får stanna kvar i det aktiva biblioteket eftersom ämnet verkar bli populärt igen."
+Det betyder att två olika states för samma semantic concern får absolut committas:
+t1:
+balloon.color = red
+t2:
+balloon.color = blue
+t3:
+balloon.color = none
+Alla tre är fortfarande knowledge/historik:
+Knowledge:
+- Balloon color was red
+- Balloon color was blue
+- Balloon color was later removed
+Men current state är bara:
+balloon.color = none
+Det finns inget behov av någon särskild “semantic conflict resolution” bara för att två agents råkar ändra samma concern. Databasen behöver bara säkerställa att varje state-transition skrivs atomärt och får en entydig ordning.
+Om två chats samtidigt gör:
+Chat A → balloon.color = blue
+Chat B → balloon.color = none
+och commitordningen blir:
+commit A
+commit B
+då är:
+history:
+red → blue → none
+current state:
+none
+Det är ju bokstavligen vad state betyder: tillståndet efter den senast applicerade förändringen.
+Och retrieval vid nästa vanliga turn ska då inte få:
+balloon.color = red
+balloon.color = blue
+balloon.color = none
+utan:
+balloon.color = none
+Om användaren däremot frågar:
+Varför har ballongerna ingen färg längre?
+då triggar intent/classification historisk retrieval och A008 kan hämta:
+red
+↓
+blue
+↓
+none   ← current
+med provenance från respektive förändring.
+Så modellen är egentligen ännu enklare:
+KNOWLEDGE
+append / accumulate
+keeps history
+CURRENT STATE
+one current value per semantic concern
+later committed state replaces previous current value
+RETRIEVAL
+normally → current state
+historical intent → current + relevant history
+Det betyder också att resonemang om att:
+“två agents ändrar samma concern → reconcile”
+är fel för modellen.
+Det normala är bara:
+state A committed
+state B committed afterwards
+→ B is current
+Reconciliation behövs först om systemet inte kan avgöra vilken transition som faktiskt blev senare/auktoriserad, inte för att två olika states existerar historiskt.
+Det här är dessutom exakt Git-liknelsen igen, fast ännu rakare:
+commit 1: balloon.color = red
+commit 2: balloon.color = blue
+commit 3: balloon.color = none
+HEAD:
+balloon.color = none
+Gamla commits försvinner inte.
+Men man öppnar inte filen och får tre olika färgvärden bara för att historiken innehåller dem.
+Knowledge behåller vad som hänt. Current state säger hur det är nu.
+dvs Vad gäller just nu.
+current state: balongerna är röda
+dvs nästa gång jag skriver i chatten typ:
+Kan vi göra balongerna till en annan färg...
+retrival: balongerna är röda
+current state: balongerna är röda
+execution result: Vi har gjort balongerna gröna
+skulle balongerna gjorts gröna i en parallell chat som startade med samma state som ovan. men skickade user message efter result av op.
+current state: balongerna är röda
+Kan vi göra balongerna till en annan färg...
+retrival: balongerna är gröna
+execution result: Vi har gjort balongerna Röda
+
 ---
 
 # 1. Purpose
@@ -1024,13 +1145,16 @@ candidate
 ranking / admission
       │
       ▼
-actually used / admitted
+provider execution
+      │
+      ▼
+post-output extraction proves material reuse
       │
       ▼
 reinforcement
 ```
 
-Annars skulle candidate search själv hålla hela databasen levande.
+Retrieval/admission är read-only ur lifecycle-perspektiv. Ett item förstärks först när den fullbordade turnen visar att kunskapen faktiskt återanvändes, återbekräftades eller på nytt etablerades semantiskt. Annars skulle candidate search själv hålla hela databasen levande.
 
 ---
 
@@ -1637,15 +1761,22 @@ Efter varje fullbordad turn sker en kontrollerad write-process.
 USER INPUT
     │
     ▼
-MODEL EXECUTION
+RETRIEVED CURRENT KNOWLEDGE
     │
-    ▼
-FINAL OUTPUT
-    │
-    ▼
+    └──────────────┐
+                   ▼
+MODEL EXECUTION → FINAL OUTPUT
+                   │
+                   ▼
 KNOWLEDGE EXTRACTION
-    │
-    ▼
+(retrieved baseline + user input + final output)
+                   │
+                   ├── new knowledge
+                   ├── state updates
+                   ├── relation updates
+                   └── reinforcements
+                   │
+                   ▼
 SEMANTIC RESOLUTION
     │
     ▼
@@ -1676,22 +1807,69 @@ Operationen ska där det krävs vara atomär.
 
 # 47. Extraction
 
-Extractorn identifierar atomic knowledge.
+Extractorn identifierar atomic knowledge relativt den exakta retrieved-context som workern fick i samma turn.
 
-Den ska försöka producera:
+Dialogue-inputen är:
 
 ```text
-proposition
-kind
-entities
-tags
-domains
-severity
-temporal qualifiers
-structured semantic proposition when possible
+retrievedContext
+userMessage
+responseText
 ```
 
-Extractorn får inte hitta på semantic identities bara för att fylla schema.
+`retrievedContext` bär stabilt retrieved-item-ID, evidence-ID och semantic address där de redan finns. Extractorn får återanvända dessa identiteter men får inte hitta på nya semantic identities bara för att fylla schema. För reinforcement är `knowledgeId` alltid det exakta retrieved-item-`id`:t; `evidenceId` är runtime/provenance-metadata och får inte användas som ersättare.
+
+Retrieved metadata ska komma från respektive lagrad post. Sökfrågans tags och
+entities får inte kopieras till alla retrieved items som om de beskrev lagrad
+kunskap. Postens egna domains följer med som klassificering. Där läsytan saknar
+postspecifik applicability scope lämnas itemets scope tomt; query entities är
+inte applicability scope. Metadata är inte ytterligare sakpåståenden.
+
+Dialogue-resultatet separerar:
+
+```text
+new_knowledge
+state_updates
+relation_updates
+reinforcements
+```
+
+För new/state/relation-kandidater ska extractorn producera proposition, kind, severity och andra säkra semantiska fält. För varje durable artifact vars ämne kan klassificeras säkert anges 1–4 användbara återanvändbara domäner enligt ägarens uppdaterade intervall. Varje posts eget ämne klassificeras, inte bara hela projektets eller rapportens. Domain är retrieval-klassificering, inte ett faktapåstående, och får därför härledas från ämnet även när domänfrasen inte står ordagrant i källan. Tags klassificerar specifika återanvändbara ämnesbegrepp; 1–16 användbara tags får anges när sådana kan identifieras. Intervallen är gränser, inte konsumtionsmål eller skäl till utfyllnad. Lämpliga labels från baseline återanvänds. Sparse betyder ingen utfyllnad, inte utebliven klassificering. Entities är fortsatt optional och avser självständigt identifierbara referenter.
+
+En projektrapport kan innehålla bestående kunskap även när användaren bara bad
+om en rapport. Vad som kvalificerar för extraktion avgörs per sakuppgift från input och
+slutligt svar; ren arbetsnarration filtreras separat. Fakta som kan ändras
+oberoende delas upp. Upplösta egenskaper/relationer använder befintliga binding-
+format i stället för sammanfattande predicates eller stora metadataobjekt.
+Nödvändiga villkor, osäkerhet och källangivelser bevaras i propositionen.
+Ett optional `confidence` anges som tal mellan 0 och 1; oanvända optional-fält
+utelämnas. Ett tomt resultat är fortfarande exakt de fyra arrayerna ovan, utan
+förklarande text. Reinforcement bedöms separat från ny kunskaps eligibility.
+
+Retrieval-klassificeraren får samtalets befintliga, begränsade domänscope som
+`currentDomains`. En indirekt följdfråga eller ändring ska kunna hämta aktuellt
+state även utan upprepat filnamn; en ren social tur kan fortfarande avstå.
+Scope tillhör respektive conversation och ersätter inte retrieved baseline.
+Extractorn får lösa indirekta referenter mot denna baseline och ska bevara den
+befintliga entity/attribute-identiteten. Flera möjliga referenter ger ingen rätt
+att gissa en state-adress. Att faktiskt använda en känd egenskap för en
+rekommendation, exempelvis kontrast mot aktuell textfärg, är reinforcement även
+utan att användaren upprepar påståendet. Enbart topical overlap är inte reuse.
+
+Knowledge som redan fanns i retrieved context ska inte skapas igen bara för att workern upprepar den. Om samma knowledge faktiskt återanvändes eller återbekräftades i den fullbordade turnen blir den i stället en reinforcement-kandidat. State change vid samma semantic address är inte en duplicate utan en state-update-kandidat.
+
+En `state_update` får bara uppdatera en current-state-post som faktiskt fanns i samma retrieved baseline. Semantic address ska kopieras exakt från baseline och den strukturerade `attribute_binding`-propositionen måste beskriva samma slot. Intake validerar detta fail-closed innan relation classification/commit. Generic turn-wide workflow labels ska inte stampas på varje artifact, och runtime ska inte maskera utebliven klassificering med en påhittad catch-all-domain.
+
+Commit-time dedupe kvarstår alltid: extraction-time jämförelsen ersätter aldrig global/relevant dedupe mot knowledge store.
+
+En känd entity innebär inte att alla dess egenskaper redan är kända. En ny
+uttryckligen etablerad egenskap och dess värde ska extraheras självständigt från
+eventuell reinforcement av tidigare kunskap. När entity/attribute/value är
+upplösta används source-grounded `attribute_binding`; runtime äger canonical
+address. En allmän beskrivning av en fil får inte ersätta dess nya färgegenskap.
+Om en reinforcement innehåller `semanticAddress` måste den finnas på och exakt
+matcha samma retrieved item. Saknar posten adress utelämnas fältet; ett filnamn
+är inte en semantic address.
 
 ---
 
@@ -1708,6 +1886,8 @@ extend
 supersede
 conflict
 ```
+
+Classifiern klassificerar relation, inte truth ownership. `supersede` och `conflict` kräver samma semantic address; olika attribute slots får aldrig slås ihop bara för att prosan är lik. Runtime/commit äger Current State, History, canonical IDs och lifecycle.
 
 Classifiern beskriver semantisk relation.
 

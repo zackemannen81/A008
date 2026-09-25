@@ -63,6 +63,19 @@ const input = {
   taskId: TASK,
   message: "  What should the memory loop retain?  ",
   answer: "  Reasoning is display-only.  ",
+  retrievedContext: [
+    {
+      id: "state:memory-loop:current",
+      semanticAddress: "memory_loop.mode",
+      evidenceId: "claim-memory-loop-mode",
+      currentState: "context-first",
+      proposition: "context-first",
+      kind: "state",
+      tags: ["memory"],
+      scope: ["runtime"],
+      authority: 1,
+    },
+  ],
   applicabilityScopes: ["runtime", "memory", "runtime"],
 } as const;
 
@@ -140,7 +153,7 @@ test("documented extractor examples are valid JSON batches with exact original-s
   // These exercise the wire contract and runtime admission, not live model judgement.
 });
 
-test("intake exposes only message and final answer and applies runtime-owned fields", async () => {
+test("intake exposes retrieved knowledge, user message and final response and applies runtime-owned fields", async () => {
   let received: PostOutputAnalyzerInput | undefined;
   let calls = 0;
   const untrusted = [
@@ -172,14 +185,34 @@ test("intake exposes only message and final answer and applies runtime-owned fie
 
   const result = await intake(analyzer).stage(input);
   assert.equal(calls, 1);
-  // The guard is that nothing beyond the variant's own fields reaches the
-  // analyzer — no reasoning, no control state, no identity.
-  assert.deepEqual(Object.keys(received ?? {}), ["kind", "message", "answer"]);
+  // The guard is that the analyzer receives exactly the semantic baseline,
+  // user message and final provider response — no reasoning/control state.
+  assert.deepEqual(Object.keys(received ?? {}), [
+    "kind",
+    "retrievedContext",
+    "userMessage",
+    "responseText",
+  ]);
   assert.equal(received?.kind, "dialogue");
   assert.deepEqual(received, {
     kind: "dialogue",
-    message: "What should the memory loop retain?",
-    answer: "Reasoning is display-only.",
+    retrievedContext: {
+      items: [
+        {
+          id: "state:memory-loop:current",
+          semanticAddress: "memory_loop.mode",
+          evidenceId: "claim-memory-loop-mode",
+          currentState: "context-first",
+          proposition: "context-first",
+          kind: "state",
+          tags: ["memory"],
+          scope: ["runtime"],
+          authority: 1,
+        },
+      ],
+    },
+    userMessage: "What should the memory loop retain?",
+    responseText: "Reasoning is display-only.",
   });
   assert.equal(result.sourceMessage, "What should the memory loop retain?");
   assert.deepEqual(
@@ -230,6 +263,133 @@ test("intake exposes only message and final answer and applies runtime-owned fie
 
   untrusted[0]!.tags[0] = "mutated";
   assert.deepEqual(result.proposals[0]!.proposal.tags, ["memory", "reasoning"]);
+});
+
+test("four-bucket extraction separates reinforcement from new and changed knowledge", async () => {
+  const staged = await intake({
+    async analyze() {
+      return {
+        new_knowledge: [
+          {
+            severity: "important",
+            proposition:
+              "The extractor compares against the same-turn baseline.",
+            kind: "mechanism",
+            tags: ["memory"],
+            domains: ["orchestration"],
+            entities: ["A008"],
+          },
+        ],
+        state_updates: [
+          {
+            severity: "important",
+            proposition: "memory_loop.mode is now context-aware",
+            kind: "state",
+            semanticAddress: "memory_loop.mode",
+            structuredProposition: {
+              kind: "attribute_binding",
+              entityLabel: "memory.loop",
+              attribute: "mode",
+              value: "context-aware",
+            },
+          },
+        ],
+        relation_updates: [],
+        reinforcements: [
+          {
+            knowledgeId: "state:memory-loop:current",
+            semanticAddress: "memory_loop.mode",
+          },
+        ],
+      };
+    },
+  }).stage(input);
+
+  assert.equal(staged.proposals.length, 2);
+  assert.deepEqual(staged.reinforcements, [
+    {
+      knowledgeId: "state:memory-loop:current",
+      evidenceId: "claim-memory-loop-mode",
+      semanticAddress: "memory_loop.mode",
+    },
+  ]);
+  assert.equal(
+    staged.proposals[1]?.proposal.structuredProposition?.kind,
+    "attribute_binding",
+  );
+  assert.equal(staged.serialized.includes("claim-memory-loop-mode"), true);
+});
+
+test("A008-0173: an entity name cannot masquerade as a retrieved claim's semantic address", async () => {
+  let observed: PostOutputAnalyzerInput | undefined;
+  const staged = await intake({
+    async analyze(value) {
+      observed = value;
+      return {
+        new_knowledge: [],
+        state_updates: [],
+        relation_updates: [],
+        reinforcements: [
+          { knowledgeId: "claim:panel", semanticAddress: "panel.html" },
+          { knowledgeId: "claim:panel" },
+        ],
+      };
+    },
+  }).stage({
+    ...input,
+    retrievedContext: [
+      {
+        id: "claim:panel",
+        evidenceId: "panel-claim",
+        proposition: "panel.html is an animation",
+        kind: "claim",
+        tags: ["animation"],
+        domains: ["development"],
+        scope: [],
+        authority: 0.4,
+      },
+    ],
+  });
+  assert.ok(observed?.kind === "dialogue");
+  assert.deepEqual(observed.retrievedContext.items[0]?.domains, [
+    "development",
+  ]);
+  assert.equal(staged.reinforcements?.length, 1);
+  assert.equal(staged.reinforcements?.[0]?.semanticAddress, undefined);
+  assert.deepEqual(staged.skippedProposals, [
+    "reinforcement 1 target identity/address mismatch",
+  ]);
+});
+
+test("mismatched state-update address is skipped before classification or commit", async () => {
+  const staged = await intake({
+    async analyze() {
+      return {
+        new_knowledge: [],
+        state_updates: [
+          {
+            severity: "important",
+            proposition: "The project worktree is clean.",
+            kind: "state",
+            semanticAddress: "memory_loop.mode",
+            structuredProposition: {
+              kind: "attribute_binding",
+              entityLabel: "project",
+              attribute: "worktree_status",
+              value: "clean",
+            },
+          },
+        ],
+        relation_updates: [],
+        reinforcements: [],
+      };
+    },
+  }).stage(input);
+
+  assert.equal(staged.proposals.length, 0);
+  assert.deepEqual(staged.skippedProposals, [
+    "proposal 1 state update semanticAddress does not match structuredProposition slot",
+  ]);
 });
 
 test("intake enforces the exact multibyte serialized budget", async () => {
@@ -553,6 +713,7 @@ test("a completed batch reports skipped proposals through the diagnostic", async
     status: "completed",
     batch: staged,
     records: [],
+    reinforcements: [],
     skippedProposals: [],
   });
   assert.ok(diagnostic);
@@ -564,6 +725,7 @@ test("a completed batch reports skipped proposals through the diagnostic", async
       status: "completed",
       batch: { ...staged, skippedProposals: [] },
       records: [],
+      reinforcements: [],
       skippedProposals: [],
     }),
     undefined,

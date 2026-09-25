@@ -4,7 +4,7 @@ import type {
   SerializedContextMeasurer,
 } from "../types.js";
 import type { ProjectionPayload } from "./evidence-types.js";
-import type { RetrievedSurface } from "./read-types.js";
+import type { RetrievedRecord, RetrievedSurface } from "./read-types.js";
 
 /**
  * Turns a knowledge projection into provider context items.
@@ -62,6 +62,8 @@ export const DEFAULT_PROJECTION_BUDGET_BYTES = 32_768;
 export interface ProjectionItemsInput {
   readonly taskId: string;
   readonly payload: ProjectionPayload;
+  /** Exact retrieved records behind the payload, preserving identity and labels. */
+  readonly records?: readonly RetrievedRecord[];
   readonly measurer: SerializedContextMeasurer;
   readonly maximumBytes?: number;
 }
@@ -77,7 +79,7 @@ export interface ProjectionItemsResult {
 export function projectionItems(
   input: ProjectionItemsInput,
 ): ProjectionItemsResult {
-  const candidates = collect(input.payload);
+  const candidates = collect(input.payload, input.records);
   const { kept, deduplicated } = deduplicate(candidates);
   const ranked = rank(kept);
   return applyBudget(
@@ -89,25 +91,50 @@ export function projectionItems(
   );
 }
 
-function collect(payload: ProjectionPayload): ContextKnowledgeItem[] {
-  const tags = [...payload.scope.tags];
-  const scope = [...payload.scope.entities];
+function collect(
+  payload: ProjectionPayload,
+  records: readonly RetrievedRecord[] | undefined,
+): ContextKnowledgeItem[] {
+  const recordsBySurface = new Map<RetrievedSurface, RetrievedRecord[]>();
+  for (const record of records ?? []) {
+    const bucket = recordsBySurface.get(record.surface) ?? [];
+    bucket.push(record);
+    recordsBySurface.set(record.surface, bucket);
+  }
   const item = (
     surface: RetrievedSurface,
     index: number,
     proposition: string,
-  ): ContextKnowledgeItem => ({
-    id: `${surface}:${index}`,
-    proposition,
-    kind: surface,
-    tags,
-    scope,
-    authority: SURFACE_AUTHORITY[surface],
-  });
+    currentState?: unknown,
+  ): ContextKnowledgeItem => {
+    const record = recordsBySurface.get(surface)?.[index];
+    return {
+      id: record?.id ?? `${surface}:${index}`,
+      ...(record?.slotLabel === undefined
+        ? {}
+        : { semanticAddress: record.slotLabel }),
+      ...(record?.evidenceId === undefined
+        ? {}
+        : { evidenceId: record.evidenceId }),
+      ...(surface === "state" && currentState !== undefined
+        ? { currentState }
+        : {}),
+      proposition,
+      kind: surface,
+      tags: [...(record?.tags ?? [])],
+      ...(record === undefined ? {} : { domains: [...record.domains] }),
+      // Query entities describe why we searched, not the record's applicability.
+      // This read representation carries no per-record applicability scope.
+      scope: [],
+      authority: SURFACE_AUTHORITY[surface],
+    };
+  };
 
   const items: ContextKnowledgeItem[] = [];
   for (const [index, entry] of payload.state.entries()) {
-    items.push(item("state", index, propositionOf(entry.value, entry.slot)));
+    items.push(
+      item("state", index, propositionOf(entry.value, entry.slot), entry.value),
+    );
   }
   for (const [index, entry] of payload.claims.entries()) {
     items.push(item("claim", index, entry.label));

@@ -3,6 +3,135 @@
 This document describes durable behavior that exists now. Intended product
 architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 
+# Actual
+
+This document is the current implementation record for durable behavior that exists in the repository. Task IDs and older implementation notes are retained as provenance, but they do not override current code, `docs/CURRENT_STATUS.md`, `docs/PROJECT_BRIEF.md`, or accepted current ADRs.
+
+# Current implementation
+The dialogue extractor classifies each durable artifact by its own subject,
+using 1–4 useful domains and 1–16 useful tags under the owner's updated bounds,
+without padding or report-wide labels. Domains may be derived from the subject
+even when the exact domain phrase is absent. Entities remain independently
+identifiable referents; no catch-all fallback domain is added.
+
+A008-0175 distinguishes facts in completed reports from mere execution narration.
+Both the user message and final answer may establish eligible knowledge. It
+splits independently mutable facts into separate proposals and uses existing
+attribute/relationship bindings when resolved, without inventing identities.
+Attribution and conditions remain in the proposition. Optional confidence is
+specified as a number in [0,1]; unused optional fields are omitted. Empty results
+must still be the exact four-array JSON object, with no explanatory prose.
+
+A008-0174 requires useful specific concept tags on classifiable dialogue
+artifacts; sparse labels mean no padding, not omitted classification. Existing
+suitable baseline labels are reused. The scope classifier receives bounded
+`currentDomains` from the existing per-conversation scope so indirect follow-up
+questions and changes can retrieve their referent. Social turns may still skip
+retrieval. Extraction preserves the retrieved entity/attribute when resolving
+an unambiguous follow-up and recognizes actual property use in a recommendation
+as reinforcement. No extra transcript, identity fallback or database backfill
+is introduced. Scope remains subject context, not canonical knowledge.
+
+A008-0173 preserves each retrieved record's stored tags and domains through the
+provider projection and the same-turn extractor baseline. Query tags/entities
+are not relabelled as record metadata; item scope is empty where the read record
+has no applicability scope. Dialogue extraction compares the actual property
+and value: a known file's new explicit property is structured new knowledge,
+not merely reinforcement of its existing description. Reinforcement with an
+optional semantic address is rejected if the exact retrieved target does not
+carry that address. The worker, extractor and shared relation-classifier prompts
+state these boundaries; runtime continues to own identity, state and lifecycle.
+
+`If an agent or human developer is caught using the word memory in the same
+sentence as the name of the execution engine punishment will come.
+Execution engine is ACME. 
+A008 owns memory.
+If any semantic memory function calls into the execution provider 
+the punishment is four weeks of degraded duty counting lines of code.
+Execution metadata is not memory. Execution receipts are not memory. 
+ACME does not think, remember, infer, reinforce, decay, classify, or establish 
+truth. see 
+`docs/WARNING.md`
+
+## Platform V3 protocol foundation
+
+`packages/protocol/src/platform-v3.ts` owns the additive durable-work wire
+schemas, exported types and generated `platform-v3*` JSON Schema/OpenAPI files.
+V3-owned envelopes are strict; message content reuses `chatContentSchema` and
+its existing nested parsing behavior. V1/V2 artifacts are unchanged. These
+contracts do not implement HTTP endpoints, persistence or execution. See
+`docs/platform/PROTOCOL.md`; current implemented behavior remains documented here.
+
+## Independent Platform V3 client
+
+`packages/client/src/platform-v3.ts` exports `createPlatformV3Client`. It checks
+each V3 request before network I/O and each response before return, encodes path
+segments, and makes at most one HTTP attempt per mutation. It does not mint a
+new command id, retry an ambiguous failure, poll, or cancel a server run when
+the client is disposed. Injected fetch and the existing credential adapters own
+I/O. The client does not open a host endpoint or execute a platform run. See
+`docs/platform/CLIENT.md`.
+
+## Durable platform storage foundation
+
+`src/platform/platform-store.ts` owns independent SQLite conversations, runs,
+command receipts and body-free outbox records. Trusted tenant/project scopes
+isolate access. Admission, answers and their events commit transactionally;
+lease generations fence stale workers. Expired undispatched work can requeue,
+while dispatched uncertainty requires reconciliation. An accepted pre-dispatch
+cancellation survives lease expiry. Unknown external effects cannot be confirmed
+as cancelled. Memory outcome metadata is independent of the committed answer.
+The store has no scheduler, HTTP routes, semantic intake or process-lifetime lock.
+See `docs/platform/STORE.md`. Host composition is the local platform backend below.
+
+## Trusted backend conversation history
+
+A008-0163 adds internal `conversationSeed: { conversationId, messages }` to
+EngineHost session construction and the existing ACP/local runtime composition.
+The runtime validates a canonical conversation ID and committed user/assistant
+content, and copies the history. Seed input is absent from client request DTOs
+and cannot be combined with legacy workspace-conversation persistence. Opening
+it performs no provider call, semantic replay or legacy-store mutation. The next
+new turn uses the existing cognition/memory/provider pipeline. See
+`docs/platform/CONVERSATION_SEED.md`.
+
+## Local platform backend
+
+When `A008_PLATFORM_PATH` or `GuiHostOptions.platformPath` is set,
+`src/gui-host/server.ts` serves `/v3` through `src/gui-host/platform-v3-http.ts`
+and `src/platform/coordinator.ts`. The tenant is `local`. V2 PIN or device
+authentication with the `session` capability authorizes project resources before
+existence is revealed. `PlatformStore.lookupRunReceipt` replays an identical
+`run.create` before capacity or model checks, using the same canonical digest
+as `acceptRun`. The runtime adapter opens the already-owned project runtime
+with `conversationSeed` excluding the new user message and performs one
+tool-free `turn`. Answer commit and memory outcome are separate. A missing
+committed assistant after dispatch stays unknown until lease recovery marks
+`needs_reconciliation`. There is no public reconciliation mutation. See
+`docs/platform/BACKEND.md`.
+
+## Platform admin CLI
+
+`src/platform/admin-cli.ts` inspects and cancels through the merged V3 client.
+`npm run platform-admin` compiles the repository before launch, because the
+CLI runs from `dist/` and that directory is not committed. It does not load
+`.env.local` or open the platform database. Origin is `--origin` or `A008_PLATFORM_ORIGIN`. `info` prints
+`available` and capability names without a bearer and exits 0. Resource
+commands take the bearer only from `A008_DEVICE_TOKEN` and perform one SDK
+call. `cancel-run` sends one cancel. Failures print the SDK code and exit
+non-zero. Device credentials remain in the host device registry. See
+`docs/platform/ADMIN.md`.
+
+## Bundled platform surface
+
+`gui/src/platform/platform-page.tsx` is an additional workspace page. It reads
+`GET /v3/info` and, when the host is available and the existing PIN cookie or
+an injected device credential allows it, uses `createPlatformV3Client` for one
+project the GUI already lists. Run creation sends one `commandId` per click.
+Retry reuses that id. Event polling stops when the page is inactive and does
+not cancel the run. V1 chat remains the default conversation surface. See
+`docs/platform/GUI.md`.
+
 ## Project sidebar and saved chats
 
 A008-0155 / ADR 0047 adds a sidebar project tree below workspace navigation.
@@ -46,7 +175,7 @@ the shared semantic runtime-budget checks described in the package README.
 
 The root and portable engine ship `dist/packages/protocol/src`; the independent
 tarball ships its own `dist`. V1 message tolerance, errors, ACP sessions and
-permission behavior remain unchanged. The [HTTP/WS inventory](HOST_PROTOCOL_V1_INVENTORY.md)
+permission behavior remain unchanged. The route inventory in `packages/protocol/src/routes.ts`
 records current ownership. A008-0105 adds shared HTTP request/response shapes,
 legacy upload/shell/frame/memory parsing and generated OpenAPI from the same
 owner. Existing core/host HTTP producer types and GUI consumers use these DTOs;
@@ -109,8 +238,7 @@ process. Native ACP chat and authenticated web panels borrow the same session.
 Disconnecting a panel preserves that session. Explicit close and engine EOF cancel
 active turns, settle approval requests, close MCP children, panels and SQLite.
 The engine package includes compiled CLI/ACP/GUI, a matching Node executable,
-production dependencies and notices. Data lives outside the installation. Full
-lifecycle, attachment and protocol details are in [ENGINE.md](ENGINE.md).
+production dependencies and notices. Data lives outside the installation. Lifecycle, attachment and protocol behavior is documented in the relevant current sections of this document.
 
 Model tools enter through typed definitions and structured JSON/SSE calls. Native
 `exec_command` and client-approved stdio MCP tools require per-action approval.
@@ -124,7 +252,7 @@ The normalized arguments are the values shown for approval and supplied to MCP.
 Observations re-enter an ephemeral provider transcript. Only the original user
 message and final answer reach committed history and post-output intake.
 
-[Runtime settings](RUNTIME_SETTINGS.md) configure global instructions and local
+Runtime settings configure global instructions and local
 budgets. Each turn captures one snapshot; model generation settings remain scoped
 to its session. Saving settings neither calls a model nor mutates knowledge.
 
@@ -196,6 +324,12 @@ early. An explicit base equal to the fallback remains explicit configuration.
 The invocation plan can substitute provider-visible current user content, bound
 the outgoing dialogue tail and enforce the hard budget over the exact composed
 role/content serialization. Envelope serialization and retrieval are unchanged.
+Before chat composition, global Instructions render only the allowlisted inline
+fields `provider_model`, `model_capabilities`, `working_directory`,
+`is_git_repo`, `platform`, `os_version`, and `today_date`. The selected
+model/profile and canonical project working directory provide those values.
+Unknown `{{...}}` fields fail visibly and are never resolved from process
+environment variables. Rendered Instructions stay in the system role.
 Tool continuations reuse the same instruction/settings snapshot. The pending
 committed turn uses the original normalized user text and actual final answer;
 the automatically selected fallback and contextual rule are never committed as
@@ -328,7 +462,7 @@ at startup; cwd defaults to the host's launch directory. It applies to native
 file tools, Git and shell commands. It does not automatically select a different
 standalone memory store. Session snapshots expose optional `runtime.tools`
 native catalog metadata. Tools → Repository shows the catalog, cwd and explicit
-model-request shortcuts. See [GUI repository tools](GUI_REPOSITORY_TOOLS.md).
+model-request shortcuts. Current repository-tool behavior is owned by these implementation surfaces and this document.
 
 The shared executor offers `list_files`, `read_file`, `create_file`, `edit_file`
 and `git` alongside `exec_command`. File edits require a matching SHA-256 and
@@ -384,7 +518,7 @@ arrives as `thought` frames and is never concatenated into an `answer` frame.
 provider finishes and returns that snapshot immediately; later `session/activity`
 snapshots resolve the same item. No Agent Server schema and no OpenHands
 TypeScript client participate. `session/control` and `session/control/ok`
-carry the session operations and snapshots specified in HOST_PROTOCOL.md.
+carry the session operations and snapshots defined by the shared protocol package and current host implementation.
 
 Credentials stay in the host process. `NVIDIA_API_KEY`, `KIE_API_KEY`,
 `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`
@@ -611,29 +745,27 @@ skips the animation loop. Empty chat also offers Review, Terminal, Browser, File
 a Shortcuts control restores it, and the choice is remembered in localStorage.
 Keyboard shortcuts still work while the dock is hidden. Workbench opens a floating
 environment/sources card: git branch and change counts from host-shell
-`git status -sb` / shortstat, session uploads, and clipboard ingest through
-`POST /v1/upload`. It is not the tool catalog. Help hosts that catalog and the
+`git status -sb`/ shortstat, session uploads, and clipboard ingest through`POST /v1/upload`. It is not the tool catalog. Help hosts that catalog and the
 shortcut reference. Tools keeps Terminal, Files, Browser and Upload as working
 panes. The Browser pane is a sandboxed iframe; sites that set
-`frame-ancestors` or `X-Frame-Options` (ChatGPT, NVIDIA Build, …) are not
+`frame-ancestors`or`X-Frame-Options`(ChatGPT, NVIDIA Build, …) are not
 framed. The host probes those headers and the pane offers Open in the system
 browser instead. On a narrow screen the workbench card occupies the main area; the same
-button closes it. `brand/themes.css` defines Neutral (the extracted current charcoal palette),
+button closes it.`brand/themes.css`defines Neutral (the extracted current charcoal palette),
 Deep Space (blue-black/navy with restrained electric-blue interaction), and
 Oldscool (dark CRT surfaces, phosphor-green controls, warm retro highlights, a static
 pointer-inert scanline layer, and selected-control phosphor bloom)
-as semantic custom properties on `html[data-a008-theme]`. `brand/a008.css` aliases the older
-`--a008-*` names onto that model so unmigrated feature CSS follows the selected
-theme; `brand/workspace.css` is loaded last for shell and responsive composition.
+as semantic custom properties on`html[data-a008-theme]`. `brand/a008.css`aliases the older`--a008-_`names onto that model so unmigrated feature CSS follows the selected
+theme;`brand/workspace.css`is loaded last for shell and responsive composition.
 Parameters → Appearance → App theme switches immediately. Oldscool alone also adds a static
 pointer-inert scanline layer plus restrained phosphor bloom to selected chrome and primary
 controls; it does not affect input, runtime/session state, Neutral/Deep Space, or the sandboxed
 Code Canvas preview. The choice is stored in
-renderer-local `a008.preferences` as `{ appearance: { theme } }`, not in runtime
+renderer-local`a008.preferences`as`{ appearance: { theme } }`, not in runtime
 settings or session state. Missing or unknown values default to Neutral. Graph
-and Memory kind colours use a separate `--a008-viz-*` family. The Code Canvas
+and Memory kind colours use a separate `--a008-viz-_` family. The Code Canvas
 host chrome may follow the theme; the sandboxed preview document does not.
-See [ADR 0031](adr/0031-workbench-context-and-memory-map.md) and
+See [ADR 0031](adr/_legacy/0031-workbench-context-and-memory-map.md) and
 [ADR 0038](adr/0038-global-app-theme-system.md).
 
 ### GUI session operations and parameters (A008-0065)
@@ -679,21 +811,24 @@ the conversation while open. Navigation preserves chat, draft and workbench stat
 The modal traps focus natively, restores it on Escape or close, and scrolls
 independently on a phone-sized viewport.
 
-See [ADR 0026](adr/0026-gui-session-controls.md) for endpoint sources and
+See [ADR 0026](adr/_legacy/0026-gui-session-controls.md) for endpoint sources and
 [the proof](evidence/A008-0065_session-controls-proof.md) for browser/payload gates.
 
 ## Evidence lifecycle (L2)
 
 A008-0081 implements ADR 0035 P1-P5 in the existing knowledge engine. The
-[constitution](KNOWLEDGE_MEMORY_MODEL.md#72-the-lifecycle-record) owns the
+current semantic model in `CURRENT_MEMORY_MODEL.md` owns the
 policy, occurrence and migration rules. Claims receive validated severity from
 the existing analyzer; one operation time evaluates a persisted exponential
 baseline. Direct dormant matches stay eligible. Inspection exposes baseline and
 evaluated values; model projection contains no lifecycle numbers.
 
-Live lifecycle reinforcement is occurrence-based. Once retrieval has fixed the
-admitted set, existing lifecycle-backed evidence that became semantically
-actual/relevant in that distinct occurrence may be reinforced exactly once.
+Live lifecycle reinforcement is occurrence-based. Retrieval, admission and
+projection are read-only: they do not strengthen an item merely because it was
+selected. Post-output extraction compares the completed turn with the exact
+same-turn retrieved projection and may explicitly identify existing
+lifecycle-backed evidence that was materially reused/reaffirmed. That evidence
+is reinforced exactly once for the turn occurrence.
 Exact quote/span/provenance support is validated independently for evidence and
 association attachment; missing or ambiguous proof is not a lifecycle veto.
 Entity commit reuses an existing registry identity when a later label slugs to
@@ -702,8 +837,7 @@ register.
 Writes execute synchronously under the knowledge transaction/lock and durable
 occurrence/evidence receipts make retries idempotent. In-memory writes restore
 the prior snapshot on failure. DEFINE/RETRIEVE/EXPAND/FILTER/COMPOSE/PROJECT
-remain non-mutating; reinforcement is the separate lifecycle write after
-admission. Schema 3 converts legacy baselines
+remain non-mutating; reinforcement is a separate post-output lifecycle write. Schema 3 converts legacy baselines
 without inventing severity, history or elapsed age; see the constitution's
 backup/restore procedure. Settings format 4 holds advanced creation policy in
 the existing runtime owner; existing-client saves preserve it.
@@ -734,7 +868,7 @@ all processing to constant time. Reads and lazy L2/L3 decay remain write-free.
 ## Independent association lifecycle (L3)
 
 A008-0082 implements ADR 0035 P6 alongside RelationIndex. Its
-[constitution contract](KNOWLEDGE_MEMORY_MODEL.md#75-independent-semantic-associations)
+current semantic model in `CURRENT_MEMORY_MODEL.md`
 owns identity, source proof and numeric policy. A directed edge is keyed by the
 project namespace, canonical endpoints, exact semantic relation and sorted unique
 applicability scope. No binding interval or endpoint strength participates.
@@ -794,7 +928,7 @@ aborts obsolete client requests. It does not poll or cache memory in localStorag
 `GET /v1/memory` reaches custom ACP `memory/inspect`, then
 `LocalMemoryRuntime.inspectMemory` and `inspectKnowledge` on the same knowledge
 context chat owns. No provider invocation or additional SQLite owner is created.
-The contract and limits are specified in [HOST_PROTOCOL.md](HOST_PROTOCOL.md).
+The current contract and limits are defined by the shared protocol package and the host behavior documented here.
 
 Overview shows actual inventory, lifecycle and contested-slot counts plus domain
 attachments. Knowledge Manager provides substring search, surface/domain/status
@@ -939,10 +1073,19 @@ commits only `completion.message`. Consequently reasoning is absent from chat
 history, bounded retrieval history, and later provider-visible messages.
 
 `PostOutputKnowledgeIntake` establishes a narrow provider-neutral staging
-boundary. It validates runtime context outside the analyzer and allocates a new
-analyzer input containing exactly normalized original message and final answer.
-It explicitly materializes only proposition, kind, tags, domains, entities, and
-confidence from untrusted analyzer output. Caller-verified scopes and
+boundary. For dialogue turns it validates runtime context outside the analyzer
+and supplies exactly the retrieved projection used by the worker, the normalized
+original user message and the final provider response. The retrieved projection
+preserves stable item/evidence identity plus semantic address/current state where
+the read path already owns them; no second retrieval occurs after the answer.
+Source extraction remains a separate locator/content contract.
+Dialogue analyzer output is split into `new_knowledge`, `state_updates`,
+`relation_updates` and `reinforcements`. New/state/relation candidates remain
+untrusted staged proposals. Reinforcement must copy the exact retrieved-item
+`id`; `evidenceId` is runtime/provenance metadata and is never a substitute.
+A state update must copy a current-state semantic address from the same retrieved
+projection and its `attribute_binding` must resolve to that same slot. Intake
+rejects mismatches before classifier/commit. Caller-verified scopes and
 conservative authority, relevance, activation, source-backed, keep-alive, and
 provenance defaults remain runtime-owned.
 
@@ -963,9 +1106,13 @@ the exact serialized role/content array, forces non-streaming mode, and makes
 one transport call. It does not use `ChatSession`, so semantic prompts and
 responses cannot become committed dialogue.
 
-`ModelBackedPostOutputKnowledgeAnalyzer` supplies only normalized original
-message and final answer. `ModelBackedKnowledgeRelationClassifier` supplies the
-existing exact ID-free proposal/candidate envelope. Both may share one generator
+`ModelBackedPostOutputKnowledgeAnalyzer` supplies dialogue extraction with
+`retrievedContext`, `userMessage` and `responseText`. Stable retrieved
+knowledge/evidence IDs and semantic addresses are intentionally present so the
+extractor can name the exact artifact it reused or changed; lifecycle scores,
+retrieval reasons, runtime/project/session IDs and provider reasoning remain
+absent. `ModelBackedKnowledgeRelationClassifier` still receives the separate
+bounded local-handle proposal/candidate envelope. Both may share one generator
 and therefore one transport/model configuration without constructing another
 provider implementation or credential owner.
 
@@ -978,7 +1125,10 @@ persisted; effort-capable models default to `none` unless the operator selects a
 supported level. Luna/Terra semantic calls omit unsupported temperature, while
 chat keeps its separate session reasoning choice.
 The classifier instruction distinguishes the input envelope from the output
-decision and gives concrete JSON shapes (A008-0083).
+decision and gives concrete JSON shapes (A008-0083). Its semantic relation
+contract is intentionally narrower than state ownership: restatement/supersede/
+conflict require the same resolved semantic address, while runtime reconciliation
+owns Current State, History, canonical identity and lifecycle.
 A008-0085 adds serialized, fictional extractor examples covering empty social
 exchange, a greeting with a durable fact and an ingested source. All example
 outputs pass the existing stager. Analyzer support is an exact `quote` from the
@@ -996,9 +1146,13 @@ Completeness applies only after a durability eligibility gate. Routine execution
 narration, transient workflow state, immediate requests and one-off occurrences are
 not promoted into durable preferences, habits or standing goals unless the source
 explicitly establishes persistence. Assistant-answer-only discoveries require a
-higher durability threshold. Extracted entities are instructed to name stable,
-independently identifiable referents; generic concepts belong in tags/domains.
-No runtime greeting blacklist is added. Invalid-response diagnostics identify the
+higher durability threshold. Dialogue extraction normally assigns the smallest
+useful broad domain set to every durable artifact whose subject can be safely
+classified, usually one domain and at most two for genuinely cross-domain
+knowledge. Domain labels are retrieval classification metadata and need not be
+verbatim source phrases. Tags and entities remain optional and sparse; extracted
+entities name stable independently identifiable referents. No runtime catch-all
+domain or greeting blacklist is added. Invalid-response diagnostics identify the
 model and semantic operation, retaining strict failure and the bounded response
 excerpt. Provider/cancellation failures retain their original error identity.
 
@@ -1125,7 +1279,7 @@ records `chatStatus` and `memoryStatus`.
 
 Live read uses `KnowledgeMemoryReader` over SQLite knowledge tables. Direct
 matches ignore evidence dormancy. Vector RAG remains a v0 optional adapter, not
-live. See `docs/LOCAL_MEMORY_SURFACES.md` and `docs/DEBUG_TRACE.md`.
+live. Current semantic behavior is owned by `docs/CURRENT_MEMORY_MODEL.md`; tracing details remain in `docs/DEBUG_TRACE.md`.
 
 ## Runtime identity core
 
@@ -1196,15 +1350,20 @@ persistent user data remains prohibited until classification, authorization,
 encryption, retention, deletion, and export policies are owned.
 
 The memory-aware orchestration code likewise reads no environment, credential,
-file, database, or network directly. Its prompt strips routing and memory
-control data. Canonical propositions can still contain adversarial text; JSON
-data framing and a fixed trust instruction reduce authority confusion but do
-not establish complete prompt-injection resistance.
+file, database, or network directly. Its provider prompt strips routing,
+runtime/project/session control data and lifecycle/retrieval scoring, while
+deliberately retaining the bounded knowledge identity and semantic address
+needed for same-turn extraction. Canonical propositions can still contain
+adversarial text; JSON data framing and a fixed trust instruction reduce
+authority confusion but do not establish complete prompt-injection resistance.
 
 The post-output intake service receives no reasoning or complete provider
-result and owns no write port. Its staged drafts remain untrusted. The separate
-relation gate exposes only materialized meaning and local handles to its
-classifier; it retains control IDs and canonical authority at runtime. The
+result and owns no write port. For dialogue it receives the exact retrieved
+knowledge projection, normalized user message and final response text; its
+staged drafts and explicit reinforcement references remain untrusted until
+runtime validation. The separate relation gate exposes only materialized
+meaning and local handles to its classifier; it retains canonical authority at
+runtime. The
 benchmark and relation tests use in-memory SQLite and fake/local components
 only.
 
@@ -1295,3 +1454,13 @@ A008-0139 adds the V2 reconnect/resume lease without creating another runtime ow
 A008-0140 closes Stage 4 without adding persistence. Every standalone V2 GUI-host process already creates a fresh `serverInstanceId`; A008-0140 proves that process death therefore invalidates the in-memory receipt registry and detached-session lease. A receipt known to be running on the dead instance is `COMMAND_UNKNOWN` on the new instance, the old session/resume capability is `SESSION_EXPIRED`, and the host does not infer success/failure or automatically resubmit the mutation. A real host also proves answer/memory independence by returning a completed answer while post-output semantic extraction fails as `memoryStatus=staging_failed`. The combined Stage-4 matrix covers snapshot/event ordering, duplicate commands, cancellation/tool approval, lease expiry, restart uncertainty and project/session isolation.
 
 Public `GET /v2/info` now advertises the complete bounded Stage-4 surface: A008-0132 identity/order/snapshot/terminal features, A008-0138 command receipts/idempotency, A008-0139 `session.reconnect-resume`, and A008-0140 `session.restart-uncertainty`, with the same bounded limits. The bundled GUI Parameters → Runtime view reports `STAGE 4 COMPLETE`. A008-0149 adds `@a008/client`: bundled GUI session and HTTP I/O go through that SDK. Chat still uses the V1 session adapter for PIN-disabled, engine-panel, attachment and in-session image parity; independent consumers use the V2 adapter. Existing V1 reconnect compatibility remains separate from the V2 contract. Stage 6 is the Expo/native proof.
+
+## GUI parallel worktree sessions
+
+A008-0178 exposes the existing local `ProjectWorkspaceStore` only through authenticated V1 GUI-host routes. `GuiWorkspaceStore` owns the external SQLite `workspaceRoot` setting and passes it to new worktree creation; the root must be absolute and outside the registered project repository. `GET/POST /v1/workspace-settings` reads/writes that setting. `GET/POST /v1/projects/:projectId/workspaces` lists status or creates an isolated worktree; `POST .../:workspaceId/keep` and `POST .../:workspaceId/discard` retain or cleanly remove it. Routes first validate the registered project and retain host origin/PIN/engine authentication.
+
+Project details show branch, base, path, changed-file count and commits ahead. Create, Keep and Discard require browser confirmation. Merge and Create PR are explicitly unavailable controls: this slice performs no merge, push, remote PR creation or branch deletion. Opening an active worktree is explicit and closes the old bridge before binding its cwd for the next chat/tool session.
+
+## Project worktree session foundation
+
+A008-0177 adds src/runtime/project-workspace-store.ts, a local SQLite owner for explicit shared or Git-worktree project sessions. A worktree session verifies a registered project root is a Git worktree, creates an 008/session-<suffix> branch in a sibling <project>-workspaces directory, and records its base branch and workspace path. It reports modified-file count and commits ahead. Keep retains the branch/worktree. Discard refuses a dirty worktree and removes only the owned clean worktree through literal Git arguments; it never merges, pushes or deletes a remote branch. No host HTTP, GUI, chat-session or repository-tool binding exists yet.

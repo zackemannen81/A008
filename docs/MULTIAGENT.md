@@ -68,9 +68,9 @@ Before a writing wave:
    outside the canonical repository.
 4. Record base revision, branch, write scope, read dependencies, and gates.
 5. Confirm real permissions and external-effect boundaries.
-6. Respect at most five concurrent writing workers or the lower runtime limit.
+6. Respect at most six concurrent writing workers or the lower runtime limit.
 
-The five-worker limit is advisory until a configured process layer proves
+The six-worker limit is advisory until a configured process layer proves
 enforcement. The optional local MCP add-on can supervise processes but cannot
 allocate IDs, decide scope, merge, or accept completion.
 

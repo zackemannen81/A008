@@ -9,6 +9,8 @@ import type {
 } from "../src/core/types.js";
 import {
   ChatTransportSemanticJsonGenerator,
+  KNOWLEDGE_EXTRACTOR_INSTRUCTION,
+  KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION,
   KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION,
   ModelBackedKnowledgeRelationClassifier,
   ModelBackedPostOutputKnowledgeAnalyzer,
@@ -425,7 +427,14 @@ test("model-backed adapters allocate stable semantic-only inputs on one shared g
     async generate(input) {
       calls.push(input);
       return input.operation === "knowledge_analysis"
-        ? [{ proposition: "Keep answers only", kind: "rule" }]
+        ? {
+            new_knowledge: [
+              { proposition: "Keep answers only", kind: "rule" },
+            ],
+            state_updates: [],
+            relation_updates: [],
+            reinforcements: [{ knowledgeId: "state:memory-mode" }],
+          }
         : { type: "new" };
     },
   };
@@ -436,13 +445,34 @@ test("model-backed adapters allocate stable semantic-only inputs on one shared g
   assert.deepEqual(
     await analyzer.analyze(
       {
-        message: "Question",
-        answer: "Final answer",
+        kind: "dialogue",
+        retrievedContext: {
+          items: [
+            {
+              id: "state:memory-mode",
+              semanticAddress: "memory.mode",
+              evidenceId: "claim-memory-mode",
+              currentState: "context-first",
+              proposition: "context-first",
+              kind: "state",
+              tags: ["memory"],
+              scope: ["runtime"],
+              authority: 1,
+            },
+          ],
+        },
+        userMessage: "Question",
+        responseText: "Final answer",
         reasoning: "must not cross",
       } as never,
       { signal: controller.signal },
     ),
-    [{ proposition: "Keep answers only", kind: "rule" }],
+    {
+      new_knowledge: [{ proposition: "Keep answers only", kind: "rule" }],
+      state_updates: [],
+      relation_updates: [],
+      reinforcements: [{ knowledgeId: "state:memory-mode" }],
+    },
   );
   assert.deepEqual(
     await classifier.classify(
@@ -472,13 +502,28 @@ test("model-backed adapters allocate stable semantic-only inputs on one shared g
     "signal",
   ]);
   assert.equal(calls[0]?.operation, "knowledge_analysis");
-  assert.equal(
-    calls[0]?.systemInstruction,
-    POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION,
-  );
+  assert.equal(calls[0]?.systemInstruction, KNOWLEDGE_EXTRACTOR_INSTRUCTION);
   assert.equal(
     calls[0]?.serializedInput,
-    '{"message":"Question","answer":"Final answer"}',
+    JSON.stringify({
+      retrievedContext: {
+        items: [
+          {
+            id: "state:memory-mode",
+            semanticAddress: "memory.mode",
+            evidenceId: "claim-memory-mode",
+            currentState: "context-first",
+            proposition: "context-first",
+            kind: "state",
+            tags: ["memory"],
+            scope: ["runtime"],
+            authority: 1,
+          },
+        ],
+      },
+      userMessage: "Question",
+      responseText: "Final answer",
+    }),
   );
   assert.equal(calls[0]?.serializedInput.includes("reasoning"), false);
   assert.equal(calls[1]?.operation, "relation_classification");
@@ -526,7 +571,69 @@ test("semantic JSON output budget fits a full extraction", () => {
   assert.equal(SEMANTIC_JSON_GENERATION.stream, false);
 });
 
-test("the analyzer instruction keeps its two structural guarantees", () => {
+test("the dialogue knowledge extractor freezes baseline-aware four-bucket semantics", () => {
+  const instruction = KNOWLEDGE_EXTRACTOR_INSTRUCTION;
+  assert.match(instruction, /exact retrieved knowledge baseline.*supplied to the worker/iu);
+  assert.match(instruction, /NEW_KNOWLEDGE/iu);
+  assert.match(instruction, /STATE_UPDATE/iu);
+  assert.match(instruction, /RELATION_UPDATE/iu);
+  assert.match(instruction, /REINFORCEMENT/iu);
+  assert.match(instruction, /Merely retrieving an artifact is NOT reinforcement/iu);
+  assert.match(instruction, /responseText is never quotation evidence/iu);
+});
+
+test("the dialogue extractor freezes librarian identity and state-update rules", () => {
+  const instruction = KNOWLEDGE_EXTRACTOR_INSTRUCTION;
+  assert.match(instruction, /Never put evidenceId in knowledgeId/iu);
+  assert.match(
+    instruction,
+    /knowledgeId to an exact retrievedContext\.items\[\]\.id value/iu,
+  );
+  assert.match(
+    instruction,
+    /update MUST copy semanticAddress exactly from the retrieved item/iu,
+  );
+  assert.match(
+    instruction,
+    /structuredProposition MUST describe the same semantic slot/iu,
+  );
+  assert.match(instruction, /Never use words such as "current" as the interval value/iu);
+  assert.match(instruction, /Do not stamp every artifact with generic workflow labels/iu);
+});
+
+test("the dialogue extractor preserves domain classification while keeping fine metadata sparse", () => {
+  const instruction = KNOWLEDGE_EXTRACTOR_INSTRUCTION;
+  assert.match(instruction, /For every durable artifact whose subject is clear enough to classify, emit 1-4 useful reusable subject domains/iu);
+  assert.match(instruction, /Classify each artifact by its own subject/iu);
+  assert.match(instruction, /Omit domains only when the subject cannot be classified safely, never merely to keep metadata sparse/iu);
+  assert.match(instruction, /Domains are retrieval classification metadata, not factual claims/iu);
+  assert.match(instruction, /emit a small useful set of specific reusable tags/iu);
+  assert.match(instruction, /Sparse means no padding, not no classification/iu);
+  assert.match(instruction, /Entities remain optional/iu);
+  assert.match(instruction, /Tag\/domain classification.*need not copy an exact phrase from the source/iu);
+});
+
+test("relation classification cannot supersede across semantic addresses", () => {
+  for (const instruction of [
+    KNOWLEDGE_RELATION_CLASSIFIER_INSTRUCTION,
+    KNOWLEDGE_RELATION_BATCH_CLASSIFIER_INSTRUCTION,
+  ]) {
+    assert.match(
+      instruction,
+      /supersede is forbidden when semantic addresses differ/iu,
+    );
+    assert.match(
+      instruction,
+      /Different attribute slots are different semantic addresses/iu,
+    );
+    assert.match(
+      instruction,
+      /does not choose Current State or History/iu,
+    );
+  }
+});
+
+test("the source analyzer instruction keeps its two structural guarantees", () => {
   const instruction = POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION;
 
   // Untrusted-data framing. This is what stops an injection attempt inside
@@ -784,14 +891,17 @@ test("the offered vocabulary is bounded; a prompt is not a database dump", async
     message: "x",
     knownDomains: Array.from({ length: 50 }, (_, index) => `d${index}`),
     knownTags: Array.from({ length: 50 }, (_, index) => `t${index}`),
+    currentDomains: Array.from({ length: 50 }, (_, index) => `c${index}`),
   });
 
   const payload = JSON.parse(sent) as {
     readonly knownDomains: readonly string[];
     readonly knownTags: readonly string[];
+    readonly currentDomains: readonly string[];
   };
   assert.deepEqual(payload.knownDomains, ["d0", "d1", "d2"]);
   assert.deepEqual(payload.knownTags, ["t0", "t1", "t2"]);
+  assert.deepEqual(payload.currentDomains, ["c47", "c48", "c49"]);
 });
 
 test("the scope instruction asks for related labels and for reuse", () => {
@@ -799,6 +909,8 @@ test("the scope instruction asks for related labels and for reuse", () => {
   // becoming lexical matching again.
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /retrieve=false for greetings/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Prefer precision over recall/u);
+  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /ceilings, never targets/u);
+  assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Return the smallest useful label set/u);
   assert.match(RETRIEVAL_SCOPE_INSTRUCTION, /Prefer a known label/u);
   assert.match(
     RETRIEVAL_SCOPE_INSTRUCTION,

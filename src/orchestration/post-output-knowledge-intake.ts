@@ -12,20 +12,28 @@ import type {
 import { MemoryError } from "../memory/errors.js";
 import { deserializeInterval } from "../memory/knowledge/clocks.js";
 import { parseClaimProposition } from "../memory/knowledge/claim-proposition.js";
+import { entitySlug } from "../memory/knowledge/registry.js";
 import type { Interval } from "../memory/knowledge/types.js";
-import type { KnowledgeProposal } from "../memory/types.js";
+import type {
+  ContextKnowledgeItem,
+  KnowledgeProposal,
+} from "../memory/types.js";
 import type { SemanticOperationContext } from "./semantic-operation.js";
 
 /**
  * A delivered conversation turn.
  *
- * The analyzer sees only the normalized original message and the final answer.
+ * The analyzer receives the exact knowledge projection that was supplied to the
+ * worker, plus the normalized user message and final provider response.
  * Reasoning and control state never reach it (ADR 0009).
  */
 export interface DialogueAnalyzerInput {
   readonly kind: "dialogue";
-  readonly message: string;
-  readonly answer: string;
+  readonly retrievedContext: {
+    readonly items: readonly ContextKnowledgeItem[];
+  };
+  readonly userMessage: string;
+  readonly responseText: string;
 }
 
 /**
@@ -63,6 +71,7 @@ export interface AnalyzedKnowledgeDraft {
   readonly support?: AnalyzerSupportQuote;
   readonly proposition: string;
   readonly kind: string;
+  readonly semanticAddress?: string;
   readonly structuredProposition?: unknown;
   /** Explicit validity interval when the source establishes one. */
   readonly aboutInterval?: unknown;
@@ -71,6 +80,23 @@ export interface AnalyzedKnowledgeDraft {
   readonly entities?: readonly string[];
   readonly confidence?: number | string;
 }
+
+export interface AnalyzerReinforcementDraft {
+  /** Exact retrieved item id when the extractor can name it. */
+  readonly knowledgeId?: string;
+  /** Exact semantic address may be used when it uniquely identifies one item. */
+  readonly semanticAddress?: string;
+}
+
+export interface DialogueKnowledgeExtraction {
+  readonly new_knowledge: readonly AnalyzedKnowledgeDraft[];
+  readonly state_updates: readonly AnalyzedKnowledgeDraft[];
+  readonly relation_updates: readonly AnalyzedKnowledgeDraft[];
+  readonly reinforcements: readonly AnalyzerReinforcementDraft[];
+}
+
+export type PostOutputKnowledgeAnalysis =
+  readonly AnalyzedKnowledgeDraft[] | DialogueKnowledgeExtraction;
 
 export type SupportQuoteResolution =
   | { readonly ok: true; readonly span: KnowledgeSupportSpan }
@@ -212,7 +238,7 @@ export interface PostOutputKnowledgeAnalyzer {
   analyze(
     input: PostOutputAnalyzerInput,
     context?: SemanticOperationContext,
-  ): Promise<readonly AnalyzedKnowledgeDraft[]>;
+  ): Promise<PostOutputKnowledgeAnalysis>;
 }
 
 export interface KnowledgeIntakeMeasurer {
@@ -252,6 +278,8 @@ export interface StageDialogueKnowledgeInput {
   readonly taskId: RuntimeTaskId;
   readonly message: string;
   readonly answer: string;
+  /** Exact same-turn projection supplied to the worker. */
+  readonly retrievedContext?: readonly ContextKnowledgeItem[];
   readonly applicabilityScopes: readonly string[];
 }
 
@@ -284,6 +312,14 @@ export interface StagedKnowledgeProposal {
   readonly proposal: KnowledgeProposal;
   readonly domains: readonly string[];
   readonly entities: readonly string[];
+}
+
+export interface StagedKnowledgeReinforcement {
+  /** Retrieved context item identity returned by the extractor. */
+  readonly knowledgeId: string;
+  /** Durable lifecycle target resolved from that exact retrieved item. */
+  readonly evidenceId: string;
+  readonly semanticAddress?: string;
 }
 
 /**
@@ -325,6 +361,8 @@ export interface StagedKnowledgeBatch {
   /** Final assistant answer for dialogue batches; never user evidence. */
   readonly answerMessage?: string;
   readonly proposals: readonly StagedKnowledgeProposal[];
+  /** Additive for compatibility with already staged/custom batches. */
+  readonly reinforcements?: readonly StagedKnowledgeReinforcement[];
   readonly serialized: string;
   readonly measuredUnits: number;
   readonly measurementUnit: string;
@@ -473,6 +511,61 @@ function normalizedScopes(values: readonly string[]): string[] {
   );
 }
 
+function normalizedRetrievedContext(
+  values: readonly ContextKnowledgeItem[] | undefined,
+): ContextKnowledgeItem[] {
+  return (values ?? []).map((item, index) => ({
+    id: nonEmpty(item.id, `retrievedContext item ${index + 1} id`),
+    ...(item.semanticAddress === undefined
+      ? {}
+      : {
+          semanticAddress: nonEmpty(
+            item.semanticAddress,
+            `retrievedContext item ${index + 1} semanticAddress`,
+          ),
+        }),
+    ...(item.evidenceId === undefined
+      ? {}
+      : {
+          evidenceId: nonEmpty(
+            item.evidenceId,
+            `retrievedContext item ${index + 1} evidenceId`,
+          ),
+        }),
+    ...(item.currentState === undefined
+      ? {}
+      : { currentState: structuredClone(item.currentState) }),
+    proposition: nonEmpty(
+      item.proposition,
+      `retrievedContext item ${index + 1} proposition`,
+    ),
+    kind: nonEmpty(item.kind, `retrievedContext item ${index + 1} kind`),
+    ...(item.domains === undefined
+      ? {}
+      : {
+          domains: normalizedStrings(
+            item.domains,
+            `retrievedContext item ${index + 1} domains`,
+            Number.MAX_SAFE_INTEGER,
+          ),
+        }),
+    tags: normalizedStrings(
+      item.tags,
+      `retrievedContext item ${index + 1} tags`,
+      Number.MAX_SAFE_INTEGER,
+    ),
+    scope: normalizedStrings(
+      item.scope,
+      `retrievedContext item ${index + 1} scope`,
+      Number.MAX_SAFE_INTEGER,
+    ),
+    authority: unit(
+      item.authority,
+      `retrievedContext item ${index + 1} authority`,
+    ),
+  }));
+}
+
 function resolveLimits(
   limits: PostOutputKnowledgeIntakeLimits | undefined,
 ): ResolvedLimits {
@@ -500,8 +593,9 @@ function resolveLimits(
 
 export function serializeStagedKnowledgeProposals(
   proposals: readonly StagedKnowledgeProposal[],
+  reinforcements: readonly StagedKnowledgeReinforcement[] = [],
 ): string {
-  return JSON.stringify({
+  const payload = {
     proposals: proposals.map((entry) => ({
       ...(entry.severity === undefined ? {} : { severity: entry.severity }),
       ...(entry.support === undefined ? {} : { support: entry.support }),
@@ -525,7 +619,21 @@ export function serializeStagedKnowledgeProposals(
       sourceBacked: entry.proposal.sourceBacked,
       provenance: [...(entry.proposal.provenance ?? [])],
     })),
-  });
+  };
+  return JSON.stringify(
+    reinforcements.length === 0
+      ? payload
+      : {
+          ...payload,
+          reinforcements: reinforcements.map((entry) => ({
+            knowledgeId: entry.knowledgeId,
+            evidenceId: entry.evidenceId,
+            ...(entry.semanticAddress === undefined
+              ? {}
+              : { semanticAddress: entry.semanticAddress }),
+          })),
+        },
+  );
 }
 
 export class Utf8ByteKnowledgeIntakeMeasurer implements KnowledgeIntakeMeasurer {
@@ -591,21 +699,66 @@ export class PostOutputKnowledgeIntake {
           }
         : {
             kind: "dialogue",
-            message: nonEmpty(input.message, "message"),
-            answer: nonEmpty(input.answer, "answer"),
+            retrievedContext: {
+              items: normalizedRetrievedContext(input.retrievedContext),
+            },
+            userMessage: nonEmpty(input.message, "message"),
+            responseText: nonEmpty(input.answer, "answer"),
           };
 
     const untrusted: unknown = await this.#analyzer.analyze(
       analyzerInput,
       context.signal === undefined ? {} : { signal: context.signal },
     );
-    if (!Array.isArray(untrusted)) {
-      throw new MemoryError("policy", "analyzer output must be an array");
+    let proposalValues: readonly unknown[];
+    let reinforcementValues: readonly unknown[] = [];
+    let stateUpdateValues = new Set<unknown>();
+    if (analyzerInput.kind === "source" || Array.isArray(untrusted)) {
+      if (!Array.isArray(untrusted)) {
+        throw new MemoryError(
+          "policy",
+          "source analyzer output must be an array",
+        );
+      }
+      // Array dialogue output remains accepted for custom/legacy embedders;
+      // the model-backed dialogue analyzer uses the four-bucket contract.
+      proposalValues = untrusted;
+    } else {
+      if (
+        typeof untrusted !== "object" ||
+        untrusted === null ||
+        Array.isArray(untrusted)
+      ) {
+        throw new MemoryError(
+          "policy",
+          "dialogue analyzer output must be a knowledge extraction object",
+        );
+      }
+      const output = untrusted as Record<string, unknown>;
+      const bucket = (name: string): readonly unknown[] => {
+        const value = output[name];
+        if (!Array.isArray(value)) {
+          throw new MemoryError(
+            "policy",
+            `dialogue analyzer ${name} must be an array`,
+          );
+        }
+        return value;
+      };
+      const newKnowledge = bucket("new_knowledge");
+      const stateUpdates = bucket("state_updates");
+      const relationUpdates = bucket("relation_updates");
+      stateUpdateValues = new Set(stateUpdates);
+      proposalValues = [...newKnowledge, ...stateUpdates, ...relationUpdates];
+      reinforcementValues = bucket("reinforcements");
     }
-    if (untrusted.length > this.#limits.maximumProposals) {
+    if (
+      proposalValues.length + reinforcementValues.length >
+      this.#limits.maximumProposals
+    ) {
       throw new MemoryError(
         "budget_exceeded",
-        `analyzer output exceeds ${this.#limits.maximumProposals} proposals`,
+        `analyzer output exceeds ${this.#limits.maximumProposals} semantic items`,
       );
     }
 
@@ -644,7 +797,7 @@ export class PostOutputKnowledgeIntake {
       const sourceText =
         analyzerInput.kind === "source"
           ? analyzerInput.content
-          : analyzerInput.message;
+          : analyzerInput.userMessage;
       const expectedSource =
         analyzerInput.kind === "source" ? "source" : "message";
       const proposition = nonEmpty(
@@ -658,7 +811,7 @@ export class PostOutputKnowledgeIntake {
         {
           proposition,
           ...(analyzerInput.kind === "dialogue"
-            ? { answer: analyzerInput.answer }
+            ? { answer: analyzerInput.responseText }
             : {}),
         },
       );
@@ -696,10 +849,48 @@ export class PostOutputKnowledgeIntake {
           );
         }
       }
+      if (stateUpdateValues.has(value)) {
+        if (analyzerInput.kind !== "dialogue") {
+          throw new MemoryError(
+            "policy",
+            `proposal ${index + 1} state update is valid only for dialogue extraction`,
+          );
+        }
+        const semanticAddress = nonEmpty(
+          raw.semanticAddress,
+          `proposal ${index + 1} state update semanticAddress`,
+        );
+        const target = analyzerInput.retrievedContext.items.find(
+          (item) =>
+            item.kind === "state" && item.semanticAddress === semanticAddress,
+        );
+        if (target === undefined) {
+          throw new MemoryError(
+            "policy",
+            `proposal ${index + 1} state update semanticAddress was not retrieved as current state`,
+          );
+        }
+        if (structuredProposition?.kind !== "attribute_binding") {
+          throw new MemoryError(
+            "policy",
+            `proposal ${index + 1} state update requires attribute_binding structuredProposition`,
+          );
+        }
+        const structuredAddress = `${entitySlug(structuredProposition.entityLabel)}.${structuredProposition.attribute}`;
+        if (structuredAddress !== semanticAddress) {
+          throw new MemoryError(
+            "policy",
+            `proposal ${index + 1} state update semanticAddress does not match structuredProposition slot`,
+          );
+        }
+      }
+
       let aboutInterval: Interval | undefined;
       if (raw.aboutInterval !== undefined) {
         try {
-          aboutInterval = deserializeInterval(JSON.stringify(raw.aboutInterval));
+          aboutInterval = deserializeInterval(
+            JSON.stringify(raw.aboutInterval),
+          );
         } catch (error) {
           throw new MemoryError(
             "policy",
@@ -749,7 +940,7 @@ export class PostOutputKnowledgeIntake {
       } satisfies StagedKnowledgeProposal;
     };
 
-    const proposals = untrusted.flatMap((value, index) => {
+    const proposals = proposalValues.flatMap((value, index) => {
       try {
         return [validateProposal(value, index)];
       } catch (error) {
@@ -765,7 +956,105 @@ export class PostOutputKnowledgeIntake {
       }
     });
 
-    const serialized = serializeStagedKnowledgeProposals(proposals);
+    const retrievedItems =
+      analyzerInput.kind === "dialogue"
+        ? analyzerInput.retrievedContext.items
+        : [];
+    const seenReinforcementEvidence = new Set<string>();
+    const reinforcements = reinforcementValues.flatMap((value, index) => {
+      try {
+        if (
+          typeof value !== "object" ||
+          value === null ||
+          Array.isArray(value)
+        ) {
+          throw new MemoryError(
+            "policy",
+            `reinforcement ${index + 1} must be an object`,
+          );
+        }
+        const raw = value as Record<string, unknown>;
+        const knowledgeId =
+          raw.knowledgeId === undefined
+            ? undefined
+            : nonEmpty(
+                raw.knowledgeId,
+                `reinforcement ${index + 1} knowledgeId`,
+              );
+        const semanticAddress =
+          raw.semanticAddress === undefined
+            ? undefined
+            : nonEmpty(
+                raw.semanticAddress,
+                `reinforcement ${index + 1} semanticAddress`,
+              );
+        if (knowledgeId === undefined && semanticAddress === undefined) {
+          throw new MemoryError(
+            "policy",
+            `reinforcement ${index + 1} requires knowledgeId or semanticAddress`,
+          );
+        }
+        let target =
+          knowledgeId === undefined
+            ? undefined
+            : retrievedItems.find((item) => item.id === knowledgeId);
+        if (knowledgeId !== undefined && target === undefined) {
+          throw new MemoryError(
+            "policy",
+            `reinforcement ${index + 1} knowledgeId was not retrieved`,
+          );
+        }
+        if (semanticAddress !== undefined) {
+          const matches = retrievedItems.filter(
+            (item) => item.semanticAddress === semanticAddress,
+          );
+          if (target === undefined) {
+            if (matches.length !== 1) {
+              throw new MemoryError(
+                "policy",
+                `reinforcement ${index + 1} semanticAddress is not uniquely retrieved`,
+              );
+            }
+            target = matches[0];
+          } else if (target.semanticAddress !== semanticAddress) {
+            throw new MemoryError(
+              "policy",
+              `reinforcement ${index + 1} target identity/address mismatch`,
+            );
+          }
+        }
+        if (target === undefined || target.evidenceId === undefined) {
+          throw new MemoryError(
+            "policy",
+            `reinforcement ${index + 1} target has no reinforceable evidence identity`,
+          );
+        }
+        if (seenReinforcementEvidence.has(target.evidenceId)) {
+          return [];
+        }
+        seenReinforcementEvidence.add(target.evidenceId);
+        return [
+          {
+            knowledgeId: target.id,
+            evidenceId: target.evidenceId,
+            ...(target.semanticAddress === undefined
+              ? {}
+              : { semanticAddress: target.semanticAddress }),
+          } satisfies StagedKnowledgeReinforcement,
+        ];
+      } catch (error) {
+        if (error instanceof MemoryError) {
+          skipped.push(error.message);
+          return [];
+        }
+        throw error;
+      }
+    });
+
+    const serialized = serializeStagedKnowledgeProposals(
+      proposals,
+      reinforcements,
+    );
     const measuredUnits = this.#budget.measurer.measure(serialized);
     if (!Number.isSafeInteger(measuredUnits) || measuredUnits < 0) {
       throw new MemoryError(
@@ -797,11 +1086,12 @@ export class PostOutputKnowledgeIntake {
       sourceMessage:
         analyzerInput.kind === "source"
           ? analyzerInput.locator
-          : analyzerInput.message,
+          : analyzerInput.userMessage,
       ...(analyzerInput.kind === "dialogue"
-        ? { answerMessage: analyzerInput.answer }
+        ? { answerMessage: analyzerInput.responseText }
         : {}),
       proposals,
+      reinforcements,
       serialized,
       measuredUnits,
       measurementUnit: this.#budget.measurer.unit,

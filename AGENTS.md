@@ -31,8 +31,8 @@ Read these in order before changing the repository:
 8. `docs/JOURNAL.md`
 9. `docs/FILESTRUCTURE.md`
 
-Read relevant decisions under `docs/adr/` and the multi-agent rules in
-`docs/MULTIAGENT.md` when a task delegates work.
+Read relevant accepted top-level decisions under `docs/adr/` and the multi-agent rules in
+`docs/MULTIAGENT.md` when a task delegates work. `docs/adr/_legacy/` is historical provenance only and never current authority.
 
 ## Truth Ownership
 
@@ -42,11 +42,11 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
 - `docs/PROJECT_BRIEF.md`: core product contract, approved direction and non-goals.
 - `docs/CURRENT_STATUS.md`: observed current reality and verified gaps.
 - `docs/SYSTEMDOC.md`: durable behavior that actually exists.
-- `docs/CURRENT_MEMORY_MODEL.md`: owner-approved current knowledge/state/memory/context semantics; older memory-model documents and ADR clauses are historical where this file explicitly supersedes the same boundary.
+
 - `docs/JOURNAL.md`: append-only, dated work waves.
 - `docs/FILESTRUCTURE.md`: repository map.
 - `docs/TASK_IDS.md`: identity allocation only.
-- `docs/adr/`: durable decisions and consequences.
+- `docs/adr/`: accepted current decisions and consequences; `_legacy/` is historical only.
 - `docs/backlog/`: in-scope work that is not active.
 - `docs/concepts_sandbox/`: non-authoritative ideas.
 - `docs/_legacy/`: local provenance boundary; never current authority.
@@ -55,13 +55,11 @@ Read relevant decisions under `docs/adr/` and the multi-agent rules in
 
 - Raw legacy material under `docs/_legacy/agenten007/` is local provenance. It
   is ignored by Git and must not be executed or copied wholesale.
-- `C:\code\OpenHands` is an external MIT-licensed Agent Canvas source clone.
-  Its repository instructions govern changes made there; it is not A008 truth.
 - The A008 memory engine lives in `src/memory/` with SQLite persistence and
   local CLI/ACP composition. The owner-supplied Context-First document remains
   architecture input, not an external code baseline. `C:\code\acme` is not an
   adopted source baseline; A008 does, however, deliberately consume the bounded
-  published `acme-engine@0.1.5` package surface for default model execution.
+  published `acme-engine@0.1.6` package surface for default model execution.
 - Bootstrap and protocol/add-on copies in the repository root are ignored
   reference inputs, not shipped A008 content.
 
@@ -101,7 +99,7 @@ code or a vague robustness claim cannot supply product authority.
 - The operator owns task-ID allocation, the canonical working tree, integration,
   merge order, and release decisions. Workers restore the current-task template
   before they push so that file cannot conflict with `main`.
-- The declared maximum is five concurrent writing workers, or any lower runtime
+- The declared maximum is six concurrent writing workers, or any lower runtime
   limit. It is advisory until an execution layer enforces it.
 
 ## Safety

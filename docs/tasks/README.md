@@ -11,6 +11,28 @@ the template before push.
 
 ## Records
 
+- [A008-0175_atomic-dialogue-extraction.md](A008-0175_atomic-dialogue-extraction.md) — Complete on task branch; coherent report eligibility, atomic bindings and owner label ranges. [Archive](../finished/A008-0175_atomic-dialogue-extraction.md), [handoff](../handoffs/A008-0175.md).
+
+- [A008-0174_memory-tags-continuity.md](A008-0174_memory-tags-continuity.md) — Complete on task branch; useful semantic tags and scoped indirect follow-ups. [Archive](../finished/A008-0174_memory-tags-continuity.md), [handoff](../handoffs/A008-0174.md).
+
+- [A008-0173_faithful-memory-property-intake.md](A008-0173_faithful-memory-property-intake.md) — Complete on task branch; preserves stored retrieval metadata and extracts new properties of known entities. [Archive](../finished/A008-0173_faithful-memory-property-intake.md), [handoff](../handoffs/A008-0173.md).
+
+- [A008-0172_domain-classification-regression.md](A008-0172_domain-classification-regression.md) — Complete; restores minimal broad-domain classification for classifiable durable dialogue knowledge while keeping tags/entities sparse. [Archive](../finished/A008-0172_domain-classification-regression.md).
+- [A008-0171_librarian-prompt-contract-simplification.md](A008-0171_librarian-prompt-contract-simplification.md) — Complete; normal chat memory prompts aligned to current-state librarian semantics with fail-closed state-address validation. [Archive](../finished/A008-0171_librarian-prompt-contract-simplification.md).
+- [A008-0170_instruction-inline-template.md](A008-0170_instruction-inline-template.md) — Complete; strict runtime `{{...}}` fields for system Instructions. [Archive](../finished/A008-0170_instruction-inline-template.md).
+- [A008-0169_retrieved-context-knowledge-extraction.md](A008-0169_retrieved-context-knowledge-extraction.md) — Complete; same-turn retrieved knowledge baseline for post-output extraction. [Archive](../finished/A008-0169_retrieved-context-knowledge-extraction.md).
+- [A008-0168_platform-admin-cli.md](A008-0168_platform-admin-cli.md) — Complete; inspect and cancel through the existing V3 client. [Archive](../finished/A008-0168_platform-admin-cli.md).
+- [A008-0167_platform-gui-surface.md](A008-0167_platform-gui-surface.md) — Complete; additive bundled V3 page, V1 chat unchanged. [Archive](../finished/A008-0167_platform-gui-surface.md).
+- [A008-0166_host-fixture-catalog-isolation.md](A008-0166_host-fixture-catalog-isolation.md) — Complete; isolate verification from user MCP configuration.
+- [A008-0164_platform-local-backend.md](A008-0164_platform-local-backend.md) — Complete; local `/v3` host backend. [Archive](../finished/A008-0164_platform-local-backend.md).
+- [A008-0165_platform-client.md](A008-0165_platform-client.md) — Merged; independent V3 SDK, PR #108.
+
+- [A008-0163_trusted-conversation-seeding.md](A008-0163_trusted-conversation-seeding.md) — Complete; internal history seed, PR #106.
+
+- [A008-0160_platform-implementation-program.md](A008-0160_platform-implementation-program.md) — In Progress; operator-owned platform task graph.
+- [A008-0161_platform-durable-work-store.md](A008-0161_platform-durable-work-store.md) — Complete; durable platform store, PR #104.
+- [A008-0162_platform-v3-protocol.md](A008-0162_platform-v3-protocol.md) — Complete; additive V3 wire contract, PR #103.
+
 - [A008-0124_native-vision-input-and-model-capability-metadata.md](A008-0124_native-vision-input-and-model-capability-metadata.md) — Ready; final approved pre-Stage-4 task for model specs plus invocation-local native image input under ADR 0044.
 
 - [A008-0118_acme-runtime-v2-consumer.md](A008-0118_acme-runtime-v2-consumer.md) — Complete; [archive](../finished/A008-0118_acme-runtime-v2-consumer.md). Stage 3.5 GO.
@@ -119,3 +141,4 @@ the template before push.
 - [A008-0082_association-lifecycle.md](A008-0082_association-lifecycle.md) — Complete; independent L3 associations and one-hop eligibility.
 
 - [A008-0106_client-api-decisions.md](A008-0106_client-api-decisions.md) - Complete; accepted next-stage decisions.
+- [A008-0176_resolved-extraction.md](A008-0176_resolved-extraction.md) — Ready; resolved extraction and structured restatement.

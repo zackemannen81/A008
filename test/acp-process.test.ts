@@ -232,12 +232,12 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
         const envelope =
           typeof last === "string"
             ? (JSON.parse(last) as {
-                readonly input?: { readonly message?: unknown };
+                readonly input?: { readonly userMessage?: unknown };
               })
             : undefined;
         writeSemantic(
           response,
-          envelope?.input?.message === ASSERTION
+          envelope?.input?.userMessage === ASSERTION
             ? [
                 {
                   severity: "important",

@@ -41,6 +41,26 @@ export class DeterministicMemoryPromptComposer implements MemoryPromptComposer {
         );
       }
       return {
+        id: nonEmpty(item.id, `Projected memory item ${index + 1} id`),
+        ...(item.semanticAddress === undefined
+          ? {}
+          : {
+              semanticAddress: nonEmpty(
+                item.semanticAddress,
+                `Projected memory item ${index + 1} semantic address`,
+              ),
+            }),
+        ...(item.evidenceId === undefined
+          ? {}
+          : {
+              evidenceId: nonEmpty(
+                item.evidenceId,
+                `Projected memory item ${index + 1} evidence id`,
+              ),
+            }),
+        ...(item.currentState === undefined
+          ? {}
+          : { currentState: structuredClone(item.currentState) }),
         proposition: nonEmpty(
           item.proposition,
           `Projected memory item ${index + 1} proposition`,
