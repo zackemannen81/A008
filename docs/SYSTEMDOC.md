@@ -1459,7 +1459,7 @@ Public `GET /v2/info` now advertises the complete bounded Stage-4 surface: A008-
 
 A008-0178 exposes the existing local `ProjectWorkspaceStore` only through authenticated V1 GUI-host routes. `GuiWorkspaceStore` owns the external SQLite `workspaceRoot` setting and passes it to new worktree creation; the root must be absolute and outside the registered project repository. `GET/POST /v1/workspace-settings` reads/writes that setting. `GET/POST /v1/projects/:projectId/workspaces` lists status or creates an isolated worktree; `POST .../:workspaceId/keep` and `POST .../:workspaceId/discard` retain or cleanly remove it. Routes first validate the registered project and retain host origin/PIN/engine authentication.
 
-Project details show branch, base, path, changed-file count and commits ahead. Create, Keep and Discard require browser confirmation. Merge and Create PR are explicitly unavailable controls: this slice performs no merge, push, remote PR creation or branch deletion. Opening an active worktree is explicit and closes the old bridge before binding its cwd for the next chat/tool session.
+Parameters -> Parallel sessions owns the global external worktree root through the existing workspace-settings route. Project details show branch, base, path, changed-file count and commits ahead. Create, Keep and Discard require browser confirmation. Merge and Create PR are explicitly unavailable controls: this slice performs no merge, push, remote PR creation or branch deletion. Opening an active worktree is explicit and closes the old bridge before binding its cwd for the next chat/tool session.
 
 ## Project worktree session foundation
 

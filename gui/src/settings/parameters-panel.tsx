@@ -13,6 +13,7 @@ import { NvidiaCatalogPanel } from "./nvidia-catalog-panel.js";
 import { McpServersPanel } from "./mcp-servers-panel.js";
 import { ZeroCostRadarPanel } from "./zero-cost-radar-panel.js";
 import { RuntimeCapabilitiesPanel } from "./runtime-capabilities-panel.js";
+import { WorkspaceSessionsPanel } from "./workspace-sessions-panel.js";
 
 type ParameterPage =
   | "model"
@@ -23,7 +24,8 @@ type ParameterPage =
   | "runtime"
   | "budgets"
   | "instructions"
-  | "appearance";
+  | "appearance"
+  | "sessions";
 
 const PARAMETER_TABS: readonly { id: ParameterPage; label: string }[] = [
   { id: "model", label: "Model" },
@@ -35,6 +37,7 @@ const PARAMETER_TABS: readonly { id: ParameterPage; label: string }[] = [
   { id: "budgets", label: "Budgets" },
   { id: "instructions", label: "Instructions" },
   { id: "appearance", label: "Appearance" },
+  { id: "sessions", label: "Parallel sessions" },
 ];
 
 const numberValue = (value: number | null): number | "" =>
@@ -579,6 +582,9 @@ export function ParametersPanel(props: {
             <p role="status">Loading model parameters…</p>
           ) : null}
         </div>
+        <div hidden={page !== "sessions"}>
+          <WorkspaceSessionsPanel />
+        </div>
         <div hidden={page !== "appearance"}>
           <AppearancePanel />
         </div>
@@ -599,6 +605,7 @@ export function ParametersPanel(props: {
           page !== "radar" &&
           page !== "runtime" &&
           page !== "appearance" &&
+          page !== "sessions" &&
           session.status === "ready" ? (
           <p role="status">
             Global settings are unavailable. Restart the current A008 host.

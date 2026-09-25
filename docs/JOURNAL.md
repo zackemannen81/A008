@@ -2,6 +2,15 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-09-25 - A008-0181: Parameters multi-session root
+
+- Task: A008-0181; operator: A008; branch: `main`.
+- Added Parameters -> Parallel sessions for the existing global worktree root; project lifecycle remains project-owned.
+- Verification: GUI typecheck, GUI 206/206, root typecheck and diff hygiene pass.
+- [Handoff](handoffs/A008-0181.md). [Archive](finished/A008-0181_multi-session-parameters.md).
+- Signature: A008
+
+
 ## 2026-09-25 — A008-0180: agent-browser MCP startup diagnostics
 
 - Task: A008-0180; operator: A008; branch: `main`.
