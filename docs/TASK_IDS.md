@@ -191,4 +191,6 @@ never whether work is active or complete. Task state belongs in
 | A008-0175 | restore atomic dialogue extraction | Codex (operator/worker) | 2026-09-24 | repair empty project-report extraction and atomic state-bearing claims while retaining owner label ranges |
 | A008-0176 | resolved extraction and structured restatement | Codex (operator) | 2026-09-24 | iterate owner report extraction and preserve explicit bindings through claim reuse |
 | A008-0177 | A008 parallell session functions | A008 (operator) | 2026-09-24 | Git worktree, paralell isolated sessions (chats / project)|
-| A008-0178 | parallel sessions GUI and workspace settings | Rickard (operator) | 2026-09-24 | expose worktree sessions, lifecycle controls and configurable workspace root || A008-0179 | repair parallel worktree session runtime and UX | Rickard (operator) | 2026-09-25 | reuse project runtime for worktree sessions; session-bound CWD; first-class create-and-open UX |
+| A008-0178 | parallel sessions GUI and workspace settings | Rickard (operator) | 2026-09-24 | expose worktree sessions, lifecycle controls and configurable workspace root |
+| A008-0179 | repair parallel worktree session runtime and UX | Rickard (operator) | 2026-09-25 | reuse project runtime for worktree sessions; session-bound CWD; first-class create-and-open UX |
+| A008-0180 | repair agent-browser MCP startup diagnostics | A008 (operator) | 2026-09-25 | reproduce and repair first-call MCP startup failures with deterministic diagnostics |
