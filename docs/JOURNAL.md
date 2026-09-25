@@ -2698,8 +2698,16 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Parallel-session creation now creates and opens the worktree in one action; list entries retain reopen, keep and discard controls.
 - Verification: typecheck; focused bridge regression 4/4; GUI suite 205/205. No provider calls; 0 SEK.
 
-## 2026-09-25 — A008-0182 local file browser and basic editor
+## 2026-09-25 ï¿½ A008-0182 local file browser and basic editor
 
 - Added authenticated host-owned workspace file routes plus the GUI Files browser/editor. Filesystem authority remains in the host; saves use a matching SHA-256 revision and source display uses the existing escaped syntax highlighter.
 - Verification: root/GUI typecheck; focused file-route test 2/2; GUI-host test 44/44; diff check. The GUI suite is 205/206 due to the pre-existing `parameters-panel.test.ts` root-relative source-path defect; no task change was made for that unrelated failure. No provider calls; 0 SEK.
+- Signature: A008 (operator)
+
+## 2026-09-25 - A008-0183 resizable hideable sidebar and application menu
+
+- Added renderer-local File, Edit, View and Help menus plus a persistent 208â€“480 px desktop sidebar splitter with pointer/keyboard operation and a hide/show control.
+- Existing fonts, colours, themes, host routes and runtime contracts are unchanged.
+- Verification: root/GUI typechecks; focused sidebar/shell 6/6; GUI 207/208 with the known unrelated `parameters-panel.test.ts` source-path failure; diff check passed. No provider calls; 0 SEK.
+- [Handoff](handoffs/A008-0183.md). [Archive](finished/A008-0183_resizable-hideable-sidebar-and-application-menu.md).
 - Signature: A008 (operator)

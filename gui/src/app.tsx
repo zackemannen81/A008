@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { ToolPermissionDialog } from "./session/tool-permission-dialog.js";
 import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
@@ -29,6 +29,13 @@ import type { HtmlArtifactCandidate } from "./artifact/code-artifact.js";
 import { ProjectsPage } from "./projects/projects-page.js";
 import { ProjectSidebar } from "./projects/project-sidebar.js";
 import { PlatformPage } from "./platform/platform-page.js";
+import {
+  clampSidebarWidth,
+  persistSidebarHidden,
+  persistSidebarWidth,
+  readSidebarHidden,
+  readSidebarWidth,
+} from "./brand/sidebar-state.js";
 
 const STATUS_LABEL = {
   idle: "Not connected",
@@ -73,6 +80,9 @@ export function App() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [toolSurface, setToolSurface] = useState<ToolSurface>("terminal");
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(readSidebarWidth);
+  const [sidebarHidden, setSidebarHidden] = useState(readSidebarHidden);
+  const [applicationMenu, setApplicationMenu] = useState<"file" | "edit" | "view" | "help">();
   const [sources, setSources] = useState<readonly SessionSource[]>([]);
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [artifact, setArtifact] = useState<CodeArtifactView>();
@@ -88,6 +98,41 @@ export function App() {
     setPendingArtifact(undefined);
     setCanvasOpen(false);
   }, [session.sessionId]);
+
+  function toggleSidebar() {
+    setSidebarHidden((hidden) => {
+      persistSidebarHidden(!hidden);
+      return !hidden;
+    });
+  }
+
+  function resizeSidebar(nextWidth: number) {
+    const width = clampSidebarWidth(nextWidth);
+    setSidebarWidth(width);
+    persistSidebarWidth(width);
+  }
+
+  function beginSidebarResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = sidebarWidth;
+    const move = (moveEvent: PointerEvent) => resizeSidebar(startWidth + moveEvent.clientX - startX);
+    const stop = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop, { once: true });
+  }
+
+  function runMenuAction(action: "new-chat" | "files" | "parameters" | "toggle-sidebar" | "help") {
+    setApplicationMenu(undefined);
+    if (action === "new-chat") navigate("chat");
+    if (action === "files") openTools("files");
+    if (action === "parameters") openParameters();
+    if (action === "toggle-sidebar") toggleSidebar();
+    if (action === "help") navigate("help");
+  }
 
   const committedMessageCount = session.details?.messages.length;
   useEffect(() => {
@@ -215,7 +260,8 @@ export function App() {
 
   return (
     <div
-      className={`a008-app a008-${page}-workspace${toolsOpen ? " a008-panel-open" : ""}${navigationOpen ? " a008-navigation-open" : ""}`}
+      className={`a008-app a008-${page}-workspace${toolsOpen ? " a008-panel-open" : ""}${navigationOpen ? " a008-navigation-open" : ""}${sidebarHidden ? " a008-sidebar-hidden" : ""}`}
+      style={{ "--a008-sidebar-width": `${sidebarWidth}px` } as CSSProperties}
     >
       <div className="a008-crt-overlay" aria-hidden="true" />
       <ToolPermissionDialog session={session} />
@@ -286,6 +332,25 @@ export function App() {
           <p>A008 · Local-engine</p>
         </div>
       </aside>
+      <button
+        type="button"
+        className="a008-sidebar-resizer"
+        aria-label="Resize sidebar"
+        aria-orientation="vertical"
+        role="separator"
+        aria-valuemin={208}
+        aria-valuemax={480}
+        aria-valuenow={sidebarWidth}
+        onPointerDown={beginSidebarResize}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowLeft") resizeSidebar(sidebarWidth - 16);
+          else if (event.key === "ArrowRight") resizeSidebar(sidebarWidth + 16);
+          else if (event.key === "Home") resizeSidebar(208);
+          else if (event.key === "End") resizeSidebar(480);
+          else return;
+          event.preventDefault();
+        }}
+      />
       <header className="a008-header">
         <div className="a008-header-title">
           <button
@@ -297,9 +362,46 @@ export function App() {
           >
             ☰
           </button>
+          <button
+            className="a008-sidebar-toggle"
+            aria-label={sidebarHidden ? "Show sidebar" : "Hide sidebar"}
+            title={sidebarHidden ? "Show sidebar" : "Hide sidebar"}
+            aria-pressed={!sidebarHidden}
+            onClick={toggleSidebar}
+          >
+            {sidebarHidden ? "▸" : "◂"}
+          </button>
           <span>{PAGE_TITLE[page]}</span>
           <span className="a008-header-workspace">{workspace}</span>
         </div>
+        <nav className="a008-application-menu" aria-label="Application menu">
+          {([
+            ["file", "File", [["new-chat", "New chat"], ["files", "Files"]]],
+            ["edit", "Edit", [["parameters", "Parameters"]]],
+            ["view", "View", [["toggle-sidebar", sidebarHidden ? "Show sidebar" : "Hide sidebar"]]],
+            ["help", "Help", [["help", "Help"]]],
+          ] as const).map(([id, label, items]) => (
+            <div key={id} className="a008-menu-group">
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={applicationMenu === id}
+                onClick={() => setApplicationMenu(applicationMenu === id ? undefined : id)}
+              >
+                {label}
+              </button>
+              {applicationMenu === id ? (
+                <div role="menu" className="a008-menu-popup">
+                  {items.map(([action, itemLabel]) => (
+                    <button key={action} type="button" role="menuitem" onClick={() => runMenuAction(action)}>
+                      {itemLabel}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </nav>
         <div className="a008-header-actions">
           <p className="a008-header-status">
             <span

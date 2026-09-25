@@ -1,7 +1,8 @@
 /* Standalone workspace composition. Shared feature styles retain their tokens. */
 .a008-app {
+  --a008-sidebar-width: 17.5rem;
   position: relative;
-  grid-template-columns: 17.5rem minmax(0, 1fr);
+  grid-template-columns: var(--a008-sidebar-width) minmax(0, 1fr);
   grid-template-rows: 3.75rem minmax(0, 1fr);
   background: var(--a008-bg);
   font-size: .9rem;
@@ -44,6 +45,25 @@
   display: block;
 }
 .a008-header { grid-column: 2 / -1; grid-row: 1; display: flex; justify-content: space-between; gap: .75rem; padding: .65rem 1.5rem; background: var(--a008-bg); border: 0; }
+.a008-sidebar-resizer {
+  grid-column: 1; grid-row: 1 / -1; justify-self: end; z-index: 8; width: .65rem;
+  margin: 0 -0.325rem 0 0; padding: 0; border: 0; background: transparent; cursor: col-resize;
+}
+.a008-sidebar-resizer:hover, .a008-sidebar-resizer:focus-visible { background: var(--a008-border-active); outline: none; }
+.a008-sidebar-toggle { background: transparent; border: 0; padding: .25rem; color: var(--a008-fg-soft); cursor: pointer; font: inherit; }
+.a008-sidebar-toggle:hover { color: var(--a008-fg); }
+.a008-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
+.a008-sidebar-hidden .a008-rail, .a008-sidebar-hidden .a008-sidebar-resizer { display: none; }
+.a008-sidebar-hidden .a008-header, .a008-sidebar-hidden .a008-main, .a008-sidebar-hidden .a008-memory-main, .a008-sidebar-hidden .a008-help-main, .a008-sidebar-hidden .a008-tools-panel { grid-column: 1; }
+.a008-application-menu { display: flex; align-items: center; gap: .1rem; margin-right: auto; }
+.a008-menu-group { position: relative; }
+.a008-application-menu > .a008-menu-group > button {
+  border: 0; background: transparent; color: var(--a008-fg-soft); padding: .4rem .55rem; font: inherit; cursor: pointer;
+}
+.a008-application-menu > .a008-menu-group > button:hover, .a008-application-menu > .a008-menu-group > button[aria-expanded="true"] { background: var(--a008-surface-hover); color: var(--a008-fg); }
+.a008-menu-popup { position: absolute; z-index: 12; top: calc(100% + .2rem); left: 0; min-width: 10rem; padding: .3rem; border: 1px solid var(--a008-border); border-radius: .45rem; background: var(--a008-panel); box-shadow: var(--a008-shadow-panel); }
+.a008-menu-popup button { width: 100%; border: 0; border-radius: .25rem; background: transparent; color: var(--a008-fg); padding: .45rem .55rem; text-align: left; font: inherit; cursor: pointer; }
+.a008-menu-popup button:hover { background: var(--a008-surface-hover); }
 .a008-header-title { display: flex; align-items: center; gap: .75rem; min-width: 0; font-weight: 600; }
 @media (max-width: 600px) { .a008-header-title > span { display: none; } }
 .a008-header-workspace { color: var(--a008-muted); font-size: .8rem; font-weight: 400; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }

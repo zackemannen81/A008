@@ -1102,3 +1102,7 @@ A008-0178 adds authenticated V1 workspace-session and workspace-root routes over
 A008-0182 adds a local authenticated Files pane. The GUI lists contained workspace directories, opens bounded UTF-8 text files, renders them through the existing escaped syntax-highlight editor, and saves only when the SHA-256 revision still matches. The host refuses traversal, `.git`, symbolic links, binary text and files above 256 KiB. No renderer filesystem or shell authority was added.
 
 Verification: root and GUI typechecks pass; focused file-route test 2/2; GUI-host test 44/44; `git diff --check` passes. The existing GUI suite ran 205/206: `gui/src/settings/parameters-panel.test.ts` incorrectly reads `./parameters-panel.tsx` and `./workspace-sessions-panel.tsx` relative to the GUI root rather than `src/settings`; this is unrelated to A008-0182 and remains unmodified. No provider calls; 0 SEK.
+
+A008-0183 makes the desktop sidebar locally resizeable (208–480 px) and hideable with a keyboard-accessible separator and visible horizontal-resize cursor. File, Edit, View and Help menus were added to the top chrome and invoke only existing GUI actions. Fonts, theme colours/tokens, host contracts and runtime behavior remain unchanged.
+
+Verification: root/GUI typechecks and focused sidebar/shell tests 6/6 pass; GUI suite is 207/208 with the same pre-existing `parameters-panel.test.ts` path failure. No provider calls; 0 SEK.
