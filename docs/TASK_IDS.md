@@ -197,3 +197,4 @@ never whether work is active or complete. Task state belongs in
 
 | A008-0181 | relocate multi-session controls to Parameters | A008 (operator) | 2026-09-25 | top-menu access and Parameters-owned workspace configuration |
 | A008-0182 | local file browser and basic editor | A008 (operator) | 2026-09-25 | workspace file browsing, guarded editing and syntax-highlighted text view |
+| A008-0183 | resizable hideable sidebar and application menu | Rickard (operator) | 2026-09-25 | sidebar resize/collapse affordances and top application menu |
