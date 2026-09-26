@@ -200,3 +200,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0183 | resizable hideable sidebar and application menu | Rickard (operator) | 2026-09-25 | sidebar resize/collapse affordances and top application menu |
 | A008-0184 | Skill browser / marketplace and selecting and using skills. | Rickard (operator) | 2026-09-25 | Skill marketplace, selectable skills / instans (session) |
 | A008-0185 | durable conversation workspace ownership and background multi-client runs | Rickard (operator) | 2026-09-26 | multi-project Platform V3 conversation/workspace/run ownership |
+| A008-0186 | align session/workspace allocation policy | Rickard (operator) | 2026-09-26 | resolve A008-0185 blocker: no-workspace conversations and isolated writable worktrees |
