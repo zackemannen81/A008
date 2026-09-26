@@ -11,6 +11,10 @@ export const v1HttpRoutes = [
   ],
   ["GET", "/v1/browser/frame-check", "host network probe", "browser-frame"],
   ["GET", "/v1/catalog/kie", "host catalog", "provider-routes"],
+  ["GET", "/v1/skills", "host installed skill library", "skill-library"],
+  ["POST", "/v1/skills/discover", "host bounded skill discovery", "skill-library"],
+  ["POST", "/v1/skills/install", "host installed skill mutation", "skill-library"],
+  ["DELETE", "/v1/skills/{skillId}", "host installed skill mutation", "skill-library"],
   ["GET", "/v1/mcp-servers", "host MCP configuration", "provider-routes"],
   [
     "POST",

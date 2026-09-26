@@ -139,7 +139,7 @@ test("protocol schemas are generated from the shared owner and source imports st
     );
   }
 });
-test("v1 inventory names every literal HTTP dispatch route plus login, blobs and static assets", () => {
+test("v1 inventory names every literal HTTP dispatch route and every templated route has a host dispatcher", () => {
   const server = readFileSync(resolve("src/gui-host/server.ts"), "utf8");
   const literal = [
     ...server.matchAll(
@@ -148,18 +148,17 @@ test("v1 inventory names every literal HTTP dispatch route plus login, blobs and
   ]
     .map((m) => `${m[1]} ${m[2]}`)
     .sort();
-  const special = new Set([
-    "/auth/login",
-    "/v1/blobs/{sha256}/{name}",
-    "/{asset}",
-  ]);
   const listed = v1HttpRoutes
-    .filter((route) => !special.has(route[1]))
+    .filter((route) => route[1] !== "/auth/login" && !route[1].includes("{"))
     .map((route) => `${route[0]} ${route[1]}`)
     .sort();
   assert.deepEqual(listed, literal);
+
+  // Non-literal routes are dispatched through constants, regexes or helpers.
   assert.match(server, /GUI_PIN_LOGIN_PATH/u);
   assert.match(server, /handleBlobGet/u);
+  assert.match(server, /const skillDelete = \/\^\\\/v1\\\/skills/u);
+  assert.match(server, /const workspaceRoute = \/\^\\\/v1\\\/projects/u);
   assert.match(server, /tryServeStatic/u);
 });
 

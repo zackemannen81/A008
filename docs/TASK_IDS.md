@@ -199,3 +199,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0182 | local file browser and basic editor | A008 (operator) | 2026-09-25 | workspace file browsing, guarded editing and syntax-highlighted text view |
 | A008-0183 | resizable hideable sidebar and application menu | Rickard (operator) | 2026-09-25 | sidebar resize/collapse affordances and top application menu |
 | A008-0184 | Skill browser / marketplace and selecting and using skills. | Rickard (operator) | 2026-09-25 | Skill marketplace, selectable skills / instans (session) |
+| A008-0185 | durable conversation workspace ownership and background multi-client runs | Rickard (operator) | 2026-09-26 | multi-project Platform V3 conversation/workspace/run ownership |

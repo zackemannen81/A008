@@ -86,7 +86,7 @@
         if (current.x < -30 || current.x > width + 30 || current.y < -30 || current.y > height + 30) continue;
         const alpha = Math.min(.95, current.perspective * 1.25), radius = Math.max(.35, star.size * current.perspective);
         context.strokeStyle = `hsla(${star.hue}, 92%, 84%, ${alpha})`; context.lineWidth = radius;
-        context.beginPath(); context.moveTo(previous.x, previous.y); context.lineTo(current.x, current.y); context.stroke();
+        context.beginPath(); context.moveTo(current.x-1, current.y-1); context.lineTo(current.x, current.y); context.stroke();
       }
 
       const radius = Math.min(width, height) * .245;

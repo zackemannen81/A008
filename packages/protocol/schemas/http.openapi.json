@@ -312,6 +312,193 @@
         ]
       }
     },
+    "/v1/skills": {
+      "get": {
+        "summary": "host installed skill library",
+        "x-a008-owner": "skill-library",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/installedSkills"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/skills/discover": {
+      "post": {
+        "summary": "host bounded skill discovery",
+        "x-a008-owner": "skill-library",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/skillDiscovery"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/skills/install": {
+      "post": {
+        "summary": "host installed skill mutation",
+        "x-a008-owner": "skill-library",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/skillInstallInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/skillInstalled"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/skills/{skillId}": {
+      "delete": {
+        "summary": "host installed skill mutation",
+        "x-a008-owner": "skill-library",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "skillId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/skillPath/properties/skillId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/skillRemoved"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
     "/v1/mcp-servers": {
       "get": {
         "summary": "host MCP configuration",
@@ -946,6 +1133,158 @@
             "content": {
               "image/png": {},
               "image/jpeg": {}
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/files": {
+      "get": {
+        "summary": "contained workspace directory listing",
+        "x-a008-owner": "file-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/directoryQuery/properties/path"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceFiles"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      }
+    },
+    "/v1/file": {
+      "get": {
+        "summary": "contained workspace UTF-8 text",
+        "x-a008-owner": "file-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/directoryQuery/properties/path"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceTextFile"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Existing error. HEAD has no response body; other methods use the JSON error envelope. Origin/auth/content-type, input and runtime failures retain their current status and text.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/httpError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {},
+          {
+            "pinCookie": []
+          },
+          {
+            "engineBearer": []
+          },
+          {
+            "engineAccessQuery": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "SHA-256 guarded workspace text replacement",
+        "x-a008-owner": "file-routes",
+        "x-a008-auth-profile": "Configured host gate: PIN cookie or engine token; no gate when neither is configured.",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/workspaceTextFileSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Existing v1 success; runtime semantics remain documented separately.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/workspaceTextFile"
+                }
+              }
             }
           },
           "default": {
@@ -3492,6 +3831,111 @@
           }
         }
       },
+      "workspaceFiles": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "$ref": "#/components/schemas/workspaceFiles/$defs/__schema0"
+          },
+          "entries": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "$ref": "#/components/schemas/workspaceFiles/$defs/__schema1"
+                },
+                "path": {
+                  "$ref": "#/components/schemas/workspaceFiles/$defs/__schema1"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "directory",
+                    "file"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "path",
+                "type"
+              ]
+            }
+          }
+        },
+        "required": [
+          "path",
+          "entries"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          },
+          "__schema1": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/workspaceFiles/$defs/__schema0"
+          }
+        }
+      },
+      "workspaceTextFile": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/workspaceTextFile/$defs/__schema0"
+          },
+          "content": {
+            "maxLength": 262144,
+            "$ref": "#/components/schemas/workspaceTextFile/$defs/__schema0"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "path",
+          "content",
+          "sha256"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
+      "workspaceTextFileSave": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "path": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/workspaceTextFileSave/$defs/__schema0"
+          },
+          "content": {
+            "maxLength": 262144,
+            "$ref": "#/components/schemas/workspaceTextFileSave/$defs/__schema0"
+          },
+          "expectedSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "path",
+          "content",
+          "expectedSha256"
+        ],
+        "$defs": {
+          "__schema0": {
+            "type": "string"
+          }
+        }
+      },
       "nvidiaCatalog": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -3598,6 +4042,181 @@
             "type": "string"
           }
         }
+      },
+      "installedSkills": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "skills": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/installedSkills/$defs/__schema0"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/installedSkills/$defs/__schema0"
+                },
+                "description": {
+                  "$ref": "#/components/schemas/installedSkills/$defs/__schema1"
+                },
+                "instructions": {
+                  "maxLength": 65536,
+                  "$ref": "#/components/schemas/installedSkills/$defs/__schema1"
+                },
+                "sourcePath": {
+                  "$ref": "#/components/schemas/installedSkills/$defs/__schema0"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "description",
+                "instructions",
+                "sourcePath"
+              ]
+            }
+          }
+        },
+        "required": [
+          "skills"
+        ],
+        "$defs": {
+          "__schema0": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/installedSkills/$defs/__schema1"
+          },
+          "__schema1": {
+            "type": "string"
+          }
+        }
+      },
+      "skillDiscovery": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/skillDiscovery/$defs/__schema0"
+          },
+          "skills": {
+            "readOnly": true,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "$ref": "#/components/schemas/skillDiscovery/$defs/__schema0"
+                },
+                "name": {
+                  "$ref": "#/components/schemas/skillDiscovery/$defs/__schema0"
+                },
+                "description": {
+                  "$ref": "#/components/schemas/skillDiscovery/$defs/__schema1"
+                },
+                "sourcePath": {
+                  "$ref": "#/components/schemas/skillDiscovery/$defs/__schema0"
+                },
+                "installed": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "description",
+                "sourcePath",
+                "installed"
+              ]
+            }
+          }
+        },
+        "required": [
+          "source",
+          "skills"
+        ],
+        "$defs": {
+          "__schema0": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/skillDiscovery/$defs/__schema1"
+          },
+          "__schema1": {
+            "type": "string"
+          }
+        }
+      },
+      "skillInstallInput": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "sourcePath": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "sourcePath"
+        ]
+      },
+      "skillInstalled": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "skill": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/skillInstalled/$defs/__schema0"
+              },
+              "name": {
+                "$ref": "#/components/schemas/skillInstalled/$defs/__schema0"
+              },
+              "description": {
+                "$ref": "#/components/schemas/skillInstalled/$defs/__schema1"
+              },
+              "instructions": {
+                "maxLength": 65536,
+                "$ref": "#/components/schemas/skillInstalled/$defs/__schema1"
+              },
+              "sourcePath": {
+                "$ref": "#/components/schemas/skillInstalled/$defs/__schema0"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "description",
+              "instructions",
+              "sourcePath"
+            ]
+          }
+        },
+        "required": [
+          "skill"
+        ],
+        "$defs": {
+          "__schema0": {
+            "minLength": 1,
+            "$ref": "#/components/schemas/skillInstalled/$defs/__schema1"
+          },
+          "__schema1": {
+            "type": "string"
+          }
+        }
+      },
+      "skillRemoved": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "removed": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "removed"
+        ]
       },
       "zeroCostCatalog": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -4689,6 +5308,18 @@
         },
         "required": [
           "id"
+        ]
+      },
+      "skillPath": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "skillId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "skillId"
         ]
       },
       "blobPath": {

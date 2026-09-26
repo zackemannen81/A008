@@ -34,6 +34,25 @@ Read these in order before changing the repository:
 Read relevant accepted top-level decisions under `docs/adr/` and the multi-agent rules in
 `docs/MULTIAGENT.md` when a task delegates work. `docs/adr/_legacy/` is historical provenance only and never current authority.
 
+## IMPORTANT REGARDING CONFLICS
+
+If a contradiction blocks your task from being completed do this:
+1. Explain why it blocks your work.
+2. Suggest smallest possible modification making you be able to fully forfill all DoD of current task.
+  this could be suggesting a new ADR aswell.
+3. Wait for approval.
+4. When approved:
+5.0 Put current task as paused
+5.1 claim a child task id and publish to remote main.
+5.2 charter the task 
+5.3 freeze the child to ready when you have verified the task DoD will remove the blocker.
+5.4 Implement the changes.
+5.5 archive the child task
+5.6 unpause the main task
+5.7 comtinue the task
+if not approved:
+6. stop and wait further instructions.
+
 ## Truth Ownership
 
 - `docs/CURRENT_TASK.md`: empty template on `main`. A worker may fill it on

@@ -62,10 +62,10 @@
         if (particle.life < 0 || particle.x < -30 || particle.x > width + 30 || particle.y < -30 || particle.y > height + 30) Object.assign(particle, makeParticle());
         const alpha = Math.min(.8, particle.life / 20);
         context.beginPath();
-        context.moveTo(particle.px, particle.py);
+        context.moveTo(particle.x-2, particle.y-2);
         context.lineTo(particle.x, particle.y);
         context.strokeStyle = `hsla(${particle.hue + Math.sin(time / 1800) * 35}, 90%, 68%, ${alpha})`;
-        context.lineWidth = .55 + alpha * 1.4;
+        context.lineWidth = 2.15 + alpha * 1.8;
         context.stroke();
       }
       requestAnimationFrame(frame);
