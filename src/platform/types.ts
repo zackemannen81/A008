@@ -39,6 +39,7 @@ export interface PlatformConversation {
   readonly id: string;
   readonly tenantId: string;
   readonly projectId: string;
+  readonly workspaceId: string;
   readonly title: string;
   readonly createdAt: number;
   readonly updatedAt: number;
@@ -51,6 +52,7 @@ export interface PlatformRun {
   readonly tenantId: string;
   readonly projectId: string;
   readonly conversationId: string;
+  readonly workspaceId: string;
   readonly principalId: string;
   readonly commandId: string;
   readonly model: string;
@@ -98,6 +100,7 @@ export interface PlatformEventPage {
 export interface CreatePlatformConversation {
   readonly id?: string;
   readonly title: string;
+  readonly workspaceId?: string;
 }
 
 export interface AcceptPlatformRun {

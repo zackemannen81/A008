@@ -1,4 +1,4 @@
-export const PLATFORM_SQLITE_SCHEMA_VERSION = 1;
+export const PLATFORM_SQLITE_SCHEMA_VERSION = 2;
 
 export const PLATFORM_SQLITE_SCHEMA = `
 CREATE TABLE IF NOT EXISTS A008_platform_schema (
@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS A008_platform_conversations (
   id TEXT PRIMARY KEY,
   tenant_id TEXT NOT NULL,
   project_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
   title TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS A008_platform_runs (
   tenant_id TEXT NOT NULL,
   project_id TEXT NOT NULL,
   conversation_id TEXT NOT NULL REFERENCES A008_platform_conversations(id),
+  workspace_id TEXT NOT NULL,
   principal_id TEXT NOT NULL,
   command_id TEXT NOT NULL,
   model TEXT NOT NULL,

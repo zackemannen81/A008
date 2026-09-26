@@ -48,6 +48,7 @@ interface ConversationRow {
   readonly id: string;
   readonly tenant_id: string;
   readonly project_id: string;
+  readonly workspace_id: string;
   readonly title: string;
   readonly created_at: number;
   readonly updated_at: number;
@@ -67,6 +68,7 @@ interface RunRow {
   readonly tenant_id: string;
   readonly project_id: string;
   readonly conversation_id: string;
+  readonly workspace_id: string;
   readonly principal_id: string;
   readonly command_id: string;
   readonly model: string;
@@ -158,6 +160,7 @@ export class PlatformStore {
     this.#requireOpen();
     this.#validateScope(scope);
     const title = this.#bounded(input.title, "title", 1, 200);
+    const workspaceId = this.#bounded(input.workspaceId ?? "legacy-unbound", "workspaceId", 1, 256);
     const id = parseRuntimeId(
       input.id ?? this.#identityFactory.create("conversation"),
       "conversation",
@@ -167,10 +170,10 @@ export class PlatformStore {
       this.#database
         .prepare(
           `INSERT INTO A008_platform_conversations
-           (id, tenant_id, project_id, title, created_at, updated_at, revision)
-           VALUES (?, ?, ?, ?, ?, ?, 0)`,
+           (id, tenant_id, project_id, workspace_id, title, created_at, updated_at, revision)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
         )
-        .run(id, scope.tenantId, scope.projectId, title, now, now);
+        .run(id, scope.tenantId, scope.projectId, workspaceId, title, now, now);
       this.#appendEvent(scope, id, null, "conversation.created", 0, now);
     });
     return this.#conversation(scope, id);
@@ -291,16 +294,17 @@ export class PlatformStore {
       this.#database
         .prepare(
           `INSERT INTO A008_platform_runs
-           (id, tenant_id, project_id, conversation_id, principal_id, command_id, model,
+           (id, tenant_id, project_id, conversation_id, workspace_id, principal_id, command_id, model,
             status, revision, created_at, updated_at, lease_generation, dispatch_recorded,
             effect_status, answer_status, memory_status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?, ?, 0, 0, 'none', 'pending', ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued', 0, ?, ?, 0, 0, 'none', 'pending', ?)`,
         )
         .run(
           runId,
           scope.tenantId,
           scope.projectId,
           conversationId,
+          conversation.workspace_id,
           scope.principalId,
           commandId,
           model,
@@ -771,12 +775,16 @@ export class PlatformStore {
             "Platform SQLite database uses a future schema version.",
           );
         }
-        if (existing.version !== PLATFORM_SQLITE_SCHEMA_VERSION) {
-          throw new PlatformStoreError(
-            "INVALID_REQUEST",
-            "Platform SQLite schema version is unsupported.",
-          );
+        if (existing.version === 1) {
+          this.#database.exec("ALTER TABLE A008_platform_conversations ADD COLUMN workspace_id TEXT");
+          this.#database.exec("ALTER TABLE A008_platform_runs ADD COLUMN workspace_id TEXT");
+          const legacyWorkspaceId = "legacy-unbound";
+          this.#database.prepare("UPDATE A008_platform_conversations SET workspace_id = ? WHERE workspace_id IS NULL").run(legacyWorkspaceId);
+          this.#database.prepare("UPDATE A008_platform_runs SET workspace_id = ? WHERE workspace_id IS NULL").run(legacyWorkspaceId);
+          this.#database.prepare("UPDATE A008_platform_schema SET version = ? WHERE singleton = 1").run(PLATFORM_SQLITE_SCHEMA_VERSION);
+          return;
         }
+        if (existing.version !== PLATFORM_SQLITE_SCHEMA_VERSION) throw new PlatformStoreError("INVALID_REQUEST", "Platform SQLite schema version is unsupported.");
         return;
       }
       this.#database.exec(PLATFORM_SQLITE_SCHEMA);
@@ -800,6 +808,7 @@ export class PlatformStore {
       id: row.id,
       tenantId: row.tenant_id,
       projectId: row.project_id,
+      workspaceId: row.workspace_id,
       title: row.title,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -1069,6 +1078,7 @@ function runFromRow(row: RunRow): PlatformRun {
     tenantId: row.tenant_id,
     projectId: row.project_id,
     conversationId: row.conversation_id,
+    workspaceId: row.workspace_id,
     principalId: row.principal_id,
     commandId: row.command_id,
     model: row.model,

@@ -445,7 +445,7 @@ test("state survives independent reopen, future schemas fail, and closed stores 
   );
   database
     .prepare(
-      "INSERT INTO A008_platform_schema(singleton, version) VALUES (1, 2)",
+      "INSERT INTO A008_platform_schema(singleton, version) VALUES (1, 3)",
     )
     .run();
   database.close();
@@ -463,7 +463,7 @@ test("state survives independent reopen, future schemas fail, and closed stores 
         .prepare("SELECT version FROM A008_platform_schema WHERE singleton = 1")
         .get() as { readonly version: number }
     ).version,
-    2,
+    3,
   );
   inspect.close();
 });

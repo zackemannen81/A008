@@ -3,6 +3,7 @@ import { readProjectRegistry } from "../bootstrap/registry.js";
 import type { RegisteredProject } from "../bootstrap/types.js";
 import { ProjectRuntimeRegistry } from "../engine/project-runtime-registry.js";
 import { DeviceRegistry } from "../gui-host/device-registry.js";
+import { GuiWorkspaceStore } from "../gui-host/workspace-routes.js";
 import {
   defaultSqlitePath,
   PROJECT_ID_ENV,
@@ -40,6 +41,7 @@ export function openPlatformBackend(options: {
   readonly env: NodeJS.ProcessEnv;
   readonly devices: DeviceRegistry;
   readonly pinEnabled: () => boolean;
+  readonly workspaceStore: GuiWorkspaceStore;
   readonly stderr?: NodeJS.WritableStream;
 }): PlatformBackend {
   let release: (() => void) | undefined;
@@ -55,6 +57,7 @@ export function openPlatformBackend(options: {
       env: options.env,
       devices: options.devices,
       pinEnabled: options.pinEnabled,
+      workspaceStore: options.workspaceStore,
       ...(options.stderr === undefined ? {} : { stderr: options.stderr }),
     });
     coordinator.start();
@@ -97,6 +100,7 @@ export class PlatformCoordinator {
   readonly #env: NodeJS.ProcessEnv;
   readonly #devices: DeviceRegistry;
   readonly #pinEnabled: () => boolean;
+  readonly #workspaceStore: GuiWorkspaceStore;
   readonly #stderr: NodeJS.WritableStream | undefined;
   readonly #ownerToken = `platform:${randomUUID()}`;
   readonly #shutdown = new AbortController();
@@ -115,6 +119,7 @@ export class PlatformCoordinator {
     readonly env: NodeJS.ProcessEnv;
     readonly devices: DeviceRegistry;
     readonly pinEnabled: () => boolean;
+    readonly workspaceStore: GuiWorkspaceStore;
     readonly stderr?: NodeJS.WritableStream;
   }) {
     this.#store = options.store;
@@ -124,6 +129,7 @@ export class PlatformCoordinator {
     this.#env = options.env;
     this.#devices = options.devices;
     this.#pinEnabled = options.pinEnabled;
+    this.#workspaceStore = options.workspaceStore;
     this.#stderr = options.stderr;
   }
 
@@ -245,6 +251,14 @@ export class PlatformCoordinator {
         skipped.add(run.id);
         continue;
       }
+      let workspace;
+      try {
+        workspace = this.#workspaceStore.list(scope.projectId).find((entry) => entry.id === run.workspaceId);
+        if (workspace === undefined || workspace.disposition === "discarded") throw new Error("workspace unavailable");
+      } catch {
+        this.#failQueued(scope, run, "WORKSPACE_UNAVAILABLE", "The run workspace is unavailable.");
+        return true;
+      }
       let runtime;
       try {
         runtime = this.#registry.openConfigured(
@@ -283,6 +297,7 @@ export class PlatformCoordinator {
           model: run.model,
           conversationId: run.conversationId,
           history: prepared.history,
+          cwd: workspace.workspacePath,
         });
       } catch (error) {
         this.#note(error);

@@ -1,4 +1,5 @@
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { executeProjectBootstrap } from "../../../dist/src/bootstrap/service.js";
 import { parseProjectBootstrapConfig } from "../../../dist/src/bootstrap/validate.js";
@@ -61,12 +62,17 @@ try {
     parseProjectBootstrapConfig({
       projectName: "platform-gui",
       rootFolder: join(fixture.directory, "platform-gui"),
-      repository: { initialize: false },
+      repository: { initialize: true },
       continuity: { docsFirst: false, multiAgent: { enabled: false } },
       memory: { useGlobalA008Memory: false },
     }),
     { registryPath: fixture.env.A008_PROJECTS_PATH },
   ).project;
+  writeFileSync(join(project.rootFolder, ".gitkeep"), "seed", "utf8");
+  for (const args of [["add", ".gitkeep"], ["-c", "user.name=A008", "-c", "user.email=a008@example.invalid", "commit", "-m", "initial"]]) {
+    const result = spawnSync("git", args, { cwd: project.rootFolder, encoding: "utf8", windowsHide: true });
+    if (result.status !== 0) throw new Error(result.stderr || "git setup failed");
+  }
   const grant = new DeviceRegistry(fixture.env).grant({
     name: "platform-gui",
     projects: [project.projectId],

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { existsSync, rmSync } from "node:fs";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import test from "node:test";
 import {
@@ -75,16 +76,22 @@ function bootstrap(
   directory: string,
   name: string,
 ) {
-  return executeProjectBootstrap(
+  const project = executeProjectBootstrap(
     parseProjectBootstrapConfig({
       projectName: name,
       rootFolder: join(directory, name),
-      repository: { initialize: false },
+      repository: { initialize: true },
       continuity: { docsFirst: false, multiAgent: { enabled: false } },
       memory: { useGlobalA008Memory: false },
     }),
     { registryPath: env.A008_PROJECTS_PATH ?? "" },
   ).project;
+  writeFileSync(join(project.rootFolder, ".gitkeep"), "seed", "utf8");
+  for (const args of [["add", ".gitkeep"], ["-c", "user.name=A008", "-c", "user.email=a008@example.invalid", "commit", "-m", "initial"]]) {
+    const result = spawnSync("git", args, { cwd: project.rootFolder, encoding: "utf8", windowsHide: true });
+    if (result.status !== 0) throw new Error(result.stderr || "git setup failed");
+  }
+  return project;
 }
 
 function grant(
@@ -981,7 +988,7 @@ test("a model bearer is not platform authentication and PIN dispatch follows the
         projectId: pinProject.projectId,
         principalId: "owner_browser",
       };
-      assert.equal(store.getRun(scope, queued.run.id).status, "queued");
+      assert.equal(store.getRun(scope, queued.run.id).status, "needs_reconciliation");
     } finally {
       store.close();
     }

@@ -263,7 +263,6 @@ export async function startGuiHost(
   if (!statSync(cwd).isDirectory())
     throw new ChatError("configuration", "GUI workspace must be a directory.");
   const projectsPath = options.projectsPath ?? resolveProjectsPath(env);
-  const workspaceStore = new GuiWorkspaceStore(options.workspacePath ?? resolve(dirname(projectsPath), "workspaces.sqlite"));
   const workspace = {
     cwd,
     projectId: undefined as string | undefined,
@@ -661,6 +660,15 @@ export async function startGuiHost(
     sendJson(response, 200, { ok: true });
   };
   let platformBackend: PlatformBackend | undefined;
+  let workspaceStore: GuiWorkspaceStore | undefined;
+  const requireWorkspaceStore = (): GuiWorkspaceStore => {
+    if (workspaceStore === undefined) {
+      workspaceStore = new GuiWorkspaceStore(
+        options.workspacePath ?? resolve(dirname(projectsPath), "workspaces.sqlite"),
+      );
+    }
+    return workspaceStore;
+  };
   const server = createServer((request, response) => {
     const pathname = requestPath(request);
     if (pathname === "/v3/info" || pathname.startsWith("/v3/")) {
@@ -669,6 +677,7 @@ export async function startGuiHost(
         auth: platformAuth,
         env,
         projectsPath,
+        workspaceStore: requireWorkspaceStore(),
         request,
         response,
         originAllowed: requestOriginAllowed(request),
@@ -735,7 +744,7 @@ export async function startGuiHost(
       applyWorkspace,
       sidebarProjects,
       changeProjectChat,
-      workspaceStore,
+      workspaceStore: requireWorkspaceStore(),
     });
   });
 
@@ -843,6 +852,7 @@ export async function startGuiHost(
         env,
         devices,
         pinEnabled: () => pinAuth.enabled,
+        workspaceStore: requireWorkspaceStore(),
         ...(options.stderr === undefined ? {} : { stderr: options.stderr }),
       });
     }
@@ -850,6 +860,7 @@ export async function startGuiHost(
   } catch (error) {
     await platformBackend?.close();
     platformBackend = undefined;
+    workspaceStore?.close();
     await releaseServer(server);
     throw error;
   }
@@ -857,6 +868,7 @@ export async function startGuiHost(
   if (address === null || typeof address === "string") {
     await platformBackend?.close();
     platformBackend = undefined;
+    workspaceStore?.close();
     await releaseServer(server);
     throw new Error("GUI host failed to bind a TCP port.");
   }
@@ -882,6 +894,7 @@ export async function startGuiHost(
         await started?.close();
       }
       bridge = undefined;
+      workspaceStore?.close();
       if (!options.projectRegistry) projectRegistry.close();
       await new Promise<void>((resolve, reject) => {
         server.close((error) => {

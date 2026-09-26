@@ -22,6 +22,11 @@
       "minLength": 1,
       "maxLength": 256
     },
+    "workspaceId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
     "principalId": {
       "type": "string",
       "minLength": 1,
@@ -133,6 +138,7 @@
     "tenantId",
     "projectId",
     "conversationId",
+    "workspaceId",
     "principalId",
     "commandId",
     "model",
