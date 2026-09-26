@@ -16,26 +16,24 @@ Modifying code directly in a single shared repository directory prevents running
 
 A008 will implement isolated multi-session project environments (v1) using Git worktrees with the following topology, configuration contracts, and UI integration:
 
-### 1. Worktree Topology
-- **Primary Session (Session A):** Operates on the shared main workspace directory (`main` branch) as a read-only or shared base.
-- **Parallel Active Sessions (Session B, C, ...):** Each new parallel agent or user session generates a dedicated Git worktree and isolated tracking branch.
+### 1. Conversation and Worktree Topology
+- **Conversation without writable execution:** May exist without a workspace for research, planning, or chat.
+- **Writable conversation:** Writable execution atomically provisions one dedicated Git worktree and isolated tracking branch, then durably binds that workspace to the conversation.
+- **Primary checkout:** Remains the operator/base workspace and merge target. It can be used only through an explicit shared/read-only mode; it is never an implicit mutable fallback when writable provisioning fails.
 
 Project
-├── Session A
-│   └── workspace: main repo / read-only / shared
-│
-├── Session B
-│   └── workspace: worktree B
-│       └── branch: a008/session-B
-│
-└── Session C
-└── workspace: worktree C
-└── branch: a008/session-C
-
+??? Conversation A
+?   ??? no workspace until writable execution is requested
+??? Conversation B
+?   ??? workspace: worktree B
+?       ??? branch: a008/session-B
+??? Conversation C
+    ??? workspace: worktree C
+        ??? branch: a008/session-C
 
 ### 2. Configuration & Path Management
 - **A008 Root Directory (Session Root Path):** A configurable application setting (`a008.sessionRootPath`) specifying where worktrees are created (e.g., `<project-root>/.a008/worktrees/` or a custom directory).
-- **Automated Lifecycle:** Session creation provisions `git worktree add -b a008/session-<id> <path> <base-branch>`.
+- **Automated Lifecycle:** Writable execution provisions `git worktree add -b a008/session-<id> <path> <base-branch>` before the conversation is exposed as writable. Provisioning failure fails that writable transition or leaves an explicit recoverable state; it never silently rebinds to the primary checkout.
 
 ### 3. UI Display Contract
 A008 UI will prominently display the session context header in active session viewports:
@@ -65,6 +63,6 @@ Rejected because cloning duplicate copies of large repositories uses excessive d
 
 ## Consequences
 
-- A008 core runtime must manage process current working directories (CWD) on a per-session basis.
+- A008 core runtime must resolve process current working directories (CWD) from the conversation/workspace binding for each execution.
 - Git operation utilities must handle worktree cleanup failures gracefully (e.g., locked files on Windows environments).
 - Memory extraction (`A008 Knowledge Extractor`) will tag extracted claims with their originating session branch.
