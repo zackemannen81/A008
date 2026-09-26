@@ -34,7 +34,7 @@ Read these in order before changing the repository:
 Read relevant accepted top-level decisions under `docs/adr/` and the multi-agent rules in
 `docs/MULTIAGENT.md` when a task delegates work. `docs/adr/_legacy/` is historical provenance only and never current authority.
 
-## IMPORTANT REGARDING CONFLICS
+## IMPORTANT REGARDING CONFLICTS AND BLOCKERS
 
 If a contradiction blocks your task from being completed do this:
 1. Explain why it blocks your work.

@@ -26,6 +26,7 @@ import { platformModelAvailable } from "../platform/runtime-adapter.js";
 import { PlatformStoreError } from "../platform/platform-store.js";
 import type { PlatformScope } from "../platform/types.js";
 import { V2Auth, V2AuthError, type V2Principal } from "./v2-auth.js";
+import { GuiWorkspaceStore } from "./workspace-routes.js";
 
 const CAPABILITIES = [
   "durable-conversations",
@@ -58,6 +59,7 @@ export async function handlePlatformV3Http(options: {
   readonly auth: V2Auth | undefined;
   readonly env: NodeJS.ProcessEnv;
   readonly projectsPath: string;
+  readonly workspaceStore: GuiWorkspaceStore;
   readonly request: IncomingMessage;
   readonly response: ServerResponse;
   readonly originAllowed: boolean;
@@ -138,9 +140,21 @@ export async function handlePlatformV3Http(options: {
       }
       if (request.method === "POST") {
         const body = await readJson(request, config, platformV3ConversationCreateRequestSchema);
-        const conversation = backend.store.createConversation(scope, {
-          title: body.title,
-        });
+        const project = registeredProjects(options.projectsPath).find((entry) => entry.projectId === projectId);
+        if (project === undefined) throw new PlatformHttpError(404, "NOT_FOUND", "Platform resource was not found.");
+        let workspace;
+        try {
+          workspace = options.workspaceStore.create(projectId, project.rootFolder);
+        } catch {
+          throw new PlatformHttpError(409, "INVALID_REQUEST", "A writable conversation requires an isolated Git workspace.");
+        }
+        let conversation;
+        try {
+          conversation = backend.store.createConversation(scope, { title: body.title, workspaceId: workspace.id });
+        } catch (error) {
+          try { options.workspaceStore.discard(workspace.id); } catch {}
+          throw error;
+        }
         sendChecked(
           sendJson,
           response,

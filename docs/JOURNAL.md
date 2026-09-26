@@ -2711,3 +2711,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Verification: root/GUI typechecks; focused sidebar/shell 6/6; GUI 207/208 with the known unrelated `parameters-panel.test.ts` source-path failure; diff check passed. No provider calls; 0 SEK.
 - [Handoff](handoffs/A008-0183.md). [Archive](finished/A008-0183_resizable-hideable-sidebar-and-application-menu.md).
 - Signature: A008 (operator)
+
+## 2026-09-26 — A008-0185 durable conversation workspaces and background runs
+
+- Platform V3 conversations now provision and persist one isolated Git worktree each. Runs copy the conversation workspace ID as immutable provenance and resolve their EngineHost tool CWD from that durable ID, while project runtime and semantic memory remain shared by project ID.
+- Missing, discarded and legacy-unbound workspace IDs fail explicitly; recovery never falls back to the primary checkout. Platform schema v2 migrates earlier rows to the `legacy-unbound` marker.
+- Accepted runs remain coordinator-owned; disconnecting or closing the originating Platform GUI surface does not cancel them, and a second client can observe their durable state.
+- Verification: `npm run typecheck`; focused Platform store/host tests 16/16; `npm run verify:protocol`; GUI suite 209/209; `git diff --check`. No provider calls; 0 SEK.
+- [Handoff](handoffs/A008-0185.md). [Archive](finished/A008-0185_durable-conversation-workspaces-and-background-runs.md).
+- Signature: A008 (operator)

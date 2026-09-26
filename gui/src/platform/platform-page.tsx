@@ -156,6 +156,7 @@ export function PlatformPageView(props: {
                   onClick={() => props.onSelectConversation(conversation.id)}
                 >
                   {conversation.title}
+                  <small>{conversation.workspaceId}</small>
                 </button>
               </li>
             ))}

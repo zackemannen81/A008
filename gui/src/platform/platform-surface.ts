@@ -34,7 +34,7 @@ export interface PlatformSnapshot {
   readonly message: string;
   readonly projects: readonly { readonly id: string; readonly name: string }[];
   readonly projectId: string;
-  readonly conversations: readonly { readonly id: string; readonly title: string }[];
+  readonly conversations: readonly { readonly id: string; readonly title: string; readonly workspaceId: string }[];
   readonly conversationId: string;
   readonly messages: readonly { readonly role: string; readonly text: string }[];
   readonly runStatus: string;
@@ -382,6 +382,7 @@ class PlatformSurface {
     this.#conversations = listed.conversations.map((item) => ({
       id: item.id,
       title: item.title,
+      workspaceId: item.workspaceId,
     }));
     this.#publish();
   }
@@ -412,7 +413,7 @@ class PlatformSurface {
     if (!this.#conversations.some((item) => item.id === conversation.id)) {
       this.#conversations = [
         ...this.#conversations,
-        { id: conversation.id, title: conversation.title },
+        { id: conversation.id, title: conversation.title, workspaceId: conversation.workspaceId },
       ];
     }
   }
