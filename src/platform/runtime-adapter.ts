@@ -45,9 +45,11 @@ export function openPlatformTextSession(input: {
   readonly model: string;
   readonly conversationId: string;
   readonly history: readonly PlatformTextHistoryMessage[];
+  readonly cwd?: string;
 }): LocalMemorySession {
   return input.runtime.openSession({
     model: input.model,
+    ...(input.cwd === undefined ? {} : { cwd: input.cwd }),
     conversationSeed: {
       conversationId: input.conversationId,
       messages: input.history.map(

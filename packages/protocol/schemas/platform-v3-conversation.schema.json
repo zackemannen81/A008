@@ -17,6 +17,11 @@
       "minLength": 1,
       "maxLength": 256
     },
+    "workspaceId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
     "title": {
       "type": "string",
       "minLength": 1,
@@ -159,6 +164,7 @@
     "id",
     "tenantId",
     "projectId",
+    "workspaceId",
     "title",
     "createdAt",
     "updatedAt",

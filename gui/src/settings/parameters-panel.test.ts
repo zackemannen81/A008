@@ -1,4 +1,6 @@
 import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { GuiModel } from "../session/session-controls.js";
@@ -54,8 +56,9 @@ test("model capability badges derive only from declared metadata", () => {
 });
 
 test("Parameters owns the global parallel-session root without absorbing project lifecycle", () => {
-  const source = readFileSync("./parameters-panel.tsx", "utf8");
-  const panel = readFileSync("./workspace-sessions-panel.tsx", "utf8");
+  const here = dirname(fileURLToPath(import.meta.url));
+  const source = readFileSync(join(here, "parameters-panel.tsx"), "utf8");
+  const panel = readFileSync(join(here, "workspace-sessions-panel.tsx"), "utf8");
   assert.match(source, /Parallel sessions/u);
   assert.match(source, /WorkspaceSessionsPanel/u);
   assert.match(panel, /Worktree root/u);
