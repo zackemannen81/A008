@@ -52,8 +52,8 @@ A local A008 installation may connect to a sync/service provider for cross-devic
 
 A008 distinguishes a **session** from a **workspace**.
 
-- Research/chat sessions may require no writable workspace.
-- A writable parallel development session receives an isolated workspace.
+- Research/chat sessions may require no workspace.
+- On explicit writable execution, a development session receives and retains an isolated workspace.
 - Git worktrees are the default isolation mechanism for Git projects.
 - A clone/copy may be used when a project or toolchain cannot safely operate in a worktree.
 - Session-specific tools and processes execute with the session workspace as their CWD.
