@@ -272,7 +272,7 @@ test(
         "missing workspace fails without execution",
         async () =>
           (await client.api.getRun(missing.run.id)).run.error?.code ===
-          "WORKSPACE_UNAVAILABLE",
+          "NOT_FOUND",
       );
       assert.equal(provider.requests.length, beforeMissing);
     } finally {
