@@ -205,3 +205,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0188 | architecture foundation reset | Codex (operator) | 2026-09-27 | owner-authorized local documentation reset; archive all prior ADRs; durable sessions with on-demand processes; no push or runtime implementation |
 | A008-0189 | minimal relevant memory context envelope | Codex (operator) | 2026-09-27 | owner-approved ID/address/current-state-or-claim projection, conditional history/provenance, and reinforcement identity preservation; local implementation |
 | A008-0191 | implement ADR 0055 durable session processes | Codex (operator) | 2026-09-27 | owner-authorized implementation; 0190 skipped because an existing working branch uses it; local delivery |
+| A008-0192 | restore live Thought and answer streaming across session process boundary | ChatGPT (operator) | 2026-09-27 | regression fix after ADR 0055 process split; preserve durable history and background execution |
