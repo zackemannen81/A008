@@ -31,6 +31,7 @@ A008/
 - `memory/` — A008-owned semantic memory, persistence, retrieval and knowledge state.
 - `orchestration/` — application orchestration and semantic model coordination.
 - `platform/` — currently implemented optional platform/durable-work components.
+- `platform/gui-run-session.ts` — coordinator-owned EngineHost/tool adapter for normal GUI durable runs.
 - `prompt-contracts/` — maintained prompt contracts.
 - `providers/` — provider/model adapters and catalogs.
 - `runtime/` — project runtime, workspace/session ownership and local composition.
@@ -40,6 +41,7 @@ A008/
 
 `gui/src/` contains the product GUI. Major current surfaces include:
 - `chat/`, `composer/`, `session/` — conversation/session UX.
+- `session/durable-chat-client.ts` and `use-durable-chat.ts` — normal GUI selection and durable-run observation; engine panels retain the existing V1 adapter.
 - `projects/` — project tree, saved chats and parallel workspace controls.
 - `memory/` — memory inspection and relationship map.
 - `settings/` — runtime/provider/appearance settings.

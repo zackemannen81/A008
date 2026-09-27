@@ -24,6 +24,7 @@ import {
   type PlatformTextHistoryMessage,
 } from "./runtime-adapter.js";
 import type { PlatformRun, PlatformScope } from "./types.js";
+import { GuiRunSession, PLATFORM_GUI_OWNER } from "./gui-run-session.js";
 
 const ACTIVE_STATUSES = ["running", "cancel_requested"] as const;
 
@@ -105,6 +106,27 @@ export class PlatformCoordinator {
   readonly #ownerToken = `platform:${randomUUID()}`;
   readonly #shutdown = new AbortController();
   readonly #active = new Set<Promise<void>>();
+  readonly #guiRuns = new Map<string, GuiRunSession>();
+
+  guiActivity(runId: string) { return this.#guiRuns.get(runId)?.activity(); }
+  resolveGuiPermission(runId: string, id: string, allow: boolean): boolean {
+    return this.#guiRuns.get(runId)?.permission(id, allow) ?? false;
+  }
+  guiSnapshot(scope: PlatformScope, conversationId: string, model: string) {
+    const project = this.#project(scope.projectId);
+    if (!project) throw new Error("Project is unavailable.");
+    const conversation = this.#store.getConversation(scope, conversationId);
+    const workspace = this.#workspaceStore.get(scope.projectId, conversation.workspaceId);
+    if (!workspace || workspace.disposition === "discarded") throw new Error("Conversation workspace is unavailable.");
+    const runtime = this.#registry.openConfigured(project.rootFolder, this.#projectEnv(project));
+    const created = runtime.agent.newSession({ cwd: workspace.workspacePath, mcpServers: [] }, {
+      initialModel: model, conversationSeed: { conversationId, messages: conversation.messages },
+    });
+    try {
+      const snapshot = runtime.agent.controlSession({ sessionId: created.sessionId, action: "inspect" });
+      return { workspace, snapshot: { ...snapshot, runtime: { ...snapshot.runtime, cwd: workspace.workspacePath } } };
+    } finally { runtime.agent.closeSession({ sessionId: created.sessionId }); }
+  }
   #queue: Promise<void> = Promise.resolve();
   #stopped = false;
   #started = false;
@@ -253,18 +275,20 @@ export class PlatformCoordinator {
       }
       let workspace;
       try {
-        workspace = this.#workspaceStore.list(scope.projectId).find((entry) => entry.id === run.workspaceId);
+        workspace = this.#workspaceStore.get(scope.projectId, run.workspaceId);
         if (workspace === undefined || workspace.disposition === "discarded") throw new Error("workspace unavailable");
       } catch {
         this.#failQueued(scope, run, "WORKSPACE_UNAVAILABLE", "The run workspace is unavailable.");
         return true;
       }
       let runtime;
+      let projectRuntime;
       try {
-        runtime = this.#registry.openConfigured(
+        projectRuntime = this.#registry.openConfigured(
           project.rootFolder,
           this.#projectEnv(project),
-        ).runtime;
+        );
+        runtime = projectRuntime.runtime;
         runtime.sessionParameters(run.model);
       } catch (error) {
         if (error instanceof ChatError && error.code === "unknown_model") {
@@ -290,9 +314,13 @@ export class PlatformCoordinator {
         );
         return true;
       }
-      let session: LocalMemorySession;
+      let session: LocalMemorySession | GuiRunSession;
       try {
-        session = openPlatformTextSession({
+        session = run.principalId === PLATFORM_GUI_OWNER ? new GuiRunSession({
+          project: projectRuntime!, registry: this.#registry, env: this.#projectEnv(project),
+          model: run.model, conversationId: run.conversationId,
+          history: prepared.history, cwd: workspace.workspacePath,
+        }) : openPlatformTextSession({
           runtime,
           model: run.model,
           conversationId: run.conversationId,
@@ -345,7 +373,7 @@ export class PlatformCoordinator {
         prepared.text,
       );
       this.#active.add(work);
-      void work.finally(() => this.#active.delete(work));
+      void work.catch((error) => this.#note(error)).finally(() => this.#active.delete(work));
       return true;
     }
     return false;
@@ -355,10 +383,11 @@ export class PlatformCoordinator {
     scope: PlatformScope,
     run: PlatformRun,
     generation: number,
-    session: LocalMemorySession,
+    session: LocalMemorySession | GuiRunSession,
     text: string,
   ): Promise<void> {
     const abort = new AbortController();
+    if (session instanceof GuiRunSession) this.#guiRuns.set(run.id, session);
     const onShutdown = (): void => abort.abort();
     if (this.#shutdown.signal.aborted) abort.abort();
     else this.#shutdown.signal.addEventListener("abort", onShutdown, { once: true });
@@ -369,6 +398,10 @@ export class PlatformCoordinator {
         return;
       }
       try {
+        if (session instanceof GuiRunSession && this.#store.getRun(scope, run.id).status === "cancel_requested") {
+          abort.abort();
+          return;
+        }
         this.#store.renewLease(scope, {
           runId: run.id,
           ownerToken: this.#ownerToken,
@@ -384,7 +417,9 @@ export class PlatformCoordinator {
     const timeout = setTimeout(() => abort.abort(), this.#config.turnTimeoutMs);
     timeout.unref?.();
     try {
-      const outcome = await completePlatformTextTurn(session, text, abort.signal);
+      const outcome = session instanceof GuiRunSession
+        ? await session.complete(text, abort.signal)
+        : await completePlatformTextTurn(session, text, abort.signal);
       clearInterval(renew);
       clearTimeout(timeout);
       if (outcome.answer === undefined) return;
@@ -434,6 +469,8 @@ export class PlatformCoordinator {
       clearInterval(renew);
       clearTimeout(timeout);
       this.#shutdown.signal.removeEventListener("abort", onShutdown);
+      this.#guiRuns.delete(run.id);
+      this.kick();
     }
   }
 
@@ -554,7 +591,7 @@ export class PlatformCoordinator {
   }
 
   #principalIds(): readonly string[] {
-    const ids = new Set<string>([PLATFORM_LOCAL_OWNER_PRINCIPAL_ID]);
+    const ids = new Set<string>([PLATFORM_LOCAL_OWNER_PRINCIPAL_ID, PLATFORM_GUI_OWNER]);
     try {
       for (const device of this.#devices.list()) ids.add(device.id);
     } catch (error) {
@@ -578,6 +615,7 @@ export class PlatformCoordinator {
 
   #canDispatch(principalId: string, projectId: string): boolean {
     if (this.#project(projectId) === undefined) return false;
+    if (principalId === PLATFORM_GUI_OWNER) return true;
     if (principalId === PLATFORM_LOCAL_OWNER_PRINCIPAL_ID) return this.#pinEnabled();
     const device = this.#devices.current(principalId);
     if (device === undefined) return false;

@@ -1,6 +1,6 @@
 export {
   DEFAULT_GUI_MODEL,
-  type GuiSession,
+
   type GuiSessionClientOptions,
   type GuiSessionState,
   type GuiSessionStatus,
@@ -12,3 +12,5 @@ export {
   type RuntimeToolStatus,
   type ToolPermissionDecision,
 } from "../../../packages/client/src/index.js";
+
+export type GuiSession = import('../../../packages/client/src/index.js').GuiSession & { readonly durable?: import('./durable-chat-client.js').DurableChatClient };

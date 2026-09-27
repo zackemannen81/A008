@@ -8,6 +8,52 @@ architecture belongs in `docs/PROJECT_BRIEF.md` until implemented.
 This document is the current implementation record for durable behavior that exists in the repository. Task IDs and older implementation notes are retained as provenance, but they do not override current code, `docs/CURRENT_STATUS.md`, `docs/PROJECT_BRIEF.md`, or accepted current ADRs.
 
 # Current implementation
+
+## Normal standalone background chat (A008-0187)
+
+Accepted [ADR 0054](adr/0054-normal-gui-durable-runs.md) records this adapter boundary.
+
+The normal standalone GUI sidebar uses `DurableChatClient`, backed by the existing
+PlatformStore/coordinator through the host's `/v1/chat/v3` facade. These routes
+require the same origin/PIN authorization as standalone V1 routes and refuse
+engine-panel capabilities. First normal-chat access opens a local `platform.sqlite`
+beside the project registry when no explicit Platform path is configured; an
+explicitly configured backend is reused. This is one scheduler and execution
+store, separate from semantic memory. External V3 clients and engine panels
+retain their existing authentication and session contracts.
+
+New writable chats provision a Git worktree through `GuiWorkspaceStore` before
+publishing the conversation. Conversation and accepted run workspace IDs remain
+immutable. No missing, discarded or legacy workspace falls back to the primary
+checkout. Normal sidebar selection lives in browser session storage; selecting
+another chat or project never changes accepted work. Refresh restores that tab's
+selection and reads a host snapshot. The header shows its branch, with workspace,
+base, modified-file count and commits-ahead details. Sidebar titles expose active
+or uncertain run status.
+
+Each normal GUI run borrows its project's existing `ProjectRuntimeRegistry`
+runtime and creates an EngineHost tool session at the bound worktree CWD.
+Repository, shell and configured MCP tools use that session, including existing
+permission controls. The coordinator retains pending permissions independently
+of clients, so another authorized normal GUI client can observe and decide them.
+Tool activity and streaming text are process-local observations; committed
+messages, run state and workspace bindings remain durable. Generated-image tool
+work settles before the answer is committed. A008 still owns semantic memory;
+worktrees do not create independent semantic owners.
+
+Navigation, unmount, refresh and disconnect stop browser observation without
+sending cancellation. Only explicit cancellation requests the existing durable
+run cancellation path; dispatched effects with uncertain outcomes still require
+reconciliation and are never automatically replayed. Host shutdown/restart is
+not browser disconnect and retains existing conservative recovery semantics.
+Legacy V1 chat history is not migrated automatically. Normal durable prompt input
+is text-only; image attachments, undo/parameter controls and direct image requests
+remain on existing compatibility surfaces. Worktree merge, push, PR creation and
+dirty cleanup are outside this slice.
+
+The following task-numbered sections retain their historical implementation
+context; normal standalone chat ownership is described above.
+
 The dialogue extractor classifies each durable artifact by its own subject,
 using 1–4 useful domains and 1–16 useful tags under the owner's updated bounds,
 without padding or report-wide labels. Domains may be derived from the subject

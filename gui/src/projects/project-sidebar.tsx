@@ -455,7 +455,7 @@ export function ProjectSidebar(props: {
   const refresh = useCallback(async () => {
     const id = ++request.current;
     try {
-      const next = await listSidebarProjects(guiHttp());
+      const next = props.session.durable ? await props.session.durable.sidebar() : await listSidebarProjects(guiHttp());
       if (id === request.current) {
         setData(next);
         setError("");
@@ -468,7 +468,7 @@ export function ProjectSidebar(props: {
     } finally {
       if (id === request.current) setLoading(false);
     }
-  }, []);
+  }, [props.session.durable]);
   useEffect(() => {
     void refresh();
     return () => {
@@ -484,10 +484,11 @@ export function ProjectSidebar(props: {
   useEffect(() => {
     const reload = () => void refresh();
     window.addEventListener("focus", reload);
-    return () => window.removeEventListener("focus", reload);
+    const timer = props.session.durable ? setInterval(reload, 2500) : undefined;
+    return () => { window.removeEventListener("focus", reload); clearInterval(timer); };
   }, [refresh]);
   async function open(project: Project, action?: ProjectChatAction) {
-    if (switching.current || props.session.busy) return;
+    if (switching.current || (!props.session.durable && props.session.busy)) return;
     if (
       !action &&
       project.projectId === data.currentId &&
@@ -511,9 +512,14 @@ export function ProjectSidebar(props: {
     setBusy(true);
     setError("");
     try {
+      if (props.session.durable) {
+        await props.session.durable.selectChat(project.projectId, action?.action === "open" ? action.conversationId : undefined, action?.action === "new");
+        props.onChat();
+      } else {
       if (action) await changeProjectChat(guiHttp(), action);
       else await openProject(project.projectId);
       await props.onOpened();
+      }
       setCollapsed((old) => {
         const next = new Set(old);
         next.delete(project.projectId);
@@ -554,10 +560,9 @@ export function ProjectSidebar(props: {
         ) : null}
         <ProjectList
           data={data}
-          busy={busy || Boolean(props.session.busy)}
+          busy={busy || (!props.session.durable && Boolean(props.session.busy))}
           collapsed={collapsed}
-          onToggle={(id) =>
-            setCollapsed((old) => {
+          onToggle={(id) => setCollapsed((old) => {
               const next = new Set(old);
               if (next.has(id)) next.delete(id);
               else next.add(id);

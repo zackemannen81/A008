@@ -26,3 +26,4 @@ export * from "./http-operations.js";
 export * from "./v2-auth.js";
 export * from "./v2-session.js";
 export * from "./platform-v3.js";
+export * from "./gui-durable.js";

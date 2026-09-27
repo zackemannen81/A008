@@ -1,0 +1,11 @@
+Implement A008-0187 in C:\code\a008 on branch codex/A008-0187-background-chat-runs.
+
+Read AGENTS.md, docs/TASK_WORKFLOW.md, docs/PROJECT_BRIEF.md, docs/adr/0053-Multi-Session-Worktree-Architecture.md, docs/tasks/A008-0185_durable-conversation-workspace-ownership.md, docs/finished/A008-0185_durable-conversation-workspaces-and-background-runs.md, and current code.
+
+Goal: make NORMAL GUI sidebar chats, not only the separate Platform page, use durable host-owned execution semantics. Every new writable chat/conversation gets its own isolated GuiWorkspaceStore worktree. Conversation-to-workspace binding is stable. Runs continue when user switches chats/projects, refreshes, closes/disconnects. Multiple chats can run concurrently up to configured coordinator capacity. UI is observer/controller and switching chats must never close/abort another chat's accepted run or mutate its CWD. Project semantic memory remains shared by projectId.
+
+Reuse Platform V3 durable store/coordinator and existing worktree store rather than inventing a second scheduler. Preserve tools if current normal chat requires them; if Platform V3 text adapter is insufficient, extend the durable runtime adapter minimally using existing EngineHost/tool session path rather than regressing tools. Remove/replace the current split-brain where changeProjectChat calls applyWorkspace and closes the global bridge.
+
+Add real regression tests: 3 chats same project => 3 distinct worktrees; two runs active concurrently with distinct CWDs and same project runtime/memory; switching chat/project does not cancel/rebind run; client disconnect does not cancel; second client observes completion.
+
+Do not touch docs/temp or unrelated memory WIP. Follow docs-first workflow: create/claim/freeze A008-0187 docs as needed. Run focused tests, typecheck, GUI tests. Do not commit or push; leave changes for operator review.

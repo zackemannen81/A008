@@ -1,10 +1,23 @@
 # Current Status
 
-Reality as of 2026-09-24. This document records observed state; intended design
+Reality as of 2026-09-27. This document records observed state; intended design
 belongs in `docs/PROJECT_BRIEF.md`.
 
 ## Current head summary
 
+- A008-0187 is implemented in the uncommitted working tree for operator review.
+  Normal standalone sidebar chats use the durable Platform store/coordinator
+  through authenticated `/v1/chat/v3` routes. Each new writable chat provisions
+  an isolated worktree; accepted runs retain that CWD and share the project's
+  runtime and semantic-memory owner. Browser navigation and disconnect only
+  detach observation, and another client can observe and approve pending work.
+- A008-0187 verification: normal-chat real-host regression proves three distinct
+  worktrees, two concurrent tool sessions at capacity two, queued cancellation,
+  browser-local restore and second-client completion. GUI tests pass 214/214;
+  root and GUI typechecks and production build pass. Final independent
+  host/store/runtime/worktree/image verification passes 33/33; the final
+  normal-chat/PIN rerun passes 2/2. Offline packed-protocol verification passes.
+  Additional recorded tool checks are in the handoff. No live calls or provider spend.
 - `main` includes the A008-0177 project-workspace foundation and A008-0178 GUI/host exposure for isolated Git worktree sessions.
 - Project details can configure a worktree root and create, list, open, keep and cleanly discard isolated sessions. Manual merge and Create PR are still follow-up capabilities; no automatic merge or remote mutation is current behavior.
 - The accepted product direction is local-first and standalone-capable. Optional sync/backend services may extend A008 but do not own the local runtime, semantic memory or project state.

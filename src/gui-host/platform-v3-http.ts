@@ -27,6 +27,10 @@ import { PlatformStoreError } from "../platform/platform-store.js";
 import type { PlatformScope } from "../platform/types.js";
 import { V2Auth, V2AuthError, type V2Principal } from "./v2-auth.js";
 import { GuiWorkspaceStore } from "./workspace-routes.js";
+import { guiRunActivitySchema as activitySchema, guiRunPermissionSchema as permissionSchema, guiConversationViewSchema } from "../../packages/protocol/src/index.js";
+import { DEFAULT_MODEL_ID } from "../core/model-registry.js";
+
+type PlatformAuth = Pick<V2Auth, "authenticate" | "current">;
 
 const CAPABILITIES = [
   "durable-conversations",
@@ -56,7 +60,9 @@ export class PlatformHttpError extends Error {
 
 export async function handlePlatformV3Http(options: {
   readonly backend: PlatformBackend | undefined;
-  readonly auth: V2Auth | undefined;
+  readonly auth: PlatformAuth | undefined;
+  /** Set only by the authenticated standalone GUI facade. */
+  readonly gui?: boolean;
   readonly env: NodeJS.ProcessEnv;
   readonly projectsPath: string;
   readonly workspaceStore: GuiWorkspaceStore;
@@ -76,7 +82,7 @@ export async function handlePlatformV3Http(options: {
       );
     }
     const url = new URL(request.url ?? "/", "http://127.0.0.1");
-    const pathname = url.pathname;
+    const pathname = options.gui ? url.pathname.replace(/^\/v1\/chat/u, "") : url.pathname;
     if (pathname === "/v3/info" && request.method === "GET") {
       sendChecked(sendJson, response, 200, platformV3InfoSchema, {
         protocolVersion: "a008.platform.v3",
@@ -94,6 +100,31 @@ export async function handlePlatformV3Http(options: {
     const principal = options.auth.authenticate(request);
     const backend = options.backend;
     const config = backend.config;
+    const viewMatch = /^\/v3\/conversations\/([^/]+)\/view$/u.exec(pathname);
+    if (viewMatch && options.gui && request.method === "GET") {
+      const found = findConversation(backend, options.auth, principal, pathId(viewMatch[1], "conversationId"), options.projectsPath);
+      const runs = backend.store.listRuns(found.scope).filter((run) => run.conversationId === found.conversation.id);
+      const model = runs.at(-1)?.model ?? url.searchParams.get("model") ?? DEFAULT_MODEL_ID;
+      sendChecked(sendJson, response, 200, guiConversationViewSchema, {
+        conversation: found.conversation, runs,
+        ...backend.coordinator.guiSnapshot(found.scope, found.conversation.id, model),
+      }, config.maxResponseBytes);
+      return;
+    }
+    const activityMatch = /^\/v3\/runs\/([^/]+)\/(activity|permission)$/u.exec(pathname);
+    if (activityMatch && options.gui) {
+      const found = findRun(backend, options.auth, principal, pathId(activityMatch[1], "runId"), options.projectsPath);
+      if (activityMatch[2] === "permission" && request.method === "POST") {
+        const body = await readJson(request, config, permissionSchema);
+        if (!backend.coordinator.resolveGuiPermission(found.run.id, body.id, body.allow))
+          throw new PlatformHttpError(409, "REVISION_CONFLICT", "This permission is no longer pending.");
+      } else if (activityMatch[2] !== "activity" || request.method !== "GET") {
+        throw new PlatformHttpError(400, "INVALID_REQUEST", "Method is not supported.");
+      }
+      sendChecked(sendJson, response, 200, activitySchema,
+        backend.coordinator.guiActivity(found.run.id) ?? { thought: "", answer: "", tools: [] }, config.maxResponseBytes);
+      return;
+    }
     if (request.method === "GET" && pathname === "/v3/events") {
       const query = parseEventsQuery(url);
       const scope = authorizeProject(
@@ -307,7 +338,7 @@ export async function handlePlatformV3Http(options: {
 }
 
 function authorizeProject(
-  auth: V2Auth,
+  auth: PlatformAuth,
   principal: V2Principal,
   projectId: string,
   projectsPath: string,
@@ -338,7 +369,7 @@ function authorizeProject(
 
 function findConversation(
   backend: PlatformBackend,
-  auth: V2Auth,
+  auth: PlatformAuth,
   principal: V2Principal,
   conversationId: string,
   projectsPath: string,
@@ -362,7 +393,7 @@ function findConversation(
 
 function findRun(
   backend: PlatformBackend,
-  auth: V2Auth,
+  auth: PlatformAuth,
   principal: V2Principal,
   runId: string,
   projectsPath: string,

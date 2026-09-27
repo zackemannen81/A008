@@ -34,6 +34,15 @@ export class GuiWorkspaceStore {
     return this.#sessions.list(projectId).map((session) => ({ ...session, status: session.disposition === "discarded" ? { modifiedFiles: 0, commitsAhead: 0, clean: true } : this.#sessions.status(session.id) }));
   }
 
+  /** Resolve only the bound workspace; an unrelated missing worktree cannot rebind it. */
+  get(projectId: string, id: string): WorkspaceSessionView {
+    const session = this.#sessions.get(id);
+    if (session.projectId !== projectId) throw new ProjectWorkspaceError("Workspace belongs to another project.");
+    return { ...session, status: session.disposition === "discarded"
+      ? { modifiedFiles: 0, commitsAhead: 0, clean: true }
+      : this.#sessions.status(id) };
+  }
+
   create(projectId: string, root: string, baseBranch?: string): WorkspaceSessionView {
     const workspaceRoot = this.workspaceRoot();
     const session = this.#sessions.createWorktree({
