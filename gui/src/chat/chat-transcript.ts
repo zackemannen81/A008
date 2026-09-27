@@ -264,7 +264,11 @@ export function buildChatTranscript(
       if (last?.kind === "assistant" && last.answer === session.answer)
         turns[turns.length - 1] = { ...last, thought: session.thought };
     }
-    const withTools = attachLiveTools(turns, session.tools);
+    const visibleTurns =
+      session.busy && session.pendingText === undefined
+        ? overlayLive(turns, session.thought, session.answer)
+        : turns;
+    const withTools = attachLiveTools(visibleTurns, session.tools);
     return {
       status: session.status,
       error: session.error,
