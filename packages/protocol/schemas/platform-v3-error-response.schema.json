@@ -18,6 +18,7 @@
             "CAPACITY_EXCEEDED",
             "LEASE_LOST",
             "NEEDS_RECONCILIATION",
+            "INTERRUPTED_REVIEWED",
             "INTERNAL_ERROR"
           ]
         },

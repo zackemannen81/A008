@@ -32,6 +32,18 @@ export interface RuntimeToolCall {
 }
 
 export interface GuiSessionState {
+  readonly recovery?:
+    | readonly { readonly runId: string; readonly revision: number }[]
+    | undefined;
+  readonly process?:
+    | {
+        readonly sessionId: string;
+        readonly workspaceId: string;
+        readonly instanceId: string;
+        readonly processId: number;
+        readonly state: "running" | "stopped";
+      }
+    | undefined;
   readonly permission?: { id: string; title: string; text: string } | undefined;
   readonly tools?: readonly RuntimeToolCall[] | undefined;
   /** Absent only for a pre-ADR-0026 host. */

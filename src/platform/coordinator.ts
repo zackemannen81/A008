@@ -9,8 +9,10 @@ import {
   PROJECT_ID_ENV,
   SQLITE_PATH_ENV,
 } from "../runtime/local-runtime-config.js";
-import type { LocalMemorySession } from "../runtime/local-memory-runtime.js";
-import { RuntimeOwnershipError, acquireRuntimeLease } from "../runtime/runtime-ownership.js";
+import {
+  RuntimeOwnershipError,
+  acquireRuntimeLease,
+} from "../runtime/runtime-ownership.js";
 import { ChatError } from "../core/errors.js";
 import {
   PLATFORM_LOCAL_OWNER_PRINCIPAL_ID,
@@ -18,13 +20,22 @@ import {
 } from "./local-config.js";
 import { PlatformStore, PlatformStoreError } from "./platform-store.js";
 import {
-  completePlatformTextTurn,
-  openPlatformTextSession,
   platformModelAvailable,
   type PlatformTextHistoryMessage,
 } from "./runtime-adapter.js";
 import type { PlatformRun, PlatformScope } from "./types.js";
-import { GuiRunSession, PLATFORM_GUI_OWNER } from "./gui-run-session.js";
+import { PLATFORM_GUI_OWNER } from "./gui-run-session.js";
+import { SessionProcess, type SessionProcessRun } from "./session-process.js";
+import {
+  catalogBackedModelRegistry,
+  defaultCatalogPath,
+} from "../core/user-catalog.js";
+import {
+  defaultModelRegistry,
+  DEFAULT_MODEL_ID,
+} from "../core/model-registry.js";
+import { defaultSessionParameters } from "../core/generation-controls.js";
+import { nativeToolCatalog } from "../tools/repository-tools.js";
 
 const ACTIVE_STATUSES = ["running", "cancel_requested"] as const;
 
@@ -106,29 +117,69 @@ export class PlatformCoordinator {
   readonly #ownerToken = `platform:${randomUUID()}`;
   readonly #shutdown = new AbortController();
   readonly #active = new Set<Promise<void>>();
-  readonly #guiRuns = new Map<string, GuiRunSession>();
-  readonly #guiCompletedActivity = new Map<string, ReturnType<GuiRunSession["activity"]>>();
+  readonly #guiRuns = new Map<string, SessionProcess>();
+  readonly #processes = new Map<string, SessionProcess>();
 
-  guiActivity(runId: string) {
-    return this.#guiRuns.get(runId)?.activity() ?? this.#guiCompletedActivity.get(runId);
+  guiActivity(scope: PlatformScope, runId: string) {
+    const stored = this.#store.readActivity(scope, runId);
+    const live = this.#guiRuns.get(runId);
+    if (live) return { ...live.activity(), cursor: stored?.cursor ?? 0 };
+    if (!stored) return undefined;
+    const { permission: _permission, ...activity } = stored;
+    return activity;
   }
   resolveGuiPermission(runId: string, id: string, allow: boolean): boolean {
     return this.#guiRuns.get(runId)?.permission(id, allow) ?? false;
+  }
+  sessionProcess(scope: PlatformScope, sessionId: string) {
+    this.#store.getConversation(scope, sessionId);
+    const live = this.#processes.get(sessionId);
+    if (live?.alive) return live.identity();
+    const last = this.#store.sessionIdentity(scope, sessionId);
+    return last ? { ...last, state: "stopped" as const } : undefined;
+  }
+  async stopSessionProcess(
+    scope: PlatformScope,
+    sessionId: string,
+  ): Promise<void> {
+    this.#store.getConversation(scope, sessionId);
+    await this.#processes.get(sessionId)?.stop();
   }
   guiSnapshot(scope: PlatformScope, conversationId: string, model: string) {
     const project = this.#project(scope.projectId);
     if (!project) throw new Error("Project is unavailable.");
     const conversation = this.#store.getConversation(scope, conversationId);
-    const workspace = this.#workspaceStore.get(scope.projectId, conversation.workspaceId);
-    if (!workspace || workspace.disposition === "discarded") throw new Error("Conversation workspace is unavailable.");
-    const runtime = this.#registry.openConfigured(project.rootFolder, this.#projectEnv(project));
-    const created = runtime.agent.newSession({ cwd: workspace.workspacePath, mcpServers: [] }, {
-      initialModel: model, conversationSeed: { conversationId, messages: conversation.messages },
-    });
+    let workspace;
     try {
-      const snapshot = runtime.agent.controlSession({ sessionId: created.sessionId, action: "inspect" });
-      return { workspace, snapshot: { ...snapshot, runtime: { ...snapshot.runtime, cwd: workspace.workspacePath } } };
-    } finally { runtime.agent.closeSession({ sessionId: created.sessionId }); }
+      workspace = this.#workspaceStore.get(
+        scope.projectId,
+        conversation.workspaceId,
+      );
+    } catch {
+      /* History is independent of workspace availability. */
+    }
+    const profile =
+      catalogBackedModelRegistry(
+        defaultModelRegistry,
+        defaultCatalogPath(this.#env),
+      ).get(model) ?? defaultModelRegistry.require(DEFAULT_MODEL_ID);
+    const process = this.sessionProcess(scope, conversationId);
+    return {
+      workspace: workspace ?? null,
+      ...(process ? { process } : {}),
+      snapshot: {
+        model,
+        parameters: defaultSessionParameters(profile),
+        messages: conversation.messages,
+        runtime: {
+          cwd:
+            workspace?.workspacePath ?? "Workspace unavailable (history only)",
+          projectId: scope.projectId,
+          memoryPath: null,
+          tools: nativeToolCatalog(),
+        },
+      },
+    };
   }
   #queue: Promise<void> = Promise.resolve();
   #stopped = false;
@@ -178,7 +229,8 @@ export class PlatformCoordinator {
   }
 
   countNonterminal(projectId?: string): number {
-    return this.#projectRuns(projectId).filter((run) => !isTerminal(run.status)).length;
+    return this.#projectRuns(projectId).filter((run) => !isTerminal(run.status))
+      .length;
   }
 
   async stop(): Promise<void> {
@@ -191,6 +243,11 @@ export class PlatformCoordinator {
       Promise.allSettled([...this.#active]),
       new Promise<void>((resolve) => setTimeout(resolve, drain)),
     ]);
+    await Promise.all(
+      [...this.#processes.values()].map((process) => process.stop()),
+    );
+    await Promise.allSettled([...this.#active]);
+    this.#processes.clear();
   }
 
   async #runLoop(): Promise<void> {
@@ -227,7 +284,10 @@ export class PlatformCoordinator {
         continue;
       }
       for (const run of runs) {
-        if (run.answerStatus !== "completed" || run.memoryStatus !== "pending") {
+        if (
+          run.answerStatus !== "completed" ||
+          run.memoryStatus !== "pending"
+        ) {
           continue;
         }
         try {
@@ -255,7 +315,9 @@ export class PlatformCoordinator {
   #claimNext(skipped: Set<string>): boolean {
     if (this.#stopped) return false;
     if (this.#activeCount() >= this.#config.maxActiveRuns) return false;
-    const candidates = this.#queued().filter((candidate) => !skipped.has(candidate.run.id));
+    const candidates = this.#queued().filter(
+      (candidate) => !skipped.has(candidate.run.id),
+    );
     for (const candidate of candidates) {
       const { scope, run } = candidate;
       if (!this.#canDispatch(scope.principalId, scope.projectId)) {
@@ -279,9 +341,15 @@ export class PlatformCoordinator {
       let workspace;
       try {
         workspace = this.#workspaceStore.get(scope.projectId, run.workspaceId);
-        if (workspace === undefined || workspace.disposition === "discarded") throw new Error("workspace unavailable");
+        if (workspace === undefined || workspace.disposition === "discarded")
+          throw new Error("workspace unavailable");
       } catch {
-        this.#failQueued(scope, run, "WORKSPACE_UNAVAILABLE", "The run workspace is unavailable.");
+        this.#failQueued(
+          scope,
+          run,
+          "WORKSPACE_UNAVAILABLE",
+          "The run workspace is unavailable.",
+        );
         return true;
       }
       let runtime;
@@ -317,19 +385,24 @@ export class PlatformCoordinator {
         );
         return true;
       }
-      let session: LocalMemorySession | GuiRunSession;
+      let session: SessionProcess;
       try {
-        session = run.principalId === PLATFORM_GUI_OWNER ? new GuiRunSession({
-          project: projectRuntime!, registry: this.#registry, env: this.#projectEnv(project),
-          model: run.model, conversationId: run.conversationId,
-          history: prepared.history, cwd: workspace.workspacePath,
-        }) : openPlatformTextSession({
-          runtime,
-          model: run.model,
-          conversationId: run.conversationId,
-          history: prepared.history,
-          cwd: workspace.workspacePath,
-        });
+        const existing = this.#processes.get(run.conversationId);
+        if (existing?.alive) session = existing;
+        else {
+          session = new SessionProcess({
+            sessionId: run.conversationId,
+            workspaceId: run.workspaceId,
+            cwd: workspace.workspacePath,
+            projectRoot: project.rootFolder,
+            projectId: scope.projectId,
+            env: this.#projectEnv(project),
+            runtime,
+            onIdentity: (identity) =>
+              this.#store.recordSessionIdentity(scope, identity),
+          });
+          this.#processes.set(run.conversationId, session);
+        }
       } catch (error) {
         this.#note(error);
         this.#failQueued(
@@ -340,7 +413,10 @@ export class PlatformCoordinator {
         );
         return true;
       }
-      if (this.#stopped || !this.#canDispatch(scope.principalId, scope.projectId)) {
+      if (
+        this.#stopped ||
+        !this.#canDispatch(scope.principalId, scope.projectId)
+      ) {
         return false;
       }
       let claimed;
@@ -373,10 +449,25 @@ export class PlatformCoordinator {
         dispatched,
         claimed.lease.generation,
         session,
-        prepared.text,
+        {
+          runId: run.id,
+          model: run.model,
+          text: prepared.text,
+          history: prepared.history,
+          tools: run.principalId === PLATFORM_GUI_OWNER,
+          recoveryRequired: this.#store
+            .listRuns(scope)
+            .some(
+              (prior) =>
+                prior.conversationId === run.conversationId &&
+                prior.status === "needs_reconciliation",
+            ),
+        },
       );
       this.#active.add(work);
-      void work.catch((error) => this.#note(error)).finally(() => this.#active.delete(work));
+      void work
+        .catch((error) => this.#note(error))
+        .finally(() => this.#active.delete(work));
       return true;
     }
     return false;
@@ -386,14 +477,17 @@ export class PlatformCoordinator {
     scope: PlatformScope,
     run: PlatformRun,
     generation: number,
-    session: LocalMemorySession | GuiRunSession,
-    text: string,
+    session: SessionProcess,
+    input: SessionProcessRun,
   ): Promise<void> {
     const abort = new AbortController();
-    if (session instanceof GuiRunSession) this.#guiRuns.set(run.id, session);
+    this.#guiRuns.set(run.id, session);
     const onShutdown = (): void => abort.abort();
     if (this.#shutdown.signal.aborted) abort.abort();
-    else this.#shutdown.signal.addEventListener("abort", onShutdown, { once: true });
+    else
+      this.#shutdown.signal.addEventListener("abort", onShutdown, {
+        once: true,
+      });
     const renew = setInterval(() => {
       if (abort.signal.aborted || this.#stopped) return;
       if (!this.#canDispatch(scope.principalId, scope.projectId)) {
@@ -401,7 +495,7 @@ export class PlatformCoordinator {
         return;
       }
       try {
-        if (session instanceof GuiRunSession && this.#store.getRun(scope, run.id).status === "cancel_requested") {
+        if (this.#store.getRun(scope, run.id).status === "cancel_requested") {
           abort.abort();
           return;
         }
@@ -420,16 +514,19 @@ export class PlatformCoordinator {
     const timeout = setTimeout(() => abort.abort(), this.#config.turnTimeoutMs);
     timeout.unref?.();
     try {
-      const outcome = session instanceof GuiRunSession
-        ? await session.complete(text, abort.signal)
-        : await completePlatformTextTurn(session, text, abort.signal);
+      const outcome = await session.complete(input, abort.signal, (activity) =>
+        this.#store.recordActivity(scope, run.id, activity),
+      );
       clearInterval(renew);
       clearTimeout(timeout);
       if (outcome.answer === undefined) return;
       let committed: PlatformRun;
       try {
         const latest = this.#store.getRun(scope, run.id);
-        if (latest.status !== "running" && latest.status !== "cancel_requested") {
+        if (
+          latest.status !== "running" &&
+          latest.status !== "cancel_requested"
+        ) {
           return;
         }
         committed = this.#store.commitAnswer(scope, {
@@ -444,7 +541,8 @@ export class PlatformCoordinator {
         return;
       }
       const memoryStatus =
-        outcome.memoryStatus === "completed" || outcome.memoryStatus === "failed"
+        outcome.memoryStatus === "completed" ||
+        outcome.memoryStatus === "failed"
           ? outcome.memoryStatus
           : "unknown";
       try {
@@ -457,7 +555,10 @@ export class PlatformCoordinator {
         this.#note(error);
         try {
           const latest = this.#store.getRun(scope, run.id);
-          if (latest.memoryStatus === "pending" && latest.answerStatus === "completed") {
+          if (
+            latest.memoryStatus === "pending" &&
+            latest.answerStatus === "completed"
+          ) {
             this.#store.recordMemoryOutcome(scope, {
               runId: latest.id,
               expectedRevision: latest.revision,
@@ -472,12 +573,18 @@ export class PlatformCoordinator {
       clearInterval(renew);
       clearTimeout(timeout);
       this.#shutdown.signal.removeEventListener("abort", onShutdown);
-      if (session instanceof GuiRunSession) {
-        this.#guiCompletedActivity.set(run.id, session.activity());
-        while (this.#guiCompletedActivity.size > 100) {
-          const oldest = this.#guiCompletedActivity.keys().next().value;
-          if (oldest === undefined) break;
-          this.#guiCompletedActivity.delete(oldest);
+      this.#store.recordActivity(scope, run.id, session.activity());
+      const latest = this.#store.getRun(scope, run.id);
+      if (latest.status === "running" || latest.status === "cancel_requested") {
+        try {
+          this.#store.markInterrupted(scope, {
+            runId: run.id,
+            ownerToken: this.#ownerToken,
+            generation,
+            expectedRevision: latest.revision,
+          });
+        } catch (error) {
+          this.#note(error);
         }
       }
       this.#guiRuns.delete(run.id);
@@ -488,12 +595,21 @@ export class PlatformCoordinator {
   #prepare(
     scope: PlatformScope,
     run: PlatformRun,
-  ): { readonly text: string; readonly history: readonly PlatformTextHistoryMessage[] } | undefined {
+  ):
+    | {
+        readonly text: string;
+        readonly history: readonly PlatformTextHistoryMessage[];
+      }
+    | undefined {
     const conversation = this.#store.getConversation(scope, run.conversationId);
     const own = conversation.messages.find(
       (message) => message.runId === run.id && message.role === "user",
     );
-    if (own === undefined || typeof own.content !== "string" || own.content.length === 0) {
+    if (
+      own === undefined ||
+      typeof own.content !== "string" ||
+      own.content.length === 0
+    ) {
       return undefined;
     }
     const history: PlatformTextHistoryMessage[] = [];
@@ -602,7 +718,10 @@ export class PlatformCoordinator {
   }
 
   #principalIds(): readonly string[] {
-    const ids = new Set<string>([PLATFORM_LOCAL_OWNER_PRINCIPAL_ID, PLATFORM_GUI_OWNER]);
+    const ids = new Set<string>([
+      PLATFORM_LOCAL_OWNER_PRINCIPAL_ID,
+      PLATFORM_GUI_OWNER,
+    ]);
     try {
       for (const device of this.#devices.list()) ids.add(device.id);
     } catch (error) {
@@ -627,7 +746,8 @@ export class PlatformCoordinator {
   #canDispatch(principalId: string, projectId: string): boolean {
     if (this.#project(projectId) === undefined) return false;
     if (principalId === PLATFORM_GUI_OWNER) return true;
-    if (principalId === PLATFORM_LOCAL_OWNER_PRINCIPAL_ID) return this.#pinEnabled();
+    if (principalId === PLATFORM_LOCAL_OWNER_PRINCIPAL_ID)
+      return this.#pinEnabled();
     const device = this.#devices.current(principalId);
     if (device === undefined) return false;
     return (
@@ -638,7 +758,7 @@ export class PlatformCoordinator {
 
   #projectEnv(project: RegisteredProject): NodeJS.ProcessEnv {
     const sqlite = project.memory.useGlobalA008Memory
-      ? (this.#env[SQLITE_PATH_ENV]?.trim() || defaultSqlitePath())
+      ? this.#env[SQLITE_PATH_ENV]?.trim() || defaultSqlitePath()
       : ":memory:";
     if (sqlite !== ":memory:" && sameFile(sqlite, this.#config.path)) {
       throw new ChatError(
@@ -676,10 +796,13 @@ export class PlatformCoordinator {
 }
 
 function isTerminal(status: PlatformRun["status"]): boolean {
-  return status === "succeeded" || status === "failed" || status === "cancelled";
+  return (
+    status === "succeeded" || status === "failed" || status === "cancelled"
+  );
 }
 
 function sameFile(left: string, right: string): boolean {
-  if (process.platform === "win32") return left.toLowerCase() === right.toLowerCase();
+  if (process.platform === "win32")
+    return left.toLowerCase() === right.toLowerCase();
   return left === right;
 }

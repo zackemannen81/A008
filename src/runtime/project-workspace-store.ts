@@ -7,6 +7,7 @@ import {
   join,
   relative,
   resolve,
+  sep,
 } from "node:path";
 import { spawnSync } from "node:child_process";
 import Database from "better-sqlite3";
@@ -22,6 +23,8 @@ export interface ProjectWorkspaceSession {
   readonly workspacePath: string;
   readonly branchName?: string;
   readonly baseBranch?: string;
+  readonly baseCommit?: string;
+  readonly sessionId?: string;
   readonly disposition: WorkspaceDisposition;
   readonly createdAt: string;
 }
@@ -52,6 +55,17 @@ export class ProjectWorkspaceStore {
         created_at TEXT NOT NULL
       );
     `);
+    const columns = this.#database.pragma(
+      "table_info(A008_project_workspace_sessions)",
+    ) as { name: string }[];
+    if (!columns.some((column) => column.name === "base_commit"))
+      this.#database.exec(
+        "ALTER TABLE A008_project_workspace_sessions ADD COLUMN base_commit TEXT",
+      );
+    if (!columns.some((column) => column.name === "session_id"))
+      this.#database.exec(
+        "ALTER TABLE A008_project_workspace_sessions ADD COLUMN session_id TEXT",
+      );
   }
 
   createShared(projectId: string, root: string): ProjectWorkspaceSession {
@@ -70,6 +84,7 @@ export class ProjectWorkspaceStore {
     root: string;
     baseBranch?: string;
     workspaceRoot?: string;
+    sessionId?: string;
   }): ProjectWorkspaceSession {
     const root = canonicalDirectory(input.root);
     ensureGitRepository(root);
@@ -80,13 +95,25 @@ export class ProjectWorkspaceStore {
         "The repository has no current base branch.",
       );
     const id = `workspace_${randomUUID()}`;
-    const branchName = `a008/session-${id.slice(-8)}`;
+    const suffix = input.sessionId ?? id.slice("workspace_".length);
+    if (!/^[a-zA-Z0-9_-]+$/u.test(suffix))
+      throw new ProjectWorkspaceError("Invalid session identity.");
+    const branchName = `a008/session-${suffix}`;
+    const baseCommit = git(root, [
+      "rev-parse",
+      "--verify",
+      `${baseBranch}^{commit}`,
+    ]);
     const workspacePath = join(
-      input.workspaceRoot ? canonicalWorkspaceRoot(input.workspaceRoot, root) : join(dirname(root), `${basename(root)}-workspaces`),
-      `${basename(root)}-${id.slice(-8)}`,
+      canonicalWorkspaceRoot(
+        input.workspaceRoot ??
+          join(dirname(root), `${basename(root)}-workspaces`),
+        root,
+      ),
+      `${basename(root)}-${suffix}`,
     );
     mkdirSync(dirname(workspacePath), { recursive: true });
-    git(root, ["worktree", "add", workspacePath, "-b", branchName, baseBranch]);
+    git(root, ["worktree", "add", workspacePath, "-b", branchName, baseCommit]);
     try {
       return this.#insert({
         id,
@@ -95,6 +122,8 @@ export class ProjectWorkspaceStore {
         workspacePath,
         branchName,
         baseBranch,
+        baseCommit,
+        ...(input.sessionId ? { sessionId: input.sessionId } : {}),
         disposition: "active",
         createdAt: new Date().toISOString(),
       });
@@ -178,7 +207,7 @@ export class ProjectWorkspaceStore {
   #insert(session: ProjectWorkspaceSession): ProjectWorkspaceSession {
     this.#database
       .prepare(
-        `INSERT INTO A008_project_workspace_sessions (id, project_id, workspace_mode, workspace_path, branch_name, base_branch, disposition, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO A008_project_workspace_sessions (id, project_id, workspace_mode, workspace_path, branch_name, base_branch, disposition, created_at, base_commit, session_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         session.id,
@@ -189,6 +218,8 @@ export class ProjectWorkspaceStore {
         session.baseBranch ?? null,
         session.disposition,
         session.createdAt,
+        session.baseCommit ?? null,
+        session.sessionId ?? null,
       );
     return session;
   }
@@ -201,6 +232,8 @@ interface Row {
   workspace_path: string;
   branch_name: string | null;
   base_branch: string | null;
+  base_commit: string | null;
+  session_id: string | null;
   disposition: WorkspaceDisposition;
   created_at: string;
 }
@@ -212,6 +245,8 @@ function fromRow(row: Row): ProjectWorkspaceSession {
     workspacePath: row.workspace_path,
     ...(row.branch_name ? { branchName: row.branch_name } : {}),
     ...(row.base_branch ? { baseBranch: row.base_branch } : {}),
+    ...(row.base_commit ? { baseCommit: row.base_commit } : {}),
+    ...(row.session_id ? { sessionId: row.session_id } : {}),
     disposition: row.disposition,
     createdAt: row.created_at,
   };
@@ -225,12 +260,38 @@ function canonicalDirectory(path: string): string {
 }
 function canonicalWorkspaceRoot(path: string, projectRoot: string): string {
   if (!isAbsolute(path))
-    throw new ProjectWorkspaceError("Workspace root must be an absolute directory.");
+    throw new ProjectWorkspaceError(
+      "Workspace root must be an absolute directory.",
+    );
   const root = resolve(path);
-  if (relative(projectRoot, root) === "" || !relative(projectRoot, root).startsWith(".."))
-    throw new ProjectWorkspaceError("Workspace root must be outside the project repository.");
+  const inside = (candidate: string) => {
+    const distance = relative(projectRoot, candidate);
+    return (
+      distance === "" ||
+      (distance !== ".." &&
+        !distance.startsWith(`..${sep}`) &&
+        !isAbsolute(distance))
+    );
+  };
+  if (inside(root))
+    throw new ProjectWorkspaceError(
+      "Workspace root must be outside the project repository.",
+    );
   mkdirSync(root, { recursive: true });
-  return realpathSync(root);
+  const canonical = realpathSync(root);
+  const repository = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], {
+    cwd: canonical,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  if (
+    inside(canonical) ||
+    (repository.status === 0 && repository.stdout.trim() === "true")
+  )
+    throw new ProjectWorkspaceError(
+      "Workspace root must be outside the project repository.",
+    );
+  return canonical;
 }
 function ensureGitRepository(cwd: string): void {
   if (git(cwd, ["rev-parse", "--is-inside-work-tree"]) !== "true")

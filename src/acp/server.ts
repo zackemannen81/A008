@@ -3,8 +3,15 @@
 import { Readable, Writable } from "node:stream";
 import { pathToFileURL } from "node:url";
 import * as acp from "@agentclientprotocol/sdk";
-import { createLocalMemoryRuntime } from "../runtime/local-memory-runtime.js";
-import { A008AcpAgent, sessionNotifier } from "./A008-acp-agent.js";
+import {
+  createLocalMemoryRuntime,
+  type LocalMemoryRuntimeOptions,
+} from "../runtime/local-memory-runtime.js";
+import {
+  A008AcpAgent,
+  sessionNotifier,
+  type A008AcpAgentOptions,
+} from "./A008-acp-agent.js";
 import { ModelToolSession } from "../tools/model-tools.js";
 import { prepareAcpTools } from "../tools/acp-tools.js";
 import { nativeToolCatalog } from "../tools/repository-tools.js";
@@ -26,6 +33,15 @@ export function createAcpRuntime(options: {
   cwd?: string;
   stderr: NodeJS.WritableStream;
   ownershipAlreadyHeld?: boolean;
+  remoteMemory?: LocalMemoryRuntimeOptions["remoteMemory"];
+  memoryAccess?: Pick<
+    A008AcpAgentOptions,
+    | "inspectMemory"
+    | "sharedMemoryCapabilities"
+    | "recallSharedMemory"
+    | "writeSharedMemory"
+    | "ingestSource"
+  >;
 }) {
   const { env, stderr } = options;
   const cwd = options.cwd ?? process.cwd();
@@ -39,6 +55,7 @@ export function createAcpRuntime(options: {
     surface: "acp",
     stderr,
     registry,
+    ...(options.remoteMemory ? { remoteMemory: options.remoteMemory } : {}),
     ...(options.ownershipAlreadyHeld ? { ownershipAlreadyHeld: true } : {}),
   });
   const agent = new A008AcpAgent({
@@ -86,6 +103,7 @@ export function createAcpRuntime(options: {
     onMemoryDiagnostic: (message) => {
       stderr.write(`memory> ${message}\n`);
     },
+    ...options.memoryAccess,
   });
   return { runtime, agent };
 }

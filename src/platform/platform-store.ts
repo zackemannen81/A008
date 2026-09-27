@@ -3,6 +3,8 @@ import Database from "better-sqlite3";
 import type { Database as BetterSqliteDatabase } from "better-sqlite3";
 import { chatContentSchema } from "../../packages/protocol/src/index.js";
 import type { ChatContent } from "../core/types.js";
+import type { GuiRunActivity } from "./gui-run-session.js";
+import type { SessionProcessIdentity } from "./session-process.js";
 import {
   parseRuntimeId,
   RuntimeIdentityFactory,
@@ -10,6 +12,7 @@ import {
 import {
   PLATFORM_SQLITE_SCHEMA,
   PLATFORM_SQLITE_SCHEMA_VERSION,
+  SESSION_PROCESS_SCHEMA,
 } from "./sqlite-schema.js";
 import type {
   AcceptPlatformRun,
@@ -160,7 +163,12 @@ export class PlatformStore {
     this.#requireOpen();
     this.#validateScope(scope);
     const title = this.#bounded(input.title, "title", 1, 200);
-    const workspaceId = this.#bounded(input.workspaceId ?? "legacy-unbound", "workspaceId", 1, 256);
+    const workspaceId = this.#bounded(
+      input.workspaceId ?? "legacy-unbound",
+      "workspaceId",
+      1,
+      256,
+    );
     const id = parseRuntimeId(
       input.id ?? this.#identityFactory.create("conversation"),
       "conversation",
@@ -253,7 +261,7 @@ export class PlatformStore {
         .prepare(
           `SELECT id FROM A008_platform_runs
            WHERE tenant_id = ? AND project_id = ? AND conversation_id = ?
-             AND status NOT IN ('succeeded', 'failed', 'cancelled') LIMIT 1`,
+             AND status IN ('queued', 'running', 'cancel_requested') LIMIT 1`,
         )
         .get(scope.tenantId, scope.projectId, conversationId) as
         { readonly id: string } | undefined;
@@ -760,6 +768,178 @@ export class PlatformStore {
     if (this.#ownsDatabase) this.#database.close();
   }
 
+  recordSessionIdentity(
+    scope: PlatformScope,
+    identity: SessionProcessIdentity,
+  ): void {
+    const conversation = this.#conversationRow(scope, identity.sessionId);
+    if (conversation.workspace_id !== identity.workspaceId)
+      throw new PlatformStoreError(
+        "INVALID_REQUEST",
+        "Session workspace mismatch.",
+      );
+    this.#database
+      .prepare(
+        "INSERT INTO A008_session_instances VALUES (?, ?) ON CONFLICT(session_id) DO UPDATE SET identity_json = excluded.identity_json",
+      )
+      .run(identity.sessionId, JSON.stringify(identity));
+  }
+
+  sessionIdentity(
+    scope: PlatformScope,
+    sessionId: string,
+  ): SessionProcessIdentity | undefined {
+    this.#conversationRow(scope, sessionId);
+    const row = this.#database
+      .prepare(
+        "SELECT identity_json FROM A008_session_instances WHERE session_id = ?",
+      )
+      .get(sessionId) as { identity_json: string } | undefined;
+    return row
+      ? (JSON.parse(row.identity_json) as SessionProcessIdentity)
+      : undefined;
+  }
+
+  recordActivity(
+    scope: PlatformScope,
+    runId: string,
+    activity: GuiRunActivity,
+  ): number {
+    this.#runRow(scope, runId);
+    // Private reasoning is live-only. Persist public answer/tool/approval state.
+    const {
+      thought: _thought,
+      snapshot: _snapshot,
+      ...publicActivity
+    } = activity;
+    let cursor = 0;
+    this.#immediate(() => {
+      const prior = this.readActivity(scope, runId);
+      const changes: Record<string, unknown> = {};
+      if (prior?.answer !== activity.answer)
+        changes.answer =
+          prior && activity.answer.startsWith(prior.answer)
+            ? { append: activity.answer.slice(prior.answer.length) }
+            : { replace: activity.answer };
+      const tools = activity.tools.filter(
+        (tool) =>
+          JSON.stringify(prior?.tools.find((entry) => entry.id === tool.id)) !==
+          JSON.stringify(tool),
+      );
+      if (tools.length) changes.tools = tools;
+      if (
+        JSON.stringify(prior?.permission) !==
+        JSON.stringify(activity.permission)
+      )
+        changes.permission = activity.permission ?? null;
+      if (prior && Object.keys(changes).length === 0) {
+        cursor = prior.cursor;
+        return;
+      }
+      const result = this.#database
+        .prepare(
+          "INSERT INTO A008_session_activity(run_id, activity_json) VALUES (?, ?)",
+        )
+        .run(runId, JSON.stringify(changes));
+      cursor = Number(result.lastInsertRowid);
+      this.#database
+        .prepare(
+          "INSERT INTO A008_session_activity_current VALUES (?, ?, ?) ON CONFLICT(run_id) DO UPDATE SET cursor = excluded.cursor, activity_json = excluded.activity_json",
+        )
+        .run(runId, cursor, JSON.stringify({ ...publicActivity, thought: "" }));
+    });
+    return cursor;
+  }
+
+  readActivity(scope: PlatformScope, runId: string) {
+    this.#runRow(scope, runId);
+    const row = this.#database
+      .prepare(
+        "SELECT cursor, activity_json FROM A008_session_activity_current WHERE run_id = ?",
+      )
+      .get(runId) as { cursor: number; activity_json: string } | undefined;
+    return row
+      ? {
+          ...(JSON.parse(row.activity_json) as GuiRunActivity),
+          cursor: row.cursor,
+        }
+      : undefined;
+  }
+
+  activityEvents(scope: PlatformScope, runId: string, after: number) {
+    this.#runRow(scope, runId);
+    this.#safeInteger(after, "after");
+    const rows = this.#database
+      .prepare(
+        "SELECT cursor, activity_json FROM A008_session_activity WHERE run_id = ? AND cursor > ? ORDER BY cursor LIMIT 101",
+      )
+      .all(runId, after) as { cursor: number; activity_json: string }[];
+    const events = rows
+      .slice(0, 100)
+      .map((row) => ({
+        cursor: row.cursor,
+        changes: JSON.parse(row.activity_json) as Record<string, unknown>,
+      }));
+    return {
+      events,
+      nextCursor: events.at(-1)?.cursor ?? after,
+      hasMore: rows.length > 100,
+    };
+  }
+
+  acknowledgeEffects(
+    scope: PlatformScope,
+    runId: string,
+    expectedRevision: number,
+  ): PlatformRun {
+    this.#immediate(() => {
+      const run = this.#runRow(scope, runId);
+      this.#requireRevision(run, expectedRevision);
+      if (run.status !== "needs_reconciliation")
+        throw new PlatformStoreError(
+          "REVISION_CONFLICT",
+          "Run is not awaiting effect review.",
+        );
+      const revision = run.revision + 1;
+      this.#database
+        .prepare(
+          "UPDATE A008_platform_runs SET status = 'failed', effect_status = 'known', revision = ?, updated_at = ?, error_code = 'INTERRUPTED_REVIEWED', error_message = 'Interrupted run; effects reviewed by the user. No replay performed.' WHERE id = ?",
+        )
+        .run(revision, this.#now(), runId);
+      this.#appendEvent(
+        scope,
+        run.conversation_id,
+        runId,
+        "run.updated",
+        revision,
+        this.#now(),
+      );
+    });
+    return this.#run(scope, runId);
+  }
+
+  markInterrupted(scope: PlatformScope, input: LeaseWrite): void {
+    this.#immediate(() => {
+      const run = this.#currentLease(scope, input, this.#now());
+      this.#requireRevision(run, input.expectedRevision);
+      if (run.status !== "running" && run.status !== "cancel_requested") return;
+      const revision = run.revision + 1;
+      this.#database
+        .prepare(
+          "UPDATE A008_platform_runs SET status = 'needs_reconciliation', revision = ?, lease_owner_token = NULL, lease_expires_at = NULL, updated_at = ? WHERE id = ?",
+        )
+        .run(revision, this.#now(), run.id);
+      this.#appendEvent(
+        scope,
+        run.conversation_id,
+        run.id,
+        "run.updated",
+        revision,
+        this.#now(),
+      );
+    });
+  }
+
   #initializeSchema(): void {
     this.#immediate(() => {
       this.#database.exec(`CREATE TABLE IF NOT EXISTS A008_platform_schema (
@@ -776,18 +956,49 @@ export class PlatformStore {
           );
         }
         if (existing.version === 1) {
-          this.#database.exec("ALTER TABLE A008_platform_conversations ADD COLUMN workspace_id TEXT");
-          this.#database.exec("ALTER TABLE A008_platform_runs ADD COLUMN workspace_id TEXT");
+          this.#database.exec(
+            "ALTER TABLE A008_platform_conversations ADD COLUMN workspace_id TEXT",
+          );
+          this.#database.exec(
+            "ALTER TABLE A008_platform_runs ADD COLUMN workspace_id TEXT",
+          );
           const legacyWorkspaceId = "legacy-unbound";
-          this.#database.prepare("UPDATE A008_platform_conversations SET workspace_id = ? WHERE workspace_id IS NULL").run(legacyWorkspaceId);
-          this.#database.prepare("UPDATE A008_platform_runs SET workspace_id = ? WHERE workspace_id IS NULL").run(legacyWorkspaceId);
-          this.#database.prepare("UPDATE A008_platform_schema SET version = ? WHERE singleton = 1").run(PLATFORM_SQLITE_SCHEMA_VERSION);
+          this.#database
+            .prepare(
+              "UPDATE A008_platform_conversations SET workspace_id = ? WHERE workspace_id IS NULL",
+            )
+            .run(legacyWorkspaceId);
+          this.#database
+            .prepare(
+              "UPDATE A008_platform_runs SET workspace_id = ? WHERE workspace_id IS NULL",
+            )
+            .run(legacyWorkspaceId);
+          this.#database.exec(SESSION_PROCESS_SCHEMA);
+          this.#database
+            .prepare(
+              "UPDATE A008_platform_schema SET version = ? WHERE singleton = 1",
+            )
+            .run(PLATFORM_SQLITE_SCHEMA_VERSION);
           return;
         }
-        if (existing.version !== PLATFORM_SQLITE_SCHEMA_VERSION) throw new PlatformStoreError("INVALID_REQUEST", "Platform SQLite schema version is unsupported.");
+        if (existing.version === 2) {
+          this.#database.exec(SESSION_PROCESS_SCHEMA);
+          this.#database
+            .prepare(
+              "UPDATE A008_platform_schema SET version = ? WHERE singleton = 1",
+            )
+            .run(PLATFORM_SQLITE_SCHEMA_VERSION);
+          return;
+        }
+        if (existing.version !== PLATFORM_SQLITE_SCHEMA_VERSION)
+          throw new PlatformStoreError(
+            "INVALID_REQUEST",
+            "Platform SQLite schema version is unsupported.",
+          );
         return;
       }
       this.#database.exec(PLATFORM_SQLITE_SCHEMA);
+      this.#database.exec(SESSION_PROCESS_SCHEMA);
       this.#database
         .prepare(
           "INSERT INTO A008_platform_schema(singleton, version) VALUES (1, ?)",
@@ -970,8 +1181,7 @@ export class PlatformStore {
          WHERE tenant_id = ? AND principal_id = ? AND command_id = ?`,
       )
       .get(scope.tenantId, scope.principalId, commandId) as
-      | ReceiptRow
-      | undefined;
+      ReceiptRow | undefined;
     if (receipt === undefined) return undefined;
     if (receipt.payload_digest !== payloadDigest) {
       throw new PlatformStoreError(

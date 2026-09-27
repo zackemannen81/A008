@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { sessionProcessSchema } from "./session-lifecycle.js";
+export * from "./session-lifecycle.js";
 import { sessionSnapshotSchema } from "./schemas.js";
 import {
   platformV3ConversationSchema,
@@ -8,6 +10,7 @@ import { workspaceSessionSchema } from "./http-schemas.js";
 
 /** Live observer state; committed conversation/run records remain authoritative. */
 export const guiRunActivitySchema = z.object({
+  cursor: z.number().int().nonnegative().optional(),
   snapshot: sessionSnapshotSchema.optional(),
   thought: z.string(),
   answer: z.string(),
@@ -32,6 +35,7 @@ export const guiConversationViewSchema = z.object({
   conversation: platformV3ConversationSchema,
   runs: z.array(platformV3RunSchema),
   snapshot: sessionSnapshotSchema,
-  workspace: workspaceSessionSchema,
+  workspace: workspaceSessionSchema.nullable(),
+  process: sessionProcessSchema.optional(),
 });
 export type GuiConversationView = z.infer<typeof guiConversationViewSchema>;

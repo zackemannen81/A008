@@ -177,6 +177,8 @@ export class DurableChatClient {
       status: "connecting",
       sessionId: undefined,
       details: undefined,
+      process: undefined,
+      recovery: undefined,
       busy: false,
       permission: undefined,
       tools: [],
@@ -269,7 +271,7 @@ export class DurableChatClient {
       );
       if (!response.ok)
         throw new Error(messageFromBody(body, "Cannot restore conversation."));
-      const { conversation, runs, snapshot, workspace } =
+      const { conversation, runs, snapshot, workspace, process } =
         guiConversationViewSchema.parse(body);
       const run = runs.at(-1);
       const runId = run?.id;
@@ -285,10 +287,11 @@ export class DurableChatClient {
         return;
       this.#conversation = conversation;
       this.#run = run;
-      this.#workspace = workspace;
+      this.#workspace = workspace ?? undefined;
       const permission = activity?.permission;
       const autoAllow = permission !== undefined && this.#allowAll.has(id);
-      if (autoAllow && runId) await this.#permission(runId, permission.id, true);
+      if (autoAllow && runId)
+        await this.#permission(runId, permission.id, true);
       const model = run?.model ?? this.#state.model;
       const details = snapshot as SessionSnapshot;
       this.#publish({
@@ -297,6 +300,10 @@ export class DurableChatClient {
         details,
         busy: active,
         sessionId: id,
+        process,
+        recovery: runs
+          .filter((entry) => entry.status === "needs_reconciliation")
+          .map((entry) => ({ runId: entry.id, revision: entry.revision })),
         thought: activity?.thought ?? "",
         answer: activity?.answer ?? "",
         tools: activity?.tools ?? [],
@@ -319,6 +326,53 @@ export class DurableChatClient {
         this.#timer = setTimeout(() => {
           void this.refresh(epoch);
         }, this.pollMs);
+    }
+  };
+
+  stopProcess = async (): Promise<void> => {
+    try {
+      if (!this.#conversation) return;
+      const { response, body } = await requestJson(
+        this.http,
+        `/v1/chat/v3/conversations/${encodeURIComponent(this.#conversation.id)}/process`,
+        { method: "DELETE" },
+      );
+      if (!response.ok) {
+        this.#error(
+          new Error(messageFromBody(body, "Cannot stop session process.")),
+        );
+        return;
+      }
+      await this.refresh();
+    } catch (error) {
+      this.#error(error);
+    }
+  };
+  acknowledgeEffects = async (): Promise<void> => {
+    try {
+      for (const run of this.#state.recovery ?? []) {
+        const { response, body } = await requestJson(
+          this.http,
+          `/v1/chat/v3/runs/${encodeURIComponent(run.runId)}/effect-review`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              expectedRevision: run.revision,
+              effectsReviewed: true,
+            }),
+          },
+        );
+        if (!response.ok) {
+          this.#error(
+            new Error(messageFromBody(body, "Cannot record effect review.")),
+          );
+          return;
+        }
+      }
+      await this.refresh();
+    } catch (error) {
+      this.#error(error);
     }
   };
 

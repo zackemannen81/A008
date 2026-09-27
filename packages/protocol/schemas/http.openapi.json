@@ -3343,6 +3343,12 @@
           "baseBranch": {
             "$ref": "#/components/schemas/workspaceSession/$defs/__schema1"
           },
+          "baseCommit": {
+            "$ref": "#/components/schemas/workspaceSession/$defs/__schema1"
+          },
+          "sessionId": {
+            "$ref": "#/components/schemas/workspaceSession/$defs/__schema1"
+          },
           "disposition": {
             "type": "string",
             "enum": [
@@ -3437,6 +3443,12 @@
                   "$ref": "#/components/schemas/workspaceSessions/$defs/__schema0"
                 },
                 "baseBranch": {
+                  "$ref": "#/components/schemas/workspaceSessions/$defs/__schema0"
+                },
+                "baseCommit": {
+                  "$ref": "#/components/schemas/workspaceSessions/$defs/__schema0"
+                },
+                "sessionId": {
                   "$ref": "#/components/schemas/workspaceSessions/$defs/__schema0"
                 },
                 "disposition": {

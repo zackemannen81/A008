@@ -1,9 +1,8 @@
 # System Document — aktuell implementation
 
-Granskad: 2026-09-27; minneskontext uppdaterad i A008-0189.
-Källrevision för minnesändringen: `0d8e409f464ac32dca02d73ac969b2581428ccc7` + lokal diff.
-Övriga flöden: A008-0188:s källgranskning. Minneskontext: lokal testverifiering,
-se [handoff A008-0189](handoffs/A008-0189.md).
+Granskad: 2026-09-27; sessionsprocesser uppdaterade i A008-0191.
+Källrevision: `0a8903bc9b9b0e44a6563dbecd356fc3ef669a35` + lokal diff.
+Verifiering och avgränsningar: [handoff A008-0191](handoffs/A008-0191.md).
 
 Detta dokument beskriver implementerade ansvar och flöden. Målarkitekturen finns
 i [PROJECT_BRIEF.md](PROJECT_BRIEF.md) och [ADR 0055](adr/0055-durable-sessions-and-process-ownership.md).
@@ -39,10 +38,15 @@ hanterar ägarskap och återhämtning samt håller aktiva GUI-körningar.
 Utgångna leases hanteras konservativt: redan dispatchat arbete med okänt
 utfall kan bli `needs_reconciliation`, utan implicit återspelning.
 
-Databashändelser och sparade meddelanden är beständiga. Den kompletta pågående
-text-/verktygsaktiviteten ligger däremot i processminne i
-[GuiRunSession](../src/platform/gui-run-session.ts). Alla livedetaljer kan
-därför inte beskrivas som en beständig, återspelbar ström efter processdöd.
+SQLite-schema 3 lagrar även senaste sessionsinstans samt publik körningsaktivitet.
+Varje publik förändring får en stigande cursor; svarstext sparas som append/replace,
+verktyg uppdateras med ID och väntande godkännanden kan sättas eller tas bort.
+En materialiserad snapshot och dess cursor skrivs i samma transaktion. Klienten
+kan läsa snapshot och därefter `activity-events?after=<cursor>` i sidor om 100.
+Händelser med redan behandlad cursor ignoreras. GUI:s polling ersätter hela
+aktivitetssnapshoten och lägger aldrig samma textdelta till svaret två gånger.
+Privat resonemang och interna enginesnapshotar är endast liveinformation.
+Historikläsning skapar varken sessionsprocess eller semantisk runtime.
 
 ## Workspace
 
@@ -58,25 +62,44 @@ nya worktrees; rotvalet exponeras i Parameters → Parallel sessions.
 Nya durable GUI/V3-conversations får en worktree före körbar publicering.
 Coordinator slår upp körningens sparade workspace och skickar dess sökväg som
 CWD. Saknad eller discarded arbetsyta ger fel. Projekt-roten är ingen implicit
-fallback. Den befintliga branch-/ID-allokeringen är inte ännu den nya
-arkitekturens fullständiga sessionsidentitetsmodell.
+fallback. Den beständiga conversation-identiteten är produktens `sessionId`.
+Nya branches heter `a008/session-<sessionId>`; worktree-sökvägen använder hela
+identiteten. Utgångsbranch och faktisk startcommit lagras separat. Ändrad rot
+gäller nya sessioner; befintliga worktrees flyttas inte.
 
 ## Exekvering och processgräns
 
-Coordinator öppnar projektets runtime via
-[ProjectRuntimeRegistry](../src/engine/project-runtime-registry.ts).
-För vanlig GUI-körning skapas ett `GuiRunSession`-objekt, som i sin konstruktor
-skapar `new EngineHost(...)` i samma OS-process. `complete()` skapar en intern
-EngineHost-session med historik och workspace-CWD; `finally` stänger EngineHost.
+Coordinator öppnar projektets gemensamma runtime via
+[ProjectRuntimeRegistry](../src/engine/project-runtime-registry.ts) och äger
+[SessionProcess](../src/platform/session-process.ts) per beständig session.
+Den forkade [session-worker](../src/platform/session-worker.ts) är en separat
+OS-process med worktree som CWD. Den lever mellan meddelanden. EngineHost och
+GuiRunSession skapas för varje GUI-körning inne i sessionsprocessen; deras
+interna session-ID är tillfälliga adapteridentiteter. Offentlig V3 använder
+textadaptern i samma processmodell. Värdens exklusiva lease och seriella
+kommandointag kombineras med en aktiv körning per session och lokal busy-spärr.
 
-Det är alltså ett in-process exekveringsobjekt per körning. Det är **inte en
-egen OS-process per beständig session** och återanvänder inte en sådan process
-mellan meddelanden. Start av ny sessionsprocess efter död PID är inte byggd i
-detta flöde. Existerande verktygs-/MCP-underprocesser innebär inte att kravet är uppfyllt.
+Privat [SessionIpc](../src/platform/session-ipc.ts) använder Node:s ärvda
+processkanal, utan nätverksport. Kuvertet har version 1, `instanceId`, request-ID,
+request/response/cancel och operation. Körningsbundna anrop innehåller `runId`.
+Handshake verifierar child-PID; PID används aldrig ensamt för att återansluta
+en gammal process. Processbyte ger nytt instanceId och PID. Värden accepterar
+aktivitet och minnesanrop endast från aktuell instans och aktuell körning.
 
-GUI-körningens väntande verktygsgodkännande och aktivitet ägs av värden genom
-GuiRunSession/coordinator. Klientfrånkoppling är skild från värdens shutdown:
-värdens avslut avbryter pågående lokalt exekveringsarbete.
+Väntande verktygsgodkännande finns i sessionsprocessen och speglas till värden.
+Alla anslutna behöriga klienter kan svara med dess ID. Frånkoppling ger inget
+beslut. Avbrott/explicit processstopp avslutar det ägda processträdet; workspace
+och historik består. Efter avbrott med okänt utfall markeras körningen
+`needs_reconciliation`. Ett nytt meddelande får starta en ny instans men gamla
+kommandon återspelas inte. Tills användaren granskat effekterna tillåts endast
+filinspektion i GUI:s verktygsväg; övriga verktyg nekas. Revisionstyrd
+`effect-review` markerar den gamla körningen som avbruten/granskad, inte lyckad.
+En redan startad inspektionskörning behåller spärren till sitt slut.
+
+GUI visar anslutning, process och körningsutfall separat. Runtime details har
+processstatus/PID, uttryckligt processstopp och kontroll för granskade effekter.
+Värdshutdown avbryter och inväntar ägda processer och slutliga lagringsskrivningar.
+Värden kan köras utan ett öppet GUI; stängning av själva värden är ett annat steg.
 
 ## Minne och kontext
 
@@ -118,9 +141,20 @@ Extractor instrueras att återanvända/förstärka oförändrad kunskap; runtime
 validerar identiteten. Förändrade värden går genom befintligt state-/historikflöde.
 Läsning ensam förstärker ingenting. Ingen databasrensning eller migrering ingår.
 
-Den nya gränsen där flera separata sessionsprocesser anropar en gemensam
-minnesägare har inte införts. Befintliga ägarskaps-/lease-regler får inte
-förväxlas med ett färdigt IPC-gränssnitt för den nya modellen.
+Sessionsprocessen öppnar inget projektminne i SQLite. Retrieval, post-output-
+uppdatering och ACP:s minnesoperationer går över IPC till värdens projektägare.
+Den lokala konversationskopian i child-processen är flyktig och seedas från
+värdens sparade historik för varje körning. Chatthistoriken kräver inte minnesmotorn.
+
+Nya sessionsobservationer kvalificeras konservativt med workspace-ID: claimtext
+och strukturerade entity-adresser skiljer arbetskopior åt. Relation classification
+kan inte supersede en annan arbetskopias claim. Turn-källan behåller observerad
+HEAD och markeringen `working tree observation`; detta påstår inte att ocommittade
+filer motsvarar exakt HEAD. Projektionen tar med denna provenance även utan en
+explicit källfråga, eftersom kvalifikationen behövs för tolkningen. Samma
+projektägare kan fortfarande hämta flera arbetskopiors observationer. Globala
+källor och äldre claims skrivs inte om eller tilldelas påhittad workspace-historik.
+Detta gör inte en modellgenererad observation automatiskt verifierad.
 
 ## Övriga befintliga ytor och begränsningar
 
@@ -134,9 +168,21 @@ genereringsinställningar är inte likvärdigt exponerade mellan alla adaptrar.
 Modellens bildgenereringsverktyg hanteras i GUI-körningen innan svaret sparas.
 Legacy V1-historik migreras inte automatiskt till durable conversations.
 
-Dessa begränsningar beskriver nuläge, inte permanenta produktförbud. Före
-runtime-omläggning måste API-konsumenter, historik och användarfunktioner få en
-konkret migrationsinventering.
+### Identitets- och migrationsinventering (A008-0191)
+
+| Yta/data | Mappning och hantering |
+| --- | --- |
+| Normal GUI och offentlig V3 | `conversationId = sessionId`; workspace-bindning och runId består. Nya körningar använder session-worker. SDK har process/status/stopp, activity-events och effect-review. |
+| Befintlig bunden V3-session | Behåller sitt workspace, äldre branchnamn och historik. Ny process skapas vid nästa meddelande. Okänd startcommit förblir okänd; inga namn eller filer ändras automatiskt. |
+| Obunden V3 (`legacy-unbound`) | Historik kan läsas; körning nekas. Ägaren behöver uttryckligen välja migration till separat worktree. Ingen rotfallback eller automatisk import. |
+| V1/V2/ACP, engine-panel och standalone CLI | Befintliga kompatibilitetsadapteridentiteter och historiklager består. De blir inte automatiskt durable projektsessioner och kopieras inte till V3. Anslutna klienter använder V3 för den nya sessionslivscykeln. |
+| Platform SQLite v1/v2 | Transaktionell uppgradering till v3; historik/receipts bevaras, nya instance/activity-tabeller tillkommer. Ingen process återansluts utifrån ett sparat PID. |
+| Workspace SQLite | Additiva, nullable sessionId/baseCommit-fält. Endast nya allokeringar får verifierad startrevision och nya branchformatet. |
+
+Process- och aktivitetsscheman finns i `packages/protocol/src/session-lifecycle.ts`.
+HTTP/OpenAPI och klientpaket levereras tillsammans. Kompatibilitetsbegränsningarna
+ovan är inga nya produktförbud och ingen automatisk datamigration av äldre GUI-
+eller CLI-sessioner har utförts.
 
 ## Historik
 

@@ -212,6 +212,8 @@ export const workspaceSessionSchema = z.object({
   workspacePath: text,
   branchName: text.optional(),
   baseBranch: text.optional(),
+  baseCommit: text.optional(),
+  sessionId: text.optional(),
   disposition: z.enum(["active", "kept", "discarded"]),
   createdAt: text,
   status: workspaceGitStatusSchema,
@@ -222,7 +224,9 @@ export const workspaceSessionsSchema = z.object({
   sessions: z.array(workspaceSessionSchema),
 });
 export type WorkspaceSessions = z.infer<typeof workspaceSessionsSchema>;
-export const workspaceSettingsSchema = z.object({ workspaceRoot: text.nullable() });
+export const workspaceSettingsSchema = z.object({
+  workspaceRoot: text.nullable(),
+});
 export type WorkspaceSettings = z.infer<typeof workspaceSettingsSchema>;
 export const workspaceSettingsInputSchema = z.object({ workspaceRoot: nonempty }).strict();
 export const workspaceCreateInputSchema = z.object({ baseBranch: text.trim().min(1).optional() }).strict();
@@ -239,10 +243,21 @@ export const workspaceBindingSchema = z.object({
 export type WorkspaceBinding = z.infer<typeof workspaceBindingSchema>;
 export const directoryListSchema = z.object({ path: text, entries: strings });
 export type DirectoryList = z.infer<typeof directoryListSchema>;
-export const workspaceFileEntrySchema = z.object({ name: nonempty, path: nonempty, type: z.enum(["directory", "file"]) });
-export const workspaceFilesSchema = z.object({ path: text, entries: z.array(workspaceFileEntrySchema).readonly() });
+export const workspaceFileEntrySchema = z.object({
+  name: nonempty,
+  path: nonempty,
+  type: z.enum(["directory", "file"]),
+});
+export const workspaceFilesSchema = z.object({
+  path: text,
+  entries: z.array(workspaceFileEntrySchema).readonly(),
+});
 export type WorkspaceFiles = z.infer<typeof workspaceFilesSchema>;
-export const workspaceTextFileSchema = z.object({ path: nonempty, content: text.max(256 * 1024), sha256: z.string().regex(/^[a-f0-9]{64}$/u) });
+export const workspaceTextFileSchema = z.object({
+  path: nonempty,
+  content: text.max(256 * 1024),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/u),
+});
 export type WorkspaceTextFile = z.infer<typeof workspaceTextFileSchema>;
 export const workspaceTextFileSaveSchema = workspaceTextFileSchema.pick({ path: true, content: true }).extend({ expectedSha256: z.string().regex(/^[a-f0-9]{64}$/u) });
 // V1 accepts missing/non-object optional groups and normalizes defaults in the
@@ -306,9 +321,14 @@ export const skillSchema = z.object({
   sourcePath: nonempty,
 });
 export type Skill = z.infer<typeof skillSchema>;
-export const installedSkillsSchema = z.object({ skills: z.array(skillSchema).readonly() });
+export const installedSkillsSchema = z.object({
+  skills: z.array(skillSchema).readonly(),
+});
 export const skillCatalogEntrySchema = skillSchema.omit({ instructions: true }).extend({ installed: z.boolean() });
-export const skillDiscoverySchema = z.object({ source: nonempty, skills: z.array(skillCatalogEntrySchema).readonly() });
+export const skillDiscoverySchema = z.object({
+  source: nonempty,
+  skills: z.array(skillCatalogEntrySchema).readonly(),
+});
 export const skillInstallInputSchema = z.object({ sourcePath: nonempty });
 export const skillInstalledSchema = z.object({ skill: skillSchema });
 export const skillRemovedSchema = z.object({ removed: nonempty });

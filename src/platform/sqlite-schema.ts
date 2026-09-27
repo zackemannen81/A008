@@ -1,4 +1,22 @@
-export const PLATFORM_SQLITE_SCHEMA_VERSION = 2;
+export const PLATFORM_SQLITE_SCHEMA_VERSION = 3;
+
+export const SESSION_PROCESS_SCHEMA = `
+CREATE TABLE IF NOT EXISTS A008_session_instances (
+  session_id TEXT PRIMARY KEY REFERENCES A008_platform_conversations(id),
+  identity_json TEXT NOT NULL CHECK(json_valid(identity_json))
+);
+CREATE TABLE IF NOT EXISTS A008_session_activity (
+  cursor INTEGER PRIMARY KEY AUTOINCREMENT,
+  run_id TEXT NOT NULL REFERENCES A008_platform_runs(id),
+  activity_json TEXT NOT NULL CHECK(json_valid(activity_json))
+);
+CREATE INDEX IF NOT EXISTS A008_session_activity_run ON A008_session_activity(run_id, cursor);
+CREATE TABLE IF NOT EXISTS A008_session_activity_current (
+  run_id TEXT PRIMARY KEY REFERENCES A008_platform_runs(id),
+  cursor INTEGER NOT NULL,
+  activity_json TEXT NOT NULL CHECK(json_valid(activity_json))
+);
+`;
 
 export const PLATFORM_SQLITE_SCHEMA = `
 CREATE TABLE IF NOT EXISTS A008_platform_schema (

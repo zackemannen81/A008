@@ -1,4 +1,10 @@
 import {
+  sessionProcessResponseSchema,
+  sessionActivityEventsSchema,
+  sessionEffectReviewSchema,
+  type SessionProcessResponse,
+  type SessionActivityEvents,
+  type SessionEffectReview,
   platformV3ConversationCreateRequestSchema,
   platformV3ConversationListResponseSchema,
   platformV3ConversationResponseSchema,
@@ -52,6 +58,24 @@ export class PlatformV3ClientError extends Error {
 export interface PlatformV3ClientOptions extends HttpClientOptions {}
 
 export interface PlatformV3Client {
+  sessionProcess(
+    conversationId: string,
+    signal?: AbortSignal,
+  ): Promise<SessionProcessResponse>;
+  stopSessionProcess(
+    conversationId: string,
+    signal?: AbortSignal,
+  ): Promise<SessionProcessResponse>;
+  activityEvents(
+    runId: string,
+    after?: number,
+    signal?: AbortSignal,
+  ): Promise<SessionActivityEvents>;
+  reviewEffects(
+    runId: string,
+    input: SessionEffectReview,
+    signal?: AbortSignal,
+  ): Promise<PlatformV3RunResponse>;
   info(signal?: AbortSignal): Promise<PlatformV3Info>;
   listConversations(
     projectId: string,
@@ -175,6 +199,41 @@ export function createPlatformV3Client(
   options: PlatformV3ClientOptions,
 ): PlatformV3Client {
   return {
+    sessionProcess: (id, signal) =>
+      requestPlatformV3(
+        options,
+        `/v3/conversations/${pathSegment(id, "conversationId")}/process`,
+        sessionProcessResponseSchema,
+        withSignal(signal),
+      ),
+    stopSessionProcess: (id, signal) =>
+      requestPlatformV3(
+        options,
+        `/v3/conversations/${pathSegment(id, "conversationId")}/process`,
+        sessionProcessResponseSchema,
+        { method: "DELETE", ...withSignal(signal) },
+      ),
+    activityEvents: (id, after = 0, signal) => {
+      if (!Number.isSafeInteger(after) || after < 0)
+        throw invalidRequest("after must be a nonnegative safe integer.");
+      return requestPlatformV3(
+        options,
+        `/v3/runs/${pathSegment(id, "runId")}/activity-events?after=${after}`,
+        sessionActivityEventsSchema,
+        withSignal(signal),
+      );
+    },
+    reviewEffects: (id, input, signal) =>
+      requestPlatformV3(
+        options,
+        `/v3/runs/${pathSegment(id, "runId")}/effect-review`,
+        platformV3RunResponseSchema,
+        {
+          method: "POST",
+          body: JSON.stringify(requestInput(sessionEffectReviewSchema, input)),
+          ...withSignal(signal),
+        },
+      ),
     info: (signal) =>
       requestPlatformV3(
         options,

@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  sessionProcessResponseSchema,
+  sessionActivityEventsSchema,
+  sessionEffectReviewSchema,
+} from "./session-lifecycle.js";
 import { chatContentSchema } from "./schemas.js";
 
 const platformV3SafeInteger = z
@@ -75,6 +80,7 @@ export const PLATFORM_V3_ERROR_CODES = [
   "CAPACITY_EXCEEDED",
   "LEASE_LOST",
   "NEEDS_RECONCILIATION",
+  "INTERRUPTED_REVIEWED",
   "INTERNAL_ERROR",
 ] as const;
 export const platformV3ErrorCodeSchema = z.enum(PLATFORM_V3_ERROR_CODES);
@@ -249,6 +255,9 @@ export function platformV3JsonSchemas() {
   return Object.fromEntries(
     Object.entries({
       "platform-v3-info": platformV3InfoSchema,
+      "session-process-response": sessionProcessResponseSchema,
+      "session-activity-events": sessionActivityEventsSchema,
+      "session-effect-review": sessionEffectReviewSchema,
       "platform-v3-conversation": platformV3ConversationSchema,
       "platform-v3-run": platformV3RunSchema,
       "platform-v3-command-receipt": platformV3CommandReceiptSchema,
@@ -297,6 +306,64 @@ export function platformV3OpenApiDocument() {
     openapi: "3.1.1",
     info: { title: "A008 Platform V3 contract", version: "3.0.0" },
     paths: {
+      "/v3/conversations/{conversationId}/process": Object.fromEntries(
+        ["get", "delete"].map((method) => [
+          method,
+          {
+            parameters: [idParameter("conversationId")],
+            responses: {
+              200: {
+                description:
+                  "Verified session process or stopped last instance",
+                content: json("session-process-response"),
+              },
+              ...errorResponses,
+            },
+          },
+        ]),
+      ),
+      "/v3/runs/{runId}/activity-events": {
+        get: {
+          parameters: [
+            idParameter("runId"),
+            {
+              name: "after",
+              in: "query",
+              required: false,
+              schema: {
+                type: "integer",
+                minimum: 0,
+                maximum: Number.MAX_SAFE_INTEGER,
+              },
+            },
+          ],
+          responses: {
+            200: {
+              description:
+                "Ordered public activity deltas after a snapshot cursor",
+              content: json("session-activity-events"),
+            },
+            ...errorResponses,
+          },
+        },
+      },
+      "/v3/runs/{runId}/effect-review": {
+        post: {
+          parameters: [idParameter("runId")],
+          requestBody: {
+            required: true,
+            content: json("session-effect-review"),
+          },
+          responses: {
+            200: {
+              description:
+                "Interrupted run with user-reviewed effects; never replayed",
+              content: json("platform-v3-run-response"),
+            },
+            ...errorResponses,
+          },
+        },
+      },
       "/v3/info": {
         get: {
           security: [],

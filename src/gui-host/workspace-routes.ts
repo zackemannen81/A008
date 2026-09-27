@@ -1,7 +1,12 @@
 import { mkdirSync } from "node:fs";
 import { dirname, isAbsolute, resolve } from "node:path";
 import Database from "better-sqlite3";
-import { ProjectWorkspaceError, ProjectWorkspaceStore, type ProjectWorkspaceSession, type WorkspaceGitStatus } from "../runtime/project-workspace-store.js";
+import {
+  ProjectWorkspaceError,
+  ProjectWorkspaceStore,
+  type ProjectWorkspaceSession,
+  type WorkspaceGitStatus,
+} from "../runtime/project-workspace-store.js";
 
 export interface WorkspaceSessionView extends ProjectWorkspaceSession {
   readonly status: WorkspaceGitStatus;
@@ -14,40 +19,74 @@ export class GuiWorkspaceStore {
   constructor(path: string) {
     mkdirSync(dirname(path), { recursive: true });
     this.#database = new Database(path);
-    this.#database.exec("CREATE TABLE IF NOT EXISTS A008_gui_workspace_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)");
+    this.#database.exec(
+      "CREATE TABLE IF NOT EXISTS A008_gui_workspace_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+    );
     this.#sessions = new ProjectWorkspaceStore(path);
   }
 
   workspaceRoot(): string | undefined {
-    return (this.#database.prepare("SELECT value FROM A008_gui_workspace_settings WHERE key = 'workspaceRoot'").get() as { value?: string } | undefined)?.value;
+    return (
+      this.#database
+        .prepare(
+          "SELECT value FROM A008_gui_workspace_settings WHERE key = 'workspaceRoot'",
+        )
+        .get() as { value?: string } | undefined
+    )?.value;
   }
 
   setWorkspaceRoot(path: string): string {
     const value = path.trim();
-    if (!isAbsolute(value)) throw new ProjectWorkspaceError("Workspace root must be an absolute directory.");
+    if (!isAbsolute(value))
+      throw new ProjectWorkspaceError(
+        "Workspace root must be an absolute directory.",
+      );
     const root = resolve(value);
-    this.#database.prepare("INSERT INTO A008_gui_workspace_settings (key, value) VALUES ('workspaceRoot', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(root);
+    this.#database
+      .prepare(
+        "INSERT INTO A008_gui_workspace_settings (key, value) VALUES ('workspaceRoot', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+      )
+      .run(root);
     return root;
   }
 
   list(projectId: string): readonly WorkspaceSessionView[] {
-    return this.#sessions.list(projectId).map((session) => ({ ...session, status: session.disposition === "discarded" ? { modifiedFiles: 0, commitsAhead: 0, clean: true } : this.#sessions.status(session.id) }));
+    return this.#sessions
+      .list(projectId)
+      .map((session) => ({
+        ...session,
+        status:
+          session.disposition === "discarded"
+            ? { modifiedFiles: 0, commitsAhead: 0, clean: true }
+            : this.#sessions.status(session.id),
+      }));
   }
 
   /** Resolve only the bound workspace; an unrelated missing worktree cannot rebind it. */
   get(projectId: string, id: string): WorkspaceSessionView {
     const session = this.#sessions.get(id);
-    if (session.projectId !== projectId) throw new ProjectWorkspaceError("Workspace belongs to another project.");
-    return { ...session, status: session.disposition === "discarded"
-      ? { modifiedFiles: 0, commitsAhead: 0, clean: true }
-      : this.#sessions.status(id) };
+    if (session.projectId !== projectId)
+      throw new ProjectWorkspaceError("Workspace belongs to another project.");
+    return {
+      ...session,
+      status:
+        session.disposition === "discarded"
+          ? { modifiedFiles: 0, commitsAhead: 0, clean: true }
+          : this.#sessions.status(id),
+    };
   }
 
-  create(projectId: string, root: string, baseBranch?: string): WorkspaceSessionView {
+  create(
+    projectId: string,
+    root: string,
+    baseBranch?: string,
+    sessionId?: string,
+  ): WorkspaceSessionView {
     const workspaceRoot = this.workspaceRoot();
     const session = this.#sessions.createWorktree({
       projectId,
       root,
+      ...(sessionId ? { sessionId } : {}),
       ...(baseBranch === undefined ? {} : { baseBranch }),
       ...(workspaceRoot === undefined ? {} : { workspaceRoot }),
     });
@@ -61,7 +100,10 @@ export class GuiWorkspaceStore {
 
   discard(id: string): WorkspaceSessionView {
     const session = this.#sessions.discard(id);
-    return { ...session, status: { modifiedFiles: 0, commitsAhead: 0, clean: true } };
+    return {
+      ...session,
+      status: { modifiedFiles: 0, commitsAhead: 0, clean: true },
+    };
   }
 
   close(): void {

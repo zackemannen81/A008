@@ -1641,6 +1641,13 @@ i stället för att en dubblett skapas. Enbart läsning eller samma ämne/entity
 är inte reinforcement. Ändrat värde blir state-ändring med historik, och en
 ny egenskap är separat kunskap. Reinforcement sker fortsatt efter output.
 
+ADR 0055:s workspace-kontext är en betydelsebärande kvalifikation. Implementation
+A008-0191 behåller workspace och observerad revision i sessionsobservationernas
+provenance samt kvalificerar nya claims och strukturerade adresser per workspace.
+Två arbetskopiors olika värden ersätter därför inte varandras HEAD. Värdena är
+fortfarande faktiska strängar i det minimala kuvertet; ingen ny generell metadata-
+sektion läggs till. Befintliga källor tilldelas inte workspace i efterhand.
+
 Målet är:
 
 ```text

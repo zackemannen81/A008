@@ -45,6 +45,8 @@ export class GuiRunSession {
       model: string;
       conversationId: string;
       history: readonly PlatformTextHistoryMessage[];
+      onActivity?: (activity: GuiRunActivity) => void;
+      recoveryRequired?: boolean;
     },
   ) {
     this.#host = new EngineHost({
@@ -103,16 +105,28 @@ export class GuiRunSession {
           ],
         },
         {
-          requestPermission: (params) =>
-            new Promise((resolve) => {
+          requestPermission: (params) => {
+            if (
+              this.input.recoveryRequired &&
+              !["read_file", "list_files"].includes(params.toolCall.title ?? "")
+            )
+              return Promise.resolve({
+                outcome: {
+                  outcome: "selected" as const,
+                  optionId: "reject-once",
+                },
+              });
+            return new Promise((resolve) => {
               this.#resolve = resolve;
               this.#permission = {
                 id: randomUUID(),
                 title: params.toolCall.title ?? "Tool execution",
                 text: JSON.stringify(params.toolCall.rawInput ?? {}),
               };
+              this.input.onActivity?.(this.activity());
               if (signal.aborted) abort();
-            }),
+            });
+          },
         },
         {
           initialModel: this.input.model,
@@ -129,6 +143,7 @@ export class GuiRunSession {
         if (message.type === "answer") this.#answer += message.text;
         if (message.type === "thought") this.#thought += message.text;
         if (message.type === "tool") this.#tools.set(message.id, message);
+        this.input.onActivity?.(this.activity());
       });
       signal.throwIfAborted();
       signal.addEventListener("abort", abort, { once: true });
@@ -156,6 +171,7 @@ export class GuiRunSession {
         action: "inspect",
       });
       this.#snapshot = snapshot;
+      this.input.onActivity?.(this.activity());
       const before = this.input.history.filter(
         (message) => message.role === "assistant",
       ).length;

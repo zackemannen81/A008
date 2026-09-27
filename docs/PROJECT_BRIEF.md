@@ -68,7 +68,10 @@ clone/copy-fallbacken ingår inte i denna grund.
 
 Identiteterna har olika betydelse och får inte härledas från PID eller
 visningsnamn. Befintliga `conversationId` och interna EngineHost-`sessionId`
-måste mappas uttryckligen vid implementation och migrering.
+mappas uttryckligen i SYSTEMDOC:s identitets- och migrationsinventering:
+durable `conversationId` är produktens `sessionId`; interna EngineHost-ID:n
+är tillfälliga adapteridentiteter. Befintliga kompatibilitetsytor migreras inte
+genom att deras ID:n byter namn.
 
 ```text
 A008 lokal värd

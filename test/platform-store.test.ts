@@ -445,7 +445,7 @@ test("state survives independent reopen, future schemas fail, and closed stores 
   );
   database
     .prepare(
-      "INSERT INTO A008_platform_schema(singleton, version) VALUES (1, 3)",
+      "INSERT INTO A008_platform_schema(singleton, version) VALUES (1, 999)",
     )
     .run();
   database.close();
@@ -463,9 +463,86 @@ test("state survives independent reopen, future schemas fail, and closed stores 
         .prepare("SELECT version FROM A008_platform_schema WHERE singleton = 1")
         .get() as { readonly version: number }
     ).version,
-    3,
+    999,
   );
   inspect.close();
+});
+
+test("ADR 0055: v2 migration preserves history and durable activity resumes exactly after its snapshot cursor", async (t) => {
+  const f = await fixture();
+  t.after(f.dispose);
+  const conversation = f.store.createConversation(SCOPE, {
+    title: "durable activity",
+    workspaceId: "workspace-test",
+  });
+  const accepted = f.store.acceptRun(SCOPE, {
+    conversationId: conversation.id,
+    commandId: "activity",
+    expectedRevision: 0,
+    model: "fixture",
+    text: "hello",
+  });
+  f.store.close();
+  const old = new Database(f.filename);
+  old.exec(
+    "DROP TABLE A008_session_activity_current; DROP TABLE A008_session_activity; DROP TABLE A008_session_instances; UPDATE A008_platform_schema SET version = 2",
+  );
+  old.close();
+  const migrated = new PlatformStore({ filename: f.filename });
+  t.after(() => migrated.close());
+  assert.equal(
+    migrated.getConversation(SCOPE, conversation.id).messages[0]?.content,
+    "hello",
+  );
+  const runId = accepted.run.id;
+  const first = migrated.recordActivity(SCOPE, runId, {
+    thought: "private",
+    answer: "A",
+    tools: [],
+  });
+  const snapshot = migrated.readActivity(SCOPE, runId)!;
+  assert.equal(snapshot.cursor, first);
+  assert.equal(snapshot.thought, "");
+  assert.equal(
+    migrated.recordActivity(SCOPE, runId, {
+      thought: "different private",
+      answer: "A",
+      tools: [],
+    }),
+    first,
+  );
+  const second = migrated.recordActivity(SCOPE, runId, {
+    thought: "private",
+    answer: "AB",
+    tools: [],
+    permission: { id: "approval", title: "write", text: "public args" },
+  });
+  migrated.close();
+  const reopened = new PlatformStore({ filename: f.filename });
+  try {
+    const page = reopened.activityEvents(SCOPE, runId, snapshot.cursor);
+    assert.deepEqual(
+      page.events.map((event) => event.cursor),
+      [second],
+    );
+    assert.deepEqual(page.events[0]?.changes.answer, { append: "B" });
+    assert.ok(!JSON.stringify(page).includes("private"));
+    assert.equal(reopened.readActivity(SCOPE, runId)?.answer, "AB");
+    assert.deepEqual(
+      reopened.activityEvents(SCOPE, runId, page.nextCursor).events,
+      [],
+    );
+    assert.throws(
+      () => reopened.activityEvents(OTHER_TENANT, runId, 0),
+      expectCode("NOT_FOUND"),
+    );
+    assert.throws(
+      () => reopened.activityEvents(SCOPE, runId, -1),
+      expectCode("INVALID_REQUEST"),
+    );
+  } finally {
+    reopened.close();
+  }
 });
 
 test("lookupRunReceipt reads the canonical receipt and does not admit a run", async (t) => {
@@ -496,10 +573,7 @@ test("lookupRunReceipt reads the canonical receipt and does not admit a run", as
     expectCode("COMMAND_CONFLICT"),
   );
   assert.equal(
-    f.store.lookupRunReceipt(
-      { ...SCOPE, principalId: "principal-b" },
-      input,
-    ),
+    f.store.lookupRunReceipt({ ...SCOPE, principalId: "principal-b" }, input),
     undefined,
   );
   assert.equal(f.store.listRuns(SCOPE).length, 1);

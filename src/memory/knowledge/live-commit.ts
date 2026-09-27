@@ -1,4 +1,5 @@
 import { prepareAssociations } from "./association-commit.js";
+import type { WorkspaceObservation } from "./workspace-observation.js";
 import {
   DEFAULT_MEMORY_LIFECYCLE_POLICY,
   isKnowledgeSeverity,
@@ -69,6 +70,7 @@ import type {
 } from "./types.js";
 
 export interface KnowledgeEngineCommitOptions {
+  readonly workspace?: WorkspaceObservation;
   readonly policy?: MemoryLifecyclePolicy;
   readonly context: KnowledgeReadContext;
   readonly classifier: KnowledgeRelationClassifier;
@@ -92,6 +94,7 @@ function isDeterministicBatchCommitFailure(error: unknown): boolean {
 }
 
 export class KnowledgeEngineCommit implements StagedProposalCommitter {
+  readonly #workspace: WorkspaceObservation | undefined;
   readonly #context: KnowledgeReadContext;
   readonly #classifier: KnowledgeRelationClassifier;
   readonly #idFactory: KnowledgeIdFactory;
@@ -99,6 +102,7 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
   readonly #measurer = new Utf8ByteKnowledgeIntakeMeasurer();
 
   constructor(options: KnowledgeEngineCommitOptions) {
+    this.#workspace = options.workspace;
     this.#policy = parseMemoryLifecyclePolicy(
       options.policy ?? DEFAULT_MEMORY_LIFECYCLE_POLICY,
     );
@@ -176,7 +180,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       throw new Error("Live claim requires validated severity");
     const utteranceDomains = selectUtteranceDomains(input.batch.proposals);
     const at = this.#context.lifecycle.now();
-    const candidateRecords = this.#context.evidence.listClaims();
+    const candidateRecords = this.#context.evidence
+      .listClaims()
+      .filter((claim) => this.#inWorkspace(claim.label));
     const targets = new Map(
       candidateRecords.map((claim, index) => [`candidate_${index + 1}`, claim]),
     );
@@ -819,7 +825,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     }
 
     const at = this.#context.lifecycle.now();
-    const initialClaims = this.#context.evidence.listClaims();
+    const initialClaims = this.#context.evidence
+      .listClaims()
+      .filter((claim) => this.#inWorkspace(claim.label));
     const initialTargets = new Map(
       initialClaims.map((claim, index) => [`candidate_${index + 1}`, claim]),
     );
@@ -1018,7 +1026,9 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       (typeof initialClaims)[number]["id"]
     >();
     const currentHandleForClaim = (claimId: string): string => {
-      const currentClaims = this.#context.evidence.listClaims();
+      const currentClaims = this.#context.evidence
+        .listClaims()
+        .filter((claim) => this.#inWorkspace(claim.label));
       const index = currentClaims.findIndex((claim) => claim.id === claimId);
       if (index < 0)
         throw new Error(`Live batch target is no longer present: ${claimId}`);
@@ -1161,6 +1171,12 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
     return { status: "updated", document: pending.document };
   }
 
+  #inWorkspace(label: string): boolean {
+    return this.#workspace
+      ? label.startsWith(`[workspace:${this.#workspace.workspaceId}] `)
+      : !label.startsWith("[workspace:");
+  }
+
   #ingestOnce(
     input: RelationCommitInput,
     at: string,
@@ -1194,7 +1210,10 @@ export class KnowledgeEngineCommit implements StagedProposalCommitter {
       );
     }
     const baseLocator = `turn:${input.batch.conversationId}:${input.batch.taskId}`;
-    const locator = assistant ? `${baseLocator}:assistant` : baseLocator;
+    const sourceLocator = assistant ? `${baseLocator}:assistant` : baseLocator;
+    const locator = this.#workspace
+      ? `${sourceLocator}#workspace=${encodeURIComponent(this.#workspace.workspaceId)}&revision=${encodeURIComponent(this.#workspace.revision)}`
+      : sourceLocator;
     const speaker = assistant ? "assistant" : "user";
     const artifact = this.#context.evidence
       .listArtifacts()

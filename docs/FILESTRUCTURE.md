@@ -30,8 +30,10 @@ A008/
 - `ingest/` — source/document ingestion.
 - `memory/` — A008-owned semantic memory, persistence, retrieval and knowledge state.
 - `orchestration/` — application orchestration and semantic model coordination.
-- `platform/` — durable store/coordinator used by normal GUI chat and public V3; current execution remains in-process.
-- `platform/gui-run-session.ts` — coordinator-owned EngineHost/tool adapter for normal GUI durable runs.
+- `platform/` — durable store/coordinator and session process manager used by normal GUI chat and public V3.
+- `platform/session-process.ts`, `session-worker.ts`, `session-ipc.ts` — host ownership, OS child and private instance/run-bound IPC.
+- `platform/gui-run-session.ts` — EngineHost/tool adapter running inside the session child.
+- `memory/knowledge/workspace-observation.ts` — qualifies session observations and structured addresses by workspace.
 - `prompt-contracts/` — maintained prompt contracts.
 - `providers/` — provider/model adapters and catalogs.
 - `runtime/` — project runtime, workspace/session ownership and local composition.

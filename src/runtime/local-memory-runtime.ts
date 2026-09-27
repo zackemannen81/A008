@@ -28,6 +28,10 @@ import {
 } from "./conversation-state-store.js";
 import type { RuntimeBudgets } from "../core/runtime-preferences.js";
 import { ConversationScopes } from "../memory/knowledge/current-scope.js";
+import {
+  scopeWorkspaceBatch,
+  type WorkspaceObservation,
+} from "../memory/knowledge/workspace-observation.js";
 import { DeterministicRetrievalPlanner } from "../memory/deterministic-retrieval-planner.js";
 import {
   chatGeneration,
@@ -196,6 +200,14 @@ export interface SourceIngestOutcome {
 }
 
 export interface LocalMemoryRuntimeOptions {
+  /** Session children borrow cognition from the host and never open its database. */
+  readonly remoteMemory?: (conversationId: ConversationId) => {
+    readonly reader: MemoryReadPort;
+    readonly coordinator: Pick<
+      PostOutputMemoryCoordinator,
+      "process" | "repairAndResume"
+    >;
+  };
   /** Internal composition only: the project registry already holds both leases. */
   readonly ownershipAlreadyHeld?: boolean;
   readonly env: NodeJS.ProcessEnv;
@@ -252,9 +264,7 @@ export interface LocalMemorySessionOptions {
   readonly conversationSeed?: ConversationSeed;
 }
 
-export function validateConversationSeed(
-  seed: ConversationSeed,
-): {
+export function validateConversationSeed(seed: ConversationSeed): {
   readonly conversationId: ConversationId;
   readonly messages: ChatMessage[];
 } {
@@ -631,8 +641,7 @@ export class LocalMemorySession {
   readonly #chat: ChatSession;
   readonly #identityFactory: RuntimeIdentityFactory;
   readonly #persistConversation:
-    | ((state: ProjectConversationState) => void)
-    | undefined;
+    ((state: ProjectConversationState) => void) | undefined;
   #turnActive = false;
   #lastDiagnostic: string | undefined;
   #lastMemoryStatus: PostOutputMemoryResult["status"] | undefined;
@@ -744,7 +753,9 @@ export class LocalMemorySession {
     this.#persistConversation?.({
       conversationId: this.conversationId,
       model: this.model,
-      messages: this.#chat.messages.filter((message) => message.role !== "system"),
+      messages: this.#chat.messages.filter(
+        (message) => message.role !== "system",
+      ),
     });
   }
 
@@ -812,28 +823,30 @@ export class LocalMemorySession {
             summary: "memory-aware turn",
           });
           try {
-            const memoryResult = await turn.chat.send(
-              {
-                taskId,
-                message,
-                applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
-              },
-              {
-                ...(options.generation === undefined
-                  ? {}
-                  : { generation: options.generation }),
-                ...(options.imageAttachments?.length
-                  ? { imageAttachments: options.imageAttachments }
-                  : {}),
-                ...(options.signal === undefined
-                  ? {}
-                  : { signal: options.signal }),
-                ...(options.onDelta === undefined
-                  ? {}
-                  : { onDelta: options.onDelta }),
-                ...(tools === undefined ? {} : { tools }),
-              },
-            ).finally(() => this.#persist());
+            const memoryResult = await turn.chat
+              .send(
+                {
+                  taskId,
+                  message,
+                  applicabilityScopes: [...LOCAL_MEMORY_SCOPES],
+                },
+                {
+                  ...(options.generation === undefined
+                    ? {}
+                    : { generation: options.generation }),
+                  ...(options.imageAttachments?.length
+                    ? { imageAttachments: options.imageAttachments }
+                    : {}),
+                  ...(options.signal === undefined
+                    ? {}
+                    : { signal: options.signal }),
+                  ...(options.onDelta === undefined
+                    ? {}
+                    : { onDelta: options.onDelta }),
+                  ...(tools === undefined ? {} : { tools }),
+                },
+              )
+              .finally(() => this.#persist());
             await this.#runtime.tracer.flush();
             const answer = verifiedFinalAnswer(memoryResult.completion);
             let postOutput = await turn.coordinator.process(
@@ -918,7 +931,8 @@ export class LocalMemoryRuntime {
   readonly sqlitePath: string;
   readonly workingDirectory: string;
   readonly tracer: DebugTraceObserver;
-  readonly #knowledge: SqliteKnowledgeContextHandle;
+  readonly #knowledge: SqliteKnowledgeContextHandle | undefined;
+  readonly #remoteMemory: LocalMemoryRuntimeOptions["remoteMemory"];
   readonly #conversationStore: ProjectConversationStateStore;
   readonly #createReader: (budgets: RuntimeBudgets) => MemoryReadPort;
   readonly #committerDecorator:
@@ -940,7 +954,8 @@ export class LocalMemoryRuntime {
     readonly sqlitePath: string;
     readonly workingDirectory: string;
     readonly tracer: DebugTraceObserver;
-    readonly knowledge: SqliteKnowledgeContextHandle;
+    readonly knowledge: SqliteKnowledgeContextHandle | undefined;
+    readonly remoteMemory?: LocalMemoryRuntimeOptions["remoteMemory"];
     readonly conversationStore: ProjectConversationStateStore;
     readonly preferences: RuntimePreferencesStore;
     readonly createReader: (budgets: RuntimeBudgets) => MemoryReadPort;
@@ -962,6 +977,7 @@ export class LocalMemoryRuntime {
     this.workingDirectory = options.workingDirectory;
     this.tracer = options.tracer;
     this.#knowledge = options.knowledge;
+    this.#remoteMemory = options.remoteMemory;
     this.#conversationStore = options.conversationStore;
     this.preferences = options.preferences;
     this.#createReader = options.createReader;
@@ -973,6 +989,30 @@ export class LocalMemoryRuntime {
     this.#sourceExtractorRegistry = options.sourceExtractorRegistry;
     this.#chatGeneration = options.chatGeneration;
     this.#readSourceBytes = options.readSourceBytes;
+  }
+
+  get #ownedKnowledge(): SqliteKnowledgeContextHandle {
+    if (!this.#knowledge)
+      throw new ChatError(
+        "configuration",
+        "Session memory belongs to the host.",
+      );
+    return this.#knowledge;
+  }
+
+  readMemory: MemoryReadPort["read"] = (request, options) =>
+    this.#createReader(this.preferences.current.budgets).read(request, options);
+
+  memoryCoordinator(
+    conversationId: ConversationId,
+    model: string,
+    workspace?: WorkspaceObservation,
+  ) {
+    return this.createTurn(
+      new ChatSession({ model, transport: this.#transport }),
+      conversationId,
+      workspace,
+    ).coordinator;
   }
 
   sharedMemoryCapabilities(): SharedMemoryCapabilities {
@@ -1005,7 +1045,7 @@ export class LocalMemoryRuntime {
     if (this.#closed)
       throw new ChatError("configuration", "Local memory runtime is closed.");
     return inspectKnowledge(
-      this.#knowledge.context,
+      this.#ownedKnowledge.context,
       { projectId: this.projectId, durable: this.sqlitePath !== ":memory:" },
       query,
     );
@@ -1037,7 +1077,7 @@ export class LocalMemoryRuntime {
     // deterministic retrieval path documented by KnowledgeMemoryReader: an
     // external memory lookup must never hide a provider call or funding event.
     const reader = new KnowledgeMemoryReader({
-      context: this.#knowledge.context,
+      context: this.#ownedKnowledge.context,
       maximumProjectionBytes:
         this.preferences.current.budgets.memoryProjectionBytes,
     });
@@ -1098,7 +1138,7 @@ export class LocalMemoryRuntime {
         locator: `agent007:memory:${randomUUID()}`,
         scope: { verified: true, tags: scopes },
       },
-      { store: this.#knowledge.context.evidence },
+      { store: this.#ownedKnowledge.context.evidence },
     );
     const utterance = stored.utterances[0];
     if (utterance === undefined) {
@@ -1219,7 +1259,12 @@ export class LocalMemoryRuntime {
   }
 
   /** Recompose each turn from one settings snapshot while retaining raw history. */
-  createTurn(chatSession: ChatSession, conversationId: ConversationId) {
+  createTurn(
+    chatSession: ChatSession,
+    conversationId: ConversationId,
+    workspace?: WorkspaceObservation,
+  ) {
+    const remote = this.#remoteMemory?.(conversationId);
     const settings = this.preferences.current;
     const limits = settings.budgets;
     const profile = this.#registry.require(chatSession.model);
@@ -1235,7 +1280,7 @@ export class LocalMemoryRuntime {
           );
     const memoryAware = new MemoryAwareChatSession({
       chat: chatSession,
-      memoryReader: this.#createReader(limits),
+      memoryReader: remote?.reader ?? this.#createReader(limits),
       context: {
         projectId: this.projectId,
         conversationId,
@@ -1248,6 +1293,7 @@ export class LocalMemoryRuntime {
       recentMessageLimit: limits.recentMessages,
       systemInstructions,
     });
+    if (remote) return { chat: memoryAware, coordinator: remote.coordinator };
     const semanticProfile = this.#registry.require(settings.semantic.model);
     const generator = new ChatTransportSemanticJsonGenerator({
       transport: this.#transport,
@@ -1271,14 +1317,23 @@ export class LocalMemoryRuntime {
       limits,
     });
     const committer = new KnowledgeEngineCommit({
+      ...(workspace ? { workspace } : {}),
       ...(this.preferences.current.memoryLifecycle === undefined
         ? {}
         : { policy: this.preferences.current.memoryLifecycle }),
-      context: this.#knowledge.context,
+      context: this.#ownedKnowledge.context,
       classifier: new ModelBackedKnowledgeRelationClassifier(generator),
     });
     const coordinator = new PostOutputMemoryCoordinator({
-      stager: intake,
+      stager: workspace
+        ? {
+            stage: async (input, context) =>
+              scopeWorkspaceBatch(
+                await intake.stage(input, context),
+                workspace,
+              ),
+          }
+        : intake,
       committer: this.#committerDecorator?.(committer) ?? committer,
     });
     return { chat: memoryAware, coordinator };
@@ -1369,11 +1424,11 @@ export class LocalMemoryRuntime {
         locator: input.locator,
         scope: { verified: true },
       },
-      { store: this.#knowledge.context.evidence },
+      { store: this.#ownedKnowledge.context.evidence },
     );
-    const lifecycleAt = this.#knowledge.context.lifecycle.now();
+    const lifecycleAt = this.#ownedKnowledge.context.lifecycle.now();
     for (const utterance of result.utterances)
-      this.#knowledge.context.lifecycle.attach({
+      this.#ownedKnowledge.context.lifecycle.attach({
         evidenceId: utterance.id,
         evidenceKind: "utterance",
         at: lifecycleAt,
@@ -1440,7 +1495,7 @@ export class LocalMemoryRuntime {
       ...(this.preferences.current.memoryLifecycle === undefined
         ? {}
         : { policy: this.preferences.current.memoryLifecycle }),
-      context: this.#knowledge.context,
+      context: this.#ownedKnowledge.context,
       classifier: new ModelBackedKnowledgeRelationClassifier(generator),
     });
     const coordinator = new PostOutputMemoryCoordinator({
@@ -1488,7 +1543,7 @@ export class LocalMemoryRuntime {
     }
     this.#closed = true;
     this.#conversationStore.close();
-    this.#knowledge.close();
+    this.#knowledge?.close();
     void this.tracer.close();
   }
 }
@@ -1496,6 +1551,11 @@ export class LocalMemoryRuntime {
 export function createLocalMemoryRuntime(
   options: LocalMemoryRuntimeOptions,
 ): LocalMemoryRuntime {
+  if (options.remoteMemory)
+    return createRuntime({
+      ...options,
+      env: { ...options.env, A008_MEMORY_SQLITE_PATH: ":memory:" },
+    });
   if (options.ownershipAlreadyHeld) return createRuntime(options);
   const config = parseLocalRuntimeConfig(options.env, {
     surface: options.surface === "acp" ? "acp" : "cli",
@@ -1651,13 +1711,20 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
     config.sqlitePath,
     projectId,
   );
-  const knowledge = createSqliteKnowledgeContext({
-    filename: config.sqlitePath,
-    projectId,
-    migrateV0: true,
-  });
+  const knowledge = options.remoteMemory
+    ? undefined
+    : createSqliteKnowledgeContext({
+        filename: config.sqlitePath,
+        projectId,
+        migrateV0: true,
+      });
   const scopes = new ConversationScopes();
   const createReader = (limits: RuntimeBudgets): MemoryReadPort => {
+    if (!knowledge)
+      throw new ChatError(
+        "configuration",
+        "Session memory belongs to the host.",
+      );
     const semanticSettings = preferences.current.semantic;
     const semanticProfile = registry.require(semanticSettings.model);
     const reader = new KnowledgeMemoryReader({
@@ -1717,6 +1784,7 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
     workingDirectory: resolve(options.workingDirectory ?? process.cwd()),
     tracer,
     knowledge,
+    ...(options.remoteMemory ? { remoteMemory: options.remoteMemory } : {}),
     conversationStore,
     preferences,
     createReader,

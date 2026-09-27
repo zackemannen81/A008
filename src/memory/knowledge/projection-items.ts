@@ -280,6 +280,8 @@ export function projectionItems(
     }
     if (
       wantsProvenance ||
+      candidate.item.proposition.startsWith("[workspace:") ||
+      candidate.item.semanticAddress?.includes("_workspace_") ||
       candidate.record?.status === "contested" ||
       (candidate.record?.certainty && candidate.record.certainty !== "certain")
     ) {
@@ -398,5 +400,10 @@ function provenanceFor(
 }
 
 function sourceLabel(locator: string): string {
-  return locator.startsWith("turn:A008_v1_") ? "conversation turn" : locator;
+  if (!locator.startsWith("turn:A008_v1_")) return locator;
+  const fragment = locator.split("#")[1];
+  const context = new URLSearchParams(fragment);
+  return context.has("workspace")
+    ? `conversation turn; workspace: ${context.get("workspace")}; revision: ${context.get("revision")}`
+    : "conversation turn";
 }

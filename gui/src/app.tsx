@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { ToolPermissionDialog } from "./session/tool-permission-dialog.js";
 import { ParametersPanel } from "./settings/parameters-panel.js";
 import { BrandMark } from "./brand/brand-mark.js";
 import { ChatPane } from "./chat/chat-pane.js";
-import {
-  ShortcutDock,
-  type EmptyShortcutId,
-} from "./chat/empty-shortcuts.js";
+import { ShortcutDock, type EmptyShortcutId } from "./chat/empty-shortcuts.js";
 import { Composer } from "./composer/composer.js";
 import { useGuiSession } from "./session/use-gui-session.js";
 import { SettingsPane } from "./settings/settings-pane.js";
@@ -83,11 +86,14 @@ export function App() {
   const [navigationOpen, setNavigationOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(readSidebarWidth);
   const [sidebarHidden, setSidebarHidden] = useState(readSidebarHidden);
-  const [applicationMenu, setApplicationMenu] = useState<"file" | "edit" | "view" | "help">();
+  const [applicationMenu, setApplicationMenu] = useState<
+    "file" | "edit" | "view" | "help"
+  >();
   const [sources, setSources] = useState<readonly SessionSource[]>([]);
   const [canvasOpen, setCanvasOpen] = useState(false);
   const [artifact, setArtifact] = useState<CodeArtifactView>();
-  const [pendingArtifact, setPendingArtifact] = useState<HtmlArtifactCandidate>();
+  const [pendingArtifact, setPendingArtifact] =
+    useState<HtmlArtifactCandidate>();
   const [selectedSkill, setSelectedSkill] = useState<InstalledSkill>();
   const artifactSessionId = useRef<string | undefined>(session.sessionId);
   const cwd = session.details?.runtime.cwd;
@@ -119,7 +125,8 @@ export function App() {
     event.preventDefault();
     const startX = event.clientX;
     const startWidth = sidebarWidth;
-    const move = (moveEvent: PointerEvent) => resizeSidebar(startWidth + moveEvent.clientX - startX);
+    const move = (moveEvent: PointerEvent) =>
+      resizeSidebar(startWidth + moveEvent.clientX - startX);
     const stop = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", stop);
@@ -128,7 +135,9 @@ export function App() {
     window.addEventListener("pointerup", stop, { once: true });
   }
 
-  function runMenuAction(action: "new-chat" | "files" | "parameters" | "toggle-sidebar" | "help") {
+  function runMenuAction(
+    action: "new-chat" | "files" | "parameters" | "toggle-sidebar" | "help",
+  ) {
     setApplicationMenu(undefined);
     if (action === "new-chat") navigate("chat");
     if (action === "files") openTools("files");
@@ -152,9 +161,11 @@ export function App() {
   }
 
   async function projectOpened(projectId?: string) {
-    if (session.durable && projectId) await session.durable.selectChat(projectId);
+    if (session.durable && projectId)
+      await session.durable.selectChat(projectId);
     else {
-      if (!session.durable) await Promise.resolve(session.endSession?.()).catch(() => undefined);
+      if (!session.durable)
+        await Promise.resolve(session.endSession?.()).catch(() => undefined);
       await session.connect();
     }
     setProjectsRevision((revision) => revision + 1);
@@ -187,7 +198,12 @@ export function App() {
   }
 
   function modelArtifact(next: HtmlArtifactCandidate): CodeArtifactView {
-    return { sourceTurnId: next.sourceTurnId, source: next.source, modelSource: next.source, dirty: false };
+    return {
+      sourceTurnId: next.sourceTurnId,
+      source: next.source,
+      modelSource: next.source,
+      dirty: false,
+    };
   }
 
   function openArtifact(next: HtmlArtifactCandidate) {
@@ -203,7 +219,11 @@ export function App() {
       if (canvasOpen) setArtifact(modelArtifact(next));
       return;
     }
-    if (next.sourceTurnId === artifact.sourceTurnId && next.source === artifact.modelSource) return;
+    if (
+      next.sourceTurnId === artifact.sourceTurnId &&
+      next.source === artifact.modelSource
+    )
+      return;
     if (artifact.dirty) {
       setPendingArtifact(next);
       return;
@@ -271,7 +291,11 @@ export function App() {
     >
       <div className="a008-crt-overlay" aria-hidden="true" />
       <ToolPermissionDialog session={session} />
-      <aside className="a008-rail" id="a008-navigation" aria-label="Workspace navigation">
+      <aside
+        className="a008-rail"
+        id="a008-navigation"
+        aria-label="Workspace navigation"
+      >
         <div className="a008-sidebar-brand">
           <BrandMark />
         </div>
@@ -316,6 +340,35 @@ export function App() {
         />
         <details className="a008-runtime-details">
           <summary>Runtime details</summary>
+          {session.durable && Boolean(session.recovery?.length) && (
+            <div role="alert">
+              <p>
+                Earlier work was interrupted. Inspect its effects before
+                allowing further changes. File inspection remains available.
+              </p>
+              <button
+                type="button"
+                onClick={() => void session.durable?.acknowledgeEffects()}
+              >
+                I have checked the effects
+              </button>
+            </div>
+          )}
+          {session.durable && (
+            <p className="a008-sidebar-hint">
+              {session.process?.state === "running"
+                ? `Session process running · PID ${session.process.processId}`
+                : "Session process stopped · starts on the next message"}
+            </p>
+          )}
+          {session.durable && session.process?.state === "running" && (
+            <button
+              type="button"
+              onClick={() => void session.durable?.stopProcess()}
+            >
+              Stop session process
+            </button>
+          )}
           <div className="a008-sidebar-workspace">
             <p className="a008-sidebar-caption">Workspace</p>
             <p className="a008-workspace-name" title={cwd}>
@@ -378,30 +431,62 @@ export function App() {
             {sidebarHidden ? "▸" : "◂"}
           </button>
           <span>{PAGE_TITLE[page]}</span>
-          <span className="a008-header-workspace" title={chatWorkspace ? `Workspace: ${chatWorkspace.workspacePath}\nBase: ${chatWorkspace.baseBranch ?? "unknown"}\nModified files: ${chatWorkspace.status.modifiedFiles}\nCommits ahead: ${chatWorkspace.status.commitsAhead}` : cwd}>
+          <span
+            className="a008-header-workspace"
+            title={
+              chatWorkspace
+                ? `Workspace: ${chatWorkspace.workspacePath}\nBase: ${chatWorkspace.baseBranch ?? "unknown"}\nModified files: ${chatWorkspace.status.modifiedFiles}\nCommits ahead: ${chatWorkspace.status.commitsAhead}`
+                : cwd
+            }
+          >
             {chatWorkspace?.branchName ?? workspace}
           </span>
         </div>
         <nav className="a008-application-menu" aria-label="Application menu">
-          {([
-            ["file", "File", [["new-chat", "New chat"], ["files", "Files"]]],
-            ["edit", "Edit", [["parameters", "Parameters"]]],
-            ["view", "View", [["toggle-sidebar", sidebarHidden ? "Show sidebar" : "Hide sidebar"]]],
-            ["help", "Help", [["help", "Help"]]],
-          ] as const).map(([id, label, items]) => (
+          {(
+            [
+              [
+                "file",
+                "File",
+                [
+                  ["new-chat", "New chat"],
+                  ["files", "Files"],
+                ],
+              ],
+              ["edit", "Edit", [["parameters", "Parameters"]]],
+              [
+                "view",
+                "View",
+                [
+                  [
+                    "toggle-sidebar",
+                    sidebarHidden ? "Show sidebar" : "Hide sidebar",
+                  ],
+                ],
+              ],
+              ["help", "Help", [["help", "Help"]]],
+            ] as const
+          ).map(([id, label, items]) => (
             <div key={id} className="a008-menu-group">
               <button
                 type="button"
                 aria-haspopup="menu"
                 aria-expanded={applicationMenu === id}
-                onClick={() => setApplicationMenu(applicationMenu === id ? undefined : id)}
+                onClick={() =>
+                  setApplicationMenu(applicationMenu === id ? undefined : id)
+                }
               >
                 {label}
               </button>
               {applicationMenu === id ? (
                 <div role="menu" className="a008-menu-popup">
                   {items.map(([action, itemLabel]) => (
-                    <button key={action} type="button" role="menuitem" onClick={() => runMenuAction(action)}>
+                    <button
+                      key={action}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => runMenuAction(action)}
+                    >
                       {itemLabel}
                     </button>
                   ))}
@@ -428,61 +513,61 @@ export function App() {
           </button>
           {page === "chat" ? (
             <>
-            <button
-              className="a008-panel-toggle"
-              aria-expanded={canvasOpen}
-              aria-controls="a008-code-canvas-panel"
-              onClick={() => {
-                setCanvasOpen(!canvasOpen);
-                setFilesOpen(false);
-                setToolsOpen(false);
-                setShortcutsOpen(false);
-              }}
-            >
-              Canvas{artifact ? " •" : ""}
-            </button>
-            <button
-              className="a008-panel-toggle"
-              aria-expanded={filesOpen}
-              aria-controls="a008-files-panel"
-              onClick={() => {
-                setFilesOpen(!filesOpen);
-                setCanvasOpen(false);
-                setShortcutsOpen(false);
-              }}
-            >
-              Files
-            </button>
-            <button
-              className="a008-panel-toggle"
-              aria-expanded={toolsOpen}
-              aria-controls="a008-tools-panel"
-              onClick={() => {
-                setToolsOpen(!toolsOpen);
-                setCanvasOpen(false);
-                setShortcutsOpen(false);
-              }}
-            >
-              Workbench
-            </button>
-            <button
-              type="button"
-              className="a008-shortcuts-trigger"
-              aria-label="Shortcuts"
-              title="Shortcuts"
-              aria-expanded={shortcutsOpen}
-              aria-controls="a008-shortcut-dock"
-              onClick={() => {
-                setShortcutsOpen((open) => !open);
-                setFilesOpen(false);
-                setToolsOpen(false);
-                setCanvasOpen(false);
-              }}
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M7 7 17 17M10 17h7v-7" />
-              </svg>
-            </button>
+              <button
+                className="a008-panel-toggle"
+                aria-expanded={canvasOpen}
+                aria-controls="a008-code-canvas-panel"
+                onClick={() => {
+                  setCanvasOpen(!canvasOpen);
+                  setFilesOpen(false);
+                  setToolsOpen(false);
+                  setShortcutsOpen(false);
+                }}
+              >
+                Canvas{artifact ? " •" : ""}
+              </button>
+              <button
+                className="a008-panel-toggle"
+                aria-expanded={filesOpen}
+                aria-controls="a008-files-panel"
+                onClick={() => {
+                  setFilesOpen(!filesOpen);
+                  setCanvasOpen(false);
+                  setShortcutsOpen(false);
+                }}
+              >
+                Files
+              </button>
+              <button
+                className="a008-panel-toggle"
+                aria-expanded={toolsOpen}
+                aria-controls="a008-tools-panel"
+                onClick={() => {
+                  setToolsOpen(!toolsOpen);
+                  setCanvasOpen(false);
+                  setShortcutsOpen(false);
+                }}
+              >
+                Workbench
+              </button>
+              <button
+                type="button"
+                className="a008-shortcuts-trigger"
+                aria-label="Shortcuts"
+                title="Shortcuts"
+                aria-expanded={shortcutsOpen}
+                aria-controls="a008-shortcut-dock"
+                onClick={() => {
+                  setShortcutsOpen((open) => !open);
+                  setFilesOpen(false);
+                  setToolsOpen(false);
+                  setCanvasOpen(false);
+                }}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 7 17 17M10 17h7v-7" />
+                </svg>
+              </button>
             </>
           ) : null}
         </div>
@@ -536,16 +621,28 @@ export function App() {
           pending={pendingArtifact}
           onClose={() => setCanvasOpen(false)}
           onPrompt={(prompt) => void ask(prompt)}
-          onSourceChange={(source) => setArtifact((current) => current ? {
-            ...current,
-            source,
-            dirty: source !== current.modelSource,
-          } : current)}
-          onRevert={() => setArtifact((current) => current ? {
-            ...current,
-            source: current.modelSource,
-            dirty: false,
-          } : current)}
+          onSourceChange={(source) =>
+            setArtifact((current) =>
+              current
+                ? {
+                    ...current,
+                    source,
+                    dirty: source !== current.modelSource,
+                  }
+                : current,
+            )
+          }
+          onRevert={() =>
+            setArtifact((current) =>
+              current
+                ? {
+                    ...current,
+                    source: current.modelSource,
+                    dirty: false,
+                  }
+                : current,
+            )
+          }
           onUseModelUpdate={() => {
             if (!pendingArtifact) return;
             setArtifact(modelArtifact(pendingArtifact));
@@ -561,7 +658,9 @@ export function App() {
         <FilesPane
           session={session}
           onOpen={(path) =>
-            void ask(`Läs filen ${path} med read_file och sammanfatta vad den innehåller.`)
+            void ask(
+              `Läs filen ${path} med read_file och sammanfatta vad den innehåller.`,
+            )
           }
         />
       </aside>
