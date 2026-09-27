@@ -2730,3 +2730,11 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Verification: packed protocol PASS; packed client PASS; store/workspace/session-process 10/10; full platform host 13/13; full GUI 215/215; root/client builds pass. No live provider calls; 0 SEK.
 - [Handoff](handoffs/A008-0191.md). [Archive](finished/A008-0191_durable-session-processes.md).
 - Signature: ChatGPT (operator/worker)
+
+## 2026-09-27 — A008-0193 model-facing memory label envelope
+
+- Worker/userMessage memory context now sends the retrieved record's readable `label` with `id`, optional `semanticAddress` and conditional history/provenance.
+- Memory-engine, retrieval, state/claim lifecycle, reinforcement, supersede and persistence are unchanged. Dialogue extractor deliberately retains engine-oriented `currentState`/`claim` projection from the same retrieval result.
+- Verification: root typecheck PASS; focused memory/prompt/extractor/ACP suites 63/63 PASS; no live provider calls; 0 SEK.
+- [Handoff](handoffs/A008-0193.md). [Archive](finished/A008-0193_memory-label-envelope.md).
+- Signature: ChatGPT (operator/worker)
