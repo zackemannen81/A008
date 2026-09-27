@@ -4,6 +4,8 @@ Top-level ADR files in this directory are accepted current decisions that still 
 
 ## Authority rule
 
+- [0054 — Normal GUI durable execution](0054-normal-gui-durable-runs.md) records the A008-0187 standalone GUI adapter and host-owned tool runs.
+
 - `docs/PROJECT_BRIEF.md` owns product direction and the Core Product Contract.
 - Accepted top-level ADRs may refine a bounded product or implementation decision.
 - `docs/CURRENT_STATUS.md` owns observed current reality.

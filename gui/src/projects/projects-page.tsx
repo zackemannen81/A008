@@ -34,7 +34,8 @@ function existingDraft(): ExistingProjectRegistration {
 }
 
 export function ProjectsPage(props: {
-  readonly onOpened: () => void;
+  readonly onOpened: (projectId?: string) => void;
+  readonly selectProject?: (projectId: string) => Promise<void>;
   readonly active?: boolean;
 }) {
   const [mode, setMode] = useState<"new" | "existing">("new");
@@ -88,9 +89,9 @@ export function ProjectsPage(props: {
             };
             void (plan
               ? createProject(payload, plan.projectId)
-                  .then(() => {
+                  .then((created) => {
                     setPlan(undefined);
-                    props.onOpened();
+                    props.onOpened(created.project.projectId);
                   })
                   .catch((caught: unknown) =>
                     setError(caught instanceof Error ? caught.message : "Create failed."),
@@ -264,9 +265,9 @@ export function ProjectsPage(props: {
             setBusy(true);
             setError("");
             void registerExistingProject(existing)
-              .then(() => {
+              .then((project) => {
                 setExisting(existingDraft());
-                props.onOpened();
+                props.onOpened(project.projectId);
               })
               .catch((caught: unknown) =>
                 setError(caught instanceof Error ? caught.message : "Add existing project failed."),
@@ -323,8 +324,8 @@ export function ProjectsPage(props: {
                   type="button"
                   onClick={() => {
                     setBusy(true);
-                    void openProject(project.projectId)
-                      .then(() => props.onOpened())
+                    void (props.selectProject ? props.selectProject(project.projectId) : openProject(project.projectId))
+                      .then(() => { if (!props.selectProject) props.onOpened(project.projectId); })
                       .catch((caught: unknown) =>
                         setError(caught instanceof Error ? caught.message : "Open failed."),
                       )

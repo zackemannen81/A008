@@ -53,6 +53,7 @@ interface EngineSession {
   answer: string;
   activities: Map<string, Extract<GuiHostServerMessage, { type: "tool" }>>;
   generations: Map<string, AbortController>;
+  generationWork: Set<Promise<void>>;
 }
 
 export interface EngineConversationSeed {
@@ -185,6 +186,7 @@ export class EngineHost {
       listeners: new Set(),
       activities: new Map(),
       generations: new Map(),
+      generationWork: new Set(),
       thought: "",
       answer: "",
     };
@@ -283,13 +285,25 @@ export class EngineHost {
       active: !!session.active,
       state,
     });
-    void this.#completeGeneratedImage(
+    const work = this.#completeGeneratedImage(
       sessionId,
       generationId,
       normalized,
       controller,
     );
+    session.generationWork.add(work);
+    void work.finally(() => session.generationWork.delete(work)).catch(() => undefined);
     return { generationId, state };
+  }
+
+  /** Durable owners settle image tools before committing their conversation. */
+  async settleGeneratedImages(sessionId: string, signal: AbortSignal): Promise<void> {
+    const session = this.#require(sessionId);
+    const abort = () => { for (const controller of session.generations.values()) controller.abort(); };
+    signal.addEventListener("abort", abort, { once: true });
+    if (signal.aborted) abort();
+    try { await Promise.allSettled([...session.generationWork]); }
+    finally { signal.removeEventListener("abort", abort); }
   }
 
   #project(directory: string): Project {

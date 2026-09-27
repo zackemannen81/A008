@@ -92,6 +92,7 @@ export function App() {
   const artifactSessionId = useRef<string | undefined>(session.sessionId);
   const cwd = session.details?.runtime.cwd;
   const workspace = cwd?.split(/[\\/]/u).filter(Boolean).at(-1);
+  const chatWorkspace = session.durable?.getWorkspace();
 
   useEffect(() => {
     if (artifactSessionId.current === session.sessionId) return;
@@ -150,9 +151,12 @@ export function App() {
     else setCanvasOpen(false);
   }
 
-  async function projectOpened() {
-    await Promise.resolve(session.endSession?.()).catch(() => undefined);
-    await session.connect();
+  async function projectOpened(projectId?: string) {
+    if (session.durable && projectId) await session.durable.selectChat(projectId);
+    else {
+      if (!session.durable) await Promise.resolve(session.endSession?.()).catch(() => undefined);
+      await session.connect();
+    }
     setProjectsRevision((revision) => revision + 1);
     navigate("chat");
   }
@@ -374,7 +378,9 @@ export function App() {
             {sidebarHidden ? "▸" : "◂"}
           </button>
           <span>{PAGE_TITLE[page]}</span>
-          <span className="a008-header-workspace">{workspace}</span>
+          <span className="a008-header-workspace" title={chatWorkspace ? `Workspace: ${chatWorkspace.workspacePath}\nBase: ${chatWorkspace.baseBranch ?? "unknown"}\nModified files: ${chatWorkspace.status.modifiedFiles}\nCommits ahead: ${chatWorkspace.status.commitsAhead}` : cwd}>
+            {chatWorkspace?.branchName ?? workspace}
+          </span>
         </div>
         <nav className="a008-application-menu" aria-label="Application menu">
           {([
@@ -507,7 +513,8 @@ export function App() {
       <main className="a008-help-main" hidden={page !== "projects"}>
         <ProjectsPage
           active={page === "projects"}
-          onOpened={() => void projectOpened()}
+          onOpened={(projectId) => void projectOpened(projectId)}
+          {...(session.durable ? { selectProject: projectOpened } : {})}
         />
       </main>
       <main className="a008-help-main" hidden={page !== "platform"}>

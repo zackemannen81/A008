@@ -122,7 +122,7 @@ export const POOLSIDE_LAGUNA_XS: ModelProfile = Object.freeze({
   verifiedOn: "2026-09-04",
 });
 
-/** Text and image input; A008 chat remains text-only today. */
+/** Text and image input;  */
 export const OPENAI_GPT_56_LUNA: ModelProfile = Object.freeze({
   id: "gpt-5.6-luna",
   name: "OpenAI GPT-5.6 Luna",

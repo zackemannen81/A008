@@ -22,6 +22,30 @@ function storedImage(name: string): GeneratedImage {
   };
 }
 
+test("durable owner waits for generated image tools before releasing the EngineHost session", async () => {
+  const fixture = isolatedMemoryEnv();
+  fixture.env.A008_ENGINE_DATA_PATH = join(fixture.directory, "engine");
+  let finish!: (value: GeneratedImage) => void;
+  const result = new Promise<GeneratedImage>((resolve) => { finish = resolve; });
+  const host = new EngineHost({ env: fixture.env, createPanels: false, generateImage: () => result });
+  try {
+    const session = await host.newSession({ cwd: fixture.directory, mcpServers: [] });
+    host.generateImage(session.sessionId, "Synthetic image fixture");
+    let settled = false;
+    const pending = host.settleGeneratedImages(session.sessionId, new AbortController().signal).then(() => { settled = true; });
+    await Promise.resolve();
+    assert.equal(settled, false);
+    finish(storedImage("durable"));
+    await pending;
+    const snapshot = host.control(session.sessionId, { action: "inspect" });
+    assert.equal(imagePart(snapshot.messages[0]?.content)?.status, "completed");
+  } finally {
+    finish(storedImage("durable"));
+    await host.close();
+    rmSync(fixture.directory, { recursive: true, force: true });
+  }
+});
+
 function imagePart(content: ChatSession["messages"][number]["content"] | undefined) {
   return content === undefined ? undefined : generatedImagePart(content);
 }

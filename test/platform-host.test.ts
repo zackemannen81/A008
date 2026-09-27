@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import test from "node:test";
 import {
   bearerCredentials,
+  cookieCredentials,
   createPlatformV3Client,
   PlatformV3ClientError,
   type ClientFetch,
@@ -24,8 +25,128 @@ import {
   startPlatformHostProcess,
 } from "./fixtures/platform-host-process.js";
 import { startSessionControlProvider } from "./fixtures/session-control-provider.js";
+import { ProjectRuntimeRegistry } from "../src/engine/project-runtime-registry.js";
+import { DurableChatClient, type ChatSelection } from "../gui/src/session/durable-chat-client.js";
 
 const MODEL = DEFAULT_MODEL_ID;
+
+test("normal durable facade preserves PIN recovery and refuses cross-origin requests before opening storage", async () => {
+  const fixture = hostEnv(undefined);
+  delete fixture.env.A008_PLATFORM_PATH;
+  const host = await startGuiHost({ env: fixture.env, pin: "123456", port: 0, cwd: fixture.directory });
+  try {
+    const origin = `http://127.0.0.1:${host.port}`;
+    assert.equal((await fetch(`${origin}/v1/chat/v3/info`)).status, 401);
+    assert.equal((await fetch(`${origin}/v1/chat/v3/info`, { headers: { origin: "https://untrusted.invalid" } })).status, 403);
+    assert.equal(existsSync(join(fixture.directory, "platform.sqlite")), false);
+  } finally { await host.close(); rmSync(fixture.directory, { recursive: true, force: true }); }
+});
+
+test("normal sidebar chats isolate tools and share runtime; navigation and disconnect leave two accepted runs alive", { timeout: 60_000 }, async () => {
+  const provider = await startSessionControlProvider((payload) => {
+    const tool = payload.messages.findLast((message: { role: string }) => message.role === "tool");
+    if (tool) return { role: "assistant", content: `Tool finished: ${tool.content}` };
+    const user = payload.messages.findLast((message: { role: string }) => message.role === "user");
+    const label = String(user.content).includes("chat-left") ? "left" : "right";
+    return { role: "assistant", content: null, tool_calls: [{ id: `write-${label}`, type: "function",
+      function: { name: "create_file", arguments: JSON.stringify({ path: "chat-result.txt", content: label }) } }] };
+  });
+  const fixture = hostEnv(provider.endpoint, { A008_PLATFORM_MAX_ACTIVE_RUNS: "2" });
+  // Exercise lazy normal-GUI storage, without an opt-in Platform page/config.
+  delete fixture.env.A008_PLATFORM_PATH;
+  const alpha = bootstrap(fixture.env, fixture.directory, "normal-alpha", true);
+  const beta = bootstrap(fixture.env, fixture.directory, "normal-beta");
+  const registry = new ProjectRuntimeRegistry({ env: fixture.env });
+  const host = await startGuiHost({ env: fixture.env, projectRegistry: registry, port: 0, cwd: fixture.directory });
+  const origin = `http://127.0.0.1:${host.port}`;
+  const http = { origin, credentials: cookieCredentials(), fetch: globalThis.fetch as unknown as ClientFetch };
+  let saved: ChatSelection | undefined;
+  const storage = { read: () => saved, write: (selection: ChatSelection) => { saved = selection; } };
+  const first = new DurableChatClient(http, storage, 40);
+  const second = new DurableChatClient(http, { read: () => undefined, write() {} }, 40);
+  const observer = new DurableChatClient(http, storage, 40);
+  try {
+    await first.connect();
+    await first.selectChat(alpha.projectId, undefined, true);
+    const left = first.getSnapshot().sessionId!;
+    const leftCwd = first.getSnapshot().details!.runtime.cwd;
+    await first.selectChat(alpha.projectId, undefined, true);
+    const right = first.getSnapshot().sessionId!;
+    const rightCwd = first.getSnapshot().details!.runtime.cwd;
+    await first.selectChat(alpha.projectId, undefined, true);
+    const third = first.getSnapshot().sessionId!;
+    const thirdCwd = first.getSnapshot().details!.runtime.cwd;
+    assert.equal(new Set([leftCwd, rightCwd, thirdCwd]).size, 3);
+    assert.ok(![leftCwd, rightCwd, thirdCwd].includes(alpha.rootFolder));
+    assert.equal((await first.sidebar()).projects.find((p) => p.projectId === alpha.projectId)?.conversations.length, 3);
+
+    await first.selectChat(alpha.projectId, left);
+    await second.connect();
+    await second.selectChat(alpha.projectId, right);
+    await Promise.all([first.prompt("chat-left"), second.prompt("chat-right")]);
+    await waitFor("two simultaneous tool approvals", async () => {
+      await Promise.all([first.refresh(), second.refresh()]);
+      return Boolean(first.getSnapshot().permission && second.getSnapshot().permission);
+    });
+    const project = registry.findByProjectId(alpha.projectId)!;
+    assert.equal(project.agent.openSessionIds().length, 2, "one project agent owns both active sessions");
+    assert.equal(first.getSnapshot().details!.runtime.projectId, alpha.projectId);
+    assert.equal(second.getSnapshot().details!.runtime.projectId, alpha.projectId);
+    assert.equal(first.getSnapshot().details!.runtime.memoryPath, second.getSnapshot().details!.runtime.memoryPath);
+    assert.equal(project.binding.sqlitePath, fixture.sqlitePath);
+    project.runtime.writeSharedMemory({ content: "Shared project knowledge for both worktrees." });
+    assert.equal(JSON.parse(first.getSnapshot().permission!.text).cwd, leftCwd);
+    assert.equal(JSON.parse(second.getSnapshot().permission!.text).cwd, rightCwd);
+    const leftRunId = (await first.api.getConversation(left)).conversation.messages[0]!.runId!;
+    const rightRunId = (await first.api.getConversation(right)).conversation.messages[0]!.runId!;
+    const leftRun = (await first.api.getRun(leftRunId)).run;
+    const rightRun = (await first.api.getRun(rightRunId)).run;
+    assert.equal(leftRun.status, "running");
+    assert.equal(rightRun.status, "running");
+    assert.notEqual(leftRun.workspaceId, rightRun.workspaceId);
+
+    await first.selectChat(alpha.projectId, third);
+    await first.prompt("queued-third-chat");
+    const queuedId = (await first.api.getConversation(third)).conversation.messages[0]!.runId!;
+    assert.equal((await first.api.getRun(queuedId)).run.status, "queued", "configured capacity is two");
+    await first.cancel();
+    assert.equal((await first.api.getRun(queuedId)).run.status, "cancelled");
+    await first.selectChat(beta.projectId, undefined, true);
+    assert.equal((await first.api.getRun(leftRunId)).run.status, "running");
+    assert.equal((await first.api.getRun(rightRunId)).run.status, "running");
+    assert.equal(registry.findByProjectId(alpha.projectId), project);
+    assert.equal(project.agent.openSessionIds().length, 2);
+    await first.selectChat(alpha.projectId, left);
+    first.dispose();
+    second.dispose();
+    // A fresh browser/client observes and controls pending host work after both
+    // submitting clients disconnect. No websocket session owns either run.
+    await observer.connect();
+    assert.equal(observer.getSnapshot().sessionId, left, "refresh restores this tab's selected durable conversation");
+    assert.equal(observer.getSnapshot().details!.runtime.cwd, leftCwd);
+    assert.ok(observer.getSnapshot().permission);
+    observer.resolveToolPermission("allow_once");
+    await waitFor("left durable completion", async () => (await observer.api.getRun(leftRunId)).run.status === "succeeded");
+    await observer.selectChat(alpha.projectId, right);
+    assert.equal(observer.getSnapshot().details!.runtime.cwd, rightCwd);
+    observer.resolveToolPermission("allow_once");
+    await waitFor("right durable completion", async () => (await observer.api.getRun(rightRunId)).run.status === "succeeded");
+    assert.equal(readFileSync(join(leftCwd, "chat-result.txt"), "utf8"), "left");
+    assert.equal(readFileSync(join(rightCwd, "chat-result.txt"), "utf8"), "right");
+    assert.equal(existsSync(join(alpha.rootFolder, "chat-result.txt")), false);
+    assert.equal(existsSync(join(thirdCwd, "chat-result.txt")), false);
+    assert.equal((await observer.api.getRun(leftRunId)).run.workspaceId, leftRun.workspaceId);
+    assert.equal((await observer.api.getConversation(right)).conversation.messages.length, 2);
+    assert.equal(registry.findByProjectId(alpha.projectId), project);
+    assert.equal(project.agent.openSessionIds().length, 0, "finished tool sessions release without closing shared memory");
+    assert.ok(project.runtime.inspectMemory({}).records.some((record) => record.detail.includes("Shared project knowledge")));
+  } finally {
+    first.dispose(); second.dispose(); observer.dispose();
+    await host.close(); registry.close(); await provider.close();
+    rmSync(fixture.directory, { recursive: true, force: true });
+  }
+});
+
 
 function limits(extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
   return {
@@ -75,6 +196,7 @@ function bootstrap(
   env: NodeJS.ProcessEnv,
   directory: string,
   name: string,
+  useGlobalMemory = false,
 ) {
   const project = executeProjectBootstrap(
     parseProjectBootstrapConfig({
@@ -82,7 +204,7 @@ function bootstrap(
       rootFolder: join(directory, name),
       repository: { initialize: true },
       continuity: { docsFirst: false, multiAgent: { enabled: false } },
-      memory: { useGlobalA008Memory: false },
+      memory: { useGlobalA008Memory: useGlobalMemory },
     }),
     { registryPath: env.A008_PROJECTS_PATH ?? "" },
   ).project;

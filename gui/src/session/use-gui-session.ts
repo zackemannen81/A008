@@ -1,3 +1,4 @@
+import { useDurableChat } from "./use-durable-chat.js";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import {
   createGuiSessionClient,
@@ -25,13 +26,13 @@ export function settleQuietly(run: () => Promise<void>): () => Promise<void> {
 }
 
 /**
- * Browser client for A008 GUI host protocol v1 (ADR 0019 D4).
- *
- * The hook owns one `GuiSessionClient` per mount and re-renders through
- * `useSyncExternalStore`. It does not connect on mount: the settings pane
- * offers an explicit Connect action while `status` is `idle` or `error`.
+ * Standalone browsers observe durable runs; capability-bound engine panels
+ * and explicit legacy embeddings retain their existing V1 session client.
  */
 export function useGuiSession(options?: GuiSessionClientOptions): GuiSession {
+  return engineAccessToken() || options ? useLegacyGuiSession(options) : useDurableChat();
+}
+function useLegacyGuiSession(options?: GuiSessionClientOptions): GuiSession {
   const clientRef = useRef<GuiSessionClient | undefined>(undefined);
   if (clientRef.current === undefined) {
     const location =

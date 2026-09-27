@@ -20,6 +20,7 @@ import {
 import {
   createReadStream,
   existsSync,
+  mkdirSync,
   readFileSync,
   realpathSync,
   statSync,
@@ -119,6 +120,7 @@ import {
 import { openPlatformBackend, type PlatformBackend } from "../platform/coordinator.js";
 import { resolvePlatformLocalConfig } from "../platform/local-config.js";
 import { handlePlatformV3Http } from "./platform-v3-http.js";
+import { PLATFORM_GUI_OWNER } from "../platform/gui-run-session.js";
 import {
   bindingFor,
   handleDirectoryList,
@@ -326,6 +328,8 @@ export async function startGuiHost(
 
   const runtimeBaseEnv = (): NodeJS.ProcessEnv => ({
     ...env,
+    A008_CATALOG_PATH: catalogPath,
+    A008_SECRETS_PATH: secretsPath,
     ...(resolveNvidiaApiKey(env, secretsPath)
       ? { NVIDIA_API_KEY: resolveNvidiaApiKey(env, secretsPath) }
       : {}),
@@ -671,6 +675,42 @@ export async function startGuiHost(
   };
   const server = createServer((request, response) => {
     const pathname = requestPath(request);
+    if (pathname.startsWith("/v1/chat/v3/")) {
+      if (options.accessToken !== undefined || !requestOriginAllowed(request)) {
+        sendJson(response, 403, errorBody("Standalone GUI authorization required."));
+        return;
+      }
+      if (!requestAuthorized(request)) {
+        sendJson(response, 401, errorBody("Authentication required."));
+        return;
+      }
+      try {
+        // Normal GUI always has a local durable owner. Explicit V3 configuration
+        // and the normal GUI share this exact backend and coordinator.
+        if (platformBackend === undefined) {
+          mkdirSync(dirname(projectsPath), { recursive: true });
+          const config = platformConfig ?? resolvePlatformLocalConfig({
+            platformPath: resolve(dirname(projectsPath), "platform.sqlite"), env, repoRoot,
+          })!;
+          platformBackend = openPlatformBackend({
+            config, registry: projectRegistry, projectsPath, env: runtimeBaseEnv(),
+            devices: devices ?? new DeviceRegistry(env), pinEnabled: () => pinAuth.enabled,
+            workspaceStore: requireWorkspaceStore(),
+            ...(options.stderr ? { stderr: options.stderr } : {}),
+          });
+        }
+        const principal = { id: PLATFORM_GUI_OWNER, kind: "browser-pin" as const,
+          projects: "all" as const, capabilities: ["session" as const], expiresAt: Number.MAX_SAFE_INTEGER };
+        void handlePlatformV3Http({
+          backend: platformBackend, auth: { authenticate: () => principal, current: () => principal },
+          gui: true, env, projectsPath, workspaceStore: requireWorkspaceStore(),
+          request, response, originAllowed: true, sendJson,
+        });
+      } catch {
+        sendJson(response, 500, errorBody("Durable chat storage could not be opened."));
+      }
+      return;
+    }
     if (pathname === "/v3/info" || pathname.startsWith("/v3/")) {
       void handlePlatformV3Http({
         backend: platformBackend,
@@ -849,7 +889,7 @@ export async function startGuiHost(
         config: platformConfig,
         registry: projectRegistry,
         projectsPath,
-        env,
+        env: runtimeBaseEnv(),
         devices,
         pinEnabled: () => pinAuth.enabled,
         workspaceStore: requireWorkspaceStore(),
