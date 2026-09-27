@@ -79,6 +79,15 @@ export function generationCapabilities(model: string): GenerationCapabilities {
         seed: false,
         verifiedOn: "2026-09-09",
       };
+    case "gpt-6-luna":
+      return {
+        ...common,
+        maxTokens: 128000,
+        topP: false,
+        reasoningEfforts: ["none", "low", "medium", "high", "xhigh", "max"],
+        seed: false,
+        verifiedOn: "2026-09-27",
+      };
     default:
       return {
         ...common,

@@ -227,5 +227,6 @@ export const defaultModelRegistry = new ModelRegistry([
   META_MUSE_GLIMMER_30B,
   POOLSIDE_LAGUNA_XS,
   OPENAI_GPT_56_LUNA,
+  OPENAI_GPT_6_LUNA,
   OPENAI_GPT_56_TERRA,
 ]);
