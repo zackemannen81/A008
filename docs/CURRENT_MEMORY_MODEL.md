@@ -1608,28 +1608,29 @@ De bestämmer aldrig Current State.
 
 Efter retrieval byggs den faktiska model-contexten.
 
-Ägarbeslut 2026-09-27, ADR 0056: minneskuvertets modellvända poster har
-en strikt fältlista. Alla andra fält stannar internt i A008.
+Ägarbeslut 2026-09-27, A008-0193: retrieval och memory-engine behåller sin rika
+interna representation. Endast det worker-/userMessage-vända minneskuvertet
+ändrar presentation.
 
-Bas:
+Worker-bas:
 
 - `id`: exakt retrieved-item-identitet, med intern koppling till knowledge/evidence
   för reuse, deduplicering och reinforcement.
 - `semanticAddress`: endast när adressen är upplöst.
-- `currentState` eller `claim`: en enda innehållssträng. Current state äger
-  adressen; annars används senaste tillämpliga claim för samma kunskap.
+- `label`: den läsbara label som redan finns på den retrieved posten. Worker får
+  inte ersätta labeln med ett frikopplat `currentState`-värde eller `claim`-fält.
 
-Valfritt:
+Worker-valfritt:
 
 - `history`: matchande tidigare händelser/tillstånd när frågan kräver det,
   med nödvändig tidsordning uttryckt i innehållet.
 - `provenance`: relevant källa, attribution och kvalifikationer när det behövs
   för tolkning, verifiering eller konfliktförståelse.
 
-Tags/domäner, evidence-ID, scores/authority, kind, tomma scope och dubblerad
-proposition hör inte till modellposten. Noll, false, null och villkor får inte
-försvinna när innehållet renderas till text. Worker och extractor får samma
-minimala representation av samma urval; A008 behåller den rika interna mappningen.
+Extractor använder samma librarian-valda retrieval-resultat utan en andra read,
+men behåller den engine-orienterade `currentState`/`claim`-projektionen som krävs
+för state updates, exact reinforcement och intern lifecycle-semantik. Detta ändrar
+inte knowledge store, state/claim-lifecycle, retrieval, supersede eller commit.
 
 En entity-/domänträff är kandidatupptäckt, inte automatisk kontextadmission.
 Specifika frågeträffar prioriteras framför bred domänspillover. Två olika

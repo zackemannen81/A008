@@ -75,6 +75,7 @@ export function projectionItems(
         id: record?.id ?? `${surface}:${index}`,
         ...(semanticAddress === undefined ? {} : { semanticAddress }),
         ...(record?.evidenceId ? { evidenceId: record.evidenceId } : {}),
+        label: record?.label ?? text,
         ...(surface === "state" ? { currentState: value } : {}),
         proposition: text,
         kind: surface,

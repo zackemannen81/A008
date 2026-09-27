@@ -121,12 +121,14 @@ på olika adresser behåller separata identiteter. En rå yttring som stödjer e
 vald claim följer inte med som en andra kopia. Specifika taggträffar begränsar
 överspill från breda domänträffar; detta är ingen generell semantisk reranker.
 
-[serialization.ts](../src/memory/serialization.ts) ger worker och extractor
-samma tillåtna fält: `id`, tillgänglig `semanticAddress`, samt `currentState`
-eller `claim` som sträng. Strängvärden bevaras; sammansatta värden återges som
-JSON-text så att grupperingar och kvalifikationer består. Det yttre kuvertet
-heter `A008_memory_context_v2` och innehåller användarens meddelande separat.
-Tags, domains, kind, evidenceId, scope och authority skickas inte i posterna.
+[serialization.ts](../src/memory/serialization.ts) separerar nu worker-presentation
+från extractor-presentation utan att ändra retrieval eller memory-engine. Worker-
+envelopen skickar `id`, tillgänglig `semanticAddress`, den retrieved postens
+läsbara `label` samt villkorad `history`/`provenance`. Extractorn behåller den
+engine-orienterade `currentState`/`claim`-representationen som används för state
+updates och reinforcement. Det yttre worker-kuvertet heter
+`A008_memory_context_v2` och innehåller användarens meddelande separat. Tags,
+domains, kind, evidenceId, scope och authority skickas inte till workern.
 
 Historikfrågor får relevant `history`; käll-/verifieringsfrågor och osäkra eller
 omtvistade claims kan få `provenance`. Äldre tillstånd kvalificeras med tid;

@@ -397,9 +397,10 @@ export class ModelBackedPostOutputKnowledgeAnalyzer implements PostOutputKnowled
         input.kind === "source"
           ? POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION
           : KNOWLEDGE_EXTRACTOR_INSTRUCTION,
-      // Source extraction remains source-only. Dialogue extraction receives
-      // exactly the knowledge projection used by the worker plus the user
-      // message and final provider response; it never performs a second read.
+      // Source extraction remains source-only. Dialogue extraction reuses the
+      // same retrieved knowledge selected for the worker, but keeps the engine-
+      // oriented currentState/claim projection needed for state updates and
+      // reinforcement; it never performs a second read.
       serializedInput:
         input.kind === "source"
           ? JSON.stringify({ locator: input.locator, content: input.content })

@@ -1,6 +1,6 @@
 import { ChatError } from "../core/errors.js";
 import type { ProjectionResult } from "../memory/types.js";
-import { contextItemsForModel } from "../memory/serialization.js";
+import { contextItemsForWorker } from "../memory/serialization.js";
 export { MEMORY_CONTEXT_SYSTEM_INSTRUCTION } from "../prompt-contracts/MEMORY_CONTEXT_SYSTEM_INSTRUCTION.js";
 import { MEMORY_CONTEXT_SYSTEM_INSTRUCTION } from "../prompt-contracts/MEMORY_CONTEXT_SYSTEM_INSTRUCTION.js";
 
@@ -26,13 +26,10 @@ function nonEmpty(value: string, field: string): string {
 export class DeterministicMemoryPromptComposer implements MemoryPromptComposer {
   compose(projection: ProjectionResult, originalMessage: string): MemoryPrompt {
     const message = nonEmpty(originalMessage, "Original message");
-    const items = contextItemsForModel(projection.projection.items);
+    const items = contextItemsForWorker(projection.projection.items);
     for (const [index, item] of items.entries()) {
       nonEmpty(item.id, `Projected memory item ${index + 1} id`);
-      nonEmpty(
-        "currentState" in item ? item.currentState : item.claim,
-        `Projected memory item ${index + 1} content`,
-      );
+      nonEmpty(item.label, `Projected memory item ${index + 1} label`);
       if (item.semanticAddress !== undefined)
         nonEmpty(item.semanticAddress, "Semantic address");
     }

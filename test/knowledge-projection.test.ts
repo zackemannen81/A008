@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   contextItemsForModel,
+  contextItemsForWorker,
   knowledgeText,
   serializeContextProjection,
   Utf8ByteContextMeasurer,
@@ -133,6 +134,34 @@ test("model envelope sends only ID/address and one string; metadata stays intern
   ]) {
     assert.equal(serialized.includes(`"${forbidden}"`), false, forbidden);
   }
+});
+
+test("worker envelope uses retrieved label instead of state value while extractor keeps state semantics", () => {
+  const result = project(
+    payload({ state: [state("partikelvirvel.center_audio_control", true)] }),
+    {
+      records: [
+        record("state:center-audio", "state", {
+          slotLabel: "partikelvirvel.center_audio_control",
+          label: "Partikelvirvelns center kan styras av ljudet.",
+        }),
+      ],
+    },
+  );
+  assert.deepEqual(contextItemsForWorker(result.items), [
+    {
+      id: "state:center-audio",
+      semanticAddress: "partikelvirvel.center_audio_control",
+      label: "Partikelvirvelns center kan styras av ljudet.",
+    },
+  ]);
+  assert.deepEqual(contextItemsForModel(result.items), [
+    {
+      id: "state:center-audio",
+      semanticAddress: "partikelvirvel.center_audio_control",
+      currentState: "true",
+    },
+  ]);
 });
 
 test("different semantic addresses retain equal values", () => {
@@ -454,12 +483,13 @@ test("budget measures minimal output and does not send an oversized first item",
   );
 });
 
-test("worker and extractor get identical minimal context, internal identity survives", async () => {
+test("worker gets readable labels while extractor keeps engine state semantics", async () => {
   const items: ContextKnowledgeItem[] = [
     {
       id: "state:known",
       evidenceId: "claim-internal",
       semanticAddress: "task.status",
+      label: "Task status is complete.",
       currentState: "Complete",
       proposition: "Complete",
       kind: "state",
@@ -499,10 +529,28 @@ test("worker and extractor get identical minimal context, internal identity surv
     userMessage: "Question",
     responseText: "Complete",
   });
-  assert.deepEqual(
-    JSON.parse(extractor).retrievedContext,
-    JSON.parse(worker.userEnvelope).retrievedContext,
-  );
+  assert.deepEqual(JSON.parse(worker.userEnvelope).retrievedContext, {
+    items: [
+      {
+        id: "state:known",
+        semanticAddress: "task.status",
+        label: "Task status is complete.",
+        history: ["Yesterday: Ready"],
+        provenance: ["Source: task.md"],
+      },
+    ],
+  });
+  assert.deepEqual(JSON.parse(extractor).retrievedContext, {
+    items: [
+      {
+        id: "state:known",
+        semanticAddress: "task.status",
+        currentState: "Complete",
+        history: ["Yesterday: Ready"],
+        provenance: ["Source: task.md"],
+      },
+    ],
+  });
   assert.equal(extractor.includes("claim-internal"), false);
   assert.equal(items[0]?.evidenceId, "claim-internal");
 });

@@ -81,7 +81,9 @@ export interface ContextKnowledgeItem {
   readonly semanticAddress?: string;
   /** Lifecycle/evidence identity used for exact reinforcement when available. */
   readonly evidenceId?: string;
-  /** Current value for state-surface records. */
+  /** Human/model-facing label from the retrieved record when available. */
+  readonly label?: string;
+  /** Current value for state-surface records. Internal engine semantics only. */
   readonly currentState?: unknown;
   /** Task-selected supplemental context. Internal identity metadata stays separate. */
   readonly history?: readonly string[];

@@ -38,9 +38,11 @@ Verifiering och detaljer finns i [A008-0191-handoff](handoffs/A008-0191.md) och
 
 ## Minneskontext — A008-0189
 
-Worker och extractor får samma minimala poster: `id`, tillgänglig
-`semanticAddress`, `currentState` eller `claim` som sträng samt villkorad
-`history`/`provenance`. Intern metadata skickas inte. Aktuell state prioriteras,
+Worker och extractor använder samma librarian-valda retrieval-resultat men olika
+presentationer. Worker/userMessage-envelope skickar `id`, tillgänglig
+`semanticAddress`, postens läsbara `label` samt villkorad `history`/`provenance`.
+Extractor behåller `currentState`/`claim`-representationen som behövs för
+state updates och reinforcement. Intern metadata skickas inte till workern. Aktuell state prioriteras,
 oberoende adresser med samma värde hålls isär och dubbla råyttringar undertrycks.
 Specifika taggträffar begränsar breda domänträffar. Befintlig ID-mappning för
 förstärkning finns kvar; läsning förstärker inte.

@@ -608,7 +608,7 @@ test("retrieved instructions stay in untrusted data under the single instruction
   );
   const envelope = JSON.parse(request.messages.at(-1)!.content);
   assert.equal(envelope.message, "Actual question");
-  assert.equal(envelope.retrievedContext.items[0].claim, injected);
+  assert.equal(envelope.retrievedContext.items[0].label, injected);
   assert.equal(request.tools, undefined);
   assert.equal(JSON.stringify(session.messages).includes(injected), false);
 });

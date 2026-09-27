@@ -261,13 +261,12 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
       const envelope = JSON.parse(user) as {
         readonly retrievedContext?: {
           readonly items?: Array<{
-            readonly claim?: unknown;
-            readonly currentState?: unknown;
+            readonly label?: unknown;
           }>;
         };
       };
       projected = (envelope.retrievedContext?.items ?? []).some(
-        (item) => (item.currentState ?? item.claim) === PROPOSITION,
+        (item) => item.label === PROPOSITION,
       );
     } catch {
       projected = false;

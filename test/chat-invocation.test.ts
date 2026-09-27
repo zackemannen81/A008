@@ -129,7 +129,7 @@ test("memory prompt exposes bounded semantic identity while stripping runtime co
   assert.deepEqual(envelope.retrievedContext.items, [
     {
       id: "knowledge-private-0",
-      claim: "Use SQLite locally.",
+      label: "Use SQLite locally.",
     },
   ]);
   assert.equal(prompt.userEnvelope.includes("A008_v1_"), false);

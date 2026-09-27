@@ -14,7 +14,7 @@ export function knowledgeText(value: unknown): string {
   return String(value);
 }
 
-/** The only model-facing item allowlist, shared by worker and extractor. */
+/** Extractor-facing projection. Keep engine-oriented state/claim semantics here. */
 export function contextItemsForModel(items: readonly ContextKnowledgeItem[]) {
   return items.map((item) => ({
     id: item.id,
@@ -30,6 +30,19 @@ export function contextItemsForModel(items: readonly ContextKnowledgeItem[]) {
           ),
         }
       : { claim: item.proposition }),
+    ...(item.history?.length ? { history: [...item.history] } : {}),
+    ...(item.provenance?.length ? { provenance: [...item.provenance] } : {}),
+  }));
+}
+
+/** Worker/user-message projection: semantic identity plus the retrieved record's readable label. */
+export function contextItemsForWorker(items: readonly ContextKnowledgeItem[]) {
+  return items.map((item) => ({
+    id: item.id,
+    ...(item.semanticAddress === undefined
+      ? {}
+      : { semanticAddress: item.semanticAddress }),
+    label: item.label ?? item.proposition,
     ...(item.history?.length ? { history: [...item.history] } : {}),
     ...(item.provenance?.length ? { provenance: [...item.provenance] } : {}),
   }));
