@@ -1,0 +1,47 @@
+[
+  {
+    "source": "docs/PROJECT_BRIEF.md",
+    "archive": "docs/evidence/A008-0188/previous-PROJECT_BRIEF.md",
+    "sha256": "732795FE86C141D2B18B103BB9A093C3E403718A1685FFE07578B1A33601C703"
+  },
+  {
+    "source": "docs/SYSTEMDOC.md",
+    "archive": "docs/evidence/A008-0188/previous-SYSTEMDOC.md",
+    "sha256": "4042EB9E3276F6032C586D9DCEE497C5FABA5F5C303637F3308986A132A10B6B"
+  },
+  {
+    "source": "docs/CURRENT_STATUS.md",
+    "archive": "docs/evidence/A008-0188/previous-CURRENT_STATUS.md",
+    "sha256": "DA9F4F4A19D0279B990A09F1CC920028A674DE9EE1247AC9700A4402EDC7072D"
+  },
+  {
+    "source": "docs/CURRENT_TASK.md",
+    "archive": "docs/evidence/A008-0188/previous-CURRENT_TASK.md",
+    "sha256": "B447A1B180373CF732D337575BA2D1A563C80FB11B0D1D9BE7DEFD43423FD77B"
+  },
+  {
+    "source": "docs/adr/0045-multimodal-conversation-content.md",
+    "archive": "docs/adr/_legacy/0045-multimodal-conversation-content.md",
+    "sha256": "CD0EE80D4D261AC6BD472E3D749E80A0D4B91565476BD2A577E12E5909D73AD7"
+  },
+  {
+    "source": "docs/adr/0047-project-sidebar-and-saved-chats.md",
+    "archive": "docs/adr/_legacy/0047-project-sidebar-and-saved-chats.md",
+    "sha256": "EC93E070368AEFCC3ACD98BD8FE5F3C53F70587480E843E9B15069F5A2BEB525"
+  },
+  {
+    "source": "docs/adr/0052-Memory-Engine-Semantics.md",
+    "archive": "docs/adr/_legacy/0052-Memory-Engine-Semantics.md",
+    "sha256": "42DD76B1608EC2CD1ED6CD8DF13FEAB8FF2F79A1C206DAAE3CB1CB0D08EAD661"
+  },
+  {
+    "source": "docs/adr/0053-Multi-Session-Worktree-Architecture.md",
+    "archive": "docs/adr/_legacy/0053-Multi-Session-Worktree-Architecture.md",
+    "sha256": "E75263DB70A6EB0376568842148272DAEADF90A0ABF3429575DB8609BFD699B9"
+  },
+  {
+    "source": "docs/adr/0054-normal-gui-durable-runs.md",
+    "archive": "docs/adr/_legacy/0054-normal-gui-durable-runs.md",
+    "sha256": "3AD61FDC886A3B6A968A464063E2D74DA6324341FC82A5252CB438079F3595D3"
+  }
+]

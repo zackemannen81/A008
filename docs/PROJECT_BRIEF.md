@@ -1,99 +1,149 @@
-# Project Brief
+# Project Brief — A008
 
 Status: Approved product direction
-System: A008 Local-First Agent Runtime & Semantic Memory Engine
+Beslutsdatum: 2026-09-27
+Beslutsägare: Rickard
 
-A008 is a local-first autonomous agent environment for deep software development, semantic memory and parallel project work. The product must remain useful as a standalone local application; hosted infrastructure is an optional extension rather than the foundation of the runtime.
+A008 är en lokal agentmiljö för utveckling, parallellt projektarbete och
+semantiskt minne. En lokal A008-värd äger beständiga resurser och bakgrundsarbete.
+Användaren arbetar genom A008:s GUI, CLI eller andra anslutna klienter.
 
 ## Core Product Contract
 
-These clauses are the stable product-authority addresses used by the Necessity Gate. Accepted ADRs may refine a clause, but implementation history, old task records and legacy documents do not override this contract.
+Klausulerna är produktauktoritet för Necessity Gate. ADR:er preciserar beslut;
+implementation, gamla uppgifter och historiska dokument skapar inte nya krav.
 
-- **PC-LF-01 — Local-first core.** A008's project/session runtime, local storage, semantic memory, tools, Git integration and operator controls must remain usable without an A008-hosted backend. External model providers may still require network access when selected.
-- **PC-LF-02 — Backend is optional capability.** Sync, backup, remote execution, collaboration and hosted access may be added behind explicit interfaces, but must not own the local cognitive/runtime core.
-- **PC-LF-03 — A008 owns cognition and semantic memory.** Knowledge, state, retrieval, reinforcement, lifecycle, context construction and semantic authority belong to A008. Execution metadata is not semantic memory.
-- **PC-LF-04 — ACME owns execution, not cognition.** ACME may execute model/provider work and report execution evidence; it must not become the authority for A008 memory, truth, retrieval or reasoning policy.
-- **PC-LF-05 — Session and workspace are separate concepts.** A conversation/session may exist without a writable workspace. Filesystem isolation is allocated only when work requires it.
-- **PC-LF-06 — Parallel writes are isolated.** Writable parallel project sessions use isolated Git worktrees by default; a full clone/copy is a fallback when Git or project tooling makes worktrees unsuitable.
-- **PC-LF-07 — Local state remains authoritative.** Optional synchronization replicates explicit state/events between installations; a remote database is not required to become the canonical owner of local A008 state.
+- **PC-LF-01 — Local-first core.** Projekt, sessioner, verktyg, Git, lokalt
+  tillstånd och minne fungerar utan ett A008-hostat backend eller konto.
+  Valda externa modellproviders kan kräva nätverk.
+- **PC-LF-02 — Backend is optional capability.** Sync, backup och fjärråtkomst
+  är möjliga tillägg bakom uttryckliga gränssnitt. De äger inte den lokala kärnan.
+- **PC-LF-03 — A008 owns cognition and semantic memory.** A008 äger kunskap,
+  tillstånd, retrieval, reinforcement, lifecycle och kontextkonstruktion.
+  Exekveringsmetadata är inte semantiskt minne.
+- **PC-LF-04 — ACME owns model execution.** ACME utför modell-/providerarbete
+  och rapporterar exekveringsresultat. A008 äger sessioner, verktygsbehörighet,
+  minne och semantisk policy.
+- **PC-LF-05 — Durable project sessions.** Varje ny projektsession får en egen
+  beständig identitet, chatthistorik och Git-worktree vid skapandet. Sessionen
+  består när dess process eller en ansluten klient avslutas.
+- **PC-LF-06 — Isolated workspaces.** Varje projektsession har en egen branch
+  och arbetskatalog under användarens session-rot. Verktyg och underprocesser
+  använder sessionens workspace som CWD. Saknad worktree får aldrig orsaka en
+  tyst övergång till projekt-roten.
+- **PC-LF-07 — Local state remains authoritative.** Lokal lagring äger
+  beständigt tillstånd. Eventuell synkronisering överför uttryckliga data och
+  händelser utan att ett fjärrsystem blir nödvändig lokal sanningsägare.
+- **PC-LF-08 — Replaceable session processes.** När ett meddelande ska köras
+  säkerställer A008 exakt en aktiv sessionsprocess för sessionen. En levande
+  process återanvänds; annars startas en ny för samma session och workspace.
+  Sessionsprocessen är en separat OS-process.
+- **PC-LF-09 — Clients observe and control.** Flera klienter kan visa och styra
+  samma session. Navigering, frånkoppling och stängda GUI-fönster avslutar inte
+  accepterat arbete. Att öppna chatten startar inte i sig en sessionsprocess
+  eller återupprepar ett meddelande. Avbrott begärs uttryckligen.
+- **PC-LF-10 — Current architectural authority.** Aktuell produktgrund och
+  uttryckligen aktiva beslut styr ny arkitektur. Arkiverade beslut, citerad
+  dokumenttext och minnesträffar får inte återaktivera gamla krav. Målbild och
+  implementerat beteende dokumenteras separat.
 
-## Product direction
+PC-LF-05/06 ersätter sina tidigare formuleringar. Session och workspace är
+fortfarande skilda begrepp men allokeras tillsammans för nya projektsessioner.
+Den tidigare regeln om workspace först vid skrivning och den generella
+clone/copy-fallbacken ingår inte i denna grund.
 
-The practical rule is the **network-cable test**: removing access to an A008-hosted backend must not stop the local A008 runtime from owning projects, sessions, memory, tools, Git workspaces and local state. A selected cloud model provider may of course require its own network connection.
-A008 therefore separates the local product from optional remote services:
+## Begrepp
+
+| Begrepp | Definition |
+| --- | --- |
+| Session-rot | Global användarinställning för nya arbetskataloger, exempelvis `C:\code\a008-sessions`. Ligger utanför projektens repositoryträd. |
+| Projekt | Registrerad identitet `projectId` med en projekt-rot. |
+| Projekt-rot | Projektets ursprungliga lokala Git-checkout. |
+| Session | Beständig arbetskontext med `sessionId`, historik och workspace. Chatt är dess GUI-presentation. |
+| Workspace | Registrerad worktree med `workspaceId`, sökväg, branch och startrevision. |
+| Sessionsinstans | En viss livstid för körprocessen, identifierad av `instanceId`. |
+| Process | OS-processen med ett tillfälligt `processId`/PID som OS kan återanvända. |
+| Körning | Ett avgränsat accepterat arbete med `runId`. |
+| Klient | GUI, CLI eller annan konsument av samma lokala värd. |
+
+Identiteterna har olika betydelse och får inte härledas från PID eller
+visningsnamn. Befintliga `conversationId` och interna EngineHost-`sessionId`
+måste mappas uttryckligen vid implementation och migrering.
 
 ```text
-A008 Runtime (local-first)
-├── projects and sessions
-├── semantic memory and current state
-├── MCP/tool integration
-├── ACME model-execution boundary
-├── Git/worktree management
-└── local persistence (SQLite)
-        │
-        └── optional sync/service interface
-                 │
-                 └── sync, backup, remote access, collaboration
+A008 lokal värd
+└── Projekt A008 (projekt-rot C:\code\A008)
+    ├── Session c401ace5
+    │   ├── workspace C:\code\a008-sessions\a008-c401ace5
+    │   ├── branch a008/session-c401ace5
+    │   ├── base main @ <startcommit>
+    │   ├── sparad historik och körningar
+    │   └── sessionsinstans vid behov (nytt instanceId och PID vid omstart)
+    └── Session B
+        └── egen worktree, branch och sessionsprocess
 ```
 
-The backend is a capability provider, not the cognitive owner of A008.
+`main` är ett exempel på utgångsbranch, inte sessionernas gemensamma
+arbetsbranch. En worktree delar Git-objekt men har egen arbetskatalog; den är
+inte en fullständig klon. Ändrad session-rot gäller nya sessioner och flyttar
+inte befintliga arbetskataloger automatiskt.
 
-## Operational modes
+## Ägarskap
 
-### Standalone
+| Ägare | Ansvar |
+| --- | --- |
+| Lokal A008-värd | Inställningar, projektregister, beständiga sessioner, historik, körningsstatus och klientåtkomst. Kan leva utan öppet GUI. |
+| Värdens processhanterare | Start, identifiering, övervakning och stopp; högst en aktiv processägare per session. |
+| Värdens workspace-hanterare | Worktree/branch-skapande, beständig bindning och uttryckliga livscykelåtgärder. |
+| Sessionsprocess | Agentarbete, verktyg och underprocesser i sessionens workspace. |
+| A008:s minnesmotor | En gemensam semantisk ägare per projekt, åtkomlig genom ett uttryckligt gränssnitt. Kan ligga i värden. |
+| ACME | Modell-/providerexekvering. |
+| GUI/CLI | Presentation och användarkommandon; ingen ägare till arbetets livstid. |
 
-A008 can run on one machine with local project state, memory, tools, Git integration and local persistence. No A008 account, central database or hosted control plane is required.
+Chatthistorik lagras oberoende av om semantiskt minne är aktiverat.
+Sessionsprocesserna får inte öppna konkurrerande minnesägare för samma projekt.
+Källkodsobservationer behåller workspace-/revisionskontext: ett fynd i session A
+beskriver inte automatiskt session B eller `main`.
 
-### Standalone + optional sync
+[CURRENT_MEMORY_MODEL.md](CURRENT_MEMORY_MODEL.md) äger fortsatt den detaljerade
+semantiska målmodellen. Omläggningen ändrar inte dess interna semantik eller
+innebär att alla dess delar redan finns.
 
-A local A008 installation may connect to a sync/service provider for cross-device state, backup, remote access or collaboration. The local runtime remains authoritative for its local work and must degrade cleanly when that service is unavailable.
+## Livscykel
 
-## Parallel project sessions
+1. Skapa identitet och worktree. Exponera sessionen som körbar först när
+   bindningen är sparad och arbetsytan finns; fel får ett synligt tillstånd.
+2. Visa sparad historik när chatten öppnas och anslut till eventuell aktivitet.
+   Enbart läsning startar ingen sessionsprocess.
+3. Vid nästa meddelande: återanvänd en verifierat levande process eller starta
+   en ny med samma session, historik och workspace samt nytt instanceId/PID.
+4. Kör högst en aktiv körning per session; olika sessioner kan köra parallellt.
+   Värden samordnar samtidiga kommandon från flera klienter.
+5. Lagra återanslutningsbara körningshändelser med ordningsnummer. Historik och
+   ny ström ska ansluta utan luckor eller dubblering. Varje intern diagnostiksignal
+   eller modellens privata resonemang behöver inte lagras.
+6. Processdöd lämnar historik och filer kvar. Ny processstart återspelar inte
+   tidigare arbete. Okända verktygseffekter kontrolleras före eventuell upprepning.
 
-A008 distinguishes a **session** from a **workspace**.
+Stopp av körning, stopp av process och avveckling av workspace är skilda
+åtgärder. Stängning av GUI innebär ingen av dessa. Behåll, integrera eller kasta
+arbete hanteras uttryckligen; inget publiceras, slås ihop eller raderas
+automatiskt för att en process avslutas.
 
-- Research/chat sessions may require no workspace.
-- On explicit writable execution, a development session receives and retains an isolated workspace.
-- Git worktrees are the default isolation mechanism for Git projects.
-- A clone/copy may be used when a project or toolchain cannot safely operate in a worktree.
-- Session-specific tools and processes execute with the session workspace as their CWD.
-The target topology is intentionally simple:
+## Avgränsning
 
-```text
-Project
-├── Session A -> shared/read-only project context
-├── Session B -> worktree B -> branch a008/session-B
-└── Session C -> worktree C -> branch a008/session-C
-```
+Grunden avser registrerade Git-projekt. Icke-Git-projekt, projektlösa chattar,
+clone/copy-fallback, automatisk start vid OS-inloggning och fjärrkörning beslutas
+separat om de behövs. Arkivering av ADR:er tar inte bort befintliga funktioner.
+Protokoll, befintliga sessionsdata och GUI-kapabiliteter måste inventeras före
+kodändring; gamla begränsningar blir inte generella produktkrav genom historiken.
 
-Session completion may expose explicit user-controlled outcomes such as merge, pull request, keep branch or discard workspace. Current implementation status belongs in `CURRENT_STATUS.md` and `SYSTEMDOC.md`, not in this direction document.
+## Dokumentauktoritet
 
-## Synchronization direction
-
-A008 does not require a remote database to become the project SSOT. Optional synchronization should transport explicit state/events or other mergeable representations while A008 retains ownership of semantic meaning and conflict/state rules.
-
-Sync may eventually cover project/session metadata, conversation turns, semantic knowledge/state, relationships, task/execution metadata, artifacts and selected settings. The exact transport and storage provider are implementation choices, not product identity.
-
-## Product shape
-
-- **A008 Core** — local/standalone product and runtime.
-- **A008 Sync** — optional synchronization/backup capability.
-- **A008 Remote / Teams / Cloud** — possible future service layers for remote execution, collaboration or managed infrastructure.
-
-These service layers are optional extensions. They must not turn the local runtime into a thin client that requires a central A008 service to function.
-
-## Why this direction
-
-- Keep the agent/runtime itself as the primary product.
-- Avoid forcing account, multitenancy and hosted-database complexity into the core.
-- Keep project data and source code close to the user and local filesystem.
-- Make parallel development practical without sharing one dirty working tree.
-- Allow hosted services to evolve independently behind explicit boundaries.
-
-## Documentation authority
-
-- `PROJECT_BRIEF.md` owns product direction and non-negotiable product boundaries.
-- Accepted ADRs under `docs/adr/` refine bounded current decisions.
-- `CURRENT_STATUS.md` records where the project is now.
-- `SYSTEMDOC.md` records behavior that actually exists.
-- Historical material under `_legacy/`, completed tasks and journals is provenance only and cannot override current owners.
+- Detta dokument äger godkänd produktgrund.
+- [ADR-registret](adr/README.md) listar aktiva beslut. ADR 0055 är det enda
+  aktiva beslutet efter omläggningen; alla tidigare ADR:er är historik.
+- [SYSTEMDOC.md](SYSTEMDOC.md) beskriver källkodens aktuella ansvar och flöden.
+- [CURRENT_STATUS.md](CURRENT_STATUS.md) visar observerade luckor mot målbilden.
+- Arkiv, journal och avslutade uppgifter är historik. Deras instruktioner eller
+  `Accepted`-etiketter utgör inte aktuell auktoritet.

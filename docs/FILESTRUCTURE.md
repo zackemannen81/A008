@@ -30,7 +30,7 @@ A008/
 - `ingest/` — source/document ingestion.
 - `memory/` — A008-owned semantic memory, persistence, retrieval and knowledge state.
 - `orchestration/` — application orchestration and semantic model coordination.
-- `platform/` — currently implemented optional platform/durable-work components.
+- `platform/` — durable store/coordinator used by normal GUI chat and public V3; current execution remains in-process.
 - `platform/gui-run-session.ts` — coordinator-owned EngineHost/tool adapter for normal GUI durable runs.
 - `prompt-contracts/` — maintained prompt contracts.
 - `providers/` — provider/model adapters and catalogs.
@@ -63,7 +63,7 @@ The docs root is deliberately small. New topic-specific authority documents shou
 ```text
 docs/
 ├── PROJECT_BRIEF.md          approved product direction and Core Product Contract
-├── CURRENT_STATUS.md         current observed state, gaps and chronological verification record
+├── CURRENT_STATUS.md         current observed state and gaps against the approved architecture
 ├── SYSTEMDOC.md              durable behavior that actually exists
 ├── CURRENT_MEMORY_MODEL.md   current semantic memory/context model
 ├── CURRENT_TASK.md           active branch task; empty template on main
@@ -73,13 +73,13 @@ docs/
 ├── FILESTRUCTURE.md          this repository map
 ├── JOURNAL.md                append-only dated integration history
 ├── TASK_IDS.md               task identity allocation
-├── adr/                      accepted current decisions plus _legacy history
+├── adr/                      ADR 0055 is the sole active decision; all earlier ADRs are _legacy history
 ├── backlog/                  current deferred work plus _legacy retired backlog
 ├── tasks/                    durable task/program records
 ├── finished/                 immutable completed task records
 ├── handoffs/                 task handoffs
 ├── paused/                   paused task records
-├── evidence/                 verification evidence
+├── evidence/                 verification evidence; A008-0188 preserves pre-reset document snapshots
 ├── platform/                 implementation-local docs for existing optional platform components
 ├── prompts/                  maintained prompt documentation
 ├── concepts_sandbox/         non-authoritative concepts and design exploration

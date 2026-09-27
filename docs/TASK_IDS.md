@@ -202,3 +202,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0185 | durable conversation workspace ownership and background multi-client runs | Rickard (operator) | 2026-09-26 | multi-project Platform V3 conversation/workspace/run ownership |
 | A008-0186 | align session/workspace allocation policy | Rickard (operator) | 2026-09-26 | resolve A008-0185 blocker: no-workspace conversations and isolated writable worktrees |
 | A008-0187 | normal GUI durable background chat runs | Rickard (operator), Codex local allocation | 2026-09-26 | normal sidebar conversations use isolated durable workspaces and host-owned concurrent runs; local claim authorized without commit/push |
+| A008-0188 | architecture foundation reset | Codex (operator) | 2026-09-27 | owner-authorized local documentation reset; archive all prior ADRs; durable sessions with on-demand processes; no push or runtime implementation |

@@ -1,16 +1,27 @@
-# Decision Records
+# Aktuella arkitekturbeslut
 
-Top-level ADR files in this directory are accepted current decisions that still refine the product contract or implemented system.
+Senast omprövat: 2026-09-27, A008-0188, på Rickards uttryckliga begäran.
 
-## Authority rule
+## Aktivt beslut
 
-- [0054 — Normal GUI durable execution](0054-normal-gui-durable-runs.md) records the A008-0187 standalone GUI adapter and host-owned tool runs.
+| ADR | Status | Omfattning |
+| --- | --- | --- |
+| [0055 — Beständiga sessioner och utbytbara sessionsprocesser](0055-durable-sessions-and-process-ownership.md) | Accepted | Ny arkitekturgrund, ägarskap, egen worktree och process vid nästa meddelande. |
 
-- `docs/PROJECT_BRIEF.md` owns product direction and the Core Product Contract.
-- Accepted top-level ADRs may refine a bounded product or implementation decision.
-- `docs/CURRENT_STATUS.md` owns observed current reality.
-- `docs/SYSTEMDOC.md` owns durable behavior that actually exists.
-- `docs/adr/_legacy/` contains retired historical decisions for provenance only and is never current authority.
-- Historical task, journal, handoff, or legacy text cannot override a current owner.
+Detta är hela den aktiva ADR-mängden. Numreringen fortsätter för att historiska
+ID:n ska förbli entydiga; den börjar inte om på 0001.
 
-When an ADR no longer represents a current durable decision, move it to `_legacy/` rather than leaving stale authority in the active set.
+## Auktoritet
+
+[PROJECT_BRIEF.md](../PROJECT_BRIEF.md) äger produktgrund. Endast uttryckligen
+aktiva ADR:er preciserar den. [SYSTEMDOC.md](../SYSTEMDOC.md) beskriver
+implementation; [CURRENT_STATUS.md](../CURRENT_STATUS.md) beskriver nuläge.
+Ett accepterat ADR är inte bevis på implementerat beteende.
+
+Alla tidigare ADR:er är [arkiverade](_legacy/README.md). Äldre `Status: Accepted`,
+"must", "remains authoritative" och länkar mellan originaldokumenten beskriver
+deras historiska sammanhang och har ingen aktuell beslutsauktoritet.
+Historiska uppgifter och sök-/minnesträffar återaktiverar dem inte.
+
+Arkiveringen tar inte bort kod eller användardata och återinför inte äldre
+begränsningar. Funktioner och migrationer bedöms mot aktuell produktgrund.

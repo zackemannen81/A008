@@ -136,7 +136,19 @@ export const OPENAI_GPT_56_LUNA: ModelProfile = Object.freeze({
   inputModalities: Object.freeze(["text", "image"] as const),
   verifiedOn: "2026-09-09",
 });
-
+export const OPENAI_GPT_6_LUNA: ModelProfile = Object.freeze({
+  id: "gpt-6-luna",
+  name: "OpenAI GPT-6 Luna",
+  provider: "openai",
+  executionProvider: "openai",
+  defaults: Object.freeze({
+    maxTokens: 128_000,
+    reasoningEffort: "medium",
+    stream: true,
+  }),
+  inputModalities: Object.freeze(["text", "image"] as const),
+  verifiedOn: "2026-09-09",
+});
 /** Text and image input through the existing native OpenAI Responses route. */
 export const OPENAI_GPT_56_TERRA: ModelProfile = Object.freeze({
   id: "gpt-5.6-terra",

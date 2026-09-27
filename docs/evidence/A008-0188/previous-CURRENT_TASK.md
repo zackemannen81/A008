@@ -2,11 +2,11 @@
 
 Task ID:
 Parent Task: None
-Status: Draft
-Owner:
-Created:
-Last updated:
-Charter frozen at:
+Status: In Progress
+Owner: Rickard
+Created: 2026-09-26
+Last updated: 2026-09-26
+Charter frozen at: 2026-09-26
 
 ## Read First
 
@@ -22,7 +22,29 @@ Charter frozen at:
 
 ## Task Summary
 
-Describe why this bounded task is active now and its intended outcome.
+Complete the multi-project / multi-conversation execution model so that A008 is no longer conceptually bound to one active project, one active workspace or one foreground client session.
+
+A008 must support:
+- multiple registered projects at the same time;
+- multiple independent conversations within each project;
+- one isolated Git worktree per writable conversation;
+- multiple simultaneously running conversations and runs;
+- background execution that continues when the originating UI window disconnects, switches project or closes;
+- multiple A008 clients/windows observing and controlling the same durable host state without becoming execution owners.
+- Changes must be usable in the web-gui (/gui)this may require 1. either migrating the involved parts from v1 or adding support for this in v1.
+
+The durable ownership chain shall be explicit:
+
+Project
+  → Conversation
+    → Workspace
+      → Run
+
+A project owns shared runtime identity and semantic memory.
+A conversation owns its selected workspace.
+A run executes against the workspace bound to its conversation.
+A client/UI observes and controls these durable resources but does not own their lifetime.
+
 
 ## Task Charter
 
