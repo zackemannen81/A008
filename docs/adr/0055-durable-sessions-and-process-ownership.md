@@ -4,7 +4,7 @@ Status: Accepted
 Date: 2026-09-27
 Decision owner: Rickard
 Task: A008-0188
-Implementation status: Target architecture; process-per-session is not implemented.
+Implementation status: Implemented and verified by A008-0191 on 2026-09-27.
 
 ## Bakgrund och auktoritet
 

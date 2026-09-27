@@ -2720,3 +2720,13 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Verification: `npm run typecheck`; focused Platform store/host tests 16/16; `npm run verify:protocol`; GUI suite 209/209; `git diff --check`. No provider calls; 0 SEK.
 - [Handoff](handoffs/A008-0185.md). [Archive](finished/A008-0185_durable-conversation-workspaces-and-background-runs.md).
 - Signature: A008 (operator)
+
+## 2026-09-27 — A008-0191 durable session processes
+
+- Completed ADR 0055 process-per-session implementation from published checkpoints `ac0ce45` and `6d1267b` after the prior Codex session hit its weekly limit.
+- Durable project sessions now keep stable session/workspace/history identity while replaceable OS session processes use new `instanceId`/PID values after death or explicit stop. History-only reads start no process; disconnect/navigation does not cancel accepted work.
+- Host-owned semantic memory is shared per project through typed local IPC; session workers do not open competing project-memory owners. Workspace/revision provenance is retained for workspace-specific observations.
+- Final negative-path regression exposed an incomplete error contract: coordinator emitted `WORKSPACE_UNAVAILABLE` but V3 did not allow it. Canonicalized the state to `WORKSPACE_MISSING` across runtime, protocol schemas/OpenAPI and client validation; missing workspaces never fall back to project root.
+- Verification: packed protocol PASS; packed client PASS; store/workspace/session-process 10/10; full platform host 13/13; full GUI 215/215; root/client builds pass. No live provider calls; 0 SEK.
+- [Handoff](handoffs/A008-0191.md). [Archive](finished/A008-0191_durable-session-processes.md).
+- Signature: ChatGPT (operator/worker)

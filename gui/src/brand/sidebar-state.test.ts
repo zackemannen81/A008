@@ -47,8 +47,8 @@ test("shell exposes an accessible resizer and only existing application actions"
   assert.match(app, /aria-label="Resize sidebar"/u);
   assert.match(app, /role="separator"/u);
   assert.match(css, /cursor: col-resize/u);
-  assert.match(app, /\["file", "File"/u);
-  assert.match(app, /\["edit", "Edit"/u);
-  assert.match(app, /\["view", "View"/u);
-  assert.match(app, /\["help", "Help"/u);
+  assert.match(app, /\[\s*"file",\s*"File"/u);
+  assert.match(app, /\[\s*"edit",\s*"Edit"/u);
+  assert.match(app, /\[\s*"view",\s*"View"/u);
+  assert.match(app, /\[\s*"help",\s*"Help"/u);
 });

@@ -1,7 +1,7 @@
 # System Document — aktuell implementation
 
 Granskad: 2026-09-27; sessionsprocesser uppdaterade i A008-0191.
-Källrevision: `0a8903bc9b9b0e44a6563dbecd356fc3ef669a35` + lokal diff.
+Källrevision: `d80663e` + A008-0191 closure-docs.
 Verifiering och avgränsningar: [handoff A008-0191](handoffs/A008-0191.md).
 
 Detta dokument beskriver implementerade ansvar och flöden. Målarkitekturen finns
@@ -61,8 +61,8 @@ nya worktrees; rotvalet exponeras i Parameters → Parallel sessions.
 
 Nya durable GUI/V3-conversations får en worktree före körbar publicering.
 Coordinator slår upp körningens sparade workspace och skickar dess sökväg som
-CWD. Saknad eller discarded arbetsyta ger fel. Projekt-roten är ingen implicit
-fallback. Den beständiga conversation-identiteten är produktens `sessionId`.
+CWD. Saknad eller discarded arbetsyta ger run-felet `WORKSPACE_MISSING` och ingen
+modell-/verktygsexekvering startas. Projekt-roten är ingen implicit fallback. Den beständiga conversation-identiteten är produktens `sessionId`.
 Nya branches heter `a008/session-<sessionId>`; worktree-sökvägen använder hela
 identiteten. Utgångsbranch och faktisk startcommit lagras separat. Ändrad rot
 gäller nya sessioner; befintliga worktrees flyttas inte.

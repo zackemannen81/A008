@@ -1,21 +1,40 @@
 # Current Status — A008
 
 Granskad: 2026-09-27
-Källrevision: `0d8e409f464ac32dca02d73ac969b2581428ccc7` + lokal A008-0189-diff
-Arkitekturgranskning: A008-0188. Senaste implementation: A008-0189 (minneskontext).
+Källrevision: `d80663e` + A008-0191 closure-docs.
+Senaste arkitekturimplementation: A008-0191 (ADR 0055 durable session processes).
+Senaste minneskontextimplementation: A008-0189 (ADR 0056 minimal memory context).
 
 ## Godkänd riktning
 
 [PROJECT_BRIEF.md](PROJECT_BRIEF.md) och
-[ADR 0055](adr/0055-durable-sessions-and-process-ownership.md) anger den nya
-grunden: beständig projektsession med egen worktree och separat sessionsprocess
-vid behov. Nästa meddelande startar en ny process när den gamla saknas, för
-samma session och workspace. Att bara öppna chatthistorik startar ingen process.
+[ADR 0055](adr/0055-durable-sessions-and-process-ownership.md) anger den aktuella
+runtime-grunden: en beständig projektsession äger sin historik och worktree medan
+sessionsprocessen är utbytbar. Klienten observerar/styr sessionen men äger inte
+dess livstid. ADR:er före 0055 är arkiverade och saknar aktuell beslutsauktoritet.
 
-ADR:er före 0055 är arkiverade och saknar aktuell beslutsauktoritet.
-Sessionsprocessernas målarkitektur är ännu inte byggd.
-[ADR 0056](adr/0056-minimal-memory-context.md) anger det minimala minneskuvertet
-och är implementerad lokalt i A008-0189.
+A008-0191 implementerar process-per-session-grunden för durable registrerade
+Git-projekt. [ADR 0056](adr/0056-minimal-memory-context.md) anger den minimala
+modellvända minnesprojektionen och är implementerad genom A008-0189.
+
+## Implementerat nuläge
+
+| Område | Aktuellt beteende |
+| --- | --- |
+| Projekt och sessioner | Durable projekt-sessioner lagras i Platform SQLite. Intern `conversationId` är uttryckligen samma beständiga identitet som produktens `sessionId` på denna yta. |
+| Workspaces | Nya projektsessioner får egen Git-worktree och branch `a008/session-<sessionId>` före körbar publicering. Base branch och faktisk startcommit sparas. Ingen tyst fallback till projekt-roten finns. |
+| Sessionsprocesser | Värden äger högst en levande `SessionProcess` per session. Processen är separat OS-process, återanvänds mellan meddelanden och ersätts med nytt `instanceId`/PID efter död eller explicit stopp. |
+| Körningar | En aktiv run per session; olika sessioner kan arbeta parallellt. Accepterat arbete fortsätter när GUI byter session/projekt eller kopplas bort. |
+| Historik och återanslutning | Historik kan läsas utan processstart. Publik run-aktivitet lagras med cursor/snapshot så klienten kan återansluta utan att skicka senaste kommandot igen eller dubblera sparade event. |
+| Verktyg och approvals | GUI-runnern kör verktyg i sessionens workspace-CWD. Pending approvals ägs av sessionsprocessen och kan besvaras av en behörig ansluten klient; disconnect avgör inte beslutet. |
+| Crash recovery | Död sessionsprocess raderar inte session/workspace/historik. Nästa nya meddelande kan starta en ny process. Okända tidigare effekter återspelas aldrig automatiskt och kan granskas explicit före beroende writes. |
+| Workspace-fel | Saknad/discarded worktree gör runnen failed med `WORKSPACE_MISSING`; den kör aldrig i projekt-roten. |
+| Semantiskt minne | Projektets semantiska ägare ligger kvar i värden. Sessionsprocesser begär retrieval/commit över IPC. Workspace-/revisionskontext bevaras för arbetskopiespecifika observationer. |
+| Chatthistorik utan memory | Durable historik är separat från semantiskt minne och kan läsas utan att projektets memory-runtime öppnas. |
+| GUI-status | Connection status, sessionsprocess och run-resultat exponeras som separata signaler. |
+
+Verifiering och detaljer finns i [A008-0191-handoff](handoffs/A008-0191.md) och
+[SYSTEMDOC.md](SYSTEMDOC.md).
 
 ## Minneskontext — A008-0189
 
@@ -24,53 +43,37 @@ Worker och extractor får samma minimala poster: `id`, tillgänglig
 `history`/`provenance`. Intern metadata skickas inte. Aktuell state prioriteras,
 oberoende adresser med samma värde hålls isär och dubbla råyttringar undertrycks.
 Specifika taggträffar begränsar breda domänträffar. Befintlig ID-mappning för
-förstärkning finns kvar; läsning förstärker inte. Ingen användardatabas har rensats.
+förstärkning finns kvar; läsning förstärker inte.
 
-Testresultat, jämförelse med grundrevisionen och avgränsningar finns i
-[A008-0189-handoff](handoffs/A008-0189.md). Inga live-provideranrop ingår.
+Detaljer finns i [A008-0189-handoff](handoffs/A008-0189.md).
 
-## Observerad implementation och luckor
+## Kvarvarande uttryckliga gränser
 
-| Område | Nuläge från källkod | Återstående arbete mot grunden |
-| --- | --- | --- |
-| Projekt och historik | Lokalt projektregister samt SQLite-baserade durable conversations/runs finns. | Mappa befintliga conversation-/session-ID:n och migrera äldre data uttryckligen. |
-| Arbetsytor | Nya durable conversations får worktree; accepterade körningar behåller workspace-ID/CWD. | Säkerställ samma kontrakt för alla nya projektsessioner och planera äldre obundna sessioner. |
-| Bakgrundsarbete | Normal GUI-navigation/frånkoppling lämnar accepterade körningar hos coordinator. | Säkerställ klientoberoende livstid även med den nya processhanteraren. |
-| Processer | GuiRunSession skapar EngineHost i värdprocessen och stänger den efter körningen. | Separat OS-process per session, återanvändning, processövervakning och start vid nästa meddelande efter död process. |
-| Identitet | Beständig conversation/run/workspace skiljs redan från interna enginesessioner. | Uttrycklig session/instance/PID-mappning och skydd mot dubbla processägare. |
-| Återanslutning | Meddelanden och körningsdata lagras; liveaktivitet ligger delvis i värdprocessens minne. | Definiera och verifiera beständiga återanslutningshändelser över processgränsen. |
-| Minne | In-process registry återanvänder projektets semantiska ägare. | Gränssnitt till samma ägare från separata sessionsprocesser; verifiera workspace-/revisionsscope. |
-| Fel och återhämtning | Saknad worktree ger fel; osäkra dispatchade effekter återspelas inte automatiskt. | Verifiera samma beteende vid dödad sessionsprocess, stale ägarskap och nästa meddelande. |
-| GUI/API-kapabiliteter | V1/V2/V3 och normal GUI har olika adapter-/kapabilitetsgränser. | Inventera och planera migration före omläggning; arkivering tar inte bort funktioner. |
+- Legacy V1/V2/ACP/standalone-sessioner migreras inte automatiskt till durable
+  projektsessioner. Befintliga kompatibilitetsytor finns kvar med egna interna
+  identiteter.
+- Durable `legacy-unbound` historik kan läsas men får inte köras innan en explicit
+  migration binder sessionen till en separat worktree.
+- Durable input-/kontrollparitet är inte fullständig mot alla äldre adaptrar;
+  bildbilagor, undo och vissa generationskontroller är fortfarande olika mellan
+  ytorna.
+- Worktree lifecycle gör ingen automatisk merge, push, publicering eller dirty
+  delete. Sådana åtgärder är fortsatt uttryckliga.
+- Automatisk idle-timeout för en levande sessionsprocess är inte beslutad i ADR
+  0055 och införs inte implicit.
+- Worktrees är arbetskopieisolering, inte en säkerhetssandbox för fientlig kod.
 
-Källhänvisningar och ansvar finns i [SYSTEMDOC.md](SYSTEMDOC.md).
-En separat process per session är den centrala obebyggda delen. Verktygens
-befintliga underprocesser uppfyller inte det kravet.
+## Verifiering — A008-0191
 
-## Verifiering och evidensgräns
+Lokala fixtures och implementationstester 2026-09-27, inga live-provideranrop:
 
-Dokumentuppgiften A008-0188 läste host-, coordinator-, store-, workspace-, registry-
-och GUI-kod samt kontrollerar arkiv, dokumentlänkar och diff. Inga nya
-funktionstester eller live-provideranrop utförs; inga produktprocesser startas.
+- protocol/client package verification: PASS/PASS;
+- platform store/workspace/session-process: **10/10 pass**;
+- full platform host integration: **13/13 pass**;
+- full GUI suite: **215/215 pass**;
+- ADR 0055 crash → uncertain effect → replacement process → reviewed effects →
+  missing-workspace refusal: PASS;
+- `WORKSPACE_MISSING` finns i TypeScript-kontrakt, JSON schemas och OpenAPI.
 
-Äldre testresultat bevaras i handoffs och
-[tidigare status](evidence/A008-0188/previous-CURRENT_STATUS.md). De är historiska
-resultat och innebär inte att den nya processmodellen har verifierats.
-Skärmbildernas felmeddelanden visar observerade UI-problem men orsaken har inte
-fastställts i denna uppgift.
-
-Vid start fanns en lokal ändring i `src/core/model-registry.ts`. Den tillhör
-inte dokumentuppgiften och lämnas oförändrad. Dokumentarbetet är lokalt;
-ingen commit, push, deployment eller runtime-migrering ingår.
-
-## Nästa avgränsade implementation
-
-Chartra implementation mot ADR 0055:s acceptanskriterier: sessionsidentitet,
-processhanterare, workspace-bindning, gemensam minnesägare och klientens
-återanslutning. Börja med att kartlägga befintliga data och API-konsumenter så
-att migrationens omfattning och gates går att frysa. Inget äldre task/ADR
-återaktiveras automatiskt.
-
-Den tidigare onumrerade CURRENT_TASK med ofylld charter bevaras som historik
-och är ersatt som aktiv uppgift, inte markerad som implementerad eller klar.
-Detaljer finns i [A008-0188-handoff](handoffs/A008-0188.md).
+A008-0191 är därmed implementation/evidence för ADR 0055:s tio acceptanskriterier.
+Äldre task-/ADR-texter under historik återaktiveras inte genom sökning eller minne.

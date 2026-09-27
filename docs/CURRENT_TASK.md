@@ -1,68 +1,131 @@
 # Current Task
 
-Task ID: A008-0191
+Task ID:
 Parent Task: None
-Status: In Progress
-Owner: Codex (operator), requested by Rickard
-Created: 2026-09-27
-Last updated: 2026-09-27
-Charter frozen at: 2026-09-27
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
 
-## Goal and Primary Deliverable
+## Read First
 
-Implement ADR 0055 for durable registered-Git-project sessions: replaceable,
-exclusive OS session processes, isolated durable workspaces, shared host memory,
-and reconnectable history/activity with conservative crash recovery.
+- `AGENTS.md`
+- `docs/TASK_WORKFLOW.md`
+- `docs/PROJECT_BRIEF.md`
+- `docs/CONTRIBUTING.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/SYSTEMDOC.md`
+- `docs/JOURNAL.md`
+- `docs/FILESTRUCTURE.md`
+- Relevant accepted top-level records under `docs/adr/`; never use `docs/adr/_legacy/` as current authority
 
-## Scope
+## Task Summary
 
-Host coordinator/process manager; typed local IPC; agent/tool execution in the
-session child; host-owned semantic reads/writes; durable identity/activity;
-workspace creation naming/base revision; GUI process visibility; compatible
-V3 clients; explicit legacy handling; relevant tests and owning documentation.
-Generic standalone CLI/ACP compatibility remains available and is inventoried;
-it does not become a second durable-session identity. No automatic user data
-moves, Git merges/deletions, remote services, provider changes, push or deployment.
+Describe why this bounded task is active now and its intended outcome.
 
-## Definition of Done
+## Task Charter
 
-All ten ADR 0055 acceptance criteria have implementation/evidence: separate
-worktrees/branches/processes; disconnect independence; read without process start;
-new instance after death; single process/run ownership; ordered reconnectable
-stored events; no replay of unknown effects; missing-worktree refusal; shared
-semantic owner and scoped workspace observations; history without semantic memory.
-Compatibility/migration boundaries are explicit. Root/GUI typecheck, focused real
-child-process tests, core/protocol/GUI gates and diff review are recorded.
-Owning docs, immutable archive, handoff and restored CURRENT_TASK exist.
+### Goal
 
-## Necessity Gate
+Define one primary outcome.
 
-Contract revision: 0a8903bc9b9b0e44a6563dbecd356fc3ef669a35.
+### Primary Deliverable
 
-| Change | Authority | Need / consequence of omission | Smallest sufficient approach | Verification |
+Name the concrete artifact or behavior.
+
+### In Scope
+
+- List work required for the deliverable.
+
+### Out of Scope
+
+- List adjacent work that must not be absorbed.
+
+### Definition of Done
+
+- State objective completion conditions.
+
+### Necessity Gate
+
+Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
+Contract revision: <Git commit containing the reviewed contract>
+
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
+
+| Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
 | --- | --- | --- | --- | --- |
-| Session children and ownership | PC-LF-05/08/09; ADR 0055 | Current in-process objects violate process isolation/reuse | Host-held registry and lease; local child IPC with instance identity; reuse until death/stop | Real two-child, reuse, crash, concurrent-command tests |
-| Shared memory boundary | PC-LF-03/04; ADR 0055 | Child must not open competing project memory owners or promote another workspace's observations | Host memory service over instance-bound IPC; workspace/revision context | Shared-owner and cross-workspace regression |
-| Durable workspace/identity | PC-LF-05/06/07 | Session must own its branch/base and never silently rebind | Persist session/workspace mapping and actual base commit; explicit legacy read-only boundary | Allocation failure, missing worktree, restart tests |
-| Reconnect and permissions | PC-LF-07/09; ADR 0055 | Observers otherwise lose activity; crash may repeat effects | Store ordered public activity; route explicit controls; retain uncertain effects | Snapshot/cursor, permission, disconnect and kill tests |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
 
-## Verification Budget
+### Minimum Verification Gates
 
-Local process/Git/IPC integration and existing fake provider fixtures verify this
-architecture. No external provider behavior changes. Live calls 0; cost 0 SEK;
-input/output tokens 0; live timeout 0. No private database migration.
+- [ ] Define checks that may be strengthened but not removed after Ready.
+
+### Verification Budget
+
+Resolve before live dispatch using [Live verification budget](TASK_WORKFLOW.md#live-verification-budget).
+Inheritance authorizes in-scope calls without per-call approval; record the
+policy revision and effective numeric ceilings. Use not-needed/zero for tasks
+that do not require live verification. Credentials are references only.
+Budget is a ceiling, not a target: stop once the verification need is satisfied.
+
+- Live verification purpose / required provider behavior:
+- Budget owner / parent allocation:
+- Policy revision / inherited or explicit approved limits:
+- max_live_verification_cost (amount + currency):
+- max_live_verification_calls (all physical attempts):
+- max_input_tokens_per_call / max_output_tokens_per_call:
+- live_call_timeout_seconds:
+- Approved provider/model routes / credential-source references:
+- Price reference and checked-at / billing units / currency conversion / allowance:
+- Observed spend / outstanding reservations / unknown cost / attempts / remaining allowance:
+- Worker allocations or serialized dispatch; resume retains prior usage:
+
+## References
+
+- Add owned documents, source revisions, contracts, and decisions.
 
 ## Checklist
 
-- [x] Read owners, inspect baseline and allocate local identity.
-- [ ] Inventory surfaces and freeze IPC/migration mapping before implementation.
-- [ ] Implement workspace/session process and memory boundary.
-- [ ] Persist public activity and expose process state/control.
-- [ ] Verify ADR acceptance, compatibility and negative paths.
-- [ ] Update owners, archive, hand off, restore template.
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
 
-## Notes
+## Decisions and Notes
 
-Initial main is clean. Work is local on main; user handles commit/push.
-0190 is already used by an existing durable-live-stream working branch, so this
-allocation avoids collision. Journal append belongs to merge/integration.
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
+
+## Charter Amendment Log
+
+- none
+
+## Verification
+
+- [ ] Review actual changes against the necessity arguments and frozen scope.
+- [ ] Record exact checks and outputs.
+- [ ] Record skipped checks and reasons.
+
+## Documentation Updates
+
+- [ ] `docs/CURRENT_STATUS.md`
+- [ ] `docs/SYSTEMDOC.md`
+- [ ] `docs/JOURNAL.md`
+- [ ] `docs/FILESTRUCTURE.md` when structure changes
+- [ ] ADRs and collection indexes when needed
+
+## Handoff and Follow-ups
+
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
+
+## Finalize When Complete
+
+- Archive this task under `docs/finished/`.
+- Restore this template or activate the next approved task. template: template_CURRENT_TASK.md
+- Append a signed `docs/JOURNAL.md` entry.
