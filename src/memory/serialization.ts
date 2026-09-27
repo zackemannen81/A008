@@ -1,26 +1,46 @@
-import type { ContextProjection, SerializedContextMeasurer } from "./types.js";
+import type {
+  ContextKnowledgeItem,
+  ContextProjection,
+  SerializedContextMeasurer,
+} from "./types.js";
+
+/** Render content once, preserving null, booleans, conditions and attribution. */
+export function knowledgeText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value === null) return "null";
+  if (typeof value === "object" && value !== null) {
+    return JSON.stringify(value);
+  }
+  return String(value);
+}
+
+/** The only model-facing item allowlist, shared by worker and extractor. */
+export function contextItemsForModel(items: readonly ContextKnowledgeItem[]) {
+  return items.map((item) => ({
+    id: item.id,
+    ...(item.semanticAddress === undefined
+      ? {}
+      : { semanticAddress: item.semanticAddress }),
+    ...(item.kind === "state"
+      ? {
+          currentState: knowledgeText(
+            item.currentState === undefined
+              ? item.proposition
+              : item.currentState,
+          ),
+        }
+      : { claim: item.proposition }),
+    ...(item.history?.length ? { history: [...item.history] } : {}),
+    ...(item.provenance?.length ? { provenance: [...item.provenance] } : {}),
+  }));
+}
 
 export function serializeContextProjection(
   projection: ContextProjection,
 ): string {
   return JSON.stringify({
     taskId: projection.taskId,
-    items: projection.items.map((item) => ({
-      id: item.id,
-      ...(item.semanticAddress === undefined
-        ? {}
-        : { semanticAddress: item.semanticAddress }),
-      ...(item.evidenceId === undefined ? {} : { evidenceId: item.evidenceId }),
-      ...(item.currentState === undefined
-        ? {}
-        : { currentState: item.currentState }),
-      proposition: item.proposition,
-      kind: item.kind,
-      tags: [...item.tags],
-      ...(item.domains === undefined ? {} : { domains: [...item.domains] }),
-      scope: [...item.scope],
-      authority: item.authority,
-    })),
+    items: contextItemsForModel(projection.items),
   });
 }
 

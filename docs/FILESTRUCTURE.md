@@ -73,7 +73,7 @@ docs/
 ├── FILESTRUCTURE.md          this repository map
 ├── JOURNAL.md                append-only dated integration history
 ├── TASK_IDS.md               task identity allocation
-├── adr/                      ADR 0055 is the sole active decision; all earlier ADRs are _legacy history
+├── adr/                      active ADRs 0055 (sessions) and 0056 (context); pre-0055 records are _legacy history
 ├── backlog/                  current deferred work plus _legacy retired backlog
 ├── tasks/                    durable task/program records
 ├── finished/                 immutable completed task records

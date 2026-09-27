@@ -129,11 +129,7 @@ test("memory prompt exposes bounded semantic identity while stripping runtime co
   assert.deepEqual(envelope.retrievedContext.items, [
     {
       id: "knowledge-private-0",
-      proposition: "Use SQLite locally.",
-      kind: "architecture",
-      tags: ["memory"],
-      scope: ["core"],
-      authority: 0.9,
+      claim: "Use SQLite locally.",
     },
   ]);
   assert.equal(prompt.userEnvelope.includes("A008_v1_"), false);
@@ -165,7 +161,7 @@ test("empty memory uses the same envelope and malformed projections fail closed"
           ...malformed,
           projection: {
             ...malformed.projection,
-            items: [{ ...item, authority: Number.NaN }],
+            items: [{ ...item, id: " " }],
           },
         },
         "continue",

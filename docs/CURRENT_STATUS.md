@@ -1,8 +1,8 @@
 # Current Status — A008
 
 Granskad: 2026-09-27
-Källrevision: `4368172b78b3a2c6f06e2939625726f7340b5c7e`
-Dokumentarbete: A008-0188
+Källrevision: `0d8e409f464ac32dca02d73ac969b2581428ccc7` + lokal A008-0189-diff
+Arkitekturgranskning: A008-0188. Senaste implementation: A008-0189 (minneskontext).
 
 ## Godkänd riktning
 
@@ -12,8 +12,22 @@ grunden: beständig projektsession med egen worktree och separat sessionsprocess
 vid behov. Nästa meddelande startar en ny process när den gamla saknas, för
 samma session och workspace. Att bara öppna chatthistorik startar ingen process.
 
-Alla tidigare ADR:er är arkiverade och saknar aktuell beslutsauktoritet.
-Detta är en dokumentomläggning. Den innebär inte att målarkitekturen är byggd.
+ADR:er före 0055 är arkiverade och saknar aktuell beslutsauktoritet.
+Sessionsprocessernas målarkitektur är ännu inte byggd.
+[ADR 0056](adr/0056-minimal-memory-context.md) anger det minimala minneskuvertet
+och är implementerad lokalt i A008-0189.
+
+## Minneskontext — A008-0189
+
+Worker och extractor får samma minimala poster: `id`, tillgänglig
+`semanticAddress`, `currentState` eller `claim` som sträng samt villkorad
+`history`/`provenance`. Intern metadata skickas inte. Aktuell state prioriteras,
+oberoende adresser med samma värde hålls isär och dubbla råyttringar undertrycks.
+Specifika taggträffar begränsar breda domänträffar. Befintlig ID-mappning för
+förstärkning finns kvar; läsning förstärker inte. Ingen användardatabas har rensats.
+
+Testresultat, jämförelse med grundrevisionen och avgränsningar finns i
+[A008-0189-handoff](handoffs/A008-0189.md). Inga live-provideranrop ingår.
 
 ## Observerad implementation och luckor
 
@@ -35,7 +49,7 @@ befintliga underprocesser uppfyller inte det kravet.
 
 ## Verifiering och evidensgräns
 
-Denna dokumentuppgift läser host-, coordinator-, store-, workspace-, registry-
+Dokumentuppgiften A008-0188 läste host-, coordinator-, store-, workspace-, registry-
 och GUI-kod samt kontrollerar arkiv, dokumentlänkar och diff. Inga nya
 funktionstester eller live-provideranrop utförs; inga produktprocesser startas.
 

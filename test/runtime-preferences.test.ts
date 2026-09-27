@@ -282,7 +282,9 @@ test("Instructions inline fields render in the system role and never enter the u
         "date={{ today_date }}",
       ].join("\n"),
     );
-    await runtime.openSession({ model: "gpt-5.6-luna" }).send("Template question");
+    await runtime
+      .openSession({ model: "gpt-5.6-luna" })
+      .send("Template question");
     const request = fake.requests.filter((entry) => !operation(entry)).at(-1)!;
     const system = instruction(request);
     assert.match(system, /Model=openai\/gpt-5\.6-luna/u);
@@ -305,7 +307,10 @@ test("Instructions inline fields render in the system role and never enter the u
     ]);
     assert.equal(user.message, "Template question");
     assert.equal(JSON.stringify(user).includes("provider_model"), false);
-    assert.equal(JSON.stringify(user).includes(resolve(isolated.directory)), false);
+    assert.equal(
+      JSON.stringify(user).includes(resolve(isolated.directory)),
+      false,
+    );
   } finally {
     runtime.close();
     rmSync(isolated.directory, { recursive: true, force: true });
@@ -526,11 +531,13 @@ test("semantic output can exceed the old 16384 default and reports each model's 
     );
     assert.equal(scopeRequests.length, defaultModelRegistry.list().length);
     assert.deepEqual(
-      scopeRequests.map((request) => [request.model, request.options?.maxTokens]),
-      defaultModelRegistry.list().map((model) => [
-        model.id,
-        generationCapabilities(model.id).maxTokens,
+      scopeRequests.map((request) => [
+        request.model,
+        request.options?.maxTokens,
       ]),
+      defaultModelRegistry
+        .list()
+        .map((model) => [model.id, generationCapabilities(model.id).maxTokens]),
     );
   } finally {
     runtime.close();
@@ -626,9 +633,7 @@ test("explicit Luna semantic setting wins with both provider credentials configu
     const url = String(input);
     const body = JSON.parse(String(init?.body ?? "{}"));
     const userInput = Array.isArray(body.input)
-      ? [...body.input]
-          .reverse()
-          .find((item: any) => item?.role === "user")
+      ? [...body.input].reverse().find((item: any) => item?.role === "user")
       : undefined;
     const inputText = Array.isArray(userInput?.content)
       ? userInput.content.find((part: any) => part?.type === "input_text")?.text
@@ -935,7 +940,7 @@ test("retrieval and projection budgets take effect in an existing session withou
     );
     assert.equal(narrow.memory.plan.terms.length, 1);
     assert.equal(narrow.memory.plan.entities.length, 1);
-    assert.equal(narrow.memory.projection.projection.items.length, 1);
+    assert.equal(narrow.memory.projection.projection.items.length, 0);
     assert.ok(narrow.memory.evidence.omittedKnowledgeIds.length > 0);
     update(runtime.preferences, {
       memoryProjectionBytes: 65536,

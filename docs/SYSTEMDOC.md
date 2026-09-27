@@ -1,8 +1,9 @@
 # System Document — aktuell implementation
 
-Granskad: 2026-09-27 i A008-0188
-Källrevision: `4368172b78b3a2c6f06e2939625726f7340b5c7e`
-Metod: avgränsad läsning av aktuell källkod; inga nya runtime-tester i denna uppgift.
+Granskad: 2026-09-27; minneskontext uppdaterad i A008-0189.
+Källrevision för minnesändringen: `0d8e409f464ac32dca02d73ac969b2581428ccc7` + lokal diff.
+Övriga flöden: A008-0188:s källgranskning. Minneskontext: lokal testverifiering,
+se [handoff A008-0189](handoffs/A008-0189.md).
 
 Detta dokument beskriver implementerade ansvar och flöden. Målarkitekturen finns
 i [PROJECT_BRIEF.md](PROJECT_BRIEF.md) och [ADR 0055](adr/0055-durable-sessions-and-process-ownership.md).
@@ -88,6 +89,34 @@ runtime-komposition under [src/runtime](../src/runtime/) och semantisk
 orkestrering under [src/orchestration](../src/orchestration/).
 [CURRENT_MEMORY_MODEL.md](CURRENT_MEMORY_MODEL.md) är den detaljerade målmodellen;
 dess normativa text är inte bevis på fullständig implementation.
+
+[ADR 0056](adr/0056-minimal-memory-context.md) är implementerad för den
+modellvända projektionen. `KnowledgeMemoryReader` hämtar kandidater;
+[projection-items.ts](../src/memory/knowledge/projection-items.ts) väljer en
+aktuell state per semantisk adress eller senaste tillämpliga claim. Lika värden
+på olika adresser behåller separata identiteter. En rå yttring som stödjer en
+vald claim följer inte med som en andra kopia. Specifika taggträffar begränsar
+överspill från breda domänträffar; detta är ingen generell semantisk reranker.
+
+[serialization.ts](../src/memory/serialization.ts) ger worker och extractor
+samma tillåtna fält: `id`, tillgänglig `semanticAddress`, samt `currentState`
+eller `claim` som sträng. Strängvärden bevaras; sammansatta värden återges som
+JSON-text så att grupperingar och kvalifikationer består. Det yttre kuvertet
+heter `A008_memory_context_v2` och innehåller användarens meddelande separat.
+Tags, domains, kind, evidenceId, scope och authority skickas inte i posterna.
+
+Historikfrågor får relevant `history`; käll-/verifieringsfrågor och osäkra eller
+omtvistade claims kan få `provenance`. Äldre tillstånd kvalificeras med tid;
+konkurrerande claims med samma adress behåller sin konfliktinformation.
+Interna turn-locatorer återges som samtalskälla. Filkällor behåller sin locator.
+Urvalet följer befintliga intents och underlag: det skapar ingen saknad källa
+eller workspace-information. Poster som inte ryms i kontextbudgeten utelämnas
+med intern diagnostik, även om det gäller den första posten.
+
+Rika interna poster och kopplingen mellan kunskaps-ID och evidens finns kvar.
+Extractor instrueras att återanvända/förstärka oförändrad kunskap; runtime
+validerar identiteten. Förändrade värden går genom befintligt state-/historikflöde.
+Läsning ensam förstärker ingenting. Ingen databasrensning eller migrering ingår.
 
 Den nya gränsen där flera separata sessionsprocesser anropar en gemensam
 minnesägare har inte införts. Befintliga ägarskaps-/lease-regler får inte

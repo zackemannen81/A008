@@ -4,6 +4,7 @@ import {
   type ComposedChatInvocation,
 } from "../core/chat-invocation.js";
 import { ChatError } from "../core/errors.js";
+import { contextItemsForModel } from "../memory/serialization.js";
 import type {
   ChatGenerationOptions,
   ChatRequest,
@@ -404,14 +405,7 @@ export class ModelBackedPostOutputKnowledgeAnalyzer implements PostOutputKnowled
           ? JSON.stringify({ locator: input.locator, content: input.content })
           : JSON.stringify({
               retrievedContext: {
-                items: input.retrievedContext.items.map((item) => ({
-                  ...item,
-                  tags: [...item.tags],
-                  ...(item.domains === undefined
-                    ? {}
-                    : { domains: [...item.domains] }),
-                  scope: [...item.scope],
-                })),
+                items: contextItemsForModel(input.retrievedContext.items),
               },
               userMessage: input.userMessage,
               responseText: input.responseText,

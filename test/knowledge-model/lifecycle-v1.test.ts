@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { contextItemsForModel } from "../../src/memory/serialization.js";
 import { mkdtempSync, rmSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -103,7 +104,10 @@ test("A008-0173: known file gains a property, reinforces once, changes state and
       analyzer: new ModelBackedPostOutputKnowledgeAnalyzer({
         async generate(request) {
           const sent = JSON.parse(request.serializedInput);
-          assert.deepEqual(sent.retrievedContext.items, retrievedContext);
+          assert.deepEqual(
+            sent.retrievedContext.items,
+            contextItemsForModel(retrievedContext),
+          );
           return response;
         },
       }),

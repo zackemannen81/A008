@@ -41,7 +41,12 @@ export function retrieve(
   const intents = new Set(scope.intents);
   const slots = resolveSlots(scope, context);
 
-  if (intents.has("current_state") || intents.has("associative")) {
+  if (
+    intents.has("current_state") ||
+    intents.has("associative") ||
+    intents.has("history") ||
+    intents.has("attribution")
+  ) {
     for (const slot of slots) {
       if (context.state.isContested(slot)) {
         for (const claim of context.state.claims(slot)) {
@@ -223,7 +228,10 @@ export function retrieve(
       .find((item) => item.id === recordId);
     if (utterance !== undefined) {
       if (intents.has("current_state")) {
-        for (const binding of currentBindingsFromEvidence(utterance.id, context)) {
+        for (const binding of currentBindingsFromEvidence(
+          utterance.id,
+          context,
+        )) {
           push(
             records,
             seen,
@@ -262,7 +270,10 @@ export function retrieve(
       if (intents.has("current_state")) {
         // Evidence may belong to an older binding. Use it as a discovery edge
         // to the semantic address, then project that address's HEAD binding.
-        for (const binding of currentBindingsFromEvidence(labelled.id, context)) {
+        for (const binding of currentBindingsFromEvidence(
+          labelled.id,
+          context,
+        )) {
           push(
             records,
             seen,
@@ -510,11 +521,11 @@ function bindingRecord(
     slotLabel: slotLabelOf(binding.slot),
     value: bindingValue(binding),
     interval: cloneInterval(binding.interval),
+    evidenceId: binding.claimId,
+    evidenceKind: "claim",
     ...(viewed === undefined
       ? {}
       : {
-          evidenceId: binding.claimId,
-          evidenceKind: "claim" as const,
           strength: viewed.strength,
           memoryState: viewed.memoryState,
         }),

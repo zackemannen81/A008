@@ -535,6 +535,8 @@ function normalizedRetrievedContext(
     ...(item.currentState === undefined
       ? {}
       : { currentState: structuredClone(item.currentState) }),
+    ...(item.history?.length ? { history: [...item.history] } : {}),
+    ...(item.provenance?.length ? { provenance: [...item.provenance] } : {}),
     proposition: nonEmpty(
       item.proposition,
       `retrievedContext item ${index + 1} proposition`,

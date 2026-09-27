@@ -1,525 +1,582 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-
 import {
-  Utf8ByteContextMeasurer,
+  contextItemsForModel,
+  knowledgeText,
   serializeContextProjection,
+  Utf8ByteContextMeasurer,
 } from "../src/memory/serialization.js";
-import {
-  DEFAULT_PROJECTION_BUDGET_BYTES,
-  SURFACE_AUTHORITY,
-  projectionItems,
-} from "../src/memory/knowledge/projection-items.js";
+import { projectionItems } from "../src/memory/knowledge/projection-items.js";
 import { KnowledgeMemoryReader } from "../src/memory/knowledge/live-reader.js";
 import { createKnowledgeContext } from "../src/memory/knowledge/read.js";
-import { ingest } from "../src/memory/knowledge/ingest.js";
 import { update } from "../src/memory/knowledge/update.js";
 import { asEntityId } from "../src/memory/knowledge/ids.js";
+import { DeterministicMemoryPromptComposer } from "../src/orchestration/memory-prompt-composer.js";
+import { ModelBackedPostOutputKnowledgeAnalyzer } from "../src/orchestration/semantic-json-model.js";
 import type { ProjectionPayload } from "../src/memory/knowledge/evidence-types.js";
-import type { KnowledgeReadContext } from "../src/memory/knowledge/read-types.js";
-import type { SlotRef } from "../src/memory/knowledge/types.js";
-import type { MemoryReadRequest } from "../src/memory/retrieval-types.js";
 import type {
-  AgentId,
-  ConversationId,
-  ProjectId,
-  RuntimeTaskId,
-} from "../src/identity/types.js";
+  RetrievedRecord,
+  SemanticScope,
+} from "../src/memory/knowledge/read-types.js";
+import type { ContextKnowledgeItem } from "../src/memory/types.js";
+import type { MemoryReadRequest } from "../src/memory/retrieval-types.js";
 
-const MEASURER = new Utf8ByteContextMeasurer();
-const TASK = "A008_v1_task_20000000-0000-4000-8000-000000000004";
-const NOW = { unknown: true } as const;
-const OPEN = { from: NOW, to: null } as const;
-
-test("A008-0173: provider projection preserves each record's labels, never query labels", () => {
-  const tags = ["animation"];
-  const domains = ["development"];
-  const source = payload({
-    scope: {
-      tags: ["query-new-color"],
-      entities: ["query-other-file"],
-      slots: [],
-    },
-    claims: [
-      claim("panel.html is a standalone animation"),
-      claim("unlabelled note"),
-    ],
-  });
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: source,
-    records: source.claims.map((entry, i) => ({
-      id: `claim:${i}`,
-      surface: "claim",
-      matchKind: "direct",
-      retrievalScore: 1,
-      reasons: [],
-      required: false,
-      label: entry.label,
-      tags: i === 0 ? tags : [],
-      domains: i === 0 ? domains : [],
-    })),
-  });
-  tags.push("later-mutation");
-  domains.push("later-mutation");
-  assert.deepEqual(
-    result.items.map((i) => [i.tags, i.domains, i.scope]),
-    [
-      [["animation"], ["development"], []],
-      [[], [], []],
-    ],
-  );
-  const serialized = serializeContextProjection({
-    taskId: TASK as RuntimeTaskId,
-    items: result.items,
-  });
-  assert.equal(serialized.includes("development"), true);
-  assert.equal(serialized.includes("query-"), false);
-  const fallback = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: source,
-  });
-  assert.ok(
-    fallback.items.every(
-      (i) =>
-        i.tags.length === 0 && i.scope.length === 0 && i.domains === undefined,
-    ),
-  );
-});
-
-function payload(
-  overrides: Partial<ProjectionPayload> = {},
-): ProjectionPayload {
+const measurer = new Utf8ByteContextMeasurer();
+const taskId = "A008_v1_task_20000000-0000-4000-8000-000000000004";
+const open = { from: "2026-09-20T00:00:00.000Z", to: null } as const;
+function payload(values: Partial<ProjectionPayload> = {}): ProjectionPayload {
   return {
-    scope: { tags: ["local"], entities: [], slots: [] },
+    scope: { tags: [], entities: [], slots: [] },
     state: [],
     history: [],
     events: [],
-    utterances: [],
     claims: [],
+    utterances: [],
     artifacts: [],
     provenance: [],
-    ...overrides,
+    ...values,
   };
 }
-
-function stateEntry(slot: string, value: string) {
-  return { slot, value, interval: OPEN };
-}
-
-function utterance(content: string) {
+function scope(
+  intents: SemanticScope["intents"] = ["current_state"],
+): SemanticScope {
   return {
-    speaker: "user",
-    act: "assertion" as const,
-    contentKind: "dialogue_assertion" as const,
-    content,
-    assertedAt: NOW,
+    tags: [],
+    domains: [],
+    entities: [],
+    slots: [],
+    intents,
+    temporalHints: {
+      currentOnly: true,
+      mentionsPast: intents.includes("history"),
+      mentionsFuture: false,
+    },
   };
 }
-
+function state(slot: string, value: unknown) {
+  return { slot, value, interval: open };
+}
 function claim(label: string) {
   return {
     label,
     proposition: {
-      kind: "attribute_binding" as const,
-      entityLabel: label,
-      attribute: "statement",
-      value: label,
+      kind: "predicate" as const,
+      name: "assertion",
+      arguments: [label],
     },
     certainty: "certain" as const,
     attributedTo: "user",
     status: "asserted" as const,
-    aboutInterval: OPEN,
+    aboutInterval: open,
   };
 }
-
-function propositions(items: readonly { proposition: string }[]): string[] {
-  return items.map((item) => item.proposition);
+function record(
+  id: string,
+  surface: RetrievedRecord["surface"],
+  extra: Partial<RetrievedRecord> = {},
+): RetrievedRecord {
+  return {
+    id,
+    surface,
+    label: id,
+    matchKind: "direct",
+    retrievalScore: 1,
+    required: false,
+    reasons: [],
+    tags: [],
+    domains: [],
+    ...extra,
+  };
+}
+function project(
+  source: ProjectionPayload,
+  options: Partial<Parameters<typeof projectionItems>[0]> = {},
+) {
+  return projectionItems({ taskId, payload: source, measurer, ...options });
 }
 
-// --- the regression this module exists for ---------------------------------
-
-test("a state hit does not suppress claims, utterances or anything else", () => {
-  // The exact shape of the live failure. A question about the agent's own name
-  // retrieved both a state binding about a horse and the utterance naming the
-  // agent, and the projection returned only the horse — because the previous
-  // implementation returned as soon as `state` had one entry.
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: payload({
-      state: [stateEntry("heter", "Zorros häst heter Fresca")],
-      utterances: [utterance("Du heter / kallas för Agent008")],
-      claims: [claim("Rickard äger repot A008")],
-    }),
-  });
-
-  assert.deepEqual(propositions(result.items), [
-    "Zorros häst heter Fresca",
-    "Rickard äger repot A008",
-    "Du heter / kallas för Agent008",
+test("model envelope sends only ID/address and one string; metadata stays internal", () => {
+  const result = project(
+    payload({ state: [state("task.status", "Complete")] }),
+    {
+      records: [
+        record("state:task", "state", {
+          evidenceId: "claim-original",
+          slotLabel: "task.status",
+          tags: ["private-tag"],
+          domains: ["internal-domain"],
+        }),
+      ],
+    },
+  );
+  assert.equal(result.items[0]?.evidenceId, "claim-original");
+  assert.deepEqual(result.items[0]?.tags, ["private-tag"]);
+  assert.deepEqual(contextItemsForModel(result.items), [
+    {
+      id: "state:task",
+      semanticAddress: "task.status",
+      currentState: "Complete",
+    },
   ]);
-  assert.deepEqual(result.omitted, []);
+  const serialized = serializeContextProjection({
+    taskId,
+    items: result.items,
+  });
+  for (const forbidden of [
+    "evidenceId",
+    "proposition",
+    "authority",
+    "kind",
+    "tags",
+    "domains",
+    "scope",
+  ]) {
+    assert.equal(serialized.includes(`"${forbidden}"`), false, forbidden);
+  }
 });
 
-test("every surface in the payload reaches the projection", () => {
-  // Four of the seven were unreachable: the old implementation read state,
-  // claims and utterances and never looked at the rest at all.
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: payload({
-      state: [stateEntry("colour", "the house is white")],
-      claims: [claim("Brittan says the house is white")],
-      events: [
-        { type: "paint", label: "the house was painted", eventTime: NOW },
+test("different semantic addresses retain equal values", () => {
+  const result = project(
+    payload({
+      state: [
+        state("task_a.status", "Complete"),
+        state("task_b.status", "Complete"),
       ],
-      history: [stateEntry("colour", "the house was red")],
-      utterances: [utterance("someone painted the house")],
-      artifacts: [
-        { locator: "source:abc/report.pdf", contentKind: "dialogue_assertion" },
+    }),
+  );
+  assert.equal(result.items.length, 2);
+  assert.deepEqual(
+    result.items.map((item) => item.semanticAddress),
+    ["task_a.status", "task_b.status"],
+  );
+});
+
+test("current state beats a competing claim only at its own address", () => {
+  const result = project(
+    payload({
+      state: [state("task.status", "Complete")],
+      claims: [claim("Task is ready"), claim("Other task is ready")],
+    }),
+    {
+      records: [
+        record("s", "state", { slotLabel: "task.status" }),
+        record("c", "claim", { slotLabel: "task.status" }),
+        record("other", "claim", { slotLabel: "other.status" }),
       ],
-      provenance: [
+    },
+  );
+  assert.deepEqual(
+    result.items.map((item) => item.id),
+    ["s", "other"],
+  );
+  assert.deepEqual(
+    result.deduplicated.map((item) => item.id),
+    ["c"],
+  );
+});
+
+test("latest applicable claim replaces older claim without turning into state", () => {
+  const earlier = {
+    ...claim("Earlier assertion"),
+    aboutInterval: { ...open, from: "2026-09-19T00:00:00.000Z" },
+  };
+  const result = project(
+    payload({ claims: [earlier, claim("Latest assertion")] }),
+    {
+      records: [
+        record("old", "claim", { slotLabel: "item.status" }),
+        record("new", "claim", { slotLabel: "item.status" }),
+      ],
+    },
+  );
+  assert.deepEqual(contextItemsForModel(result.items), [
+    { id: "new", semanticAddress: "item.status", claim: "Latest assertion" },
+  ]);
+});
+
+test("null/false/zero and empty containers remain actual state content", () => {
+  for (const [value, expected] of [
+    [null, "null"],
+    [false, "false"],
+    [0, "0"],
+    [[], "[]"],
+    [{}, "{}"],
+  ] as const) {
+    assert.deepEqual(
+      contextItemsForModel(
+        project(payload({ state: [state("value", value)] })).items,
+      ),
+      [{ id: "state:0", semanticAddress: "value", currentState: expected }],
+    );
+  }
+  assert.equal(
+    knowledgeText({
+      condition: "if enabled",
+      reportedValue: "Complete",
+      reportedBy: "assistant",
+    }),
+    '{"condition":"if enabled","reportedValue":"Complete","reportedBy":"assistant"}',
+  );
+});
+
+test("history is absent by default and matched to the requested address when needed", () => {
+  const source = payload({
+    state: [state("task.status", "Complete")],
+    history: [
+      {
+        slot: "task.status",
+        value: "Ready",
+        interval: { from: "2026-09-19", to: "2026-09-20" },
+      },
+      {
+        slot: "other.status",
+        value: "Unrelated",
+        interval: { from: "2026-09-18", to: "2026-09-20" },
+      },
+    ],
+  });
+  assert.equal(
+    contextItemsForModel(project(source).items)[0]?.history,
+    undefined,
+  );
+  const historical = project(source, {
+    scope: scope(["current_state", "history"]),
+  });
+  assert.deepEqual(
+    historical.items.find((item) => item.semanticAddress === "task.status")
+      ?.history,
+    ["2026-09-19 — 2026-09-20: Ready"],
+  );
+});
+
+test("closed history without HEAD uses the latest qualified assertion", () => {
+  const result = project(
+    payload({
+      history: [
         {
-          relation: "appears_in",
-          from: { kind: "utterance", label: "the house is white" },
-          to: { kind: "artifact", label: "source:abc/report.pdf" },
+          slot: "task.status",
+          value: "Ready",
+          interval: { from: "2026-09-18", to: "2026-09-19" },
+        },
+        {
+          slot: "task.status",
+          value: "Complete",
+          interval: { from: "2026-09-19", to: "2026-09-20" },
         },
       ],
     }),
-  });
-
-  assert.deepEqual(
-    result.items.map((item) => item.kind),
-    [
-      "state",
-      "claim",
-      "event",
-      "history",
-      "utterance",
-      "artifact",
-      "provenance",
-    ],
+    { scope: scope(["history"]) },
   );
-  assert.equal(
-    result.items.length,
-    Object.keys(SURFACE_AUTHORITY).length,
-    "one surface is not represented",
+  const item = contextItemsForModel(result.items)[0]!;
+  assert.equal(result.items.length, 1);
+  assert.equal("currentState" in item, false);
+  assert.ok("claim" in item);
+  assert.match(item.claim, /^Historical:.*Complete/u);
+  assert.ok(item.history?.some((entry) => entry.includes("Ready")));
+});
+
+test("prior fallback claims are optional history and competing claims keep their qualifications", () => {
+  const source = payload({
+    claims: [
+      {
+        ...claim("Earlier assertion"),
+        aboutInterval: { ...open, from: "2026-09-19" },
+      },
+      claim("Latest assertion"),
+    ],
+  });
+  const records = [
+    record("old", "claim", {
+      slotLabel: "item.status",
+      status: "contested",
+      attributedTo: "Alice",
+    }),
+    record("new", "claim", {
+      slotLabel: "item.status",
+      status: "contested",
+      attributedTo: "Bob",
+    }),
+  ];
+  const item = project(source, { records, scope: scope(["history"]) })
+    .items[0]!;
+  assert.equal(item.proposition, "Latest assertion");
+  assert.ok(item.history?.some((entry) => entry.includes("Earlier assertion")));
+  assert.ok(item.provenance?.includes("Competing claim: Earlier assertion"));
+  assert.ok(item.provenance?.includes("Attributed to: Alice"));
+  assert.ok(item.provenance?.includes("Attributed to: Bob"));
+});
+
+test("past/future/rejected claims cannot masquerade as current fallback claims", () => {
+  const context = createKnowledgeContext(() => "2026-09-27T00:00:00.000Z");
+  const result = project(
+    payload({
+      claims: [
+        {
+          ...claim("Past"),
+          aboutInterval: { from: "2020-01-01", to: "2020-02-01" },
+        },
+        { ...claim("Future"), aboutInterval: { from: "2027-01-01", to: null } },
+        claim("Rejected"),
+        claim("Current assertion"),
+      ],
+    }),
+    {
+      context,
+      records: [
+        record("past", "claim"),
+        record("future", "claim"),
+        record("rejected", "claim", { status: "rejected" }),
+        record("current", "claim"),
+      ],
+    },
+  );
+  assert.deepEqual(
+    result.items.map((item) => item.id),
+    ["current"],
   );
 });
 
-test("provenance carries the relation, not just the two ends", () => {
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: payload({
+test("provenance is conditional and contains attribution and source relation", () => {
+  const source = payload({
+    claims: [claim("The report says Complete")],
+    provenance: [
+      {
+        relation: "derived_from",
+        from: { kind: "claim", label: "The report says Complete" },
+        to: { kind: "artifact", label: "source:report.md" },
+      },
+    ],
+  });
+  const records = [
+    record("claim-report", "claim", { attributedTo: "report author" }),
+  ];
+  assert.equal(project(source, { records }).items[0]?.provenance, undefined);
+  assert.deepEqual(
+    project(source, { records, scope: scope(["attribution"]) }).items[0]
+      ?.provenance,
+    [
+      "Attributed to: report author",
+      "The report says Complete --derived_from--> source:report.md",
+    ],
+  );
+});
+
+test("optional provenance describes a conversation source without runtime control IDs", () => {
+  const result = project(
+    payload({
+      claims: [claim("Known fact")],
       provenance: [
         {
           relation: "derived_from",
-          from: { kind: "claim", label: "the image shows a cat" },
-          to: { kind: "artifact", label: "source:def/cat.png" },
+          from: { kind: "claim", label: "Known fact" },
+          to: {
+            kind: "artifact",
+            label: "turn:A008_v1_conversation_fixture:A008_v1_task_fixture",
+          },
         },
       ],
     }),
-  });
-  assert.deepEqual(propositions(result.items), [
-    "the image shows a cat --derived_from--> source:def/cat.png",
-  ]);
-});
-
-// --- ranking, deduplication, budget ----------------------------------------
-
-test("items are ranked by authority, highest first", () => {
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: payload({
-      provenance: [
-        {
-          relation: "appears_in",
-          from: { kind: "utterance", label: "p" },
-          to: { kind: "artifact", label: "q" },
-        },
-      ],
-      utterances: [utterance("an utterance")],
-      state: [stateEntry("slot", "current truth")],
-      claims: [claim("a claim")],
-    }),
-  });
-
-  const authorities = result.items.map((item) => item.authority);
-  assert.deepEqual(
-    authorities,
-    [...authorities].sort((a, b) => b - a),
+    { scope: scope(["attribution"]) },
   );
-  assert.equal(result.items[0]?.proposition, "current truth");
-});
-
-test("equal authority keeps a stable, reproducible order", () => {
-  // Two reads of the same store must project the same order, or a bad answer
-  // cannot be reproduced from the same inputs.
-  const input = payload({
-    utterances: [utterance("first"), utterance("second"), utterance("third")],
-  });
-  const once = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: input,
-  });
-  const twice = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: input,
-  });
-  assert.deepEqual(propositions(once.items), ["first", "second", "third"]);
-  assert.deepEqual(propositions(once.items), propositions(twice.items));
-});
-
-test("the same words on several surfaces are sent once, by the strongest", () => {
-  const shared = "Zorros häst heter Fresca";
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: payload({
-      state: [stateEntry("heter", shared)],
-      claims: [claim(shared)],
-      utterances: [utterance(shared)],
-    }),
-  });
-
-  assert.deepEqual(propositions(result.items), [shared]);
-  assert.equal(result.items[0]?.kind, "state");
-  assert.deepEqual(result.deduplicated.map((item) => item.kind).sort(), [
-    "claim",
-    "utterance",
+  assert.deepEqual(result.items[0]?.provenance, [
+    "Known fact --derived_from--> conversation turn",
   ]);
+  assert.equal(
+    JSON.stringify(contextItemsForModel(result.items)).includes("A008_v1_"),
+    false,
+  );
 });
 
-test("deduplication ignores case and surrounding space", () => {
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: payload({
-      state: [stateEntry("slot", "  The House Is White  ")],
-      utterances: [utterance("the house is white")],
-    }),
+test("specific model tags exclude unrelated broad-domain facts without hiding exact reads", () => {
+  const source = payload({
+    state: [
+      state("model.registration", "registry.ts"),
+      state("old_task.status", "Complete"),
+    ],
   });
-  assert.equal(result.items.length, 1);
-  assert.equal(result.deduplicated.length, 1);
-});
-
-test("the budget cuts the lowest-ranked items and names them", () => {
-  const long = (label: string) => `${label} ${"x".repeat(400)}`;
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    maximumBytes: 1_200,
-    payload: payload({
-      state: [stateEntry("a", long("state"))],
-      claims: [claim(long("claim"))],
-      utterances: [utterance(long("utterance"))],
+  const records = [
+    record("model", "state", {
+      tags: ["model-registration"],
+      domains: ["development"],
+      matchKind: "associative",
+      reasons: ["label_tag_match", "label_domain_match"],
+      required: true,
     }),
-  });
-
-  assert.ok(result.items.length >= 1, "everything was cut");
-  assert.ok(
-    result.omitted.length >= 1,
-    "nothing was cut, so nothing is proved",
+    record("old", "state", {
+      tags: ["sidebar"],
+      domains: ["development"],
+      matchKind: "associative",
+      reasons: ["label_domain_match"],
+      required: true,
+    }),
+  ];
+  const options = {
+    records,
+    focusTags: ["model-registration"],
+    message: "Add a model",
+  };
+  assert.deepEqual(
+    project(source, options).items.map((item) => item.id),
+    ["model"],
+  );
+  assert.deepEqual(
+    project(source, options).omitted.map((item) => item.id),
+    ["old"],
   );
   assert.equal(
-    result.items.length + result.omitted.length,
-    3,
-    "an item was neither kept nor reported",
+    project(source, {
+      ...options,
+      message: "Add model; inspect old_task.status",
+    }).items.length,
+    2,
   );
-  // The cut comes off the bottom of the ranking, never off the top.
-  assert.equal(result.items[0]?.kind, "state");
+  assert.equal(
+    project(source, { records }).items.length,
+    2,
+    "domain-only discovery remains possible without a narrower match",
+  );
+});
+
+test("budget measures minimal output and does not send an oversized first item", () => {
+  const source = payload({
+    state: [state("large", "x".repeat(1000)), state("small", "ok")],
+  });
+  const result = project(source, { maximumBytes: 250 });
+  assert.deepEqual(
+    result.items.map((item) => item.semanticAddress),
+    ["small"],
+  );
+  assert.equal(result.omitted.length, 1);
   assert.ok(
-    result.omitted.every(
-      (dropped) => dropped.authority <= (result.items.at(-1)?.authority ?? 0),
-    ),
+    measurer.measure(
+      serializeContextProjection({ taskId, items: result.items }),
+    ) <= 250,
   );
 });
 
-test("one item bigger than the whole budget is still sent", () => {
-  // An empty projection is not a smaller answer, it is no memory at all.
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    maximumBytes: 16,
-    payload: payload({ state: [stateEntry("a", "y".repeat(500))] }),
-  });
-  assert.equal(result.items.length, 1);
-  assert.deepEqual(result.omitted, []);
-});
-
-test("the default budget is generous enough for an ordinary turn", () => {
-  const many = Array.from({ length: 40 }, (_, index) =>
-    utterance(`remembered fact number ${index}`),
+test("worker and extractor get identical minimal context, internal identity survives", async () => {
+  const items: ContextKnowledgeItem[] = [
+    {
+      id: "state:known",
+      evidenceId: "claim-internal",
+      semanticAddress: "task.status",
+      currentState: "Complete",
+      proposition: "Complete",
+      kind: "state",
+      tags: ["internal"],
+      domains: ["internal"],
+      scope: [],
+      authority: 1,
+      history: ["Yesterday: Ready"],
+      provenance: ["Source: task.md"],
+    },
+  ];
+  const serialized = serializeContextProjection({ taskId, items });
+  const worker = new DeterministicMemoryPromptComposer().compose(
+    {
+      projection: { taskId, items },
+      serialized,
+      measuredUnits: measurer.measure(serialized),
+      measurementUnit: measurer.unit,
+    },
+    "Question",
   );
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: payload({ utterances: many }),
+  let extractor = "";
+  const analyzer = new ModelBackedPostOutputKnowledgeAnalyzer({
+    async generate(input) {
+      extractor = input.serializedInput;
+      return {
+        new_knowledge: [],
+        state_updates: [],
+        relation_updates: [],
+        reinforcements: [{ knowledgeId: "state:known" }],
+      };
+    },
   });
-  assert.equal(result.items.length, 40);
-  assert.equal(DEFAULT_PROJECTION_BUDGET_BYTES, 32_768);
+  await analyzer.analyze({
+    kind: "dialogue",
+    retrievedContext: { items },
+    userMessage: "Question",
+    responseText: "Complete",
+  });
+  assert.deepEqual(
+    JSON.parse(extractor).retrievedContext,
+    JSON.parse(worker.userEnvelope).retrievedContext,
+  );
+  assert.equal(extractor.includes("claim-internal"), false);
+  assert.equal(items[0]?.evidenceId, "claim-internal");
 });
 
-test("an empty payload projects nothing rather than throwing", () => {
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: payload(),
-  });
-  assert.deepEqual(result.items, []);
-});
-
-test("blank propositions are dropped instead of sent as empty context", () => {
-  const result = projectionItems({
-    taskId: TASK,
-    measurer: MEASURER,
-    payload: payload({ utterances: [utterance("   "), utterance("real")] }),
-  });
-  assert.deepEqual(propositions(result.items), ["real"]);
-});
-
-// --- through the reader, against a real store ------------------------------
-
-const NAME_SLOT: SlotRef = {
-  kind: "attribute",
-  entity: asEntityId("zorros_hast"),
-  name: "statement",
-};
-
-function worldWithBothFacts(): KnowledgeReadContext {
-  const context = createKnowledgeContext();
-  // These labels are not invented for the test. They are exactly what
-  // `live-commit.ts` writes today: `uniqueLabels([label, proposition,
-  // ...entities, ...tokenize(proposition)])`, and `tokenize` keeps every word
-  // of four characters or more. So the word "heter" becomes an alias of the
-  // horse, and "Vad heter du?" matches it.
-  //
-  // That is a separate defect with its own task. It is reproduced here on
-  // purpose, because it is what puts a state hit and an unrelated utterance in
-  // the same read — and that collision is the one this projection has to
-  // survive. Cleaning the labels here would leave the gate armed with a case
-  // that cannot fire.
-  context.entities.register({
-    id: asEntityId("zorros_hast"),
-    type: "fact",
-    labels: ["Zorros häst heter Fresca", "zorros", "häst", "heter", "fresca"],
-  });
+test("real read keeps HEAD, optional history and source; never reinforces just by reading", async () => {
+  const context = createKnowledgeContext(() => "2026-09-27T00:00:00.000Z");
+  const entity = asEntityId("widget");
+  const slot = { kind: "attribute" as const, entity, name: "color" };
+  context.entities.register({ id: entity, type: "thing", labels: ["Widget"] });
   context.slots.register({
-    ref: NAME_SLOT,
+    ref: slot,
     cardinality: "single",
     valueType: "string",
   });
-  update(
-    context.state,
-    {
-      outcome: "change",
-      slot: NAME_SLOT,
-      cardinality: "single",
-      proposal: {
-        id: "claim-fresca",
-        slot: NAME_SLOT,
-        value: "Zorros häst heter Fresca",
-        label: "Zorros häst heter Fresca",
-        aboutInterval: OPEN,
-        status: "asserted",
-        attributedTo: "user",
-        causedBy: "test",
-        kind: "assertion",
-        acceptanceEligible: true,
+  for (const [id, value, at] of [
+    ["red", "red", "2026-09-20T00:00:00.000Z"],
+    ["blue", "blue", "2026-09-21T00:00:00.000Z"],
+  ] as const) {
+    update(
+      context.state,
+      {
+        outcome: "change",
+        slot,
+        cardinality: "single",
+        proposal: {
+          id,
+          slot,
+          value,
+          label: `Widget is ${value}`,
+          aboutInterval: { from: at, to: null },
+          status: "asserted",
+          attributedTo: "user",
+          causedBy: "fixture",
+          kind: "assertion",
+          acceptanceEligible: true,
+        },
+        from: id === "red" ? null : "red",
+        to: value,
+        at,
+        competingClaimIds: [],
+        targetInterval: null,
+        reason: "fixture",
       },
-      from: null,
-      to: "Zorros häst heter Fresca",
-      at: NOW,
-      competingClaimIds: [],
-      targetInterval: null,
-      reason: "test",
-    },
-    { decidedBy: "test" },
-  );
-  ingest(
-    {
-      content: "Du heter / kallas för Agent008",
-      speaker: "user",
-      locator: "turn:1",
-      scope: { verified: true },
-    },
-    { store: context.evidence },
-  );
-  return context;
-}
-
-function request(message: string): MemoryReadRequest {
-  return {
-    projectId:
-      "A008_v1_project_20000000-0000-4000-8000-000000000001" as ProjectId,
-    conversationId:
-      "A008_v1_conversation_20000000-0000-4000-8000-000000000002" as ConversationId,
-    taskId: TASK as RuntimeTaskId,
-    agentId: "A008_v1_agent_20000000-0000-4000-8000-000000000003" as AgentId,
-    message,
-    applicabilityScopes: ["local"],
-  };
-}
-
-test("the reader returns both facts the store found, not the first surface", async () => {
-  const reader = new KnowledgeMemoryReader({ context: worldWithBothFacts() });
-  const result = await reader.read(request("Vad heter / kallas du för?"));
-
-  const kinds = new Set(
-    result.projection.projection.items.map((item) => item.kind),
-  );
-  const texts = result.projection.projection.items.map(
-    (item) => item.proposition,
-  );
-
-  assert.ok(
-    texts.some((text) => text.includes("Agent008")),
-    `the utterance never reached the projection: ${JSON.stringify(texts)}`,
-  );
-  assert.ok(
-    texts.includes("Zorros häst heter Fresca"),
-    "the state binding that used to win alone is now missing entirely",
-  );
+      { decidedBy: "fixture" },
+    );
+  }
+  const reader = new KnowledgeMemoryReader({ context });
+  const request = (message: string) =>
+    ({
+      projectId: "A008_v1_project_20000000-0000-4000-8000-000000000001",
+      conversationId:
+        "A008_v1_conversation_20000000-0000-4000-8000-000000000002",
+      taskId,
+      agentId: "A008_v1_agent_20000000-0000-4000-8000-000000000003",
+      message,
+      applicabilityScopes: [],
+    }) as unknown as MemoryReadRequest;
+  const before = context.lifecycle.snapshot();
+  const current = await reader.read(request("What color is Widget now?"));
   assert.deepEqual(
-    [...kinds].sort(),
-    ["state", "utterance"],
-    "two surfaces matched and both must survive",
+    contextItemsForModel(current.projection.projection.items).map((item) =>
+      "currentState" in item ? item.currentState : item.claim,
+    ),
+    ["blue"],
   );
-  assert.equal(
-    result.evidence.selectedKnowledgeIds.length,
-    result.projection.projection.items.length,
-  );
-});
-
-test("a budget that bites is reported, not silently applied", async () => {
-  const roomy = new KnowledgeMemoryReader({ context: worldWithBothFacts() });
-  const cramped = new KnowledgeMemoryReader({
-    context: worldWithBothFacts(),
-    maximumProjectionBytes: 1,
-  });
-  const full = await roomy.read(request("Vad heter / kallas du för?"));
-  const cut = await cramped.read(request("Vad heter / kallas du för?"));
-
-  assert.ok(
-    full.projection.projection.items.length > 1,
-    "the roomy read found too little for this test to mean anything",
-  );
-  assert.equal(cut.projection.projection.items.length, 1);
-  assert.equal(
-    cut.evidence.projectionMaximum,
-    full.projection.projection.items.length,
-    "projectionMaximum should say how many items were eligible, not how many fit",
+  const historical = await reader.read(
+    request("What color did Widget have before?"),
   );
   assert.ok(
-    cut.evidence.omittedKnowledgeIds.length >
-      full.evidence.omittedKnowledgeIds.length,
-    "the budget dropped items without reporting them",
+    historical.projection.projection.items.some(
+      (item) =>
+        item.currentState === "blue" &&
+        item.history?.some((entry) => entry.includes("red")),
+    ),
   );
+  assert.deepEqual(context.lifecycle.snapshot(), before);
 });

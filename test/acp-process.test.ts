@@ -260,11 +260,14 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
     try {
       const envelope = JSON.parse(user) as {
         readonly retrievedContext?: {
-          readonly items?: Array<{ readonly proposition?: unknown }>;
+          readonly items?: Array<{
+            readonly claim?: unknown;
+            readonly currentState?: unknown;
+          }>;
         };
       };
       projected = (envelope.retrievedContext?.items ?? []).some(
-        (item) => item.proposition === PROPOSITION,
+        (item) => (item.currentState ?? item.claim) === PROPOSITION,
       );
     } catch {
       projected = false;
@@ -345,6 +348,7 @@ test("compiled ACP process commits a user assertion and rereads it on the next p
     assert.equal(
       String(chatPayloads[1]?.messages?.at(-1)?.content).includes("A008_v1_"),
       false,
+      String(chatPayloads[1]?.messages?.at(-1)?.content),
     );
     assert.match(
       updates

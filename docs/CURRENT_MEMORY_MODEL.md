@@ -1608,6 +1608,39 @@ De bestämmer aldrig Current State.
 
 Efter retrieval byggs den faktiska model-contexten.
 
+Ägarbeslut 2026-09-27, ADR 0056: minneskuvertets modellvända poster har
+en strikt fältlista. Alla andra fält stannar internt i A008.
+
+Bas:
+
+- `id`: exakt retrieved-item-identitet, med intern koppling till knowledge/evidence
+  för reuse, deduplicering och reinforcement.
+- `semanticAddress`: endast när adressen är upplöst.
+- `currentState` eller `claim`: en enda innehållssträng. Current state äger
+  adressen; annars används senaste tillämpliga claim för samma kunskap.
+
+Valfritt:
+
+- `history`: matchande tidigare händelser/tillstånd när frågan kräver det,
+  med nödvändig tidsordning uttryckt i innehållet.
+- `provenance`: relevant källa, attribution och kvalifikationer när det behövs
+  för tolkning, verifiering eller konfliktförståelse.
+
+Tags/domäner, evidence-ID, scores/authority, kind, tomma scope och dubblerad
+proposition hör inte till modellposten. Noll, false, null och villkor får inte
+försvinna när innehållet renderas till text. Worker och extractor får samma
+minimala representation av samma urval; A008 behåller den rika interna mappningen.
+
+En entity-/domänträff är kandidatupptäckt, inte automatisk kontextadmission.
+Specifika frågeträffar prioriteras framför bred domänspillover. Två olika
+semantiska adresser får aldrig dedupliceras bara för att värdet är identiskt.
+Ett nyligen inläst historiskt claim är inte automatiskt aktuell sanning.
+
+När samma innebörd återkommer återanvänds och förstärks befintlig knowledge
+i stället för att en dubblett skapas. Enbart läsning eller samma ämne/entity
+är inte reinforcement. Ändrat värde blir state-ändring med historik, och en
+ny egenskap är separat kunskap. Reinforcement sker fortsatt efter output.
+
 Målet är:
 
 ```text
@@ -1620,7 +1653,8 @@ inte:
 maximum available knowledge
 ```
 
-Context kan konceptuellt byggas i följande lager:
+Det fullständiga modellanropet kan konceptuellt innehålla följande lager.
+Detta är inte ytterligare fält i minneskuvertets poster:
 
 ```text
 1. System / instruction plane
@@ -1817,7 +1851,11 @@ userMessage
 responseText
 ```
 
-`retrievedContext` bär stabilt retrieved-item-ID, evidence-ID och semantic address där de redan finns. Extractorn får återanvända dessa identiteter men får inte hitta på nya semantic identities bara för att fylla schema. För reinforcement är `knowledgeId` alltid det exakta retrieved-item-`id`:t; `evidenceId` är runtime/provenance-metadata och får inte användas som ersättare.
+Modellens `retrievedContext` följer fältlistan i sektion 41. Extractorn får
+återanvända `id` och upplöst `semanticAddress` men inte hitta på identiteter.
+För reinforcement är `knowledgeId` exakt retrieved-item-`id`. A008 behåller
+evidence-ID och övrig intern metadata för validering/commit; de skickas inte
+som extra fält till arbetsmodellen eller extractorn.
 
 Retrieved metadata ska komma från respektive lagrad post. Sökfrågans tags och
 entities får inte kopieras till alla retrieved items som om de beskrev lagrad

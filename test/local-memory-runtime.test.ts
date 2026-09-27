@@ -384,13 +384,12 @@ test("two-turn runtime commits an explicit user assertion and rereads it", async
     assert.match(second.completion.message.content, /alpha-seven/u);
     // This extractor returns no structured proposition, so A008-0143 keeps
     // the fact as evidence instead of inventing a sentence-addressed state
-    // slot. The claim and its source utterance remain retrievable.
+    // slot. The envelope contains the claim once; source evidence stays internal.
     const projected = second.memory.projection.projection.items;
-    assert.equal(second.memory.evidence.selectedKnowledgeIds.length, 2);
+    assert.equal(second.memory.evidence.selectedKnowledgeIds.length, 1);
     assert.equal(projected[0]?.proposition, PROPOSITION);
     assert.equal(projected[0]?.kind, "claim");
-    assert.equal(projected[1]?.kind, "utterance");
-    assert.match(projected[1]?.proposition ?? "", /alpha-seven/u);
+    assert.equal(projected.length, 1);
     const chatRequests = transport.requests.filter(
       (request) => semanticOperation(request) === undefined,
     );
@@ -452,16 +451,15 @@ test("restart with existing SQLite still projects the active assertion", async (
   });
   try {
     const reread = await secondRuntime.openSession().turn(QUESTION);
-    // Two surfaces survive a restart, same as they do in one process. See the
-    // note in the two-turn test above.
-    assert.equal(reread.memory.evidence.selectedKnowledgeIds.length, 2);
+    // Projection still contains one claim after restart, without its raw duplicate.
+    assert.equal(reread.memory.evidence.selectedKnowledgeIds.length, 1);
     assert.equal(
       reread.memory.projection.projection.items[0]?.proposition,
       PROPOSITION,
     );
     assert.deepEqual(
       reread.memory.projection.projection.items.map((item) => item.kind),
-      ["claim", "utterance"],
+      ["claim"],
     );
     const store = new SqliteKnowledgeStore({
       filename: isolated.sqlitePath,

@@ -1,12 +1,13 @@
 # Aktuella arkitekturbeslut
 
-Senast omprövat: 2026-09-27, A008-0188, på Rickards uttryckliga begäran.
+Senast uppdaterat: 2026-09-27, A008-0189, på Rickards uttryckliga begäran.
 
-## Aktivt beslut
+## Aktiva beslut
 
 | ADR | Status | Omfattning |
 | --- | --- | --- |
 | [0055 — Beständiga sessioner och utbytbara sessionsprocesser](0055-durable-sessions-and-process-ownership.md) | Accepted | Ny arkitekturgrund, ägarskap, egen worktree och process vid nästa meddelande. |
+| [0056 — Minimal memory context](0056-minimal-memory-context.md) | Accepted | Minimalt modellkuvert, relevant urval och bevarad koppling för reinforcement. |
 
 Detta är hela den aktiva ADR-mängden. Numreringen fortsätter för att historiska
 ID:n ska förbli entydiga; den börjar inte om på 0001.
@@ -18,7 +19,7 @@ aktiva ADR:er preciserar den. [SYSTEMDOC.md](../SYSTEMDOC.md) beskriver
 implementation; [CURRENT_STATUS.md](../CURRENT_STATUS.md) beskriver nuläge.
 Ett accepterat ADR är inte bevis på implementerat beteende.
 
-Alla tidigare ADR:er är [arkiverade](_legacy/README.md). Äldre `Status: Accepted`,
+Alla ADR:er före 0055 är [arkiverade](_legacy/README.md). Äldre `Status: Accepted`,
 "must", "remains authoritative" och länkar mellan originaldokumenten beskriver
 deras historiska sammanhang och har ingen aktuell beslutsauktoritet.
 Historiska uppgifter och sök-/minnesträffar återaktiverar dem inte.

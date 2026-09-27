@@ -200,6 +200,10 @@ export class KnowledgeMemoryReader {
       taskId: request.taskId,
       payload: result.projected.payload,
       records: result.projected.diagnostics.records,
+      context: this.#context,
+      scope: result.scope,
+      focusTags: [...mentioned.tags, ...classified.tags],
+      message: request.message,
       measurer: this.#measurer,
       ...(this.#maximumProjectionBytes === undefined
         ? {}

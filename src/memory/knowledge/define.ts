@@ -15,11 +15,11 @@ const PLANNER_FUTURE =
   /\b(senare|framtid|future|later|next|imorgon|tomorrow)\b/u;
 
 const HISTORY_PATTERN =
-  /\b(haft|hade|tidigare|förut|histor|past|previous|before|used to|had)\b/iu;
+  /\b(haft|hade|tidigare|förut|histori\p{L}*|histor|history|past|previous|before|used to|had)\b/iu;
 const EVENT_PATTERN =
   /\b(målade|painted|who\s+(painted|did)|vem\s+(målade|gjorde)|happened|inträffade)\b/iu;
 const ATTRIBUTION_PATTERN =
-  /\b(vad\s+sa|vem\s+sa|who\s+said|what\s+did\b[\s\S]*\bsay|sa\s+presentatören|attributed)\b/iu;
+  /\b(vad\s+sa|vem\s+sa|who\s+said|what\s+did\b[\s\S]*\bsay|sa\s+presentatören|attributed|verifier\p{L}*|verified|evidence|provenance|källa|källor|source|sources|worktrees?)\b/iu;
 const ASSOCIATIVE_PATTERN =
   /\b(berätta|tell me about|något om|something about)\b/iu;
 const CURRENT_PATTERN =
