@@ -918,6 +918,8 @@ function statusForStore(code: string): number {
       return 403;
     case "NOT_FOUND":
       return 404;
+    case "WORKSPACE_MISSING":
+      return 409;
     case "INVALID_REQUEST":
       return 400;
     case "REVISION_CONFLICT":
@@ -938,6 +940,7 @@ function codeForStore(code: string): PlatformV3ErrorCode {
     case "UNAUTHENTICATED":
     case "FORBIDDEN":
     case "NOT_FOUND":
+    case "WORKSPACE_MISSING":
     case "INVALID_REQUEST":
     case "REVISION_CONFLICT":
     case "CONVERSATION_BUSY":

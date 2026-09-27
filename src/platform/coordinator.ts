@@ -347,7 +347,7 @@ export class PlatformCoordinator {
         this.#failQueued(
           scope,
           run,
-          "WORKSPACE_UNAVAILABLE",
+          "WORKSPACE_MISSING",
           "The run workspace is unavailable.",
         );
         return true;

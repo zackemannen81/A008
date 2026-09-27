@@ -113,6 +113,7 @@
                 "UNAUTHENTICATED",
                 "FORBIDDEN",
                 "NOT_FOUND",
+                "WORKSPACE_MISSING",
                 "INVALID_REQUEST",
                 "REVISION_CONFLICT",
                 "CONVERSATION_BUSY",
