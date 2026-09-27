@@ -207,3 +207,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0191 | implement ADR 0055 durable session processes | Codex (operator) | 2026-09-27 | owner-authorized implementation; 0190 skipped because an existing working branch uses it; local delivery |
 | A008-0192 | restore live Thought and answer streaming across session process boundary | ChatGPT (operator) | 2026-09-27 | regression fix after ADR 0055 process split; preserve durable history and background execution |
 | A008-0193 | send retrieved knowledge labels in model-facing memory envelope | ChatGPT (operator) | 2026-09-27 | projection-only change; preserve memory engine and retrieval semantics |
+| A008-0194 | restore project-scoped memory view and host-owned runtime settings | ChatGPT (operator) | 2026-09-27 | regression fix after ADR 0055; explicit project memory binding and process-independent settings |
