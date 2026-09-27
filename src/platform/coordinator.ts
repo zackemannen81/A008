@@ -107,8 +107,11 @@ export class PlatformCoordinator {
   readonly #shutdown = new AbortController();
   readonly #active = new Set<Promise<void>>();
   readonly #guiRuns = new Map<string, GuiRunSession>();
+  readonly #guiCompletedActivity = new Map<string, ReturnType<GuiRunSession["activity"]>>();
 
-  guiActivity(runId: string) { return this.#guiRuns.get(runId)?.activity(); }
+  guiActivity(runId: string) {
+    return this.#guiRuns.get(runId)?.activity() ?? this.#guiCompletedActivity.get(runId);
+  }
   resolveGuiPermission(runId: string, id: string, allow: boolean): boolean {
     return this.#guiRuns.get(runId)?.permission(id, allow) ?? false;
   }
@@ -469,6 +472,14 @@ export class PlatformCoordinator {
       clearInterval(renew);
       clearTimeout(timeout);
       this.#shutdown.signal.removeEventListener("abort", onShutdown);
+      if (session instanceof GuiRunSession) {
+        this.#guiCompletedActivity.set(run.id, session.activity());
+        while (this.#guiCompletedActivity.size > 100) {
+          const oldest = this.#guiCompletedActivity.keys().next().value;
+          if (oldest === undefined) break;
+          this.#guiCompletedActivity.delete(oldest);
+        }
+      }
       this.#guiRuns.delete(run.id);
       this.kick();
     }

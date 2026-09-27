@@ -92,6 +92,14 @@ function fixture() {
     calls.push({ path, method: init?.method ?? "GET" });
     const id = /conversations\/([^/]+)/u.exec(path)?.[1] ?? "left";
     let body: unknown;
+    if (path.endsWith("/activity")) {
+      return {
+        ok: false,
+        status: 404,
+        statusText: "Not Found",
+        json: async () => ({ error: "No transient activity after host restart." }),
+      };
+    }
     if (path.endsWith("/view")) {
       // Capture an old response before it is delivered, to exercise real ordering.
       body = view(

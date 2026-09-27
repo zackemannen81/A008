@@ -276,8 +276,7 @@ export class DurableChatClient {
       const active =
         run !== undefined &&
         ["queued", "running", "cancel_requested"].includes(run.status);
-      const activity =
-        runId && active ? await this.#activity(runId) : undefined;
+      const activity = runId ? await this.#activity(runId) : undefined;
       if (
         epoch !== this.#epoch ||
         version !== this.#refreshVersion ||
@@ -287,6 +286,9 @@ export class DurableChatClient {
       this.#conversation = conversation;
       this.#run = run;
       this.#workspace = workspace;
+      const permission = activity?.permission;
+      const autoAllow = permission !== undefined && this.#allowAll.has(id);
+      if (autoAllow && runId) await this.#permission(runId, permission.id, true);
       const model = run?.model ?? this.#state.model;
       const details = snapshot as SessionSnapshot;
       this.#publish({
@@ -298,15 +300,13 @@ export class DurableChatClient {
         thought: activity?.thought ?? "",
         answer: activity?.answer ?? "",
         tools: activity?.tools ?? [],
-        permission: activity?.permission,
+        permission: autoAllow ? undefined : permission,
         pendingText: undefined,
         error:
           run?.status === "needs_reconciliation"
             ? "Execution outcome is uncertain; this run will not be replayed."
             : run?.error?.message,
       });
-      if (activity?.permission && this.#allowAll.has(id))
-        await this.#permission(runId!, activity.permission.id, true);
     } catch (error) {
       if (epoch === this.#epoch && version === this.#refreshVersion)
         this.#error(error);
@@ -327,6 +327,7 @@ export class DurableChatClient {
       this.http,
       `/v1/chat/v3/runs/${encodeURIComponent(runId)}/activity`,
     );
+    if (response.status === 404) return undefined;
     if (!response.ok)
       throw new Error(messageFromBody(body, "Cannot observe run."));
     return guiRunActivitySchema.parse(body);
