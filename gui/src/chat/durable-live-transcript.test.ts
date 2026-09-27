@@ -30,6 +30,7 @@ test("durable busy snapshot overlays thought and answer before completion", () =
       seed: null, stop: null,
     },
     messages: [{ role: "user", content: "status please" }],
+    runtime: { cwd: "C:/test", projectId: null, memoryPath: null },
   } as SessionSnapshot;
   const transcript = buildChatTranscript({
     session: session({
