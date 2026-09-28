@@ -1,4 +1,8 @@
-import type { StagedKnowledgeBatch } from "../../orchestration/post-output-knowledge-intake.js";
+import {
+  serializeStagedKnowledgeProposals,
+  type KnowledgeIntakeMeasurer,
+  type StagedKnowledgeBatch,
+} from "../../orchestration/post-output-knowledge-intake.js";
 import type { ClaimProposition } from "./evidence-types.js";
 import { entitySlug } from "./registry.js";
 
@@ -39,26 +43,38 @@ function scoped(
 export function scopeWorkspaceBatch(
   batch: StagedKnowledgeBatch,
   workspace: WorkspaceObservation,
+  measurer: KnowledgeIntakeMeasurer,
 ): StagedKnowledgeBatch {
+  if (measurer.unit !== batch.measurementUnit)
+    throw new Error(
+      `workspace batch measurer unit ${measurer.unit} does not match ${batch.measurementUnit}`,
+    );
   const prefix = `[workspace:${workspace.workspaceId}] `;
+  const proposals = batch.proposals.map((entry) => ({
+    ...entry,
+    proposal: {
+      ...entry.proposal,
+      proposition: entry.proposal.proposition.startsWith(prefix)
+        ? entry.proposal.proposition
+        : prefix + entry.proposal.proposition,
+      ...(entry.proposal.structuredProposition
+        ? {
+            structuredProposition: scoped(
+              entry.proposal.structuredProposition,
+              workspace,
+            ),
+          }
+        : {}),
+    },
+  }));
+  const serialized = serializeStagedKnowledgeProposals(
+    proposals,
+    batch.reinforcements ?? [],
+  );
   return {
     ...batch,
-    proposals: batch.proposals.map((entry) => ({
-      ...entry,
-      proposal: {
-        ...entry.proposal,
-        proposition: entry.proposal.proposition.startsWith(prefix)
-          ? entry.proposal.proposition
-          : prefix + entry.proposal.proposition,
-        ...(entry.proposal.structuredProposition
-          ? {
-              structuredProposition: scoped(
-                entry.proposal.structuredProposition,
-                workspace,
-              ),
-            }
-          : {}),
-      },
-    })),
+    proposals,
+    serialized,
+    measuredUnits: measurer.measure(serialized),
   };
 }

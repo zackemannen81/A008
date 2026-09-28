@@ -224,6 +224,7 @@ test("ADR 0055: one SQLite owner retains independent workspace states and readab
           applicabilityScopes: [],
         }),
         workspace,
+        new Utf8ByteKnowledgeIntakeMeasurer(),
       );
       const commit = new KnowledgeEngineCommit({
         context: handle.context,

@@ -1331,6 +1331,7 @@ export class LocalMemoryRuntime {
               scopeWorkspaceBatch(
                 await intake.stage(input, context),
                 workspace,
+                intakeBudget.measurer,
               ),
           }
         : intake,

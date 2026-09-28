@@ -20,6 +20,7 @@ import type {
   RelationGatedCommitResult,
   RelationIndexResult,
 } from "../src/orchestration/relation-gated-memory-commit.js";
+import { scopeWorkspaceBatch } from "../src/memory/knowledge/workspace-observation.js";
 
 const PROJECT = parseRuntimeId(
   "A008_v1_project_70000000-0000-4000-8000-000000000001",
@@ -231,6 +232,42 @@ test("zero proposals complete without a relation call", async () => {
   if (result.status === "completed") {
     assert.deepEqual(result.records, []);
   }
+});
+
+test("workspace-scoped batches remain serializable through coordinator validation", async () => {
+  const measurer = new Utf8ByteKnowledgeIntakeMeasurer();
+  const batch = scopeWorkspaceBatch(
+    await batchWith(1),
+    { workspaceId: "workspace-test", revision: "revision-test" },
+    measurer,
+  );
+  let commits = 0;
+  const coordinator = new PostOutputMemoryCoordinator({
+    stager: {
+      async stage() {
+        return batch;
+      },
+    },
+    committer: {
+      async commit(input) {
+        commits += 1;
+        return commitResult(input.proposalIndex);
+      },
+      async repairIndex() {
+        throw new Error("repair is not expected");
+      },
+    },
+  });
+  const result = await coordinator.process({
+    taskId: TASK,
+    message: "Message",
+    answer: "Answer",
+    applicabilityScopes: ["runtime"],
+  });
+  assert.equal(result.status, "completed");
+  assert.equal(commits, 1);
+  assert.match(batch.serialized, /\[workspace:workspace-test\]/u);
+  assert.equal(batch.measuredUnits, measurer.measure(batch.serialized));
 });
 
 test("staging failure is explicit and makes zero commit calls", async () => {
