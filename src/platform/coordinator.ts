@@ -158,18 +158,20 @@ export class PlatformCoordinator {
     } catch {
       /* History is independent of workspace availability. */
     }
+    const saved = this.#store.getSessionConfiguration(scope, conversationId);
+    const selectedModel = saved?.model ?? model;
     const profile =
       catalogBackedModelRegistry(
         defaultModelRegistry,
         defaultCatalogPath(this.#env),
-      ).get(model) ?? defaultModelRegistry.require(DEFAULT_MODEL_ID);
+      ).get(selectedModel) ?? defaultModelRegistry.require(DEFAULT_MODEL_ID);
     const process = this.sessionProcess(scope, conversationId);
     return {
       workspace: workspace ?? null,
       ...(process ? { process } : {}),
       snapshot: {
-        model,
-        parameters: defaultSessionParameters(profile),
+        model: selectedModel,
+        parameters: saved?.parameters ?? defaultSessionParameters(profile),
         messages: conversation.messages,
         runtime: {
           cwd:
@@ -375,6 +377,12 @@ export class PlatformCoordinator {
         skipped.add(run.id);
         continue;
       }
+      const savedConfiguration = this.#store.getSessionConfiguration(
+        scope,
+        run.conversationId,
+      );
+      const parameters =
+        savedConfiguration?.parameters ?? runtime.sessionParameters(run.model);
       const prepared = this.#prepare(scope, run);
       if (prepared === undefined) {
         this.#failQueued(
@@ -452,7 +460,9 @@ export class PlatformCoordinator {
         {
           runId: run.id,
           model: run.model,
+          parameters,
           text: prepared.text,
+          ...(run.attachment === undefined ? {} : { attachment: run.attachment }),
           history: prepared.history,
           tools: run.principalId === PLATFORM_GUI_OWNER,
           recoveryRequired: this.#store

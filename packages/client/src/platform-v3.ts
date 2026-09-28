@@ -5,6 +5,7 @@ import {
   type SessionProcessResponse,
   type SessionActivityEvents,
   type SessionEffectReview,
+  platformV3ConversationConfigureRequestSchema,
   platformV3ConversationCreateRequestSchema,
   platformV3ConversationListResponseSchema,
   platformV3ConversationResponseSchema,
@@ -18,6 +19,7 @@ import {
   platformV3RunCreateResponseSchema,
   platformV3RunResponseSchema,
   type PlatformV3Conversation,
+  type PlatformV3ConversationConfigureRequest,
   type PlatformV3ConversationCreateRequest,
   type PlatformV3ConversationListResponse,
   type PlatformV3ConversationResponse,
@@ -88,6 +90,11 @@ export interface PlatformV3Client {
   ): Promise<PlatformV3ConversationResponse>;
   getConversation(
     conversationId: string,
+    signal?: AbortSignal,
+  ): Promise<PlatformV3ConversationResponse>;
+  configureConversation(
+    conversationId: string,
+    input: PlatformV3ConversationConfigureRequest,
     signal?: AbortSignal,
   ): Promise<PlatformV3ConversationResponse>;
   createRun(
@@ -249,10 +256,7 @@ export function createPlatformV3Client(
         withSignal(signal),
       ),
     createConversation: (projectId, input, signal) => {
-      const body = requestInput(
-        platformV3ConversationCreateRequestSchema,
-        input,
-      );
+      const body = requestInput(platformV3ConversationCreateRequestSchema, input);
       return requestPlatformV3(
         options,
         `/v3/projects/${pathSegment(projectId, "projectId")}/conversations`,
@@ -267,6 +271,15 @@ export function createPlatformV3Client(
         platformV3ConversationResponseSchema,
         withSignal(signal),
       ),
+    configureConversation: (conversationId, input, signal) => {
+      const body = requestInput(platformV3ConversationConfigureRequestSchema, input);
+      return requestPlatformV3(
+        options,
+        `/v3/conversations/${pathSegment(conversationId, "conversationId")}/configuration`,
+        platformV3ConversationResponseSchema,
+        { method: "POST", body: JSON.stringify(body), ...withSignal(signal) },
+      );
+    },
     createRun: (conversationId, input, signal) => {
       const body = requestInput(platformV3RunCreateRequestSchema, input);
       validatedId(body.commandId, "commandId");
@@ -313,6 +326,7 @@ export function createPlatformV3Client(
 
 export type {
   PlatformV3Conversation,
+  PlatformV3ConversationConfigureRequest,
   PlatformV3ConversationCreateRequest,
   PlatformV3ConversationListResponse,
   PlatformV3ConversationResponse,

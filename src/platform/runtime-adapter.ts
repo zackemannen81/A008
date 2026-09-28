@@ -1,6 +1,8 @@
 import { catalogBackedModelRegistry, defaultCatalogPath } from "../core/user-catalog.js";
 import { defaultModelRegistry } from "../core/model-registry.js";
-import type { ChatContent, ChatMessage } from "../core/types.js";
+import type { ChatContent, ChatImageAttachment, ChatMessage } from "../core/types.js";
+import { chatGeneration } from "../core/generation-controls.js";
+import type { SessionParameters } from "../../packages/protocol/src/index.js";
 import type {
   LocalMemoryRuntime,
   LocalMemorySession,
@@ -46,8 +48,9 @@ export function openPlatformTextSession(input: {
   readonly conversationId: string;
   readonly history: readonly PlatformTextHistoryMessage[];
   readonly cwd?: string;
+  readonly parameters?: SessionParameters;
 }): LocalMemorySession {
-  return input.runtime.openSession({
+  const session = input.runtime.openSession({
     model: input.model,
     ...(input.cwd === undefined ? {} : { cwd: input.cwd }),
     conversationSeed: {
@@ -60,6 +63,8 @@ export function openPlatformTextSession(input: {
       ),
     },
   });
+  if (input.parameters !== undefined) session.configureParameters(input.parameters);
+  return session;
 }
 
 /** Exactly one turn. A thrown post-output failure still reports a committed answer. */
@@ -67,10 +72,15 @@ export async function completePlatformTextTurn(
   session: LocalMemorySession,
   text: string,
   signal: AbortSignal,
+  imageAttachments?: readonly ChatImageAttachment[],
 ): Promise<PlatformTextTurnResult> {
   const before = assistantCount(session.messages);
   try {
-    const result = await session.turn(text, { signal });
+    const result = await session.turn(text, {
+      signal,
+      generation: chatGeneration(session.parameters),
+      ...(imageAttachments?.length ? { imageAttachments } : {}),
+    });
     const answer = newlyCommittedAnswer(before, session.messages);
     return {
       answer,

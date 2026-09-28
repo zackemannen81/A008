@@ -1,4 +1,4 @@
-export const PLATFORM_SQLITE_SCHEMA_VERSION = 3;
+export const PLATFORM_SQLITE_SCHEMA_VERSION = 4;
 
 export const SESSION_PROCESS_SCHEMA = `
 CREATE TABLE IF NOT EXISTS A008_session_instances (
@@ -15,6 +15,15 @@ CREATE TABLE IF NOT EXISTS A008_session_activity_current (
   run_id TEXT PRIMARY KEY REFERENCES A008_platform_runs(id),
   cursor INTEGER NOT NULL,
   activity_json TEXT NOT NULL CHECK(json_valid(activity_json))
+);
+CREATE TABLE IF NOT EXISTS A008_session_config (
+  session_id TEXT PRIMARY KEY REFERENCES A008_platform_conversations(id),
+  model TEXT NOT NULL,
+  parameters_json TEXT CHECK(parameters_json IS NULL OR json_valid(parameters_json))
+);
+CREATE TABLE IF NOT EXISTS A008_run_input (
+  run_id TEXT PRIMARY KEY REFERENCES A008_platform_runs(id),
+  attachment_json TEXT CHECK(attachment_json IS NULL OR json_valid(attachment_json))
 );
 `;
 

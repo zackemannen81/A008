@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { rmSync, mkdirSync } from "node:fs";
+import { rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { isolatedMemoryEnv, TEST_PROJECT_ID } from "./helpers.js";
@@ -62,6 +62,7 @@ test(
       const run = {
         runId: "first",
         model: DEFAULT_MODEL_ID,
+        parameters: runtime.sessionParameters(DEFAULT_MODEL_ID),
         text: "Hello",
         history: [],
         tools: false,
@@ -91,6 +92,76 @@ test(
     }
   },
 );
+
+
+
+test("A008-0195: durable child resolves a stored image and sends provider-ready vision input", { timeout: 30000 }, async () => {
+  const provider = await startSessionControlProvider();
+  const fixture = isolatedMemoryEnv({
+    NVIDIA_CHAT_COMPLETIONS_URL: provider.endpoint,
+    A008_CHAT_TRANSPORT: "direct",
+  });
+  const hash = "a".repeat(64);
+  const sourceRoot = join(fixture.directory, "sources");
+  mkdirSync(join(sourceRoot, hash), { recursive: true });
+  writeFileSync(
+    join(sourceRoot, hash, "photo.png"),
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]),
+  );
+  fixture.env.A008_SOURCE_STORE_PATH = sourceRoot;
+  const runtime = createLocalMemoryRuntime({ env: fixture.env, surface: "test" });
+  const cwd = join(fixture.directory, "vision-workspace");
+  mkdirSync(cwd);
+  for (const args of [
+    ["init"],
+    ["-c", "user.name=A008", "-c", "user.email=a008@example.invalid", "commit", "--allow-empty", "-m", "fixture"],
+  ]) execFileSync("git", args, { cwd, windowsHide: true, stdio: "ignore" });
+  const child = new SessionProcess({
+    sessionId: new RuntimeIdentityFactory().create("conversation"),
+    workspaceId: "vision-workspace",
+    cwd,
+    projectRoot: fixture.directory,
+    projectId: TEST_PROJECT_ID,
+    env: fixture.env,
+    runtime,
+    onIdentity() {},
+  });
+  const model = "moonshotai/kimi-k3";
+  try {
+    const outcome = await child.complete(
+      {
+        runId: "vision-run",
+        model,
+        parameters: runtime.sessionParameters(model),
+        text: "Describe attached fixture image",
+        attachment: {
+          type: "image",
+          locator: `source:${hash}/photo.png`,
+          mediaType: "image/png",
+        },
+        history: [],
+        tools: true,
+      },
+      AbortSignal.timeout(15000),
+      () => {},
+    );
+    assert.ok(outcome.answer, JSON.stringify(outcome));
+    const vision = provider.requests.find(
+      (request) =>
+        request.model === model &&
+        JSON.stringify(request.messages).includes("Describe attached fixture image"),
+    );
+    assert.ok(vision, JSON.stringify(provider.requests));
+    const serialized = JSON.stringify(vision);
+    assert.match(serialized, /data:image\/png;base64,/u);
+    assert.match(serialized, /image_url/u);
+  } finally {
+    await child.stop();
+    runtime.close();
+    await provider.close();
+    rmSync(fixture.directory, { recursive: true, force: true });
+  }
+});
 
 test("ADR 0055: one SQLite owner retains independent workspace states and readable revision provenance", async () => {
   const fixture = isolatedMemoryEnv();

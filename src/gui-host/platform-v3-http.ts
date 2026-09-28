@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { RuntimeIdentityFactory } from "../identity/runtime-id.js";
 import {
+  platformV3ConversationConfigureRequestSchema,
   platformV3ConversationCreateRequestSchema,
   platformV3ConversationListResponseSchema,
   platformV3ConversationResponseSchema,
@@ -34,6 +35,7 @@ import {
   guiConversationViewSchema,
 } from "../../packages/protocol/src/index.js";
 import { DEFAULT_MODEL_ID } from "../core/model-registry.js";
+import { parseSessionParameters } from "../core/generation-controls.js";
 import {
   sessionEffectReviewSchema,
   sessionProcessResponseSchema,
@@ -53,6 +55,8 @@ const CAPABILITIES = [
 
 const PROJECT_CONVERSATIONS = /^\/v3\/projects\/([^/]+)\/conversations$/u;
 const CONVERSATION = /^\/v3\/conversations\/([^/]+)$/u;
+const CONVERSATION_CONFIGURATION =
+  /^\/v3\/conversations\/([^/]+)\/configuration$/u;
 const CONVERSATION_RUNS = /^\/v3\/conversations\/([^/]+)\/runs$/u;
 const RUN = /^\/v3\/runs\/([^/]+)$/u;
 const RUN_CANCEL = /^\/v3\/runs\/([^/]+)\/cancel$/u;
@@ -373,12 +377,26 @@ export async function handlePlatformV3Http(options: {
             "A writable conversation requires an isolated Git workspace.",
           );
         }
+        if (body.parameters !== undefined && body.model === undefined)
+          throw new PlatformHttpError(
+            400,
+            "INVALID_REQUEST",
+            "Session parameters require an explicit model.",
+          );
+        if (body.model !== undefined && !platformModelAvailable(options.env, body.model))
+          throw new PlatformHttpError(400, "INVALID_REQUEST", "Unknown model.");
+        const parameters =
+          body.parameters === undefined
+            ? undefined
+            : parseSessionParameters(body.parameters, body.model!);
         let conversation;
         try {
           conversation = backend.store.createConversation(scope, {
             id: sessionId,
             title: body.title,
             workspaceId: workspace.id,
+            ...(body.model === undefined ? {} : { model: body.model }),
+            ...(parameters === undefined ? {} : { parameters }),
           });
         } catch (error) {
           try {
@@ -421,6 +439,39 @@ export async function handlePlatformV3Http(options: {
       );
       return;
     }
+    const configurationMatch = CONVERSATION_CONFIGURATION.exec(pathname);
+    if (configurationMatch && request.method === "POST") {
+      const body = await readJson(
+        request,
+        config,
+        platformV3ConversationConfigureRequestSchema,
+      );
+      const found = findConversation(
+        backend,
+        options.auth,
+        principal,
+        pathId(configurationMatch[1], "conversationId"),
+        options.projectsPath,
+      );
+      if (!platformModelAvailable(options.env, body.model))
+        throw new PlatformHttpError(400, "INVALID_REQUEST", "Unknown model.");
+      const parameters = parseSessionParameters(body.parameters, body.model);
+      const conversation = backend.store.configureSession(found.scope, {
+        conversationId: found.conversation.id,
+        expectedRevision: body.expectedRevision,
+        model: body.model,
+        parameters,
+      });
+      sendChecked(
+        sendJson,
+        response,
+        200,
+        platformV3ConversationResponseSchema,
+        { conversation },
+        config.maxResponseBytes,
+      );
+      return;
+    }
     const runsMatch = CONVERSATION_RUNS.exec(pathname);
     if (runsMatch && request.method === "POST") {
       const body = await readJson(
@@ -449,6 +500,7 @@ export async function handlePlatformV3Http(options: {
           expectedRevision: body.expectedRevision,
           model: body.model,
           text: body.text,
+          ...(body.attachment === undefined ? {} : { attachment: body.attachment }),
         });
         if (replay !== undefined) return replay;
         if (!platformModelAvailable(options.env, body.model)) {
@@ -478,6 +530,7 @@ export async function handlePlatformV3Http(options: {
           expectedRevision: body.expectedRevision,
           model: body.model,
           text: body.text,
+          ...(body.attachment === undefined ? {} : { attachment: body.attachment }),
           memoryRequested: true,
         });
       });

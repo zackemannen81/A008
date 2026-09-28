@@ -112,6 +112,7 @@ const rpc = new SessionIpc(
           env: process.env,
           cwd,
           model: run.model,
+          parameters: run.parameters,
           recoveryRequired: run.recoveryRequired ?? false,
           conversationId: sessionId,
           history: run.history,
@@ -121,7 +122,7 @@ const rpc = new SessionIpc(
               .catch(() => {});
           },
         });
-        return await gui.complete(run.text, signal);
+        return await gui.complete(run.text, signal, run.attachment);
       }
       const session = openPlatformTextSession({
         runtime: project.runtime,
@@ -129,8 +130,18 @@ const rpc = new SessionIpc(
         conversationId: sessionId,
         history: run.history,
         cwd,
+        parameters: run.parameters,
       });
-      return await completePlatformTextTurn(session, run.text, signal);
+      const imageAttachment =
+        run.attachment === undefined
+          ? undefined
+          : project.runtime.resolveImageAttachment(run.attachment.locator);
+      return await completePlatformTextTurn(
+        session,
+        run.text,
+        signal,
+        imageAttachment === undefined ? undefined : [imageAttachment],
+      );
     } finally {
       running = false;
       activeRunId = undefined;

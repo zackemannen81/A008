@@ -208,6 +208,10 @@ export class DurableChatClient {
     conversationId?: string,
     create = false,
   ) => {
+    const createParameters =
+      this.#state.details?.model === this.#state.model
+        ? this.#state.details.parameters
+        : this.#models.find((model) => model.id === this.#state.model)?.defaults;
     const epoch = ++this.#epoch;
     clearTimeout(this.#timer);
     this.#conversation = undefined;
@@ -230,8 +234,15 @@ export class DurableChatClient {
     });
     try {
       const conversation = create
-        ? (await this.api.createConversation(projectId, { title: "New chat" }))
-            .conversation
+        ? (
+            await this.api.createConversation(projectId, {
+              title: "New chat",
+              model: this.#state.model,
+              ...(createParameters === undefined
+                ? {}
+                : { parameters: createParameters }),
+            })
+          ).conversation
         : conversationId
           ? (await this.api.getConversation(conversationId)).conversation
           : (await this.api.listConversations(projectId)).conversations.at(-1);
@@ -333,9 +344,10 @@ export class DurableChatClient {
       const autoAllow = permission !== undefined && this.#allowAll.has(id);
       if (autoAllow && runId)
         await this.#permission(runId, permission.id, true);
-      const model = run?.model ?? this.#state.model;
+      const model = snapshot.model;
       const details = {
         ...snapshot,
+        ...(active && activity?.snapshot ? activity.snapshot : {}),
         ...(this.#runtimePreferences
           ? { runtimePreferences: this.#runtimePreferences }
           : {}),
@@ -456,10 +468,6 @@ export class DurableChatClient {
   };
 
   prompt = async (text: string, attachment?: PromptImageAttachment) => {
-    if (attachment)
-      throw new Error(
-        "Image attachments are not yet supported by durable runs.",
-      );
     if (this.#state.status !== "ready")
       throw new Error("Wait for the selected chat to finish opening.");
     if (this.#state.busy)
@@ -491,6 +499,7 @@ export class DurableChatClient {
         expectedRevision: conversation.revision,
         model: this.#state.model,
         text,
+        ...(attachment === undefined ? {} : { attachment }),
       });
       if (epoch === this.#epoch) await this.refresh(epoch);
     } catch (error) {
@@ -526,6 +535,27 @@ export class DurableChatClient {
       // A new conversation preserves the old model's committed history.
       if (this.#selection)
         await this.selectChat(this.#selection.projectId, undefined, true);
+    } else if (control.action === "configure") {
+      if (this.#state.busy)
+        throw new Error("Cannot configure during an active run.");
+      if (!this.#conversation) throw new Error("Select a conversation first.");
+      const configured = await this.api.configureConversation(
+        this.#conversation.id,
+        {
+          expectedRevision: this.#conversation.revision,
+          model: this.#state.model,
+          parameters: control.parameters,
+        },
+      );
+      this.#conversation = configured.conversation;
+      if (!this.#state.details) throw new Error("Select a conversation first.");
+      const details = {
+        ...this.#state.details,
+        model: this.#state.model,
+        parameters: control.parameters,
+      };
+      this.#publish({ details });
+      return details;
     } else if (control.action === "configureRuntime") {
       const preferences = await this.#saveRuntimePreferences(
         control.settings,
