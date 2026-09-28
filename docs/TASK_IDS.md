@@ -194,7 +194,6 @@ never whether work is active or complete. Task state belongs in
 | A008-0178 | parallel sessions GUI and workspace settings | Rickard (operator) | 2026-09-24 | expose worktree sessions, lifecycle controls and configurable workspace root |
 | A008-0179 | repair parallel worktree session runtime and UX | Rickard (operator) | 2026-09-25 | reuse project runtime for worktree sessions; session-bound CWD; first-class create-and-open UX |
 | A008-0180 | repair agent-browser MCP startup diagnostics | A008 (operator) | 2026-09-25 | reproduce and repair first-call MCP startup failures with deterministic diagnostics |
-
 | A008-0181 | relocate multi-session controls to Parameters | A008 (operator) | 2026-09-25 | top-menu access and Parameters-owned workspace configuration |
 | A008-0182 | local file browser and basic editor | A008 (operator) | 2026-09-25 | workspace file browsing, guarded editing and syntax-highlighted text view |
 | A008-0183 | resizable hideable sidebar and application menu | Rickard (operator) | 2026-09-25 | sidebar resize/collapse affordances and top application menu |
@@ -208,3 +207,5 @@ never whether work is active or complete. Task state belongs in
 | A008-0192 | restore live Thought and answer streaming across session process boundary | ChatGPT (operator) | 2026-09-27 | regression fix after ADR 0055 process split; preserve durable history and background execution |
 | A008-0193 | send retrieved knowledge labels in model-facing memory envelope | ChatGPT (operator) | 2026-09-27 | projection-only change; preserve memory engine and retrieval semantics |
 | A008-0194 | restore project-scoped memory view and host-owned runtime settings | ChatGPT (operator) | 2026-09-27 | regression fix after ADR 0055; explicit project memory binding and process-independent settings |
+| A008-0195 | Durable state separation from live state | A008 (operator) | 2026-09-28 | Durable state separation from live state support |
+
