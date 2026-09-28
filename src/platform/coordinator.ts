@@ -26,6 +26,7 @@ import {
 import type { PlatformRun, PlatformScope } from "./types.js";
 import { PLATFORM_GUI_OWNER } from "./gui-run-session.js";
 import { SessionProcess, type SessionProcessRun } from "./session-process.js";
+import { SessionProcessDisconnectedError } from "./session-ipc.js";
 import {
   catalogBackedModelRegistry,
   defaultCatalogPath,
@@ -579,6 +580,30 @@ export class PlatformCoordinator {
           this.#note(followUp);
         }
       }
+    } catch (error) {
+      this.#note(error);
+      if (
+        !abort.signal.aborted &&
+        !(error instanceof SessionProcessDisconnectedError)
+      ) {
+        try {
+          const latest = this.#store.getRun(scope, run.id);
+          if (latest.status === "running") {
+            this.#store.failRun(scope, {
+              runId: run.id,
+              ownerToken: this.#ownerToken,
+              generation,
+              expectedRevision: latest.revision,
+              error: {
+                code: "SESSION_RUN_FAILED",
+                message: knownFailureMessage(error),
+              },
+            });
+          }
+        } catch (followUp) {
+          this.#note(followUp);
+        }
+      }
     } finally {
       clearInterval(renew);
       clearTimeout(timeout);
@@ -803,6 +828,12 @@ export class PlatformCoordinator {
         : "scan failed";
     this.#stderr.write(`platform coordinator: ${message}\n`);
   }
+}
+
+function knownFailureMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : "Session run failed.";
+  const normalized = message.trim() || "Session run failed.";
+  return normalized.length <= 1024 ? normalized : normalized.slice(0, 1024);
 }
 
 function isTerminal(status: PlatformRun["status"]): boolean {

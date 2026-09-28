@@ -21,6 +21,28 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 65536
+    },
+    "attachment": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "image"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "type",
+        "locator",
+        "mediaType"
+      ]
     }
   },
   "required": [

@@ -804,6 +804,114 @@
         }
       }
     },
+    "/v3/conversations/{conversationId}/configuration": {
+      "post": {
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/platform-v3-conversation-configure-request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated durable session configuration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-conversation-response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v3/conversations/{conversationId}/runs": {
       "post": {
         "parameters": [
@@ -1680,6 +1788,28 @@
             "minLength": 1,
             "maxLength": 256
           },
+          "attachment": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "image"
+              },
+              "locator": {
+                "type": "string",
+                "minLength": 1
+              },
+              "mediaType": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "type",
+              "locator",
+              "mediaType"
+            ]
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -1757,6 +1887,7 @@
                   "LEASE_LOST",
                   "NEEDS_RECONCILIATION",
                   "INTERRUPTED_REVIEWED",
+                  "SESSION_RUN_FAILED",
                   "INTERNAL_ERROR"
                 ]
               },
@@ -1921,6 +2052,7 @@
               "LEASE_LOST",
               "NEEDS_RECONCILIATION",
               "INTERRUPTED_REVIEWED",
+              "SESSION_RUN_FAILED",
               "INTERNAL_ERROR"
             ]
           },
@@ -1958,6 +2090,7 @@
                   "LEASE_LOST",
                   "NEEDS_RECONCILIATION",
                   "INTERRUPTED_REVIEWED",
+                  "SESSION_RUN_FAILED",
                   "INTERNAL_ERROR"
                 ]
               },
@@ -2174,6 +2307,83 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 200
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "stream": {
+                "type": "boolean"
+              },
+              "temperature": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "topP": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "maxTokens": {
+                "type": "number"
+              },
+              "enableThinking": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "reasoningBudget": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "reasoningEffort": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "seed": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "stop": {
+                "anyOf": [
+                  {
+                    "readOnly": true,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "stream",
+              "temperature",
+              "topP",
+              "maxTokens",
+              "enableThinking",
+              "reasoningBudget",
+              "reasoningEffort",
+              "seed",
+              "stop"
+            ]
           }
         },
         "required": [
@@ -2365,6 +2575,100 @@
         ],
         "additionalProperties": false
       },
+      "platform-v3-conversation-configure-request": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "stream": {
+                "type": "boolean"
+              },
+              "temperature": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "topP": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "maxTokens": {
+                "type": "number"
+              },
+              "enableThinking": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "reasoningBudget": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "reasoningEffort": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "seed": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "stop": {
+                "anyOf": [
+                  {
+                    "readOnly": true,
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "stream",
+              "temperature",
+              "topP",
+              "maxTokens",
+              "enableThinking",
+              "reasoningBudget",
+              "reasoningEffort",
+              "seed",
+              "stop"
+            ]
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "model",
+          "parameters"
+        ],
+        "additionalProperties": false
+      },
       "platform-v3-run-create-request": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
@@ -2388,6 +2692,28 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 65536
+          },
+          "attachment": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "const": "image"
+              },
+              "locator": {
+                "type": "string",
+                "minLength": 1
+              },
+              "mediaType": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "type",
+              "locator",
+              "mediaType"
+            ]
           }
         },
         "required": [
@@ -2444,6 +2770,28 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 256
+              },
+              "attachment": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "image"
+                  },
+                  "locator": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "mediaType": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "type",
+                  "locator",
+                  "mediaType"
+                ]
               },
               "status": {
                 "type": "string",
@@ -2522,6 +2870,7 @@
                       "LEASE_LOST",
                       "NEEDS_RECONCILIATION",
                       "INTERRUPTED_REVIEWED",
+                      "SESSION_RUN_FAILED",
                       "INTERNAL_ERROR"
                     ]
                   },
@@ -2615,6 +2964,28 @@
                 "minLength": 1,
                 "maxLength": 256
               },
+              "attachment": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "image"
+                  },
+                  "locator": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "mediaType": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "type",
+                  "locator",
+                  "mediaType"
+                ]
+              },
               "status": {
                 "type": "string",
                 "enum": [
@@ -2692,6 +3063,7 @@
                       "LEASE_LOST",
                       "NEEDS_RECONCILIATION",
                       "INTERRUPTED_REVIEWED",
+                      "SESSION_RUN_FAILED",
                       "INTERNAL_ERROR"
                     ]
                   },

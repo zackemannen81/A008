@@ -86,6 +86,7 @@ export const PLATFORM_V3_ERROR_CODES = [
   "LEASE_LOST",
   "NEEDS_RECONCILIATION",
   "INTERRUPTED_REVIEWED",
+  "SESSION_RUN_FAILED",
   "INTERNAL_ERROR",
 ] as const;
 export const platformV3ErrorCodeSchema = z.enum(PLATFORM_V3_ERROR_CODES);

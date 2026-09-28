@@ -20,6 +20,7 @@
             "LEASE_LOST",
             "NEEDS_RECONCILIATION",
             "INTERRUPTED_REVIEWED",
+            "SESSION_RUN_FAILED",
             "INTERNAL_ERROR"
           ]
         },

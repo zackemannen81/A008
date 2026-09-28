@@ -291,6 +291,42 @@ test("leases fence stale writers and recovery distinguishes pre-dispatch from un
   );
 });
 
+test("a definite post-dispatch failure becomes failed and known", async (t) => {
+  const f = await fixture();
+  t.after(f.dispose);
+  const conversation = f.store.createConversation(SCOPE, { title: "known failure" });
+  const accepted = f.store.acceptRun(SCOPE, {
+    conversationId: conversation.id,
+    commandId: "known-failure",
+    expectedRevision: 0,
+    model: "model-a",
+    text: "fail after dispatch",
+  });
+  const claimed = f.store.claimRun(SCOPE, {
+    runId: accepted.run.id,
+    ownerToken: "worker-a",
+    leaseDurationMs: 100,
+  });
+  const dispatched = f.store.recordDispatch(SCOPE, {
+    runId: accepted.run.id,
+    ownerToken: "worker-a",
+    generation: claimed.lease.generation,
+    expectedRevision: claimed.run.revision,
+  });
+  assert.equal(dispatched.effectStatus, "unknown");
+  const failed = f.store.failRun(SCOPE, {
+    runId: accepted.run.id,
+    ownerToken: "worker-a",
+    generation: claimed.lease.generation,
+    expectedRevision: dispatched.revision,
+    error: { code: "SESSION_RUN_FAILED", message: "known provider failure" },
+  });
+  assert.equal(failed.status, "failed");
+  assert.equal(failed.effectStatus, "known");
+  assert.equal(failed.answerStatus, "failed");
+  assert.equal(failed.error?.message, "known provider failure");
+});
+
 test("answer, message, event and memory outcome commit with one terminal winner", async (t) => {
   const f = await fixture();
   t.after(f.dispose);
