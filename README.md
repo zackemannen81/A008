@@ -17,12 +17,13 @@ The status below is based on an inventory of the repository’s code, not on old
 | Memory view | Implemented | Read-only Overview, Relationship Map/graph, and Knowledge Manager with search, filters, domain/status, and pagination. |
 | CLI | Implemented | Interactive chat, `/help`, `/model`, `/status`, `/history`, `/undo`, `/reset`, `/cwd`, `/tools`, `/shell`, and `/exit`. |
 | Web GUI | Implemented | A008-owned React/Vite GUI with Chat, Memory, Tools, Help, Projects, Settings, Upload, Files, Terminal, Browser, and Code Canvas. |
-| Native desktop | Not implemented | No Tauri or other native desktop client exists in the repository. |
-| Expo/native proof | Not implemented | Stage 6 of the client API program has not started. |
+| Native desktop | Partially implemented | Standalone repo, no Tauri or other native desktop client exists in the repository. |
+| Expo/native proof |  Partially implemented  |  Standalone repo, Stage 6 of the client API program has not started. |
 | SDK | Implemented | `packages/client` contains the platform-independent `@a008/client` for V1, V2, and Platform V3 contracts. |
 | API | Implemented | V1 host/ACP surface, authenticated V2 HTTP/WebSocket surface, and opt-in V3 durable-work surface. |
 | SQLite | Implemented | `better-sqlite3` is used for local semantic memory and, when enabled, Platform V3 conversations/runs/leases/receipts/outbox. |
 | SQLite optional | Implemented | Memory uses configured SQLite or in-memory mode; Platform V3 is opened only with explicit local configuration. |
+| Background instances | Implemented - currently testing | . |
 
 ## Workflows and surfaces
 
