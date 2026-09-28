@@ -1,8 +1,8 @@
 # System Document — aktuell implementation
 
-Granskad: 2026-09-27; sessionsprocesser uppdaterade i A008-0191.
-Källrevision: `d80663e` + A008-0191 closure-docs.
-Verifiering och avgränsningar: [handoff A008-0191](handoffs/A008-0191.md).
+Granskad: 2026-09-28; GUI project-memory/settings binding uppdaterad i A008-0194.
+Källrevision: `87c969b` + A008-0194 closure-docs.
+Verifiering och avgränsningar: [handoff A008-0194](handoffs/A008-0194.md).
 
 Detta dokument beskriver implementerade ansvar och flöden. Målarkitekturen finns
 i [PROJECT_BRIEF.md](PROJECT_BRIEF.md) och [ADR 0055](adr/0055-durable-sessions-and-process-ownership.md).
@@ -25,6 +25,18 @@ den nya arkitekturgrunden har inte migrerat dem.
 [useDurableChat](../gui/src/session/use-durable-chat.ts) äger GUI-observationen.
 Vald session lagras per flik. Dispose/navigering kopplar bort observation utan
 att skicka cancellation. Explicit avbrytning använder värdens körningsväg.
+
+Memory-vyn skickar valt durable `projectId` till `/v1/memory`; värden resolve:ar
+projektets runtime via `ProjectRuntimeRegistry` och inspekterar just den
+projektägda memory-store:n. Legacy-klienter utan `projectId` kan fortfarande gå
+via den äldre ACP-bridgen, men durable projektbyte är inte längre beroende av
+hostens globala `workspace`/bridge-cache.
+
+Semantic/Budgets/Instructions använder `/v1/runtime-preferences` mot en host-owned
+`RuntimePreferencesStore`. Read/save/reload kräver därför varken vald chat,
+worktree eller levande sessionsprocess. Durable session snapshots kan bära samma
+preferences för befintlig UI-kompatibilitet, men den globala settingsytan ägs inte
+av sessionens livscykel.
 
 ## Beständig körningsdata
 

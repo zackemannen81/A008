@@ -240,7 +240,7 @@ function resolvedSqlitePath(raw: string, repositoryRoot: string): string {
  * rejected when it lands inside the A008 repository. Returned `undefined`
  * when unset, which callers treat as "source ingest is not configured".
  */
-function resolvedProviderTimeout(raw: string | undefined): number {
+export function resolvedProviderTimeout(raw: string | undefined): number {
   if (raw === undefined) {
     return DEFAULT_PROVIDER_TIMEOUT_MS;
   }

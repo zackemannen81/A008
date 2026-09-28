@@ -195,11 +195,13 @@ export async function loadMemory(
   client: HttpClientOptions,
   filters: MemoryFilters,
   signal?: AbortSignal,
+  projectId?: string,
 ): Promise<MemorySnapshot> {
   const params = new URLSearchParams({
     limit: "40",
     offset: String(filters.offset),
   });
+  if (projectId) params.set("projectId", projectId);
   for (const key of ["query", "kind", "domain", "status"] as const)
     if (filters[key]) params.set(key, filters[key]);
   const { response, body } = await requestJson(

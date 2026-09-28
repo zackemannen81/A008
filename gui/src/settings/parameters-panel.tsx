@@ -446,6 +446,9 @@ export function ParametersPanel(props: {
   );
   const [error, setError] = useState("");
   const { session } = props;
+  const runtimePreferences =
+    session.details?.runtimePreferences ??
+    session.durable?.getRuntimePreferences();
   const model = models.find((m) => m.id === session.model);
   const close = () => {
     dialog.current?.close();
@@ -597,14 +600,14 @@ export function ParametersPanel(props: {
         <div hidden={page !== "appearance"}>
           <AppearancePanel />
         </div>
-        {session.details?.runtimePreferences &&
+        {runtimePreferences &&
         (page === "semantic" ||
           page === "budgets" ||
           page === "instructions") ? (
           <GlobalSettingsForm
-            key={session.sessionId}
+            key={session.sessionId ?? "global"}
             session={session}
-            initial={session.details.runtimePreferences}
+            initial={runtimePreferences}
             page={page}
             models={models}
           />

@@ -29,7 +29,13 @@ const VIEWS: readonly { id: View; label: string; title: string }[] = [
   },
 ];
 
-export function MemoryPage({ active }: { active: boolean }) {
+export function MemoryPage({
+  active,
+  projectId,
+}: {
+  active: boolean;
+  projectId?: string;
+}) {
   const [view, setView] = useState<View>("overview");
   const [filters, setFilters] = useState<MemoryFilters>(EMPTY_FILTERS);
   const [search, setSearch] = useState("");
@@ -41,11 +47,18 @@ export function MemoryPage({ active }: { active: boolean }) {
   const [selected, setSelected] = useState<MemoryRecord>();
   useEffect(() => {
     if (!active) return;
+    if (!projectId) {
+      setLoading(false);
+      setSnapshot(undefined);
+      setSelected(undefined);
+      setError("Select a project before opening Memory.");
+      return;
+    }
     const controller = new AbortController();
     setLoading(true);
     setError(undefined);
     setSelected(undefined);
-    void loadMemory(filters, controller.signal)
+    void loadMemory(filters, controller.signal, projectId)
       .then((data) => {
         if (controller.signal.aborted) return;
         setSnapshot(data);
@@ -65,7 +78,7 @@ export function MemoryPage({ active }: { active: boolean }) {
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [active, filters, refresh]);
+  }, [active, filters, refresh, projectId]);
   function filter(patch: Partial<MemoryFilters>) {
     setFilters((current) => ({ ...current, ...patch, offset: 0 }));
   }

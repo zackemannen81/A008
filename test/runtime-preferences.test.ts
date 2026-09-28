@@ -1120,6 +1120,48 @@ test(
   },
 );
 
+test("host-global runtime preferences HTTP works without creating a chat session", async () => {
+  const isolated = isolatedMemoryEnv();
+  const host = await startGuiHost({
+    env: isolated.env,
+    port: 0,
+    host: "127.0.0.1",
+    cwd: process.cwd(),
+  });
+  const url = `http://127.0.0.1:${host.port}/v1/runtime-preferences`;
+  try {
+    const beforeResponse = await fetch(url);
+    assert.equal(beforeResponse.status, 200);
+    const before = (await beforeResponse.json()) as {
+      revision: string;
+      settings: RuntimePreferences;
+    };
+    assert.equal(before.settings.semantic.model, DEFAULT_MODEL_ID);
+    const next = {
+      ...before.settings,
+      semantic: { model: "gpt-6-luna", reasoningEffort: "medium" },
+    };
+    const savedResponse = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ settings: next, revision: before.revision }),
+    });
+    assert.equal(savedResponse.status, 200, await savedResponse.clone().text());
+    const saved = (await savedResponse.json()) as {
+      revision: string;
+      settings: RuntimePreferences;
+    };
+    assert.notEqual(saved.revision, before.revision);
+    assert.equal(saved.settings.semantic.model, "gpt-6-luna");
+    assert.equal(saved.settings.semantic.reasoningEffort, "medium");
+    const external = new RuntimePreferencesStore(isolated.env, 180000).snapshot();
+    assert.equal(external.settings.semantic.model, "gpt-6-luna");
+  } finally {
+    await host.close();
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
+});
+
 test("tool continuations retain one instruction snapshot without contaminating history or intake", async () => {
   const isolated = isolatedMemoryEnv();
   const external = new RuntimePreferencesStore(isolated.env, 180000);

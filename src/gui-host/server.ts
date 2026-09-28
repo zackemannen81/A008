@@ -104,7 +104,10 @@ import {
 import {
   findRepositoryRoot,
   moduleDirectory,
+  PROVIDER_TIMEOUT_ENV,
+  resolvedProviderTimeout,
 } from "../runtime/local-runtime-config.js";
+import { RuntimePreferencesStore } from "../runtime/runtime-preferences-store.js";
 import { handleBrowserFrameCheck } from "./browser-frame.js";
 import {
   ZERO_COST_MODEL_CATALOG_VERIFIED_AT,
@@ -325,6 +328,12 @@ export async function startGuiHost(
       env,
       ...(options.stderr ? { stderr: options.stderr } : {}),
     });
+  let runtimePreferencesStore: RuntimePreferencesStore | undefined;
+  const runtimePreferences = (): RuntimePreferencesStore =>
+    (runtimePreferencesStore ??= new RuntimePreferencesStore(
+      env,
+      resolvedProviderTimeout(env[PROVIDER_TIMEOUT_ENV]?.trim() || undefined),
+    ));
 
   const runtimeBaseEnv = (): NodeJS.ProcessEnv => ({
     ...env,
@@ -364,6 +373,19 @@ export async function startGuiHost(
     readProjectRegistry(projectsPath).projects.some(
       (project) => project.projectId === id,
     );
+  const projectRuntime = (projectId: string) => {
+    const project = readProjectRegistry(projectsPath).projects.find(
+      (entry) => entry.projectId === projectId,
+    );
+    if (!project) throw new ChatError("configuration", "Unknown project.");
+    return projectRegistry.openConfigured(project.rootFolder, {
+      ...runtimeBaseEnv(),
+      [PROJECT_ID_ENV]: projectId,
+      [SQLITE_PATH_ENV]: project.memory.useGlobalA008Memory
+        ? env[SQLITE_PATH_ENV]?.trim() || defaultSqlitePath()
+        : ":memory:",
+    });
+  };
   const devices =
     options.accessToken === undefined || platformConfig !== undefined
       ? new DeviceRegistry(env)
@@ -784,6 +806,11 @@ export async function startGuiHost(
       applyWorkspace,
       sidebarProjects,
       changeProjectChat,
+      runtimePreferencesSnapshot: () => runtimePreferences().snapshot(),
+      saveRuntimePreferences: (settings, revision) =>
+        runtimePreferences().save(settings, revision),
+      inspectProjectMemory: (projectId, query) =>
+        projectRuntime(projectId).runtime.inspectMemory(query),
       workspaceStore: requireWorkspaceStore(),
     });
   });
@@ -979,6 +1006,16 @@ async function handleHttp(input: {
   readonly workspaceStore: GuiWorkspaceStore;
   readonly sidebarProjects: () => ProjectSidebar;
   readonly changeProjectChat: (body: unknown) => Promise<WorkspaceBinding>;
+  readonly runtimePreferencesSnapshot: () =>
+    import("../core/runtime-preferences.js").RuntimePreferencesSnapshot;
+  readonly saveRuntimePreferences: (
+    settings: unknown,
+    revision: string,
+  ) => import("../core/runtime-preferences.js").RuntimePreferencesSnapshot;
+  readonly inspectProjectMemory: (
+    projectId: string,
+    query: import("../../packages/protocol/src/index.js").MemoryInspectionQuery,
+  ) => unknown | Promise<unknown>;
   readonly applyWorkspace: (next: {
     cwd: string;
     projectId: string;
@@ -998,20 +1035,69 @@ async function handleHttp(input: {
     sendJson(response, 405, errorBody("Memory inspection supports GET only."));
     return;
   }
+  if (
+    pathname === "/v1/runtime-preferences" &&
+    method !== "GET" &&
+    method !== "POST"
+  ) {
+    sendJson(response, 405, errorBody("Runtime preferences support GET and POST only."));
+    return;
+  }
 
   try {
+    if (method === "GET" && pathname === "/v1/runtime-preferences") {
+      sendJson(response, 200, input.runtimePreferencesSnapshot());
+      return;
+    }
+    if (method === "POST" && pathname === "/v1/runtime-preferences") {
+      if (!isJsonContentType(request)) {
+        sendJson(
+          response,
+          415,
+          errorBody("Content-Type must be application/json."),
+        );
+        return;
+      }
+      const body = await readJsonBody(request);
+      if (typeof body !== "object" || body === null || Array.isArray(body)) {
+        sendJson(response, 400, errorBody("Invalid runtime preferences request."));
+        return;
+      }
+      const payload = body as { settings?: unknown; revision?: unknown };
+      if (typeof payload.revision !== "string" || !("settings" in payload)) {
+        sendJson(response, 400, errorBody("Invalid runtime preferences request."));
+        return;
+      }
+      sendJson(
+        response,
+        200,
+        input.saveRuntimePreferences(payload.settings, payload.revision),
+      );
+      return;
+    }
     if (method === "GET" && pathname === "/v1/memory") {
       const params = new URL(request.url ?? "/v1/memory", "http://localhost")
         .searchParams;
       const raw: Record<string, unknown> = {};
+      let projectId: string | undefined;
+      const seen = new Set<string>();
       for (const [name, value] of params) {
-        if (name in raw) {
+        if (seen.has(name)) {
           sendJson(
             response,
             400,
             errorBody("Duplicate memory query parameter."),
           );
           return;
+        }
+        seen.add(name);
+        if (name === "projectId") {
+          projectId = value.trim();
+          if (!projectId) {
+            sendJson(response, 400, errorBody("projectId must not be empty."));
+            return;
+          }
+          continue;
         }
         raw[name] =
           name === "limit" || name === "offset"
@@ -1025,6 +1111,10 @@ async function handleHttp(input: {
         query = parseMemoryInspectionQuery(raw);
       } catch (error) {
         sendJson(response, 400, errorBody(publicErrorMessage(error)));
+        return;
+      }
+      if (projectId) {
+        sendJson(response, 200, await input.inspectProjectMemory(projectId, query));
         return;
       }
       const bridge = await input.getBridge();

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { rmSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
 import { A008AcpAgent } from "../src/acp/A008-acp-agent.js";
 import {
@@ -7,6 +8,7 @@ import {
   type AcpBridge,
 } from "../src/gui-host/acp-bridge.js";
 import { startGuiHost } from "../src/gui-host/server.js";
+import { writeProjectRegistry } from "../src/bootstrap/registry.js";
 import {
   asEntityId,
   createKnowledgeContext,
@@ -313,6 +315,76 @@ test("real HTTP to ACP inspection sees the actual store without a chat or provid
     assert.equal((await fetch(`${url}?limit=1&limit=2`)).status, 400);
     assert.equal((await fetch(`${url}?offset=`)).status, 400);
     assert.equal((await fetch(url, { method: "POST" })).status, 405);
+  } finally {
+    await host.close();
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
+});
+
+test("project-scoped HTTP memory follows explicit projectId instead of the cached legacy bridge", async () => {
+  const isolated = isolatedMemoryEnv({
+    NVIDIA_CHAT_COMPLETIONS_URL: "http://127.0.0.1:1/never-call",
+  });
+  const projectA = "A008_v1_project_10000000-0000-4000-8000-000000000001";
+  const projectB = "A008_v1_project_10000000-0000-4000-8000-000000000002";
+  const rootA = join(isolated.directory, "project-a");
+  const rootB = join(isolated.directory, "project-b");
+  mkdirSync(rootA);
+  mkdirSync(rootB);
+  const transport = memoryAwareFakeTransport({ chat: () => { throw new Error("unused"); } });
+  for (const [projectId, content] of [
+    [projectA, "Project Alpha memory only."],
+    [projectB, "Project Beta memory only."],
+  ] as const) {
+    const runtime = createLocalMemoryRuntime({
+      env: { ...isolated.env, A008_PROJECT_ID: projectId },
+      surface: "test",
+      createTransport: () => transport,
+    });
+    runtime.writeSharedMemory({ content });
+    runtime.close();
+  }
+  const projectsPath = join(isolated.directory, "projects.json");
+  const project = (projectId: string, name: string, rootFolder: string) => ({
+    projectId,
+    name,
+    rootFolder,
+    createdAt: "2026-09-27T00:00:00.000Z",
+    repository: { initialize: false, name },
+    continuity: { docsFirst: false, multiAgent: { enabled: false as const } },
+    memory: { useGlobalA008Memory: true },
+  });
+  writeProjectRegistry(projectsPath, {
+    version: 1,
+    currentId: projectA,
+    projects: [project(projectA, "Alpha", rootA), project(projectB, "Beta", rootB)],
+  });
+  const host = await startGuiHost({
+    env: { ...isolated.env, A008_PROJECTS_PATH: projectsPath },
+    projectsPath,
+    host: "127.0.0.1",
+    port: 0,
+    cwd: rootA,
+  });
+  try {
+    const read = async (projectId: string) => {
+      const response = await fetch(
+        `http://127.0.0.1:${host.port}/v1/memory?kind=utterance&projectId=${encodeURIComponent(projectId)}`,
+      );
+      assert.equal(response.status, 200, await response.clone().text());
+      return (await response.json()) as {
+        projectId: string;
+        records: Array<{ label: string }>;
+      };
+    };
+    const alpha = await read(projectA);
+    const beta = await read(projectB);
+    assert.equal(alpha.projectId, projectA);
+    assert.equal(beta.projectId, projectB);
+    assert.ok(alpha.records.some((record) => record.label.includes("Project Alpha")));
+    assert.equal(alpha.records.some((record) => record.label.includes("Project Beta")), false);
+    assert.ok(beta.records.some((record) => record.label.includes("Project Beta")));
+    assert.equal(beta.records.some((record) => record.label.includes("Project Alpha")), false);
   } finally {
     await host.close();
     rmSync(isolated.directory, { recursive: true, force: true });

@@ -2738,3 +2738,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Verification: root typecheck PASS; focused memory/prompt/extractor/ACP suites 63/63 PASS; no live provider calls; 0 SEK.
 - [Handoff](handoffs/A008-0193.md). [Archive](finished/A008-0193_memory-label-envelope.md).
 - Signature: ChatGPT (operator/worker)
+
+## 2026-09-28 — A008-0194 project memory and global runtime settings
+
+- Restored project-sensitive Memory after ADR 0055: durable Memory now sends explicit `projectId` and the host inspects the matching shared project runtime instead of whichever legacy ACP bridge was cached.
+- Restored Semantic/Budgets/Instructions as host-owned global settings through `/v1/runtime-preferences`; inspect/save/reload no longer requires a chat or sessionsprocess.
+- Preserved legacy memory callers without project identity through the previous bridge fallback.
+- Verification: root typecheck PASS; GUI typecheck PASS; focused host memory/settings 26/26; full GUI 216/216; no live provider calls; 0 SEK.
+- [Handoff](handoffs/A008-0194.md). [Archive](finished/A008-0194_project-memory-and-runtime-settings.md).
+- Signature: ChatGPT (operator/worker)

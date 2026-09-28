@@ -92,6 +92,7 @@ test("memory client encodes filters and uses a cancellable no-store read", async
   await loadMemory(
     { ...EMPTY_FILTERS, query: "å & memory", offset: 40 },
     controller.signal,
+    "project-selected",
     fetcher,
   );
   assert.equal(
@@ -101,6 +102,10 @@ test("memory client encodes filters and uses a cancellable no-store read", async
   assert.equal(
     new URL(url, "http://localhost").searchParams.get("offset"),
     "40",
+  );
+  assert.equal(
+    new URL(url, "http://localhost").searchParams.get("projectId"),
+    "project-selected",
   );
   assert.equal(options?.cache, "no-store");
   assert.equal(options?.signal, controller.signal);

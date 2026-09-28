@@ -36,7 +36,12 @@ export const KIND_LABEL: Readonly<Record<MemoryKind, string>> = {
 export async function loadMemory(
   filters: MemoryFilters,
   signal: AbortSignal,
+  projectIdOrFetcher?: string | typeof fetch,
   fetcher: typeof fetch = fetch,
 ): Promise<MemorySnapshot> {
-  return loadMemoryFromClient(guiHttp(fetcher), filters, signal);
+  const projectId =
+    typeof projectIdOrFetcher === "string" ? projectIdOrFetcher : undefined;
+  const request =
+    typeof projectIdOrFetcher === "function" ? projectIdOrFetcher : fetcher;
+  return loadMemoryFromClient(guiHttp(request), filters, signal, projectId);
 }

@@ -590,7 +590,14 @@ export function App() {
         />
       </main>
       <main className="a008-memory-main" hidden={page !== "memory"}>
-        <MemoryPage active={page === "memory"} />
+        <MemoryPage
+          active={page === "memory"}
+          projectId={
+            session.durable?.getSelectedProjectId() ??
+            session.details?.runtime.projectId ??
+            undefined
+          }
+        />
       </main>
       <main className="a008-help-main" hidden={page !== "help"}>
         <HelpPage session={session} onChat={() => navigate("chat")} />

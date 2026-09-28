@@ -1,9 +1,9 @@
 # Current Status — A008
 
-Granskad: 2026-09-27
-Källrevision: `d80663e` + A008-0191 closure-docs.
-Senaste arkitekturimplementation: A008-0191 (ADR 0055 durable session processes).
-Senaste minneskontextimplementation: A008-0189 (ADR 0056 minimal memory context).
+Granskad: 2026-09-28
+Källrevision: `87c969b` + A008-0194 closure-docs.
+Senaste arkitekturimplementation: A008-0194 (project-scoped memory view and host-owned runtime settings).
+Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 
 ## Godkänd riktning
 
@@ -32,11 +32,13 @@ modellvända minnesprojektionen och är implementerad genom A008-0189.
 | Semantiskt minne | Projektets semantiska ägare ligger kvar i värden. Sessionsprocesser begär retrieval/commit över IPC. Workspace-/revisionskontext bevaras för arbetskopiespecifika observationer. |
 | Chatthistorik utan memory | Durable historik är separat från semantiskt minne och kan läsas utan att projektets memory-runtime öppnas. |
 | GUI-status | Connection status, sessionsprocess och run-resultat exponeras som separata signaler. |
+| Memory-vy | Memory-inspektion binds uttryckligen till valt durable `projectId`; projektbyte återanvänder inte längre den cacheade legacy ACP-bridgens tidigare memory owner. Memory-inspektion startar ingen sessionsprocess. |
+| Globala runtime-inställningar | Semantic/Budgets/Instructions läses och sparas genom en host-owned `RuntimePreferencesStore`, oberoende av chat/session-processens livstid och tillgänglig även innan projektet har en chat. |
 
 Verifiering och detaljer finns i [A008-0191-handoff](handoffs/A008-0191.md) och
 [SYSTEMDOC.md](SYSTEMDOC.md).
 
-## Minneskontext — A008-0189
+## Minneskontext — A008-0193
 
 Worker och extractor använder samma librarian-valda retrieval-resultat men olika
 presentationer. Worker/userMessage-envelope skickar `id`, tillgänglig
@@ -47,7 +49,7 @@ oberoende adresser med samma värde hålls isär och dubbla råyttringar undertr
 Specifika taggträffar begränsar breda domänträffar. Befintlig ID-mappning för
 förstärkning finns kvar; läsning förstärker inte.
 
-Detaljer finns i [A008-0189-handoff](handoffs/A008-0189.md).
+Detaljer finns i [A008-0193-handoff](handoffs/A008-0193.md).
 
 ## Kvarvarande uttryckliga gränser
 
@@ -79,3 +81,15 @@ Lokala fixtures och implementationstester 2026-09-27, inga live-provideranrop:
 
 A008-0191 är därmed implementation/evidence för ADR 0055:s tio acceptanskriterier.
 Äldre task-/ADR-texter under historik återaktiveras inte genom sökning eller minne.
+
+## Verifiering — A008-0194
+
+Lokala fixtures 2026-09-28, inga live-provideranrop:
+
+- explicit projektbunden memory-inspektion: PASS;
+- host-owned runtime-preferences read/save utan sessionsprocess: PASS;
+- fokuserade host memory/settings-tester: **26/26 pass**;
+- root + GUI typecheck: PASS/PASS;
+- full GUI suite: **216/216 pass**.
+
+Detaljer finns i [A008-0194-handoff](handoffs/A008-0194.md).

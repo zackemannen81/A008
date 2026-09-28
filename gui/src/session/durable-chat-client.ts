@@ -17,6 +17,8 @@ import {
 import {
   guiRunActivitySchema,
   guiConversationViewSchema,
+  runtimePreferencesSnapshotSchema,
+  type RuntimePreferencesSnapshot,
   type PlatformV3Conversation,
   type PlatformV3Run,
   type ProjectSidebar,
@@ -90,6 +92,7 @@ export class DurableChatClient {
   #run: PlatformV3Run | undefined;
   #workspace: WorkspaceSession | undefined;
   #models: Awaited<ReturnType<typeof loadModels>> = [];
+  #runtimePreferences: RuntimePreferencesSnapshot | undefined;
   #epoch = 0;
   #refreshVersion = 0;
   #timer: ReturnType<typeof setTimeout> | undefined;
@@ -113,6 +116,8 @@ export class DurableChatClient {
   }
   getSnapshot = () => this.#state;
   getWorkspace = () => this.#workspace;
+  getSelectedProjectId = () => this.#selection?.projectId;
+  getRuntimePreferences = () => this.#runtimePreferences;
   subscribe = (listener: () => void) => {
     this.#listeners.add(listener);
     return () => {
@@ -129,6 +134,40 @@ export class DurableChatClient {
       error: error instanceof Error ? error.message : "Chat request failed.",
     });
   }
+  #loadRuntimePreferences = async (): Promise<RuntimePreferencesSnapshot> => {
+    const { response, body } = await requestJson(
+      this.http,
+      "/v1/runtime-preferences",
+    );
+    if (!response.ok)
+      throw new Error(messageFromBody(body, "Cannot load global settings."));
+    const parsed = runtimePreferencesSnapshotSchema.safeParse(body);
+    if (!parsed.success)
+      throw new Error("Host returned invalid global settings.");
+    this.#runtimePreferences = parsed.data;
+    return parsed.data;
+  };
+  #saveRuntimePreferences = async (
+    settings: unknown,
+    revision: string,
+  ): Promise<RuntimePreferencesSnapshot> => {
+    const { response, body } = await requestJson(
+      this.http,
+      "/v1/runtime-preferences",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ settings, revision }),
+      },
+    );
+    if (!response.ok)
+      throw new Error(messageFromBody(body, "Cannot save global settings."));
+    const parsed = runtimePreferencesSnapshotSchema.safeParse(body);
+    if (!parsed.success)
+      throw new Error("Host returned invalid saved global settings.");
+    this.#runtimePreferences = parsed.data;
+    return parsed.data;
+  };
 
   connect = async () => {
     this.#disposed = false;
@@ -145,6 +184,8 @@ export class DurableChatClient {
         this.#models[0]
       )
         this.#publish({ model: this.#models[0].id });
+      await this.#loadRuntimePreferences();
+      if (epoch !== this.#epoch || this.#disposed) return;
       const projects = await listSidebarProjects(this.http);
       if (epoch !== this.#epoch || this.#disposed) return;
       const projectId =
@@ -293,7 +334,12 @@ export class DurableChatClient {
       if (autoAllow && runId)
         await this.#permission(runId, permission.id, true);
       const model = run?.model ?? this.#state.model;
-      const details = snapshot as SessionSnapshot;
+      const details = {
+        ...snapshot,
+        ...(this.#runtimePreferences
+          ? { runtimePreferences: this.#runtimePreferences }
+          : {}),
+      } as SessionSnapshot;
       this.#publish({
         status: "ready",
         model,
@@ -480,8 +526,24 @@ export class DurableChatClient {
       // A new conversation preserves the old model's committed history.
       if (this.#selection)
         await this.selectChat(this.#selection.projectId, undefined, true);
-    } else if (control.action !== "inspect")
+    } else if (control.action === "configureRuntime") {
+      const preferences = await this.#saveRuntimePreferences(
+        control.settings,
+        control.revision,
+      );
+      if (!this.#state.details) throw new Error("Select a conversation first.");
+      const details = { ...this.#state.details, runtimePreferences: preferences };
+      this.#publish({ details });
+      return details;
+    } else if (control.action === "inspect") {
+      const preferences = await this.#loadRuntimePreferences();
+      if (!this.#state.details) throw new Error("Select a conversation first.");
+      const details = { ...this.#state.details, runtimePreferences: preferences };
+      this.#publish({ details });
+      return details;
+    } else {
       throw new Error("This control is unavailable for durable conversations.");
+    }
     if (!this.#state.details) throw new Error("Select a conversation first.");
     return this.#state.details;
   };
