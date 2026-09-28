@@ -1304,6 +1304,11 @@ export class PlatformStore {
     const commandId = this.#bounded(input.commandId, "commandId", 1, 256);
     const model = this.#bounded(input.model, "model", 1, 256);
     const text = this.#bounded(input.text, "text", 1, 65536);
+    if (Buffer.byteLength(text, "utf8") > 65536)
+      throw new PlatformStoreError(
+        "INVALID_REQUEST",
+        "text must not exceed 65536 UTF-8 bytes.",
+      );
     const attachment =
       input.attachment === undefined
         ? undefined

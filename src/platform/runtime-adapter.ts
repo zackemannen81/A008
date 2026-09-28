@@ -87,12 +87,11 @@ export async function completePlatformTextTurn(
       memoryStatus:
         answer === undefined ? "unknown" : memoryStatusOf(result.postOutput.status),
     };
-  } catch {
+  } catch (error) {
     const answer = newlyCommittedAnswer(before, session.messages);
-    return {
-      answer,
-      memoryStatus: answer === undefined ? "unknown" : "failed",
-    };
+    if (answer === undefined) throw error;
+    // The model answer is already committed locally; only post-output work failed.
+    return { answer, memoryStatus: "failed" };
   }
 }
 

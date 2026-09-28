@@ -1,12 +1,12 @@
 # ADR 0056 — Minimal memory context
 
 Status: Accepted
-Date: 2026-09-27
+Date: 2026-09-28
 Decision owner: Rickard
 Task: A008-0189
 
 The owner approves a model-facing memory item containing only `id`, a resolved
-`semanticAddress` when available, and either `currentState` or `claim` as text.
+`semanticAddress` when available, and `label` as text representation of the claim / current_state.
 `history` and `provenance` are optional and included only when the question or
 interpretation needs them. Current state wins over fallback claims for the same
 address. A recently ingested historical claim is not automatically current truth.

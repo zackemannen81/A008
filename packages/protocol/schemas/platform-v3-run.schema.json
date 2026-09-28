@@ -42,6 +42,28 @@
       "minLength": 1,
       "maxLength": 256
     },
+    "attachment": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "image"
+        },
+        "locator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "type",
+        "locator",
+        "mediaType"
+      ]
+    },
     "status": {
       "type": "string",
       "enum": [
@@ -119,6 +141,7 @@
             "LEASE_LOST",
             "NEEDS_RECONCILIATION",
             "INTERRUPTED_REVIEWED",
+            "SESSION_RUN_FAILED",
             "INTERNAL_ERROR"
           ]
         },
