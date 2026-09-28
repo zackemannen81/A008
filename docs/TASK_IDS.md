@@ -208,4 +208,8 @@ never whether work is active or complete. Task state belongs in
 | A008-0193 | send retrieved knowledge labels in model-facing memory envelope | ChatGPT (operator) | 2026-09-27 | projection-only change; preserve memory engine and retrieval semantics |
 | A008-0194 | restore project-scoped memory view and host-owned runtime settings | ChatGPT (operator) | 2026-09-27 | regression fix after ADR 0055; explicit project memory binding and process-independent settings |
 | A008-0195 | Durable state separation from live state | A008 (operator) | 2026-09-28 | Durable state separation from live state support |
+| A008-0196 | Bounded intra-turn context and continuation state | A008 (operator) | 2026-09-28 | Task 1 |
+| A008-0197 |  Durable continuation checkpoints | A008 (operator) | 2026-09-28 | Task 2 |
+| A008-0198 | Budget-triggered same-turn rebuild| A008 (operator) | 2026-09-28 | Task 3 |
+| A008-0199 | Interrupted-turn recovery and continuity proof | A008 (operator) | 2026-09-28 |Task 4 |
 
