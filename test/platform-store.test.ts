@@ -485,7 +485,7 @@ test("ADR 0055: v2 migration preserves history and durable activity resumes exac
   f.store.close();
   const old = new Database(f.filename);
   old.exec(
-    "DROP TABLE A008_session_activity_current; DROP TABLE A008_session_activity; DROP TABLE A008_session_instances; UPDATE A008_platform_schema SET version = 2",
+    "DROP TABLE A008_run_input; DROP TABLE A008_session_config; DROP TABLE A008_session_activity_current; DROP TABLE A008_session_activity; DROP TABLE A008_session_instances; UPDATE A008_platform_schema SET version = 2",
   );
   old.close();
   const migrated = new PlatformStore({ filename: f.filename });
@@ -581,4 +581,120 @@ test("lookupRunReceipt reads the canonical receipt and does not admit a run", as
     f.store.getConversation(SCOPE, conversation.id).messages[0]?.content,
     "same payload",
   );
+});
+
+
+test("A008-0195: durable session configuration survives reopen and rejects active-run mutation", async (t) => {
+  const f = await fixture();
+  t.after(f.dispose);
+  const parameters = {
+    stream: true,
+    temperature: null,
+    topP: null,
+    maxTokens: 4096,
+    enableThinking: null,
+    reasoningBudget: null,
+    reasoningEffort: "medium",
+    seed: null,
+    stop: null,
+  } as const;
+  const conversation = f.store.createConversation(SCOPE, {
+    title: "configured",
+    model: "gpt-6-luna",
+    parameters,
+  });
+  assert.deepEqual(f.store.getSessionConfiguration(SCOPE, conversation.id), {
+    model: "gpt-6-luna",
+    parameters,
+  });
+  const configured = f.store.configureSession(SCOPE, {
+    conversationId: conversation.id,
+    expectedRevision: 0,
+    model: "gpt-6-luna",
+    parameters: { ...parameters, maxTokens: 8192, reasoningEffort: "high" },
+  });
+  assert.equal(configured.revision, 1);
+  f.store.close();
+  const reopened = new PlatformStore({ filename: f.filename });
+  try {
+    assert.deepEqual(reopened.getSessionConfiguration(SCOPE, conversation.id), {
+      model: "gpt-6-luna",
+      parameters: { ...parameters, maxTokens: 8192, reasoningEffort: "high" },
+    });
+    const run = reopened.acceptRun(SCOPE, {
+      conversationId: conversation.id,
+      commandId: "configured-run",
+      expectedRevision: 1,
+      model: "gpt-6-luna",
+      text: "work",
+    });
+    assert.throws(
+      () =>
+        reopened.configureSession(SCOPE, {
+          conversationId: conversation.id,
+          expectedRevision: 2,
+          model: "gpt-6-luna",
+          parameters,
+        }),
+      expectCode("CONVERSATION_BUSY"),
+    );
+    assert.equal(run.run.status, "queued");
+  } finally {
+    reopened.close();
+  }
+});
+
+test("A008-0195: image attachment is durable run input and part of command identity", async (t) => {
+  const f = await fixture();
+  t.after(f.dispose);
+  const conversation = f.store.createConversation(SCOPE, { title: "vision" });
+  const firstInput = {
+    conversationId: conversation.id,
+    commandId: "vision-command",
+    expectedRevision: 0,
+    model: "gpt-6-luna",
+    text: "describe this",
+    attachment: {
+      type: "image" as const,
+      locator: "source:image-a",
+      mediaType: "image/png",
+    },
+  };
+  const accepted = f.store.acceptRun(SCOPE, firstInput);
+  assert.deepEqual(accepted.run.attachment, firstInput.attachment);
+  assert.deepEqual(f.store.lookupRunReceipt(SCOPE, firstInput), {
+    run: accepted.run,
+    replayed: true,
+  });
+  assert.throws(
+    () =>
+      f.store.lookupRunReceipt(SCOPE, {
+        ...firstInput,
+        attachment: {
+          type: "image" as const,
+          locator: "source:image-b",
+          mediaType: "image/png",
+        },
+      }),
+    expectCode("COMMAND_CONFLICT"),
+  );
+  assert.throws(
+    () =>
+      f.store.lookupRunReceipt(SCOPE, {
+        ...firstInput,
+        attachment: {
+          type: "image" as const,
+          locator: "source:image-a",
+          mediaType: "image/jpeg",
+        },
+      }),
+    expectCode("COMMAND_CONFLICT"),
+  );
+  f.store.close();
+  const reopened = new PlatformStore({ filename: f.filename });
+  try {
+    assert.deepEqual(reopened.getRun(SCOPE, accepted.run.id).attachment, firstInput.attachment);
+  } finally {
+    reopened.close();
+  }
 });

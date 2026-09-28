@@ -4,7 +4,11 @@ import {
   sessionActivityEventsSchema,
   sessionEffectReviewSchema,
 } from "./session-lifecycle.js";
-import { chatContentSchema } from "./schemas.js";
+import {
+  chatContentSchema,
+  promptImageAttachmentSchema,
+  sessionParametersSchema,
+} from "./schemas.js";
 
 const platformV3SafeInteger = z
   .number()
@@ -128,6 +132,7 @@ export const platformV3RunSchema = z.strictObject({
   principalId: platformV3IdSchema,
   commandId: platformV3IdSchema,
   model: platformV3BoundedText(256),
+  attachment: promptImageAttachmentSchema.optional(),
   status: platformV3RunStatusSchema,
   revision: platformV3RevisionSchema,
   createdAt: platformV3TimestampSchema,
@@ -189,6 +194,8 @@ export type PlatformV3ConversationListResponse = z.infer<
 >;
 export const platformV3ConversationCreateRequestSchema = z.strictObject({
   title: platformV3BoundedText(200),
+  model: platformV3BoundedText(256).optional(),
+  parameters: sessionParametersSchema.optional(),
 });
 export type PlatformV3ConversationCreateRequest = z.infer<
   typeof platformV3ConversationCreateRequestSchema
@@ -196,6 +203,14 @@ export type PlatformV3ConversationCreateRequest = z.infer<
 export const platformV3ConversationResponseSchema = z.strictObject({
   conversation: platformV3ConversationSchema,
 });
+export const platformV3ConversationConfigureRequestSchema = z.strictObject({
+  expectedRevision: platformV3RevisionSchema,
+  model: platformV3BoundedText(256),
+  parameters: sessionParametersSchema,
+});
+export type PlatformV3ConversationConfigureRequest = z.infer<
+  typeof platformV3ConversationConfigureRequestSchema
+>;
 export type PlatformV3ConversationResponse = z.infer<
   typeof platformV3ConversationResponseSchema
 >;
@@ -205,6 +220,7 @@ export const platformV3RunCreateRequestSchema = z.strictObject({
   expectedRevision: platformV3RevisionSchema,
   model: platformV3BoundedText(256),
   text: platformV3BoundedText(65_536),
+  attachment: promptImageAttachmentSchema.optional(),
 });
 export type PlatformV3RunCreateRequest = z.infer<
   typeof platformV3RunCreateRequestSchema
@@ -270,6 +286,8 @@ export function platformV3JsonSchemas() {
       "platform-v3-conversation-create-request":
         platformV3ConversationCreateRequestSchema,
       "platform-v3-conversation-response": platformV3ConversationResponseSchema,
+      "platform-v3-conversation-configure-request":
+        platformV3ConversationConfigureRequestSchema,
       "platform-v3-run-create-request": platformV3RunCreateRequestSchema,
       "platform-v3-run-create-response": platformV3RunCreateResponseSchema,
       "platform-v3-run-response": platformV3RunResponseSchema,
@@ -409,6 +427,22 @@ export function platformV3OpenApiDocument() {
           responses: {
             200: {
               description: "Conversation",
+              content: json("platform-v3-conversation-response"),
+            },
+            ...errorResponses,
+          },
+        },
+      },
+      "/v3/conversations/{conversationId}/configuration": {
+        post: {
+          parameters: [idParameter("conversationId")],
+          requestBody: {
+            required: true,
+            content: json("platform-v3-conversation-configure-request"),
+          },
+          responses: {
+            200: {
+              description: "Updated durable session configuration",
               content: json("platform-v3-conversation-response"),
             },
             ...errorResponses,

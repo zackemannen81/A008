@@ -14,6 +14,7 @@ import type {
   PlatformTextTurnResult,
 } from "./runtime-adapter.js";
 import type { ChatContentPart } from "../core/types.js";
+import type { PromptImageAttachment, SessionParameters } from "../../packages/protocol/src/index.js";
 
 export const PLATFORM_GUI_OWNER = "owner_gui";
 type Tool = Extract<GuiHostServerMessage, { type: "tool" }>;
@@ -43,6 +44,7 @@ export class GuiRunSession {
       env: NodeJS.ProcessEnv;
       cwd: string;
       model: string;
+      parameters: SessionParameters;
       conversationId: string;
       history: readonly PlatformTextHistoryMessage[];
       onActivity?: (activity: GuiRunActivity) => void;
@@ -84,6 +86,7 @@ export class GuiRunSession {
   async complete(
     text: string,
     signal: AbortSignal,
+    attachment?: PromptImageAttachment,
   ): Promise<PlatformTextTurnResult> {
     const abort = () => {
       this.#resolve?.({ outcome: { outcome: "cancelled" } });
@@ -137,6 +140,10 @@ export class GuiRunSession {
         },
       );
       this.#sessionId = created.sessionId;
+      this.#snapshot = this.#host.control(created.sessionId, {
+        action: "configure",
+        parameters: this.input.parameters,
+      });
       this.#host.subscribeSession(created.sessionId, (message) => {
         if (message.type === "session/activity" && message.state)
           this.#snapshot = message.state;
@@ -149,7 +156,22 @@ export class GuiRunSession {
       signal.addEventListener("abort", abort, { once: true });
       try {
         const result = await this.#host.prompt(
-          { sessionId: created.sessionId, prompt: [{ type: "text", text }] },
+          {
+            sessionId: created.sessionId,
+            prompt: [
+              { type: "text", text },
+              ...(attachment === undefined
+                ? []
+                : [
+                    {
+                      type: "resource_link" as const,
+                      uri: attachment.locator,
+                      name: "chat-image",
+                      mimeType: attachment.mediaType,
+                    },
+                  ]),
+            ],
+          },
           async () => {},
         );
         const status = result._meta?.["a008.memoryStatus"];

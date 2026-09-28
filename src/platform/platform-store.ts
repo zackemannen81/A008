@@ -1,7 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import Database from "better-sqlite3";
 import type { Database as BetterSqliteDatabase } from "better-sqlite3";
-import { chatContentSchema } from "../../packages/protocol/src/index.js";
+import {
+  chatContentSchema,
+  promptImageAttachmentSchema,
+  sessionParametersSchema,
+} from "../../packages/protocol/src/index.js";
 import type { ChatContent } from "../core/types.js";
 import type { GuiRunActivity } from "./gui-run-session.js";
 import type { SessionProcessIdentity } from "./session-process.js";
@@ -22,6 +26,7 @@ import type {
   ClaimPlatformRun,
   CommitPlatformAnswer,
   CreatePlatformConversation,
+  ConfigurePlatformSession,
   FailPlatformRun,
   LeaseWrite,
   ListPlatformRuns,
@@ -36,6 +41,7 @@ import type {
   PlatformRun,
   PlatformRunStatus,
   PlatformScope,
+  PlatformSessionConfiguration,
   RecordMemoryOutcome,
   RenewPlatformLease,
 } from "./types.js";
@@ -93,6 +99,14 @@ interface RunRow {
 interface ReceiptRow {
   readonly payload_digest: string;
   readonly run_id: string;
+}
+
+interface SessionConfigRow {
+  readonly model: string;
+  readonly parameters_json: string | null;
+}
+interface RunInputRow {
+  readonly attachment_json: string | null;
 }
 
 interface EventRow {
@@ -169,6 +183,19 @@ export class PlatformStore {
       1,
       256,
     );
+    if (input.parameters !== undefined && input.model === undefined)
+      throw new PlatformStoreError(
+        "INVALID_REQUEST",
+        "Session parameters require an explicit model.",
+      );
+    const model =
+      input.model === undefined
+        ? undefined
+        : this.#bounded(input.model, "model", 1, 256);
+    const parameters =
+      input.parameters === undefined
+        ? undefined
+        : sessionParametersSchema.parse(input.parameters);
     const id = parseRuntimeId(
       input.id ?? this.#identityFactory.create("conversation"),
       "conversation",
@@ -182,6 +209,17 @@ export class PlatformStore {
            VALUES (?, ?, ?, ?, ?, ?, ?, 0)`,
         )
         .run(id, scope.tenantId, scope.projectId, workspaceId, title, now, now);
+      if (model !== undefined)
+        this.#database
+          .prepare(
+            `INSERT INTO A008_session_config (session_id, model, parameters_json)
+             VALUES (?, ?, ?)`,
+          )
+          .run(
+            id,
+            model,
+            parameters === undefined ? null : JSON.stringify(parameters),
+          );
       this.#appendEvent(scope, id, null, "conversation.created", 0, now);
     });
     return this.#conversation(scope, id);
@@ -205,6 +243,86 @@ export class PlatformStore {
   ): PlatformConversation {
     this.#requireOpen();
     this.#validateScope(scope);
+    return this.#conversation(scope, conversationId);
+  }
+
+  getSessionConfiguration(
+    scope: PlatformScope,
+    conversationId: string,
+  ): PlatformSessionConfiguration | undefined {
+    this.#requireOpen();
+    this.#validateScope(scope);
+    const id = parseRuntimeId(conversationId, "conversation");
+    this.#conversationRow(scope, id);
+    const row = this.#database
+      .prepare(
+        `SELECT model, parameters_json FROM A008_session_config WHERE session_id = ?`,
+      )
+      .get(id) as SessionConfigRow | undefined;
+    if (row === undefined) return undefined;
+    return {
+      model: row.model,
+      ...(row.parameters_json === null
+        ? {}
+        : { parameters: sessionParametersSchema.parse(JSON.parse(row.parameters_json)) }),
+    };
+  }
+
+  configureSession(
+    scope: PlatformScope,
+    input: ConfigurePlatformSession,
+  ): PlatformConversation {
+    this.#requireOpen();
+    this.#validateScope(scope);
+    const conversationId = parseRuntimeId(input.conversationId, "conversation");
+    const model = this.#bounded(input.model, "model", 1, 256);
+    const parameters = sessionParametersSchema.parse(input.parameters);
+    this.#safeInteger(input.expectedRevision, "expectedRevision");
+    const now = this.#now();
+    this.#immediate(() => {
+      const conversation = this.#conversationRow(scope, conversationId);
+      if (conversation.revision !== input.expectedRevision)
+        throw new PlatformStoreError(
+          "REVISION_CONFLICT",
+          "Conversation revision does not match.",
+        );
+      const active = this.#database
+        .prepare(
+          `SELECT id FROM A008_platform_runs
+           WHERE tenant_id = ? AND project_id = ? AND conversation_id = ?
+             AND status IN ('queued', 'running', 'cancel_requested') LIMIT 1`,
+        )
+        .get(scope.tenantId, scope.projectId, conversationId) as
+        | { readonly id: string }
+        | undefined;
+      if (active !== undefined)
+        throw new PlatformStoreError(
+          "CONVERSATION_BUSY",
+          "Cannot configure a session while it has an active run.",
+        );
+      this.#database
+        .prepare(
+          `INSERT INTO A008_session_config (session_id, model, parameters_json)
+           VALUES (?, ?, ?)
+           ON CONFLICT(session_id) DO UPDATE SET
+             model = excluded.model, parameters_json = excluded.parameters_json`,
+        )
+        .run(conversationId, model, JSON.stringify(parameters));
+      const revision = conversation.revision + 1;
+      this.#database
+        .prepare(
+          `UPDATE A008_platform_conversations SET revision = ?, updated_at = ? WHERE id = ?`,
+        )
+        .run(revision, now, conversationId);
+      this.#appendEvent(
+        scope,
+        conversationId,
+        null,
+        "conversation.updated",
+        revision,
+        now,
+      );
+    });
     return this.#conversation(scope, conversationId);
   }
 
@@ -237,6 +355,7 @@ export class PlatformStore {
     const commandId = canonical.commandId;
     const model = canonical.model;
     const text = canonical.text;
+    const attachment = canonical.attachment;
     const payloadDigest = canonical.payloadDigest;
     const runId = this.#opaqueId(input.runId, "runId", "run");
     const messageId = this.#opaqueId(input.messageId, "messageId", "message");
@@ -251,6 +370,14 @@ export class PlatformStore {
       }
 
       const conversation = this.#conversationRow(scope, conversationId);
+      const config = this.#database
+        .prepare(`SELECT model, parameters_json FROM A008_session_config WHERE session_id = ?`)
+        .get(conversationId) as SessionConfigRow | undefined;
+      if (config !== undefined && config.model !== model)
+        throw new PlatformStoreError(
+          "INVALID_REQUEST",
+          "Run model does not match the durable session model.",
+        );
       if (conversation.revision !== canonical.expectedRevision) {
         throw new PlatformStoreError(
           "REVISION_CONFLICT",
@@ -320,6 +447,18 @@ export class PlatformStore {
           now,
           memoryStatus,
         );
+      if (config === undefined)
+        this.#database
+          .prepare(
+            `INSERT INTO A008_session_config (session_id, model, parameters_json) VALUES (?, ?, NULL)`,
+          )
+          .run(conversationId, model);
+      if (attachment !== undefined)
+        this.#database
+          .prepare(
+            `INSERT INTO A008_run_input (run_id, attachment_json) VALUES (?, ?)`,
+          )
+          .run(runId, JSON.stringify(attachment));
       this.#database
         .prepare(
           `INSERT INTO A008_platform_command_receipts
@@ -382,7 +521,7 @@ export class PlatformStore {
          ORDER BY created_at, id`,
       )
       .all(scope.tenantId, scope.projectId, ...(statuses ?? [])) as RunRow[];
-    return rows.map(runFromRow);
+    return rows.map((row) => this.#run(scope, row.id));
   }
 
   claimRun(scope: PlatformScope, input: ClaimPlatformRun): ClaimedPlatformRun {
@@ -990,6 +1129,15 @@ export class PlatformStore {
             .run(PLATFORM_SQLITE_SCHEMA_VERSION);
           return;
         }
+        if (existing.version === 3) {
+          this.#database.exec(SESSION_PROCESS_SCHEMA);
+          this.#database
+            .prepare(
+              "UPDATE A008_platform_schema SET version = ? WHERE singleton = 1",
+            )
+            .run(PLATFORM_SQLITE_SCHEMA_VERSION);
+          return;
+        }
         if (existing.version !== PLATFORM_SQLITE_SCHEMA_VERSION)
           throw new PlatformStoreError(
             "INVALID_REQUEST",
@@ -1044,7 +1192,11 @@ export class PlatformStore {
   }
 
   #run(scope: PlatformScope, id: string): PlatformRun {
-    return runFromRow(this.#runRow(scope, id));
+    const row = this.#runRow(scope, id);
+    const input = this.#database
+      .prepare(`SELECT attachment_json FROM A008_run_input WHERE run_id = ?`)
+      .get(row.id) as RunInputRow | undefined;
+    return runFromRow(row, input?.attachment_json ?? null);
   }
 
   #runRow(scope: PlatformScope, id: string): RunRow {
@@ -1148,12 +1300,17 @@ export class PlatformStore {
     readonly expectedRevision: number;
     readonly model: string;
     readonly text: string;
+    readonly attachment?: import("../../packages/protocol/src/index.js").PromptImageAttachment;
     readonly payloadDigest: string;
   } {
     const conversationId = parseRuntimeId(input.conversationId, "conversation");
     const commandId = this.#bounded(input.commandId, "commandId", 1, 256);
     const model = this.#bounded(input.model, "model", 1, 256);
     const text = this.#bounded(input.text, "text", 1, 65536);
+    const attachment =
+      input.attachment === undefined
+        ? undefined
+        : promptImageAttachmentSchema.parse(input.attachment);
     this.#safeInteger(input.expectedRevision, "expectedRevision");
     return {
       conversationId,
@@ -1161,11 +1318,13 @@ export class PlatformStore {
       expectedRevision: input.expectedRevision,
       model,
       text,
+      ...(attachment === undefined ? {} : { attachment }),
       payloadDigest: digest({
         conversationId,
         expectedRevision: input.expectedRevision,
         model,
         text,
+        attachment: attachment ?? null,
       }),
     };
   }
@@ -1265,7 +1424,7 @@ export class PlatformStore {
   }
 }
 
-function digest(payload: Record<string, string | number>): string {
+function digest(payload: unknown): string {
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
 
@@ -1282,7 +1441,14 @@ function messageFromRow(row: MessageRow): PlatformMessage {
   };
 }
 
-function runFromRow(row: RunRow): PlatformRun {
+function runFromRow(
+  row: RunRow,
+  attachmentJson: string | null = null,
+): PlatformRun {
+  const attachment =
+    attachmentJson === null
+      ? undefined
+      : promptImageAttachmentSchema.parse(JSON.parse(attachmentJson));
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -1292,6 +1458,7 @@ function runFromRow(row: RunRow): PlatformRun {
     principalId: row.principal_id,
     commandId: row.command_id,
     model: row.model,
+    ...(attachment === undefined ? {} : { attachment }),
     status: row.status,
     revision: row.revision,
     createdAt: row.created_at,

@@ -12,6 +12,7 @@ import type { MemoryReadRequest } from "../memory/retrieval-types.js";
 import type { StagePostOutputKnowledgeInput } from "../orchestration/post-output-knowledge-intake.js";
 import { parseRuntimeId } from "../identity/runtime-id.js";
 import { killProcessTree } from "../tools/terminal.js";
+import type { PromptImageAttachment, SessionParameters } from "../../packages/protocol/src/index.js";
 
 export interface SessionProcessIdentity {
   readonly sessionId: string;
@@ -33,8 +34,10 @@ export interface SessionProcessStart {
 export interface SessionProcessRun {
   runId: string;
   model: string;
+  parameters: SessionParameters;
   history: readonly PlatformTextHistoryMessage[];
   text: string;
+  attachment?: PromptImageAttachment;
   tools: boolean;
   recoveryRequired?: boolean;
 }

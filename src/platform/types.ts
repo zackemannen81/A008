@@ -1,4 +1,5 @@
 import type { ChatContent } from "../core/types.js";
+import type { PromptImageAttachment, SessionParameters } from "../../packages/protocol/src/index.js";
 
 /** Trusted backend authority. Callers must never derive this from a resource ID. */
 export interface PlatformScope {
@@ -56,6 +57,7 @@ export interface PlatformRun {
   readonly principalId: string;
   readonly commandId: string;
   readonly model: string;
+  readonly attachment?: PromptImageAttachment;
   readonly status: PlatformRunStatus;
   readonly revision: number;
   readonly createdAt: number;
@@ -101,6 +103,20 @@ export interface CreatePlatformConversation {
   readonly id?: string;
   readonly title: string;
   readonly workspaceId?: string;
+  readonly model?: string;
+  readonly parameters?: SessionParameters;
+}
+
+export interface PlatformSessionConfiguration {
+  readonly model: string;
+  readonly parameters?: SessionParameters;
+}
+
+export interface ConfigurePlatformSession {
+  readonly conversationId: string;
+  readonly expectedRevision: number;
+  readonly model: string;
+  readonly parameters: SessionParameters;
 }
 
 export interface AcceptPlatformRun {
@@ -109,6 +125,7 @@ export interface AcceptPlatformRun {
   readonly expectedRevision: number;
   readonly model: string;
   readonly text: string;
+  readonly attachment?: PromptImageAttachment;
   readonly runId?: string;
   readonly messageId?: string;
   readonly memoryRequested?: boolean;
