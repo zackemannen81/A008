@@ -25,11 +25,13 @@ await v2.connect();
 await v2.prompt("Hello");
 ```
 
-The bundled web GUI uses `createGuiSessionClient` (V1 session adapter) so
-PIN-disabled standalone hosts, engine-panel capabilities, prompt attachments
-and in-session image generation keep working. Independent consumers use the
-V2 adapter. The SDK never auto-resubmits a mutation after `COMMAND_UNKNOWN`
-or `SESSION_EXPIRED`.
+The bundled standalone web GUI uses `DurableChatClient` for normal sidebar
+conversations through the authenticated host facade. Each writable conversation
+is bound to an isolated workspace; configuration and runs are durable, and
+browser navigation/disconnect only detaches observation. Legacy V1 session
+adapters remain for engine panels and compatibility paths. Independent clients
+can use V2 or Platform V3 as appropriate. The SDK never auto-resubmits a
+mutation after `COMMAND_UNKNOWN` or `SESSION_EXPIRED`.
 
 ## Platform V3
 

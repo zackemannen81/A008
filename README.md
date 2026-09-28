@@ -13,17 +13,17 @@ The status below is based on an inventory of the repository’s code, not on old
 | --- | --- | --- |
 | Shared runtime | Implemented | `ProjectRuntimeRegistry`, `EngineHost`, project-bound sessions, workspace/chat ownership, and portable engine bundle. |
 | Projects | Implemented | Create projects, register existing directories, open projects, project registry, saved conversations, and workspace sessions. |
-| Chat/sessions | Implemented | Streamed thought/answer, rollback on failed turns, session controls, reconnect/resume within the same process, and stable turn/message identity in V2. |
+| Chat/sessions | Implemented | Normal standalone GUI uses host-owned durable conversations/runs with isolated worktrees, process-per-session execution, background observation, stored model/parameters, and image attachments. V1/V2/ACP remain compatibility surfaces. |
 | Memory view | Implemented | Read-only Overview, Relationship Map/graph, and Knowledge Manager with search, filters, domain/status, and pagination. |
 | CLI | Implemented | Interactive chat, `/help`, `/model`, `/status`, `/history`, `/undo`, `/reset`, `/cwd`, `/tools`, `/shell`, and `/exit`. |
 | Web GUI | Implemented | A008-owned React/Vite GUI with Chat, Memory, Tools, Help, Projects, Settings, Upload, Files, Terminal, Browser, and Code Canvas. |
-| Native desktop | Partially implemented | Standalone repo, no Tauri or other native desktop client exists in the repository. |
-| Expo/native proof |  Partially implemented  |  Standalone repo, Stage 6 of the client API program has not started. |
+| Native desktop | Not implemented | No Tauri or other native desktop client exists in this repository. |
+| Expo/native proof | Not implemented | Client-API-program Stage 6 has not started. |
 | SDK | Implemented | `packages/client` contains the platform-independent `@a008/client` for V1, V2, and Platform V3 contracts. |
 | API | Implemented | V1 host/ACP surface, authenticated V2 HTTP/WebSocket surface, and opt-in V3 durable-work surface. |
 | SQLite | Implemented | `better-sqlite3` is used for local semantic memory and, when enabled, Platform V3 conversations/runs/leases/receipts/outbox. |
-| SQLite optional | Implemented | Memory uses configured SQLite or in-memory mode; Platform V3 is opened only with explicit local configuration. |
-| Background instances | Implemented - currently testing | . |
+| SQLite optional | Implemented | Memory uses configured SQLite or in-memory mode; public V3 remains configuration-gated, while normal standalone durable GUI chat can initialize its shared local Platform backend on first access. |
+| Background instances | Implemented | The host runs process-per-session workers for durable project sessions; normal GUI submissions and observations use the shared Platform store/coordinator. |
 
 ## Workflows and surfaces
 
@@ -33,7 +33,7 @@ Projects are host-owned and can be created with optional Git initialization, a D
 
 ### Chat
 
-The CLI, GUI, ACP, and V2 use the same runtime and provider composition. The standalone GUI uses compatible V1 sessions for current functionality; independent clients use the V2 adapter.
+Normal standalone GUI chat uses durable project conversations/runs behind the authenticated `/v1/chat/v3/*` facade and shares the configured Platform store/coordinator with public V3. Each writable conversation has its own Git worktree; accepted runs continue when the browser disconnects. Engine panels and legacy adapter paths retain V1 compatibility. Independent clients can use V2 or Platform V3 as appropriate.
 
 ### Memory
 
@@ -88,7 +88,7 @@ The V1 host has WebSocket sessions at `/v1/session` as well as routes for memory
 
 V2 includes `GET /v2/info`, scoped device grants/revoke, one-use short-lived auth tickets, and `WS /v2/session` with `a008.v2`. Actions are `session/new`, `session/inspect`, `session/prompt`, `session/cancel`, `session/control`, and `tool/permission`. Event sequencing, terminal outcomes, bounded command receipts/idempotency, same-process reconnect/resume, and explicit restart uncertainty are supported. These are process-local guarantees, not durable exactly-once execution or durable sessions after a process restart.
 
-Platform V3 is an opt-in local durable-work backend using SQLite for conversations, runs, leases, receipts, outbox events, cancellation, and recovery boundaries. The SDK contract is available, but V3 is not opened without explicit platform configuration. Public reconciliation is not implemented.
+The local Platform backend persists conversations, run receipts, events, workspaces, per-conversation model/generation configuration, session-process identity/activity, and run attachment metadata. Normal standalone GUI chat can open the shared local backend on first access; `A008_PLATFORM_PATH`/host `platformPath` overrides that location. Answer, memory and external-effect outcomes are recorded separately. Public reconciliation remains unavailable.
 
 ## Providers and models
 
@@ -577,7 +577,7 @@ V1 hosten har WebSocket-sessioner på `/v1/session` samt routes för memory insp
 
 V2 innehåller `GET /v2/info`, scoped device grants/revoke, one-use short-lived auth tickets och `WS /v2/session` med `a008.v2`. Actions är `session/new`, `session/inspect`, `session/prompt`, `session/cancel`, `session/control` och `tool/permission`. Eventsekvensering, terminal outcomes, bounded command receipts/idempotency, same-process reconnect/resume och explicit restart uncertainty finns. Detta är processlokala garantier, inte durable exactly-once execution eller durable sessioner efter processrestart.
 
-Platform V3 är en opt-in lokal durable-work backend med SQLite för conversations, runs, leases, receipts, outbox events, cancellation och recovery boundaries. SDK-kontraktet finns, men V3 öppnas inte utan explicit platform-konfiguration. Public reconciliation är inte implementerad.
+Platform V3 är en lokal durable-work backend med SQLite för conversations, runs, leases, receipts, outbox events, cancellation och recovery boundaries. Den fristående GUI-fasaden kan initiera den lokala backenden automatiskt; `A008_PLATFORM_PATH`/`GuiHostOptions.platformPath` är override/explicit konfiguration. Public reconciliation är inte implementerad.
 
 ## Providers och modeller
 

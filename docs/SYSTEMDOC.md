@@ -1,8 +1,8 @@
 # System Document — aktuell implementation
 
-Granskad: 2026-09-28; GUI project-memory/settings binding uppdaterad i A008-0194.
-Källrevision: `87c969b` + A008-0194 closure-docs.
-Verifiering och avgränsningar: [handoff A008-0194](handoffs/A008-0194.md).
+Granskad: 2026-09-28; A008-0195 utökar durable GUI/runtime med per-session-konfiguration, bilagor och separerade answer-/memory-/effect-utfall.
+Källrevision: `cba276a` (kodgranskning; denna dokumentationsreparation är ännu ocommittad).
+Verifiering och avgränsningar: [handoff A008-0194](handoffs/A008-0194.md); A008-0195-fakta nedan är verifierade mot aktuell källkod.
 
 Detta dokument beskriver implementerade ansvar och flöden. Målarkitekturen finns
 i [PROJECT_BRIEF.md](PROJECT_BRIEF.md) och [ADR 0055](adr/0055-durable-sessions-and-process-ownership.md).
@@ -36,7 +36,8 @@ Semantic/Budgets/Instructions använder `/v1/runtime-preferences` mot en host-ow
 `RuntimePreferencesStore`. Read/save/reload kräver därför varken vald chat,
 worktree eller levande sessionsprocess. Durable session snapshots kan bära samma
 preferences för befintlig UI-kompatibilitet, men den globala settingsytan ägs inte
-av sessionens livscykel.
+av sessionens livscykel. Modell och generation parameters lagras separat per
+durable conversation med revisionskontroll och kan inte ändras under aktiv run.
 
 ## Beständig körningsdata
 
@@ -50,7 +51,8 @@ hanterar ägarskap och återhämtning samt håller aktiva GUI-körningar.
 Utgångna leases hanteras konservativt: redan dispatchat arbete med okänt
 utfall kan bli `needs_reconciliation`, utan implicit återspelning.
 
-SQLite-schema 3 lagrar även senaste sessionsinstans samt publik körningsaktivitet.
+SQLite-schema version 4 lagrar även per-session-konfiguration och run-input för
+bilagor, utöver senaste sessionsinstans samt publik körningsaktivitet.
 Varje publik förändring får en stigande cursor; svarstext sparas som append/replace,
 verktyg uppdateras med ID och väntande godkännanden kan sättas eller tas bort.
 En materialiserad snapshot och dess cursor skrivs i samma transaktion. Klienten
@@ -58,6 +60,9 @@ kan läsa snapshot och därefter `activity-events?after=<cursor>` i sidor om 100
 Händelser med redan behandlad cursor ignoreras. GUI:s polling ersätter hela
 aktivitetssnapshoten och lägger aldrig samma textdelta till svaret två gånger.
 Privat resonemang och interna enginesnapshotar är endast liveinformation.
+Run-resultat skiljer beständigt på `effectStatus`, `answerStatus` och
+`memoryStatus`, så ett sparat answer inte behöver behandlas som misslyckat bara
+för att efterföljande memory-arbete gör det.
 Historikläsning skapar varken sessionsprocess eller semantisk runtime.
 
 ## Workspace
@@ -177,8 +182,9 @@ filbrowser/editor, källmaterial, bilder och klient-/protokollpaket.
 [FILESTRUCTURE.md](FILESTRUCTURE.md) visar deras platser. Omläggningen har inte
 ändrat dessa implementationer eller verifierat alla deras beteenden på nytt.
 
-Vanliga durable promptinmatningar är textbaserade. Bildbilagor, undo och
-genereringsinställningar är inte likvärdigt exponerade mellan alla adaptrar.
+Vanliga durable GUI-runs kan bära en bildbilagas locator och media type som
+beständigt run-input. Undo och generationsinställningar är fortfarande inte
+likvärdigt exponerade mellan alla adaptrar.
 Modellens bildgenereringsverktyg hanteras i GUI-körningen innan svaret sparas.
 Legacy V1-historik migreras inte automatiskt till durable conversations.
 
@@ -190,7 +196,7 @@ Legacy V1-historik migreras inte automatiskt till durable conversations.
 | Befintlig bunden V3-session | Behåller sitt workspace, äldre branchnamn och historik. Ny process skapas vid nästa meddelande. Okänd startcommit förblir okänd; inga namn eller filer ändras automatiskt. |
 | Obunden V3 (`legacy-unbound`) | Historik kan läsas; körning nekas. Ägaren behöver uttryckligen välja migration till separat worktree. Ingen rotfallback eller automatisk import. |
 | V1/V2/ACP, engine-panel och standalone CLI | Befintliga kompatibilitetsadapteridentiteter och historiklager består. De blir inte automatiskt durable projektsessioner och kopieras inte till V3. Anslutna klienter använder V3 för den nya sessionslivscykeln. |
-| Platform SQLite v1/v2 | Transaktionell uppgradering till v3; historik/receipts bevaras, nya instance/activity-tabeller tillkommer. Ingen process återansluts utifrån ett sparat PID. |
+| Platform SQLite äldre versioner | Transaktionell uppgradering till schema v4; historik/receipts bevaras, instance/activity-tabeller samt session config/run input migreras additivt. Ingen process återansluts utifrån ett sparat PID. |
 | Workspace SQLite | Additiva, nullable sessionId/baseCommit-fält. Endast nya allokeringar får verifierad startrevision och nya branchformatet. |
 
 Process- och aktivitetsscheman finns i `packages/protocol/src/session-lifecycle.ts`.

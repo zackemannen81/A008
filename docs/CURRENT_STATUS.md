@@ -1,8 +1,8 @@
 # Current Status — A008
 
 Granskad: 2026-09-28
-Källrevision: `87c969b` + A008-0194 closure-docs.
-Senaste arkitekturimplementation: A008-0194 (project-scoped memory view and host-owned runtime settings).
+Källrevision: `cba276a` (kodgranskning; denna dokumentationsreparation är ännu ocommittad).
+Senaste arkitekturimplementation: A008-0195 (durable per-session-konfiguration, bilagor och separerade run-resultat).
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 
 ## Godkänd riktning
@@ -21,16 +21,16 @@ modellvända minnesprojektionen och är implementerad genom A008-0189.
 
 | Område | Aktuellt beteende |
 | --- | --- |
-| Projekt och sessioner | Durable projekt-sessioner lagras i Platform SQLite. Intern `conversationId` är uttryckligen samma beständiga identitet som produktens `sessionId` på denna yta. |
+| Projekt och sessioner | Durable projekt-sessioner lagras i Platform SQLite. Intern `conversationId` är uttryckligen samma beständiga identitet som produktens `sessionId` på denna yta; varje writable session har egen beständig modell-/genereringskonfiguration. |
 | Workspaces | Nya projektsessioner får egen Git-worktree och branch `a008/session-<sessionId>` före körbar publicering. Base branch och faktisk startcommit sparas. Ingen tyst fallback till projekt-roten finns. |
 | Sessionsprocesser | Värden äger högst en levande `SessionProcess` per session. Processen är separat OS-process, återanvänds mellan meddelanden och ersätts med nytt `instanceId`/PID efter död eller explicit stopp. |
-| Körningar | En aktiv run per session; olika sessioner kan arbeta parallellt. Accepterat arbete fortsätter när GUI byter session/projekt eller kopplas bort. |
+| Körningar | Flera sessioner kan arbeta parallellt upp till värdens kapacitet; varje session tillåter en aktiv run åt gången. Accepterat arbete fortsätter när GUI byter session/projekt eller kopplas bort. |
 | Historik och återanslutning | Historik kan läsas utan processstart. Publik run-aktivitet lagras med cursor/snapshot så klienten kan återansluta utan att skicka senaste kommandot igen eller dubblera sparade event. |
 | Verktyg och approvals | GUI-runnern kör verktyg i sessionens workspace-CWD. Pending approvals ägs av sessionsprocessen och kan besvaras av en behörig ansluten klient; disconnect avgör inte beslutet. |
 | Crash recovery | Död sessionsprocess raderar inte session/workspace/historik. Nästa nya meddelande kan starta en ny process. Okända tidigare effekter återspelas aldrig automatiskt och kan granskas explicit före beroende writes. |
 | Workspace-fel | Saknad/discarded worktree gör runnen failed med `WORKSPACE_MISSING`; den kör aldrig i projekt-roten. |
 | Semantiskt minne | Projektets semantiska ägare ligger kvar i värden. Sessionsprocesser begär retrieval/commit över IPC. Workspace-/revisionskontext bevaras för arbetskopiespecifika observationer. |
-| Chatthistorik utan memory | Durable historik är separat från semantiskt minne och kan läsas utan att projektets memory-runtime öppnas. |
+| Chatthistorik utan memory | Durable historik är separat från semantiskt minne; answer-, minnes- och external-effect-utfall lagras separat och kan rapporteras/återhämtas utan att göra dem till semantic memory. |
 | GUI-status | Connection status, sessionsprocess och run-resultat exponeras som separata signaler. |
 | Memory-vy | Memory-inspektion binds uttryckligen till valt durable `projectId`; projektbyte återanvänder inte längre den cacheade legacy ACP-bridgens tidigare memory owner. Memory-inspektion startar ingen sessionsprocess. |
 | Globala runtime-inställningar | Semantic/Budgets/Instructions läses och sparas genom en host-owned `RuntimePreferencesStore`, oberoende av chat/session-processens livstid och tillgänglig även innan projektet har en chat. |
@@ -59,8 +59,8 @@ Detaljer finns i [A008-0193-handoff](handoffs/A008-0193.md).
 - Durable `legacy-unbound` historik kan läsas men får inte köras innan en explicit
   migration binder sessionen till en separat worktree.
 - Durable input-/kontrollparitet är inte fullständig mot alla äldre adaptrar;
-  bildbilagor, undo och vissa generationskontroller är fortfarande olika mellan
-  ytorna.
+  bildbilagor stöds nu i durable runs, medan undo och vissa generationskontroller
+  fortfarande skiljer sig mellan ytorna.
 - Worktree lifecycle gör ingen automatisk merge, push, publicering eller dirty
   delete. Sådana åtgärder är fortsatt uttryckliga.
 - Automatisk idle-timeout för en levande sessionsprocess är inte beslutad i ADR
@@ -93,3 +93,13 @@ Lokala fixtures 2026-09-28, inga live-provideranrop:
 - full GUI suite: **216/216 pass**.
 
 Detaljer finns i [A008-0194-handoff](handoffs/A008-0194.md).
+
+## Verifiering — A008-0195
+
+Lokal verifiering mot `cba276a` 2026-09-28, inga live-provideranrop:
+
+- root TypeScript build: **PASS**;
+- fokuserade Platform/session/memory-tester: **24/24 pass**;
+- durable GUI-klienttester: **6/6 pass**;
+- durable session configuration, image run-input och separata
+  answer-/memory-/effect-utfall finns i schema/runtime-kontrakten.
