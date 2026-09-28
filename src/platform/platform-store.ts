@@ -686,18 +686,15 @@ export class PlatformStore {
       1024,
     );
     return this.#leaseTransition(scope, input, "running", (run, now) => {
-      if (run.effect_status === "unknown") {
-        throw new PlatformStoreError(
-          "NEEDS_RECONCILIATION",
-          "An unknown dispatched effect cannot be failed without reconciliation.",
-        );
-      }
+      // failRun means the active owner received a definite failure outcome.
+      // A dispatched model request can therefore move from provisional
+      // "unknown" to "known" here. Process/IPC loss never calls failRun.
       const revision = run.revision + 1;
       this.#database
         .prepare(
           `UPDATE A008_platform_runs SET status = 'failed', revision = ?, updated_at = ?,
-             lease_owner_token = NULL, lease_expires_at = NULL, answer_status = 'failed',
-             error_code = ?, error_message = ? WHERE id = ?`,
+             lease_owner_token = NULL, lease_expires_at = NULL, effect_status = 'known',
+             answer_status = 'failed', error_code = ?, error_message = ? WHERE id = ?`,
         )
         .run(revision, now, code, message, run.id);
       this.#appendEvent(

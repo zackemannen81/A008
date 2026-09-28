@@ -1166,7 +1166,7 @@ test(
 );
 
 test(
-  "cancellation, memory failure, and unknown provider failure stay distinct",
+  "cancellation, memory failure, and known provider failure stay distinct",
   { timeout: 50_000 },
   async () => {
     const provider = await startSessionControlProvider();
@@ -1350,15 +1350,17 @@ test(
         text: "FAIL-TURN now",
       });
       await waitFor(
-        "unknown failure fenced",
-        async () =>
-          (await client.getRun(failed.run.id)).run.status ===
-          "needs_reconciliation",
+        "known provider failure is terminal",
+        async () => (await client.getRun(failed.run.id)).run.status === "failed",
       );
-      const fenced = await client.getRun(failed.run.id);
-      assert.equal(fenced.run.effectStatus, "unknown");
-      assert.notEqual(fenced.run.status, "failed");
-      assert.notEqual(fenced.run.status, "cancelled");
+      const terminal = await client.getRun(failed.run.id);
+      assert.equal(terminal.run.effectStatus, "known");
+      assert.equal(terminal.run.answerStatus, "failed");
+      assert.equal(terminal.run.error?.code, "SESSION_RUN_FAILED");
+      assert.match(
+        terminal.run.error?.message ?? "",
+        /provider was unavailable|MODEL_UNAVAILABLE/u,
+      );
       assert.equal(chatCount(provider.requests, "FAIL-TURN now"), 1);
     } finally {
       await host.close();

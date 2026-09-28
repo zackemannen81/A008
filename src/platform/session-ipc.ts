@@ -5,6 +5,16 @@ export interface IpcChannel {
   send(message: unknown): unknown;
   on(event: "message", listener: (message: unknown) => void): unknown;
 }
+
+export class SessionProcessDisconnectedError extends Error {
+  readonly code = "SESSION_PROCESS_DISCONNECTED";
+  constructor(
+    message = "Session process disconnected; execution outcome may be unknown.",
+  ) {
+    super(message);
+    this.name = "SessionProcessDisconnectedError";
+  }
+}
 type Message = { version: 1; instanceId: string; id: string } & (
   | { type: "request"; method: string; payload: unknown }
   | { type: "response"; value?: unknown; error?: string }
@@ -71,11 +81,7 @@ export class SessionIpc {
     if (this.#closed) return;
     this.#closed = true;
     for (const pending of this.#pending.values())
-      pending.reject(
-        new Error(
-          "Session process disconnected; execution outcome may be unknown.",
-        ),
-      );
+      pending.reject(new SessionProcessDisconnectedError());
     this.#pending.clear();
     for (const active of this.#active.values()) active.abort();
     this.#active.clear();

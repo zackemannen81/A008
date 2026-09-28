@@ -97,7 +97,6 @@ export class GuiRunSession {
           .sessionAgent(this.#sessionId)
           .cancel({ sessionId: this.#sessionId });
     };
-    let failed = false;
     let memoryStatus: PlatformTextTurnResult["memoryStatus"] = "unknown";
     try {
       const created = await this.#host.newSession(
@@ -154,40 +153,36 @@ export class GuiRunSession {
       });
       signal.throwIfAborted();
       signal.addEventListener("abort", abort, { once: true });
-      try {
-        const result = await this.#host.prompt(
-          {
-            sessionId: created.sessionId,
-            prompt: [
-              { type: "text", text },
-              ...(attachment === undefined
-                ? []
-                : [
-                    {
-                      type: "resource_link" as const,
-                      uri: attachment.locator,
-                      name: "chat-image",
-                      mimeType: attachment.mediaType,
-                    },
-                  ]),
-            ],
-          },
-          async () => {},
-        );
-        const status = result._meta?.["a008.memoryStatus"];
-        memoryStatus =
-          status === "completed"
-            ? "completed"
-            : [
-                  "staging_failed",
-                  "commit_failed",
-                  "index_repair_required",
-                ].includes(String(status))
-              ? "failed"
-              : "unknown";
-      } catch {
-        failed = true;
-      }
+      const result = await this.#host.prompt(
+        {
+          sessionId: created.sessionId,
+          prompt: [
+            { type: "text", text },
+            ...(attachment === undefined
+              ? []
+              : [
+                  {
+                    type: "resource_link" as const,
+                    uri: attachment.locator,
+                    name: "chat-image",
+                    mimeType: attachment.mediaType,
+                  },
+                ]),
+          ],
+        },
+        async () => {},
+      );
+      const status = result._meta?.["a008.memoryStatus"];
+      memoryStatus =
+        status === "completed"
+          ? "completed"
+          : [
+                "staging_failed",
+                "commit_failed",
+                "index_repair_required",
+              ].includes(String(status))
+            ? "failed"
+            : "unknown";
       await this.#host.settleGeneratedImages(created.sessionId, signal);
       const snapshot = this.#host.control(created.sessionId, {
         action: "inspect",
@@ -209,11 +204,9 @@ export class GuiRunSession {
                 ? [{ type: "text", text: message.content }]
                 : message.content,
             );
-      return {
-        answer,
-        memoryStatus:
-          answer === undefined ? "unknown" : failed ? "failed" : memoryStatus,
-      };
+      if (answer === undefined)
+        throw new Error("Session completed without an assistant answer.");
+      return { answer, memoryStatus };
     } finally {
       signal.removeEventListener("abort", abort);
       this.#resolve?.({ outcome: { outcome: "cancelled" } });
