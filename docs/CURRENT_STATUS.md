@@ -52,6 +52,20 @@ förstärkning finns kvar; läsning förstärker inte.
 
 Detaljer finns i [A008-0193-handoff](handoffs/A008-0193.md).
 
+## Observerad operational learning
+
+En live A008-session 2026-09-29 gav agenten en explicit efterhandsfråga om varför
+A008-0196 hade varit svår. Svaret identifierade att kodning påbörjades innan
+aktuella repo-instruktioner/implementation och exakta task-krav hade verifierats,
+vilket ledde till testfel. Den ordinarie post-output-extractorn bevarade detta som
+en workspace-kvalificerad active claim med domains för projektledning och
+programvaruutveckling.
+
+Det visar att den befintliga knowledge-pipelinen redan kan göra:
+`misstag → explicit reflektion → claim → senare retrieval`, utan en separat
+reflection-memory-mekanism. Observationen bevisar mekanismen för detta fall; den
+gör inte en enskild agents slutsats till universell policy.
+
 ## Kvarvarande uttryckliga gränser
 
 - Legacy V1/V2/ACP/standalone-sessioner migreras inte automatiskt till durable

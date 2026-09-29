@@ -168,6 +168,16 @@ Extractor instrueras att återanvända/förstärka oförändrad kunskap; runtime
 validerar identiteten. Förändrade värden går genom befintligt state-/historikflöde.
 Läsning ensam förstärker ingenting. Ingen databasrensning eller migrering ingår.
 
+Post-output-pipelinen kan även bevara återanvändbar operational knowledge från
+assistentens explicita reflektion. I en observerad A008-0196-session svarade
+agenten på varför uppgiften blivit svår; extractorn skapade därefter en
+workspace-kvalificerad claim om att implementation hade börjat innan aktuella
+repo-instruktioner och exakta krav verifierats, med följden testfel. Claimens
+domains klassificerades som projektledning/programvaruutveckling. Detta använder
+ingen särskild reflection-store: det är vanlig generated knowledge med normal
+provenance, scope, lifecycle och retrieval. En enskild sådan observation är inte
+automatiskt en global workflow-regel.
+
 Sessionsprocessen öppnar inget projektminne i SQLite. Retrieval, post-output-
 uppdatering och ACP:s minnesoperationer går över IPC till värdens projektägare.
 Den lokala konversationskopian i child-processen är flyktig och seedas från
