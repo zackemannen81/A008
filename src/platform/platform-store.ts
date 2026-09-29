@@ -7,6 +7,10 @@ import {
   sessionParametersSchema,
 } from "../../packages/protocol/src/index.js";
 import type { ChatContent } from "../core/types.js";
+import {
+  validateRunContinuationState,
+  type RunContinuationState,
+} from "../core/chat-continuation.js";
 import type { GuiRunActivity } from "./gui-run-session.js";
 import type { SessionProcessIdentity } from "./session-process.js";
 import {
@@ -31,6 +35,9 @@ import type {
   LeaseWrite,
   ListPlatformRuns,
   PlatformConversation,
+  PlatformContinuationCheckpoint,
+  PlatformContinuationSourceBinding,
+  BindPlatformContinuationSourceInteraction,
   PlatformEffectStatus,
   PlatformEvent,
   PlatformEventPage,
@@ -44,6 +51,7 @@ import type {
   PlatformSessionConfiguration,
   RecordMemoryOutcome,
   RenewPlatformLease,
+  SavePlatformContinuationCheckpoint,
 } from "./types.js";
 
 const TERMINAL_RUN_STATUSES = new Set<PlatformRunStatus>([
@@ -936,6 +944,204 @@ export class PlatformStore {
       : undefined;
   }
 
+  bindContinuationSourceInteraction(
+    scope: PlatformScope,
+    input: BindPlatformContinuationSourceInteraction,
+  ): void {
+    this.#requireOpen();
+    this.#validateScope(scope);
+    const run = this.#runRow(scope, input.runId);
+    const sourceRef = this.#bounded(input.interaction.id, "sourceRef", 1, 300);
+    const separator = sourceRef.lastIndexOf(":");
+    const runtimeRunId =
+      separator < 1 ? "" : sourceRef.slice(0, separator);
+    const sourceSequence = this.#sourceSequence(sourceRef);
+    if (sourceRef !== `${runtimeRunId}:${sourceSequence}`) {
+      throw new PlatformStoreError(
+        "INVALID_REQUEST",
+        "Source reference is not a Task 1 interaction ID.",
+      );
+    }
+    this.#validateContinuationBinding(run, {
+      runId: input.runId,
+      turnId: input.turnId,
+      workspaceId: input.workspaceId,
+      runtimeRunId,
+    });
+    const assistantCallIds = input.interaction.messages.flatMap((message) =>
+      message.role === "assistant" && "toolCalls" in message
+        ? message.toolCalls.map((call) =>
+            this.#bounded(call.id, "toolCallId", 1, 256),
+          )
+        : [],
+    );
+    const resultCallIds = input.interaction.messages.flatMap((message) =>
+      message.role === "tool"
+        ? [this.#bounded(message.toolCallId, "toolCallId", 1, 256)]
+        : [],
+    );
+    if (
+      assistantCallIds.length === 0 ||
+      new Set(assistantCallIds).size !== assistantCallIds.length ||
+      assistantCallIds.length !== resultCallIds.length ||
+      assistantCallIds.some((id) => !resultCallIds.includes(id))
+    ) {
+      throw new PlatformStoreError(
+        "INVALID_REQUEST",
+        "Task 1 interaction must contain one retained result for every distinct tool call.",
+      );
+    }
+    this.#immediate(() => {
+      const events = assistantCallIds.map((toolCallId) => {
+        const eventCursor = this.#latestTerminalToolEventCursor(run.id, toolCallId);
+        if (eventCursor === undefined) {
+          throw new PlatformStoreError(
+            "INVALID_REQUEST",
+            "Source tool is not retained terminal raw evidence for this run.",
+          );
+        }
+        return { toolCallId, eventCursor };
+      });
+      const existing = this.#database.prepare(
+        `SELECT e.tool_call_id
+         FROM A008_run_continuation_sources AS s
+         LEFT JOIN A008_run_continuation_source_events AS e
+           ON e.run_id = s.run_id AND e.turn_id = s.turn_id
+          AND e.workspace_id = s.workspace_id
+          AND e.runtime_run_id = s.runtime_run_id
+          AND e.source_ref = s.source_ref
+         WHERE s.run_id = ? AND s.turn_id = ? AND s.workspace_id = ?
+           AND s.runtime_run_id = ? AND s.source_ref = ?
+         ORDER BY e.tool_call_id`,
+      ).all(
+        run.id,
+        input.turnId,
+        input.workspaceId,
+        runtimeRunId,
+        sourceRef,
+      ) as { tool_call_id: string | null }[];
+      if (existing.length > 0) {
+        const existingIds = existing
+          .flatMap((row) => row.tool_call_id === null ? [] : [row.tool_call_id])
+          .sort();
+        const intendedIds = [...assistantCallIds].sort();
+        if (JSON.stringify(existingIds) !== JSON.stringify(intendedIds)) {
+          throw new PlatformStoreError(
+            "INVALID_REQUEST",
+            "Continuation source reference is already bound to different raw evidence.",
+          );
+        }
+        return;
+      }
+      this.#database.prepare(
+        `INSERT INTO A008_run_continuation_sources
+         (run_id, turn_id, workspace_id, runtime_run_id, source_ref) VALUES (?, ?, ?, ?, ?)`,
+      ).run(run.id, input.turnId, input.workspaceId, runtimeRunId, sourceRef);
+      const insert = this.#database.prepare(
+        `INSERT INTO A008_run_continuation_source_events
+         (run_id, turn_id, workspace_id, runtime_run_id, source_ref, tool_call_id, event_cursor)
+         VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
+      );
+      for (const event of events) {
+        insert.run(
+          run.id,
+          input.turnId,
+          input.workspaceId,
+          runtimeRunId,
+          sourceRef,
+          event.toolCallId,
+          event.eventCursor,
+        );
+      }
+    });
+  }
+
+  saveContinuationCheckpoint(
+    scope: PlatformScope,
+    input: SavePlatformContinuationCheckpoint,
+  ): PlatformContinuationCheckpoint {
+    this.#requireOpen();
+    this.#validateScope(scope);
+    const now = this.#now();
+    let saved: PlatformContinuationCheckpoint | undefined;
+    this.#immediate(() => {
+      const run = this.#runRow(scope, input.runId);
+      this.#validateContinuationBinding(run, input);
+      const bindings = this.#continuationBindings(run.id, input.turnId, input.workspaceId, input.runtimeRunId);
+      const validSourceRefs = new Set(bindings.keys());
+      const state = validateRunContinuationState(input.state, {
+        runId: input.runtimeRunId,
+        validSourceRefs,
+        maximumBytes: input.maximumStateBytes,
+      });
+      const sourceRefs = [...new Set(continuationStateSourceRefs(state))].sort();
+      if (sourceRefs.length === 0) {
+        throw new PlatformStoreError("INVALID_REQUEST", "A persisted continuation checkpoint must cite durable source events.");
+      }
+      const maximumStateBytes = input.maximumStateBytes;
+      const prior = this.#database.prepare(
+        `SELECT coalesce(max(sequence), 0) AS sequence FROM A008_run_continuation_checkpoints
+         WHERE run_id = ? AND turn_id = ? AND workspace_id = ?`,
+      ).get(run.id, input.turnId, input.workspaceId) as { sequence: number };
+      const sequence = prior.sequence + 1;
+      const payload = JSON.stringify(state);
+      this.#database.prepare(
+        `INSERT INTO A008_run_continuation_checkpoints
+         (run_id, turn_id, workspace_id, runtime_run_id, sequence, format_version,
+          maximum_state_bytes, payload_json, source_refs_json, created_at)
+         VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`,
+      ).run(run.id, input.turnId, input.workspaceId, input.runtimeRunId, sequence,
+        maximumStateBytes, payload, JSON.stringify(sourceRefs), now);
+      saved = { runId: run.id, turnId: input.turnId, workspaceId: input.workspaceId,
+        runtimeRunId: input.runtimeRunId, sequence, formatVersion: 1, state,
+        sourceRefs, createdAt: now };
+    });
+    return saved!;
+  }
+
+  latestContinuationCheckpoint(
+    scope: PlatformScope,
+    input: { readonly runId: string; readonly turnId: string; readonly workspaceId: string },
+  ): PlatformContinuationCheckpoint | undefined {
+    this.#requireOpen();
+    this.#validateScope(scope);
+    const run = this.#runRow(scope, input.runId);
+    const turnId = this.#bounded(input.turnId, "turnId", 1, 256);
+    const workspaceId = this.#bounded(input.workspaceId, "workspaceId", 1, 256);
+    if (run.workspace_id !== workspaceId) return undefined;
+    const rows = this.#database.prepare(
+      `SELECT * FROM A008_run_continuation_checkpoints
+       WHERE run_id = ? AND turn_id = ? AND workspace_id = ? ORDER BY sequence DESC`,
+    ).all(run.id, turnId, workspaceId) as {
+      run_id: string; turn_id: string; workspace_id: string; runtime_run_id: string;
+      sequence: number; format_version: number; maximum_state_bytes: number;
+      payload_json: string; source_refs_json: string; created_at: number;
+    }[];
+    for (const row of rows) {
+      try {
+        if (row.format_version !== 1 || !Number.isSafeInteger(row.sequence) || row.sequence < 1 ||
+          row.turn_id !== turnId || row.workspace_id !== workspaceId || row.run_id !== run.id) continue;
+        const bindings = this.#continuationBindings(run.id, turnId, workspaceId, row.runtime_run_id);
+        const rawState: unknown = JSON.parse(row.payload_json);
+        const parsedRefs: unknown = JSON.parse(row.source_refs_json);
+        if (!Array.isArray(parsedRefs) || parsedRefs.some((ref) => typeof ref !== "string")) continue;
+        const state = validateRunContinuationState(rawState, {
+          runId: row.runtime_run_id,
+          validSourceRefs: new Set(bindings.keys()),
+          maximumBytes: row.maximum_state_bytes,
+        });
+        const sourceRefs = [...new Set(continuationStateSourceRefs(state))].sort();
+        if (JSON.stringify(sourceRefs) !== JSON.stringify([...parsedRefs].sort())) continue;
+        return { runId: row.run_id, turnId: row.turn_id, workspaceId: row.workspace_id,
+          runtimeRunId: row.runtime_run_id, sequence: row.sequence, formatVersion: 1,
+          state, sourceRefs, createdAt: row.created_at };
+      } catch {
+        // A corrupt newer checkpoint is skipped; an earlier valid one remains usable.
+      }
+    }
+    return undefined;
+  }
+
   recordActivity(
     scope: PlatformScope,
     runId: string,
@@ -1111,35 +1317,18 @@ export class PlatformStore {
             .run(legacyWorkspaceId);
           this.#database.exec(SESSION_PROCESS_SCHEMA);
           this.#database
-            .prepare(
-              "UPDATE A008_platform_schema SET version = ? WHERE singleton = 1",
-            )
-            .run(PLATFORM_SQLITE_SCHEMA_VERSION);
-          return;
-        }
-        if (existing.version === 2) {
+            .prepare("UPDATE A008_platform_schema SET version = 4 WHERE singleton = 1")
+            .run();
+        } else if (existing.version === 2 || existing.version === 3 || existing.version === 4) {
           this.#database.exec(SESSION_PROCESS_SCHEMA);
-          this.#database
-            .prepare(
-              "UPDATE A008_platform_schema SET version = ? WHERE singleton = 1",
-            )
-            .run(PLATFORM_SQLITE_SCHEMA_VERSION);
-          return;
+        } else if (existing.version !== PLATFORM_SQLITE_SCHEMA_VERSION) {
+          throw new PlatformStoreError("INVALID_REQUEST", "Platform SQLite schema version is unsupported.");
         }
-        if (existing.version === 3) {
-          this.#database.exec(SESSION_PROCESS_SCHEMA);
+        if (existing.version < PLATFORM_SQLITE_SCHEMA_VERSION) {
           this.#database
-            .prepare(
-              "UPDATE A008_platform_schema SET version = ? WHERE singleton = 1",
-            )
+            .prepare("UPDATE A008_platform_schema SET version = ? WHERE singleton = 1")
             .run(PLATFORM_SQLITE_SCHEMA_VERSION);
-          return;
         }
-        if (existing.version !== PLATFORM_SQLITE_SCHEMA_VERSION)
-          throw new PlatformStoreError(
-            "INVALID_REQUEST",
-            "Platform SQLite schema version is unsupported.",
-          );
         return;
       }
       this.#database.exec(PLATFORM_SQLITE_SCHEMA);
@@ -1150,6 +1339,94 @@ export class PlatformStore {
         )
         .run(PLATFORM_SQLITE_SCHEMA_VERSION);
     });
+  }
+
+  #validateContinuationBinding(
+    run: RunRow,
+    input: {
+      readonly runId: string;
+      readonly turnId: string;
+      readonly workspaceId: string;
+      readonly runtimeRunId: string;
+    },
+  ): void {
+    const turnId = this.#bounded(input.turnId, "turnId", 1, 256);
+    const workspaceId = this.#bounded(input.workspaceId, "workspaceId", 1, 256);
+    const runtimeRunId = this.#bounded(input.runtimeRunId, "runtimeRunId", 1, 256);
+    if (run.id !== input.runId || run.workspace_id !== workspaceId || turnId !== run.id) {
+      throw new PlatformStoreError("INVALID_REQUEST", "Continuation checkpoint run, turn, or workspace binding does not match.");
+    }
+    if (!runtimeRunId) {
+      throw new PlatformStoreError("INVALID_REQUEST", "Runtime run identity is required.");
+    }
+  }
+
+  #sourceSequence(sourceRef: string): number {
+    const match = /^(.+):([1-9][0-9]*)$/u.exec(sourceRef);
+    const sequence = match?.[2] === undefined ? NaN : Number(match[2]);
+    if (match?.[1] === undefined || !Number.isSafeInteger(sequence) || sequence < 1) {
+      throw new PlatformStoreError("INVALID_REQUEST", "Source reference is malformed.");
+    }
+    return sequence;
+  }
+
+  #isTerminalToolEvent(activityJson: string, toolCallId: string): boolean {
+    try {
+      const value: unknown = JSON.parse(activityJson);
+      if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+      const tools = (value as Record<string, unknown>).tools;
+      return Array.isArray(tools) && tools.some((tool) => {
+        if (!tool || typeof tool !== "object" || Array.isArray(tool)) return false;
+        const record = tool as Record<string, unknown>;
+        return (
+          record.id === toolCallId &&
+          (record.status === "completed" || record.status === "failed")
+        );
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  #latestTerminalToolEventCursor(
+    runId: string,
+    toolCallId: string,
+  ): number | undefined {
+    const rows = this.#database.prepare(
+      "SELECT cursor, activity_json FROM A008_session_activity WHERE run_id = ? ORDER BY cursor DESC",
+    ).all(runId) as { cursor: number; activity_json: string }[];
+    return rows.find((row) =>
+      this.#isTerminalToolEvent(row.activity_json, toolCallId),
+    )?.cursor;
+  }
+
+  #continuationBindings(
+    runId: string,
+    turnId: string,
+    workspaceId: string,
+    runtimeRunId: string,
+  ): Map<string, Set<string>> {
+    const rows = this.#database.prepare(
+      `SELECT s.source_ref, e.tool_call_id, e.event_cursor, a.run_id, a.activity_json
+       FROM A008_run_continuation_sources AS s
+       JOIN A008_run_continuation_source_events AS e
+         ON e.run_id = s.run_id AND e.turn_id = s.turn_id
+        AND e.workspace_id = s.workspace_id AND e.runtime_run_id = s.runtime_run_id
+        AND e.source_ref = s.source_ref
+       JOIN A008_session_activity AS a ON a.cursor = e.event_cursor
+       WHERE s.run_id = ? AND s.turn_id = ? AND s.workspace_id = ? AND s.runtime_run_id = ?`,
+    ).all(runId, turnId, workspaceId, runtimeRunId) as {
+      source_ref: string; tool_call_id: string; event_cursor: number;
+      run_id: string; activity_json: string;
+    }[];
+    const bindings = new Map<string, Set<string>>();
+    for (const row of rows) {
+      if (row.run_id !== runId || !this.#isTerminalToolEvent(row.activity_json, row.tool_call_id)) continue;
+      const calls = bindings.get(row.source_ref) ?? new Set<string>();
+      calls.add(row.tool_call_id);
+      bindings.set(row.source_ref, calls);
+    }
+    return bindings;
   }
 
   #conversation(scope: PlatformScope, id: string): PlatformConversation {
@@ -1424,6 +1701,12 @@ export class PlatformStore {
   #immediate<T>(work: () => T): T {
     return this.#database.transaction(work).immediate();
   }
+}
+
+function continuationStateSourceRefs(state: RunContinuationState): readonly string[] {
+  return [state.verifiedFacts, state.hypotheses, state.completedActions]
+    .flat()
+    .flatMap((entry) => entry.sourceRefs);
 }
 
 function digest(payload: unknown): string {

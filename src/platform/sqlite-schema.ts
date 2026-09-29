@@ -1,4 +1,4 @@
-export const PLATFORM_SQLITE_SCHEMA_VERSION = 4;
+export const PLATFORM_SQLITE_SCHEMA_VERSION = 5;
 
 export const SESSION_PROCESS_SCHEMA = `
 CREATE TABLE IF NOT EXISTS A008_session_instances (
@@ -7,12 +7,12 @@ CREATE TABLE IF NOT EXISTS A008_session_instances (
 );
 CREATE TABLE IF NOT EXISTS A008_session_activity (
   cursor INTEGER PRIMARY KEY AUTOINCREMENT,
-  run_id TEXT NOT NULL REFERENCES A008_platform_runs(id),
+  run_id TEXT NOT NULL REFERENCES A008_platform_runs(id) ON DELETE CASCADE,
   activity_json TEXT NOT NULL CHECK(json_valid(activity_json))
 );
 CREATE INDEX IF NOT EXISTS A008_session_activity_run ON A008_session_activity(run_id, cursor);
 CREATE TABLE IF NOT EXISTS A008_session_activity_current (
-  run_id TEXT PRIMARY KEY REFERENCES A008_platform_runs(id),
+  run_id TEXT PRIMARY KEY REFERENCES A008_platform_runs(id) ON DELETE CASCADE,
   cursor INTEGER NOT NULL,
   activity_json TEXT NOT NULL CHECK(json_valid(activity_json))
 );
@@ -25,6 +25,42 @@ CREATE TABLE IF NOT EXISTS A008_run_input (
   run_id TEXT PRIMARY KEY REFERENCES A008_platform_runs(id),
   attachment_json TEXT CHECK(attachment_json IS NULL OR json_valid(attachment_json))
 );
+CREATE TABLE IF NOT EXISTS A008_run_continuation_sources (
+  run_id TEXT NOT NULL REFERENCES A008_platform_runs(id) ON DELETE CASCADE,
+  turn_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  runtime_run_id TEXT NOT NULL,
+  source_ref TEXT NOT NULL,
+  PRIMARY KEY(run_id, turn_id, workspace_id, runtime_run_id, source_ref)
+);
+CREATE TABLE IF NOT EXISTS A008_run_continuation_source_events (
+  run_id TEXT NOT NULL,
+  turn_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  runtime_run_id TEXT NOT NULL,
+  source_ref TEXT NOT NULL,
+  tool_call_id TEXT NOT NULL,
+  event_cursor INTEGER NOT NULL REFERENCES A008_session_activity(cursor) ON DELETE CASCADE,
+  PRIMARY KEY(run_id, turn_id, workspace_id, runtime_run_id, source_ref, tool_call_id),
+  FOREIGN KEY(run_id, turn_id, workspace_id, runtime_run_id, source_ref)
+    REFERENCES A008_run_continuation_sources(run_id, turn_id, workspace_id, runtime_run_id, source_ref)
+    ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS A008_run_continuation_checkpoints (
+  run_id TEXT NOT NULL REFERENCES A008_platform_runs(id) ON DELETE CASCADE,
+  turn_id TEXT NOT NULL,
+  workspace_id TEXT NOT NULL,
+  runtime_run_id TEXT NOT NULL,
+  sequence INTEGER NOT NULL CHECK(sequence > 0),
+  format_version INTEGER NOT NULL CHECK(format_version = 1),
+  maximum_state_bytes INTEGER NOT NULL CHECK(maximum_state_bytes > 0),
+  payload_json TEXT NOT NULL CHECK(json_valid(payload_json)),
+  source_refs_json TEXT NOT NULL CHECK(json_valid(source_refs_json)),
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY(run_id, turn_id, workspace_id, sequence)
+);
+CREATE INDEX IF NOT EXISTS A008_run_continuation_checkpoints_latest
+  ON A008_run_continuation_checkpoints(run_id, turn_id, workspace_id, sequence DESC);
 `;
 
 export const PLATFORM_SQLITE_SCHEMA = `

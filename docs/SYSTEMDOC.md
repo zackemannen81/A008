@@ -124,7 +124,17 @@ Värden kan köras utan ett öppet GUI; stängning av själva värden är ett an
 
 Projection preserves provider chronology: the current user message remains before temporary continuation data and the recent raw assistant/tool tail. A replacement state must retain source coverage already represented by the previous valid state as well as newly compacted interactions, and the reducer receives a detached full prior state including its run binding. Invalid or source-dropping output therefore cannot silently erase already compacted work.
 
-This slice does not implement a semantic reducer, context-budget triggers, persisted checkpoints, automatic context rebuild or process-loss recovery. See the A008-0196 charter, handoff and current status for verification evidence.
+This slice does not implement a semantic reducer, context-budget triggers, automatic context rebuild or process-loss recovery. Durable checkpoint persistence is now implemented separately by A008-0197; A008-0196 remains the source of truth for the continuation-state/source-reference contract.
+
+## Durable run-continuation checkpoints — A008-0197
+
+`PlatformStore` owns continuation persistence in the existing local Platform SQLite database. Schema v5 adds run-owned source bindings, source-event links and versioned checkpoint rows. Checkpoints inherit the authoritative platform run lifecycle through `ON DELETE CASCADE`; no independent retention policy or replay authority is introduced.
+
+`bindContinuationSourceInteraction()` consumes the exact completed A008-0196 `RunToolInteraction`. The runtime interaction ID remains `${runtimeRunId}:n`; PlatformStore derives the runtime run identity and tool-call IDs from that object, resolves each tool call against retained durable `A008_session_activity` evidence, and stores only the binding to the authoritative raw event. Terminal successful and failed tool evidence are both admissible. Rebinding the same source to the same interaction is idempotent; attempting to mutate an existing source reference to different evidence fails closed.
+
+`saveContinuationCheckpoint()` validates the canonical `RunContinuationState` against the durable source set, exact platform run/turn/workspace binding and byte limit before an atomic append. `latestContinuationCheckpoint()` validates rows newest-first and returns the latest valid checkpoint; malformed or mismatched newer rows are skipped without mutation so an older valid checkpoint remains recoverable. Checkpoint payloads are execution state, are not copied into the raw evidence stream, and are not candidates for ordinary semantic-memory retrieval.
+
+A008-0197 deliberately does not choose when to compact, trigger on a context budget, rebuild provider context, resume an unfinished turn after restart, or authorize retry/replay. Those orchestration/recovery behaviors remain owned by later tasks.
 
 ## Minne och kontext
 
