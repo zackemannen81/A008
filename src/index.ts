@@ -1,4 +1,15 @@
 export { ChatSession } from "./core/chat-session.js";
+export {
+  RUN_CONTINUATION_STATE_VERSION,
+  serializeRunContinuationState,
+  validateRunContinuationState,
+} from "./core/chat-continuation.js";
+export type {
+  RunContinuationEntry,
+  RunContinuationPolicy,
+  RunContinuationState,
+  RunToolInteraction,
+} from "./core/chat-continuation.js";
 export type {
   ChatSessionOptions,
   SendMessageOptions,

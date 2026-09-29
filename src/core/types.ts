@@ -1,10 +1,9 @@
+import type { RunContinuationPolicy } from "./chat-continuation.js";
+
 export type ChatRole = "system" | "user" | "assistant";
 
 export type GeneratedImageStatus =
-  | "pending"
-  | "completed"
-  | "failed"
-  | "cancelled";
+  "pending" | "completed" | "failed" | "cancelled";
 
 export interface ChatTextContentPart {
   readonly type: "text";
@@ -23,8 +22,7 @@ export interface ChatGeneratedImageContentPart {
 }
 
 export type ChatContentPart =
-  | ChatTextContentPart
-  | ChatGeneratedImageContentPart;
+  ChatTextContentPart | ChatGeneratedImageContentPart;
 export type ChatContent = string | readonly ChatContentPart[];
 
 export interface ChatMessage {
@@ -65,6 +63,8 @@ export type ChatWireMessage =
 export interface ChatTools {
   readonly definitions: readonly ChatToolDefinition[];
   readonly maximumCalls: number;
+  /** Opt-in, ephemeral compaction for completed tool interactions in this turn. */
+  readonly continuation?: RunContinuationPolicy;
   execute(call: ChatToolCall, signal?: AbortSignal): Promise<string>;
 }
 
@@ -143,13 +143,7 @@ export type ModelModality = "text" | "image" | "video" | "audio";
 
 /** Who executes a prepared chat call. Distinct from vendor `provider`. */
 export type ExecutionProvider =
-  | "openai"
-  | "nvidia"
-  | "kie"
-  | "openrouter"
-  | "groq"
-  | "google"
-  | "opencode";
+  "openai" | "nvidia" | "kie" | "openrouter" | "groq" | "google" | "opencode";
 
 export interface ModelProfile {
   readonly id: string;

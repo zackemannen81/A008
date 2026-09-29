@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0196_bounded-intra-turn-context.md](A008-0196_bounded-intra-turn-context.md) — Complete on task branch; bounded run-local continuation state with cumulative source preservation, correct provider ordering and preserved raw tail. [Archive](../finished/A008-0196_bounded-intra-turn-context.md), [handoff](../handoffs/A008-0196.md).
+
 - [A008-0175_atomic-dialogue-extraction.md](A008-0175_atomic-dialogue-extraction.md) — Complete on task branch; coherent report eligibility, atomic bindings and owner label ranges. [Archive](../finished/A008-0175_atomic-dialogue-extraction.md), [handoff](../handoffs/A008-0175.md).
 
 - [A008-0174_memory-tags-continuity.md](A008-0174_memory-tags-continuity.md) — Complete on task branch; useful semantic tags and scoped indirect follow-ups. [Archive](../finished/A008-0174_memory-tags-continuity.md), [handoff](../handoffs/A008-0174.md).
