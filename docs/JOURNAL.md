@@ -2747,3 +2747,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Verification: root typecheck PASS; GUI typecheck PASS; focused host memory/settings 26/26; full GUI 216/216; no live provider calls; 0 SEK.
 - [Handoff](handoffs/A008-0194.md). [Archive](finished/A008-0194_project-memory-and-runtime-settings.md).
 - Signature: ChatGPT (operator/worker)
+
+## 2026-09-29 — Operational learning observed through normal memory extraction
+
+- During A008-0196 follow-up, the owner explicitly asked the agent why the task had been difficult after an implementation path produced failing tests.
+- The agent identified a concrete cause: coding started before current repository instructions/implementation and exact task requirements had been verified. The ordinary post-output extractor then stored that explanation as a workspace-qualified active claim with project-management/software-development classification.
+- This demonstrates an important existing property of the memory loop: a local execution mistake can become reusable operational knowledge through explicit reflection and later normal retrieval, without retaining raw tool history between turns or adding a separate reflection-memory subsystem.
+- The observation is intentionally scoped. One agent's explanation remains generated knowledge with provenance; it does not automatically become a universal workflow rule.
+- Documentation updated in `CURRENT_MEMORY_MODEL.md`, `SYSTEMDOC.md` and `CURRENT_STATUS.md`.
+- Signature: ChatGPT (operator-assisted documentation)

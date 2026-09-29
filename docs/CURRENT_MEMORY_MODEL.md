@@ -2088,6 +2088,50 @@ Modellen kan senare skilja detta från:
 direct source statement
 ```
 
+## 53.1 Operational learning via explicit reflection
+
+En agents egen efterhandsreflektion kan bli durable knowledge när den uttrycker
+en återanvändbar observation om arbetet, exempelvis en konkret orsak till ett
+misslyckat task-resultat.
+
+Exempel:
+
+```text
+Task A008-0196 became difficult because implementation began
+before the repository's current instructions and exact task
+requirements had been verified, which led to test failures.
+```
+
+Detta är inte ett separat "reflection memory". Det går genom samma vanliga
+post-output pipeline som annan genererad knowledge:
+
+```text
+execution / failure
+      ↓
+explicit reflection in final dialogue
+      ↓
+post-output extraction
+      ↓
+claim + provenance + domains/tags/scope
+      ↓
+normal retrieval in a later relevant turn
+```
+
+Värdet är att ett lokalt misstag kan bli återanvändbar erfarenhet för en senare
+agent utan att rå tool-history behöver följa med mellan turns.
+
+Två gränser är viktiga:
+
+1. En incident får inte automatiskt generaliseras till en universell regel.
+   Workspace-, projekt-, task- och källprovenance ska bevaras när de behövs för
+   korrekt tolkning.
+2. En beskrivning av vad som gick fel och en normativ rekommendation om vad som
+   alltid ska göras är olika claims. Extractorn får inte hitta på den senare
+   enbart för att den första existerar.
+
+Operational learning är därför vanlig generated knowledge med tydlig provenance,
+inte en separat truth- eller policykanal.
+
 ---
 
 # 54. Repository Knowledge Example
