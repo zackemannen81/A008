@@ -21,6 +21,8 @@ let cwd: string;
 let running = false;
 let activeRunId: string | undefined;
 let gui: GuiRunSession | undefined;
+let activityTail: Promise<void> = Promise.resolve();
+let activityFailure: unknown;
 const registry = new ProjectRuntimeRegistry({ env: process.env });
 const memoryRequest = <T>(
   method: string,
@@ -102,6 +104,8 @@ const rpc = new SessionIpc(
       throw new Error("Unsupported or uninitialized session operation.");
     if (running) throw new Error("Session already has an active run.");
     running = true;
+    activityTail = Promise.resolve();
+    activityFailure = undefined;
     try {
       const run = payload as SessionProcessRun;
       activeRunId = run.runId;
@@ -117,9 +121,25 @@ const rpc = new SessionIpc(
           conversationId: sessionId,
           history: run.history,
           onActivity: (activity) => {
-            void rpc
-              .request("activity", { runId: run.runId, value: activity })
-              .catch(() => {});
+            activityTail = activityTail.then(async () => {
+              if (activityFailure !== undefined) return;
+              try {
+                await rpc.request("activity", {
+                  runId: run.runId,
+                  value: activity,
+                });
+              } catch (error) {
+                activityFailure = error;
+              }
+            });
+          },
+          continuationCheckpoint: async (checkpoint) => {
+            await activityTail;
+            if (activityFailure !== undefined) throw activityFailure;
+            await rpc.request("continuation.checkpoint", {
+              runId: run.runId,
+              value: checkpoint,
+            });
           },
         });
         return await gui.complete(run.text, signal, run.attachment);

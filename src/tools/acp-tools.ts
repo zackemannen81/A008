@@ -3,21 +3,28 @@ import type {
   RequestPermissionResponse,
   SessionNotification,
 } from "@agentclientprotocol/sdk";
+import { ChatError } from "../core/errors.js";
 import type { RuntimeBudgets } from "../core/runtime-preferences.js";
+import type { RunContinuationCheckpointWrite } from "../core/chat-continuation.js";
 import type { ModelToolSession, ToolActivity } from "./model-tools.js";
+
+export type ContinuationCheckpointWriter = (
+  input: RunContinuationCheckpointWrite,
+) => Promise<void>;
 
 export type RequestToolPermission = (
   params: RequestPermissionRequest,
 ) => Promise<RequestPermissionResponse>;
 export type ToolNotifier = (message: SessionNotification) => Promise<void>;
 
-export function prepareAcpTools(
+export async function prepareAcpTools(
   tools: ModelToolSession,
   sessionId: string,
   budgets: RuntimeBudgets,
   signal: AbortSignal,
   notify: ToolNotifier,
   requestPermission?: RequestToolPermission,
+  writeContinuationCheckpoint?: ContinuationCheckpointWriter,
 ) {
   const toolCall = (activity: ToolActivity) => ({
     toolCallId: activity.id,
@@ -40,7 +47,7 @@ export function prepareAcpTools(
       },
     ],
   });
-  return tools.prepare(
+  const prepared = await tools.prepare(
     budgets,
     {
       update: async (activity) =>
@@ -107,4 +114,35 @@ export function prepareAcpTools(
     },
     signal,
   );
+  const pressure = budgets.continuationPressureBytes;
+  const maximum = budgets.continuationMaximumBytes;
+  if (pressure === 0 && maximum === 0) return prepared;
+  if (writeContinuationCheckpoint === undefined) {
+    throw new ChatError(
+      "configuration",
+      "Automatic continuation is enabled but this runtime has no durable checkpoint owner.",
+    );
+  }
+  return {
+    ...prepared,
+    continuation: {
+      recentRawInteractions: budgets.continuationRecentRawInteractions,
+      maximumStateBytes: budgets.continuationStateBytes,
+      pressure: {
+        routeBudget: {
+          pressureBytes: pressure,
+          maximumBytes: maximum,
+          reducerInputBytes: budgets.continuationReducerInputBytes,
+          reducerOutputTokens: budgets.continuationReducerOutputTokens,
+        },
+        persistCheckpoint: writeContinuationCheckpoint,
+      },
+      compact: async () => {
+        throw new ChatError(
+          "configuration",
+          "Pressure-managed continuation reduction is owned by the selected provider route.",
+        );
+      },
+    },
+  };
 }

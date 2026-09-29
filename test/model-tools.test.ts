@@ -35,6 +35,57 @@ import { startGuiHost } from "../src/gui-host/server.js";
 import { startSessionControlProvider } from "./fixtures/session-control-provider.js";
 import { WireClient } from "./fixtures/gui-wire-client.js";
 
+test("A008-0198: ACP tools expose pressure only with a durable checkpoint owner", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-continuation-tools-"));
+  const session = new ModelToolSession({ cwd, env: process.env });
+  const enabled = {
+    ...budgets,
+    continuationPressureBytes: 80_000,
+    continuationMaximumBytes: 100_000,
+    continuationReducerInputBytes: 64_000,
+    continuationReducerOutputTokens: 512,
+    continuationStateBytes: 8_192,
+    continuationRecentRawInteractions: 3,
+  };
+  try {
+    await assert.rejects(
+      () =>
+        prepareAcpTools(
+          session,
+          "session-test",
+          enabled,
+          new AbortController().signal,
+          async () => undefined,
+        ),
+      /durable checkpoint owner/u,
+    );
+    const writes: unknown[] = [];
+    const prepared = await prepareAcpTools(
+      session,
+      "session-test",
+      enabled,
+      new AbortController().signal,
+      async () => undefined,
+      undefined,
+      async (input) => {
+        writes.push(input);
+      },
+    );
+    assert.equal(prepared.continuation?.recentRawInteractions, 3);
+    assert.equal(prepared.continuation?.maximumStateBytes, 8_192);
+    assert.deepEqual(prepared.continuation?.pressure?.routeBudget, {
+      pressureBytes: 80_000,
+      maximumBytes: 100_000,
+      reducerInputBytes: 64_000,
+      reducerOutputTokens: 512,
+    });
+    assert.equal(writes.length, 0);
+  } finally {
+    await session.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
 test("generate_image is offered only when the host supplies the shared owner", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "a008-image-tool-"));
   const started: string[] = [];
@@ -1003,6 +1054,12 @@ test("existing version 1 global settings migrate without losing instructions, bu
     "maximumToolDefinitions",
     "toolOutputBytes",
     "toolTimeoutMs",
+    "continuationPressureBytes",
+    "continuationMaximumBytes",
+    "continuationReducerInputBytes",
+    "continuationReducerOutputTokens",
+    "continuationStateBytes",
+    "continuationRecentRawInteractions",
   ])
     delete oldBudgets[key];
   oldBudgets.chatInputBytes = 76543;
@@ -1030,7 +1087,7 @@ test("existing version 1 global settings migrate without losing instructions, bu
     );
     assert.equal(JSON.parse(readFileSync(path, "utf8")).version, 1);
     store.save(first.settings, first.revision);
-    assert.equal(JSON.parse(readFileSync(path, "utf8")).version, 4);
+    assert.equal(JSON.parse(readFileSync(path, "utf8")).version, 5);
     assert.throws(
       () => store.save(first.settings, first.revision),
       /changed elsewhere/,

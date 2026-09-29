@@ -35,6 +35,13 @@ export const DEFAULT_RUNTIME_BUDGETS = Object.freeze({
   maximumToolDefinitions: 128,
   toolOutputBytes: 65_536,
   toolTimeoutMs: 60_000,
+  /** 0/0 disables automatic live-turn continuation pressure handling. */
+  continuationPressureBytes: 0,
+  continuationMaximumBytes: 0,
+  continuationReducerInputBytes: 262_144,
+  continuationReducerOutputTokens: 4_096,
+  continuationStateBytes: 32_768,
+  continuationRecentRawInteractions: 8,
 });
 export const DEFAULT_SEMANTIC_SETTINGS = Object.freeze({
   model: DEFAULT_MODEL_ID,
@@ -206,6 +213,45 @@ export const RUNTIME_BUDGET_FIELDS: readonly RuntimeBudgetField[] =
       1,
       2_147_483_647,
     ),
+    field(
+      "continuationPressureBytes",
+      "Continuation pressure trigger",
+      "wire bytes",
+      "Soft exact serialized-request threshold for automatic live-turn compaction. 0 disables together with the hard continuation ceiling.",
+      0,
+    ),
+    field(
+      "continuationMaximumBytes",
+      "Continuation hard ceiling",
+      "wire bytes",
+      "Finite exact serialized-request ceiling for the selected provider route. 0 disables together with the pressure trigger.",
+      0,
+    ),
+    field(
+      "continuationReducerInputBytes",
+      "Continuation reducer input",
+      "wire bytes",
+      "Hard serialized-request ceiling for one tool-free continuation reducer call.",
+    ),
+    field(
+      "continuationReducerOutputTokens",
+      "Continuation reducer output",
+      "tokens",
+      "Maximum generated tokens for one continuation reducer call.",
+    ),
+    field(
+      "continuationStateBytes",
+      "Continuation state",
+      "UTF-8 bytes",
+      "Maximum validated serialized continuation-state size persisted for a live turn.",
+    ),
+    field(
+      "continuationRecentRawInteractions",
+      "Continuation raw tail",
+      "completed tool rounds",
+      "Newest completed tool rounds retained raw after compaction.",
+      0,
+    ),
   ]);
 
 export type RuntimePreferencesSnapshot = Omit<
@@ -255,6 +301,17 @@ export function parseRuntimePreferences(value: unknown): RuntimePreferences {
       );
     }
     budgets[field.key] = n;
+  }
+  const pressure = budgets.continuationPressureBytes;
+  const hard = budgets.continuationMaximumBytes;
+  if (
+    (pressure === 0) !== (hard === 0) ||
+    (pressure > 0 && hard <= pressure)
+  ) {
+    throw new ChatError(
+      "configuration",
+      "Continuation pressure and hard ceiling must both be 0 (disabled), or pressure must be below the finite hard ceiling.",
+    );
   }
   try {
     return {

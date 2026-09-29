@@ -44,6 +44,7 @@ test("streaming transport sends the expected payload and assembles deltas", asyn
     fetch,
   });
   const deltas: string[] = [];
+  const measured = transport.measureRequest(request);
 
   const result = await transport.complete(request, {
     onDelta: (delta) => deltas.push(`${delta.type}:${delta.text}`),
@@ -54,10 +55,13 @@ test("streaming transport sends the expected payload and assembles deltas", asyn
     new Headers(capturedInit?.headers).get("authorization"),
     "Bearer test-token",
   );
-  const payload = JSON.parse(String(capturedInit?.body)) as Record<
-    string,
-    unknown
-  >;
+  const serialized = String(capturedInit?.body);
+  assert.equal(measured.serializedBytes, Buffer.byteLength(serialized, "utf8"));
+  assert.equal(
+    measured.routeId,
+    `nvidia:${NVIDIA_CHAT_COMPLETIONS_URL}:${request.model}`,
+  );
+  const payload = JSON.parse(serialized) as Record<string, unknown>;
   assert.equal(payload.model, request.model);
   assert.equal(payload.top_p, 0.95);
   assert.equal(payload.reasoning_budget, 64);

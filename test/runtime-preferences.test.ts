@@ -188,6 +188,52 @@ test("all editable limits validate; disk saves are atomic, global and revision g
   }
 });
 
+test("version 4 settings gain disabled continuation budgets and save as version 5", () => {
+  const isolated = isolatedMemoryEnv();
+  try {
+    const path = isolated.env.A008_SETTINGS_PATH!;
+    const legacy = defaults();
+    const budgets = { ...legacy.budgets } as Record<string, number>;
+    for (const key of [
+      "continuationPressureBytes",
+      "continuationMaximumBytes",
+      "continuationReducerInputBytes",
+      "continuationReducerOutputTokens",
+      "continuationStateBytes",
+      "continuationRecentRawInteractions",
+    ]) {
+      delete budgets[key];
+    }
+    writeFileSync(
+      path,
+      JSON.stringify({ version: 4, settings: { ...legacy, budgets } }),
+    );
+    const store = new RuntimePreferencesStore(isolated.env, 180000);
+    const migrated = store.snapshot();
+    assert.equal(migrated.settings.budgets.continuationPressureBytes, 0);
+    assert.equal(migrated.settings.budgets.continuationMaximumBytes, 0);
+    assert.equal(migrated.settings.budgets.continuationRecentRawInteractions, 8);
+    const enabled = store.save(
+      {
+        ...migrated.settings,
+        budgets: {
+          ...migrated.settings.budgets,
+          continuationPressureBytes: 80_000,
+          continuationMaximumBytes: 100_000,
+        },
+      },
+      migrated.revision,
+    );
+    assert.equal(enabled.settings.budgets.continuationPressureBytes, 80_000);
+    assert.equal(
+      (JSON.parse(readFileSync(path, "utf8")) as { version: number }).version,
+      5,
+    );
+  } finally {
+    rmSync(isolated.directory, { recursive: true, force: true });
+  }
+});
+
 test("input-budget repair retains history; global instructions survive zero history, reset, model and project restart", async () => {
   const isolated = isolatedMemoryEnv();
   const fake = fakeTransport();

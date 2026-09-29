@@ -86,6 +86,11 @@ export interface ChatImageAttachment {
   readonly dataRef: string;
 }
 
+export interface SerializedChatRequestMeasurement {
+  readonly routeId: string;
+  readonly serializedBytes: number;
+}
+
 export interface ChatRequest {
   readonly model: string;
   readonly messages: readonly ChatWireMessage[];
@@ -129,6 +134,8 @@ export interface ChatCallbacks {
 }
 
 export interface ChatTransport {
+  /** Exact selected-route request measurement using the same serializer as dispatch. */
+  measureRequest?(request: ChatRequest): SerializedChatRequestMeasurement;
   complete(
     request: ChatRequest,
     callbacks?: ChatCallbacks,

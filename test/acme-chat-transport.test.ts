@@ -232,9 +232,9 @@ test("maps prepared A008 text, tools and Luna controls onto acme-model-runtime/2
       },
     }),
   );
-  const completion = await adapter.complete({
+  const request = {
     model: "gpt-5.6-luna",
-    messages: [{ role: "user", content: "hi" }],
+    messages: [{ role: "user" as const, content: "hi" }],
     tools: [
       {
         name: "read_file",
@@ -248,8 +248,12 @@ test("maps prepared A008 text, tools and Luna controls onto acme-model-runtime/2
       temperature: 0.2,
       reasoningEffort: "medium",
     },
-  });
+  };
+  const measured = adapter.measureRequest(request);
+  const completion = await adapter.complete(request);
   assert.equal(protocolHeader, PROTOCOL);
+  assert.equal(measured.serializedBytes, Buffer.byteLength(body, "utf8"));
+  assert.equal(measured.routeId, `acme:${BASE}:gpt-5.6-luna`);
   const payload = JSON.parse(body) as Record<string, unknown>;
   assert.equal(payload.protocolVersion, PROTOCOL);
   assert.equal(payload.requestKey, "req-1");

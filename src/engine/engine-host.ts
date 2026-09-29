@@ -33,6 +33,7 @@ import type { GuiHostServerMessage } from "../gui-host/protocol.js";
 import { ModelToolSession } from "../tools/model-tools.js";
 import {
   prepareAcpTools,
+  type ContinuationCheckpointWriter,
   type RequestToolPermission,
   type ToolNotifier,
 } from "../tools/acp-tools.js";
@@ -46,6 +47,7 @@ interface EngineSession {
   tools: ModelToolSession;
   requestPermission?: RequestToolPermission;
   notify?: ToolNotifier;
+  continuationCheckpoint?: ContinuationCheckpointWriter;
   listeners: Set<Listener>;
   active?: Promise<unknown>;
   input?: string;
@@ -66,6 +68,8 @@ export interface EngineNewSessionOptions {
   readonly workspaceConversation?: boolean;
   /** Trusted backend composition only; never decoded from ACP/WebSocket input. */
   readonly conversationSeed?: EngineConversationSeed;
+  /** Host-owned durable checkpoint bridge for live-turn continuation. */
+  readonly continuationCheckpoint?: ContinuationCheckpointWriter;
 }
 
 export interface EngineHostOptions {
@@ -183,6 +187,9 @@ export class EngineHost {
       cwd,
       ...client,
       tools,
+      ...(options.continuationCheckpoint === undefined
+        ? {}
+        : { continuationCheckpoint: options.continuationCheckpoint }),
       listeners: new Set(),
       activities: new Map(),
       generations: new Map(),
@@ -434,6 +441,7 @@ export class EngineHost {
           signal,
           publish,
           session.requestPermission,
+          session.continuationCheckpoint,
         ),
     );
     session.active = work;

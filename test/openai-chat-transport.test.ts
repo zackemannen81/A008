@@ -64,9 +64,9 @@ test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async 
     reasoningEffort: "medium",
     temperature: 0.7,
   };
-  const completion = await transport.complete({
+  const request = {
     model: "gpt-5.6-luna",
-    messages: [{ role: "user", content: "hi" }],
+    messages: [{ role: "user" as const, content: "hi" }],
     tools: [
       {
         name: "read_file",
@@ -75,10 +75,17 @@ test("OpenAI Luna maps A008 chat controls and tools to Chat Completions", async 
       },
     ],
     options,
-  });
+  };
+  const measured = transport.measureRequest(request);
+  const completion = await transport.complete(request);
   assert.equal(url, OPENAI_CHAT_COMPLETIONS_URL);
   assert.equal(auth, "Bearer sk-test-secret");
   assert.equal(body.includes("sk-test-secret"), false);
+  assert.equal(measured.serializedBytes, Buffer.byteLength(body, "utf8"));
+  assert.equal(
+    measured.routeId,
+    `openai:${OPENAI_CHAT_COMPLETIONS_URL}:gpt-5.6-luna`,
+  );
   const payload = JSON.parse(body) as Record<string, unknown>;
   assert.equal(payload.model, "gpt-5.6-luna");
   assert.equal(payload.max_completion_tokens, 1234);

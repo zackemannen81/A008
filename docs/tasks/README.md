@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0198_Task3.md](A008-0198_Task3.md) — Complete on task branch; automatic completed-tool-round pressure measurement, durable checkpoint-before-adoption and repeated bounded same-run context rebuild. [Archive](../finished/A008-0198_Task3.md), [handoff](../handoffs/A008-0198.md).
+
 - [A008-0197_Task2.md](A008-0197_Task2.md) — Complete on task branch; durable validated continuation checkpoints with exact A008-0196 interaction-to-raw-event provenance binding, latest-valid fallback and semantic-memory isolation. [Archive](../finished/A008-0197_Task2.md), [handoff](../handoffs/A008-0197.md).
 
 - [A008-0196_bounded-intra-turn-context.md](A008-0196_bounded-intra-turn-context.md) — Complete on task branch; bounded run-local continuation state with cumulative source preservation, correct provider ordering and preserved raw tail. [Archive](../finished/A008-0196_bounded-intra-turn-context.md), [handoff](../handoffs/A008-0196.md).

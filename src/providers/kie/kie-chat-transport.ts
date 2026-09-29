@@ -1,3 +1,4 @@
+import { measureSerializedChatRequest } from "../../core/chat-request-budget.js";
 import { ChatError, isChatError } from "../../core/errors.js";
 import type {
   ChatCallbacks,
@@ -71,6 +72,26 @@ function isAbortError(cause: unknown): boolean {
 }
 
 export class KieChatTransport implements ChatTransport {
+  measureRequest(request: ChatRequest) {
+    if (request.imageAttachments?.length) {
+      throw new ChatError("configuration", "Native vision is not mapped for the current KIE chat transport.");
+    }
+    const endpoint = this.#endpoint ?? kieChatCompletionsUrl(request.model);
+    const routeId = `kie:${endpoint}:${request.model}`;
+    const options = request.options ?? {};
+    const payload: Record<string, unknown> = {
+      model: request.model,
+      messages: request.messages.map((message) => "toolCallId" in message
+        ? { role: "tool", tool_call_id: message.toolCallId, content: message.content }
+        : { role: message.role, content: message.content }),
+      stream: options.stream ?? true,
+    };
+    if (options.temperature != null) payload.temperature = options.temperature;
+    if (options.topP != null) payload.top_p = options.topP;
+    if (options.maxTokens != null) payload.max_tokens = options.maxTokens;
+    return measureSerializedChatRequest(routeId, JSON.stringify(payload));
+  }
+
   readonly #apiKey: string;
   readonly #endpoint: string | undefined;
   readonly #fetch: FetchLike;

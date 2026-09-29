@@ -1,4 +1,5 @@
 import { ChatError, isChatError } from "../../core/errors.js";
+import { measureSerializedChatRequest } from "../../core/chat-request-budget.js";
 import type {
   ChatCallbacks,
   ChatCompletion,
@@ -339,6 +340,13 @@ function isAbortError(value: unknown): boolean {
 }
 
 export class NvidiaChatTransport implements ChatTransport {
+  measureRequest(request: ChatRequest) {
+    const endpoint = this.#endpoint.trim();
+    const routeId = `nvidia:${endpoint}:${request.model}`;
+    const serialized = JSON.stringify(buildPayload(request));
+    return measureSerializedChatRequest(routeId, serialized);
+  }
+
   readonly #apiKey: string;
   readonly #endpoint: string;
   readonly #fetch: FetchLike;

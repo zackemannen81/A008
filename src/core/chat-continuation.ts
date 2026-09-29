@@ -25,19 +25,64 @@ export interface RunToolInteraction {
   readonly messages: readonly ChatWireMessage[];
 }
 
+export interface RunContinuationRouteBudget {
+  /** Soft pressure trigger, strictly below the finite hard ceiling. */
+  readonly pressureBytes: number;
+  /** Runtime-owned hard ceiling for the selected route's serialized request. */
+  readonly maximumBytes: number;
+  /** Explicit bound for the reducer's tool-free serialized request. */
+  readonly reducerInputBytes: number;
+  /** Finite generation cap for the reducer call. */
+  readonly reducerOutputTokens: number;
+}
+
+export interface RunContinuationCheckpointWrite {
+  readonly runId: string;
+  readonly state: RunContinuationState;
+  readonly sourceInteractions: readonly RunToolInteraction[];
+  readonly maximumStateBytes: number;
+}
+
+export interface RunContinuationPressurePolicy {
+  readonly routeBudget: RunContinuationRouteBudget;
+  /** Persist the validated checkpoint before an eligible projection is adopted. */
+  readonly persistCheckpoint: (
+    input: RunContinuationCheckpointWrite,
+  ) => Promise<void>;
+}
+
+export function validateContinuationPressure(
+  policy: RunContinuationPressurePolicy,
+): void {
+  const budget = policy.routeBudget;
+  if (
+    !Number.isSafeInteger(budget.pressureBytes) || budget.pressureBytes < 1 ||
+    !Number.isSafeInteger(budget.maximumBytes) || budget.maximumBytes <= budget.pressureBytes ||
+    !Number.isSafeInteger(budget.reducerInputBytes) || budget.reducerInputBytes < 1 ||
+    !Number.isSafeInteger(budget.reducerOutputTokens) || budget.reducerOutputTokens < 1 ||
+    typeof policy.persistCheckpoint !== "function"
+  ) {
+    throw new ChatError("configuration", "Invalid finite continuation route budget.");
+  }
+}
+
 export interface RunContinuationPolicy {
   /** Number of newest completed tool rounds that always remain raw in provider context. */
   readonly recentRawInteractions: number;
   /** Maximum UTF-8 size of the serialized continuation state. */
   readonly maximumStateBytes: number;
+  /** Enables soft-pressure checks and durable candidate adoption for Task 3. */
+  readonly pressure?: RunContinuationPressurePolicy;
   /** Reduce eligible completed rounds into a replacement state. */
   readonly compact: (input: {
     readonly runId: string;
     readonly previous: RunContinuationState | null;
     readonly interactions: readonly RunToolInteraction[];
+    readonly maximumInputBytes?: number;
+    readonly maximumOutputTokens?: number;
+    readonly toolsEnabled?: false;
   }) => Promise<unknown>;
 }
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
