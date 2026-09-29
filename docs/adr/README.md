@@ -1,6 +1,6 @@
 # Aktuella arkitekturbeslut
 
-Senast uppdaterat: 2026-09-27, A008-0189, på Rickards uttryckliga begäran.
+Senast uppdaterat: 2026-09-30, A008-0199.
 
 ## Aktiva beslut
 
@@ -8,6 +8,7 @@ Senast uppdaterat: 2026-09-27, A008-0189, på Rickards uttryckliga begäran.
 | --- | --- | --- |
 | [0055 — Beständiga sessioner och utbytbara sessionsprocesser](0055-durable-sessions-and-process-ownership.md) | Accepted | Ny arkitekturgrund, ägarskap, egen worktree och process vid nästa meddelande. |
 | [0056 — Minimal memory context](0056-minimal-memory-context.md) | Accepted | Minimalt modellkuvert, relevant urval och bevarad koppling för reinforcement. |
+| [0057 — Checkpointed unfinished-turn recovery](0057-checkpointed-turn-recovery.md) | Accepted | Verifierad checkpoint, beständig effektspärr och konservativ återupptagning genom befintlig coordinator. |
 
 Detta är hela den aktiva ADR-mängden. Numreringen fortsätter för att historiska
 ID:n ska förbli entydiga; den börjar inte om på 0001.

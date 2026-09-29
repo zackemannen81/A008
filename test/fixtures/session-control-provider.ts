@@ -5,7 +5,7 @@ import { once } from "node:events";
 export async function startSessionControlProvider(
   chatReply?: (
     payload: Record<string, any>,
-  ) => Record<string, unknown> | undefined,
+  ) => Record<string, unknown> | undefined | Promise<Record<string, unknown> | undefined>,
 ) {
   const requests: Record<string, any>[] = [];
   let chatInFlight = 0;
@@ -73,7 +73,7 @@ export async function startSessionControlProvider(
     if (last.includes("DELAY-ANSWER")) {
       await new Promise((resolve) => setTimeout(resolve, 800));
     }
-    const message = chatReply?.(payload) ?? {
+    const message = (await chatReply?.(payload)) ?? {
       role: "assistant",
       content: `Fixture answer ${requests.filter((p) => !String(p.messages?.at(-1)?.content).includes('"operation"')).length}.`,
       reasoning_content: "Display-only fixture thought.",

@@ -2,7 +2,7 @@
 
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 
-Latest archive: [A008-0159_live-verification-budgets.md](A008-0159_live-verification-budgets.md) — Complete; delegated model-aware live-verification budgets and platform v1.2.
+Latest archive: [A008-0199_Task4.md](A008-0199_Task4.md) — Complete locally; conservative interrupted-turn recovery and real 110-round process replacement.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

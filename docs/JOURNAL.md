@@ -2756,3 +2756,31 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - The observation is intentionally scoped. One agent's explanation remains generated knowledge with provenance; it does not automatically become a universal workflow rule.
 - Documentation updated in `CURRENT_MEMORY_MODEL.md`, `SYSTEMDOC.md` and `CURRENT_STATUS.md`.
 - Signature: ChatGPT (operator-assisted documentation)
+
+## 2026-09-30 — A008-0199 interrupted-turn recovery and continuity proof
+
+- Chartered, reviewed and froze Task 4 against integrated A008-0196/0197/0198
+  at `ad42494`. Completed locally on `codex/a008-0199-interrupted-turn-recovery`;
+  remote publication/integration is not claimed.
+- Platform SQLite v6 adds checkpoint-bound raw-tail/sequence recovery data and
+  a durable pre-effect fence. The existing coordinator can replace a lost
+  session process while preserving the same accepted run and workspace. It
+  never executes stored tool calls or resumes unknown effects.
+- Workspace/branch/HEAD/artifact changes and unverifiable evidence preserve
+  conservative reconciliation; missing workspace, cancellation and explicit
+  stop retain their existing boundaries. Public tool history survives process
+  replacement. Private reasoning is omitted from recovery storage; semantic
+  memory and completed-turn ownership remain unchanged.
+- The real runtime fixture exposed missing measurement forwarding through the
+  dispatch/runtime/tracing wrappers; the existing exact capability now reaches
+  the tool loop. Unmeasured routes still fail closed, including embedded ACME.
+- Verification: root build/typecheck and GUI typecheck PASS; selected runtime
+  **107/107**, full platform-host **17/17**, full GUI **218/218**. The real host
+  completes 110 tool rounds across repeated compaction and a process kill after
+  round 55 with no tool replay. All measured main requests fit 50,000 bytes.
+  Final branch/HEAD evidence refinement passes recovery **10/10**. Diff check
+  passes. Local fixtures only: **0 live calls, 0 SEK**.
+- ADR 0057, owning docs and indexes updated; charter archived and CURRENT_TASK
+  restored byte-for-byte from its template.
+- [Handoff](handoffs/A008-0199.md). [Archive](finished/A008-0199_Task4.md).
+- Signature: Codex (operator/implementer)

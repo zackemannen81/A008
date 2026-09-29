@@ -1,8 +1,8 @@
 # System Document — aktuell implementation
 
-Granskad: 2026-09-29; A008-0198 lägger till automatisk bounded live-turn context pressure, durable checkpoint-before-adoption och same-run continuation.
-Källrevision: `eb3143d` + verifierade A008-0198 task-worktree changes.
-Verifiering och avgränsningar: se CURRENT_STATUS samt handoffs för A008-0196–0198.
+Granskad: 2026-09-30; A008-0199 lägger till verifierad återupptagning efter processförlust.
+Källrevision: `ad42494` + A008-0199-arbetet på `codex/a008-0199-interrupted-turn-recovery`.
+Verifiering och avgränsningar: se CURRENT_STATUS samt handoffs för A008-0196–0199.
 
 Detta dokument beskriver implementerade ansvar och flöden. Målarkitekturen finns
 i [PROJECT_BRIEF.md](PROJECT_BRIEF.md) och [ADR 0055](adr/0055-durable-sessions-and-process-ownership.md).
@@ -51,9 +51,11 @@ hanterar ägarskap och återhämtning samt håller aktiva GUI-körningar.
 Utgångna leases hanteras konservativt: redan dispatchat arbete med okänt
 utfall kan bli `needs_reconciliation`, utan implicit återspelning.
 
-SQLite-schema version 5 lagrar även per-session-konfiguration och run-input för
+SQLite-schema version 6 lagrar även per-session-konfiguration och run-input för
 bilagor samt A008-0197:s run-owned continuation checkpoints/source bindings,
 utöver senaste sessionsinstans och publik körningsaktivitet.
+Version 6 lägger additivt till checkpointbundna recovery-supplement och
+effektspärrar. Gamla checkpoints får ingen implicit återupptagningsrätt.
 Varje publik förändring får en stigande cursor; svarstext sparas som append/replace,
 verktyg uppdateras med ID och väntande godkännanden kan sättas eller tas bort.
 En materialiserad snapshot och dess cursor skrivs i samma transaktion. Klienten
@@ -135,7 +137,7 @@ This slice does not implement a semantic reducer, context-budget triggers, autom
 
 `saveContinuationCheckpoint()` validates the canonical `RunContinuationState` against the durable source set, exact platform run/turn/workspace binding and byte limit before an atomic append. `latestContinuationCheckpoint()` validates rows newest-first and returns the latest valid checkpoint; malformed or mismatched newer rows are skipped without mutation so an older valid checkpoint remains recoverable. Checkpoint payloads are execution state, are not copied into the raw evidence stream, and are not candidates for ordinary semantic-memory retrieval.
 
-A008-0197 deliberately does not choose when to compact, trigger on a context budget, rebuild provider context, resume an unfinished turn after restart, or authorize retry/replay. Those orchestration/recovery behaviors remain owned by later tasks.
+A008-0197 does not itself choose when to compact or authorize recovery/replay. A008-0198 owns live context pressure and A008-0199 owns conservative process recovery, as described below.
 
 ## Automatic live-turn context pressure — A008-0198
 
@@ -145,7 +147,60 @@ The first exact measurement binds the selected route identity for the live turn.
 
 When the soft threshold is reached and older completed interactions are eligible, the selected provider route performs one tool-free bounded reducer call for that completed-operation boundary. Reducer output is strict JSON validated by the canonical A008-0196 state/provenance/byte contract. The validated state and its raw source interactions are persisted through the A008-0197 PlatformStore bridge before any live projection is adopted. A candidate projection is then built from authoritative current-turn inputs, continuation state and the configured recent raw tail, measured against the same hard route ceiling, and adopted only if it fits.
 
-Raw execution evidence and canonical conversation history are never rewritten by compaction. In-flight tool work is never eligible. Repeated completed tool rounds may therefore cause repeated bounded compactions during one logical run while older raw provider/tool rounds leave active model context. Failed reduction, persistence, route validation or candidate measurement leaves the prior live projection usable and prevents unsafe/over-budget dispatch. This task does not resume after process death or authorize replay; restart/reconciliation remains Task 4.
+Raw execution evidence and canonical conversation history are never rewritten by compaction. In-flight tool work is never eligible. Repeated completed tool rounds may therefore cause repeated bounded compactions during one logical run while older raw provider/tool rounds leave active model context. Failed reduction, persistence, route validation or candidate measurement leaves the prior live projection usable and prevents unsafe/over-budget dispatch. A008-0198 does not itself resume after process death or authorize replay; A008-0199 supplies the bounded recovery path below.
+
+## Interrupted-turn recovery — A008-0199
+
+ADR 0057 refines ADR 0055 without granting tool replay. Automatic continuation
+still requires Task 3's opt-in pressure policy and an exactly measurable selected
+route. Direct dispatch, runtime timeout composition and debug tracing forward
+the underlying serializer's measurement. A route without it (including the
+current embedded-ACME adapter) fails closed; no estimated fallback is introduced.
+
+At each compacted completed boundary, PlatformStore atomically validates the
+current lease, binds newly completed source interactions and the recent raw tail,
+saves the canonical checkpoint and adds a versioned recovery supplement. It
+contains the raw tail, cumulative consumed tool IDs, interaction count, runtime
+run ID/route and workspace evidence. Private provider reasoning is omitted from
+the persisted recovery tail. Earlier bindings remain authoritative; already
+bound historical rounds are not retransmitted at every checkpoint.
+
+Before every subsequent tool execution, and before final completion/post-output
+work, the child awaits a host-owned durable effect fence. Earlier checkpoints
+cannot resume after that fence. Cancellation, explicit process stop and graceful
+host shutdown also invalidate eligibility. A disconnected process cannot save
+state using a stale instance/run/lease. The usual uncertain-effect status remains
+in place until conservative recovery or explicit effect review resolves it.
+
+The existing coordinator discovers the latest valid checkpoint for an unfinished
+GUI run after process loss or lease expiry. It requires a stopped former owner,
+no newer accepted work in that session, exact run/workspace/source bindings and
+matching Git/file evidence. The ordinary lease transition consumes recovery
+eligibility atomically before dispatching the replacement process. A second
+crash needs a new checkpoint; the same recovery authorization cannot loop.
+
+Evidence hashes HEAD, branch, index, tracked/nonignored files and explicitly referenced
+local artifacts (including ignored files). Local read/list/create/edit tools
+expose those artifact paths. Terminal, Git and other opaque tool effects make
+the accumulated evidence unverifiable for automatic recovery. Symlinks,
+submodules, unsupported file types, scan failure, more than 10,000 paths or more
+than 64 MiB of file content also fail closed. Comparison is not a filesystem
+transaction and does not prevent subsequent external writes.
+
+Changed/unverifiable evidence leaves `needs_reconciliation` with
+`CONTINUATION_UNCERTAIN`; missing workspace uses `WORKSPACE_MISSING`. The error
+qualifies checkpoint findings as uncertain current facts; the historical
+checkpoint and raw evidence remain unchanged. No stale finding is dispatched
+as verified current context. Existing effect review remains the exit path.
+
+A successful replacement rebuilds current authoritative input/memory context,
+validated continuation state and raw tail under the same durable run/session/
+workspace and runtime turn identity, with a new process instance/PID. Cumulative
+tool budget, duplicate IDs, route identity and full serialized request ceilings
+remain enforced. Stored tool calls are context only and are never executed by
+restoration. Public tool activity merges by ID across process lifetimes;
+cursor events and canonical chat history remain durable. Normal memory intake
+runs after final completion; recovery data is never a retrieval candidate.
 
 ## Minne och kontext
 

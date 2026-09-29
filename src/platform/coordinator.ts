@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { readProjectRegistry } from "../bootstrap/registry.js";
 import type { RegisteredProject } from "../bootstrap/types.js";
 import { ProjectRuntimeRegistry } from "../engine/project-runtime-registry.js";
@@ -37,6 +38,7 @@ import {
 } from "../core/model-registry.js";
 import { defaultSessionParameters } from "../core/generation-controls.js";
 import { nativeToolCatalog } from "../tools/repository-tools.js";
+import { inspectContinuationWorkspace } from "./continuation-workspace.js";
 
 const ACTIVE_STATUSES = ["running", "cancel_requested"] as const;
 
@@ -124,7 +126,7 @@ export class PlatformCoordinator {
   guiActivity(scope: PlatformScope, runId: string) {
     const stored = this.#store.readActivity(scope, runId);
     const live = this.#guiRuns.get(runId);
-    if (live) return { ...live.activity(), cursor: stored?.cursor ?? 0 };
+    if (live) return { ...live.activity(), tools: stored?.tools ?? live.activity().tools, cursor: stored?.cursor ?? 0 };
     if (!stored) return undefined;
     const { permission: _permission, ...activity } = stored;
     return activity;
@@ -144,6 +146,9 @@ export class PlatformCoordinator {
     sessionId: string,
   ): Promise<void> {
     this.#store.getConversation(scope, sessionId);
+    for (const run of this.#store.listRuns(scope)) {
+      if (run.conversationId === sessionId && !isTerminal(run.status)) this.#store.disableContinuationRecovery(scope, run.id);
+    }
     await this.#processes.get(sessionId)?.stop();
   }
   guiSnapshot(scope: PlatformScope, conversationId: string, model: string) {
@@ -323,6 +328,16 @@ export class PlatformCoordinator {
     );
     for (const candidate of candidates) {
       const { scope, run } = candidate;
+      const recovering = run.status === "needs_reconciliation";
+      if (recovering && (this.#guiRuns.has(run.id) || this.#processes.get(run.conversationId)?.alive)) {
+        skipped.add(run.id);
+        continue;
+      }
+      const recovery = recovering ? this.#store.readContinuationRecovery(scope, run.id) : undefined;
+      if (recovering && !recovery) {
+        this.#store.rejectContinuationRecovery(scope, run.id, run.revision, "Checkpoint findings are uncertain: no valid unfenced recovery boundary remains. Review effects before dependent work.");
+        return true;
+      }
       if (!this.#canDispatch(scope.principalId, scope.projectId)) {
         skipped.add(run.id);
         continue;
@@ -344,9 +359,13 @@ export class PlatformCoordinator {
       let workspace;
       try {
         workspace = this.#workspaceStore.get(scope.projectId, run.workspaceId);
-        if (workspace === undefined || workspace.disposition === "discarded")
+        if (workspace === undefined || workspace.disposition === "discarded" || !existsSync(workspace.workspacePath))
           throw new Error("workspace unavailable");
       } catch {
+        if (recovering) {
+          this.#store.rejectContinuationRecovery(scope, run.id, run.revision, "Checkpoint workspace is unavailable; findings cannot be verified.", "WORKSPACE_MISSING");
+          return true;
+        }
         this.#failQueued(
           scope,
           run,
@@ -354,6 +373,13 @@ export class PlatformCoordinator {
           "The run workspace is unavailable.",
         );
         return true;
+      }
+      if (recovery) {
+        const current = inspectContinuationWorkspace(workspace.workspacePath, recovery.evidence);
+        if (!current.verifiable || current.digest !== recovery.evidence.digest || current.revision !== recovery.evidence.revision) {
+          this.#store.rejectContinuationRecovery(scope, run.id, run.revision, "Checkpoint findings are uncertain: workspace revision/artifacts changed or cannot be verified. No work was replayed.");
+          return true;
+        }
       }
       let runtime;
       let projectRuntime;
@@ -430,13 +456,22 @@ export class PlatformCoordinator {
       }
       let claimed;
       try {
-        claimed = this.#store.claimRun(scope, {
+        const claim = {
           runId: run.id,
           ownerToken: this.#ownerToken,
           leaseDurationMs: this.#config.leaseDurationMs,
-        });
+        };
+        claimed = recovery
+          ? this.#store.claimContinuationRecovery(scope, { ...claim, expectedRevision: run.revision, sequence: recovery.sequence })
+          : this.#store.claimRun(scope, claim);
       } catch (error) {
         this.#note(error);
+        if (recovering) {
+          void session.stop();
+          const latest = this.#store.getRun(scope, run.id);
+          if (latest.status === "needs_reconciliation") this.#store.rejectContinuationRecovery(scope, run.id, latest.revision, "Checkpoint recovery no longer owns this unfinished turn; no replay performed.");
+          return true;
+        }
         skipped.add(run.id);
         continue;
       }
@@ -466,11 +501,13 @@ export class PlatformCoordinator {
           ...(run.attachment === undefined ? {} : { attachment: run.attachment }),
           history: prepared.history,
           tools: run.principalId === PLATFORM_GUI_OWNER,
+          ...(recovery ? { continuationResume: recovery.recovery } : {}),
           recoveryRequired: this.#store
             .listRuns(scope)
             .some(
               (prior) =>
                 prior.conversationId === run.conversationId &&
+                prior.id !== run.id &&
                 prior.status === "needs_reconciliation",
             ),
         },
@@ -530,21 +567,19 @@ export class PlatformCoordinator {
         abort.signal,
         (activity) => this.#store.recordActivity(scope, run.id, activity),
         async (checkpoint) => {
-          for (const interaction of checkpoint.sourceInteractions) {
-            this.#store.bindContinuationSourceInteraction(scope, {
-              runId: run.id,
-              turnId: run.id,
-              workspaceId: run.workspaceId,
-              interaction,
-            });
-          }
-          this.#store.saveContinuationCheckpoint(scope, {
+          abort.signal.throwIfAborted();
+          this.#store.saveContinuationBoundary(scope, {
             runId: run.id,
-            turnId: run.id,
-            workspaceId: run.workspaceId,
-            runtimeRunId: checkpoint.runId,
-            state: checkpoint.state,
-            maximumStateBytes: checkpoint.maximumStateBytes,
+            ownerToken: this.#ownerToken,
+            generation,
+            expectedRevision: this.#store.getRun(scope, run.id).revision,
+          }, checkpoint, session.input.cwd);
+        },
+        async () => {
+          abort.signal.throwIfAborted();
+          this.#store.fenceContinuation(scope, {
+            runId: run.id, ownerToken: this.#ownerToken, generation,
+            expectedRevision: this.#store.getRun(scope, run.id).revision,
           });
         },
       );
@@ -628,6 +663,7 @@ export class PlatformCoordinator {
       clearInterval(renew);
       clearTimeout(timeout);
       this.#shutdown.signal.removeEventListener("abort", onShutdown);
+      if (abort.signal.aborted) this.#store.disableContinuationRecovery(scope, run.id);
       this.#store.recordActivity(scope, run.id, session.activity());
       const latest = this.#store.getRun(scope, run.id);
       if (latest.status === "running" || latest.status === "cancel_requested") {
@@ -683,6 +719,10 @@ export class PlatformCoordinator {
     message: string,
   ): void {
     try {
+      if (run.status === "needs_reconciliation") {
+        this.#store.rejectContinuationRecovery(scope, run.id, run.revision, message, code);
+        return;
+      }
       const claimed = this.#store.claimRun(scope, {
         runId: run.id,
         ownerToken: this.#ownerToken,
@@ -701,7 +741,9 @@ export class PlatformCoordinator {
   }
 
   #queued(): { readonly scope: PlatformScope; readonly run: PlatformRun }[] {
-    const queued = this.#projectRuns(undefined, ["queued"]).map((run) => ({
+    const queued = this.#projectRuns(undefined, ["queued", "needs_reconciliation"])
+      .filter(run => run.status === "queued" || (!run.error && run.principalId === PLATFORM_GUI_OWNER && this.#store.latestContinuationCheckpoint({ tenantId: run.tenantId, projectId: run.projectId, principalId: run.principalId }, { runId: run.id, turnId: run.id, workspaceId: run.workspaceId }) !== undefined))
+      .map((run) => ({
       scope: {
         tenantId: this.#config.tenantId,
         projectId: run.projectId,

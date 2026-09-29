@@ -13,7 +13,7 @@ import type { StagePostOutputKnowledgeInput } from "../orchestration/post-output
 import { parseRuntimeId } from "../identity/runtime-id.js";
 import { killProcessTree } from "../tools/terminal.js";
 import type { PromptImageAttachment, SessionParameters } from "../../packages/protocol/src/index.js";
-import type { RunContinuationCheckpointWrite } from "../core/chat-continuation.js";
+import type { RunContinuationCheckpointWrite, RunContinuationRecovery } from "../core/chat-continuation.js";
 
 export interface SessionProcessIdentity {
   readonly sessionId: string;
@@ -41,6 +41,7 @@ export interface SessionProcessRun {
   attachment?: PromptImageAttachment;
   tools: boolean;
   recoveryRequired?: boolean;
+  continuationResume?: RunContinuationRecovery;
 }
 
 /** Owned by the exclusive local host, never by an observer or GUI window. */
@@ -58,6 +59,7 @@ export class SessionProcess {
     | ((input: RunContinuationCheckpointWrite) => Promise<void>)
     | undefined;
   #model: string | undefined;
+  #beforeEffect: (() => Promise<void>) | undefined;
   #runId: string | undefined;
 
   constructor(readonly input: SessionProcessStart) {
@@ -93,6 +95,11 @@ export class SessionProcess {
         if (!this.#busy || envelope.runId !== this.#runId)
           throw new Error("Stale session run.");
         payload = envelope.value;
+        if (method === "continuation.beforeEffect") {
+          if (!this.#beforeEffect) throw new Error("Recovery fence owner unavailable.");
+          await this.#beforeEffect();
+          return;
+        }
         if (method === "activity") {
           if (!this.#busy) return;
           this.#activity = payload as GuiRunActivity;
@@ -218,6 +225,7 @@ export class SessionProcess {
     onContinuationCheckpoint?: (
       input: RunContinuationCheckpointWrite,
     ) => Promise<void>,
+    beforeEffect?: () => Promise<void>,
   ): Promise<PlatformTextTurnResult> {
     if (this.#busy) throw new Error("Session already has an active run.");
     this.#busy = true;
@@ -225,6 +233,7 @@ export class SessionProcess {
     this.#model = run.model;
     this.#onActivity = onActivity;
     this.#onContinuationCheckpoint = onContinuationCheckpoint;
+    this.#beforeEffect = beforeEffect;
     this.#activity = { thought: "", answer: "", tools: [] };
     try {
       await this.#ready;
@@ -242,6 +251,7 @@ export class SessionProcess {
       this.#runId = undefined;
       this.#onActivity = undefined;
       this.#onContinuationCheckpoint = undefined;
+      this.#beforeEffect = undefined;
     }
   }
   async stop(): Promise<void> {

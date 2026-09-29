@@ -33,6 +33,7 @@ A008/
 - `platform/` — durable store/coordinator and session process manager used by normal GUI chat and public V3.
 - `platform/session-process.ts`, `session-worker.ts`, `session-ipc.ts` — host ownership, OS child and private instance/run-bound IPC.
 - `platform/gui-run-session.ts` — EngineHost/tool adapter running inside the session child.
+- `platform/continuation-workspace.ts` — bounded Git/file evidence for checkpoint recovery; persistence and effect fences remain in PlatformStore, dispatch in the coordinator.
 - `memory/knowledge/workspace-observation.ts` — qualifies session observations and structured addresses by workspace.
 - `prompt-contracts/` — maintained prompt contracts.
 - `providers/` — provider/model adapters and catalogs.
@@ -75,7 +76,7 @@ docs/
 ├── FILESTRUCTURE.md          this repository map
 ├── JOURNAL.md                append-only dated integration history
 ├── TASK_IDS.md               task identity allocation
-├── adr/                      active ADRs 0055 (sessions) and 0056 (context); pre-0055 records are _legacy history
+├── adr/                      active ADRs 0055 (sessions), 0056 (context), 0057 (checkpoint recovery); pre-0055 records are _legacy history
 ├── backlog/                  current deferred work plus _legacy retired backlog
 ├── tasks/                    durable task/program records
 ├── finished/                 immutable completed task records

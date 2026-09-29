@@ -120,6 +120,14 @@ const rpc = new SessionIpc(
           recoveryRequired: run.recoveryRequired ?? false,
           conversationId: sessionId,
           history: run.history,
+          continuationRecovery: {
+            ...(run.continuationResume ? { resume: run.continuationResume } : {}),
+            beforeEffect: async () => {
+              await activityTail;
+              if (activityFailure !== undefined) throw activityFailure;
+              await rpc.request("continuation.beforeEffect", { runId: run.runId });
+            },
+          },
           onActivity: (activity) => {
             activityTail = activityTail.then(async () => {
               if (activityFailure !== undefined) return;

@@ -1,8 +1,14 @@
 # Runtime context compaction and budget recovery
 
-Status: Open
+Status: Completed locally through A008-0196–0199
 Source: `docs/temp/# A008 Runtime Context Compaction & Budget Recover.md`
 Recorded: 2026-09-28
+
+Completed: 2026-09-30. Tasks 1–3 are integrated; Task 4 is implemented and
+verified locally on `codex/a008-0199-interrupted-turn-recovery`. See
+[A008-0199 handoff](../handoffs/A008-0199.md) for evidence and explicit recovery
+limits. The proposal below remains historical planning input; shipped behavior
+is owned by SYSTEMDOC and the completed task records.
 
 ## Proposed outcome
 

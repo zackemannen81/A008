@@ -1,12 +1,7 @@
 import { ChatError } from "../core/errors.js";
 import { resolveExecutionProvider } from "../core/execution-provider.js";
 import type { ModelRegistry } from "../core/model-registry.js";
-import type {
-  ChatCallbacks,
-  ChatCompletion,
-  ChatRequest,
-  ChatTransport,
-} from "../core/types.js";
+import type { ChatRequest, ChatTransport } from "../core/types.js";
 import { loadUserCatalog, type UserCatalog } from "../core/user-catalog.js";
 import {
   AcmeChatTransport,
@@ -176,50 +171,54 @@ export function createDispatchingChatTransport(options: {
   readonly timeoutMs: number;
   readonly fetch?: FetchLike;
 }): ChatTransport {
-  return {
-    complete(
-      request: ChatRequest,
-      callbacks?: ChatCallbacks,
-    ): Promise<ChatCompletion> {
-      const catalog = loadUserCatalog(options.catalogPath);
-      const executionProvider =
-        isKnownKieChatModel(request.model, catalog) ||
-        catalog.chatProvider === "kie"
-          ? "kie"
-          : resolveExecutionProvider(request.model, catalog);
+  function selected(request: ChatRequest): {
+    transport: ChatTransport;
+    request: ChatRequest;
+  } {
+    const catalog = loadUserCatalog(options.catalogPath);
+    const executionProvider =
+      isKnownKieChatModel(request.model, catalog) ||
+      catalog.chatProvider === "kie"
+        ? "kie"
+        : resolveExecutionProvider(request.model, catalog);
 
-      switch (executionProvider) {
-        case "openai": {
-          const apiKey = options.env.OPENAI_API_KEY?.trim();
-          if (!apiKey) {
-            throw new ChatError(
-              "configuration",
-              "OPENAI_API_KEY is required for OpenAI chat.",
-            );
-          }
-          return new OpenAiChatTransport({
-            apiKey,
-            timeoutMs: options.timeoutMs,
-            ...(options.fetch ? { fetch: options.fetch } : {}),
-          }).complete(request, callbacks);
+    switch (executionProvider) {
+      case "openai": {
+        const apiKey = options.env.OPENAI_API_KEY?.trim();
+        if (!apiKey) {
+          throw new ChatError(
+            "configuration",
+            "OPENAI_API_KEY is required for OpenAI chat.",
+          );
         }
-        case "kie": {
-          const apiKey = options.env.KIE_API_KEY?.trim();
-          if (!apiKey) {
-            throw new ChatError(
-              "configuration",
-              "KIE_API_KEY is required for kie.ai chat.",
-            );
-          }
-          const model = isKnownKieChatModel(request.model, catalog)
-            ? request.model
-            : catalog.kie.chatModel;
-          const transport = new KieChatTransport({
+        return {
+          request,
+          transport: new OpenAiChatTransport({
             apiKey,
             timeoutMs: options.timeoutMs,
             ...(options.fetch ? { fetch: options.fetch } : {}),
-          });
-          return transport.complete(
+          }),
+        };
+      }
+      case "kie": {
+        const apiKey = options.env.KIE_API_KEY?.trim();
+        if (!apiKey) {
+          throw new ChatError(
+            "configuration",
+            "KIE_API_KEY is required for kie.ai chat.",
+          );
+        }
+        const model = isKnownKieChatModel(request.model, catalog)
+          ? request.model
+          : catalog.kie.chatModel;
+        const transport = new KieChatTransport({
+          apiKey,
+          timeoutMs: options.timeoutMs,
+          ...(options.fetch ? { fetch: options.fetch } : {}),
+        });
+        return {
+          transport,
+          request:
             model === request.model
               ? request
               : {
@@ -229,64 +228,82 @@ export function createDispatchingChatTransport(options: {
                   ...(request.options ? { options: request.options } : {}),
                   ...(request.signal ? { signal: request.signal } : {}),
                 },
-            callbacks,
+        };
+      }
+      case "nvidia": {
+        const apiKey = options.env.NVIDIA_API_KEY?.trim();
+        if (!apiKey) {
+          throw new ChatError(
+            "configuration",
+            "NVIDIA_API_KEY is required for NVIDIA chat.",
           );
         }
-        case "nvidia": {
-          const apiKey = options.env.NVIDIA_API_KEY?.trim();
-          if (!apiKey) {
-            throw new ChatError(
-              "configuration",
-              "NVIDIA_API_KEY is required for NVIDIA chat.",
-            );
-          }
-          const endpoint = options.env[NVIDIA_ENDPOINT_ENV]?.trim();
-          return new NvidiaChatTransport({
+        const endpoint = options.env[NVIDIA_ENDPOINT_ENV]?.trim();
+        return {
+          request,
+          transport: new NvidiaChatTransport({
             apiKey,
             timeoutMs: options.timeoutMs,
             ...(endpoint ? { endpoint } : {}),
             ...(options.fetch ? { fetch: options.fetch } : {}),
-          }).complete(request, callbacks);
-        }
-        case "openrouter":
-        case "groq":
-        case "google":
-        case "opencode": {
-          if (!isCompatibleExecutionProvider(executionProvider)) {
-            throw new ChatError(
-              "configuration",
-              `Unsupported compatible provider ${executionProvider}.`,
-            );
-          }
-          const route = catalog.chatModels.find(
-            (entry) =>
-              entry.id === request.model &&
-              entry.provider === executionProvider,
+          }),
+        };
+      }
+      case "openrouter":
+      case "groq":
+      case "google":
+      case "opencode": {
+        if (!isCompatibleExecutionProvider(executionProvider)) {
+          throw new ChatError(
+            "configuration",
+            `Unsupported compatible provider ${executionProvider}.`,
           );
-          if (route === undefined) {
-            throw new ChatError(
-              "configuration",
-              `No persisted ${executionProvider} route for model ${request.model}.`,
-            );
-          }
-          const keyName = compatibleCredentialEnv(executionProvider);
-          const apiKey = options.env[keyName]?.trim();
-          if (!apiKey) {
-            throw new ChatError(
-              "configuration",
-              `${keyName} is required for ${executionProvider} chat.`,
-            );
-          }
-          return new OpenAiCompatibleChatTransport({
+        }
+        const route = catalog.chatModels.find(
+          (entry) =>
+            entry.id === request.model && entry.provider === executionProvider,
+        );
+        if (route === undefined) {
+          throw new ChatError(
+            "configuration",
+            `No persisted ${executionProvider} route for model ${request.model}.`,
+          );
+        }
+        const keyName = compatibleCredentialEnv(executionProvider);
+        const apiKey = options.env[keyName]?.trim();
+        if (!apiKey) {
+          throw new ChatError(
+            "configuration",
+            `${keyName} is required for ${executionProvider} chat.`,
+          );
+        }
+        return {
+          request,
+          transport: new OpenAiCompatibleChatTransport({
             provider: executionProvider,
             apiKey,
             route,
             catalog,
             timeoutMs: options.timeoutMs,
             ...(options.fetch ? { fetch: options.fetch } : {}),
-          }).complete(request, callbacks);
-        }
+          }),
+        };
       }
+    }
+  }
+  return {
+    complete(request, callbacks) {
+      const route = selected(request);
+      return route.transport.complete(route.request, callbacks);
+    },
+    measureRequest(request) {
+      const route = selected(request);
+      if (!route.transport.measureRequest)
+        throw new ChatError(
+          "configuration",
+          "Selected route does not expose exact request measurement.",
+        );
+      return route.transport.measureRequest(route.request);
     },
   };
 }

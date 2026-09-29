@@ -6,8 +6,15 @@ import {
   redactHeaders,
   redactSecrets,
   tracedFetch,
+  tracedChatTransport,
 } from "../src/runtime/debug-trace.js";
 import { isolatedMemoryEnv, uniqueTraceFile } from "./helpers.js";
+
+test("debug tracing preserves exact selected-route request measurement without dispatch", () => {
+  const tracer = createDebugTracer({ mode: "safe", surface: "test" });
+  const wrapped = tracedChatTransport({ measureRequest: () => ({ routeId: "selected", serializedBytes: 123 }), async complete() { throw new Error("measurement must not dispatch"); } }, tracer, "test");
+  assert.deepEqual(wrapped.measureRequest?.({ model: "fixture", messages: [] }), { routeId: "selected", serializedBytes: 123 });
+});
 
 test("redaction removes secrets from headers and payloads", () => {
   const headers = redactHeaders({

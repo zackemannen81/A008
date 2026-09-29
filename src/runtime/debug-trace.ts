@@ -413,6 +413,7 @@ export function tracedChatTransport(
     return inner;
   }
   return {
+    ...(inner.measureRequest ? { measureRequest: inner.measureRequest.bind(inner) } : {}),
     async complete(request: ChatRequest, callbacks: ChatCallbacks = {}) {
       const operation = semanticOperation(request) ?? "chat";
       const serialized = JSON.stringify(

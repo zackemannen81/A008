@@ -4,6 +4,7 @@ import { ChatError } from "../src/core/errors.js";
 import {
   RUN_CONTINUATION_STATE_VERSION,
   type RunContinuationState,
+  type RunContinuationRecovery,
 } from "../src/core/chat-continuation.js";
 import type {
   ChatCompletion,
@@ -73,11 +74,12 @@ function tools(input: {
           reducerInputBytes: 20_000,
           reducerOutputTokens: 512,
         },
-        async persistCheckpoint({ runId, state, sourceInteractions }) {
+        async persistCheckpoint({ runId, state, sourceInteractions, recovery }) {
           input.events.push("checkpoint");
           input.checkpointRunIds?.push(runId);
           assert.ok(state.verifiedFacts.length > 0);
           assert.ok(sourceInteractions.length > 0);
+          assert.ok(!JSON.stringify(recovery).includes("private-tool-reasoning"));
         },
       },
       async compact({ runId, previous, interactions }) {
@@ -115,6 +117,23 @@ function reducerCompletion(request: ChatRequest): ChatCompletion {
   };
 }
 
+test("restored turn preserves tool budget and duplicate IDs and fences before effects", async () => {
+  const state: RunContinuationState = { version: RUN_CONTINUATION_STATE_VERSION, runId: "restored", verifiedFacts: [{ id: "f", statement: "done", sourceRefs: ["restored:1"] }], hypotheses: [], completedActions: [] };
+  const resume: RunContinuationRecovery = { version: 1, state, recentInteractions: [], completedInteractions: 1, usedToolCallIds: ["already-done"], routeId: "fixture-route" };
+  for (const scenario of ["duplicate", "budget", "fence-failure", "route-change", "oversized"] as const) {
+    let effects = 0; let dispatches = 0;
+    const base = tools({ events: [], pressureBytes: 10000, maximumBytes: 20000, maximumCalls: scenario === "budget" ? 1 : 3 });
+    const session = new ChatSession({ model: "fixture/model", transport: {
+      measureRequest(request) { return { ...measure(request), ...(scenario === "route-change" ? { routeId: "changed" } : {}), ...(scenario === "oversized" ? { serializedBytes: 20001 } : {}) }; },
+      async complete() { dispatches++; return { message: { role: "assistant", content: "" }, toolCalls: [{ id: scenario === "duplicate" ? "already-done" : "next", name: "inspect", arguments: "{}" }] }; },
+    } });
+    await assert.rejects(() => session.send("same unfinished input", { tools: { ...base, continuation: { ...base.continuation!, recovery: { resume, beforeEffect: async () => { if (scenario === "fence-failure") throw new Error("persistence failure"); } } }, async execute() { effects++; return "must not happen"; } } }));
+    assert.equal(effects, 0, scenario);
+    if (scenario === "route-change" || scenario === "oversized") assert.equal(dispatches, 0, scenario);
+    assert.deepEqual(session.messages, []);
+  }
+});
+
 test("pressure reduces at completed-tool boundary, persists before adopting and preserves raw tail", async () => {
   const requests: ChatRequest[] = [];
   const events: string[] = [];
@@ -129,6 +148,7 @@ test("pressure reduces at completed-tool boundary, persists before adopting and 
       if (mainDispatches <= 3) {
         return {
           message: { role: "assistant", content: "" },
+          reasoning: "private-tool-reasoning",
           toolCalls: [
             { id: `call-${mainDispatches}`, name: "inspect", arguments: "{}" },
           ],

@@ -1,10 +1,10 @@
 # Current Status — A008
 
-Granskad: 2026-09-29
-Källrevision: `eb3143d` + verifierade A008-0198-slutändringar i task-worktree.
-Senaste arkitekturimplementation: A008-0198 (automatic live-turn context pressure, durable checkpoint-before-adoption och bounded same-run continuation).
+Granskad: 2026-09-30
+Källrevision: `ad42494` + A008-0199 på `codex/a008-0199-interrupted-turn-recovery`.
+Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtning med effektspärr och workspace-verifiering).
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
-A008-0196 (Complete) defines bounded source-linked run-local compaction and A008-0197 makes validated checkpoints durable. A008-0198 now re-evaluates exact serialized request pressure after completed tool rounds, performs bounded tool-free reduction, persists before adoption and continues the same live run with the configured recent raw tail. Process-loss recovery/replay remains excluded for Task 4.
+A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
 
 ## Godkänd riktning
 
@@ -28,7 +28,7 @@ modellvända minnesprojektionen och är implementerad genom A008-0189.
 | Körningar | Flera sessioner kan arbeta parallellt upp till värdens kapacitet; varje session tillåter en aktiv run åt gången. Accepterat arbete fortsätter när GUI byter session/projekt eller kopplas bort. |
 | Historik och återanslutning | Historik kan läsas utan processstart. Publik run-aktivitet lagras med cursor/snapshot så klienten kan återansluta utan att skicka senaste kommandot igen eller dubblera sparade event. |
 | Verktyg och approvals | GUI-runnern kör verktyg i sessionens workspace-CWD. Pending approvals ägs av sessionsprocessen och kan besvaras av en behörig ansluten klient; disconnect avgör inte beslutet. |
-| Crash recovery | Död sessionsprocess raderar inte session/workspace/historik. Nästa nya meddelande kan starta en ny process. Okända tidigare effekter återspelas aldrig automatiskt och kan granskas explicit före beroende writes. |
+| Crash recovery | Död sessionsprocess raderar inte session/workspace/historik. En verifierad checkpoint kan fortsätta samma run i en ny process; annars visas osäkerhet. Nästa nya meddelande kan fortfarande starta en ny process. Okända tidigare effekter återspelas aldrig automatiskt och måste granskas före beroende writes. |
 | Workspace-fel | Saknad/discarded worktree gör runnen failed med `WORKSPACE_MISSING`; den kör aldrig i projekt-roten. |
 | Semantiskt minne | Projektets semantiska ägare ligger kvar i värden. Sessionsprocesser begär retrieval/commit över IPC. Workspace-/revisionskontext bevaras för arbetskopiespecifika observationer. |
 | Chatthistorik utan memory | Durable historik är separat från semantiskt minne; answer-, minnes- och external-effect-utfall lagras separat och kan rapporteras/återhämtas utan att göra dem till semantic memory. |
@@ -168,4 +168,35 @@ Final local verification 2026-09-29, no live-provider calls:
 - `git diff --check`: **PASS**;
 - no live provider calls; **0 SEK**.
 
-Remaining program boundary: Task 4 owns process-loss checkpoint discovery/resume and conservative recovery. A008-0198 does not replay ambiguous effects.
+Task 4 is implemented by A008-0199. Neither live compaction nor process recovery replays ambiguous effects.
+
+## Interrupted-turn recovery — A008-0199
+
+- SQLite v6 adds atomic recovery supplements and durable effect fences to the
+  existing PlatformStore. v5 checkpoints remain readable without gaining resume
+  authority. Recovery consumes the checkpoint's eligibility with a new lease.
+- A stopped GUI sessionsprocess can be replaced for the same accepted run from
+  a validated checkpoint. Raw tail, source refs, runtime turn ID, selected route,
+  cumulative tool budget and duplicate protection survive. Public tool activity
+  remains visible across process lifetimes; final chat output is committed once.
+- Tool dispatch, final completion, cancellation, explicit stop and graceful host
+  shutdown invalidate older recovery eligibility. Stale owners cannot save it.
+- Workspace/artifact mutation or unverifiable evidence leaves
+  `needs_reconciliation` / `CONTINUATION_UNCERTAIN`; missing workspace reports
+  `WORKSPACE_MISSING`. Checkpoint findings are explicitly uncertain current facts
+  until reviewed; historical evidence is preserved.
+- Recovery is conservative: read/list/create/edit expose verifiable local paths;
+  opaque terminal/Git/external tool evidence, symlinks/submodules, scan limits and
+  races outside the comparison window are not guaranteed recoverable.
+- Opt-in pressure requires an exactly measured route. The direct runtime and
+  tracing wrappers now forward provider measurements. The current embedded-ACME
+  adapter lacks this capability and fails closed when pressure is enabled.
+  Defaults remain disabled. No provider fallback or new route was introduced.
+
+Verification details and final counts: [A008-0199 handoff](handoffs/A008-0199.md).
+
+Final local verification: root build/typecheck and GUI typecheck PASS;
+selected core/runtime suites **107/107**, full platform-host **17/17**, full GUI
+**218/218**. Real 110-round continuation replaces the process after round 55,
+preserves one run and 110 tool results, and keeps all measured main requests
+below 50,000 bytes. No live-provider calls; **0 SEK**.

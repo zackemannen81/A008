@@ -41,6 +41,55 @@ export interface RunContinuationCheckpointWrite {
   readonly state: RunContinuationState;
   readonly sourceInteractions: readonly RunToolInteraction[];
   readonly maximumStateBytes: number;
+  readonly recovery?: RunContinuationRecovery;
+}
+
+/** Rebuild data for a completed boundary, never a list of operations to execute. */
+export interface RunContinuationRecovery {
+  readonly version: 1;
+  readonly state: RunContinuationState;
+  readonly recentInteractions: readonly RunToolInteraction[];
+  readonly completedInteractions: number;
+  readonly usedToolCallIds: readonly string[];
+  readonly routeId: string;
+}
+
+export interface RunContinuationRecoveryBridge {
+  readonly resume?: RunContinuationRecovery;
+  /** Must be acknowledged durably before a tool or post-output effect starts. */
+  readonly beforeEffect: () => Promise<void>;
+}
+
+export function validateContinuationRecovery(
+  value: RunContinuationRecovery,
+  maximumStateBytes: number,
+): RunContinuationRecovery {
+  if (value.version !== 1 || !Number.isSafeInteger(value.completedInteractions) ||
+      value.completedInteractions < 1 || !Array.isArray(value.recentInteractions) ||
+      value.recentInteractions.length >= value.completedInteractions ||
+      !Array.isArray(value.usedToolCallIds) || value.usedToolCallIds.some(id => typeof id !== "string" || !id || id.length > 256) ||
+      new Set(value.usedToolCallIds).size !== value.usedToolCallIds.length ||
+      value.usedToolCallIds.length < value.completedInteractions ||
+      typeof value.routeId !== "string" || !value.routeId) {
+    invalid("invalid recovery boundary.");
+  }
+  const compacted = value.completedInteractions - value.recentInteractions.length;
+  const refs = new Set(Array.from({ length: compacted }, (_, i) => `${value.state.runId}:${i + 1}`));
+  validateRunContinuationState(value.state, { runId: value.state.runId, validSourceRefs: refs, requiredSourceRefs: refs, maximumBytes: maximumStateBytes });
+  const tailIds = new Set<string>();
+  for (const [i, interaction] of value.recentInteractions.entries()) {
+    if (interaction.id !== `${value.state.runId}:${compacted + i + 1}` || !Array.isArray(interaction.messages)) invalid("invalid raw tail sequence.");
+    const first = interaction.messages[0];
+    if (!first || first.role !== "assistant" || !("toolCalls" in first) || !first.toolCalls.length || interaction.messages.length !== first.toolCalls.length + 1) invalid("unfinished raw tail.");
+    for (const [j, call] of first.toolCalls.entries()) {
+      const result = interaction.messages[j + 1];
+      if (!value.usedToolCallIds.includes(call.id) || tailIds.has(call.id) ||
+          typeof call.name !== "string" || typeof call.arguments !== "string" ||
+          result?.role !== "tool" || result.toolCallId !== call.id || typeof result.content !== "string") invalid("invalid raw tail tool binding.");
+      tailIds.add(call.id);
+    }
+  }
+  return structuredClone(value);
 }
 
 export interface RunContinuationPressurePolicy {
@@ -67,6 +116,7 @@ export function validateContinuationPressure(
 }
 
 export interface RunContinuationPolicy {
+  readonly recovery?: RunContinuationRecoveryBridge;
   /** Number of newest completed tool rounds that always remain raw in provider context. */
   readonly recentRawInteractions: number;
   /** Maximum UTF-8 size of the serialized continuation state. */
