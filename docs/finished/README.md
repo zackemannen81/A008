@@ -2,7 +2,7 @@
 
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 
-Latest archive: [A008-0199_Task4.md](A008-0199_Task4.md) — Complete locally; conservative interrupted-turn recovery and real 110-round process replacement.
+Latest archive: [A008-0200_bounded-tool-context.md](A008-0200_bounded-tool-context.md) — Complete locally; bounded sectional native tools and guarded edits.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

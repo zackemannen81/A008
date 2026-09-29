@@ -2784,3 +2784,24 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
   restored byte-for-byte from its template.
 - [Handoff](handoffs/A008-0199.md). [Archive](finished/A008-0199_Task4.md).
 - Signature: Codex (operator/implementer)
+
+## 2026-09-30 — A008-0200 bounded native tool context
+
+- Owner-requested local optimization: read_file returns bounded line sections
+  with a whole-file revision, explicit completeness and a next-page cursor.
+- Separate 16 MiB local snapshot processing from model-visible output. Small
+  edits in larger files retain stale/unique-match checks; successful edit hashes
+  can drive the next edit without redundant rereads. Uniform LF/CRLF arguments
+  preserve the file's style, with no fuzzy writes.
+- Terminal/Git default to 8192 result-text bytes with per-call caps under runtime
+  ceilings. Native descriptions favor sections, scoped searches/diffs and MCP
+  for extra capabilities. Enabled MCP catalogs are not filtered.
+- Verification: root build/typecheck PASS; 92 relevant local tests PASS. A
+  248890-byte file needs only 692 result bytes for a section and two edits in
+  the fixture. No token or live model-performance claim; 0 live calls, 0 SEK.
+- ADR 0058, owning documentation, archive and handoff updated; current-task
+  template restored. Complete locally; remote publication/integration not claimed.
+- The owner's concurrently edited C:\code\acme checkout was not accessed or
+  changed. No changes to Desktop Commander, dependencies or user settings.
+- [Handoff](handoffs/A008-0200.md). [Archive](finished/A008-0200_bounded-tool-context.md).
+- Signature: Codex (operator/implementer)

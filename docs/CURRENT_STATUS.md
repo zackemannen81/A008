@@ -1,10 +1,31 @@
 # Current Status — A008
 
 Granskad: 2026-09-30
-Källrevision: `ad42494` + A008-0199 på `codex/a008-0199-interrupted-turn-recovery`.
+Källrevision: `0174a4e` + A008-0200 på `codex/a008-0200-bounded-tool-context`.
 Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtning med effektspärr och workspace-verifiering).
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
+
+## Verktygskontext — A008-0200
+
+- `read_file` läser sektioner: nollbaserad offset, normalt högst 200 rader och
+  8192 byte resultattext. Hela filens SHA-256 följer med tillsammans med
+  radantal, totalantal, nästa offset och explicit fullständighetsmarkering.
+- Små ändringar i filer större än resultatbudgeten fungerar nu. Lokal
+  läsning/redigering har separat 16 MiB-gräns. Hash från lyckad create/edit kan
+  användas för nästa ändring utan omläsning; stale- och unikhetskontroller består.
+- Enhetliga LF/CRLF-filer bevarar sin radslutsstil även med andra radslut i
+  modellargumenten. Blandade radslut matchas bokstavligt. Ingen fuzzy write.
+- Terminal/Git får normalt högst 8192 byte resultattext och accepterar en
+  mindre/större explicit gräns inom runtime-budgeten. Trunkering markeras.
+- Verktygsbeskrivningar styr mot små sektioner, återanvända revisioner, avgränsade
+  sökningar/diffar och MCP för kompletterande förmågor. Ingen automatisk
+  MCP-filtrering införs; aktiverade scheman kostar fortfarande kontext.
+- Lokal 10 000-radersfixture: 248 890 byte helfil jämfört med 692 byte för en
+  sektionsläsning och två edit-resultat. Detta mäter resultatbyte, inte token
+  eller verklig modellprestanda. ACME strict-serialisering kontrollerad med fake fetch.
+- Build/typecheck PASS; 92 relevanta tester PASS. Inga live-anrop, 0 SEK.
+  [Handoff](handoffs/A008-0200.md), [ADR 0058](adr/0058-bounded-native-tool-context.md).
 
 ## Godkänd riktning
 

@@ -3,8 +3,8 @@
 Discoverability: naming convention `A008-NNNN.md`.
 Member state: required. Every member declares a `Status:` line.
 
-Latest implementation handoff: [A008-0199](A008-0199.md) — Complete locally;
-checkpoint recovery, durable effect fences and 110-round process-replacement proof.
+Latest implementation handoff: [A008-0200](A008-0200.md) — Complete locally;
+sectional native reads with whole-file revisions and bounded tool results.
 
 Latest specification handoff: [A008-0159](A008-0159.md) — platform v1.2,
 model-aware delegated verification budgets and aligned working rules;

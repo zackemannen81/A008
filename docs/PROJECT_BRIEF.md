@@ -147,7 +147,8 @@ kodändring; gamla begränsningar blir inte generella produktkrav genom historik
 - [ADR-registret](adr/README.md) listar aktiva beslut. ADR 0055 är det enda
   beslut som antogs vid arkitekturomläggningen; ADR 0056 preciserar därefter
   det minimala minneskuvertet. ADR 0057 preciserar säker återupptagning från en
-  verifierad checkpoint utan verktygsreplay. Alla ADR:er före 0055 är historik.
+  verifierad checkpoint utan verktygsreplay. ADR 0058 preciserar sektionsläsning
+  och begränsad native verktygskontext. Alla ADR:er före 0055 är historik.
 - [SYSTEMDOC.md](SYSTEMDOC.md) beskriver källkodens aktuella ansvar och flöden.
 - [CURRENT_STATUS.md](CURRENT_STATUS.md) visar observerade luckor mot målbilden.
 - Arkiv, journal och avslutade uppgifter är historik. Deras instruktioner eller

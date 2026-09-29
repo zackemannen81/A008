@@ -269,6 +269,41 @@ projektägare kan fortfarande hämta flera arbetskopiors observationer. Globala
 källor och äldre claims skrivs inte om eller tilldelas påhittad workspace-historik.
 Detta gör inte en modellgenererad observation automatiskt verifierad.
 
+## Native tool context — A008-0200
+
+ADR 0058 defines the native read contract. `read_file({path, offset?, limit?,
+max_output_bytes?})` returns exact UTF-8 content for a line section, the SHA-256
+of the whole local snapshot, zero-based `offset`, returned `lines`, `total_lines`,
+`next_offset` (null at EOF) and `complete` (only true for the entire file).
+Defaults are 200 lines and 8192 serialized result-text bytes, capped by the runtime
+tool-output budget. Byte-limited reads shorten the page at whole-line boundaries;
+a single line that cannot fit fails explicitly. Empty files return zero lines.
+Trailing line terminators do not invent an extra empty line. Ranges past EOF return
+an empty page at EOF. Optional null sentinels from strict providers use the defaults.
+
+Local snapshot processing reads at most 16 MiB plus one detection byte, independent
+of the model output budget. Hashing still reads local file bytes; only the selected
+section enters model context. Binary/non-UTF-8 files and larger snapshots are refused.
+`edit_file` uses the same snapshot ceiling rather than the output ceiling. It requires
+the whole-file hash and exactly one match, keeps compact success results with the new
+hash and allows chaining edits without redundant reads. Uniform LF/CRLF files normalize
+search/replacement line endings to their existing style; mixed styles stay literal.
+No fuzzy edits, automatic retry or concurrency transaction is introduced. On a stale
+hash, read the relevant section again. On no/multiple matches, correct/narrow the
+search context. Explicit whole-file newline conversion requires another tool.
+
+`exec_command` and `git` accept `max_output_bytes`, default 8192, bounded by
+`toolOutputBytes`. Their final result text is capped with explicit truncation;
+the small status/JSON envelope sits outside the text-byte ceiling. Native tool
+descriptions direct the model toward small file sections, reuse of successful
+revision hashes, narrow rg searches, scoped Git output and targeted tests. MCP
+remains available for extra capabilities. All enabled MCP definitions still enter
+the catalog; model compliance and live token savings are not guaranteed.
+
+Approvals, workspace boundaries and continuation artifact paths are unchanged.
+Existing callers using only path must now check completeness for larger files.
+Local verification and byte measurements are recorded in the A008-0200 handoff.
+
 ## Övriga befintliga ytor och begränsningar
 
 Repositoryt innehåller även CLI/ACP, modell-/provideradaptrar, MCP-verktyg,
