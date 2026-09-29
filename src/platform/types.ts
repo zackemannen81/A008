@@ -1,5 +1,8 @@
 import type { ChatContent } from "../core/types.js";
-import type { RunContinuationState } from "../core/chat-continuation.js";
+import type {
+  RunContinuationState,
+  RunToolInteraction,
+} from "../core/chat-continuation.js";
 import type { PromptImageAttachment, SessionParameters } from "../../packages/protocol/src/index.js";
 
 export interface PlatformContinuationCheckpoint {
@@ -26,16 +29,12 @@ export interface PlatformContinuationSourceBinding {
   }[];
 }
 
-export interface BindPlatformContinuationSourceEvents {
+export interface BindPlatformContinuationSourceInteraction {
   readonly runId: string;
   readonly turnId: string;
   readonly workspaceId: string;
-  readonly runtimeRunId: string;
-  readonly sourceRef: string;
-  readonly events: readonly {
-    readonly toolCallId: string;
-    readonly eventCursor: number;
-  }[];
+  /** Exact completed Task 1 interaction; no caller-supplied event mapping. */
+  readonly interaction: RunToolInteraction;
 }
 
 export interface SavePlatformContinuationCheckpoint {

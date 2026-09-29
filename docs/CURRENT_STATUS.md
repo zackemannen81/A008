@@ -1,10 +1,10 @@
 # Current Status — A008
 
 Granskad: 2026-09-29
-Källrevision: `ae118e1` + verifierade A008-0196 task-branch changes (ännu ocommittade).
-Senaste arkitekturimplementation: A008-0195 (durable per-session-konfiguration, bilagor och separerade run-resultat).
+Källrevision: `dde4163` + verifierade A008-0197-slutändringar i task-worktree.
+Senaste arkitekturimplementation: A008-0197 (durable run-continuation checkpoints med verifierad raw-evidence-provenance).
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
-A008-0196 (Complete on task branch; unmerged): opt-in run-local compaction for completed tool interactions in `src/core/chat-session.ts`. Raw messages remain in the run, the recent tail is preserved, continuation state requires cumulative validated source coverage, and provider chronology keeps the current user request ahead of continuation state and recent raw tool rounds. Checkpoint persistence, automatic reduction/budget triggering, and process-loss recovery remain excluded.
+A008-0196 (Complete): opt-in run-local compaction for completed tool interactions in `src/core/chat-session.ts`. Raw messages remain in the run, the recent tail is preserved, continuation state requires cumulative validated source coverage, and provider chronology keeps the current user request ahead of continuation state and recent raw tool rounds. A008-0197 now makes validated continuation checkpoints durable; automatic reduction/budget triggering and process-loss recovery remain excluded.
 
 ## Godkänd riktning
 
@@ -132,4 +132,19 @@ Final local verification 2026-09-29, no live-provider calls:
 - provider ordering, cumulative prior-state/source preservation, invalid replacement and unfinished-batch behavior have dedicated regressions;
 - `git diff --check`: **PASS**;
 - canonical checkout dependencies were exposed to the worktree only through a temporary local junction; no packages were installed and no dependency versions changed;
+- no live provider calls; **0 SEK**.
+
+## Verification — A008-0197
+
+Final local verification 2026-09-29, no live-provider calls:
+
+- Platform SQLite schema **v5** adds run-owned continuation source/event bindings and versioned checkpoints; v4→v5 migration is additive and verified.
+- `PlatformStore.bindContinuationSourceInteraction()` consumes the exact A008-0196 `RunToolInteraction`, resolves its tool-call IDs against retained durable activity events, accepts terminal `completed`/`failed` evidence, and makes each source binding immutable/idempotent.
+- Checkpoint save/read reuses the A008-0196 validator, exact run/turn/workspace binding and source coverage; newest corrupt/invalid rows are skipped read-only in favor of the latest earlier valid checkpoint.
+- root `npm run typecheck --silent`: **PASS**; root `npm run build --silent`: **PASS**.
+- focused checkpoint + core-membership regression: **10/10 PASS** (6 checkpoint + 4 membership).
+- existing PlatformStore + platform-host suites: **23/23 PASS**.
+- migration/reopen, fabricated or mismatched evidence, failed-tool provenance, immutable retry binding, corrupt-newer fallback, injected transaction rollback and ordinary semantic-memory isolation all have deterministic regressions.
+- checkpoints cascade with the authoritative platform run; they are execution state only and never enter ordinary semantic-memory retrieval.
+- no semantic reducer, automatic budget trigger/context rebuild, same-turn resume or process-loss replay was added; those remain later-task ownership.
 - no live provider calls; **0 SEK**.

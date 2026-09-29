@@ -37,7 +37,7 @@ import type {
   PlatformConversation,
   PlatformContinuationCheckpoint,
   PlatformContinuationSourceBinding,
-  BindPlatformContinuationSourceEvents,
+  BindPlatformContinuationSourceInteraction,
   PlatformEffectStatus,
   PlatformEvent,
   PlatformEventPage,
@@ -944,44 +944,114 @@ export class PlatformStore {
       : undefined;
   }
 
-  bindContinuationSourceEvents(
+  bindContinuationSourceInteraction(
     scope: PlatformScope,
-    input: BindPlatformContinuationSourceEvents,
+    input: BindPlatformContinuationSourceInteraction,
   ): void {
     this.#requireOpen();
     this.#validateScope(scope);
     const run = this.#runRow(scope, input.runId);
-    this.#validateContinuationBinding(run, input);
-    const sourceRef = this.#bounded(input.sourceRef, "sourceRef", 1, 300);
-    if (sourceRef !== `${input.runtimeRunId}:${this.#sourceSequence(sourceRef)}`) {
-      throw new PlatformStoreError("INVALID_REQUEST", "Source reference is not a Task 1 interaction ID.");
+    const sourceRef = this.#bounded(input.interaction.id, "sourceRef", 1, 300);
+    const separator = sourceRef.lastIndexOf(":");
+    const runtimeRunId =
+      separator < 1 ? "" : sourceRef.slice(0, separator);
+    const sourceSequence = this.#sourceSequence(sourceRef);
+    if (sourceRef !== `${runtimeRunId}:${sourceSequence}`) {
+      throw new PlatformStoreError(
+        "INVALID_REQUEST",
+        "Source reference is not a Task 1 interaction ID.",
+      );
     }
-    if (input.events.length === 0 || new Set(input.events.map((event) => event.toolCallId)).size !== input.events.length) {
-      throw new PlatformStoreError("INVALID_REQUEST", "A source reference needs distinct retained tool events.");
+    this.#validateContinuationBinding(run, {
+      runId: input.runId,
+      turnId: input.turnId,
+      workspaceId: input.workspaceId,
+      runtimeRunId,
+    });
+    const assistantCallIds = input.interaction.messages.flatMap((message) =>
+      message.role === "assistant" && "toolCalls" in message
+        ? message.toolCalls.map((call) =>
+            this.#bounded(call.id, "toolCallId", 1, 256),
+          )
+        : [],
+    );
+    const resultCallIds = input.interaction.messages.flatMap((message) =>
+      message.role === "tool"
+        ? [this.#bounded(message.toolCallId, "toolCallId", 1, 256)]
+        : [],
+    );
+    if (
+      assistantCallIds.length === 0 ||
+      new Set(assistantCallIds).size !== assistantCallIds.length ||
+      assistantCallIds.length !== resultCallIds.length ||
+      assistantCallIds.some((id) => !resultCallIds.includes(id))
+    ) {
+      throw new PlatformStoreError(
+        "INVALID_REQUEST",
+        "Task 1 interaction must contain one retained result for every distinct tool call.",
+      );
     }
     this.#immediate(() => {
-      for (const event of input.events) {
-        const toolCallId = this.#bounded(event.toolCallId, "toolCallId", 1, 256);
-        this.#safeInteger(event.eventCursor, "eventCursor");
-        const row = this.#database.prepare(
-          "SELECT run_id, activity_json FROM A008_session_activity WHERE cursor = ?",
-        ).get(event.eventCursor) as { run_id: string; activity_json: string } | undefined;
-        if (row?.run_id !== run.id || !this.#isCompletedToolEvent(row.activity_json, toolCallId)) {
-          throw new PlatformStoreError("INVALID_REQUEST", "Source event is not retained completed raw tool evidence for this run.");
+      const events = assistantCallIds.map((toolCallId) => {
+        const eventCursor = this.#latestTerminalToolEventCursor(run.id, toolCallId);
+        if (eventCursor === undefined) {
+          throw new PlatformStoreError(
+            "INVALID_REQUEST",
+            "Source tool is not retained terminal raw evidence for this run.",
+          );
         }
+        return { toolCallId, eventCursor };
+      });
+      const existing = this.#database.prepare(
+        `SELECT e.tool_call_id
+         FROM A008_run_continuation_sources AS s
+         LEFT JOIN A008_run_continuation_source_events AS e
+           ON e.run_id = s.run_id AND e.turn_id = s.turn_id
+          AND e.workspace_id = s.workspace_id
+          AND e.runtime_run_id = s.runtime_run_id
+          AND e.source_ref = s.source_ref
+         WHERE s.run_id = ? AND s.turn_id = ? AND s.workspace_id = ?
+           AND s.runtime_run_id = ? AND s.source_ref = ?
+         ORDER BY e.tool_call_id`,
+      ).all(
+        run.id,
+        input.turnId,
+        input.workspaceId,
+        runtimeRunId,
+        sourceRef,
+      ) as { tool_call_id: string | null }[];
+      if (existing.length > 0) {
+        const existingIds = existing
+          .flatMap((row) => row.tool_call_id === null ? [] : [row.tool_call_id])
+          .sort();
+        const intendedIds = [...assistantCallIds].sort();
+        if (JSON.stringify(existingIds) !== JSON.stringify(intendedIds)) {
+          throw new PlatformStoreError(
+            "INVALID_REQUEST",
+            "Continuation source reference is already bound to different raw evidence.",
+          );
+        }
+        return;
       }
       this.#database.prepare(
         `INSERT INTO A008_run_continuation_sources
-         (run_id, turn_id, workspace_id, runtime_run_id, source_ref) VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT(run_id, turn_id, workspace_id, runtime_run_id, source_ref) DO NOTHING`,
-      ).run(run.id, input.turnId, input.workspaceId, input.runtimeRunId, sourceRef);
+         (run_id, turn_id, workspace_id, runtime_run_id, source_ref) VALUES (?, ?, ?, ?, ?)`,
+      ).run(run.id, input.turnId, input.workspaceId, runtimeRunId, sourceRef);
       const insert = this.#database.prepare(
         `INSERT INTO A008_run_continuation_source_events
          (run_id, turn_id, workspace_id, runtime_run_id, source_ref, tool_call_id, event_cursor)
          VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`,
       );
-      for (const event of input.events) {
-        insert.run(run.id, input.turnId, input.workspaceId, input.runtimeRunId, sourceRef, event.toolCallId, event.eventCursor);
+      for (const event of events) {
+        insert.run(
+          run.id,
+          input.turnId,
+          input.workspaceId,
+          runtimeRunId,
+          sourceRef,
+          event.toolCallId,
+          event.eventCursor,
+        );
       }
     });
   }
@@ -1300,19 +1370,34 @@ export class PlatformStore {
     return sequence;
   }
 
-  #isCompletedToolEvent(activityJson: string, toolCallId: string): boolean {
+  #isTerminalToolEvent(activityJson: string, toolCallId: string): boolean {
     try {
       const value: unknown = JSON.parse(activityJson);
       if (!value || typeof value !== "object" || Array.isArray(value)) return false;
       const tools = (value as Record<string, unknown>).tools;
-      return Array.isArray(tools) && tools.some((tool) =>
-        !!tool && typeof tool === "object" && !Array.isArray(tool) &&
-        (tool as Record<string, unknown>).id === toolCallId &&
-        (tool as Record<string, unknown>).status === "completed",
-      );
+      return Array.isArray(tools) && tools.some((tool) => {
+        if (!tool || typeof tool !== "object" || Array.isArray(tool)) return false;
+        const record = tool as Record<string, unknown>;
+        return (
+          record.id === toolCallId &&
+          (record.status === "completed" || record.status === "failed")
+        );
+      });
     } catch {
       return false;
     }
+  }
+
+  #latestTerminalToolEventCursor(
+    runId: string,
+    toolCallId: string,
+  ): number | undefined {
+    const rows = this.#database.prepare(
+      "SELECT cursor, activity_json FROM A008_session_activity WHERE run_id = ? ORDER BY cursor DESC",
+    ).all(runId) as { cursor: number; activity_json: string }[];
+    return rows.find((row) =>
+      this.#isTerminalToolEvent(row.activity_json, toolCallId),
+    )?.cursor;
   }
 
   #continuationBindings(
@@ -1336,7 +1421,7 @@ export class PlatformStore {
     }[];
     const bindings = new Map<string, Set<string>>();
     for (const row of rows) {
-      if (row.run_id !== runId || !this.#isCompletedToolEvent(row.activity_json, row.tool_call_id)) continue;
+      if (row.run_id !== runId || !this.#isTerminalToolEvent(row.activity_json, row.tool_call_id)) continue;
       const calls = bindings.get(row.source_ref) ?? new Set<string>();
       calls.add(row.tool_call_id);
       bindings.set(row.source_ref, calls);
