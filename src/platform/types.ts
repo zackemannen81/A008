@@ -1,5 +1,51 @@
 import type { ChatContent } from "../core/types.js";
+import type { RunContinuationState } from "../core/chat-continuation.js";
 import type { PromptImageAttachment, SessionParameters } from "../../packages/protocol/src/index.js";
+
+export interface PlatformContinuationCheckpoint {
+  readonly runId: string;
+  readonly turnId: string;
+  readonly workspaceId: string;
+  readonly runtimeRunId: string;
+  readonly sequence: number;
+  readonly formatVersion: 1;
+  readonly state: RunContinuationState;
+  readonly sourceRefs: readonly string[];
+  readonly createdAt: number;
+}
+
+export interface PlatformContinuationSourceBinding {
+  readonly runId: string;
+  readonly turnId: string;
+  readonly workspaceId: string;
+  readonly runtimeRunId: string;
+  readonly sourceRef: string;
+  readonly events: readonly {
+    readonly toolCallId: string;
+    readonly eventCursor: number;
+  }[];
+}
+
+export interface BindPlatformContinuationSourceEvents {
+  readonly runId: string;
+  readonly turnId: string;
+  readonly workspaceId: string;
+  readonly runtimeRunId: string;
+  readonly sourceRef: string;
+  readonly events: readonly {
+    readonly toolCallId: string;
+    readonly eventCursor: number;
+  }[];
+}
+
+export interface SavePlatformContinuationCheckpoint {
+  readonly runId: string;
+  readonly turnId: string;
+  readonly workspaceId: string;
+  readonly runtimeRunId: string;
+  readonly state: RunContinuationState;
+  readonly maximumStateBytes: number;
+}
 
 /** Trusted backend authority. Callers must never derive this from a resource ID. */
 export interface PlatformScope {

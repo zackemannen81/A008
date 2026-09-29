@@ -2,7 +2,7 @@
 
 Task ID: A008-0197
 Parent Task: `docs/backlog/A008-runtime-context-compaction-budget-recovery.md` (program proposal)
-Status: Ready
+Status: In Progress
 Owner: Rickard (operator)
 Created: 2026-09-29
 Last updated: 2026-09-29
@@ -150,27 +150,19 @@ No live verification required. Local deterministic tests only; no provider calls
 ## Checklist
 
 - [x] Wait for A008-0196 completion; inspect its delivered contract and current PlatformStore/schema changes.
-- [ ] Resolve any contract/schema conflict within this scope; if it blocks the charter, pause and seek operator direction rather than guessing.
-- [ ] Operator reviews this Necessity Gate, current contract revision, and minimum gates; then freezes the charter before implementation.
-- [ ] Implement the additive, validated and atomic PlatformStore checkpoint persistence and migration.
-- [ ] Add/run focused tests, migration/reopen and failure-injection checks, platform integration, and semantic-memory isolation regression.
-- [ ] Update owning documentation and prepare handoff/archive; operator appends the integration journal entry on merge.
+- [x] Resolve the process-local A008-0196 source-ID blocker with explicit source-ref to retained activity-event bindings. Operator approved this prerequisite.
+- [x] Implement the additive schema-v5 tables and checkpoint bind/save/latest-valid read APIs; root typecheck/build and one round-trip/reopen test pass locally.
+- [ ] Add migration, malformed/mismatched input, latest-valid fallback, transaction-failure preservation and retrieval-isolation tests.
+- [ ] Integrate/check source binding against actual durable GUI tool activity emissions.
+- [ ] Run full focused PlatformStore and platform-host suites without timeout; update SYSTEMDOC/CURRENT_STATUS, then archive and hand off.
 
 ## Decisions and Notes
 
-- Current inspection found PlatformStore already owns local SQLite conversations,
-  runs, workspace binding, and durable run activity. It is the proposed owner so
-  checkpoints share the local durable-run boundary without entering semantic
-  memory. Revalidate against the completed Task 1 changes before freeze.
-- At the inspected revision Platform SQLite schema is version 4. Do not assume
-  the implementation migration's source/target version: Task 1 may change the
-  schema first; inspect and migrate transactionally from the actual current
-  version.
-- `runId` and `workspaceId` are platform-owned identities. Use Task 1's actual
-  `turnId` and source-reference definitions; do not infer them from timestamps,
-  message text, event order outside the contract, or process IDs.
-- Do not make checkpoint persistence itself resume work or authorize replay.
-  Existing run/effect recovery semantics remain authoritative.
+- A008-0196 source IDs are `${runtimeRunId}:n` and are process-local. PlatformStore now binds them explicitly to retained completed activity event cursor/tool IDs; checkpoint validation still uses the canonical Task 1 payload validator.
+- PlatformStore was schema v4 at implementation; schema v5 is additive. Legacy v1-v3 migration paths create the current activity/config tables, then advance to the present schema.
+- Platform `runId`/workspace and runtime `runId` remain distinct. `turnId` is the accepted platform run ID for this API. No identity is inferred from timestamps or text.
+- Checkpoint rows cascade with the authoritative platform run. This slice does not resume work or authorize replay; existing run/effect semantics remain authoritative.
+- Root typecheck/build passed; focused checkpoint round-trip/reopen passed (1/1). A combined checkpoint + platform store + platform host test invocation exceeded the command time limit after several passing PlatformStore/host tests; it is not a full-suite pass. Semantic-memory isolation and failure-injection gates remain unverified.
 
 ## Charter Amendment Log
 
@@ -192,12 +184,12 @@ No live verification required. Local deterministic tests only; no provider calls
 
 ## Handoff and Follow-ups
 
-- Current state: Charter frozen and ready for implementation.
-- Next recommended step: Review task-1 state/source-reference contract and schema changes, then begin A008-0197.
-- Blockers: None
+- Current state: In progress; additive persistence and explicit provenance binding implemented locally.
+- Next recommended step: Add fault/migration/fallback/isolation regressions and wire durable event bindings to actual runtime callbacks.
+- Blockers: Remaining frozen DoD tests and owning docs.
 - Child tasks: None proposed.
-- Resume condition: 
-- Open questions: Resolve exact Task 1 payload schema and source-event linkage during the prerequisite review; do not guess or expand scope.
+- Resume condition: None.
+- Open questions: Verify caller can associate every Task 1 interaction with the durable completed activity event(s) before saving.
 
 ## Finalize When Complete
 
