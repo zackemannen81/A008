@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createHash } from "node:crypto";
 import {
   mkdirSync,
   mkdtempSync,
@@ -8,6 +9,7 @@ import {
   rmSync,
   writeFileSync,
   symlinkSync,
+  truncateSync,
 } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -34,6 +36,307 @@ import { isolatedMemoryEnv } from "./helpers.js";
 import { startGuiHost } from "../src/gui-host/server.js";
 import { startSessionControlProvider } from "./fixtures/session-control-provider.js";
 import { WireClient } from "./fixtures/gui-wire-client.js";
+import { EmbeddedAcmeChatTransport } from "../src/providers/acme/embedded-acme-chat-transport.js";
+
+test("native sectional tool schemas reach ACME OpenAI strict serialization with optional ranges", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-native-wire-"));
+  const tools = new ModelToolSession({ cwd, env: {} });
+  try {
+    const port = await tools.prepare(
+      budgets,
+      { approve: async () => true, update: async () => undefined },
+      new AbortController().signal,
+    );
+    let wire: any;
+    const transport = new EmbeddedAcmeChatTransport({
+      env: { OPENAI_API_KEY: "sk-fixture" },
+      catalogPath: join(cwd, "catalog.json"),
+      requestKey: () => "native-tools-fixture",
+      fetch: async (_input, init) => {
+        wire = JSON.parse(String(init?.body));
+        return new Response(
+          JSON.stringify({
+            id: "resp_native_tools",
+            model: "gpt-5.6-luna",
+            status: "completed",
+            output: [
+              {
+                type: "message",
+                content: [{ type: "output_text", text: "OK" }],
+              },
+            ],
+            usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      },
+    });
+    await transport.complete({
+      model: "gpt-5.6-luna",
+      messages: [{ role: "user", content: "Inspect a section." }],
+      tools: port.definitions,
+      options: { stream: false },
+    });
+    assert.equal(wire.tools.length, port.definitions.length);
+    for (const tool of wire.tools) {
+      assert.equal(tool.strict, true);
+      assert.equal(tool.parameters.additionalProperties, false);
+      assert.deepEqual(
+        [...tool.parameters.required].sort(),
+        Object.keys(tool.parameters.properties).sort(),
+      );
+    }
+    const read = wire.tools.find((tool: any) => tool.name === "read_file");
+    assert.match(JSON.stringify(read.parameters.properties.offset), /null/);
+    assert.match(JSON.stringify(read.parameters.properties.limit), /null/);
+    assert.match(
+      JSON.stringify(read.parameters.properties.max_output_bytes),
+      /null/,
+    );
+  } finally {
+    await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("sectional read/edit keeps large files out of context and chains whole-file revisions", async (t) => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-tool-context-"));
+  const tools = new ModelToolSession({ cwd, env: process.env });
+  try {
+    const port = await tools.prepare(
+      { ...budgets, toolOutputBytes: 4096 },
+      { approve: async () => true, update: async () => undefined },
+      new AbortController().signal,
+    );
+    let id = 0;
+    const execute = async (name: string, args: unknown) =>
+      JSON.parse(
+        await port.execute({
+          id: String(++id),
+          name,
+          arguments: JSON.stringify(args),
+        }),
+      );
+    const content = Array.from(
+      { length: 10000 },
+      (_, i) => `line ${i}: å🙂 value\r\n`,
+    ).join("");
+    writeFileSync(join(cwd, "large.txt"), content);
+    const read = await execute("read_file", {
+      path: "large.txt",
+      offset: 5000,
+      limit: 3,
+    });
+    assert.equal(read.status, "completed");
+    assert.equal(read.truncated, false);
+    const page = JSON.parse(read.text);
+    assert.equal(
+      page.content,
+      content
+        .split(/(?<=\n)/)
+        .slice(5000, 5003)
+        .join(""),
+    );
+    assert.equal(
+      page.sha256,
+      createHash("sha256").update(content).digest("hex"),
+    );
+    assert.equal(page.total_lines, 10000);
+    assert.equal(page.next_offset, 5003);
+    assert.equal(page.complete, false);
+    const edited = await execute("edit_file", {
+      path: "large.txt",
+      expected_sha256: page.sha256,
+      old_text: "line 5000: å🙂 value\nline 5001: å🙂 value\n",
+      new_text: "line 5000: changed\nline 5001: changed\n",
+    });
+    assert.equal(edited.status, "completed");
+    const revision = JSON.parse(edited.text).sha256;
+    const chained = await execute("edit_file", {
+      path: "large.txt",
+      expected_sha256: revision,
+      old_text: "line 5002: å🙂 value",
+      new_text: "line 5002: changed",
+    });
+    assert.equal(chained.status, "completed");
+    const disk = readFileSync(join(cwd, "large.txt"), "utf8");
+    assert.equal(
+      disk,
+      content
+        .replace("line 5000: å🙂 value", "line 5000: changed")
+        .replace("line 5001: å🙂 value", "line 5001: changed")
+        .replace("line 5002: å🙂 value", "line 5002: changed"),
+    );
+    assert.equal(
+      JSON.parse(chained.text).sha256,
+      createHash("sha256").update(disk).digest("hex"),
+    );
+    const stale = await execute("edit_file", {
+      path: "large.txt",
+      expected_sha256: page.sha256,
+      old_text: "changed",
+      new_text: "wrong",
+    });
+    assert.equal(stale.status, "failed");
+    assert.match(stale.text, /relevant section/);
+    const contextBytes = Buffer.byteLength(
+      JSON.stringify([read, edited, chained]),
+    );
+    const wholeFileBytes = Buffer.byteLength(content);
+    assert.ok(contextBytes < wholeFileBytes / 100);
+    t.diagnostic(
+      `10,000-line fixture: whole file ${wholeFileBytes} bytes; section + two edit results ${contextBytes} bytes (tool-result bytes, not tokens).`,
+    );
+  } finally {
+    await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("read pages preserve UTF-8 and every line under byte caps, with explicit EOF and defaults", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-tool-pages-"));
+  const tools = new ModelToolSession({ cwd, env: process.env });
+  try {
+    const port = await tools.prepare(
+      budgets,
+      { approve: async () => true, update: async () => undefined },
+      new AbortController().signal,
+    );
+    let id = 0;
+    const execute = async (args: unknown) =>
+      JSON.parse(
+        await port.execute({
+          id: String(++id),
+          name: "read_file",
+          arguments: JSON.stringify(args),
+        }),
+      );
+    const content =
+      "\uFEFF" +
+      Array.from({ length: 410 }, (_, i) => `${i}: å🙂 \"quoted\"\\\r\n`).join(
+        "",
+      ) +
+      "last";
+    writeFileSync(join(cwd, "pages.txt"), content);
+    const first = JSON.parse((await execute({ path: "pages.txt" })).text);
+    assert.equal(first.lines, 200);
+    assert.equal(first.next_offset, 200);
+    let offset = 0;
+    let restored = "";
+    do {
+      const result = await execute({
+        path: "pages.txt",
+        offset,
+        limit: 10000,
+        max_output_bytes: 512,
+      });
+      assert.equal(result.status, "completed");
+      assert.equal(result.truncated, false);
+      assert.ok(Buffer.byteLength(result.text) <= 512);
+      const page = JSON.parse(result.text);
+      assert.equal(page.sha256, first.sha256);
+      assert.ok(page.lines > 0);
+      assert.ok(!page.content.includes("\uFFFD"));
+      restored += page.content;
+      offset = page.next_offset;
+    } while (offset !== null);
+    assert.equal(restored, content);
+    const eof = JSON.parse(
+      (await execute({ path: "pages.txt", offset: 9999 })).text,
+    );
+    assert.equal(eof.offset, 411);
+    assert.equal(eof.content, "");
+    assert.equal(eof.next_offset, null);
+    assert.equal(eof.complete, false);
+    writeFileSync(join(cwd, "empty.txt"), "");
+    const empty = JSON.parse((await execute({ path: "empty.txt" })).text);
+    assert.equal(empty.total_lines, 0);
+    assert.equal(empty.complete, true);
+    for (const args of [
+      { offset: -1 },
+      { offset: 0.5 },
+      { limit: 0 },
+      { max_output_bytes: 255 },
+    ])
+      assert.equal(
+        (await execute({ path: "pages.txt", ...args })).status,
+        "invalid_arguments",
+      );
+    writeFileSync(join(cwd, "long.txt"), "x".repeat(10000));
+    const long = await execute({ path: "long.txt", max_output_bytes: 512 });
+    assert.equal(long.status, "failed");
+    assert.match(long.text, /no partial line/);
+    writeFileSync(join(cwd, "binary.txt"), Buffer.from([0, 1, 2]));
+    assert.equal((await execute({ path: "binary.txt" })).status, "failed");
+  } finally {
+    await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("native command output caps are per-call and cannot exceed runtime ceilings", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-tool-caps-"));
+  const tools = new ModelToolSession({ cwd, env: process.env });
+  try {
+    const port = await tools.prepare(
+      { ...budgets, toolOutputBytes: 1024 },
+      { approve: async () => true, update: async () => undefined },
+      new AbortController().signal,
+    );
+    const cmd =
+      process.platform === "win32"
+        ? "Write-Output ('x' * 5000)"
+        : "printf '%5000s' x";
+    for (const requested of [256, 100000]) {
+      const result = JSON.parse(
+        await port.execute({
+          id: String(requested),
+          name: "exec_command",
+          arguments: JSON.stringify({ cmd, max_output_bytes: requested }),
+        }),
+      );
+      assert.equal(result.status, "completed");
+      assert.ok(Buffer.byteLength(result.text) <= Math.min(requested, 1024));
+      assert.equal(result.truncated, true);
+    }
+    execFileSync("git", ["init", "--quiet", cwd]);
+    for (let i = 0; i < 60; i++)
+      writeFileSync(join(cwd, `file-${i}.txt`), "data");
+    const git = JSON.parse(
+      await port.execute({
+        id: "git-cap",
+        name: "git",
+        arguments: JSON.stringify({
+          args: ["status", "--short"],
+          max_output_bytes: 256,
+        }),
+      }),
+    );
+    assert.equal(git.status, "completed");
+    assert.ok(Buffer.byteLength(git.text) <= 256);
+    assert.equal(git.truncated, true);
+    const read = JSON.parse(
+      await port.execute({
+        id: "read-cap",
+        name: "read_file",
+        arguments: JSON.stringify({
+          path: "file-0.txt",
+          offset: null,
+          limit: null,
+          max_output_bytes: null,
+        }),
+      }),
+    );
+    assert.equal(
+      read.status,
+      "completed",
+      "strict-provider null sentinels retain defaults",
+    );
+  } finally {
+    await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
 
 test("A008-0198: ACP tools expose pressure only with a durable checkpoint owner", async () => {
   const cwd = mkdtempSync(join(tmpdir(), "a008-continuation-tools-"));
@@ -191,6 +494,19 @@ test("file tools preserve UTF-8/CRLF, reject stale and ambiguous edits, existing
       ).status,
       "failed",
     );
+    writeFileSync(join(cwd, "invalid-utf8.txt"), Buffer.from([0xc3, 0x28]));
+    assert.equal(
+      (await execute("read_file", { path: "invalid-utf8.txt" })).status,
+      "failed",
+    );
+    writeFileSync(join(cwd, "oversized.txt"), "");
+    truncateSync(join(cwd, "oversized.txt"), 16 * 1024 * 1024 + 1);
+    const oversized = await execute("read_file", {
+      path: "oversized.txt",
+      limit: 1,
+    });
+    assert.equal(oversized.status, "failed");
+    assert.match(oversized.text, /16 MiB/);
     const updated = JSON.parse(
       (await execute("read_file", { path: "nested/new.txt" })).text,
     );
@@ -271,6 +587,66 @@ test("file tools preserve UTF-8/CRLF, reject stale and ambiguous edits, existing
     await tools.close();
     rmSync(cwd, { recursive: true, force: true });
     rmSync(outside, { recursive: true, force: true });
+  }
+});
+
+test("sectional edit retains external-change, literal mixed-ending and approval guards", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-tool-edit-guards-"));
+  const tools = new ModelToolSession({ cwd, env: process.env });
+  try {
+    let allow = true;
+    const port = await tools.prepare(
+      budgets,
+      { approve: async () => allow, update: async () => undefined },
+      new AbortController().signal,
+    );
+    let id = 0;
+    const execute = async (name: string, args: unknown) =>
+      JSON.parse(
+        await port.execute({
+          id: String(++id),
+          name,
+          arguments: JSON.stringify(args),
+        }),
+      );
+    const content = "first\r\nsecond\nthird\r\n";
+    writeFileSync(join(cwd, "mixed.txt"), content);
+    const read = JSON.parse(
+      (await execute("read_file", { path: "mixed.txt", offset: 1, limit: 1 }))
+        .text,
+    );
+    const edit = {
+      path: "mixed.txt",
+      expected_sha256: read.sha256,
+      old_text: "second\r\n",
+      new_text: "changed\r\n",
+    };
+    assert.equal(
+      (await execute("edit_file", edit)).status,
+      "failed",
+      "mixed endings must remain literal",
+    );
+    allow = false;
+    assert.equal(
+      (await execute("edit_file", { ...edit, old_text: "second\n" })).status,
+      "denied",
+    );
+    assert.equal(readFileSync(join(cwd, "mixed.txt"), "utf8"), content);
+    allow = true;
+    writeFileSync(
+      join(cwd, "mixed.txt"),
+      content + "external write outside selected section\n",
+    );
+    const stale = await execute("edit_file", { ...edit, old_text: "second\n" });
+    assert.equal(stale.status, "failed");
+    assert.match(stale.text, /changed since/);
+    assert.equal(
+      readFileSync(join(cwd, "mixed.txt"), "utf8"),
+      content + "external write outside selected section\n",
+    );
+  } finally {
+    await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
   }
 });
 
@@ -891,12 +1267,23 @@ test("tool sessions keep distinct stable MCP scopes and do not execute containme
   const second = open("chat-b");
   const approval = { approve: async () => true, update: async () => undefined };
   try {
-    const portA = await first.prepare(budgets, approval, new AbortController().signal);
-    const portB = await second.prepare(budgets, approval, new AbortController().signal);
+    const portA = await first.prepare(
+      budgets,
+      approval,
+      new AbortController().signal,
+    );
+    const portB = await second.prepare(
+      budgets,
+      approval,
+      new AbortController().signal,
+    );
     const definition = portA.definitions.find((item) =>
       item.description.includes("fixture_scope"),
     )!;
-    const properties = definition.parameters.properties as Record<string, unknown>;
+    const properties = definition.parameters.properties as Record<
+      string,
+      unknown
+    >;
     assert.equal(properties.session, undefined);
     const call = async (
       port: typeof portA,
@@ -904,7 +1291,11 @@ test("tool sessions keep distinct stable MCP scopes and do not execute containme
       args: Record<string, unknown>,
     ) =>
       JSON.parse(
-        await port.execute({ id, name: definition.name, arguments: JSON.stringify(args) }),
+        await port.execute({
+          id,
+          name: definition.name,
+          arguments: JSON.stringify(args),
+        }),
       ) as { status: string; text: string };
     const read = (output: { text: string }) =>
       JSON.parse(JSON.parse(output.text).content[0].text) as {
@@ -965,7 +1356,10 @@ test("ephemeral MCP probe reports ready, handshake failure, catalog failure, and
         ],
       },
       cwd,
-      env: toolEnvironment({ ...process.env, NVIDIA_API_KEY: "supersecret-mcp" }),
+      env: toolEnvironment({
+        ...process.env,
+        NVIDIA_API_KEY: "supersecret-mcp",
+      }),
       executionId: "probe-1",
     });
     assert.equal(ready.status, "ready");
@@ -994,10 +1388,10 @@ test("ephemeral MCP probe reports ready, handshake failure, catalog failure, and
     });
     assert.equal(handshake.status, "failed");
     assert.equal(handshake.stage, "handshake");
-    assert.deepEqual([...handshake.lines], [
-      "process started",
-      "MCP handshake failed",
-    ]);
+    assert.deepEqual(
+      [...handshake.lines],
+      ["process started", "MCP handshake failed"],
+    );
     const invalid = await probeStdioMcpServer({
       server: {
         ...fixture,
@@ -1008,10 +1402,10 @@ test("ephemeral MCP probe reports ready, handshake failure, catalog failure, and
     });
     assert.equal(invalid.status, "failed");
     assert.equal(invalid.stage, "catalog");
-    assert.deepEqual([...invalid.lines], [
-      "process started",
-      "MCP catalog validation failed",
-    ]);
+    assert.deepEqual(
+      [...invalid.lines],
+      ["process started", "MCP catalog validation failed"],
+    );
     const missing = await probeStdioMcpServer({
       server: {
         name: "missing",

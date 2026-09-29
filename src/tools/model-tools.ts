@@ -18,7 +18,12 @@ import {
   formatTerminalResult,
   killProcessTree,
 } from "./terminal.js";
-import { repositoryTools, RepositoryToolError } from "./repository-tools.js";
+import {
+  repositoryTools,
+  RepositoryToolError,
+  nativeOutputBytes,
+  TOOL_OUTPUT_BYTES_PROPERTY,
+} from "./repository-tools.js";
 import {
   bindRuntimeMcpArguments,
   createMcpExecutionId,
@@ -45,9 +50,7 @@ interface RegisteredTool {
   definition: ChatToolDefinition;
   validate: JsonSchemaValidator<Record<string, unknown>>;
   validateParameters: Record<string, unknown>;
-  bind?: (
-    args: Record<string, unknown>,
-  ) => McpArgumentBinding;
+  bind?: (args: Record<string, unknown>) => McpArgumentBinding;
   run(
     args: Record<string, unknown>,
     signal: AbortSignal,
@@ -176,10 +179,13 @@ export class ModelToolSession {
     this.#register(
       {
         name: "exec_command",
-        description: `Run a local ${process.platform === "win32" ? "Windows PowerShell (no profile)" : "POSIX shell"} command in ${this.#cwd}. Explicit user approval is required. Commands can read or change host files; this is not a filesystem sandbox. Use actual tool results, never claim execution from prose.`,
+        description: `Run a local ${process.platform === "win32" ? "Windows PowerShell (no profile)" : "POSIX shell"} command in ${this.#cwd}. Prefer native read/edit/list/create/git for workspace files; use narrow rg searches and targeted tests here. Use MCP for extra capabilities such as interactive processes or structured documents. Filter output at source; max_output_bytes defaults to 8192. Requires approval; host access is not sandboxed. Report actual results.`,
         parameters: {
           type: "object",
-          properties: { cmd: { type: "string", minLength: 1 } },
+          properties: {
+            cmd: { type: "string", minLength: 1 },
+            max_output_bytes: TOOL_OUTPUT_BYTES_PROPERTY,
+          },
           required: ["cmd"],
           additionalProperties: false,
         },
@@ -192,7 +198,7 @@ export class ModelToolSession {
           shell: "powershell",
           signal,
           timeoutMs: budgets.toolTimeoutMs,
-          maxBytes: budgets.toolOutputBytes,
+          maxBytes: nativeOutputBytes(args, budgets),
         });
         return {
           failed: result.exitCode !== 0 || result.timedOut,
@@ -353,7 +359,8 @@ export class ModelToolSession {
     const tool = this.#tools.get(call.name);
     if (!tool) throw new Error("Unknown tool.");
     let args: Record<string, unknown>;
-    let invalidText = "Arguments do not match the offered tool schema. Nothing executed.";
+    let invalidText =
+      "Arguments do not match the offered tool schema. Nothing executed.";
     try {
       const normalized = normalizeOptionalNullArguments(
         tool.validateParameters,
@@ -417,7 +424,10 @@ export class ModelToolSession {
     try {
       const result = await tool.run(args, signal, budgets);
       signal.throwIfAborted();
-      const bounded = boundedToolText(result.text, budgets.toolOutputBytes);
+      const maximum = ["exec_command", "git", "read_file"].includes(call.name)
+        ? nativeOutputBytes(args, budgets)
+        : budgets.toolOutputBytes;
+      const bounded = boundedToolText(result.text, maximum);
       const text = JSON.stringify({
         status: result.failed ? "failed" : "completed",
         ...bounded,

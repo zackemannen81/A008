@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0200_bounded-tool-context.md](A008-0200_bounded-tool-context.md) — Complete locally; sectional reads with whole-file hashes, compact edits and bounded command output. [Archive](../finished/A008-0200_bounded-tool-context.md), [handoff](../handoffs/A008-0200.md).
+
 - [A008-0199_Task4.md](A008-0199_Task4.md) — Complete locally; conservative checkpoint recovery with durable effect fencing, workspace evidence and real 110-round process-replacement proof. [Archive](../finished/A008-0199_Task4.md), [handoff](../handoffs/A008-0199.md).
 
 - [A008-0198_Task3.md](A008-0198_Task3.md) — Complete on task branch; automatic completed-tool-round pressure measurement, durable checkpoint-before-adoption and repeated bounded same-run context rebuild. [Archive](../finished/A008-0198_Task3.md), [handoff](../handoffs/A008-0198.md).

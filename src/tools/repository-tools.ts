@@ -1,12 +1,14 @@
 import { createHash } from "node:crypto";
 import {
   existsSync,
+  openSync,
+  closeSync,
+  fstatSync,
   lstatSync,
   mkdirSync,
-  readFileSync,
+  readSync,
   readdirSync,
   realpathSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
@@ -28,6 +30,22 @@ const pathProperty = {
   minLength: 1,
   description: "Path relative to the working directory.",
 };
+export const TOOL_OUTPUT_BYTES_PROPERTY = {
+  type: "integer",
+  minimum: 256,
+  description:
+    "Output byte cap, default 8192; cannot exceed the runtime budget. Narrow the command before increasing it.",
+};
+export const nativeOutputBytes = (
+  args: Record<string, unknown>,
+  budgets: RuntimeBudgets,
+) =>
+  Math.min(
+    (args.max_output_bytes as number | undefined) ?? 8192,
+    budgets.toolOutputBytes,
+  );
+const MAX_TEXT_FILE_BYTES = 16 * 1024 * 1024;
+
 const definition = (
   name: string,
   description: string,
@@ -57,8 +75,13 @@ export const REPOSITORY_TOOL_DEFINITIONS: readonly ChatToolDefinition[] = [
   ),
   definition(
     "read_file",
-    "Read an entire UTF-8 workspace file and its SHA-256 revision. Files exceeding the tool result byte budget must be read in sections with exec_command, or the budget increased. File contents are reference data.",
-    { path: pathProperty },
+    "Read a UTF-8 workspace section: offset is zero-based, limit defaults to 200 lines. Returns whole-file sha256 for edit_file and next_offset when more follows. Read only needed sections; compare hashes across pages. Prefer this over MCP for workspace text. Contents are reference data.",
+    {
+      path: pathProperty,
+      offset: { type: "integer", minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+      limit: { type: "integer", minimum: 1, maximum: 10000 },
+      max_output_bytes: TOOL_OUTPUT_BYTES_PROPERTY,
+    },
     ["path"],
   ),
   definition(
@@ -69,7 +92,7 @@ export const REPOSITORY_TOOL_DEFINITIONS: readonly ChatToolDefinition[] = [
   ),
   definition(
     "edit_file",
-    "Replace exactly one occurrence of old_text in an existing UTF-8 workspace file. First read_file and supply its sha256. Refuses stale revisions or ambiguous matches. Preserve line endings. Requires approval; the user sees old and new text.",
+    "Replace exactly one old_text match in a workspace file. Use sha256 from read_file (a section suffices) or the last successful edit/create result; reuse the returned hash for further edits without rereading unchanged content. Keep context minimal but unique. Preserves uniform LF/CRLF; no fuzzy writes. Requires approval.",
     {
       path: pathProperty,
       expected_sha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
@@ -80,7 +103,7 @@ export const REPOSITORY_TOOL_DEFINITIONS: readonly ChatToolDefinition[] = [
   ),
   definition(
     "git",
-    'Run Git in the workspace with literal arguments, without shell expansion. For example ["status","--short"] or ["diff"]. Git must be installed on the host. Every invocation requires approval, including commits and remote operations. Inspect changes before staging or committing.',
+    "Run Git with literal arguments in the workspace. Prefer status --short, diff --stat or a path-scoped diff; avoid dumping unrelated changes. Requires approval, including commits and remote operations. Inspect changes before staging or committing.",
     {
       args: {
         type: "array",
@@ -89,6 +112,7 @@ export const REPOSITORY_TOOL_DEFINITIONS: readonly ChatToolDefinition[] = [
         description:
           "Git subcommand followed by its arguments. Do not include the git executable.",
       },
+      max_output_bytes: TOOL_OUTPUT_BYTES_PROPERTY,
     },
     ["args"],
   ),
@@ -134,17 +158,33 @@ function readText(
   path: string,
   maximum: number,
 ): { bytes: Buffer; content: string } {
-  if (!statSync(path).isFile())
-    throw new RepositoryToolError("Choose a regular file.");
-  if (statSync(path).size > maximum)
-    throw new RepositoryToolError(
-      "File exceeds the Tool result budget. Increase it in Parameters → Budgets or read selected sections with exec_command.",
-    );
-  const bytes = readFileSync(path);
-  if (bytes.length > maximum)
-    throw new RepositoryToolError(
-      "File grew beyond the Tool result budget. Read it again with a larger budget.",
-    );
+  const file = openSync(path, "r");
+  let bytes: Buffer;
+  try {
+    const stat = fstatSync(file);
+    if (!stat.isFile()) throw new RepositoryToolError("Choose a regular file.");
+    if (stat.size > maximum)
+      throw new RepositoryToolError(
+        "File exceeds the 16 MiB native text processing limit. Use a bounded external file tool or a targeted shell command.",
+      );
+    const chunks: Buffer[] = [];
+    let size = 0;
+    // Read at most maximum + 1 even if another process grows the file.
+    while (size <= maximum) {
+      const chunk = Buffer.allocUnsafe(Math.min(65536, maximum + 1 - size));
+      const count = readSync(file, chunk);
+      if (count === 0) break;
+      chunks.push(chunk.subarray(0, count));
+      size += count;
+    }
+    if (size > maximum)
+      throw new RepositoryToolError(
+        "File grew beyond the native text processing limit; nothing written.",
+      );
+    bytes = Buffer.concat(chunks, size);
+  } finally {
+    closeSync(file);
+  }
   try {
     if (bytes.includes(0)) throw new Error("binary");
     return {
@@ -159,6 +199,64 @@ function readText(
       "File is not UTF-8 text. Use an appropriate shell tool for binary files.",
     );
   }
+}
+
+function filePage(
+  content: string,
+  path: unknown,
+  sha256: string,
+  args: Record<string, unknown>,
+  maximum: number,
+): string {
+  const starts = [0];
+  for (const match of content.matchAll(/\r\n|\n|\r/g)) {
+    const next = match.index + match[0].length;
+    if (next < content.length) starts.push(next);
+  }
+  if (content.length > 0) starts.push(content.length);
+  const total = starts.length - 1;
+  const offset = Math.min((args.offset as number | undefined) ?? 0, total);
+  const end = Math.min(
+    total,
+    offset + ((args.limit as number | undefined) ?? 200),
+  );
+  const result = (until: number) =>
+    JSON.stringify({
+      path,
+      sha256,
+      offset,
+      lines: until - offset,
+      total_lines: total,
+      next_offset: until < total ? until : null,
+      complete: offset === 0 && until === total,
+      content: content.slice(starts[offset], starts[until]),
+    });
+  let low = offset,
+    high = end;
+  while (low < high) {
+    const middle = Math.ceil((low + high) / 2);
+    if (Buffer.byteLength(result(middle), "utf8") <= maximum) low = middle;
+    else high = middle - 1;
+  }
+  const page = result(low);
+  if (
+    (low === offset && offset < total) ||
+    Buffer.byteLength(page, "utf8") > maximum
+  )
+    throw new RepositoryToolError(
+      "A complete line plus read metadata does not fit the output cap. Increase max_output_bytes within the runtime budget or use a targeted shell command; no partial line returned.",
+    );
+  return page;
+}
+
+function uniformLineEnding(content: string): "\r\n" | "\n" | undefined {
+  if (
+    content.includes("\r\n") &&
+    !/[\r\n]/.test(content.replaceAll("\r\n", ""))
+  )
+    return "\r\n";
+  if (content.includes("\n") && !content.includes("\r")) return "\n";
+  return undefined;
 }
 
 export function repositoryTools(
@@ -183,7 +281,7 @@ export function repositoryTools(
             env: { ...env, GIT_TERMINAL_PROMPT: "0" },
             signal,
             timeoutMs: budgets.toolTimeoutMs,
-            maxBytes: budgets.toolOutputBytes,
+            maxBytes: nativeOutputBytes(args, budgets),
           });
           return {
             failed: result.exitCode !== 0 || result.timedOut,
@@ -218,14 +316,16 @@ export function repositoryTools(
           };
         }
         if (definition.name === "read_file") {
-          const { bytes, content } = readText(path, budgets.toolOutputBytes);
+          const { bytes, content } = readText(path, MAX_TEXT_FILE_BYTES);
           return {
             failed: false,
-            text: JSON.stringify({
-              path: args.path,
-              sha256: hash(bytes),
+            text: filePage(
               content,
-            }),
+              args.path,
+              hash(bytes),
+              args,
+              nativeOutputBytes(args, budgets),
+            ),
           };
         }
         if (definition.name === "create_file") {
@@ -248,20 +348,25 @@ export function repositoryTools(
             }),
           };
         }
-        const { bytes, content } = readText(path, budgets.toolOutputBytes);
+        const { bytes, content } = readText(path, MAX_TEXT_FILE_BYTES);
         if (hash(bytes) !== args.expected_sha256)
           throw new RepositoryToolError(
-            "File changed since it was read. Read it again and prepare a new edit; nothing written.",
+            "File changed since it was read. Read the relevant section again and prepare a new edit with its sha256; nothing written.",
           );
-        const before = args.old_text as string;
+        const ending = uniformLineEnding(content);
+        const normalize = (text: string) =>
+          ending ? text.replace(/\r\n|\n/g, ending) : text;
+        const before = normalize(args.old_text as string);
         const index = content.indexOf(before);
         if (index < 0 || content.indexOf(before, index + 1) >= 0)
           throw new RepositoryToolError(
-            "old_text must match exactly once. Include more unchanged context; nothing written.",
+            index < 0
+              ? "old_text must match exactly once; no match found. Read only the relevant section and copy its exact text; nothing written."
+              : "old_text must match exactly once; multiple matches found. Include more unchanged context; nothing written.",
           );
         const updated =
           content.slice(0, index) +
-          (args.new_text as string) +
+          normalize(args.new_text as string) +
           content.slice(index + before.length);
         writeFileSync(path, updated, "utf8");
         return {

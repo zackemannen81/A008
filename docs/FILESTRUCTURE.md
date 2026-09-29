@@ -39,6 +39,9 @@ A008/
 - `providers/` — provider/model adapters and catalogs.
 - `runtime/` — project runtime, workspace/session ownership and local composition.
 - `tools/` — model/tool execution surfaces.
+- `tools/repository-tools.ts` — paginated native file reads with whole-file revisions,
+  guarded edits and bounded Git output; `model-tools.ts` owns native/MCP registration,
+  approvals and per-call output ceilings.
 
 ## GUI
 
@@ -76,7 +79,7 @@ docs/
 ├── FILESTRUCTURE.md          this repository map
 ├── JOURNAL.md                append-only dated integration history
 ├── TASK_IDS.md               task identity allocation
-├── adr/                      active ADRs 0055 (sessions), 0056 (context), 0057 (checkpoint recovery); pre-0055 records are _legacy history
+├── adr/                      active ADRs 0055–0058 (sessions, context, checkpoint recovery, bounded tools); pre-0055 records are _legacy history
 ├── backlog/                  current deferred work plus _legacy retired backlog
 ├── tasks/                    durable task/program records
 ├── finished/                 immutable completed task records
