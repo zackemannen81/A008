@@ -1,10 +1,10 @@
 # Current Status — A008
 
 Granskad: 2026-09-29
-Källrevision: `dde4163` + verifierade A008-0197-slutändringar i task-worktree.
-Senaste arkitekturimplementation: A008-0197 (durable run-continuation checkpoints med verifierad raw-evidence-provenance).
+Källrevision: `eb3143d` + verifierade A008-0198-slutändringar i task-worktree.
+Senaste arkitekturimplementation: A008-0198 (automatic live-turn context pressure, durable checkpoint-before-adoption och bounded same-run continuation).
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
-A008-0196 (Complete): opt-in run-local compaction for completed tool interactions in `src/core/chat-session.ts`. Raw messages remain in the run, the recent tail is preserved, continuation state requires cumulative validated source coverage, and provider chronology keeps the current user request ahead of continuation state and recent raw tool rounds. A008-0197 now makes validated continuation checkpoints durable; automatic reduction/budget triggering and process-loss recovery remain excluded.
+A008-0196 (Complete) defines bounded source-linked run-local compaction and A008-0197 makes validated checkpoints durable. A008-0198 now re-evaluates exact serialized request pressure after completed tool rounds, performs bounded tool-free reduction, persists before adoption and continues the same live run with the configured recent raw tail. Process-loss recovery/replay remains excluded for Task 4.
 
 ## Godkänd riktning
 
@@ -148,3 +148,24 @@ Final local verification 2026-09-29, no live-provider calls:
 - checkpoints cascade with the authoritative platform run; they are execution state only and never enter ordinary semantic-memory retrieval.
 - no semantic reducer, automatic budget trigger/context rebuild, same-turn resume or process-loss replay was added; those remain later-task ownership.
 - no live provider calls; **0 SEK**.
+
+## Verification — A008-0198
+
+Final local verification 2026-09-29, no live-provider calls:
+
+- automatic continuation remains opt-in: runtime defaults use `0/0` for pressure/hard ceiling; malformed or half-enabled bounds fail configuration validation;
+- OpenAI, NVIDIA, KIE and ACME expose exact selected-route serialized request measurement; the first measured route identity is bound for the live turn and later route drift fails closed;
+- pressure is re-evaluated after every completed tool round; only interactions older than the configured raw tail are eligible and no in-flight batch is compacted;
+- one bounded, tool-free reducer request may run per completed-operation boundary; canonical A008-0196 validation is applied before A008-0197 checkpoint persistence;
+- candidate projection is measured and adopted only after durable checkpoint write; over-hard candidates are not dispatched and canonical chat/raw evidence remains unchanged;
+- long-loop regression proves repeated progressive compaction across 12 tool rounds while preserving one recent raw interaction and one logical run identity;
+- root `npm run typecheck --silent`: **PASS**; root `npm run build --silent`: **PASS**;
+- focused continuation/session regressions: **22/22 PASS**;
+- relevant core-membership, runtime-preferences, provider transports, EngineHost, PlatformStore and platform-host suites: **96/96 PASS**;
+- additional ModelTools/session-process/checkpoint regressions: **26/26 PASS**;
+- ACP agent/memory/process compatibility regressions: **17/17 PASS**;
+- selected final verification total: **161/161 PASS**;
+- `git diff --check`: **PASS**;
+- no live provider calls; **0 SEK**.
+
+Remaining program boundary: Task 4 owns process-loss checkpoint discovery/resume and conservative recovery. A008-0198 does not replay ambiguous effects.

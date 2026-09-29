@@ -525,8 +525,28 @@ export class PlatformCoordinator {
     const timeout = setTimeout(() => abort.abort(), this.#config.turnTimeoutMs);
     timeout.unref?.();
     try {
-      const outcome = await session.complete(input, abort.signal, (activity) =>
-        this.#store.recordActivity(scope, run.id, activity),
+      const outcome = await session.complete(
+        input,
+        abort.signal,
+        (activity) => this.#store.recordActivity(scope, run.id, activity),
+        async (checkpoint) => {
+          for (const interaction of checkpoint.sourceInteractions) {
+            this.#store.bindContinuationSourceInteraction(scope, {
+              runId: run.id,
+              turnId: run.id,
+              workspaceId: run.workspaceId,
+              interaction,
+            });
+          }
+          this.#store.saveContinuationCheckpoint(scope, {
+            runId: run.id,
+            turnId: run.id,
+            workspaceId: run.workspaceId,
+            runtimeRunId: checkpoint.runId,
+            state: checkpoint.state,
+            maximumStateBytes: checkpoint.maximumStateBytes,
+          });
+        },
       );
       clearInterval(renew);
       clearTimeout(timeout);

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { measureSerializedChatRequest } from "../../core/chat-request-budget.js";
 import { ChatError, isChatError } from "../../core/errors.js";
 import { loadUserCatalog, type UserCatalog } from "../../core/user-catalog.js";
 import type {
@@ -69,6 +70,15 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export class AcmeChatTransport implements ChatTransport {
+  readonly #measured = new WeakMap<object, string>();
+
+  measureRequest(request: ChatRequest) {
+    const encoded = this.#measured.get(request) ?? this.#encode(request);
+    this.#measured.set(request, encoded);
+    const routeId = `acme:${this.#baseUrl}:${request.model}`;
+    return measureSerializedChatRequest(routeId, encoded);
+  }
+
   readonly #baseUrl: string;
   readonly #token: string | undefined;
   readonly #engineBuild: string | undefined;
@@ -125,14 +135,8 @@ export class AcmeChatTransport implements ChatTransport {
 
     try {
       await this.#requireCompatible(controller.signal);
-      const correlationId = this.#correlationId?.();
-      const body = buildAcmeExecuteBody(request, {
-        requestKey: this.#requestKey(),
-        timeoutMs: this.#timeoutMs,
-        ...(correlationId === undefined ? {} : { correlationId }),
-        ...(this.#catalog === undefined ? {} : { catalog: this.#catalog }),
-      });
-      const encoded = JSON.stringify(body);
+      const encoded = this.#measured.get(request) ?? this.#encode(request);
+      this.#measured.delete(request);
       dispatched = true;
       const response = await this.#fetch(
         acmeRuntimeUrl(this.#baseUrl, ACME_MODEL_RUNTIME_EXECUTE_PATH),
@@ -220,6 +224,17 @@ export class AcmeChatTransport implements ChatTransport {
       clearTimeout(timeout);
       request.signal?.removeEventListener("abort", cancel);
     }
+  }
+
+  #encode(request: ChatRequest): string {
+    const correlationId = this.#correlationId?.();
+    const body = buildAcmeExecuteBody(request, {
+      requestKey: this.#requestKey(),
+      timeoutMs: this.#timeoutMs,
+      ...(correlationId === undefined ? {} : { correlationId }),
+      ...(this.#catalog === undefined ? {} : { catalog: this.#catalog }),
+    });
+    return JSON.stringify(body);
   }
 
   async #requireCompatible(

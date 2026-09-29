@@ -1,12 +1,12 @@
 # Current Task
 
-Task ID: A008-0198
-Parent Task: `docs/backlog/A008-runtime-context-compaction-budget-recovery.md` (program proposal)
-Status: Ready
-Owner: Rickard (operator)
-Created: 2026-09-29
-Last updated: 2026-09-29
-Charter frozen at:2026-09-29
+Task ID:
+Parent Task: None
+Status: Draft
+Owner:
+Created:
+Last updated:
+Charter frozen at:
 
 ## Read First
 
@@ -18,210 +18,84 @@ Charter frozen at:2026-09-29
 - `docs/SYSTEMDOC.md`
 - `docs/JOURNAL.md`
 - `docs/FILESTRUCTURE.md`
-- `docs/backlog/A008-runtime-context-compaction-budget-recovery.md`
 - Relevant accepted top-level records under `docs/adr/`; never use `docs/adr/_legacy/` as current authority
 
 ## Task Summary
 
-This is Task 3 of the four-task runtime-context-compaction program. A008-0196
-provides opt-in, bounded, source-linked continuation state for one live run;
-Task 2 (A008-0197) is intended to persist validated checkpoints in the existing
-PlatformStore. This task will use those delivered contracts to detect context
-pressure during the still-live run, checkpoint before replacing its projected
-request history, rebuild a bounded request, and continue the same logical
-run/turn when it is safe. Raw execution evidence remains authoritative and
-unchanged; uncertain external effects are never replayed.
-
-A008-0196 is complete. Before this charter is frozen or implementation begins,
-verify that A008-0197's implementation and handoff are complete and integrated
-on the task base. If that prerequisite is not actually delivered, keep this
-charter Draft and do not begin dependent implementation.
+Describe why this bounded task is active now and its intended outcome.
 
 ## Task Charter
 
 ### Goal
 
-When a live provider/tool turn reaches its configured context-pressure point,
-rebuild its provider request from validated run-local continuation state,
-relevant current-turn inputs and retained recent raw interactions, then continue
-within the same active run and turn without replaying an ambiguous effect.
+Define one primary outcome.
 
 ### Primary Deliverable
 
-An opt-in, bounded runtime orchestration path that measures the complete
-provider request against an explicit effective input budget, saves a validated
-A008-0197 checkpoint before replacing projected context, reconstructs the
-request from authoritative inputs, and continues the existing live run/turn.
-The implementation must consume the actual A008-0196 and A008-0197 contracts;
-it must not create a parallel state format, checkpoint owner, or run identity.
+Name the concrete artifact or behavior.
 
 ### In Scope
 
-- Inspect and use the delivered A008-0196 continuation-state contract and the
-  completed A008-0197 PlatformStore checkpoint API, source-reference binding,
-  and turn/run/workspace identity. Revalidate them against the task base.
-- Identify the actual provider dispatch boundary and obtain the effective input
-  ceiling and a bounded request-size measurement for the selected model/route.
-  Account for the complete request: base/system instructions, current user/turn
-  input, retrieved A008 memory projection, tool schemas, continuation state,
-  recent raw tail, and provider/request serialization overhead where applicable.
-- Add an explicit per-run pressure policy through the existing runtime/core
-  configuration boundary. Keep the policy configurable; do not introduce
-  undocumented fixed percentages, tool-count thresholds, or provider limits.
-  Use only a route limit and measurement/estimation method whose ownership and
-  bounds are explicit. If a finite usable bound cannot be established, fail
-  closed rather than claiming the request fits or silently dropping context.
-- Trigger reduction only at a safe completed-operation boundary. Preserve all
-  in-flight work and keep the configured recent raw interactions byte-for-byte
-  in the rebuilt projection.
-- On pressure, form and validate the replacement continuation state using the
-  A008-0196 rules, then persist it through A008-0197 before replacing the live
-  projected request. Reconstruct from the current turn input, the relevant
-  current A008 memory projection, the durable continuation checkpoint and the
-  retained recent raw interactions; preserve their required chronology and
-  provenance.
-- Verify the rebuilt request is within the configured effective input bound
-  before dispatch. Keep the same active logical run/turn and existing execution
-  owner; do not accept a duplicate user command or start a replacement run.
-- Preserve existing run/effect semantics. Never repeat a provider/tool operation
-  whose outcome is ambiguous. If checkpointing, measurement, validation or
-  rebuilding fails, retain the prior valid checkpoint and usable live context;
-  do not replace it with partial/invalid state or dispatch an over-budget request.
-  Return an explicit bounded failure when safe continuation is not possible.
-- Add deterministic tests for full-request accounting, pressure decisions,
-  checkpoint-before-replacement ordering, reconstruction/budget fit, same-run
-  continuation, and failure/effect safety. Update owning implementation
-  documentation and the task handoff/archive at completion.
-- After every completed tool round, re-evaluate the projected next provider request 
-  against the configured pressure policy. When the soft pressure trigger is reached, 
-  compact eligible older completed interactions through the A008-0196 continuation path 
-  before the next provider dispatch. Do not wait for the hard provider-input ceiling.
+- List work required for the deliverable.
 
 ### Out of Scope
 
-- Re-defining A008-0196 continuation state, deleting or rewriting raw events,
-  or adding a second checkpoint/event store.
-- Process-loss/restart recovery, discovery of checkpoints by a replacement
-  process, workspace reconciliation, lease/scheduler changes, or automatic
-  resumption after process death (Task 4 and existing owners).
-- Replaying, retrying, or reconciling ambiguous external effects; this task
-  preserves existing conservative run/effect handling.
-- Changes to inter-turn history, semantic-memory schema/lifecycle/retrieval
-  policy, UI/client controls, public protocol/API, or provider execution
-  semantics unrelated to measuring and rebuilding the current request.
-- A semantic-memory redesign, generalized summarization service, fixed
-  percentage/tool-count thresholds, new SQLite database/namespace, or claims
-  that an estimate is an exact provider token count when it is not.
+- List adjacent work that must not be absorbed.
 
 ### Definition of Done
 
-- A008-0196 and A008-0197 are complete on the task base; this implementation
-  uses their actual state, source, checkpoint and identity contracts without
-  duplicating or weakening them.
-- The active runtime has a documented configurable pressure policy and a
-  bounded measurement of the complete selected-route provider request against
-  its effective input allowance. Unknown/unbounded measurement or route limits
-  cannot produce a false claim of fit or trigger destructive context replacement.
-- At a deterministic pressure boundary, tests prove the order
-  `validate continuation → persist checkpoint → replace projected context →
-  verify rebuilt request bound → dispatch continuation`; same logical run and
-  turn identities are preserved.
-- Rebuilt context includes the correct current turn input, relevant current
-  A008 memory projection, validated checkpoint state and recent raw tail, with
-  source references resolvable under A008-0197. Canonical raw evidence remains
-  unchanged and available.
-- No in-flight operation is compacted. No ambiguous provider/tool effect is
-  replayed. Failed checkpoint, invalid reduction, failed reconstruction or
-  excessive rebuilt size leaves the prior valid state/context recoverable and
-  causes a bounded, explicit failure rather than unsafe dispatch.
-- Deterministic tests cover complete request accounting, trigger/no-trigger
-  boundaries, checkpoint-before-replacement, same-run/turn continuation,
-  checkpoint/rebuild failure, retained raw tail, and ambiguous-effect safety.
-- Relevant existing PlatformStore, runtime and platform-host integration tests,
-  root typecheck/build and `git diff --check` pass. Owning implementation docs
-  describe actual behavior and the remaining Task 4 boundary.
-- Actual changes pass the Necessity Gate review. Exact commands/results and any
-  skipped checks are recorded. No live provider verification is needed or
-  authorized by this charter.
+- State objective completion conditions.
 
 ### Necessity Gate
 
 Contract: `docs/PROJECT_BRIEF.md`, Core Product Contract
-Contract revision: `33da416bf8b5eca9a4bc1151d955ec2988cbb95c` (reviewed current task base)
+Contract revision: <Git commit containing the reviewed contract>
+
+One row per coherent change or group serving one outcome. Apply the Necessity
+Gate in `docs/TASK_WORKFLOW.md`; results belong in Verification. References,
+intended outcomes and planned checks freeze with the charter. Record refinements
+of the initial approach in mutable notes within those bounds.
 
 | Change | Clause and accepted constraint | Outcome; consequence if omitted | Smallest sufficient change | Planned check |
 | --- | --- | --- | --- | --- |
-| Rebuild an oversized live-turn request from durable, source-linked continuation state and continue the same run safely | PC-LF-03 (A008 owns context construction and semantic-memory projection); PC-LF-05/07 (durable session identity and authoritative local state); PC-LF-09 (accepted work remains owned independently of a connected client). Program boundary: `docs/backlog/A008-runtime-context-compaction-budget-recovery.md`; prerequisites A008-0196 and A008-0197. | A long tool turn can exceed its selected route's effective input budget before accepted work finishes. Without a bounded same-turn rebuild, safe continuation is unavailable; replacing context without a durable validated checkpoint can lose state/provenance, while replaying an unknown effect can duplicate external work. | At the existing live dispatch boundary, measure the complete request under an explicit configurable policy; at completed-operation boundaries persist the validated continuation checkpoint first, rebuild from current inputs/memory/checkpoint/recent raw events, verify the bound, and continue the same run without replay. | Deterministic end-to-end pressure fixture proves request composition and bound, save-before-replace ordering, same run/turn identity, preserved provenance/raw tail, and fail-closed behavior for checkpoint/rebuild errors and ambiguous effects. |
+| <coherent change> | <exact reference> | <enable / fix / protect / verify; concrete consequence> | <bounded approach> | <test or named review> |
 
 ### Minimum Verification Gates
 
-- [ ] Root TypeScript typecheck and build pass.
-- [ ] Focused deterministic context-pressure/request-measurement and
-  continuation-rebuild tests pass, including full request components and
-  selected-route bound/measurement behavior.
-- [ ] A checkpoint-before-projection-replacement test proves the persisted
-  valid state is recoverable if subsequent reconstruction or dispatch fails.
-- [ ] Same-run/turn and completed-boundary tests pass; in-flight operations and
-  ambiguous external effects are not compacted or replayed.
-- [ ] Existing PlatformStore and platform-host integration suites pass.
-- [ ] `git diff --check` passes; review migration/API use and actual changes
-  against the Necessity Gate, A008-0196/A008-0197 contracts and frozen scope.
-- [ ] Record exact commands/results and skipped checks. No live provider calls.
+- [ ] Define checks that may be strengthened but not removed after Ready.
 
 ### Verification Budget
 
-No live verification required. Local deterministic tests only; no provider calls.
+Resolve before live dispatch using [Live verification budget](TASK_WORKFLOW.md#live-verification-budget).
+Inheritance authorizes in-scope calls without per-call approval; record the
+policy revision and effective numeric ceilings. Use not-needed/zero for tasks
+that do not require live verification. Credentials are references only.
+Budget is a ceiling, not a target: stop once the verification need is satisfied.
 
-- Live verification purpose / required provider behavior: Not needed.
-- Budget owner / parent allocation: Not applicable; zero live-call allocation.
-- Policy revision / inherited or explicit approved limits: `docs/TASK_WORKFLOW.md` as reviewed at charter freeze; live verification not needed.
-- max_live_verification_cost (amount + currency): 0 SEK.
-- max_live_verification_calls (all physical attempts): 0.
-- max_input_tokens_per_call / max_output_tokens_per_call: 0 / 0.
-- live_call_timeout_seconds: 0.
-- Approved provider/model routes / credential-source references: None.
-- Price reference and checked-at / billing units / currency conversion / allowance: Not applicable; no live calls.
-- Observed spend / outstanding reservations / unknown cost / attempts / remaining allowance: 0 SEK / 0 / none / 0 / 0 SEK.
-- Worker allocations or serialized dispatch; resume retains prior usage: No worker/live dispatch; zero allocation.
+- Live verification purpose / required provider behavior:
+- Budget owner / parent allocation:
+- Policy revision / inherited or explicit approved limits:
+- max_live_verification_cost (amount + currency):
+- max_live_verification_calls (all physical attempts):
+- max_input_tokens_per_call / max_output_tokens_per_call:
+- live_call_timeout_seconds:
+- Approved provider/model routes / credential-source references:
+- Price reference and checked-at / billing units / currency conversion / allowance:
+- Observed spend / outstanding reservations / unknown cost / attempts / remaining allowance:
+- Worker allocations or serialized dispatch; resume retains prior usage:
 
 ## References
 
-- `docs/backlog/A008-runtime-context-compaction-budget-recovery.md` — Task 3 outcome, acceptance evidence and shared boundaries.
-- `docs/PROJECT_BRIEF.md` — PC-LF-03, PC-LF-05, PC-LF-07 and PC-LF-09.
-- `docs/adr/0055-durable-sessions-and-process-ownership.md` — durable ownership and conservative process/effect recovery boundary.
-- `docs/finished/A008-0196_bounded-intra-turn-context.md` and `docs/handoffs/A008-0196.md` — delivered state/projection contract; revalidate on task base.
-- `docs/tasks/A008-0197_Task2.md` and its completed archive/handoff — Task 2 checkpoint contract; implementation must be verified before freeze.
-- `src/core/chat-continuation.ts`, `src/core/chat-session.ts` — A008-0196 continuation contract and active tool-loop projection.
-- `src/platform/platform-store.ts`, `src/platform/sqlite-schema.ts`, `src/platform/types.ts` — Task 2 persistence owner and actual checkpoint/source bindings; re-inspect after prerequisite integration.
-- Current provider/model route metadata and request composition/serialization owners identified during pre-freeze review.
+- Add owned documents, source revisions, contracts, and decisions.
 
 ## Checklist
 
-- [x] Review program Task 3 candidate outcome and its boundary from Tasks 1, 2 and 4.
-- [x] Review delivered A008-0196 state contract, current provider/tool-loop shape, current PlatformStore owner and project contract for charter preparation.
-- [ ] Verify A008-0197 implementation/archive/handoff and its exact checkpoint/source/identity contract are integrated on the task base; do not freeze or implement if absent.
-- [ ] Operator revalidates the Necessity Gate, current contract revision, complete-request measurement owner and minimum gates; then freezes this charter before implementation.
-- [ ] Implement configured context-pressure detection and safe same-run request rebuild using the delivered checkpoint API.
-- [ ] Add/run deterministic pressure, ordering, continuation and failure/effect-safety tests plus required existing integration and build/typecheck gates.
-- [ ] Update owning documentation, complete handoff/archive; operator appends the integration journal entry on merge.
+- [ ] Break work into ordered steps and keep them truthful.
+- [ ] Include verification and documentation updates.
 
 ## Decisions and Notes
 
-- Do not assume that a route's advertised context window is all available for
-  input: reserve output and provider-specific overhead according to the actual
-  route contract. The selected bound and measurement method must be explicit
-  and tested; never present a heuristic as exact token accounting.
-- Do not choose a universal pressure percentage or fixed tool-count cutoff.
-  The frozen implementation must use a configurable policy within the current
-  runtime/core boundary and document its units and safety behavior.
-- Checkpoint persistence is ordered before replacement of projected live
-  context. A successful checkpoint does not authorize replay or process restart.
-- The task concerns continuation within the same still-live run/turn only.
-  Process-loss recovery remains Task 4; normal completed-turn memory extraction
-  remains with its existing owner.
-- If the delivered A008-0197 API cannot durably resolve A008-0196 source refs,
-  or prerequisite changes conflict with this charter, pause and obtain operator
-  direction rather than inventing a representation or broadening scope.
+- Record assumptions and route discoveries through `docs/TASK_WORKFLOW.md`.
 
 ## Charter Amendment Log
 
@@ -237,18 +111,18 @@ No live verification required. Local deterministic tests only; no provider calls
 
 - [ ] `docs/CURRENT_STATUS.md`
 - [ ] `docs/SYSTEMDOC.md`
-- [ ] `docs/JOURNAL.md` (integration entry by operator on merge)
+- [ ] `docs/JOURNAL.md`
 - [ ] `docs/FILESTRUCTURE.md` when structure changes
-- [ ] ADRs and collection indexes when needed by the implemented contract
+- [ ] ADRs and collection indexes when needed
 
 ## Handoff and Follow-ups
 
-- Current state: Draft charter prepared; not frozen and not started.
-- Next recommended step: Verify A008-0197 is complete and integrated, review the effective request-budget measurement boundary, then freeze A008-0198.
-- Blockers: A008-0197 completion/integration and confirmation of the concrete checkpoint/source-binding API before freeze.
-- Child tasks: None proposed.
-- Resume condition: Prerequisite Task 2 is delivered on the task base and the operator freezes this charter.
-- Open questions: None beyond the explicit pre-freeze prerequisite review; resolve by inspection of current integrated code, not by assumption.
+- Current state:
+- Next recommended step:
+- Blockers:
+- Child tasks:
+- Resume condition:
+- Open questions:
 
 ## Finalize When Complete
 

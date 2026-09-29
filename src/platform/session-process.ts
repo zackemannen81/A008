@@ -13,6 +13,7 @@ import type { StagePostOutputKnowledgeInput } from "../orchestration/post-output
 import { parseRuntimeId } from "../identity/runtime-id.js";
 import { killProcessTree } from "../tools/terminal.js";
 import type { PromptImageAttachment, SessionParameters } from "../../packages/protocol/src/index.js";
+import type { RunContinuationCheckpointWrite } from "../core/chat-continuation.js";
 
 export interface SessionProcessIdentity {
   readonly sessionId: string;
@@ -53,6 +54,9 @@ export class SessionProcess {
   #busy = false;
   #activity: GuiRunActivity = { thought: "", answer: "", tools: [] };
   #onActivity: ((activity: GuiRunActivity) => void) | undefined;
+  #onContinuationCheckpoint:
+    | ((input: RunContinuationCheckpointWrite) => Promise<void>)
+    | undefined;
   #model: string | undefined;
   #runId: string | undefined;
 
@@ -93,6 +97,14 @@ export class SessionProcess {
           if (!this.#busy) return;
           this.#activity = payload as GuiRunActivity;
           this.#onActivity?.(this.activity());
+          return;
+        }
+        if (method === "continuation.checkpoint") {
+          if (this.#onContinuationCheckpoint === undefined)
+            throw new Error("Continuation checkpoint owner is unavailable.");
+          await this.#onContinuationCheckpoint(
+            payload as RunContinuationCheckpointWrite,
+          );
           return;
         }
         if (!this.#busy || !this.#model)
@@ -203,12 +215,16 @@ export class SessionProcess {
     run: SessionProcessRun,
     signal: AbortSignal,
     onActivity: (activity: GuiRunActivity) => void,
+    onContinuationCheckpoint?: (
+      input: RunContinuationCheckpointWrite,
+    ) => Promise<void>,
   ): Promise<PlatformTextTurnResult> {
     if (this.#busy) throw new Error("Session already has an active run.");
     this.#busy = true;
     this.#runId = run.runId;
     this.#model = run.model;
     this.#onActivity = onActivity;
+    this.#onContinuationCheckpoint = onContinuationCheckpoint;
     this.#activity = { thought: "", answer: "", tools: [] };
     try {
       await this.#ready;
@@ -225,6 +241,7 @@ export class SessionProcess {
       this.#busy = false;
       this.#runId = undefined;
       this.#onActivity = undefined;
+      this.#onContinuationCheckpoint = undefined;
     }
   }
   async stop(): Promise<void> {

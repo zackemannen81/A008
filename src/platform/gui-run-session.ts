@@ -14,6 +14,7 @@ import type {
   PlatformTextTurnResult,
 } from "./runtime-adapter.js";
 import type { ChatContentPart } from "../core/types.js";
+import type { ContinuationCheckpointWriter } from "../tools/acp-tools.js";
 import type { PromptImageAttachment, SessionParameters } from "../../packages/protocol/src/index.js";
 
 export const PLATFORM_GUI_OWNER = "owner_gui";
@@ -48,6 +49,7 @@ export class GuiRunSession {
       conversationId: string;
       history: readonly PlatformTextHistoryMessage[];
       onActivity?: (activity: GuiRunActivity) => void;
+      continuationCheckpoint?: ContinuationCheckpointWriter;
       recoveryRequired?: boolean;
     },
   ) {
@@ -136,6 +138,12 @@ export class GuiRunSession {
             conversationId: this.input.conversationId,
             messages: this.input.history,
           },
+          ...(this.input.continuationCheckpoint === undefined
+            ? {}
+            : {
+                continuationCheckpoint:
+                  this.input.continuationCheckpoint,
+              }),
         },
       );
       this.#sessionId = created.sessionId;

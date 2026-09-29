@@ -1,8 +1,8 @@
 # System Document — aktuell implementation
 
-Granskad: 2026-09-28; A008-0195 utökar durable GUI/runtime med per-session-konfiguration, bilagor och separerade answer-/memory-/effect-utfall.
-Källrevision: `cba276a` (kodgranskning; denna dokumentationsreparation är ännu ocommittad).
-Verifiering och avgränsningar: [handoff A008-0194](handoffs/A008-0194.md); A008-0195-fakta nedan är verifierade mot aktuell källkod.
+Granskad: 2026-09-29; A008-0198 lägger till automatisk bounded live-turn context pressure, durable checkpoint-before-adoption och same-run continuation.
+Källrevision: `eb3143d` + verifierade A008-0198 task-worktree changes.
+Verifiering och avgränsningar: se CURRENT_STATUS samt handoffs för A008-0196–0198.
 
 Detta dokument beskriver implementerade ansvar och flöden. Målarkitekturen finns
 i [PROJECT_BRIEF.md](PROJECT_BRIEF.md) och [ADR 0055](adr/0055-durable-sessions-and-process-ownership.md).
@@ -51,8 +51,9 @@ hanterar ägarskap och återhämtning samt håller aktiva GUI-körningar.
 Utgångna leases hanteras konservativt: redan dispatchat arbete med okänt
 utfall kan bli `needs_reconciliation`, utan implicit återspelning.
 
-SQLite-schema version 4 lagrar även per-session-konfiguration och run-input för
-bilagor, utöver senaste sessionsinstans samt publik körningsaktivitet.
+SQLite-schema version 5 lagrar även per-session-konfiguration och run-input för
+bilagor samt A008-0197:s run-owned continuation checkpoints/source bindings,
+utöver senaste sessionsinstans och publik körningsaktivitet.
 Varje publik förändring får en stigande cursor; svarstext sparas som append/replace,
 verktyg uppdateras med ID och väntande godkännanden kan sättas eller tas bort.
 En materialiserad snapshot och dess cursor skrivs i samma transaktion. Klienten
@@ -135,6 +136,16 @@ This slice does not implement a semantic reducer, context-budget triggers, autom
 `saveContinuationCheckpoint()` validates the canonical `RunContinuationState` against the durable source set, exact platform run/turn/workspace binding and byte limit before an atomic append. `latestContinuationCheckpoint()` validates rows newest-first and returns the latest valid checkpoint; malformed or mismatched newer rows are skipped without mutation so an older valid checkpoint remains recoverable. Checkpoint payloads are execution state, are not copied into the raw evidence stream, and are not candidates for ordinary semantic-memory retrieval.
 
 A008-0197 deliberately does not choose when to compact, trigger on a context budget, rebuild provider context, resume an unfinished turn after restart, or authorize retry/replay. Those orchestration/recovery behaviors remain owned by later tasks.
+
+## Automatic live-turn context pressure — A008-0198
+
+A008-0198 activates A008-0196/0197 only when runtime preferences configure both a finite soft pressure threshold and a larger hard serialized-request ceiling. Defaults remain disabled (0/0). After every completed tool round, `ChatSession` measures the next complete provider wire request through the selected transport's real serializer. OpenAI, NVIDIA, KIE and ACME expose exact serialized-body measurement; a route without measurement fails closed when automatic continuation is enabled.
+
+The first exact measurement binds the selected route identity for the live turn. Every later main request, reducer request and rebuilt candidate must report the same route identity. Route drift, unavailable measurement, invalid bounds or a request above the hard ceiling prevents dispatch.
+
+When the soft threshold is reached and older completed interactions are eligible, the selected provider route performs one tool-free bounded reducer call for that completed-operation boundary. Reducer output is strict JSON validated by the canonical A008-0196 state/provenance/byte contract. The validated state and its raw source interactions are persisted through the A008-0197 PlatformStore bridge before any live projection is adopted. A candidate projection is then built from authoritative current-turn inputs, continuation state and the configured recent raw tail, measured against the same hard route ceiling, and adopted only if it fits.
+
+Raw execution evidence and canonical conversation history are never rewritten by compaction. In-flight tool work is never eligible. Repeated completed tool rounds may therefore cause repeated bounded compactions during one logical run while older raw provider/tool rounds leave active model context. Failed reduction, persistence, route validation or candidate measurement leaves the prior live projection usable and prevents unsafe/over-budget dispatch. This task does not resume after process death or authorize replay; restart/reconciliation remains Task 4.
 
 ## Minne och kontext
 

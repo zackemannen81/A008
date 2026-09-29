@@ -77,7 +77,8 @@ export class RuntimePreferencesStore {
           stored.version !== 1 &&
           stored.version !== 2 &&
           stored.version !== 3 &&
-          stored.version !== 4
+          stored.version !== 4 &&
+          stored.version !== 5
         )
           throw new Error("version");
         if (stored.version === 1) {
@@ -87,6 +88,12 @@ export class RuntimePreferencesStore {
             "maximumToolDefinitions",
             "toolOutputBytes",
             "toolTimeoutMs",
+            "continuationPressureBytes",
+            "continuationMaximumBytes",
+            "continuationReducerInputBytes",
+            "continuationReducerOutputTokens",
+            "continuationStateBytes",
+            "continuationRecentRawInteractions",
           ] as const;
           if (
             !legacy?.budgets ||
@@ -114,12 +121,30 @@ export class RuntimePreferencesStore {
             !("semantic" in storedSettings)
               ? { ...storedSettings, semantic: this.#defaults.semantic }
               : storedSettings;
-          settings = parseRuntimePreferences(withSemantic);
+          const upgraded =
+            stored.version === 5 ||
+            typeof withSemantic !== "object" ||
+            withSemantic === null ||
+            Array.isArray(withSemantic)
+              ? withSemantic
+              : {
+                  ...withSemantic,
+                  budgets: {
+                    ...DEFAULT_RUNTIME_BUDGETS,
+                    ...(("budgets" in withSemantic &&
+                    typeof withSemantic.budgets === "object" &&
+                    withSemantic.budgets !== null &&
+                    !Array.isArray(withSemantic.budgets))
+                      ? withSemantic.budgets
+                      : {}),
+                  },
+                };
+          settings = parseRuntimePreferences(upgraded);
         }
       } catch {
         throw new ChatError(
           "configuration",
-          "Cannot read A008 global settings. Expected a valid version 1, 2, 3 or 4 settings file at A008_SETTINGS_PATH.",
+          "Cannot read A008 global settings. Expected a valid version 1 through 5 settings file at A008_SETTINGS_PATH.",
         );
       }
     }
@@ -192,7 +217,7 @@ export class RuntimePreferencesStore {
         temporary = `${this.path}.${randomUUID()}.tmp`;
         writeFileSync(
           temporary,
-          JSON.stringify({ version: 4, settings }, null, 2) + "\n",
+          JSON.stringify({ version: 5, settings }, null, 2) + "\n",
           { encoding: "utf8", flag: "wx", mode: 0o600 },
         );
         renameSync(temporary, this.path);

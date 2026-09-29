@@ -29,13 +29,17 @@ test("kie chat posts OpenAI-compatible JSON to the model URL", async () => {
       );
     },
   });
-  const result = await transport.complete({
+  const request = {
     model: "gemini-3-flash",
-    messages: [{ role: "user", content: "hi" }],
+    messages: [{ role: "user" as const, content: "hi" }],
     options: { stream: false },
-  });
+  };
+  const measured = transport.measureRequest(request);
+  const result = await transport.complete(request);
   assert.match(url, /\/gemini-3-flash\/v1\/chat\/completions$/u);
   assert.match(body, /"content":"hi"/u);
+  assert.equal(measured.serializedBytes, Buffer.byteLength(body, "utf8"));
+  assert.equal(measured.routeId, `kie:${url}:gemini-3-flash`);
   assert.equal(body.includes("reasoning_budget"), false);
   assert.equal(result.message.content, "hello from kie");
   assert.equal(JSON.stringify(result).includes("kie-secret"), false);

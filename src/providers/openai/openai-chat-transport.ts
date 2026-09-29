@@ -1,4 +1,5 @@
 import { ChatError, isChatError } from "../../core/errors.js";
+import { measureSerializedChatRequest } from "../../core/chat-request-budget.js";
 import { effectiveReasoningEffort } from "../../core/generation-controls.js";
 import type {
   ChatCallbacks,
@@ -331,6 +332,11 @@ class ToolCallStream {
 }
 
 export class OpenAiChatTransport implements ChatTransport {
+  measureRequest(request: ChatRequest) {
+    const routeId = `openai:${this.#endpoint}:${request.model}`;
+    return measureSerializedChatRequest(routeId, JSON.stringify(buildPayload(request)));
+  }
+
   readonly #apiKey: string;
   readonly #endpoint: string;
   readonly #fetch: OpenAiFetchLike;
