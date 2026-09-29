@@ -34,8 +34,117 @@ import {
   type ChatSelection,
 } from "../gui/src/session/durable-chat-client.js";
 import { killProcessTree } from "../src/tools/terminal.js";
+import { RuntimePreferencesStore } from "../src/runtime/runtime-preferences-store.js";
+import { RUN_CONTINUATION_STATE_VERSION, type RunContinuationState } from "../src/core/chat-continuation.js";
+import Database from "better-sqlite3";
 
 const MODEL = DEFAULT_MODEL_ID;
+
+for (const scenario of ["continue-110-rounds", "workspace-mutation", "missing-workspace", "explicit-stop"] as const) {
+  test(`A008-0199 real process checkpoint recovery: ${scenario}`, { timeout: 240_000 }, async (t) => {
+    const total = scenario === "continue-110-rounds" ? 110 : 4;
+    const crashAfter = scenario === "continue-110-rounds" ? 55 : 2;
+    let crashed = false;
+    let beforePid = 0;
+    let beforeInstance = "";
+    let sessionId = "";
+    let workspacePath = "";
+    let databasePath = "";
+    let stopProcess: (() => Promise<unknown>) | undefined;
+    const runtimeIds = new Set<string>();
+    const mainRequestBytes: number[] = [];
+    const executedIds = new Set<string>();
+    const provider = await startSessionControlProvider(async payload => {
+      const last = payload.messages.at(-1);
+      let reduction: { runId: string; previous: RunContinuationState | null; interactions: { id: string }[] } | undefined;
+      try {
+        const parsed = JSON.parse(last?.content ?? "{}");
+        if (Array.isArray(parsed.interactions) && parsed.schema) reduction = parsed;
+      } catch { /* normal provider context */ }
+      if (reduction) {
+        runtimeIds.add(reduction.runId);
+        const refs = [...new Set([...(reduction.previous?.verifiedFacts.flatMap(fact => fact.sourceRefs) ?? []), ...reduction.interactions.map(interaction => interaction.id)])];
+        return { role: "assistant", content: JSON.stringify({ version: RUN_CONTINUATION_STATE_VERSION, runId: reduction.runId, verifiedFacts: [{ id: "file", statement: "The evidence file was read successfully.", sourceRefs: refs }], hypotheses: [], completedActions: [] }) };
+      }
+      mainRequestBytes.push(Buffer.byteLength(JSON.stringify(payload)));
+      const tail = payload.messages.filter((message: { role: string }) => message.role === "tool");
+      assert.ok(tail.length <= 2, "compaction keeps one recent raw round after the initial two");
+      const completed = Number(String(tail.at(-1)?.tool_call_id ?? "read-0").slice(5));
+      if (completed > 0 && completed % 25 === 0) t.diagnostic(`Completed round ${completed}; replacement ${crashed}; wire bytes ${mainRequestBytes.at(-1)}`);
+      if (completed === crashAfter && !crashed) {
+        crashed = true;
+        const db = new Database(databasePath, { readonly: true });
+        const identity = JSON.parse((db.prepare("SELECT identity_json FROM A008_session_instances WHERE session_id = ?").get(sessionId) as { identity_json: string }).identity_json);
+        db.close();
+        beforePid = identity.processId; beforeInstance = identity.instanceId;
+        if (scenario === "workspace-mutation") writeFileSync(join(workspacePath, ".gitkeep"), "external mutation");
+        if (scenario === "explicit-stop") await stopProcess!();
+        else if (process.platform === "win32") spawnSync("taskkill.exe", ["/PID", String(beforePid), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+        else process.kill(beforePid, "SIGKILL");
+        if (scenario === "missing-workspace") rmSync(workspacePath, { recursive: true, force: true });
+        // Never offer an effect to a dying process. Its response cannot complete.
+        return { role: "assistant", content: "Interrupted fixture response" };
+      }
+      if (completed >= total) return { role: "assistant", content: "All 110 tool rounds completed without replay." };
+      const id = `read-${completed + 1}`;
+      assert.ok(!executedIds.has(id), `completed tool ${id} must not be replayed`);
+      executedIds.add(id);
+      return { role: "assistant", content: "", tool_calls: [{ id, type: "function", function: { name: "read_file", arguments: '{"path":".gitkeep"}' } }] };
+    });
+    const fixture = hostEnv(provider.endpoint, { A008_CHAT_TRANSPORT: "direct", A008_PLATFORM_TURN_TIMEOUT_MS: "220000" });
+    databasePath = fixture.env.A008_PLATFORM_PATH!;
+    const prefs = new RuntimePreferencesStore(fixture.env, 120000);
+    const initial = prefs.snapshot();
+    prefs.save({ ...initial.settings, budgets: { ...initial.settings.budgets, maximumToolCalls: 120, continuationPressureBytes: 1, continuationMaximumBytes: 50000, continuationRecentRawInteractions: 1, continuationStateBytes: 16384, continuationReducerInputBytes: 50000, continuationReducerOutputTokens: 4096 } }, initial.revision);
+    const project = bootstrap(fixture.env, fixture.directory, `recovery-${scenario}`);
+    const host = await startGuiHost({ env: fixture.env, port: 0, cwd: fixture.directory });
+    const origin = `http://127.0.0.1:${host.port}`;
+    const client = new DurableChatClient({ origin, credentials: cookieCredentials(), fetch: globalThis.fetch as unknown as ClientFetch }, { read: () => undefined, write() {} }, 20);
+    try {
+      await client.connect(); await client.selectChat(project.projectId, undefined, true);
+      sessionId = client.getSnapshot().sessionId!;
+      workspacePath = client.getWorkspace()!.workspacePath;
+      stopProcess = () => client.stopProcess();
+      await client.prompt("Read the evidence file through the complete test sequence.");
+      // Exercise host ownership without GUI polling; acknowledge only actual pending approvals.
+      client.dispose();
+      await waitFor("checkpoint crash and terminal/reconciliation outcome", async () => {
+        const db = new Database(databasePath, { readonly: true });
+        const row = db.prepare("SELECT id, status, error_code, error_message FROM A008_platform_runs WHERE conversation_id = ?").get(sessionId) as { id: string; status: string; error_code: string | null; error_message: string | null } | undefined;
+        const storedActivity = row ? db.prepare("SELECT activity_json FROM A008_session_activity_current WHERE run_id = ?").get(row.id) as { activity_json: string } | undefined : undefined;
+        const permission = storedActivity ? JSON.parse(storedActivity.activity_json).permission as { id: string } | undefined : undefined;
+        db.close();
+        if (row && permission) await fetch(`${origin}/v1/chat/v3/runs/${encodeURIComponent(row.id)}/permission`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: permission.id, allow: true }) });
+        if (row?.status === "failed") throw new Error(`Run failed: ${row.error_message}`);
+        return crashed && (scenario === "continue-110-rounds" ? row?.status === "succeeded" : row?.status === "needs_reconciliation" && row.error_code !== null);
+      }, 225000);
+      const store = new PlatformStore({ filename: databasePath });
+      try {
+        const scope = { tenantId: "local", projectId: project.projectId, principalId: "owner_gui" };
+        const db = new Database(databasePath, { readonly: true });
+        const row = db.prepare("SELECT tenant_id, id FROM A008_platform_runs WHERE conversation_id = ?").get(sessionId) as { tenant_id: string; id: string };
+        scope.tenantId = row.tenant_id;
+        const checkpoints = (db.prepare("SELECT count(*) AS n FROM A008_run_continuation_checkpoints WHERE run_id = ?").get(row.id) as { n: number }).n;
+        db.close();
+        const run = store.getRun(scope, row.id);
+        if (scenario === "continue-110-rounds") {
+          const identity = store.sessionIdentity(scope, sessionId)!;
+          assert.notEqual(identity.processId, beforePid); assert.notEqual(identity.instanceId, beforeInstance);
+          assert.equal(run.leaseGeneration, 2); assert.equal(run.status, "succeeded");
+          assert.equal(executedIds.size, 110); assert.ok(checkpoints >= 100); assert.equal(runtimeIds.size, 1);
+          assert.equal(store.readActivity(scope, run.id)?.tools.length, 110);
+          assert.equal(store.getConversation(scope, sessionId).messages.filter(message => message.role === "assistant").length, 1);
+          assert.ok(mainRequestBytes.every(bytes => bytes <= 50000));
+        } else {
+          assert.equal(run.status, "needs_reconciliation"); assert.equal(run.leaseGeneration, 1);
+          assert.equal(executedIds.size, 2);
+          assert.equal(run.error?.code, scenario === "missing-workspace" ? "WORKSPACE_MISSING" : "CONTINUATION_UNCERTAIN");
+          assert.ok(store.latestContinuationCheckpoint(scope, { runId: run.id, turnId: run.id, workspaceId: run.workspaceId }));
+        }
+      } finally { store.close(); }
+    } finally { client.dispose(); await host.close(); await provider.close(); rmSync(fixture.directory, { recursive: true, force: true }); }
+  });
+}
 
 test(
   "ADR 0055: history-only reads, process crash, replacement and reviewed effects preserve the durable session",

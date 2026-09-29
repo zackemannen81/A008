@@ -1696,6 +1696,15 @@ function createRuntime(options: LocalMemoryRuntimeOptions): LocalMemoryRuntime {
   let innerTransport = makeTransport(transportTimeout);
   const transport = tracedChatTransport(
     {
+      measureRequest(request) {
+        const timeout = preferences.current.budgets.providerTimeoutMs;
+        if (timeout !== transportTimeout) {
+          innerTransport = makeTransport(timeout);
+          transportTimeout = timeout;
+        }
+        if (!innerTransport.measureRequest) throw new ChatError("configuration", "Selected runtime route does not expose exact request measurement.");
+        return innerTransport.measureRequest(request);
+      },
       complete(request, callbacks) {
         const timeout = preferences.current.budgets.providerTimeoutMs;
         if (timeout !== transportTimeout) {

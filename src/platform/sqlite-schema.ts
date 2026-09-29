@@ -1,6 +1,19 @@
-export const PLATFORM_SQLITE_SCHEMA_VERSION = 5;
+export const PLATFORM_SQLITE_SCHEMA_VERSION = 6;
 
 export const SESSION_PROCESS_SCHEMA = `
+CREATE TABLE IF NOT EXISTS A008_continuation_fences (
+  run_id TEXT PRIMARY KEY REFERENCES A008_platform_runs(id) ON DELETE CASCADE,
+  epoch INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS A008_continuation_recovery (
+  run_id TEXT NOT NULL REFERENCES A008_platform_runs(id) ON DELETE CASCADE,
+  sequence INTEGER NOT NULL,
+  epoch INTEGER NOT NULL,
+  maximum_state_bytes INTEGER NOT NULL,
+  recovery_json TEXT NOT NULL CHECK(json_valid(recovery_json)),
+  evidence_json TEXT NOT NULL CHECK(json_valid(evidence_json)),
+  PRIMARY KEY(run_id, sequence)
+);
 CREATE TABLE IF NOT EXISTS A008_session_instances (
   session_id TEXT PRIMARY KEY REFERENCES A008_platform_conversations(id),
   identity_json TEXT NOT NULL CHECK(json_valid(identity_json))

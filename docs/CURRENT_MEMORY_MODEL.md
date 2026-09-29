@@ -3,6 +3,13 @@
 Status: Normativ målmodell
 Syfte: Kanonisk beskrivning av hur A008 representerar kunskap, current state, history, provenance, adaptivt minne, retrieval och context.
 
+Implementationsgräns 2026-09-30, A008-0199: återupptagning av en oavslutad turn
+använder PlatformStores checkpoint och verifierade lokala exekveringstillstånd.
+Detta är inte semantiskt minne eller en retrieval-kandidat. Aktuell minnesprojektion
+hämtas genom befintlig projektägare; ordinarie extraction körs efter slutligt svar.
+Ändrad/overifierbar arbetskopia ger explicit osäkerhet och ingen automatisk replay.
+Detaljer och begränsningar ägs av SYSTEMDOC och ADR 0057.
+
 # 0. Base model idea
 
 A008: Pre-Provider Call Memory Retrieval

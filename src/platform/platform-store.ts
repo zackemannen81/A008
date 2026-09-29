@@ -9,9 +9,13 @@ import {
 import type { ChatContent } from "../core/types.js";
 import {
   validateRunContinuationState,
+  validateContinuationRecovery,
+  type RunContinuationCheckpointWrite,
+  type RunContinuationRecovery,
   type RunContinuationState,
 } from "../core/chat-continuation.js";
 import type { GuiRunActivity } from "./gui-run-session.js";
+import { continuationArtifactPaths, inspectContinuationWorkspace, type ContinuationWorkspaceEvidence } from "./continuation-workspace.js";
 import type { SessionProcessIdentity } from "./session-process.js";
 import {
   parseRuntimeId,
@@ -737,6 +741,7 @@ export class PlatformStore {
       this.#requireRevision(run, input.expectedRevision);
       const status: PlatformRunStatus =
         run.status === "queued" ? "cancelled" : "cancel_requested";
+      this.#advanceContinuationFence(run.id);
       const revision = run.revision + 1;
       this.#database
         .prepare(
@@ -1142,6 +1147,265 @@ export class PlatformStore {
     return undefined;
   }
 
+  /** Acknowledged before effects; older checkpoints cannot authorize later replay. */
+  fenceContinuation(scope: PlatformScope, input: LeaseWrite): void {
+    this.#immediate(() => {
+      const run = this.#currentLease(scope, input, this.#now());
+      this.#requireRevision(run, input.expectedRevision);
+      if (run.status !== "running")
+        throw new PlatformStoreError(
+          "LEASE_LOST",
+          "Run no longer permits effects.",
+        );
+      this.#advanceContinuationFence(run.id);
+    });
+  }
+
+  disableContinuationRecovery(scope: PlatformScope, runId: string): void {
+    this.#runRow(scope, runId);
+    this.#advanceContinuationFence(runId);
+  }
+
+  saveContinuationBoundary(
+    scope: PlatformScope,
+    lease: LeaseWrite,
+    checkpoint: RunContinuationCheckpointWrite,
+    cwd: string,
+  ): void {
+    this.#immediate(() => {
+      const run = this.#currentLease(scope, lease, this.#now());
+      this.#requireRevision(run, lease.expectedRevision);
+      if (run.status !== "running")
+        throw new PlatformStoreError(
+          "LEASE_LOST",
+          "Cancelled run cannot save recovery eligibility.",
+        );
+      const recovery =
+        checkpoint.recovery === undefined
+          ? undefined
+          : validateContinuationRecovery(
+              checkpoint.recovery,
+              checkpoint.maximumStateBytes,
+            );
+      if (
+        recovery &&
+        JSON.stringify(recovery.state) !== JSON.stringify(checkpoint.state)
+      )
+        throw new PlatformStoreError(
+          "INVALID_REQUEST",
+          "Recovery/checkpoint state mismatch.",
+        );
+      const interactions = [
+        ...checkpoint.sourceInteractions,
+        ...(recovery?.recentInteractions ?? []),
+      ];
+      for (const interaction of interactions)
+        this.bindContinuationSourceInteraction(scope, {
+          runId: run.id,
+          turnId: run.id,
+          workspaceId: run.workspace_id,
+          interaction,
+        });
+      const saved = this.saveContinuationCheckpoint(scope, {
+        runId: run.id,
+        turnId: run.id,
+        workspaceId: run.workspace_id,
+        runtimeRunId: checkpoint.runId,
+        state: checkpoint.state,
+        maximumStateBytes: checkpoint.maximumStateBytes,
+      });
+      if (!recovery) return;
+      const prior = this.#database
+        .prepare(
+          "SELECT evidence_json FROM A008_continuation_recovery WHERE run_id = ? ORDER BY sequence DESC LIMIT 1",
+        )
+        .get(run.id) as { evidence_json: string } | undefined;
+      const artifacts = continuationArtifactPaths(
+        interactions,
+        prior
+          ? (JSON.parse(prior.evidence_json) as ContinuationWorkspaceEvidence)
+          : undefined,
+      );
+      const evidence = inspectContinuationWorkspace(cwd, artifacts);
+      this.#currentLease(scope, lease, this.#now());
+      this.#database
+        .prepare(
+          "INSERT INTO A008_continuation_recovery (run_id, sequence, epoch, maximum_state_bytes, recovery_json, evidence_json) VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .run(
+          run.id,
+          saved.sequence,
+          this.#continuationEpoch(run.id),
+          checkpoint.maximumStateBytes,
+          JSON.stringify(recovery),
+          JSON.stringify(evidence),
+        );
+    });
+  }
+
+  readContinuationRecovery(
+    scope: PlatformScope,
+    runId: string,
+  ):
+    | {
+        sequence: number;
+        recovery: RunContinuationRecovery;
+        evidence: ContinuationWorkspaceEvidence;
+      }
+    | undefined {
+    const run = this.#runRow(scope, runId);
+    const checkpoint = this.latestContinuationCheckpoint(scope, {
+      runId,
+      turnId: runId,
+      workspaceId: run.workspace_id,
+    });
+    if (!checkpoint) return undefined;
+    const row = this.#database
+      .prepare(
+        "SELECT * FROM A008_continuation_recovery WHERE run_id = ? AND sequence = ? AND epoch = ?",
+      )
+      .get(runId, checkpoint.sequence, this.#continuationEpoch(runId)) as
+      | {
+          recovery_json: string;
+          evidence_json: string;
+          maximum_state_bytes: number;
+        }
+      | undefined;
+    if (!row) return undefined;
+    try {
+      const recovery = validateContinuationRecovery(
+        JSON.parse(row.recovery_json) as RunContinuationRecovery,
+        row.maximum_state_bytes,
+      );
+      if (JSON.stringify(recovery.state) !== JSON.stringify(checkpoint.state))
+        return undefined;
+      const bindings = this.#continuationBindings(
+        runId,
+        runId,
+        run.workspace_id,
+        checkpoint.runtimeRunId,
+      );
+      const callIds: string[] = [];
+      for (let i = 1; i <= recovery.completedInteractions; i++) {
+        const binding = bindings.get(`${checkpoint.runtimeRunId}:${i}`);
+        if (!binding) return undefined;
+        callIds.push(...binding);
+      }
+      if (
+        JSON.stringify([...callIds].sort()) !==
+        JSON.stringify([...recovery.usedToolCallIds].sort())
+      )
+        return undefined;
+      const evidence = JSON.parse(
+        row.evidence_json,
+      ) as ContinuationWorkspaceEvidence;
+      if (
+        !Array.isArray(evidence.paths) ||
+        evidence.paths.some((path) => typeof path !== "string") ||
+        typeof evidence.verifiable !== "boolean" ||
+        (evidence.verifiable &&
+          (typeof evidence.digest !== "string" ||
+            typeof evidence.revision !== "string"))
+      )
+        return undefined;
+      return { sequence: checkpoint.sequence, recovery, evidence };
+    } catch {
+      return undefined;
+    }
+  }
+
+  /** Consume recovery once, using the ordinary queue/lease transition transaction. */
+  claimContinuationRecovery(
+    scope: PlatformScope,
+    input: ClaimPlatformRun & {
+      readonly expectedRevision: number;
+      readonly sequence: number;
+    },
+  ): ClaimedPlatformRun {
+    return this.#immediate(() => {
+      const run = this.#runRow(scope, input.runId);
+      this.#requireRevision(run, input.expectedRevision);
+      const candidate = this.readContinuationRecovery(scope, run.id);
+      const conversation = this.getConversation(scope, run.conversation_id);
+      const lastUser = conversation.messages.findLast(
+        (message) => message.role === "user",
+      );
+      if (
+        run.status !== "needs_reconciliation" ||
+        run.answer_status !== "pending" ||
+        candidate?.sequence !== input.sequence ||
+        !candidate.evidence.verifiable ||
+        lastUser?.runId !== run.id ||
+        this.listRuns(scope).some(
+          (other) =>
+            other.id !== run.id &&
+            other.conversationId === run.conversation_id &&
+            !TERMINAL_RUN_STATUSES.has(other.status),
+        )
+      ) {
+        throw new PlatformStoreError(
+          "LEASE_LOST",
+          "Recovery no longer owns this unfinished turn.",
+        );
+      }
+      this.#advanceContinuationFence(run.id);
+      this.#database
+        .prepare(
+          "UPDATE A008_platform_runs SET status = 'queued', error_code = NULL, error_message = NULL WHERE id = ?",
+        )
+        .run(run.id);
+      return this.claimRun(scope, input);
+    });
+  }
+
+  rejectContinuationRecovery(
+    scope: PlatformScope,
+    runId: string,
+    expectedRevision: number,
+    reason: string,
+    code = "CONTINUATION_UNCERTAIN",
+  ): void {
+    this.#immediate(() => {
+      const run = this.#runRow(scope, runId);
+      this.#requireRevision(run, expectedRevision);
+      if (run.status !== "needs_reconciliation") return;
+      this.#advanceContinuationFence(runId);
+      const now = this.#now();
+      this.#database
+        .prepare(
+          "UPDATE A008_platform_runs SET revision = ?, updated_at = ?, error_code = ?, error_message = ? WHERE id = ?",
+        )
+        .run(run.revision + 1, now, code, reason, runId);
+      this.#appendEvent(
+        scope,
+        run.conversation_id,
+        runId,
+        "run.updated",
+        run.revision + 1,
+        now,
+      );
+    });
+  }
+
+  #continuationEpoch(runId: string): number {
+    return (
+      (
+        this.#database
+          .prepare(
+            "SELECT epoch FROM A008_continuation_fences WHERE run_id = ?",
+          )
+          .get(runId) as { epoch: number } | undefined
+      )?.epoch ?? 0
+    );
+  }
+
+  #advanceContinuationFence(runId: string): void {
+    this.#database
+      .prepare(
+        "INSERT INTO A008_continuation_fences (run_id, epoch) VALUES (?, 1) ON CONFLICT(run_id) DO UPDATE SET epoch = epoch + 1",
+      )
+      .run(runId);
+  }
   recordActivity(
     scope: PlatformScope,
     runId: string,
@@ -1188,7 +1452,7 @@ export class PlatformStore {
         .prepare(
           "INSERT INTO A008_session_activity_current VALUES (?, ?, ?) ON CONFLICT(run_id) DO UPDATE SET cursor = excluded.cursor, activity_json = excluded.activity_json",
         )
-        .run(runId, cursor, JSON.stringify({ ...publicActivity, thought: "" }));
+        .run(runId, cursor, JSON.stringify({ ...publicActivity, thought: "", tools: [...new Map([...(prior?.tools ?? []), ...activity.tools].map(tool => [tool.id, tool])).values()] }));
     });
     return cursor;
   }
@@ -1319,7 +1583,7 @@ export class PlatformStore {
           this.#database
             .prepare("UPDATE A008_platform_schema SET version = 4 WHERE singleton = 1")
             .run();
-        } else if (existing.version === 2 || existing.version === 3 || existing.version === 4) {
+        } else if (existing.version === 2 || existing.version === 3 || existing.version === 4 || existing.version === 5) {
           this.#database.exec(SESSION_PROCESS_SCHEMA);
         } else if (existing.version !== PLATFORM_SQLITE_SCHEMA_VERSION) {
           throw new PlatformStoreError("INVALID_REQUEST", "Platform SQLite schema version is unsupported.");

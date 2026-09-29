@@ -15,6 +15,7 @@ import type {
 } from "./runtime-adapter.js";
 import type { ChatContentPart } from "../core/types.js";
 import type { ContinuationCheckpointWriter } from "../tools/acp-tools.js";
+import type { RunContinuationRecoveryBridge } from "../core/chat-continuation.js";
 import type { PromptImageAttachment, SessionParameters } from "../../packages/protocol/src/index.js";
 
 export const PLATFORM_GUI_OWNER = "owner_gui";
@@ -50,6 +51,7 @@ export class GuiRunSession {
       history: readonly PlatformTextHistoryMessage[];
       onActivity?: (activity: GuiRunActivity) => void;
       continuationCheckpoint?: ContinuationCheckpointWriter;
+      continuationRecovery?: RunContinuationRecoveryBridge;
       recoveryRequired?: boolean;
     },
   ) {
@@ -134,6 +136,7 @@ export class GuiRunSession {
         },
         {
           initialModel: this.input.model,
+          ...(this.input.continuationRecovery ? { continuationRecovery: this.input.continuationRecovery } : {}),
           conversationSeed: {
             conversationId: this.input.conversationId,
             messages: this.input.history,

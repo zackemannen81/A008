@@ -196,7 +196,7 @@ test("binding rejects fabricated evidence but accepts retained failed tool evide
   );
 });
 
-test("schema v4 migrates additively to v5 without losing the existing run", async (t) => {
+test("schema v4 migrates additively to v6 without losing the existing run", async (t) => {
   const f = await fixture();
   t.after(async () => {
     await rm(f.directory, { recursive: true, force: true });
@@ -232,7 +232,7 @@ test("schema v4 migrates additively to v5 without losing the existing run", asyn
   }
   const inspect = new Database(f.filename, { readonly: true });
   assert.equal((inspect.prepare("SELECT version FROM A008_platform_schema WHERE singleton = 1")
-    .get() as { version: number }).version, 5);
+    .get() as { version: number }).version, 6);
   inspect.close();
 });
 

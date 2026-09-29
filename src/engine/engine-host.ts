@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
+import type { RunContinuationRecoveryBridge } from "../core/chat-continuation.js";
 import { fileURLToPath } from "node:url";
 import type {
   InitializeRequest,
@@ -48,6 +49,7 @@ interface EngineSession {
   requestPermission?: RequestToolPermission;
   notify?: ToolNotifier;
   continuationCheckpoint?: ContinuationCheckpointWriter;
+  continuationRecovery?: RunContinuationRecoveryBridge;
   listeners: Set<Listener>;
   active?: Promise<unknown>;
   input?: string;
@@ -70,6 +72,7 @@ export interface EngineNewSessionOptions {
   readonly conversationSeed?: EngineConversationSeed;
   /** Host-owned durable checkpoint bridge for live-turn continuation. */
   readonly continuationCheckpoint?: ContinuationCheckpointWriter;
+  readonly continuationRecovery?: RunContinuationRecoveryBridge;
 }
 
 export interface EngineHostOptions {
@@ -190,6 +193,7 @@ export class EngineHost {
       ...(options.continuationCheckpoint === undefined
         ? {}
         : { continuationCheckpoint: options.continuationCheckpoint }),
+      ...(options.continuationRecovery ? { continuationRecovery: options.continuationRecovery } : {}),
       listeners: new Set(),
       activities: new Map(),
       generations: new Map(),
@@ -442,6 +446,7 @@ export class EngineHost {
           publish,
           session.requestPermission,
           session.continuationCheckpoint,
+          session.continuationRecovery,
         ),
     );
     session.active = work;
