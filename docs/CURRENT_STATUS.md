@@ -1,9 +1,10 @@
 # Current Status — A008
 
-Granskad: 2026-09-28
-Källrevision: `cba276a` (kodgranskning; denna dokumentationsreparation är ännu ocommittad).
+Granskad: 2026-09-29
+Källrevision: `ae118e1` + verifierade A008-0196 task-branch changes (ännu ocommittade).
 Senaste arkitekturimplementation: A008-0195 (durable per-session-konfiguration, bilagor och separerade run-resultat).
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
+A008-0196 (Complete on task branch; unmerged): opt-in run-local compaction for completed tool interactions in `src/core/chat-session.ts`. Raw messages remain in the run, the recent tail is preserved, continuation state requires cumulative validated source coverage, and provider chronology keeps the current user request ahead of continuation state and recent raw tool rounds. Checkpoint persistence, automatic reduction/budget triggering, and process-loss recovery remain excluded.
 
 ## Godkänd riktning
 
@@ -103,3 +104,18 @@ Lokal verifiering mot `cba276a` 2026-09-28, inga live-provideranrop:
 - durable GUI-klienttester: **6/6 pass**;
 - durable session configuration, image run-input och separata
   answer-/memory-/effect-utfall finns i schema/runtime-kontrakten.
+
+
+## Verification — A008-0196
+
+Final local verification 2026-09-29, no live-provider calls:
+
+- root `npm run typecheck --silent`: **PASS**;
+- root `npm run build --silent`: **PASS**;
+- continuation + existing ChatSession regressions: **17/17 PASS**;
+- core-suite membership: **4/4 PASS**;
+- 100 completed tool interactions project one bounded continuation state plus the configured raw tail;
+- provider ordering, cumulative prior-state/source preservation, invalid replacement and unfinished-batch behavior have dedicated regressions;
+- `git diff --check`: **PASS**;
+- canonical checkout dependencies were exposed to the worktree only through a temporary local junction; no packages were installed and no dependency versions changed;
+- no live provider calls; **0 SEK**.

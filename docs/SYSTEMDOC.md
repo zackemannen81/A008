@@ -118,6 +118,14 @@ processstatus/PID, uttryckligt processstopp och kontroll för granskade effekter
 Värdshutdown avbryter och inväntar ägda processer och slutliga lagringsskrivningar.
 Värden kan köras utan ett öppet GUI; stängning av själva värden är ett annat steg.
 
+## Run-local continuation context — A008-0196
+
+`src/core/chat-continuation.ts` defines a versioned, UTF-8-bounded `RunContinuationState` with distinct verified facts, hypotheses and completed actions. Every entry must cite retained source interactions. The opt-in `ChatTools.continuation` policy in `src/core/chat-session.ts` offers only complete rounds older than the configured raw tail to a caller-owned reducer. Output is validated for run ID, shape, byte limit and resolvable source refs before projected provider context is replaced. Recent rounds remain raw; in-flight tool operations are never passed to the reducer. Canonical raw messages stay untouched. Without the explicit policy, existing full wire history is preserved. Continuation data is sent as untrusted user context, not system instruction or semantic memory.
+
+Projection preserves provider chronology: the current user message remains before temporary continuation data and the recent raw assistant/tool tail. A replacement state must retain source coverage already represented by the previous valid state as well as newly compacted interactions, and the reducer receives a detached full prior state including its run binding. Invalid or source-dropping output therefore cannot silently erase already compacted work.
+
+This slice does not implement a semantic reducer, context-budget triggers, persisted checkpoints, automatic context rebuild or process-loss recovery. See the A008-0196 charter, handoff and current status for verification evidence.
+
 ## Minne och kontext
 
 ProjectRuntimeRegistry återanvänder en gemensam projekt-runtime och dess
