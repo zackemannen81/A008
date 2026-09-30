@@ -1,10 +1,18 @@
 # Current Status — A008
 
 Granskad: 2026-09-30
-Källrevision: `eb30c4b` + A008-0202 på `codex/a008-0202-mcp-strictness`.
+Källrevision: `921fa53` + A008-0203 på `codex/a008-0203-permission-replay`.
 Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtning med effektspärr och workspace-verifiering).
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
+
+## GUI-behörighetsbeslut — A008-0203
+
+- Bekräftade godkännanden/avslag minns per körning och fråga i klientinstansen.
+  Äldre live- eller polling-svar återvisar inte frågan och utlöser inte ny POST.
+- Minnet består vid chatbyte. Nya permission-/run-ID:n fungerar fortsatt, och
+  HTTP-fel registreras inte som lyckade beslut. Hostens behörighetskontroll består.
+- [Handoff](handoffs/A008-0203.md) redovisar regressionsfallen och verifieringen.
 
 ## MCP strict-policy — A008-0202
 

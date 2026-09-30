@@ -2,7 +2,7 @@
 
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 
-Latest archive: [A008-0202_mcp-strictness.md](A008-0202_mcp-strictness.md) — Complete locally; explicit MCP strictness and local validation via ACME 0.1.7.
+Latest archive: [A008-0203_permission-replay.md](A008-0203_permission-replay.md) — Complete locally; resolved GUI permission replay suppression.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

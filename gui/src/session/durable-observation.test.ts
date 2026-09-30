@@ -87,6 +87,9 @@ function fixture() {
   let activity: unknown;
   let rejectSubmit = false;
   let holdPermission: ReturnType<typeof deferred<void>> | undefined;
+  let failPermission = false;
+  const liveReplies: unknown[] = [];
+  let liveWaiter: ((value: unknown) => void) | undefined;
   let holdView: ReturnType<typeof deferred<void>> | undefined;
   let viewStarted = deferred<void>();
   let holdSubmit: ReturnType<typeof deferred<void>> | undefined;
@@ -98,10 +101,35 @@ function fixture() {
     let body: unknown;
     if (path.endsWith("/permission")) {
       if (holdPermission) await holdPermission.promise;
+      if (failPermission) {
+        failPermission = false;
+        return Response.json(
+          { error: "Synthetic permission failure" },
+          { status: 500 },
+        );
+      }
       activity = { thought: "", answer: "", tools: [] };
       return Response.json({ ok: true });
     }
     if (path.endsWith("/activity")) {
+      if (new URL(input).searchParams.has("afterLive")) {
+        const next = liveReplies.length
+          ? liveReplies.shift()
+          : await new Promise((resolve) => {
+              const abort = () => {
+                liveWaiter = undefined;
+                resolve(undefined);
+              };
+              liveWaiter = (value) => {
+                init?.signal?.removeEventListener("abort", abort);
+                liveWaiter = undefined;
+                resolve(value);
+              };
+              init?.signal?.addEventListener("abort", abort, { once: true });
+              if (init?.signal?.aborted) abort();
+            });
+        return next ? Response.json(next) : new Response(null, { status: 404 });
+      }
       if (activity) return Response.json(activity);
       return {
         ok: false,
@@ -193,6 +221,13 @@ function fixture() {
     setActivity(value: unknown) {
       activity = value;
     },
+    sendLive(value: unknown) {
+      if (liveWaiter) liveWaiter(value);
+      else liveReplies.push(value);
+    },
+    failNextPermission() {
+      failPermission = true;
+    },
     rejectSubmission() {
       rejectSubmit = true;
     },
@@ -236,6 +271,118 @@ test("permission decision and concurrent refresh share one request", async () =>
     );
     held.resolve();
     await refresh;
+  } finally {
+    client.dispose();
+  }
+});
+
+async function until(condition: () => boolean) {
+  const deadline = Date.now() + 2000;
+  while (!condition()) {
+    assert.ok(Date.now() < deadline, "Timed out waiting for client state");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+}
+const permissionActivity = (id: string) => ({
+  thought: "",
+  answer: "",
+  tools: [],
+  permission: { id, title: "Edit", text: "file" },
+});
+
+test("confirmed allow and reject stay resolved across stale refreshes and chat switches", async () => {
+  for (const decision of ["allow_once", "reject"] as const) {
+    const f = fixture(),
+      client = f.client();
+    try {
+      await client.selectChat("project", "left");
+      await client.prompt("edit");
+      f.setActivity(permissionActivity("p1"));
+      await client.refresh();
+      client.resolveToolPermission(decision);
+      await until(() => client.getSnapshot().permission === undefined);
+      f.setActivity(permissionActivity("p1"));
+      await client.refresh();
+      assert.equal(client.getSnapshot().permission, undefined);
+      client.resolveToolPermission(decision);
+      await client.selectChat("project", "right");
+      await client.selectChat("project", "left");
+      assert.equal(client.getSnapshot().permission, undefined);
+      assert.equal(
+        f.calls.filter((c) => c.path.endsWith("/permission")).length,
+        1,
+      );
+      f.setActivity(permissionActivity("p2"));
+      await client.refresh();
+      assert.equal(client.getSnapshot().permission?.id, "p2");
+    } finally {
+      client.dispose();
+    }
+  }
+});
+
+test("allow-all ignores resolved permissions from live snapshots but handles new permissions and runs", async () => {
+  const f = fixture(),
+    client = f.client();
+  const posts = () =>
+    f.calls.filter((c) => c.path.endsWith("/permission")).length;
+  try {
+    await client.selectChat("project", "left");
+    await client.prompt("edit");
+    f.setActivity({ ...permissionActivity("p1"), liveRevision: "r1" });
+    await client.refresh();
+    client.resolveToolPermission("allow_all");
+    await until(
+      () => client.getSnapshot().permission === undefined && posts() === 1,
+    );
+    f.sendLive({
+      ...permissionActivity("p1"),
+      liveRevision: "r2",
+      thought: "old approval",
+    });
+    await until(() => client.getSnapshot().thought === "old approval");
+    await client.refresh();
+    assert.equal(posts(), 1);
+    assert.equal(client.getSnapshot().error, undefined);
+    f.sendLive({
+      ...permissionActivity("p2"),
+      liveRevision: "r3",
+      thought: "new approval",
+    });
+    await until(() => posts() === 2);
+    await client.refresh();
+    f.runs.push({ ...f.runs[0]!, id: "run-next" });
+    f.setActivity(permissionActivity("p1"));
+    await client.refresh();
+    assert.equal(posts(), 3);
+    assert.equal(client.getSnapshot().error, undefined);
+  } finally {
+    client.dispose();
+  }
+});
+
+test("failed permission requests remain pending and can be explicitly retried", async () => {
+  const f = fixture(),
+    client = f.client();
+  try {
+    await client.selectChat("project", "left");
+    await client.prompt("edit");
+    f.setActivity(permissionActivity("p1"));
+    await client.refresh();
+    f.failNextPermission();
+    client.resolveToolPermission("allow_once");
+    await until(() => !!client.getSnapshot().error);
+    assert.match(client.getSnapshot().error!, /Synthetic permission failure/);
+    assert.equal(client.getSnapshot().permission?.id, "p1");
+    client.resolveToolPermission("allow_once");
+    await until(() => client.getSnapshot().permission === undefined);
+    assert.equal(
+      f.calls.filter((c) => c.path.endsWith("/permission")).length,
+      2,
+    );
+    f.setActivity(permissionActivity("p1"));
+    await client.refresh();
+    assert.equal(client.getSnapshot().permission, undefined);
   } finally {
     client.dispose();
   }
