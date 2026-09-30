@@ -100,6 +100,37 @@ test("MCP health reports restart only while a session holds another catalog", ()
   assert.equal(view().servers[0]?.status, "failed");
 });
 
+test("MCP policy-only edits persist and require refreshing an existing catalog", () => {
+  const dir = mkdtempSync(join(tmpdir(), "a008-mcp-policy-health-"));
+  const catalogPath = join(dir, "catalog.json");
+  const server = {
+    name: "fixture",
+    command: "node",
+    args: [],
+    env: [],
+    enabled: true,
+  };
+  handleMcpServersPost(catalogPath, { servers: [server] });
+  const ledger = new McpRuntimeLedger(),
+    probes = new McpProbeMemory();
+  ledger.note("existing", configuredMcpServers(catalogPath));
+  const saved = handleMcpServersPost(catalogPath, {
+    servers: [{ ...server, strict: false, toolStrict: { inspect: true } }],
+  });
+  assert.equal(saved.servers[0]?.strict, false);
+  assert.deepEqual(saved.servers[0]?.toolStrict, { inspect: true });
+  assert.equal(
+    mcpHealthView({ catalogPath, ledger, probes }).restartRequired,
+    true,
+  );
+  ledger.release("existing");
+  ledger.note("fresh", configuredMcpServers(catalogPath));
+  assert.equal(
+    mcpHealthView({ catalogPath, ledger, probes }).restartRequired,
+    false,
+  );
+});
+
 test("merged models include user-catalog additions with unverified controls", () => {
   const dir = mkdtempSync(join(tmpdir(), "a008-cat-"));
   const catalogPath = join(dir, "catalog.json");
@@ -279,7 +310,6 @@ test("kie image generate stores a blob and never returns the credential", async 
   assert.equal(JSON.stringify(result).includes("kie-secret"), false);
 });
 
-
 test("compatible provider keys are write-only and preserve source metadata", () => {
   const dir = mkdtempSync(join(tmpdir(), "a008-compatible-sec-"));
   const catalogPath = join(dir, "catalog.json");
@@ -308,7 +338,6 @@ test("compatible provider keys are write-only and preserve source metadata", () 
   assert.equal(serialized.includes("gemini-secret-value"), false);
   assert.equal(serialized.includes("opencode-secret-value"), false);
 });
-
 
 test("legacy catalog add route refuses compatible-provider injection", () => {
   const dir = mkdtempSync(join(tmpdir(), "a008-legacy-cat-"));

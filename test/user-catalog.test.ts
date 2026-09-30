@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import {
   addUserChatModel,
+  activeMcpServers,
   loadUserCatalog,
   parseUserCatalog,
   saveUserCatalog,
@@ -14,6 +15,61 @@ import {
   loadProviderSecrets,
   saveProviderSecrets,
 } from "../src/core/provider-secrets.js";
+import {
+  effectiveMcpStrict,
+  mcpToolPolicy,
+} from "../src/core/mcp-tool-policy.js";
+import { mcpServerCatalogSchema } from "../packages/protocol/src/index.js";
+import { mcpCatalogFingerprint } from "../src/tools/mcp-runtime.js";
+
+test("MCP policy round-trips through catalog and ACP metadata with strict defaults", () => {
+  const server = {
+    name: "fixture",
+    command: "node",
+    args: [],
+    env: [],
+    enabled: true,
+  };
+  const legacy = parseUserCatalog({ version: 1, mcpServers: [server] });
+  assert.deepEqual(legacy.mcpServers[0], server);
+  const configured = parseUserCatalog({
+    version: 1,
+    mcpServers: [{ ...server, strict: false, toolStrict: { safe: true } }],
+  });
+  assert.deepEqual(
+    mcpServerCatalogSchema.parse({ servers: configured.mcpServers }).servers,
+    configured.mcpServers,
+  );
+  assert.deepEqual(
+    parseUserCatalog(JSON.parse(JSON.stringify(configured))).mcpServers,
+    configured.mcpServers,
+  );
+  const activated = activeMcpServers(configured)[0]!;
+  const policy = mcpToolPolicy(activated);
+  assert.equal(effectiveMcpStrict(policy, "safe"), true);
+  assert.equal(effectiveMcpStrict(policy, "other"), false);
+  assert.equal(effectiveMcpStrict({}, "other"), true);
+  assert.equal(
+    effectiveMcpStrict({ toolStrict: { other: false } }, "other"),
+    false,
+  );
+  assert.equal(effectiveMcpStrict({ toolStrict: {} }, "toString"), true);
+  assert.notEqual(
+    mcpCatalogFingerprint([{ ...server }]),
+    mcpCatalogFingerprint([{ ...server, _meta: activated._meta! }]),
+  );
+  for (const extra of [
+    { strict: "false" },
+    { toolStrict: { tool: 0 } },
+    { toolStrict: { "": false } },
+  ]) {
+    assert.throws(
+      () =>
+        parseUserCatalog({ version: 1, mcpServers: [{ ...server, ...extra }] }),
+      /strict settings/,
+    );
+  }
+});
 
 test("user catalog round-trips added chat models and image settings", () => {
   const catalog = parseUserCatalog({
@@ -124,7 +180,6 @@ test("user catalog accepts OpenAI for chat without widening image providers", ()
   assert.equal(catalog.imageProvider, "nvidia");
 });
 
-
 test("compatible user models persist exact route metadata and reject route substitution", () => {
   const catalog = parseUserCatalog({
     version: 1,
@@ -147,7 +202,10 @@ test("compatible user models persist exact route metadata and reject route subst
     baseUrl: "https://openrouter.ai/api/v1",
     apiStyle: "openai-chat-completions",
   });
-  assert.equal(userModelProfile(catalog.chatModels[0]!).executionProvider, "openrouter");
+  assert.equal(
+    userModelProfile(catalog.chatModels[0]!).executionProvider,
+    "openrouter",
+  );
 
   const dir = mkdtempSync(join(tmpdir(), "a008-compatible-catalog-"));
   const path = join(dir, "catalog.json");

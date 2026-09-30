@@ -396,7 +396,13 @@ export const zeroCostCatalogSchema = z.object({
   routes: z.array(zeroCostModelRouteSchema).readonly(),
 });
 export type ZeroCostCatalog = z.infer<typeof zeroCostCatalogSchema>;
+export const mcpToolPolicySchema = z.strictObject({
+  strict: z.boolean().optional(),
+  toolStrict: z.record(nonempty, z.boolean()).optional(),
+});
+export type McpToolPolicy = z.infer<typeof mcpToolPolicySchema>;
 export const mcpServerSchema = z.object({
+  ...mcpToolPolicySchema.shape,
   name: nonempty,
   command: nonempty,
   args: z.array(text),

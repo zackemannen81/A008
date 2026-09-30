@@ -2,7 +2,7 @@
 
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 
-Latest archive: [A008-0201_gui-live-chat.md](A008-0201_gui-live-chat.md) — Complete locally; durable GUI transcript and event-driven live updates.
+Latest archive: [A008-0202_mcp-strictness.md](A008-0202_mcp-strictness.md) — Complete locally; explicit MCP strictness and local validation via ACME 0.1.7.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

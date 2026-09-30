@@ -3,8 +3,8 @@
 Discoverability: naming convention `A008-NNNN.md`.
 Member state: required. Every member declares a `Status:` line.
 
-Latest implementation handoff: [A008-0201](A008-0201.md) — Complete locally;
-durable GUI user messages and event-driven thought/answer observation.
+Latest implementation handoff: [A008-0202](A008-0202.md) — Complete locally;
+MCP strict policy, GUI settings and locally validated non-strict execution.
 
 Latest specification handoff: [A008-0159](A008-0159.md) — platform v1.2,
 model-aware delegated verification budgets and aligned working rules;

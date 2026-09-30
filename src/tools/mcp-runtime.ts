@@ -7,6 +7,7 @@ import { AjvJsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/ajv
 import type { JsonSchemaType } from "@modelcontextprotocol/sdk/validation/types.js";
 import { DEFAULT_RUNTIME_BUDGETS } from "../core/runtime-preferences.js";
 import { killProcessTree } from "./terminal.js";
+import { mcpToolPolicy } from "../core/mcp-tool-policy.js";
 
 /** Process environment published to every MCP child. Runtime wins over configured env. */
 export const MCP_EXECUTION_ENV = "A008_MCP_EXECUTION_ID";
@@ -15,6 +16,7 @@ export const MCP_SCOPE_ENV = "A008_MCP_SERVER_SCOPE";
 const REPLAY_ARGUMENTS = ["restore", "state", "sessionName"] as const;
 
 export interface StdioMcpServerSpec {
+  readonly _meta?: Record<string, unknown> | null;
   readonly name: string;
   readonly command: string;
   readonly args: readonly string[];
@@ -51,7 +53,10 @@ export function createMcpExecutionId(): string {
 }
 
 /** Stable for one tool session and one MCP server name. Independent of call order. */
-export function mcpServerScope(executionId: string, serverName: string): string {
+export function mcpServerScope(
+  executionId: string,
+  serverName: string,
+): string {
   return createHash("sha256")
     .update("a008-mcp-scope\0")
     .update(executionId)
@@ -72,6 +77,7 @@ export function mcpCatalogFingerprint(
           command: server.command,
           args: [...server.args],
           env: server.env.map((entry) => [entry.name, entry.value]),
+          policy: mcpToolPolicy(server),
         })),
       ),
     )
@@ -208,13 +214,17 @@ export async function readMcpTools(
     });
     for (const tool of result.tools) {
       if (tools.length >= options.maximum)
-        throw new McpCatalogError("MCP catalog exceeds Available tools budget.");
+        throw new McpCatalogError(
+          "MCP catalog exceeds Available tools budget.",
+        );
       if (typeof tool.name !== "string" || tool.name.length === 0)
         throw new McpCatalogError("MCP server returned a tool without a name.");
       if (names.has(tool.name))
         throw new McpCatalogError("MCP server returned duplicate tools.");
       if (!isRecord(tool.inputSchema))
-        throw new McpCatalogError("MCP server returned a tool without an object schema.");
+        throw new McpCatalogError(
+          "MCP server returned a tool without an object schema.",
+        );
       names.add(tool.name);
       tools.push({
         name: tool.name,
@@ -355,7 +365,11 @@ export async function probeStdioMcpServer(input: {
     await client.connect(transport, { signal, timeout: timeoutMs });
     handshake = true;
     pid = numericPid(transport.pid);
-    const tools = await readMcpTools(client, { signal, timeout: timeoutMs, maximum });
+    const tools = await readMcpTools(client, {
+      signal,
+      timeout: timeoutMs,
+      maximum,
+    });
     compileToolSchemas(tools);
     toolCount = tools.length;
   } catch (error) {

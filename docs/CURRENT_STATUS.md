@@ -1,10 +1,27 @@
 # Current Status — A008
 
 Granskad: 2026-09-30
-Källrevision: `c4d3914` + A008-0201 på `codex/a008-0201-gui-live-chat`.
+Källrevision: `eb30c4b` + A008-0202 på `codex/a008-0202-mcp-strictness`.
 Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtning med effektspärr och workspace-verifiering).
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
+
+## MCP strict-policy — A008-0202
+
+- Publicerad ACME 0.1.7 används i embedded runtime och direkt compatible-adapter.
+- MCP-katalog/API/GUI har `strict` och verktygsundantag `toolStrict`. Prioritet:
+  verktyg → server → true. GUI visar valen; inga befintliga användarval ändras.
+- ACP `_meta` för policyn vidare till ModelToolSession och ACME får explicit
+  strict per verktyg. Katalog-fingerprint upptäcker policyändringar.
+- Originalschemat valideras före godkännande/exekvering i båda lägena.
+  Non-strict normaliserar inte otillåtna null-värden till utelämnade fält.
+  Befintliga behörigheter, runtime-bindning och verktygsbudgetar består.
+- Root/GUI build/typecheck och protocol/client-paketkontroller PASS; GUI 222/222,
+  primära MCP/provider/katalog-tester 82/82. Utökad körning 107/108; separat
+  semantisk modellfixture faller, se [uppföljning](backlog/semantic-model-parity-fixture.md).
+- Lokala process- och wire-fixtures, 0 live-anrop/0 SEK. Ingen garanti för ett
+  visst externt schema hos alla providers. [Handoff](handoffs/A008-0202.md),
+  [ADR 0060](adr/0060-explicit-mcp-tool-strictness.md).
 
 ## GUI-chatt — A008-0201
 

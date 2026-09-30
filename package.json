@@ -58,11 +58,11 @@
   },
   "dependencies": {
     "@a008/protocol": "file:packages/protocol",
-    "@acme-engine/adapter-model-chat-completions": "0.1.4",
+    "@acme-engine/adapter-model-chat-completions": "0.1.7",
     "@agentclientprotocol/sdk": "1.4.0",
     "@eslint/js": "10.0.1",
     "@modelcontextprotocol/sdk": "1.30.0",
-    "acme-engine": "^0.1.6",
+    "acme-engine": "^0.1.7",
     "agent-browser": "^0.38.1",
     "better-sqlite3": "13.0.3",
     "eslint": "^10.10.0",

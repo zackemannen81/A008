@@ -1,8 +1,30 @@
 # System Document — aktuell implementation
 
-Granskad: 2026-09-30; A008-0201 återställer direkt GUI-observation och stabil meddelandevisning.
-Källrevision: `c4d3914` + A008-0201 på `codex/a008-0201-gui-live-chat`.
+Granskad: 2026-09-30; A008-0202 kopplar uttrycklig MCP-strict-policy till ACME.
+Källrevision: `eb30c4b` + A008-0202 på `codex/a008-0202-mcp-strictness`.
 Verifiering och avgränsningar: se CURRENT_STATUS och task-handoffs.
+
+## MCP strict-policy (ADR 0060)
+
+MCP-serverposter i användarkatalogen och `/v1/mcp-servers` accepterar valfria
+`strict` och `toolStrict`. Verktygsundantag använder ursprungligt MCP-namn,
+inte modellens hashade alias. Exempel: `"strict": false, "toolStrict": {"inspect": true}`.
+Prioritet: verktygsundantag → serverstandard → true. GUI:s MCP-editor visar
+serverstandard och redigerbara undantag; inga sparade användarval ändras automatiskt.
+
+`core/mcp-tool-policy.ts` läser den namespacade ACP-utökningen
+`_meta["a008/toolPolicy"]`. ModelToolSession löser policyn vid discovery och
+ACME-mappningen skickar explicit boolean per verktyg. `acme-engine` och direkt
+Chat Completions-adapter använder 0.1.7. Ändrad policy ingår i MCP-fingerprint
+för omstartsdiagnostik. Aktiva verktygssessioner behåller sin katalog; öppna en
+ny GUI-chatt för att säkert använda sparade ändringar.
+
+Argument valideras mot originalschemat före godkännande och exekvering i båda
+lägena. Bara strict använder befintlig normalisering av optional-null till
+utelämnat fält. Runtime-ägd session-bindning och containment/replay-spärrar
+består. Non-strict ger ingen automatisk schemaförenkling eller fallback;
+providerfel exponeras. Ogiltiga argument ger befintligt invalid_arguments-resultat
+inom befintlig verktygsbudget. Strukturerade slutsvar påverkas inte.
 
 Detta dokument beskriver implementerade ansvar och flöden. Målarkitekturen finns
 i [PROJECT_BRIEF.md](PROJECT_BRIEF.md) och [ADR 0055](adr/0055-durable-sessions-and-process-ownership.md).

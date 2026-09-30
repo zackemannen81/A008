@@ -24,6 +24,7 @@ A008/
 - `acp/` — ACP compatibility/server surfaces.
 - `bootstrap/` — project bootstrap and registry helpers.
 - `core/` — core chat/invocation contracts.
+- `core/mcp-tool-policy.ts` — explicit server/tool strictness carried in ACP metadata; catalog and model tools retain policy ownership.
 - `engine/` — portable/shared engine host.
 - `gui-host/` — local GUI HTTP/WebSocket host and project/session routes.
 - `identity/` — application/runtime identity primitives.
@@ -81,7 +82,7 @@ docs/
 ├── FILESTRUCTURE.md          this repository map
 ├── JOURNAL.md                append-only dated integration history
 ├── TASK_IDS.md               task identity allocation
-├── adr/                      active ADRs 0055–0059 (sessions, context, recovery, bounded tools, GUI observation); pre-0055 records are _legacy history
+├── adr/                      active ADRs 0055–0060 (sessions, context, recovery, tools, GUI observation, MCP strictness); pre-0055 records are _legacy history
 ├── backlog/                  current deferred work plus _legacy retired backlog
 ├── tasks/                    durable task/program records
 ├── finished/                 immutable completed task records
