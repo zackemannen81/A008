@@ -96,10 +96,7 @@ function readOptionalMessages(
     const role = (entry as { readonly role?: unknown }).role;
     const content = (entry as { readonly content?: unknown }).content;
     const parsedContent = chatContentSchema.safeParse(content);
-    if (
-      (role === "user" || role === "assistant") &&
-      parsedContent.success
-    ) {
+    if ((role === "user" || role === "assistant") && parsedContent.success) {
       messages.push({ role, content: parsedContent.data });
     }
   }
@@ -131,7 +128,9 @@ function turnsFromMessages(messages: readonly SessionMessage[]): ChatTurn[] {
             prompt: part.prompt,
             status: part.status,
             ...(part.locator === undefined ? {} : { locator: part.locator }),
-            ...(part.mediaType === undefined ? {} : { mediaType: part.mediaType }),
+            ...(part.mediaType === undefined
+              ? {}
+              : { mediaType: part.mediaType }),
             ...(part.filename === undefined ? {} : { filename: part.filename }),
             ...(part.error === undefined ? {} : { error: part.error }),
           });
@@ -239,11 +238,10 @@ export function buildChatTranscript(
     const session = input.session;
     const turns = turnsFromMessages(input.session.details.messages);
     if (session.pendingText !== undefined) {
-      const pendingAlreadyCommitted = [...turns]
-        .reverse()
-        .some(
-          (turn) =>
-            turn.kind === "user" && turn.text === session.pendingText,
+      const pendingAlreadyCommitted =
+        !session.pendingTextUncommitted &&
+        turns.some(
+          (turn) => turn.kind === "user" && turn.text === session.pendingText,
         );
       if (!pendingAlreadyCommitted) {
         turns.push({
@@ -257,7 +255,7 @@ export function buildChatTranscript(
         id: "pending-assistant",
         thought: session.thought,
         answer: session.answer,
-        live: true,
+        live: session.busy !== false,
       });
     } else {
       const last = turns.at(-1);
@@ -277,10 +275,19 @@ export function buildChatTranscript(
     };
   }
   const messages = readOptionalMessages(input.session);
-  const history =
+  let history =
     messages !== undefined
       ? turnsFromMessages(messages)
       : (input.history ?? []);
+  if (
+    input.session.pendingTextUncommitted &&
+    input.session.pendingText !== undefined
+  ) {
+    history = [
+      ...history,
+      { kind: "user", id: "pending-user", text: input.session.pendingText },
+    ];
+  }
   const thought = input.session.thought;
   const answer = input.session.answer;
   const turns =

@@ -1,4 +1,4 @@
-import { createServer } from "node:http";
+import { createServer, type ServerResponse } from "node:http";
 import { once } from "node:events";
 
 /** Loopback-only provider for session-control proof; payloads are synthetic. */
@@ -6,6 +6,7 @@ export async function startSessionControlProvider(
   chatReply?: (
     payload: Record<string, any>,
   ) => Record<string, unknown> | undefined | Promise<Record<string, unknown> | undefined>,
+  streamReply?: (payload: Record<string, any>, response: ServerResponse) => Promise<void>,
 ) {
   const requests: Record<string, any>[] = [];
   let chatInFlight = 0;
@@ -70,6 +71,10 @@ export async function startSessionControlProvider(
       return; // Disconnected by cancellation; no timer or provider spend.
     }
     try {
+    if (streamReply) {
+      await streamReply(payload, response);
+      return;
+    }
     if (last.includes("DELAY-ANSWER")) {
       await new Promise((resolve) => setTimeout(resolve, 800));
     }

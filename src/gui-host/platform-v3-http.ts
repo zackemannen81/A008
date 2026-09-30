@@ -288,6 +288,21 @@ export async function handlePlatformV3Http(options: {
           "Method is not supported.",
         );
       }
+      const after = url.searchParams.get("afterLive");
+      if (activityMatch[2] === "activity" && after !== null) {
+        if (after.length > 100) throw new PlatformHttpError(400, "INVALID_REQUEST", "Invalid live revision.");
+        const cancelled = new AbortController();
+        const disconnect = () => cancelled.abort();
+        response.once("close", disconnect);
+        try {
+          await backend.coordinator.waitGuiActivity(found.scope, found.run.id, after, cancelled.signal);
+          if (cancelled.signal.aborted) return;
+          // A wait never extends a revoked principal's authorization.
+          findRun(backend, options.auth, options.auth.authenticate(request), found.run.id, options.projectsPath);
+        } finally {
+          response.removeListener("close", disconnect);
+        }
+      }
       sendChecked(
         sendJson,
         response,

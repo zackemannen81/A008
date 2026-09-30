@@ -11,6 +11,7 @@ when its status changes.
 
 | Proposal | Status | Outcome |
 | --- | --- | --- |
+| [`http-contract-visited-route-coverage.md`](http-contract-visited-route-coverage.md) | Proposed | Repair three existing HTTP/protocol fixture inventory mismatches observed during A008-0201; preserve meaningful route coverage. |
 | [`legacy-credential-remediation.md`](legacy-credential-remediation.md) | Completed | Credential revoked/rotated; secure provider-neutral intake delivered by A008-0003. |
 | [`multiagent-process-layer.md`](multiagent-process-layer.md) | Open | Decide whether to install and verify the optional local process supervisor. |
 | [`multimodal-chat-content.md`](multimodal-chat-content.md) | Superseded by ADR 0045 / A008-0142 | The inherited text-only `ChatMessage.content` restriction is withdrawn. ADR 0045 owns canonical multimodal committed conversation content; A008-0142 owns the active migration and generated-image transcript behavior. |

@@ -50,6 +50,8 @@ export interface GuiSessionState {
   readonly details?: SessionSnapshot | undefined;
   readonly busy?: boolean | undefined;
   readonly pendingText?: string | undefined;
+  /** Optimistic input not yet represented in the durable transcript. */
+  readonly pendingTextUncommitted?: boolean | undefined;
   readonly status: GuiSessionStatus;
   readonly sessionId: string | undefined;
   readonly model: string;

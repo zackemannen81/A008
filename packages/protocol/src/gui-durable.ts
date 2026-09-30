@@ -10,6 +10,8 @@ import { workspaceSessionSchema } from "./http-schemas.js";
 
 /** Live observer state; committed conversation/run records remain authoritative. */
 export const guiRunActivitySchema = z.object({
+  /** Ephemeral host revision for live waits, not the durable event cursor. */
+  liveRevision: z.string().optional(),
   cursor: z.number().int().nonnegative().optional(),
   snapshot: sessionSnapshotSchema.optional(),
   thought: z.string(),

@@ -1,10 +1,27 @@
 # Current Status — A008
 
 Granskad: 2026-09-30
-Källrevision: `0174a4e` + A008-0200 på `codex/a008-0200-bounded-tool-context`.
+Källrevision: `c4d3914` + A008-0201 på `codex/a008-0201-gui-live-chat`.
 Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtning med effektspärr och workspace-verifiering).
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
+
+## GUI-chatt — A008-0201
+
+- Accepterade användarmeddelanden kommer från beständig historik; äldre
+  processögonblicksbilder kan inte skriva över dem. Utgående text visas direkt
+  och stäms av mot körnings-ID, även när samma text skickas igen.
+- Thought och svar uppdateras händelsestyrt via befintlig autentiserad
+  activity-endpoint. Vanlig polling återstår för livscykel och återanslutning.
+- Observationsavbrott stoppar inte bakgrundskörningen. Chatbyte skyddas mot
+  sena svar; parallella behörighetsanrop samordnas. Misslyckat inskick behåller
+  text och fel utan automatisk omsändning.
+- Lokal verklig process/host med två klienter verifierar separat thought/svar
+  före completion och körning efter båda klienternas frånkoppling. Provider eller
+  nätverk kan fortfarande gruppera deltan; ingen syntetisk teckenanimation.
+- [Handoff](handoffs/A008-0201.md) redovisar tester och tre befintliga, oförändrade
+  kontraktstestfel som ligger i [backlog](backlog/http-contract-visited-route-coverage.md).
+  [ADR 0059](adr/0059-durable-gui-live-observation.md). Inga live-anrop, 0 SEK.
 
 ## Verktygskontext — A008-0200
 

@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0201_gui-live-chat.md](A008-0201_gui-live-chat.md) — Complete locally; durable user-message reconciliation and event-driven live observation. [Archive](../finished/A008-0201_gui-live-chat.md), [handoff](../handoffs/A008-0201.md).
+
 - [A008-0200_bounded-tool-context.md](A008-0200_bounded-tool-context.md) — Complete locally; sectional reads with whole-file hashes, compact edits and bounded command output. [Archive](../finished/A008-0200_bounded-tool-context.md), [handoff](../handoffs/A008-0200.md).
 
 - [A008-0199_Task4.md](A008-0199_Task4.md) — Complete locally; conservative checkpoint recovery with durable effect fencing, workspace evidence and real 110-round process-replacement proof. [Archive](../finished/A008-0199_Task4.md), [handoff](../handoffs/A008-0199.md).

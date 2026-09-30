@@ -122,14 +122,44 @@ export class PlatformCoordinator {
   readonly #active = new Set<Promise<void>>();
   readonly #guiRuns = new Map<string, SessionProcess>();
   readonly #processes = new Map<string, SessionProcess>();
+  readonly #observerEpoch = randomUUID();
+  readonly #liveRevisions = new Map<string, number>();
+  readonly #activityWaiters = new Map<string, Set<() => void>>();
+  #liveSequence = 0;
+
+  #activityChanged(runId: string, finished = false) {
+    if (finished) this.#liveRevisions.delete(runId);
+    else this.#liveRevisions.set(runId, ++this.#liveSequence);
+    for (const wake of [...(this.#activityWaiters.get(runId) ?? [])]) wake();
+  }
+  async waitGuiActivity(scope: PlatformScope, runId: string, after: string, signal: AbortSignal) {
+    if (signal.aborted || this.guiActivity(scope, runId).liveRevision !== after) return;
+    await new Promise<void>((resolve) => {
+      const done = () => {
+        clearTimeout(timer);
+        signal.removeEventListener("abort", done);
+        listeners.delete(done);
+        if (listeners.size === 0) this.#activityWaiters.delete(runId);
+        resolve();
+      };
+      const listeners = this.#activityWaiters.get(runId) ?? new Set<() => void>();
+      this.#activityWaiters.set(runId, listeners);
+      const timer = setTimeout(done, 25000);
+      timer.unref?.();
+      listeners.add(done);
+      signal.addEventListener("abort", done, { once: true });
+      if (signal.aborted) done();
+    });
+  }
 
   guiActivity(scope: PlatformScope, runId: string) {
     const stored = this.#store.readActivity(scope, runId);
     const live = this.#guiRuns.get(runId);
-    if (live) return { ...live.activity(), tools: stored?.tools ?? live.activity().tools, cursor: stored?.cursor ?? 0 };
-    if (!stored) return undefined;
+    const liveRevision = `${this.#observerEpoch}:${this.#liveRevisions.get(runId) ?? 0}`;
+    if (live) return { ...live.activity(), tools: stored?.tools ?? live.activity().tools, cursor: stored?.cursor ?? 0, liveRevision };
+    if (!stored) return { thought: "", answer: "", tools: [], cursor: 0, liveRevision };
     const { permission: _permission, ...activity } = stored;
-    return activity;
+    return { ...activity, liveRevision };
   }
   resolveGuiPermission(runId: string, id: string, allow: boolean): boolean {
     return this.#guiRuns.get(runId)?.permission(id, allow) ?? false;
@@ -565,7 +595,10 @@ export class PlatformCoordinator {
       const outcome = await session.complete(
         input,
         abort.signal,
-        (activity) => this.#store.recordActivity(scope, run.id, activity),
+        (activity) => {
+          this.#store.recordActivity(scope, run.id, activity);
+          this.#activityChanged(run.id);
+        },
         async (checkpoint) => {
           abort.signal.throwIfAborted();
           this.#store.saveContinuationBoundary(scope, {
@@ -679,6 +712,7 @@ export class PlatformCoordinator {
         }
       }
       this.#guiRuns.delete(run.id);
+      this.#activityChanged(run.id, true);
       this.kick();
     }
   }
