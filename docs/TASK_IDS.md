@@ -212,7 +212,6 @@ never whether work is active or complete. Task state belongs in
 | A008-0197 |  Durable continuation checkpoints | A008 (operator) | 2026-09-28 | Task 2 |
 | A008-0198 | Budget-triggered same-turn rebuild| A008 (operator) | 2026-09-28 | Task 3 |
 | A008-0199 | Interrupted-turn recovery and continuity proof | A008 (operator) | 2026-09-28 |Task 4 |
-
 | A008-0200 | bounded native tool context and sectional file editing | Codex (operator) | 2026-09-30 | owner-requested local tool optimization; sectional reads with whole-file revisions, compact results and tool-choice guidance |
 | A008-0201 | restore durable GUI message visibility and live updates | Codex (operator) | 2026-09-30 | owner-requested regression repair preserving background sessions, durable history and separate thought/answer |
 | A008-0202 | explicit MCP tool strictness through ACME | Codex (operator) | 2026-09-30 | owner-requested per-server/per-tool strict policy, local validation and 0.1.7 integration |
