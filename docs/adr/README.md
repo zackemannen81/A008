@@ -1,11 +1,12 @@
 # Aktuella arkitekturbeslut
 
-Senast uppdaterat: 2026-09-30, A008-0201.
+Senast uppdaterat: 2026-09-30, A008-0202.
 
 ## Aktiva beslut
 
 | ADR | Status | Omfattning |
 | --- | --- | --- |
+| [0060 — Explicit MCP tool strictness](0060-explicit-mcp-tool-strictness.md) | Accepted | Strict som standard, server-/verktygsval och lokal validering före MCP-exekvering via ACME 0.1.7. |
 | [0055 — Beständiga sessioner och utbytbara sessionsprocesser](0055-durable-sessions-and-process-ownership.md) | Accepted | Ny arkitekturgrund, ägarskap, egen worktree och process vid nästa meddelande. |
 | [0056 — Minimal memory context](0056-minimal-memory-context.md) | Accepted | Minimalt modellkuvert, relevant urval och bevarad koppling för reinforcement. |
 | [0057 — Checkpointed unfinished-turn recovery](0057-checkpointed-turn-recovery.md) | Accepted | Verifierad checkpoint, beständig effektspärr och konservativ återupptagning genom befintlig coordinator. |

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { McpServer } from "@agentclientprotocol/sdk";
+import { effectiveMcpStrict, mcpToolPolicy } from "../core/mcp-tool-policy.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { AjvJsonSchemaValidator } from "@modelcontextprotocol/sdk/validation/ajv";
@@ -270,6 +271,7 @@ export class ModelToolSession {
     if (!this.#ready) {
       try {
         for (const [index, server] of this.#servers.entries()) {
+          const policy = mcpToolPolicy(server);
           if ("type" in server) throw new Error("Unsupported MCP transport.");
           const stdio = server as {
             name: string;
@@ -312,6 +314,7 @@ export class ModelToolSession {
                 name,
                 description: `${stdio.name}: ${tool.name}. ${tool.description ?? ""}`,
                 parameters: presentMcpSchema(original),
+                strict: effectiveMcpStrict(policy, tool.name),
               },
               async (args, callSignal, limits) => {
                 const result = await client.callTool(
@@ -362,10 +365,13 @@ export class ModelToolSession {
     let invalidText =
       "Arguments do not match the offered tool schema. Nothing executed.";
     try {
-      const normalized = normalizeOptionalNullArguments(
-        tool.validateParameters,
-        JSON.parse(call.arguments),
-      );
+      const normalized =
+        tool.definition.strict === false
+          ? JSON.parse(call.arguments)
+          : normalizeOptionalNullArguments(
+              tool.validateParameters,
+              JSON.parse(call.arguments),
+            );
       if (
         !normalized ||
         typeof normalized !== "object" ||

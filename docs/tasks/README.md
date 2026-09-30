@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0202_mcp-strictness.md](A008-0202_mcp-strictness.md) — Complete locally; explicit MCP strict policy through ACME 0.1.7 with original-schema validation. [Archive](../finished/A008-0202_mcp-strictness.md), [handoff](../handoffs/A008-0202.md).
+
 - [A008-0201_gui-live-chat.md](A008-0201_gui-live-chat.md) — Complete locally; durable user-message reconciliation and event-driven live observation. [Archive](../finished/A008-0201_gui-live-chat.md), [handoff](../handoffs/A008-0201.md).
 
 - [A008-0200_bounded-tool-context.md](A008-0200_bounded-tool-context.md) — Complete locally; sectional reads with whole-file hashes, compact edits and bounded command output. [Archive](../finished/A008-0200_bounded-tool-context.md), [handoff](../handoffs/A008-0200.md).

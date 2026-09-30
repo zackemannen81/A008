@@ -2825,3 +2825,22 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
   restored. No push/merge; ACME checkout and Desktop Commander unchanged.
 - [Handoff](handoffs/A008-0201.md). [Archive](finished/A008-0201_gui-live-chat.md).
 - Signature: Codex (operator/implementer)
+
+## 2026-09-30 — A008-0202 explicit MCP strictness (local delivery)
+
+- Integrated owner's ACME 0.1.7 upgrade and upgraded directly imported Chat
+  Completions adapter to 0.1.7. Server strict defaults and original-tool-name
+  overrides persist through catalog/API/GUI and ACP metadata to model execution.
+- Strict remains default. Original-schema validation precedes approval/execution
+  in both modes; non-strict does not normalize invalid optional nulls. No fallback
+  or new retries; existing budgets, permissions and runtime bindings remain.
+- GUI exposes defaults/overrides; MCP fingerprints track policy changes.
+- Root/GUI builds/typechecks, packed protocol/client verification and generated
+  references PASS. GUI 222/222; primary tests 82/82; expanded suite 107/108 with
+  separate unchanged semantic-model fixture failure recorded in backlog.
+- Local real MCP processes and installed-ACME wire fixtures, no live calls, 0 SEK.
+  No universal external schema acceptance or browser visual verification claim.
+- ADR 0060, owning docs, handoff/archive supplied; current-task template restored.
+  Local only, no push/merge; ACME checkout and actual user settings unchanged.
+- [Handoff](handoffs/A008-0202.md). [Archive](finished/A008-0202_mcp-strictness.md).
+- Signature: Codex (operator/implementer)

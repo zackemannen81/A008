@@ -4402,6 +4402,18 @@
             "items": {
               "type": "object",
               "properties": {
+                "strict": {
+                  "type": "boolean"
+                },
+                "toolStrict": {
+                  "type": "object",
+                  "propertyNames": {
+                    "$ref": "#/components/schemas/mcpServerCatalog/$defs/__schema0"
+                  },
+                  "additionalProperties": {
+                    "type": "boolean"
+                  }
+                },
                 "name": {
                   "$ref": "#/components/schemas/mcpServerCatalog/$defs/__schema0"
                 },

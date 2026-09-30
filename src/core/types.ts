@@ -37,6 +37,7 @@ export interface ChatTextMessage {
 }
 
 export interface ChatToolDefinition {
+  readonly strict?: boolean;
   readonly name: string;
   readonly description: string;
   readonly parameters: Record<string, unknown>;

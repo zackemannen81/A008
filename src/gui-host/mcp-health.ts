@@ -36,7 +36,8 @@ export class McpRuntimeLedger {
 
   restartRequired(servers: readonly StdioMcpServerSpec[]): boolean {
     const current = mcpCatalogFingerprint(servers);
-    for (const bound of this.#bound.values()) if (bound !== current) return true;
+    for (const bound of this.#bound.values())
+      if (bound !== current) return true;
     return false;
   }
 }
@@ -87,6 +88,9 @@ function stdioSpecs(servers: readonly object[]): StdioMcpServerSpec[] {
         command: server.command,
         args: [...server.args],
         env,
+        ...("_meta" in server
+          ? { _meta: server._meta as Record<string, unknown> }
+          : {}),
       },
     ];
   });
@@ -98,6 +102,14 @@ function spec(server: UserMcpServer): StdioMcpServerSpec {
     command: server.command,
     args: server.args,
     env: server.env,
+    _meta: {
+      "a008/toolPolicy": {
+        ...(server.strict === undefined ? {} : { strict: server.strict }),
+        ...(server.toolStrict === undefined
+          ? {}
+          : { toolStrict: server.toolStrict }),
+      },
+    },
   };
 }
 
@@ -150,7 +162,9 @@ export function mcpHealthView(input: {
   probes: McpProbeMemory;
 }): McpServerHealth {
   const catalog = loadUserCatalog(input.catalogPath);
-  const enabled = catalog.mcpServers.filter((server) => server.enabled).map(spec);
+  const enabled = catalog.mcpServers
+    .filter((server) => server.enabled)
+    .map(spec);
   const restartRequired = input.ledger.restartRequired(enabled);
   return {
     restartRequired,

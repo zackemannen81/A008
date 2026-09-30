@@ -19,13 +19,16 @@ test("MCP settings panel communicates stdio-only approval and new-session lifecy
   assert.match(html, /new session/u);
   assert.match(html, /temporary process/u);
   assert.match(html, /Environment \(non-secret/u);
+  assert.match(html, /Strict tool arguments \(default\)/u);
+  assert.match(html, /Per-tool overrides/u);
+  assert.match(html, /No automatic fallback/u);
 });
 
 test("MCP server row shows ready, failed, and restart-required probe state", () => {
   const testedAt = new Date("2026-09-22T14:34:00").toISOString();
   const ready = renderToStaticMarkup(
     createElement(McpServerList, {
-      servers: [server],
+      servers: [{ ...server, strict: false, toolStrict: { inspect: true } }],
       busy: false,
       health: {
         restartRequired: false,
@@ -46,6 +49,8 @@ test("MCP server row shows ready, failed, and restart-required probe state", () 
     }),
   );
   assert.match(ready, /● READY/u);
+  assert.match(ready, /Default tool mode: Non-strict/u);
+  assert.match(ready, /inspect: Strict/u);
   assert.match(ready, /agent-browser mcp/u);
   assert.match(ready, /29 tools discovered/u);
   assert.match(ready, /Tested 14:34/u);

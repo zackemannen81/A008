@@ -11,6 +11,7 @@ when its status changes.
 
 | Proposal | Status | Outcome |
 | --- | --- | --- |
+| [`semantic-model-parity-fixture.md`](semantic-model-parity-fixture.md) | Proposed | Make Luna semantic fixture select its independent semantic model explicitly; observed during A008-0202. |
 | [`http-contract-visited-route-coverage.md`](http-contract-visited-route-coverage.md) | Proposed | Repair three existing HTTP/protocol fixture inventory mismatches observed during A008-0201; preserve meaningful route coverage. |
 | [`legacy-credential-remediation.md`](legacy-credential-remediation.md) | Completed | Credential revoked/rotated; secure provider-neutral intake delivered by A008-0003. |
 | [`multiagent-process-layer.md`](multiagent-process-layer.md) | Open | Decide whether to install and verify the optional local process supervisor. |

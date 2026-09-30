@@ -437,7 +437,10 @@ test("embedded OpenAI route uses native Responses with vision, tools and selecte
     assert.deepEqual(urls, ["https://api.openai.com/v1/responses"]);
     assert.equal(bodies[0]?.max_output_tokens, 321);
     assert.deepEqual(bodies[0]?.reasoning, { effort: "medium" });
-    assert.equal(Object.hasOwn(bodies[0] ?? {}, "max_completion_tokens"), false);
+    assert.equal(
+      Object.hasOwn(bodies[0] ?? {}, "max_completion_tokens"),
+      false,
+    );
     assert.deepEqual((bodies[0]?.input as any[])[0]?.content, [
       { type: "input_text", text: "hello" },
       { type: "input_image", image_url: "data:image/png;base64,AAAA" },
@@ -451,6 +454,104 @@ test("embedded OpenAI route uses native Responses with vision, tools and selecte
         arguments: '{"target":"image"}',
       },
     ]);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("ACME 0.1.7 sends mixed strict modes and preserves non-strict schemas on both provider APIs", async () => {
+  const { directory, path } = tempCatalog();
+  const parameters = {
+    type: "object",
+    propertyNames: { pattern: "^[a-z]+$" },
+    additionalProperties: { type: "string" },
+  };
+  try {
+    for (const model of ["gpt-5.6-luna", "moonshotai/kimi-k3"]) {
+      let body: any;
+      const transport = new EmbeddedAcmeChatTransport({
+        env: { OPENAI_API_KEY: "sk-fixture", NVIDIA_API_KEY: "nvapi-fixture" },
+        catalogPath: path,
+        fetch: async (_url, init) => {
+          body = JSON.parse(String(init?.body));
+          return Response.json(
+            model.startsWith("gpt")
+              ? {
+                  id: "resp_modes",
+                  status: "completed",
+                  model,
+                  output: [
+                    {
+                      type: "message",
+                      content: [{ type: "output_text", text: "OK" }],
+                    },
+                  ],
+                }
+              : {
+                  id: "chat_modes",
+                  model,
+                  choices: [
+                    {
+                      index: 0,
+                      message: { role: "assistant", content: "OK" },
+                      finish_reason: "stop",
+                    },
+                  ],
+                },
+          );
+        },
+      });
+      await transport.complete({
+        model,
+        messages: [{ role: "user", content: "test" }],
+        options: { stream: false },
+        tools: [
+          {
+            name: "strict_default",
+            description: "Strict",
+            parameters: { type: "object", properties: {} },
+          },
+          {
+            name: "flexible",
+            description: "Non-strict",
+            strict: false,
+            parameters,
+          },
+        ],
+      });
+      const tools = body.tools.map((tool: any) => tool.function ?? tool);
+      assert.equal(tools[0].strict, true);
+      assert.equal(tools[1].strict, false);
+      assert.deepEqual(tools[1].parameters, parameters);
+    }
+    let sent = 0;
+    const strictTransport = new EmbeddedAcmeChatTransport({
+      env: { OPENAI_API_KEY: "sk-fixture" },
+      catalogPath: path,
+      fetch: async (_url, init) => {
+        sent++;
+        const body = JSON.parse(String(init?.body));
+        assert.equal(body.tools[0].strict, true);
+        return Response.json(
+          {
+            error: {
+              message: "Unsupported strict schema",
+              type: "invalid_request_error",
+            },
+          },
+          { status: 400 },
+        );
+      },
+    });
+    await assert.rejects(() =>
+      strictTransport.complete({
+        model: "gpt-5.6-luna",
+        messages: [{ role: "user", content: "test" }],
+        tools: [{ name: "strict", description: "No fallback", parameters }],
+        options: { stream: false },
+      }),
+    );
+    assert.equal(sent, 1);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -529,7 +630,6 @@ test("streamed OpenAI reasoning summary reaches the transient reasoning channel"
   }
 });
 
-
 test("embedded ACME executes a persisted OpenRouter compatible route exactly", async () => {
   const { directory, path } = tempCatalog();
   try {
@@ -553,7 +653,10 @@ test("embedded ACME executes a persisted OpenRouter compatible route exactly", a
       (entry) => entry.providerHint === "openrouter",
     );
     assert.ok(route);
-    assert.equal(route.endpoint, "https://openrouter.ai/api/v1/chat/completions");
+    assert.equal(
+      route.endpoint,
+      "https://openrouter.ai/api/v1/chat/completions",
+    );
     assert.equal(route.apiKey, "or-embedded-secret");
     assert.equal(route.provider, "openrouter");
     assert.equal(route.profiles[0]?.model, "openrouter/free-model");

@@ -149,7 +149,8 @@ kodändring; gamla begränsningar blir inte generella produktkrav genom historik
   det minimala minneskuvertet. ADR 0057 preciserar säker återupptagning från en
   verifierad checkpoint utan verktygsreplay. ADR 0058 preciserar sektionsläsning
   och begränsad native verktygskontext. ADR 0059 preciserar GUI-observation och
-  meddelandevisning. Alla ADR:er före 0055 är historik.
+  meddelandevisning. ADR 0060 preciserar uttrycklig MCP-strict-policy och lokal
+  argumentvalidering. Alla ADR:er före 0055 är historik.
 - [SYSTEMDOC.md](SYSTEMDOC.md) beskriver källkodens aktuella ansvar och flöden.
 - [CURRENT_STATUS.md](CURRENT_STATUS.md) visar observerade luckor mot målbilden.
 - Arkiv, journal och avslutade uppgifter är historik. Deras instruktioner eller

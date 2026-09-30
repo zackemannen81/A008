@@ -1,5 +1,10 @@
 import type { UserChatModel } from "../../packages/protocol/src/index.js";
 import type { McpServer } from "@agentclientprotocol/sdk";
+import {
+  mcpToolPolicySchema,
+  type McpToolPolicy,
+} from "../../packages/protocol/src/http-schemas.js";
+import { MCP_TOOL_POLICY_META } from "./mcp-tool-policy.js";
 export type { UserChatModel } from "../../packages/protocol/src/index.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -46,9 +51,10 @@ export interface KieCatalogSettings {
   readonly imageModel: string;
 }
 
-export type UserMcpServer = Extract<McpServer, { command: string }> & {
-  readonly enabled: boolean;
-};
+export type UserMcpServer = Extract<McpServer, { command: string }> &
+  McpToolPolicy & {
+    readonly enabled: boolean;
+  };
 
 export interface UserSkill {
   readonly id: string;
@@ -147,7 +153,19 @@ export function parseUserCatalog(value: unknown): UserCatalog {
         );
       }
       names.add(name);
+      const policy = mcpToolPolicySchema.safeParse({
+        ...(item.strict === undefined ? {} : { strict: item.strict }),
+        ...(item.toolStrict === undefined
+          ? {}
+          : { toolStrict: item.toolStrict }),
+      });
+      if (!policy.success)
+        throw new ChatError(
+          "configuration",
+          "MCP strict settings must be booleans with non-empty tool names.",
+        );
       mcpServers.push({
+        ...policy.data,
         name,
         command: item.command.trim(),
         args: [...item.args],
@@ -377,7 +395,19 @@ export function saveUserCatalog(path: string, catalog: UserCatalog): void {
 export function activeMcpServers(catalog: UserCatalog): readonly McpServer[] {
   return catalog.mcpServers
     .filter((server) => server.enabled)
-    .map(({ enabled: _, ...server }) => server);
+    .map(({ enabled: _, strict, toolStrict, ...server }) => ({
+      ...server,
+      ...(strict === undefined && toolStrict === undefined
+        ? {}
+        : {
+            _meta: {
+              [MCP_TOOL_POLICY_META]: {
+                ...(strict === undefined ? {} : { strict }),
+                ...(toolStrict === undefined ? {} : { toolStrict }),
+              },
+            },
+          }),
+    }));
 }
 
 export function replaceUserMcpServers(

@@ -4,7 +4,12 @@ import type {
   McpServerHealth,
   McpServerHealthEntry,
 } from "../../../packages/protocol/src/index.js";
-import { loadMcpHealth, loadMcpServers, probeMcpServer, saveMcpServers } from "./mcp-servers.js";
+import {
+  loadMcpHealth,
+  loadMcpServers,
+  probeMcpServer,
+  saveMcpServers,
+} from "./mcp-servers.js";
 
 type DraftServer = McpServer;
 
@@ -28,6 +33,9 @@ function draftValid(server: DraftServer): boolean {
   return (
     Boolean(server.name.trim()) &&
     Boolean(server.command.trim()) &&
+    Object.keys(server.toolStrict ?? {}).every((name) =>
+      Boolean(name.trim()),
+    ) &&
     server.args.every((arg) => typeof arg === "string") &&
     server.env.every((entry) => {
       const name = entry.name.trim();
@@ -116,6 +124,15 @@ function McpServerStatus(props: {
       </div>
       <code>{[props.server.command, ...props.server.args].join(" ")}</code>
       <div className="a008-mcp-lines">
+        <span>
+          Default tool mode:{" "}
+          {props.server.strict === false ? "Non-strict" : "Strict"}
+        </span>
+        {Object.entries(props.server.toolStrict ?? {}).map(([name, strict]) => (
+          <span key={`mode:${name}`}>
+            {name}: {strict ? "Strict" : "Non-strict"}
+          </span>
+        ))}
         {(props.health?.lines ?? ["Not tested"]).map((line, index) => (
           <span key={`${index}:${line}`}>{line}</span>
         ))}
@@ -187,7 +204,7 @@ export function McpServersPanel() {
   const save = () => {
     if (!draftValid(draft)) {
       setError(
-        "Name, command and unique non-empty environment names are required.",
+        "Name, command, tool override names and unique non-empty environment names are required.",
       );
       return;
     }
@@ -243,7 +260,9 @@ export function McpServersPanel() {
     void probeMcpServer(name)
       .then((next) => {
         setHealth(next);
-        setNotice("Tested with a temporary MCP process. The active chat was not changed.");
+        setNotice(
+          "Tested with a temporary MCP process. The active chat was not changed.",
+        );
       })
       .catch((reason) =>
         setError(reason instanceof Error ? reason.message : "MCP test failed."),
@@ -325,6 +344,88 @@ export function McpServersPanel() {
             }
           />
         </label>
+        <label className="a008-parameter-toggle">
+          <span>Strict tool arguments (default)</span>
+          <input
+            type="checkbox"
+            role="switch"
+            checked={draft.strict !== false}
+            onChange={(event) => update({ strict: event.target.checked })}
+          />
+        </label>
+        <p>
+          Non-strict allows more tool schemas. Arguments are still validated
+          before execution. No automatic fallback.
+        </p>
+        <fieldset disabled={busy}>
+          <legend>Per-tool overrides</legend>
+          {Object.entries(draft.toolStrict ?? {}).map(
+            ([name, strict], index) => (
+              <div key={index}>
+                <input
+                  aria-label="Original MCP tool name"
+                  value={name}
+                  onChange={(event) => {
+                    const nextName = event.target.value;
+                    if (
+                      nextName !== name &&
+                      Object.hasOwn(draft.toolStrict ?? {}, nextName)
+                    )
+                      return;
+                    update({
+                      toolStrict: Object.fromEntries(
+                        Object.entries(draft.toolStrict ?? {}).map(
+                          ([key, value]) => [
+                            key === name ? nextName : key,
+                            value,
+                          ],
+                        ),
+                      ),
+                    });
+                  }}
+                />
+                <select
+                  aria-label={`Mode for ${name || "new tool"}`}
+                  value={String(strict)}
+                  onChange={(event) =>
+                    update({
+                      toolStrict: {
+                        ...draft.toolStrict,
+                        [name]: event.target.value === "true",
+                      },
+                    })
+                  }
+                >
+                  <option value="true">Strict</option>
+                  <option value="false">Non-strict</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() =>
+                    update({
+                      toolStrict: Object.fromEntries(
+                        Object.entries(draft.toolStrict ?? {}).filter(
+                          ([key]) => key !== name,
+                        ),
+                      ),
+                    })
+                  }
+                >
+                  Remove override
+                </button>
+              </div>
+            ),
+          )}
+          <button
+            type="button"
+            disabled={Object.hasOwn(draft.toolStrict ?? {}, "")}
+            onClick={() =>
+              update({ toolStrict: { ...draft.toolStrict, "": false } })
+            }
+          >
+            Add tool override
+          </button>
+        </fieldset>
         <label className="a008-parameter-toggle">
           <span>Enabled</span>
           <input

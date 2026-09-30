@@ -1,4 +1,8 @@
 import assert from "node:assert/strict";
+import {
+  activeMcpServers,
+  parseUserCatalog,
+} from "../src/core/user-catalog.js";
 import test from "node:test";
 import { createHash } from "node:crypto";
 import {
@@ -1214,6 +1218,87 @@ test("approved stdio MCP server is discovered, schema validated, executed and cl
   } finally {
     await tools.close();
     rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("MCP strict policy validates original arguments before approval and effects in both modes", async () => {
+  for (const strict of [true, false]) {
+    const cwd = mkdtempSync(join(tmpdir(), "a008-mcp-policy-"));
+    let approvals = 0;
+    const tools = new ModelToolSession({
+      cwd,
+      env: process.env,
+      mcpServers: activeMcpServers(
+        parseUserCatalog({
+          version: 1,
+          mcpServers: [
+            {
+              name: "fixture",
+              command: process.execPath,
+              args: [resolve("dist/test/fixtures/tool-mcp.js")],
+              env: [],
+              strict,
+              toolStrict: { fixture_scope: !strict },
+            },
+          ],
+        }),
+      ),
+    });
+    try {
+      const port = await tools.prepare(
+        budgets,
+        {
+          approve: async () => {
+            approvals++;
+            return true;
+          },
+          update: async () => undefined,
+        },
+        new AbortController().signal,
+      );
+      const find = (name: string) =>
+        port.definitions.find((d) =>
+          d.description.startsWith(`fixture: ${name}.`),
+        )!;
+      assert.equal(find("fixture_write").strict, strict);
+      assert.equal(find("fixture_scope").strict, !strict);
+      for (const args of [
+        '{"text":4}',
+        '{"text":"ok","extra":true}',
+        '{"text":null}',
+        "{broken",
+      ]) {
+        assert.match(
+          await port.execute({
+            id: "bad",
+            name: find("fixture_write").name,
+            arguments: args,
+          }),
+          /invalid_arguments/,
+        );
+      }
+      assert.equal(approvals, 0);
+      assert.equal(existsSync(join(cwd, "mcp-fixture.txt")), false);
+      const result = await port.execute({
+        id: "optional",
+        name: find("fixture_optional").name,
+        arguments: '{"url":"https://example.test","restore":null}',
+      });
+      assert.match(result, strict ? /completed/ : /invalid_arguments/);
+      assert.equal(approvals, strict ? 1 : 0);
+      await port.execute({
+        id: "good",
+        name: find("fixture_write").name,
+        arguments: '{"text":"validated"}',
+      });
+      assert.equal(
+        readFileSync(join(cwd, "mcp-fixture.txt"), "utf8"),
+        "validated",
+      );
+    } finally {
+      await tools.close();
+      rmSync(cwd, { recursive: true, force: true });
+    }
   }
 });
 

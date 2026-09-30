@@ -298,6 +298,7 @@ export function buildAcmeExecuteBody(
       name: tool.name,
       ...(tool.description.length > 0 ? { description: tool.description } : {}),
       parameters: tool.parameters,
+      strict: tool.strict ?? true,
     }));
   }
   assignAcmeGeneration(acmeRequest, generation, request.model);
