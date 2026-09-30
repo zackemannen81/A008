@@ -2844,3 +2844,17 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
   Local only, no push/merge; ACME checkout and actual user settings unchanged.
 - [Handoff](handoffs/A008-0202.md). [Archive](finished/A008-0202_mcp-strictness.md).
 - Signature: Codex (operator/implementer)
+
+## 2026-09-30 — A008-0203 completed GUI permission replay (local delivery)
+
+- GUI remembers HTTP-confirmed allow/reject decisions per run/permission for
+  the client instance lifetime. Stale live/refresh snapshots cannot redisplay
+  the prompt or resend the accepted decision. In-flight coalescing remains.
+- Chat switches preserve confirmations. New permissions/runs are independent;
+  failed requests remain unconfirmed/retryable. Host 409 and approval policy stay.
+- Focused regression tests 8/8 PASS, full GUI 225/225 PASS, root/GUI build and
+  typecheck PASS. Local fixtures only, no live calls or browser check; 0 SEK.
+- Owning docs, archive/handoff updated; CURRENT_TASK template restored. No
+  push/merge and no changes to ACME or user settings.
+- [Handoff](handoffs/A008-0203.md). [Archive](finished/A008-0203_permission-replay.md).
+- Signature: Codex (operator/implementer)

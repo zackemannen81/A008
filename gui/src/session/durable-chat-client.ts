@@ -105,6 +105,15 @@ export class DurableChatClient {
   #durableSnapshot: GuiConversationView["snapshot"] | undefined;
   #submittedRun: string | undefined;
   #permissionRequests = new Map<string, Promise<void>>();
+  // Keep confirmed decisions across chat switches; stale snapshots can outlive POSTs.
+  #resolvedPermissions = new Set<string>();
+
+  #pendingPermission(runId: string, permission: GuiRunActivity["permission"]) {
+    return permission &&
+      !this.#resolvedPermissions.has(JSON.stringify([runId, permission.id]))
+      ? permission
+      : undefined;
+  }
 
   #stopObserver() {
     this.#observer?.abort.abort();
@@ -167,9 +176,12 @@ export class DurableChatClient {
           revision = activity.liveRevision;
           this.#liveActivity = activity;
           if (this.#run?.id !== runId || !this.#state.busy) return;
+          const permission = this.#pendingPermission(
+            runId,
+            activity.permission,
+          );
           const autoAllow =
-            !!activity.permission &&
-            this.#allowAll.has(this.#run.conversationId);
+            !!permission && this.#allowAll.has(this.#run.conversationId);
           this.#publish({
             ...(this.#durableSnapshot
               ? { details: this.#details(this.#durableSnapshot, activity) }
@@ -177,10 +189,10 @@ export class DurableChatClient {
             thought: activity.thought,
             answer: activity.answer,
             tools: activity.tools,
-            permission: autoAllow ? undefined : activity.permission,
+            permission: autoAllow ? undefined : permission,
           });
-          if (autoAllow && activity.permission)
-            await this.#permission(runId, activity.permission.id, true);
+          if (autoAllow && permission)
+            await this.#permission(runId, permission.id, true);
         }
       } catch {
         // The regular view refresh restores state/reconnects; never retry a run.
@@ -441,7 +453,9 @@ export class DurableChatClient {
       this.#conversation = conversation;
       this.#run = run;
       this.#workspace = workspace ?? undefined;
-      const permission = activity?.permission;
+      const permission = runId
+        ? this.#pendingPermission(runId, activity?.permission)
+        : undefined;
       const autoAllow = permission !== undefined && this.#allowAll.has(id);
       if (autoAllow && runId)
         await this.#permission(runId, permission.id, true);
@@ -481,9 +495,10 @@ export class DurableChatClient {
         thought: currentActivity?.thought ?? "",
         answer: currentActivity?.answer ?? "",
         tools: currentActivity?.tools ?? [],
-        permission: this.#allowAll.has(id)
-          ? undefined
-          : currentActivity?.permission,
+        permission:
+          this.#allowAll.has(id) || !runId
+            ? undefined
+            : this.#pendingPermission(runId, currentActivity?.permission),
         pendingText: accepted ? undefined : this.#state.pendingText,
         pendingTextUncommitted: accepted
           ? false
@@ -577,11 +592,18 @@ export class DurableChatClient {
   };
   #permission = async (runId: string, id: string, allow: boolean) => {
     const key = JSON.stringify([runId, id]);
+    if (this.#resolvedPermissions.has(key)) return;
     const pending = this.#permissionRequests.get(key);
     if (pending) return pending;
-    const request = this.#sendPermission(runId, id, allow).finally(() => {
-      this.#permissionRequests.delete(key);
-    });
+    const request = this.#sendPermission(runId, id, allow)
+      .then(() => {
+        this.#resolvedPermissions.add(key);
+        if (this.#run?.id === runId && this.#state.permission?.id === id)
+          this.#publish({ permission: undefined });
+      })
+      .finally(() => {
+        this.#permissionRequests.delete(key);
+      });
     this.#permissionRequests.set(key, request);
     return request;
   };

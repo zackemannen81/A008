@@ -1,7 +1,7 @@
 # System Document — aktuell implementation
 
-Granskad: 2026-09-30; A008-0202 kopplar uttrycklig MCP-strict-policy till ACME.
-Källrevision: `eb30c4b` + A008-0202 på `codex/a008-0202-mcp-strictness`.
+Granskad: 2026-09-30; A008-0203 hindrar upprepad leverans av behandlade GUI-godkännanden.
+Källrevision: `921fa53` + A008-0203 på `codex/a008-0203-permission-replay`.
 Verifiering och avgränsningar: se CURRENT_STATUS och task-handoffs.
 
 ## MCP strict-policy (ADR 0060)
@@ -63,6 +63,14 @@ under acceptans med `pendingTextUncommitted` och ersätts av beständig text nä
 den accepterade körningens user-post syns. Upprepad identisk text är en ny post.
 Misslyckad submission behåller text/fel utan automatisk retry. Abort/selection-
 epoch hindrar gamla observer-svar från att påverka en annan chat.
+
+A008-0203: DurableChatClient minns HTTP-bekräftade behörighetsbeslut per
+`runId`/permission-ID under klientinstansens livstid, även efter chatbyte.
+Live-observation och refresh filtrerar bort dessa gamla frågor; sändvägen
+spärrar också upprepning. Det gäller både godkännande och avslag. Samtidiga
+anrop delar fortsatt samma promise. Misslyckade anrop markeras inte som klara,
+och nya frågor/körningar påverkas inte. Minnet är lokalt och inte ett löfte om
+exakt-en-gång mellan klienter eller efter sidomladdning; värdens 409-spärr består.
 
 Memory-vyn skickar valt durable `projectId` till `/v1/memory`; värden resolve:ar
 projektets runtime via `ProjectRuntimeRegistry` och inspekterar just den

@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0203_permission-replay.md](A008-0203_permission-replay.md) — Complete locally; suppress confirmed permission replays and stale prompts. [Archive](../finished/A008-0203_permission-replay.md), [handoff](../handoffs/A008-0203.md).
+
 - [A008-0202_mcp-strictness.md](A008-0202_mcp-strictness.md) — Complete locally; explicit MCP strict policy through ACME 0.1.7 with original-schema validation. [Archive](../finished/A008-0202_mcp-strictness.md), [handoff](../handoffs/A008-0202.md).
 
 - [A008-0201_gui-live-chat.md](A008-0201_gui-live-chat.md) — Complete locally; durable user-message reconciliation and event-driven live observation. [Archive](../finished/A008-0201_gui-live-chat.md), [handoff](../handoffs/A008-0201.md).
