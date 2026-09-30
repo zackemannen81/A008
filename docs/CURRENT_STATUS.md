@@ -115,6 +115,20 @@ förstärkning finns kvar; läsning förstärker inte.
 
 Detaljer finns i [A008-0193-handoff](handoffs/A008-0193.md).
 
+## Multi-agent context sharding
+
+Operatorn och varje delegerad worker gör separat retrieval mot samma
+projektägda semantic memory. Eftersom varje worker samtidigt har en egen
+task/session/worktree blir den modellvända memory-projektionen task-specifik i
+stället för en union av projektets eller övriga workers hela arbetskontext.
+Detta dokumenteras som **task-scoped context envelopes / context sharding by
+task** i [MULTIAGENT.md](MULTIAGENT.md) och [SYSTEMDOC.md](SYSTEMDOC.md).
+
+Egenskapen skapar ingen separat worker-memory och gör inte worker-lokal discovery
+till shared truth. Verifierad återanvändbar information måste fortfarande
+integreras genom normal handoff/evidence och knowledge/state-lifecycle innan
+andra workers kan få den som durable current truth vid senare retrieval.
+
 ## Observerad operational learning
 
 En live A008-session 2026-09-29 gav agenten en explicit efterhandsfråga om varför

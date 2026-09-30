@@ -255,6 +255,33 @@ ProjectRuntimeRegistry återanvänder en gemensam projekt-runtime och dess
 A008-ägda semantiska minne. Worktrees skapar inte oberoende semantiska ägare.
 Sessions-CWD och projektets minnesidentitet är separata.
 
+### Task-scoped context envelopes / context sharding by task
+
+Multi-agent-delegation delar inte bara execution utan även den aktiva
+modellkontexten. Operatorn och varje worker har en egen session/turn och gör
+därför en separat retrieval mot samma projektägda semantiska minne. Den
+modellvända memory-projektionen byggs för den aktuella requesten; den är inte en
+kopia av hela projektminnet och inte en union av övriga workers kontext.
+
+Konsekvensen är en task-specifik context-envelope per worker. En worker som
+arbetar med exempelvis desktop-paketering kan få relevant host-, auth- och
+desktop-knowledge medan en annan worker i samma projekt kan få memory- eller
+tool-relaterad state. De delar durable project knowledge men behöver inte bära
+varandras råa tool-historik eller arbetskontext. Detta dokument kallar
+egenskapen **context sharding by task**.
+
+Det är en emergent kombination av befintlig worker-isolation, request-specifik
+retrieval/projection och gemensamt project memory; det finns ingen separat
+worker-memory-databas som garanterar specialisering. Kvaliteten beror därför på
+retrieval, necessity/budgetering och att användbar worker-lokal information
+integreras genom normal knowledge/state/evidence-lifecycle.
+
+Worker-lokal discovery, tentativa slutsatser och tool output blir inte
+automatiskt shared truth. När verifierad återanvändbar information committas
+eller integreras enligt normala ägarregler kan senare retrieval projicera den
+nya current state till Operatorn eller andra workers. Hidden model state eller
+worker-transkript används inte som cross-worker authority.
+
 Minnesimplementationen finns under [src/memory](../src/memory/), med lokal
 runtime-komposition under [src/runtime](../src/runtime/) och semantisk
 orkestrering under [src/orchestration](../src/orchestration/).

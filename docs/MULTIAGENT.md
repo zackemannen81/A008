@@ -80,6 +80,54 @@ The operator claims the identity on `main` and delegates one frozen charter
 under `docs/tasks/`. A worker does not claim IDs, does not merge to `main`,
 and does not leave a filled `docs/CURRENT_TASK.md` in the pull request.
 
+## Task-scoped context envelopes
+
+Worker isolation also creates a cognitive isolation boundary. This is an
+emergent property of the existing composition, not a separate memory store or
+special worker-memory mechanism:
+
+```text
+shared project knowledge
+        |
+        +--> operator retrieval -> operator context envelope
+        |
+        +--> worker A retrieval -> task-A context envelope
+        |
+        +--> worker B retrieval -> task-B context envelope
+```
+
+Each delegated worker has its own task, conversation/session and working
+directory. Normal A008 retrieval therefore evaluates that worker's current
+request independently against the same project-owned semantic memory. The
+resulting model-facing memory envelope can be specialized to the worker's
+task/domain without copying the full project history or another worker's tool
+trace into its active model context.
+
+This is **context sharding by task**: execution is split across workers and
+active cognition is split with it, while durable project knowledge remains
+shared. A worker may therefore receive a narrow set of relevant current state,
+claims or provenance even when the shared project store is much larger.
+
+The boundary is deliberate:
+
+- shared project memory is authoritative only through its normal durable
+  knowledge/state lifecycle;
+- worker-local observations, tool output and tentative conclusions are not
+  automatically shared truth;
+- another worker must not depend on hidden worker state or transcripts;
+- verified reusable results return through normal handoff/evidence and durable
+  state/knowledge updates, after which later retrieval can project the new
+  current truth to other workers;
+- a replacement worker receives repository truth, frozen charter and durable
+  evidence, then performs its own retrieval rather than inheriting another
+  model's private working context.
+
+The practical consequence is that adding parallel workers need not make every
+agent carry the union of all subtask context. The operator can remain focused
+on coordination/integration while workers hold narrower task-specific working
+sets. Retrieval quality and correct state integration remain the safety
+requirements; a larger shared store is not itself proof of a better envelope.
+
 ## Evidence and handoff
 
 Workers report modified files, commits, exact checks, skipped checks, blockers,
