@@ -215,3 +215,4 @@ never whether work is active or complete. Task state belongs in
 
 | A008-0200 | bounded native tool context and sectional file editing | Codex (operator) | 2026-09-30 | owner-requested local tool optimization; sectional reads with whole-file revisions, compact results and tool-choice guidance |
 | A008-0201 | restore durable GUI message visibility and live updates | Codex (operator) | 2026-09-30 | owner-requested regression repair preserving background sessions, durable history and separate thought/answer |
+| A008-0202 | explicit MCP tool strictness through ACME | Codex (operator) | 2026-09-30 | owner-requested per-server/per-tool strict policy, local validation and 0.1.7 integration |
