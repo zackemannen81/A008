@@ -6,6 +6,20 @@ Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtn
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
 
+## Windows desktop package — A008-0204
+
+`clients/electron` packages the existing GUI and a portable local host runtime
+in a Forge Windows x64 directory. The shell reuses the host by its current
+`/health` identity and served HTML surface, or launches the bundled Node host
+on the configured loopback endpoint. Host ownership and authentication remain
+unchanged; BrowserWindow close/reload is not host shutdown. Renderer privileges
+and navigation are restricted, with no preload API. Installer, signing and
+publishing are deferred.
+
+The portable packager no longer requires removed engine documentation files
+and dereferences the npm workspace protocol package into the runtime bundle.
+See the A008-0204 handoff for exact checks and outstanding lifecycle/reconnect
+verification.
 ## GUI-behörighetsbeslut — A008-0203
 
 - Bekräftade godkännanden/avslag minns per körning och fråga i klientinstansen.

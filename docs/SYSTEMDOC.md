@@ -4,6 +4,27 @@ Granskad: 2026-09-30; A008-0203 hindrar upprepad leverans av behandlade GUI-godk
 Källrevision: `921fa53` + A008-0203 på `codex/a008-0203-permission-replay`.
 Verifiering och avgränsningar: se CURRENT_STATUS och task-handoffs.
 
+## Electron desktop client — A008-0204
+
+`clients/electron` is a thin Windows x64 shell around existing `gui/` and the
+local GUI host. On startup the single-instance Electron main process resolves
+the loopback bind/port, probes `/health` identity and the host-served GUI HTML,
+then reuses a compatible host or launches the packaged Node/runtime host as a
+separate, detached OS process. Renderer creation waits for the compatible local
+GUI surface. Bind/start conflicts trigger endpoint re-probe; incompatible
+listeners are left untouched. Host PIN/authentication remains host-owned.
+
+The renderer loads from the host origin so existing API/WebSocket origin and
+cookie behavior remain in force. BrowserWindow disables Node integration and
+enables context isolation, sandbox and web security; new windows and navigation
+away from the configured origin are blocked. No preload is exposed. Closing the
+window does not signal the host. A second per-profile launch focuses the current
+shell through Electron's single-instance lock.
+
+Forge's Windows x64 package carries the existing host, production runtime,
+Node executable and GUI assets under `resources`. Installer/signing/publishing
+are outside A008-0204. Electron adds no runtime, session, accepted-work or lease
+ownership.
 ## MCP strict-policy (ADR 0060)
 
 MCP-serverposter i användarkatalogen och `/v1/mcp-servers` accepterar valfria

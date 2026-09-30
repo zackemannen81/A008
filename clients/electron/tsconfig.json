@@ -1,0 +1,21 @@
+{
+    "compilerOptions":  {
+                            "target":  "ES2022",
+                            "module":  "NodeNext",
+                            "moduleResolution":  "NodeNext",
+                            "strict":  true,
+                            "noEmit":  true,
+                            "types":  [
+                                          "node",
+                                          "electron"
+                                      ],
+                            "skipLibCheck":  true,
+                            "allowImportingTsExtensions":  true
+                        },
+    "include":  [
+                    "forge.config.ts",
+                    "vite.main.config.ts",
+                    "vite.renderer.config.ts",
+                    "src/**/*.ts"
+                ]
+}

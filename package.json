@@ -47,6 +47,7 @@
     "gui-host": "npm run build --silent && node --env-file-if-exists=.env.local ./dist/src/gui-host/server.js",
     "gui": "npm --prefix gui run build && npm run gui-host",
     "package:engine": "node scripts/package-engine.mjs",
+    "desktop:prepare": "npm run build && npm --prefix gui run build && node clients/electron/scripts/build-host-runtime.mjs",
     "engine": "npm run build --silent && node --env-file-if-exists=.env.local ./dist/src/engine/server.js",
     "build:protocol": "npm --prefix packages/protocol run build",
     "build:client": "npm run build:protocol && npm --prefix packages/client run build",

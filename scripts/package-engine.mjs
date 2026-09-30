@@ -22,7 +22,6 @@ if (!rel.startsWith("..") && !isAbsolute(rel))
 for (const file of [
   "dist/src/engine/server.js",
   "gui/dist/index.html",
-  "docs/ENGINE.md",
 ]) {
   if (!existsSync(join(root, file)))
     throw new Error(`Build the runtime and GUI first: missing ${file}`);
@@ -55,17 +54,11 @@ for (const name of [
   "gui/dist",
   "LICENSE",
   "agent007.brain.json",
-  "docs/ENGINE.md",
-  "docs/CLIENT_AUTH.md",
-  "docs/RUNTIME_SETTINGS.md",
-  "docs/adr/0027-runtime-preferences-and-instructions.md",
-  "docs/adr/0028-engine-package-and-panels.md",
 ])
   cpSync(join(root, name), join(output, name), { recursive: true });
-cpSync(join(root, "docs/ENGINE.md"), join(output, "ENGINE.md"));
 writeFileSync(
   join(output, "README.md"),
-  "# A008 Engine\n\nThis portable engine includes the shared runtime, CLI, ACP and A008 web panels.\n\nRead [setup and integration](docs/ENGINE.md) and [runtime settings](docs/RUNTIME_SETTINGS.md).\nThe companion client discovers agent007.brain.json and launches the bundled Node executable.\nProvide provider credentials in the launching process environment; user data is stored outside this package.\n\nENGINE_BUILD.json records the source revision, platform, runtime and dependencies.\nLICENSE covers A008-owned code. Dependencies and runtime retain their own notices; compiled GUI notices are in licenses/.\n",
+  "# A008 portable runtime\n\nThis package contains the shared runtime and A008 web GUI.\n\nThe companion client discovers agent007.brain.json and launches the bundled Node executable. Provider credentials remain in the launching environment; user data stays outside this package.\n\nENGINE_BUILD.json records source revision, platform, runtime and dependencies. License notices remain with A008 code, dependencies, GUI and Node runtime.\n",
 );
 mkdirSync(join(output, "licenses"));
 for (const name of ["react", "react-dom", "scheduler"])
@@ -86,8 +79,17 @@ for (const source of packages) {
     isAbsolute(name)
   )
     throw new Error("Dependency outside the package boundary.");
-  cpSync(source, join(output, name), { recursive: true });
-  const info = JSON.parse(readFileSync(join(source, "package.json"), "utf8"));
+  const packageJsonPath = join(source, "package.json");
+  const info = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+  if (typeof info.name !== "string" || typeof info.version !== "string")
+    throw new Error(`Invalid locked package manifest: ${name}`);
+  const packageOutput = join(output, name);
+  mkdirSync(dirname(packageOutput), { recursive: true });
+  if (name === "node_modules/@a008/protocol") {
+    cpSync(join(root, "packages/protocol"), packageOutput, { recursive: true, dereference: true });
+  } else {
+    cpSync(source, packageOutput, { recursive: true, dereference: true });
+  }
   inventory.push({
     name: info.name,
     version: info.version,
