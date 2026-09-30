@@ -14,6 +14,7 @@ import {
   DurableChatClient,
   type ChatSelection,
 } from "./durable-chat-client.js";
+import { buildChatTranscript, channelTexts } from "../chat/chat-transcript.js";
 
 const parameters = {
   stream: true,
@@ -83,6 +84,9 @@ function fixture() {
   ]);
   const runs: PlatformV3Run[] = [];
   const calls: { path: string; method: string }[] = [];
+  let activity: unknown;
+  let rejectSubmit = false;
+  let holdPermission: ReturnType<typeof deferred<void>> | undefined;
   let holdView: ReturnType<typeof deferred<void>> | undefined;
   let viewStarted = deferred<void>();
   let holdSubmit: ReturnType<typeof deferred<void>> | undefined;
@@ -92,12 +96,20 @@ function fixture() {
     calls.push({ path, method: init?.method ?? "GET" });
     const id = /conversations\/([^/]+)/u.exec(path)?.[1] ?? "left";
     let body: unknown;
+    if (path.endsWith("/permission")) {
+      if (holdPermission) await holdPermission.promise;
+      activity = { thought: "", answer: "", tools: [] };
+      return Response.json({ ok: true });
+    }
     if (path.endsWith("/activity")) {
+      if (activity) return Response.json(activity);
       return {
         ok: false,
         status: 404,
         statusText: "Not Found",
-        json: async () => ({ error: "No transient activity after host restart." }),
+        json: async () => ({
+          error: "No transient activity after host restart.",
+        }),
       };
     }
     if (path.endsWith("/view")) {
@@ -111,6 +123,16 @@ function fixture() {
         await holdView.promise;
       }
     } else if (path.endsWith("/runs") && init?.method === "POST") {
+      if (rejectSubmit)
+        return Response.json(
+          {
+            error: {
+              code: "REVISION_CONFLICT",
+              message: "Synthetic submission conflict",
+            },
+          },
+          { status: 409 },
+        );
       const request = JSON.parse(String(init.body));
       const run: PlatformV3Run = {
         id: "run-left",
@@ -168,7 +190,17 @@ function fixture() {
     runs,
     calls,
     client,
+    setActivity(value: unknown) {
+      activity = value;
+    },
+    rejectSubmission() {
+      rejectSubmit = true;
+    },
     submitStarted,
+    holdPermission() {
+      holdPermission = deferred<void>();
+      return holdPermission;
+    },
     holdView() {
       holdView = deferred<void>();
       viewStarted = deferred<void>();
@@ -180,6 +212,34 @@ function fixture() {
     },
   };
 }
+
+test("permission decision and concurrent refresh share one request", async () => {
+  const f = fixture(),
+    client = f.client();
+  try {
+    await client.selectChat("project", "left");
+    await client.prompt("edit");
+    f.setActivity({
+      thought: "",
+      answer: "",
+      tools: [],
+      permission: { id: "p1", title: "Edit", text: "file" },
+    });
+    await client.refresh();
+    const held = f.holdPermission();
+    client.resolveToolPermission("allow_all");
+    const refresh = client.refresh();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(
+      f.calls.filter((call) => call.path.endsWith("/permission")).length,
+      1,
+    );
+    held.resolve();
+    await refresh;
+  } finally {
+    client.dispose();
+  }
+});
 
 test("late observation cannot replace the selected chat or cancel its previous run", async () => {
   const f = fixture(),
@@ -205,6 +265,82 @@ test("late observation cannot replace the selected chat or cancel its previous r
   }
 });
 
+test("accepted and repeated user messages survive stale process snapshots and submission", async () => {
+  const f = fixture(),
+    client = f.client();
+  const old = f.chats.get("left")!;
+  const prior = [
+    { id: "old-user", role: "user" as const, content: "repeat", createdAt: 1 },
+    {
+      id: "old-answer",
+      role: "assistant" as const,
+      content: "prior answer",
+      createdAt: 1,
+    },
+  ];
+  f.chats.set("left", { ...old, messages: prior });
+  try {
+    await client.selectChat("project", "left");
+    const hold = f.holdSubmit();
+    const pending = client.prompt("repeat");
+    await f.submitStarted.promise;
+    const channels = () =>
+      channelTexts(
+        buildChatTranscript({
+          session: {
+            ...client.getSnapshot(),
+            connect: client.connect,
+            prompt: client.prompt,
+            cancel: client.cancel,
+          },
+        }).turns,
+      );
+    assert.deepEqual(channels().user, ["repeat", "repeat"]);
+    const accepted = f.chats.get("left")!;
+    f.chats.set("left", {
+      ...accepted,
+      messages: [...prior, ...accepted.messages],
+    });
+    f.setActivity({
+      thought: "thinking",
+      answer: "partial",
+      tools: [],
+      snapshot: view({ ...old, messages: prior }).snapshot,
+    });
+    hold.resolve();
+    await pending;
+    assert.equal(client.getSnapshot().pendingText, undefined);
+    assert.deepEqual(channels().user, ["repeat", "repeat"]);
+    assert.deepEqual(channels().thought, ["thinking"]);
+    assert.deepEqual(channels().answer, ["prior answer", "partial"]);
+    await client.refresh();
+    assert.deepEqual(channels().user, ["repeat", "repeat"]);
+  } finally {
+    client.dispose();
+  }
+});
+
+test("failed submission keeps the visible attempted text and does not retry", async () => {
+  const f = fixture(),
+    client = f.client();
+  try {
+    await client.selectChat("project", "left");
+    f.rejectSubmission();
+    await assert.rejects(() => client.prompt("keep this input"));
+    assert.equal(client.getSnapshot().pendingText, "keep this input");
+    assert.equal(client.getSnapshot().busy, false);
+    assert.match(client.getSnapshot().error ?? "", /conflict/);
+    await client.refresh();
+    assert.equal(client.getSnapshot().pendingText, "keep this input");
+    assert.match(client.getSnapshot().error ?? "", /conflict/);
+    assert.equal(f.calls.filter((call) => call.method === "POST").length, 1);
+    await client.selectChat("project", "right");
+    assert.equal(client.getSnapshot().pendingText, undefined);
+  } finally {
+    client.dispose();
+  }
+});
+
 test("disconnect during submission makes one attempt; another normal client reads the committed completion", async () => {
   const f = fixture(),
     first = f.client(),
@@ -214,6 +350,10 @@ test("disconnect during submission makes one attempt; another normal client read
     const held = f.holdSubmit();
     const submit = first.prompt("continue without this browser");
     await f.submitStarted.promise;
+    assert.equal(
+      first.getSnapshot().pendingText,
+      "continue without this browser",
+    );
     first.dispose();
     held.resolve();
     await submit;

@@ -2805,3 +2805,23 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
   changed. No changes to Desktop Commander, dependencies or user settings.
 - [Handoff](handoffs/A008-0200.md). [Archive](finished/A008-0200_bounded-tool-context.md).
 - Signature: Codex (operator/implementer)
+
+## 2026-09-30 — A008-0201 durable GUI live chat (local delivery)
+
+- Repaired disappearing accepted user messages by keeping durable history
+  authoritative over older process snapshots. Optimistic text reconciles by run
+  identity; failed submissions retain text/error without automatic retry.
+- Replaced fixed-interval live-text observation with bounded authenticated
+  activity waits. Thought and answer remain separate; polling restores lifecycle
+  state. Chat switching/disconnection leaves background execution running.
+- Verification: root and GUI builds/typechecks PASS, GUI 222/222 PASS, packed
+  protocol/client consumers PASS. Host/process/recovery 31/31 PASS, including
+  110-round recovery and two-client pre-completion streaming/disconnect coverage.
+- Broader HTTP/protocol checks expose three existing failures in unchanged route
+  inventories and a workspaceId fixture; documented in backlog. Broad result
+  39/42, not a claim of a green full core suite. No live calls or browser visual
+  check; 0 SEK. Provider/network batching remains possible.
+- ADR 0059, owning docs, archive and handoff supplied; current-task template
+  restored. No push/merge; ACME checkout and Desktop Commander unchanged.
+- [Handoff](handoffs/A008-0201.md). [Archive](finished/A008-0201_gui-live-chat.md).
+- Signature: Codex (operator/implementer)

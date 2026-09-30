@@ -2,7 +2,7 @@
 
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 
-Latest archive: [A008-0200_bounded-tool-context.md](A008-0200_bounded-tool-context.md) — Complete locally; bounded sectional native tools and guarded edits.
+Latest archive: [A008-0201_gui-live-chat.md](A008-0201_gui-live-chat.md) — Complete locally; durable GUI transcript and event-driven live updates.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

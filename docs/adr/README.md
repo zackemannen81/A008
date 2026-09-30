@@ -1,6 +1,6 @@
 # Aktuella arkitekturbeslut
 
-Senast uppdaterat: 2026-09-30, A008-0200.
+Senast uppdaterat: 2026-09-30, A008-0201.
 
 ## Aktiva beslut
 
@@ -10,6 +10,7 @@ Senast uppdaterat: 2026-09-30, A008-0200.
 | [0056 — Minimal memory context](0056-minimal-memory-context.md) | Accepted | Minimalt modellkuvert, relevant urval och bevarad koppling för reinforcement. |
 | [0057 — Checkpointed unfinished-turn recovery](0057-checkpointed-turn-recovery.md) | Accepted | Verifierad checkpoint, beständig effektspärr och konservativ återupptagning genom befintlig coordinator. |
 | [0058 — Bounded native tool context](0058-bounded-native-tool-context.md) | Accepted | Sektionsläsning med helfilshash, begränsade verktygsresultat och bibehållna skrivskydd. |
+| [0059 — Durable GUI live observation](0059-durable-gui-live-observation.md) | Accepted | Händelsestyrd live-observation och auktoritativ meddelandehistorik utan att ändra bakgrundskörningens ägarskap. |
 
 Detta är hela den aktiva ADR-mängden. Numreringen fortsätter för att historiska
 ID:n ska förbli entydiga; den börjar inte om på 0001.

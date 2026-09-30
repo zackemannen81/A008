@@ -1,8 +1,8 @@
 # System Document — aktuell implementation
 
-Granskad: 2026-09-30; A008-0199 lägger till verifierad återupptagning efter processförlust.
-Källrevision: `ad42494` + A008-0199-arbetet på `codex/a008-0199-interrupted-turn-recovery`.
-Verifiering och avgränsningar: se CURRENT_STATUS samt handoffs för A008-0196–0199.
+Granskad: 2026-09-30; A008-0201 återställer direkt GUI-observation och stabil meddelandevisning.
+Källrevision: `c4d3914` + A008-0201 på `codex/a008-0201-gui-live-chat`.
+Verifiering och avgränsningar: se CURRENT_STATUS och task-handoffs.
 
 Detta dokument beskriver implementerade ansvar och flöden. Målarkitekturen finns
 i [PROJECT_BRIEF.md](PROJECT_BRIEF.md) och [ADR 0055](adr/0055-durable-sessions-and-process-ownership.md).
@@ -25,6 +25,22 @@ den nya arkitekturgrunden har inte migrerat dem.
 [useDurableChat](../gui/src/session/use-durable-chat.ts) äger GUI-observationen.
 Vald session lagras per flik. Dispose/navigering kopplar bort observation utan
 att skicka cancellation. Explicit avbrytning använder värdens körningsväg.
+
+ADR 0059: live aktivitet läses via `/v1/chat/v3/runs/:id/activity` med en
+ephemeral `liveRevision`. `?afterLive=<revision>` väntar på nästa host-uppdatering
+eller högst 25 sekunder, utan fast pollingfördröjning. Detta är event-driven
+long polling med kumulativa snapshots. Thought/svar ersätts vid mottagning och
+konkateneras inte igen. Vanlig view-polling finns kvar för status och reconnect.
+Värden kontrollerar behörighet före väntan och före leverans. Frånkoppling städar
+väntaren utan cancellation; live-revisioner rensas när GUI-runnen avslutas.
+
+GUI:t behåller beständiga meddelanden även om en process-snapshot fortfarande
+bara innehåller tidigare historik. Live-suffix (exempelvis pending bild) tillåts
+när hela den beständiga prefixhistoriken finns i snapshoten. Ny användartext visas
+under acceptans med `pendingTextUncommitted` och ersätts av beständig text när
+den accepterade körningens user-post syns. Upprepad identisk text är en ny post.
+Misslyckad submission behåller text/fel utan automatisk retry. Abort/selection-
+epoch hindrar gamla observer-svar från att påverka en annan chat.
 
 Memory-vyn skickar valt durable `projectId` till `/v1/memory`; värden resolve:ar
 projektets runtime via `ProjectRuntimeRegistry` och inspekterar just den
@@ -60,8 +76,9 @@ Varje publik förändring får en stigande cursor; svarstext sparas som append/r
 verktyg uppdateras med ID och väntande godkännanden kan sättas eller tas bort.
 En materialiserad snapshot och dess cursor skrivs i samma transaktion. Klienten
 kan läsa snapshot och därefter `activity-events?after=<cursor>` i sidor om 100.
-Händelser med redan behandlad cursor ignoreras. GUI:s polling ersätter hela
-aktivitetssnapshoten och lägger aldrig samma textdelta till svaret två gånger.
+Händelser med redan behandlad cursor ignoreras. GUI:s live-observation och
+fallback-polling ersätter aktivitetssnapshoten och lägger aldrig samma textdelta
+till svaret två gånger. LiveRevision är separat från den beständiga cursorn.
 Privat resonemang och interna enginesnapshotar är endast liveinformation.
 Run-resultat skiljer beständigt på `effectStatus`, `answerStatus` och
 `memoryStatus`, så ett sparat answer inte behöver behandlas som misslyckat bara

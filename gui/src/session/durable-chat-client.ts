@@ -23,6 +23,8 @@ import {
   type PlatformV3Run,
   type ProjectSidebar,
   type WorkspaceSession,
+  type GuiRunActivity,
+  type GuiConversationView,
 } from "../../../packages/protocol/src/index.js";
 
 export interface ChatSelection {
@@ -98,6 +100,95 @@ export class DurableChatClient {
   #timer: ReturnType<typeof setTimeout> | undefined;
   #disposed = false;
   #allowAll = new Set<string>();
+  #observer: { runId: string; abort: AbortController } | undefined;
+  #liveActivity: GuiRunActivity | undefined;
+  #durableSnapshot: GuiConversationView["snapshot"] | undefined;
+  #submittedRun: string | undefined;
+  #permissionRequests = new Map<string, Promise<void>>();
+
+  #stopObserver() {
+    this.#observer?.abort.abort();
+    this.#observer = undefined;
+    this.#liveActivity = undefined;
+  }
+  #details(
+    snapshot: GuiConversationView["snapshot"],
+    activity?: GuiRunActivity,
+  ): SessionSnapshot {
+    const live = activity?.snapshot;
+    // A process snapshot may still contain only the history preceding this run.
+    // Admit its transient suffix only after it includes the full durable prefix.
+    const hasPrefix =
+      live &&
+      snapshot.messages.every((message, index) => {
+        const candidate = live.messages[index];
+        return (
+          candidate?.role === message.role &&
+          JSON.stringify(candidate.content) === JSON.stringify(message.content)
+        );
+      });
+    return {
+      ...snapshot,
+      ...(live ?? {}),
+      messages: hasPrefix
+        ? [
+            ...snapshot.messages,
+            ...live.messages.slice(snapshot.messages.length),
+          ]
+        : snapshot.messages,
+      ...(this.#runtimePreferences
+        ? { runtimePreferences: this.#runtimePreferences }
+        : {}),
+    } as SessionSnapshot;
+  }
+  #observe(runId: string, epoch: number, initial: GuiRunActivity) {
+    if (this.#observer?.runId === runId || !initial.liveRevision) return;
+    this.#stopObserver();
+    const abort = new AbortController();
+    const observer = { runId, abort };
+    this.#observer = observer;
+    this.#liveActivity = initial;
+    void (async () => {
+      let revision = initial.liveRevision;
+      try {
+        while (
+          !abort.signal.aborted &&
+          epoch === this.#epoch &&
+          !this.#disposed
+        ) {
+          const activity = await this.#activity(runId, revision, abort.signal);
+          if (
+            abort.signal.aborted ||
+            epoch !== this.#epoch ||
+            this.#observer !== observer ||
+            !activity?.liveRevision
+          )
+            return;
+          revision = activity.liveRevision;
+          this.#liveActivity = activity;
+          if (this.#run?.id !== runId || !this.#state.busy) return;
+          const autoAllow =
+            !!activity.permission &&
+            this.#allowAll.has(this.#run.conversationId);
+          this.#publish({
+            ...(this.#durableSnapshot
+              ? { details: this.#details(this.#durableSnapshot, activity) }
+              : {}),
+            thought: activity.thought,
+            answer: activity.answer,
+            tools: activity.tools,
+            permission: autoAllow ? undefined : activity.permission,
+          });
+          if (autoAllow && activity.permission)
+            await this.#permission(runId, activity.permission.id, true);
+        }
+      } catch {
+        // The regular view refresh restores state/reconnects; never retry a run.
+      } finally {
+        if (this.#observer === observer) this.#stopObserver();
+      }
+    })();
+  }
 
   readonly http: HttpClientOptions;
   readonly storage: SelectionStorage;
@@ -170,6 +261,7 @@ export class DurableChatClient {
   };
 
   connect = async () => {
+    this.#stopObserver();
     this.#disposed = false;
     const epoch = ++this.#epoch;
     clearTimeout(this.#timer);
@@ -211,10 +303,14 @@ export class DurableChatClient {
     const createParameters =
       this.#state.details?.model === this.#state.model
         ? this.#state.details.parameters
-        : this.#models.find((model) => model.id === this.#state.model)?.defaults;
+        : this.#models.find((model) => model.id === this.#state.model)
+            ?.defaults;
     const epoch = ++this.#epoch;
     clearTimeout(this.#timer);
     this.#conversation = undefined;
+    this.#stopObserver();
+    this.#durableSnapshot = undefined;
+    this.#submittedRun = undefined;
     this.#run = undefined;
     this.#workspace = undefined;
     this.#selection = { projectId };
@@ -230,6 +326,7 @@ export class DurableChatClient {
       thought: "",
       answer: "",
       pendingText: undefined,
+      pendingTextUncommitted: false,
       error: undefined,
     });
     try {
@@ -330,7 +427,11 @@ export class DurableChatClient {
       const active =
         run !== undefined &&
         ["queued", "running", "cancel_requested"].includes(run.status);
-      const activity = runId ? await this.#activity(runId) : undefined;
+      const activity = runId
+        ? active && this.#observer?.runId === runId && this.#liveActivity
+          ? this.#liveActivity
+          : await this.#activity(runId)
+        : undefined;
       if (
         epoch !== this.#epoch ||
         version !== this.#refreshVersion ||
@@ -344,14 +445,29 @@ export class DurableChatClient {
       const autoAllow = permission !== undefined && this.#allowAll.has(id);
       if (autoAllow && runId)
         await this.#permission(runId, permission.id, true);
+      if (
+        epoch !== this.#epoch ||
+        version !== this.#refreshVersion ||
+        this.#disposed
+      )
+        return;
       const model = snapshot.model;
-      const details = {
-        ...snapshot,
-        ...(active && activity?.snapshot ? activity.snapshot : {}),
-        ...(this.#runtimePreferences
-          ? { runtimePreferences: this.#runtimePreferences }
-          : {}),
-      } as SessionSnapshot;
+      this.#durableSnapshot = snapshot;
+      const currentActivity =
+        active && this.#observer?.runId === runId
+          ? (this.#liveActivity ?? activity)
+          : activity;
+      const details = this.#details(
+        snapshot,
+        active ? currentActivity : undefined,
+      );
+      const accepted =
+        this.#submittedRun !== undefined &&
+        conversation.messages.some(
+          (message) =>
+            message.runId === this.#submittedRun && message.role === "user",
+        );
+      if (accepted) this.#submittedRun = undefined;
       this.#publish({
         status: "ready",
         model,
@@ -362,16 +478,26 @@ export class DurableChatClient {
         recovery: runs
           .filter((entry) => entry.status === "needs_reconciliation")
           .map((entry) => ({ runId: entry.id, revision: entry.revision })),
-        thought: activity?.thought ?? "",
-        answer: activity?.answer ?? "",
-        tools: activity?.tools ?? [],
-        permission: autoAllow ? undefined : permission,
-        pendingText: undefined,
+        thought: currentActivity?.thought ?? "",
+        answer: currentActivity?.answer ?? "",
+        tools: currentActivity?.tools ?? [],
+        permission: this.#allowAll.has(id)
+          ? undefined
+          : currentActivity?.permission,
+        pendingText: accepted ? undefined : this.#state.pendingText,
+        pendingTextUncommitted: accepted
+          ? false
+          : this.#state.pendingTextUncommitted,
         error:
           run?.status === "needs_reconciliation"
             ? "Execution outcome is uncertain; this run will not be replayed."
-            : run?.error?.message,
+            : this.#state.pendingTextUncommitted && !accepted
+              ? (this.#state.error ?? run?.error?.message)
+              : run?.error?.message,
       });
+      if (active && runId && currentActivity)
+        this.#observe(runId, epoch, currentActivity);
+      else this.#stopObserver();
     } catch (error) {
       if (epoch === this.#epoch && version === this.#refreshVersion)
         this.#error(error);
@@ -434,10 +560,15 @@ export class DurableChatClient {
     }
   };
 
-  #activity = async (runId: string) => {
+  #activity = async (
+    runId: string,
+    afterLive?: string,
+    signal?: AbortSignal,
+  ) => {
     const { response, body } = await requestJson(
       this.http,
-      `/v1/chat/v3/runs/${encodeURIComponent(runId)}/activity`,
+      `/v1/chat/v3/runs/${encodeURIComponent(runId)}/activity${afterLive === undefined ? "" : `?afterLive=${encodeURIComponent(afterLive)}`}`,
+      { ...(signal ? { signal } : {}) },
     );
     if (response.status === 404) return undefined;
     if (!response.ok)
@@ -445,6 +576,16 @@ export class DurableChatClient {
     return guiRunActivitySchema.parse(body);
   };
   #permission = async (runId: string, id: string, allow: boolean) => {
+    const key = JSON.stringify([runId, id]);
+    const pending = this.#permissionRequests.get(key);
+    if (pending) return pending;
+    const request = this.#sendPermission(runId, id, allow).finally(() => {
+      this.#permissionRequests.delete(key);
+    });
+    this.#permissionRequests.set(key, request);
+    return request;
+  };
+  #sendPermission = async (runId: string, id: string, allow: boolean) => {
     const { response, body } = await requestJson(
       this.http,
       `/v1/chat/v3/runs/${encodeURIComponent(runId)}/permission`,
@@ -480,6 +621,13 @@ export class DurableChatClient {
         true,
       );
       const epoch = this.#epoch;
+      this.#publish({
+        pendingText: text,
+        pendingTextUncommitted: true,
+        busy: true,
+        thought: "",
+        answer: "",
+      });
       await opening;
       if (epoch !== this.#epoch)
         throw new Error(
@@ -492,16 +640,29 @@ export class DurableChatClient {
     const epoch = this.#epoch;
     this.#refreshVersion++;
     clearTimeout(this.#timer);
-    this.#publish({ busy: true, error: undefined });
+    this.#stopObserver();
+    this.#submittedRun = undefined;
+    this.#publish({
+      busy: true,
+      pendingText: text,
+      pendingTextUncommitted: true,
+      thought: "",
+      answer: "",
+      tools: [],
+      error: undefined,
+    });
     try {
-      await this.api.createRun(conversation.id, {
+      const { run } = await this.api.createRun(conversation.id, {
         commandId: crypto.randomUUID(),
         expectedRevision: conversation.revision,
         model: this.#state.model,
         text,
         ...(attachment === undefined ? {} : { attachment }),
       });
-      if (epoch === this.#epoch) await this.refresh(epoch);
+      if (epoch === this.#epoch) {
+        this.#submittedRun = run.id;
+        await this.refresh(epoch);
+      }
     } catch (error) {
       if (epoch === this.#epoch) {
         this.#publish({ busy: false });
@@ -562,13 +723,19 @@ export class DurableChatClient {
         control.revision,
       );
       if (!this.#state.details) throw new Error("Select a conversation first.");
-      const details = { ...this.#state.details, runtimePreferences: preferences };
+      const details = {
+        ...this.#state.details,
+        runtimePreferences: preferences,
+      };
       this.#publish({ details });
       return details;
     } else if (control.action === "inspect") {
       const preferences = await this.#loadRuntimePreferences();
       if (!this.#state.details) throw new Error("Select a conversation first.");
-      const details = { ...this.#state.details, runtimePreferences: preferences };
+      const details = {
+        ...this.#state.details,
+        runtimePreferences: preferences,
+      };
       this.#publish({ details });
       return details;
     } else {
@@ -581,6 +748,7 @@ export class DurableChatClient {
     this.dispose();
   };
   dispose = () => {
+    this.#stopObserver();
     this.#disposed = true;
     this.#epoch++;
     clearTimeout(this.#timer);

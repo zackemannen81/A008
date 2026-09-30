@@ -40,6 +40,73 @@ import Database from "better-sqlite3";
 
 const MODEL = DEFAULT_MODEL_ID;
 
+test("A008-0201 live GUI updates cross the child process without polling and survive observer disconnect", { timeout: 60000 }, async () => {
+  const gate = () => {
+    let release!: () => void;
+    const promise = new Promise<void>(resolve => { release = resolve; });
+    return { promise, release };
+  };
+  const nextThought = gate(), nextAnswer = gate(), finish = gate();
+  const provider = await startSessionControlProvider(undefined, async (_payload, response) => {
+    response.writeHead(200, { "content-type": "text/event-stream" });
+    const send = (delta: object) => response.write(`data: ${JSON.stringify({ choices: [{ delta }] })}\n\n`);
+    send({ reasoning_content: "First thought." });
+    await nextThought.promise;
+    send({ reasoning_content: " Second thought." });
+    await nextAnswer.promise;
+    send({ content: "First answer." });
+    await finish.promise;
+    send({ content: " Final answer." });
+    response.end(`data: ${JSON.stringify({ choices: [{ delta: {}, finish_reason: "stop" }] })}\n\ndata: [DONE]\n\n`);
+  });
+  const fixture = hostEnv(provider.endpoint);
+  const project = bootstrap(fixture.env, fixture.directory, "live-chat");
+  const host = await startGuiHost({ env: fixture.env, port: 0, cwd: fixture.directory });
+  const origin = `http://127.0.0.1:${host.port}`;
+  const client = () => new DurableChatClient({ origin, credentials: cookieCredentials(), fetch: globalThis.fetch as unknown as ClientFetch }, { read: () => undefined, write() {} }, 60000);
+  const first = client(), second = client();
+  try {
+    await first.connect();
+    await first.selectChat(project.projectId, undefined, true);
+    const id = first.getSnapshot().sessionId!;
+    await first.prompt("Show live progress");
+    // No refresh in these predicates: the periodic poll is sixty seconds away.
+    await waitFor("first thought pushed", async () => first.getSnapshot().thought === "First thought.", 15000).catch(async error => {
+      const chat = (await first.api.getConversation(id)).conversation;
+      const runId = chat.messages[0]?.runId;
+      const activity = runId ? await (await fetch(`${origin}/v1/chat/v3/runs/${runId}/activity`)).json() : undefined;
+      throw new Error(`${String(error)}: ${JSON.stringify({ state: { thought: first.getSnapshot().thought, answer: first.getSnapshot().answer, busy: first.getSnapshot().busy, error: first.getSnapshot().error }, requests: provider.requests.map(p => ({ model: p.model, stream: p.stream, last: String(p.messages?.at(-1)?.content).slice(0,150) })), activity: { thought: activity?.thought, answer: activity?.answer, liveRevision: activity?.liveRevision } })}`);
+    });
+    assert.deepEqual(first.getSnapshot().details?.messages.map(message => message.content), ["Show live progress"]);
+    assert.equal(first.getSnapshot().answer, "");
+    await second.selectChat(project.projectId, id);
+    assert.equal(second.getSnapshot().thought, "First thought.");
+    nextThought.release();
+    await waitFor("second thought pushed to both", async () => first.getSnapshot().thought.endsWith("Second thought.") && second.getSnapshot().thought.endsWith("Second thought."), 5000);
+    nextAnswer.release();
+    await waitFor("answer pushed before completion", async () => first.getSnapshot().answer === "First answer." && second.getSnapshot().answer === "First answer.", 5000);
+    assert.equal(first.getSnapshot().busy, true);
+    // Switching and disposal must detach observation, not cancel the host run.
+    await first.selectChat(project.projectId, undefined, true);
+    const other = first.getSnapshot().sessionId;
+    second.dispose();
+    finish.release();
+    const runId = (await first.api.getConversation(id)).conversation.messages[0]!.runId!;
+    await waitFor("background completion after disconnect", async () => (await first.api.getRun(runId)).run.status === "succeeded", 15000);
+    assert.equal(first.getSnapshot().sessionId, other);
+    assert.equal(first.getSnapshot().answer, "");
+    await first.selectChat(project.projectId, id);
+    assert.equal(first.getSnapshot().busy, false);
+    assert.deepEqual(first.getSnapshot().details?.messages.map(message => message.content), ["Show live progress", "First answer. Final answer."]);
+    const events = await first.api.activityEvents(runId);
+    assert.equal(JSON.stringify(events).includes("First thought"), false, "thought remains ephemeral");
+  } finally {
+    nextThought.release(); nextAnswer.release(); finish.release();
+    first.dispose(); second.dispose();
+    await host.close(); await provider.close(); rmSync(fixture.directory, { recursive: true, force: true });
+  }
+});
+
 for (const scenario of ["continue-110-rounds", "workspace-mutation", "missing-workspace", "explicit-stop"] as const) {
   test(`A008-0199 real process checkpoint recovery: ${scenario}`, { timeout: 240_000 }, async (t) => {
     const total = scenario === "continue-110-rounds" ? 110 : 4;

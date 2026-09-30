@@ -48,6 +48,8 @@ A008/
 `gui/src/` contains the product GUI. Major current surfaces include:
 - `chat/`, `composer/`, `session/` — conversation/session UX.
 - `session/durable-chat-client.ts` and `use-durable-chat.ts` — normal GUI selection and durable-run observation; engine panels retain the existing V1 adapter.
+- `session/durable-observation.test.ts`, `chat/durable-live-transcript.test.ts` —
+  authoritative durable messages, optimistic submission and stale observation regressions.
 - `projects/` — project tree, saved chats and parallel workspace controls.
 - `memory/` — memory inspection and relationship map.
 - `settings/` — runtime/provider/appearance settings.
@@ -79,7 +81,7 @@ docs/
 ├── FILESTRUCTURE.md          this repository map
 ├── JOURNAL.md                append-only dated integration history
 ├── TASK_IDS.md               task identity allocation
-├── adr/                      active ADRs 0055–0058 (sessions, context, checkpoint recovery, bounded tools); pre-0055 records are _legacy history
+├── adr/                      active ADRs 0055–0059 (sessions, context, recovery, bounded tools, GUI observation); pre-0055 records are _legacy history
 ├── backlog/                  current deferred work plus _legacy retired backlog
 ├── tasks/                    durable task/program records
 ├── finished/                 immutable completed task records
