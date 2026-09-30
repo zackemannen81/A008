@@ -28,10 +28,7 @@ export class DeterministicMemoryPromptComposer implements MemoryPromptComposer {
     const message = nonEmpty(originalMessage, "Original message");
     const items = contextItemsForWorker(projection.projection.items);
     for (const [index, item] of items.entries()) {
-      nonEmpty(item.id, `Projected memory item ${index + 1} id`);
       nonEmpty(item.label, `Projected memory item ${index + 1} label`);
-      if (item.semanticAddress !== undefined)
-        nonEmpty(item.semanticAddress, "Semantic address");
     }
     return {
       systemInstruction: MEMORY_CONTEXT_SYSTEM_INSTRUCTION,

@@ -38,11 +38,7 @@ export function contextItemsForModel(items: readonly ContextKnowledgeItem[]) {
 /** Worker/user-message projection: semantic identity plus the retrieved record's readable label. */
 export function contextItemsForWorker(items: readonly ContextKnowledgeItem[]) {
   return items.map((item) => ({
-    id: item.id,
-    ...(item.semanticAddress === undefined
-      ? {}
-      : { semanticAddress: item.semanticAddress }),
-    label: item.label ?? item.proposition,
+        label: item.label ?? item.proposition,
     ...(item.history?.length ? { history: [...item.history] } : {}),
     ...(item.provenance?.length ? { provenance: [...item.provenance] } : {}),
   }));
