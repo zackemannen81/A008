@@ -2858,3 +2858,10 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
   push/merge and no changes to ACME or user settings.
 - [Handoff](handoffs/A008-0203.md). [Archive](finished/A008-0203_permission-replay.md).
 - Signature: Codex (operator/implementer)
+
+## 2026-10-01 — Task-scoped context envelopes documented
+
+- Documented an emergent property of the existing multi-agent + semantic-memory composition: Operator and each worker perform independent retrieval against the same project-owned memory, producing task-specific model context rather than one union context.
+- Named the property **task-scoped context envelopes / context sharding by task** and recorded its boundary in `MULTIAGENT.md`, `SYSTEMDOC.md` and `CURRENT_STATUS.md`.
+- Clarified that worker-local tool output, discovery and tentative conclusions are not shared truth; reusable results must return through normal handoff/evidence and knowledge/state integration before later retrieval can project them to other workers.
+- Documentation-only observation; no runtime behavior, memory schema, retrieval policy, provider route or worker process behavior changed.
