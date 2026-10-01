@@ -14,9 +14,12 @@ import type {
   ChatTools,
 } from "../core/types.js";
 import type { RuntimeBudgets } from "../core/runtime-preferences.js";
+import type { ToolOutcome } from "../../packages/protocol/src/index.js";
 import {
   runTerminalCommand,
   formatTerminalResult,
+  terminalFeedback,
+  TerminalStartError,
   killProcessTree,
 } from "./terminal.js";
 import {
@@ -43,6 +46,8 @@ export interface ToolActivity {
   readonly cwd: string;
   readonly status: "pending" | "in_progress" | "completed" | "failed";
   readonly output?: string;
+  readonly outcome?: ToolOutcome;
+  readonly modelVisibleBytes?: number;
 }
 export interface ToolApproval {
   approve(activity: ToolActivity, signal: AbortSignal): Promise<boolean>;
@@ -57,7 +62,13 @@ interface RegisteredTool {
     args: Record<string, unknown>,
     signal: AbortSignal,
     budgets: RuntimeBudgets,
-  ): Promise<{ failed: boolean; text: string }>;
+  ): Promise<{
+    failed: boolean;
+    text: string;
+    outcome?: ToolOutcome;
+    /** Inspector-facing bounded observation; never returned to the model. */
+    displayText?: string;
+  }>;
 }
 
 export function toolEnvironment(
@@ -101,9 +112,22 @@ export function boundedToolText(
   };
 }
 
+function repositoryOutcome(error: RepositoryToolError): ToolOutcome {
+  const code = error.details?.code;
+  if (
+    code === "stale_base" ||
+    code === "no_exact_match" ||
+    code === "ambiguous_match" ||
+    code === "count_mismatch"
+  )
+    return code;
+  return "protocol_error";
+}
+
 function repositoryFailureResult(error: RepositoryToolError): string {
   const full = JSON.stringify({
     status: "failed",
+    outcome: repositoryOutcome(error),
     text: error.message,
     ...(error.details ?? {}),
   });
@@ -111,6 +135,7 @@ function repositoryFailureResult(error: RepositoryToolError): string {
   const details = error.details ?? {};
   return JSON.stringify({
     status: "failed",
+    outcome: repositoryOutcome(error),
     text: error.message,
     ...(typeof details.code === "string" ? { code: details.code } : {}),
     ...(typeof details.retryable === "boolean"
@@ -128,6 +153,10 @@ function repositoryFailureResult(error: RepositoryToolError): string {
     ...(typeof details.actualOccurrences === "number"
       ? { actualOccurrences: details.actualOccurrences }
       : {}),
+    ...(typeof details.expectedOccurrences === "number"
+      ? { expectedOccurrences: details.expectedOccurrences }
+      : {}),
+    ...(Array.isArray(details.matches) ? { matches: details.matches } : {}),
     diagnosticTruncated: true,
   });
 }
@@ -212,7 +241,7 @@ export class ModelToolSession {
     this.#register(
       {
         name: "exec_command",
-        description: `Run a local ${process.platform === "win32" ? "Windows PowerShell (no profile)" : "POSIX shell"} command in ${this.#cwd}. Prefer native read/edit/list/create/git for workspace files; use narrow rg searches and targeted tests here. Use MCP for extra capabilities such as interactive processes or structured documents. Filter output at source; max_output_bytes defaults to 8192. Requires approval; host access is not sandboxed. Report actual results.`,
+        description: `Run a local ${process.platform === "win32" ? "Windows PowerShell (no profile)" : "POSIX shell"} command in ${this.#cwd}. Prefer native read/edit/list/create/git for workspace files; do not use shell/Python as an alternate writer for ordinary workspace text changes that edit_file/create_file can represent, because that bypasses revision ownership. Use targeted verification or narrow searches here. Use MCP for interactive processes or structured documents. Model feedback is compact; the runtime inspector retains the bounded command observation. Requires approval; host access is not sandboxed. Report actual results.`,
         parameters: {
           type: "object",
           properties: {
@@ -233,9 +262,18 @@ export class ModelToolSession {
           timeoutMs: budgets.toolTimeoutMs,
           maxBytes: nativeOutputBytes(args, budgets),
         });
+        const outcome: ToolOutcome = result.timedOut
+          ? "timeout"
+          : result.processLost
+            ? "process_lost"
+            : result.exitCode === 0
+              ? "command_success"
+              : "command_nonzero";
         return {
-          failed: result.exitCode !== 0 || result.timedOut,
-          text: formatTerminalResult(result),
+          failed: result.timedOut || result.processLost === true,
+          outcome,
+          text: terminalFeedback(result, nativeOutputBytes(args, budgets)),
+          displayText: formatTerminalResult(result),
         };
       },
     );
@@ -281,6 +319,35 @@ export class ModelToolSession {
     const validateParameters =
       options?.validateParameters ??
       (definition.parameters as Record<string, unknown>);
+    if (options?.validateParameters === undefined && definition.name === "edit_file") {
+      const parameters = definition.parameters as Record<string, any>;
+      definition = {
+        ...definition,
+        parameters: {
+          ...parameters,
+          properties: {
+            ...parameters.properties,
+            expected_replacements: {
+              ...parameters.properties.expected_replacements,
+              type: ["integer", "null"],
+            },
+          },
+          required: Object.keys(parameters.properties).filter(
+            (name) => name !== "expected_replacements",
+          ),
+        },
+      };
+      validateParameters.properties = {
+        ...((validateParameters.properties as Record<string, unknown>) ?? {}),
+        expected_replacements: {
+          ...((validateParameters.properties as Record<string, any>).expected_replacements as Record<string, unknown>),
+          type: ["integer", "null"],
+        },
+      };
+      validateParameters.required = (
+        validateParameters.required as string[]
+      ).filter((name) => name !== "expected_replacements");
+    }
     const validate = new AjvJsonSchemaValidator().getValidator<
       Record<string, unknown>
     >(validateParameters as JsonSchemaType);
@@ -411,6 +478,8 @@ export class ModelToolSession {
       )
         throw new Error("invalid");
       const record = normalized as Record<string, unknown>;
+      if (tool.definition.name === "edit_file" && record.expected_replacements === null)
+        delete record.expected_replacements;
       const bound = tool.bind
         ? tool.bind(record)
         : { ok: true as const, arguments: record };
@@ -422,19 +491,29 @@ export class ModelToolSession {
       if (!parsed.valid) throw new Error(parsed.errorMessage);
       args = parsed.data;
     } catch {
+      const resultText = JSON.stringify({
+        status: "invalid_arguments",
+        outcome: "invalid_arguments",
+        text: invalidText,
+      });
+      const modelVisibleBytes = Buffer.byteLength(resultText, "utf8");
       const activity: ToolActivity = {
         id: call.id,
         name: call.name,
         cwd: this.#cwd,
         input: call.arguments,
         status: "failed",
-        output: invalidText,
+        outcome: "invalid_arguments",
+        modelVisibleBytes,
+        output: JSON.stringify({
+          status: "invalid_arguments",
+          outcome: "invalid_arguments",
+          modelVisibleBytes,
+          text: invalidText,
+        }),
       };
       await approval.update(activity);
-      return JSON.stringify({
-        status: "invalid_arguments",
-        text: invalidText,
-      });
+      return resultText;
     }
     const activity: ToolActivity = {
       id: call.id,
@@ -448,15 +527,25 @@ export class ModelToolSession {
     const allowed = await approval.approve(activity, signal);
     signal.throwIfAborted();
     if (!allowed) {
+      const resultText = JSON.stringify({
+        status: "denied",
+        outcome: "denied",
+        text: "User denied execution. Do not retry this action through another tool.",
+      });
+      const modelVisibleBytes = Buffer.byteLength(resultText, "utf8");
       await approval.update({
         ...activity,
         status: "failed",
-        output: "User denied execution.",
+        outcome: "denied",
+        modelVisibleBytes,
+        output: JSON.stringify({
+          status: "denied",
+          outcome: "denied",
+          modelVisibleBytes,
+          text: "User denied execution.",
+        }),
       });
-      return JSON.stringify({
-        status: "denied",
-        text: "User denied execution. Do not retry this action through another tool.",
-      });
+      return resultText;
     }
     await approval.update({ ...activity, status: "in_progress" });
     try {
@@ -466,29 +555,75 @@ export class ModelToolSession {
         ? nativeOutputBytes(args, budgets)
         : budgets.toolOutputBytes;
       const bounded = boundedToolText(result.text, maximum);
+      const outcome = result.outcome ?? (result.failed ? "protocol_error" : "tool_success");
       const text = JSON.stringify({
         status: result.failed ? "failed" : "completed",
+        outcome,
         ...bounded,
       });
+      const modelVisibleBytes = Buffer.byteLength(text, "utf8");
+      const inspectorText = result.displayText === undefined
+        ? JSON.stringify({
+            status: result.failed ? "failed" : "completed",
+            outcome,
+            modelVisibleBytes,
+            ...bounded,
+          })
+        : JSON.stringify({
+            status: result.failed ? "failed" : "completed",
+            outcome,
+            modelVisibleBytes,
+            text: result.displayText,
+            truncated: false,
+          });
       await approval.update({
         ...activity,
         status: result.failed ? "failed" : "completed",
-        output: text,
+        outcome,
+        modelVisibleBytes,
+        output: inspectorText,
       });
       return text;
     } catch (error) {
       // SDK/provider errors may contain credentials or raw payloads. Publish no raw error.
       if (!signal.aborted && error instanceof RepositoryToolError) {
         const text = repositoryFailureResult(error);
-        await approval.update({ ...activity, status: "failed", output: text });
+        const modelVisibleBytes = Buffer.byteLength(text, "utf8");
+        const parsed = JSON.parse(text) as Record<string, unknown>;
+        await approval.update({
+          ...activity,
+          status: "failed",
+          outcome: repositoryOutcome(error),
+          modelVisibleBytes,
+          output: JSON.stringify({ ...parsed, modelVisibleBytes }),
+        });
         return text;
       }
+      const outcome: ToolOutcome = signal.aborted
+        ? "cancelled"
+        : error instanceof TerminalStartError
+          ? "spawn_failed"
+          : "protocol_error";
       const text = signal.aborted
         ? "Tool cancelled."
-        : "Tool failed or timed out. No success confirmed.";
-      await approval.update({ ...activity, status: "failed", output: text });
+        : error instanceof TerminalStartError
+          ? error.message
+          : "Tool failed. No success confirmed.";
+      const resultText = JSON.stringify({ status: "failed", outcome, text });
+      await approval.update({
+        ...activity,
+        status: "failed",
+        outcome,
+        modelVisibleBytes: Buffer.byteLength(resultText, "utf8"),
+        output: JSON.stringify({
+          status: "failed",
+          outcome,
+          modelVisibleBytes: Buffer.byteLength(resultText, "utf8"),
+          text,
+        }),
+      });
       signal.throwIfAborted();
-      return JSON.stringify({ status: "failed", text });
+      return resultText;
     }
   }
 

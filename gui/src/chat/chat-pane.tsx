@@ -26,6 +26,7 @@ import {
 } from "../artifact/code-artifact.js";
 import { HighlightedCode } from "../highlight/highlighted-code.js";
 import { ToolActivity } from "../tools/repository-pane.js";
+import { RunActivityTimeline } from "./run-activity.js";
 import "./chat-pane.css";
 
 function ThoughtBlock({ turn }: { readonly turn: ChatAssistantTurn }) {
@@ -327,6 +328,7 @@ export function ChatPane(props: {
                 />
               ),
             )}
+            <RunActivityTimeline session={session} />
           </>
         )}
       </div>

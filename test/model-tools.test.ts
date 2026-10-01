@@ -39,7 +39,7 @@ import {
 } from "../src/tools/mcp-runtime.js";
 import { DEFAULT_RUNTIME_BUDGETS as budgets } from "../src/core/runtime-preferences.js";
 import { RuntimePreferencesStore } from "../src/runtime/runtime-preferences-store.js";
-import { runTerminalCommand } from "../src/tools/terminal.js";
+import { cleanPowerShellStderr, runTerminalCommand } from "../src/tools/terminal.js";
 import { prepareAcpTools } from "../src/tools/acp-tools.js";
 import { isolatedMemoryEnv } from "./helpers.js";
 import { startGuiHost } from "../src/gui-host/server.js";
@@ -102,6 +102,10 @@ test("native sectional tool schemas reach ACME OpenAI strict serialization with 
       JSON.stringify(read.parameters.properties.max_output_bytes),
       /null/,
     );
+    const edit = wire.tools.find((tool: any) => tool.name === "edit_file");
+    assert.deepEqual(edit.parameters.properties.expected_replacements.type, ["integer", "null"]);
+    assert.equal(edit.parameters.properties.expected_replacements.minimum, 1);
+    assert.equal(edit.parameters.required.includes("expected_replacements"), true);
   } finally {
     await tools.close();
     rmSync(cwd, { recursive: true, force: true });
@@ -197,6 +201,54 @@ test("sectional read/edit keeps large files out of context and chains whole-file
     t.diagnostic(
       `10,000-line fixture: whole file ${wholeFileBytes} bytes; section + two edit results ${contextBytes} bytes (tool-result bytes, not tokens).`,
     );
+  } finally {
+    await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("edit_file performs only the exact expected number of non-overlapping replacements", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-counted-edit-"));
+  const tools = new ModelToolSession({ cwd, env: process.env });
+  try {
+    const port = await tools.prepare(budgets, { approve: async () => true, update: async () => undefined }, new AbortController().signal);
+    let id = 0;
+    const executeRaw = (args: unknown) => port.execute({ id: String(++id), name: "edit_file", arguments: JSON.stringify(args) });
+    const execute = async (args: unknown) => JSON.parse(await executeRaw(args));
+    const target = join(cwd, "repeated.txt");
+    const original = "repeat\r\nkeep\r\nrepeat\r\nrepeat\r\n";
+    writeFileSync(target, original);
+    const read = JSON.parse(JSON.parse(await port.execute({ id: "read", name: "read_file", arguments: JSON.stringify({ path: "repeated.txt" }) })).text);
+    const base = { path: "repeated.txt", expected_sha256: read.sha256, old_text: "repeat\n", new_text: "done\n" };
+    const defaultSingle = await execute(base);
+    assert.equal(defaultSingle.code, "ambiguous_match");
+    assert.equal(defaultSingle.actualOccurrences, 3);
+    assert.equal(readFileSync(target, "utf8"), original);
+    assert.equal((await execute({ ...base, old_text: "missing" })).code, "no_exact_match");
+    const mismatchRaw = await executeRaw({ ...base, expected_replacements: 2 });
+    const mismatch = JSON.parse(mismatchRaw);
+    assert.equal(mismatch.code, "count_mismatch");
+    assert.equal(mismatch.expectedOccurrences, 2);
+    assert.equal(mismatch.actualOccurrences, 3);
+    assert.equal(mismatch.written, false);
+    assert.ok(Buffer.byteLength(mismatchRaw, "utf8") <= EDIT_FAILURE_OUTPUT_BYTES);
+    assert.equal(readFileSync(target, "utf8"), original);
+    const zero = await execute({ ...base, old_text: "absent", expected_replacements: 2 });
+    assert.equal(zero.code, "count_mismatch");
+    assert.equal(zero.actualOccurrences, 0);
+    assert.equal(zero.written, false);
+    assert.equal(readFileSync(target, "utf8"), original);
+    const multi = await execute({ ...base, expected_replacements: 3 });
+    assert.equal(multi.status, "completed");
+    const receipt = JSON.parse(multi.text);
+    const updated = "done\r\nkeep\r\ndone\r\ndone\r\n";
+    assert.equal(readFileSync(target, "utf8"), updated);
+    assert.equal(receipt.sha256, createHash("sha256").update(updated).digest("hex"));
+    assert.ok(Buffer.byteLength(JSON.stringify(multi), "utf8") <= 256);
+    const stale = await execute({ ...base, expected_replacements: 3, expected_sha256: read.sha256 });
+    assert.equal(stale.code, "stale_base");
+    assert.equal(stale.written, false);
+    assert.equal(readFileSync(target, "utf8"), updated);
   } finally {
     await tools.close();
     rmSync(cwd, { recursive: true, force: true });
@@ -342,6 +394,103 @@ test("native command output caps are per-call and cannot exceed runtime ceilings
       "completed",
       "strict-provider null sentinels retain defaults",
     );
+  } finally {
+    await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+
+test("exec_command treats nonzero exit as an observed command outcome, not a tool failure", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-command-outcome-"));
+  const tools = new ModelToolSession({ cwd, env: process.env });
+  const activity: ToolActivity[] = [];
+  try {
+    const port = await tools.prepare(
+      budgets,
+      {
+        approve: async () => true,
+        update: async (entry) => { activity.push(entry); },
+      },
+      new AbortController().signal,
+    );
+    const result = JSON.parse(
+      await port.execute({
+        id: "nonzero",
+        name: "exec_command",
+        arguments: JSON.stringify({ cmd: "exit 7" }),
+      }),
+    );
+    assert.equal(result.status, "completed");
+    assert.equal(result.outcome, "command_nonzero");
+    assert.match(result.text, /exit: 7/u);
+    assert.equal(activity.at(-1)?.status, "completed");
+    assert.equal(activity.at(-1)?.outcome, "command_nonzero");
+    assert.ok((activity.at(-1)?.modelVisibleBytes ?? 0) > 0);
+  } finally {
+    await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("PowerShell CLIXML progress noise is dropped while error text survives", () => {
+  const progress = '#< CLIXML\r\n<Objs><S S="progress">Preparing modules for first use.</S></Objs>';
+  assert.equal(cleanPowerShellStderr(progress), "");
+  const error = '#< CLIXML\r\n<Objs><S S="Error">bad thing_x000D__x000A_next line</S></Objs>';
+  assert.equal(cleanPowerShellStderr(error), "bad thing\nnext line");
+});
+
+test("multiple same-file edit calls from one model round chain only the verified revision", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-edit-chain-"));
+  const initial = "one\ntwo\n";
+  writeFileSync(join(cwd, "chain.txt"), initial);
+  const base = createHash("sha256").update(Buffer.from(initial)).digest("hex");
+  const tools = new ModelToolSession({ cwd, env: process.env });
+  let providerCalls = 0;
+  const transport = {
+    async complete() {
+      providerCalls += 1;
+      if (providerCalls === 1) {
+        return {
+          message: { role: "assistant" as const, content: "" },
+          finishReason: "tool",
+          toolCalls: [
+            {
+              id: "edit-1",
+              name: "edit_file",
+              arguments: JSON.stringify({
+                path: "chain.txt",
+                expected_sha256: base,
+                old_text: "one",
+                new_text: "ONE",
+              }),
+            },
+            {
+              id: "edit-2",
+              name: "edit_file",
+              arguments: JSON.stringify({
+                path: "chain.txt",
+                expected_sha256: base,
+                old_text: "two",
+                new_text: "TWO",
+              }),
+            },
+          ],
+        };
+      }
+      return { message: { role: "assistant" as const, content: "done" } };
+    },
+  };
+  try {
+    const port = await tools.prepare(
+      budgets,
+      { approve: async () => true, update: async () => undefined },
+      new AbortController().signal,
+    );
+    const chat = new ChatSession({ model: "fixture", transport });
+    await chat.send("Apply both edits.", { tools: port });
+    assert.equal(readFileSync(join(cwd, "chain.txt"), "utf8"), "ONE\nTWO\n");
+    assert.equal(providerCalls, 2);
   } finally {
     await tools.close();
     rmSync(cwd, { recursive: true, force: true });

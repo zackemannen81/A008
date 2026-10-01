@@ -234,6 +234,27 @@ export type ClientMessage<C = SessionControl> = WithControl<
   C
 >;
 
+export const TOOL_OUTCOMES = [
+  "tool_success",
+  "command_success",
+  "command_nonzero",
+  "edit_success",
+  "stale_base",
+  "no_exact_match",
+  "ambiguous_match",
+  "count_mismatch",
+  "spawn_failed",
+  "protocol_error",
+  "invalid_arguments",
+  "timeout",
+  "cancelled",
+  "stalled",
+  "process_lost",
+  "denied",
+] as const;
+export const toolOutcomeSchema = z.enum(TOOL_OUTCOMES);
+export type ToolOutcome = z.infer<typeof toolOutcomeSchema>;
+
 const newSession = z.object({
   type: z.literal("session/new/ok"),
   requestId: nonempty,
@@ -283,6 +304,10 @@ const replies = [
     title: text,
     status: text,
     text,
+    outcome: toolOutcomeSchema.optional(),
+    modelVisibleBytes: z.number().int().nonnegative().optional(),
+    startedAt: z.number().int().nonnegative().optional(),
+    finishedAt: z.number().int().nonnegative().optional(),
   }),
   z.object({
     type: z.literal("tool/permission"),

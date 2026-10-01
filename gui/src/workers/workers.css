@@ -1,0 +1,70 @@
+.a008-workers-page {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  padding: 1rem;
+  overflow: auto;
+  color: var(--a008-fg, #eee);
+}
+.a008-workers-page > header,
+.a008-worker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.a008-workers-page h1 { margin: 0; }
+.a008-workers-kicker { margin: 0; color: var(--a008-muted, #999); font-size: .68rem; letter-spacing: .12em; }
+.a008-workers-layout {
+  display: grid;
+  grid-template-columns: minmax(15rem, 21rem) minmax(0, 1fr);
+  gap: .8rem;
+  min-height: 28rem;
+  margin-top: .8rem;
+}
+.a008-workers-list {
+  display: grid;
+  align-content: start;
+  gap: .45rem;
+}
+.a008-workers-list > button {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: .2rem .6rem;
+  padding: .65rem;
+  text-align: left;
+  border: 1px solid var(--a008-border, #333);
+  border-radius: .6rem;
+  background: var(--a008-panel, #242424);
+  color: inherit;
+}
+.a008-workers-list > button.is-selected { border-color: var(--a008-cyan, #4c9bd1); }
+.a008-workers-list small { grid-column: 1 / -1; color: var(--a008-muted, #999); overflow-wrap: anywhere; }
+.a008-workers-list .is-bad { color: var(--a008-danger, #c44747); }
+.a008-worker-inspector {
+  min-width: 0;
+  padding: .8rem;
+  border: 1px solid var(--a008-border, #333);
+  border-radius: .7rem;
+  background: var(--a008-panel-quiet, #1e1e1e);
+}
+.a008-worker-head > div { display: grid; gap: .2rem; }
+.a008-worker-tabs { display: flex; flex-wrap: wrap; gap: .35rem; margin: .8rem 0; }
+.a008-worker-tabs button[aria-current="page"] { border-color: var(--a008-cyan, #4c9bd1); }
+.a008-worker-detail dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0,1fr);
+  gap: .35rem .8rem;
+}
+.a008-worker-detail dt { color: var(--a008-muted, #999); }
+.a008-worker-detail dd { margin: 0; }
+.a008-worker-inspector pre,
+.a008-worker-detail pre {
+  max-height: 30rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .a008-workers-layout { grid-template-columns: 1fr; }
+}

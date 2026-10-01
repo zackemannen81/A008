@@ -23,6 +23,7 @@ import type {
   ChatImageAttachment,
   ChatMessage,
   ChatTransport,
+  ChatToolCall,
   ChatTools,
   ChatWireMessage,
 } from "./types.js";
@@ -58,6 +59,41 @@ export interface SendMessageOptions extends ChatCallbacks {
 interface ActiveConversation {
   readonly userMessage: ChatMessage;
   readonly imageMessages: ChatMessage[];
+}
+
+interface RoundEditRevision {
+  readonly baseSha256: string;
+  currentSha256: string;
+}
+
+function editArguments(call: ChatToolCall): Record<string, unknown> | undefined {
+  if (call.name !== "edit_file") return undefined;
+  try {
+    const value = JSON.parse(call.arguments);
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function editKey(path: unknown): string | undefined {
+  if (typeof path !== "string" || path.trim() === "") return undefined;
+  const normalized = path.replaceAll("\\", "/");
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
+}
+
+function successfulEditSha(result: string): string | undefined {
+  try {
+    const outer = JSON.parse(result) as { status?: unknown; text?: unknown };
+    if (outer.status !== "completed" || typeof outer.text !== "string")
+      return undefined;
+    const inner = JSON.parse(outer.text) as { sha256?: unknown };
+    return typeof inner.sha256 === "string" ? inner.sha256 : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function continuationSourceRefs(
@@ -461,12 +497,46 @@ export class ChatSession {
           },
         ];
         wire.push(interactionMessages[0]!);
+        const roundEditRevisions = new Map<string, RoundEditRevision>();
         for (const call of completion.toolCalls) {
           options.signal?.throwIfAborted();
           await tools.continuation?.recovery?.beforeEffect();
           options.signal?.throwIfAborted();
-          const result = await tools.execute(call, options.signal);
+
+          let effectiveCall = call;
+          const args = editArguments(call);
+          const key = editKey(args?.path);
+          const expected =
+            typeof args?.expected_sha256 === "string"
+              ? args.expected_sha256
+              : undefined;
+          const chain = key ? roundEditRevisions.get(key) : undefined;
+          if (args && chain && expected === chain.baseSha256) {
+            effectiveCall = {
+              ...call,
+              arguments: JSON.stringify({
+                ...args,
+                expected_sha256: chain.currentSha256,
+              }),
+            };
+          }
+
+          const result = await tools.execute(effectiveCall, options.signal);
           options.signal?.throwIfAborted();
+
+          if (key && args && expected) {
+            const sha256 = successfulEditSha(result);
+            if (sha256) {
+              const existing = roundEditRevisions.get(key);
+              if (existing) existing.currentSha256 = sha256;
+              else
+                roundEditRevisions.set(key, {
+                  baseSha256: expected,
+                  currentSha256: sha256,
+                });
+            }
+          }
+
           const toolMessage: ChatWireMessage = {
             role: "tool",
             toolCallId: call.id,

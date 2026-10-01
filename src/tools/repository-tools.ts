@@ -14,7 +14,8 @@ import {
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import type { ChatToolDefinition } from "../core/types.js";
 import type { RuntimeBudgets } from "../core/runtime-preferences.js";
-import { formatTerminalResult, runTerminalCommand } from "./terminal.js";
+import type { ToolOutcome } from "../../packages/protocol/src/index.js";
+import { formatTerminalResult, runTerminalCommand, terminalFeedback } from "./terminal.js";
 import {
   atomicAdoptText,
   planTextEdit,
@@ -35,7 +36,12 @@ export interface NativeRepositoryTool {
     args: Record<string, unknown>,
     signal: AbortSignal,
     budgets: RuntimeBudgets,
-  ): Promise<{ failed: boolean; text: string }>;
+  ): Promise<{
+    failed: boolean;
+    text: string;
+    outcome?: ToolOutcome;
+    displayText?: string;
+  }>;
 }
 const pathProperty = {
   type: "string",
@@ -104,12 +110,17 @@ export const REPOSITORY_TOOL_DEFINITIONS: readonly ChatToolDefinition[] = [
   ),
   definition(
     "edit_file",
-    "Replace exactly one old_text match in a workspace file. Use sha256 from read_file (a section suffices) or the last successful edit/create result; reuse the returned hash for further edits without rereading unchanged content. Keep context minimal but unique. Preserves uniform LF/CRLF; no fuzzy writes. Requires approval.",
+    "Replace exact old_text occurrences in a workspace file. expected_replacements defaults to 1; set it to the exact count for intentional repeated edits. Count mismatches never write and return bounded occurrence diagnostics. Use sha256 from read_file (a section suffices) or the last successful edit/create result; reuse the returned hash for further edits without rereading unchanged content. Preserves uniform LF/CRLF/CR; mixed endings match literally. Fuzzy matching is diagnostic only, never a write. Requires approval.",
     {
       path: pathProperty,
       expected_sha256: { type: "string", pattern: "^[a-f0-9]{64}$" },
       old_text: { type: "string", minLength: 1 },
       new_text: { type: "string" },
+      expected_replacements: {
+        type: "integer",
+        minimum: 1,
+        description: "Exact non-overlapping old_text occurrence count required to write; defaults to 1.",
+      },
     },
     ["path", "expected_sha256", "old_text", "new_text"],
   ),
@@ -285,9 +296,18 @@ export function repositoryTools(
             timeoutMs: budgets.toolTimeoutMs,
             maxBytes: nativeOutputBytes(args, budgets),
           });
+          const outcome: ToolOutcome = result.timedOut
+            ? "timeout"
+            : result.processLost
+              ? "process_lost"
+              : result.exitCode === 0
+                ? "command_success"
+                : "command_nonzero";
           return {
-            failed: result.exitCode !== 0 || result.timedOut,
-            text: formatTerminalResult(result),
+            failed: result.timedOut || result.processLost === true,
+            outcome,
+            text: terminalFeedback(result, nativeOutputBytes(args, budgets)),
+            displayText: formatTerminalResult(result),
           };
         }
         const path = workspacePath(cwd, args.path as string);
@@ -302,6 +322,7 @@ export function repositoryTools(
           );
           return {
             failed: false,
+            outcome: "tool_success",
             text: JSON.stringify({
               path: args.path,
               total: entries.length,
@@ -321,6 +342,7 @@ export function repositoryTools(
           const { bytes, content } = readText(path, MAX_TEXT_FILE_BYTES);
           return {
             failed: false,
+            outcome: "tool_success",
             text: filePage(
               content,
               args.path,
@@ -343,6 +365,7 @@ export function repositoryTools(
           });
           return {
             failed: false,
+            outcome: "edit_success",
             text: JSON.stringify({
               path: args.path,
               created: true,
@@ -360,6 +383,9 @@ export function repositoryTools(
             expectedSha256: args.expected_sha256 as string,
             oldText: args.old_text as string,
             newText: args.new_text as string,
+            ...(typeof args.expected_replacements === "number"
+              ? { expectedReplacements: args.expected_replacements }
+              : {}),
           });
           if (!planned.ok) {
             const { message, ...details } = planned.failure;
@@ -377,6 +403,7 @@ export function repositoryTools(
           }
           return {
             failed: false,
+            outcome: "edit_success",
             text: JSON.stringify({
               path: args.path,
               edited: true,

@@ -175,7 +175,19 @@ additional nested live-provider verification campaign from repository code.
 
 ## Charter Amendment Log
 
-- none
+- 2026-10-01 — operator reprioritized the task after observing real long-running
+  Luna/Tauri runs. Functional/runtime correctness now precedes measurement:
+  1. RunActivityTimeline + compact run health/status surface.
+  2. Child Worker Monitor / Workers tab using existing durable identities/state.
+  3. exec_command need-to-know model feedback plus deterministic settlement.
+  4. edit_file failure-amplification prevention, preserving revision safety.
+  5. common outcome taxonomy so UI/runtime distinguish observations from tool failure.
+  6. only after 1-5 are complete: before/after analysis using already-existing data.
+- Necessity Gate for this amendment: do not add telemetry, storage, processes,
+  protocols or helper abstractions merely to improve the later benchmark. If an
+  item functions correctly from existing state, project that state instead of
+  creating another source. If data is unavailable but not required for 1-5 to
+  function, record it as unavailable and defer it to item 6.
 ## Verification
 
 - [ ] Review actual changes against the necessity arguments and frozen scope.

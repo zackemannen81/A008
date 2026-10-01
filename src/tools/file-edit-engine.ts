@@ -35,6 +35,7 @@ export interface EditFailure {
   readonly code:
     | "stale_base"
     | "ambiguous_match"
+    | "count_mismatch"
     | "no_exact_match"
     | "stale_during_edit"
     | "validation_failed"
@@ -45,6 +46,7 @@ export interface EditFailure {
   readonly expectedSha256?: string;
   readonly currentSha256?: string;
   readonly actualOccurrences?: number;
+  readonly expectedOccurrences?: number;
   readonly currentSection?: EditRecoverySection;
   readonly matches?: readonly EditRecoverySection[];
   readonly closestMatch?: EditClosestMatch;
@@ -300,6 +302,7 @@ export function planTextEdit(input: {
   expectedSha256: string;
   oldText: string;
   newText: string;
+  expectedReplacements?: number;
 }): TextEditPlanResult {
   if (input.currentSha256 !== input.expectedSha256) {
     return {
@@ -320,9 +323,10 @@ export function planTextEdit(input: {
   const ending = uniformLineEnding(input.content);
   const before = normalizeLineEndings(input.oldText, ending);
   const replacement = normalizeLineEndings(input.newText, ending);
+  const expectedOccurrences = input.expectedReplacements ?? 1;
   const matches = countOccurrences(input.content, before);
-  if (matches.count !== 1) {
-    if (matches.count > 1) {
+  if (matches.count !== expectedOccurrences) {
+    if (expectedOccurrences === 1 && matches.count > 1) {
       return {
         ok: false,
         failure: {
@@ -336,6 +340,30 @@ export function planTextEdit(input: {
           matches: matches.offsets.map((offset) =>
             recoverySection(input.content, offset, 1),
           ),
+        },
+      };
+    }
+    if (expectedOccurrences !== 1) {
+      return {
+        ok: false,
+        failure: {
+          code: "count_mismatch",
+          retryable: true,
+          written: false,
+          message: `old_text must match exactly ${expectedOccurrences} time(s); it currently matches ${matches.count}. Adjust expected_replacements or old_text; nothing written.`,
+          currentSha256: input.currentSha256,
+          expectedOccurrences,
+          actualOccurrences: matches.count,
+          ...(matches.offsets.length > 0
+            ? {
+                matches: matches.offsets.map((offset) =>
+                  recoverySection(input.content, offset, 1),
+                ),
+              }
+            : {}),
+          ...(matches.count === 0
+            ? recoveryForCurrentText(input.content, before)
+            : {}),
         },
       };
     }
@@ -355,11 +383,7 @@ export function planTextEdit(input: {
     };
   }
 
-  const index = matches.offsets[0]!;
-  const updated =
-    input.content.slice(0, index) +
-    replacement +
-    input.content.slice(index + before.length);
+  const updated = input.content.replaceAll(before, replacement);
   return {
     ok: true,
     plan: { updated, sha256: hashText(updated) },

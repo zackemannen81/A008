@@ -21,17 +21,32 @@ export interface RuntimeToolCall {
   readonly id: string;
   readonly tool?: string;
   readonly status: RuntimeToolStatus | string;
-  readonly startedAt?: number;
-  readonly finishedAt?: number;
+  readonly startedAt?: number | undefined;
+  readonly finishedAt?: number | undefined;
   readonly retryOf?: string;
   readonly recoveredBy?: string;
   readonly argsSummary?: string;
   readonly errorSummary?: string;
   readonly title?: string;
   readonly text?: string;
+  readonly outcome?: string | undefined;
+  readonly modelVisibleBytes?: number | undefined;
+}
+
+export interface GuiRunObservation {
+  readonly id: string;
+  readonly status: string;
+  readonly model: string;
+  readonly createdAt: number;
+  readonly updatedAt: number;
+  readonly leaseGeneration: number;
+  readonly lastProgressAt: number;
+  readonly liveRevision?: string;
+  readonly cursor?: number;
 }
 
 export interface GuiSessionState {
+  readonly run?: GuiRunObservation | undefined;
   readonly recovery?:
     | readonly { readonly runId: string; readonly revision: number }[]
     | undefined;

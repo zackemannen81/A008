@@ -33,6 +33,10 @@ export const sessionActivityEventsSchema = z.strictObject({
                 title: z.string(),
                 status: z.string(),
                 text: z.string(),
+                outcome: z.string().optional(),
+                modelVisibleBytes: z.number().int().nonnegative().optional(),
+                startedAt: z.number().int().nonnegative().optional(),
+                finishedAt: z.number().int().nonnegative().optional(),
               }),
             )
             .optional(),
