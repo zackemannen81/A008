@@ -1,0 +1,119 @@
+# Electron application,
+## plattform/package
+Initial supported desktop target: Windows x64.
+Task 0204 must produce a locally runnable packaged Windows x64 Electron application. Installer/signing/publishing are explicitly deferred.
+Electron Forge is the packaging tool unless repository inspection reveals an existing standard that should be reused.
+
+## host ownership
+Electron is a client and launcher, never the authoritative runtime owner.
+
+On application startup:
+
+1. Resolve the configured local A008 host endpoint.
+2. Probe host readiness using the existing authenticated/local host contract.
+3. If a compatible host is already running:
+   → attach to it.
+4. If no compatible host is running:
+   → start the existing A008 GUI host as a separate local process.
+5. Wait for host readiness.
+6. Only then create/load the A008 GUI renderer.
+
+The Electron renderer never starts, stops, leases, owns or directly
+communicates with session workers.
+
+A host process started by Electron must not be tied to BrowserWindow lifetime.
+Closing or reloading the Electron window must not cancel accepted runs,
+terminate session workers, release runtime ownership, or stop the host.
+
+Electron may bootstrap the host, but host ownership remains defined by the
+existing A008 host/platform lease and process model. Electron must not create
+a second ownership mechanism.
+
+Existing host wins.
+
+Electron must not attempt to replace or restart a healthy compatible host.
+If host startup reports that runtime/platform ownership is already held,
+Electron must re-probe the configured endpoint and attach to the existing
+owner when compatible.
+
+# renderer-model
+The renderer is the existing A008 GUI application.
+
+It receives no Node.js capability.
+
+BrowserWindow:
+- nodeIntegration: false
+- contextIsolation: true
+- sandbox: true
+- webSecurity: true
+- no arbitrary navigation
+- no arbitrary new-window creation
+
+No preload API is added unless repository inspection proves the existing web client cannot perform a required desktop operation through the existing host contract.
+
+## single-instance
+Only one Electron shell instance per user profile is allowed.
+
+A second launch must focus/restore the existing Electron window and exit.
+It must not start another host or create another desktop ownership domain.
+
+## Decisions and Notes
+### Frozen Desktop Integration Decisions
+
+- Initial supported desktop target is Windows x64.
+- A008-0204 delivers a locally runnable packaged Electron application.
+  Installer generation, code signing, publishing, auto-update and additional
+  operating systems remain outside this task.
+- Electron Forge is the default packaging mechanism unless inspection finds
+  an existing repository-owned packaging standard that should be reused.
+- Electron is a thin desktop client/launcher. It is not a runtime, session,
+  memory, lease or accepted-work owner.
+- The renderer is the existing `gui/` application and continues to communicate
+  through the existing A008 GUI-host/client contract.
+- On startup Electron first probes the configured local host. A healthy
+  compatible existing host is reused.
+- If no compatible host is available, Electron may bootstrap the existing
+  A008 GUI host as a separate local process, then waits for verified readiness
+  before loading the renderer.
+- Host authority remains defined by the existing A008 host/platform ownership
+  and lease model. Electron introduces no parallel ownership mechanism.
+- A host bootstrapped by Electron must not be coupled to BrowserWindow
+  lifetime. Closing/reloading the desktop window must not stop the host,
+  session workers or accepted runs.
+- Host shutdown semantics beyond the existing host contract are not introduced
+  by this task. An explicit desktop "stop host" or lifecycle manager is a
+  separate future feature.
+- Only one Electron shell instance per user profile is allowed. A second
+  launch focuses/restores the existing window and must not start another host.
+- Renderer Node integration is disabled, context isolation and sandboxing are
+  enabled, and web security remains enabled.
+- No preload API is introduced unless a concrete requirement cannot be
+  satisfied through the existing GUI-host contract. Any required preload API
+  must be narrow, typed and explicitly allow-listed.
+- Navigation and new-window creation are restricted to explicitly approved
+  local A008 surfaces. Arbitrary external content is not granted Electron or
+  preload capabilities.
+
+### Primary Deliverable
+
+A Windows x64 Electron desktop shell under `clients/electron` that packages and
+presents the existing `gui/` client, discovers or bootstraps the existing local
+A008 GUI host, waits for verified host readiness, and connects through the
+existing client contract without becoming a runtime owner.
+
+The packaged application must remain functionally equivalent to the web GUI
+for shared features. Closing or restarting the desktop renderer must not cancel
+or terminate host-owned accepted work.
+
+### definitions of done
+- Starting Electron while no host is running starts exactly one host and reaches
+  a ready GUI.
+- Starting Electron while a compatible host is already running reuses it and
+  starts no second host.
+- Closing/reloading the BrowserWindow during an accepted run does not stop the
+  host, session worker or accepted run; reopening Electron reconnects to the
+  durable state.
+- Launching a second Electron instance focuses/restores the first instance and
+  does not start another host.
+
+  
