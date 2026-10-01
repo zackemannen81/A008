@@ -218,3 +218,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0203 | suppress repeated completed GUI permission decisions | Codex (operator) | 2026-09-30 | owner-reported stale permission replay and transient conflict banner |
 | A008-0204 | Electron desktop client for the A008 GUI | Rickard (operator); implementation owner TBD | 2026-09-30 | Additive Electron app under clients/electron reusing gui/ and the existing local host |
 | A008-0205 | transactional native file editing with deterministic recovery | ChatGPT (operator/worker) | 2026-10-01 | context-efficient edit recovery combining A008 revision bounds, Desktop Commander diagnostics, and transactional file safety |
+| A008-0206 | embedded OpenAI Responses continuation measurement | ChatGPT (operator/worker) | 2026-10-01 | expose exact Responses wire-byte measurement on the default embedded ACME OpenAI route so A008-0198 can run with Luna reasoning and tools |
