@@ -303,10 +303,11 @@ Task 4 is implemented by A008-0199. Neither live compaction nor process recovery
 - Recovery is conservative: read/list/create/edit expose verifiable local paths;
   opaque terminal/Git/external tool evidence, symlinks/submodules, scan limits and
   races outside the comparison window are not guaranteed recoverable.
-- Opt-in pressure requires an exactly measured route. The direct runtime and
-  tracing wrappers now forward provider measurements. The current embedded-ACME
-  adapter lacks this capability and fails closed when pressure is enabled.
-  Defaults remain disabled. No provider fallback or new route was introduced.
+- Opt-in pressure requires an exactly measured route. A008-0206 now provides
+  exact final-wire measurement for embedded ACME native OpenAI Responses,
+  including streaming, function tools and reasoning-summary augmentation.
+  Embedded NVIDIA/KIE/compatible routes still fail closed until they own an
+  equivalent exact serializer. Defaults remain disabled and no fallback is added.
 
 Verification details and final counts: [A008-0199 handoff](handoffs/A008-0199.md).
 
