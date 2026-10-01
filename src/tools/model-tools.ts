@@ -25,6 +25,7 @@ import {
   nativeOutputBytes,
   TOOL_OUTPUT_BYTES_PROPERTY,
 } from "./repository-tools.js";
+import { EDIT_FAILURE_OUTPUT_BYTES } from "./file-edit-engine.js";
 import {
   bindRuntimeMcpArguments,
   createMcpExecutionId,
@@ -98,6 +99,37 @@ export function boundedToolText(
     text: decoder.decode(bytes.subarray(0, maximum), { stream: true }),
     truncated: true,
   };
+}
+
+function repositoryFailureResult(error: RepositoryToolError): string {
+  const full = JSON.stringify({
+    status: "failed",
+    text: error.message,
+    ...(error.details ?? {}),
+  });
+  if (Buffer.byteLength(full, "utf8") <= EDIT_FAILURE_OUTPUT_BYTES) return full;
+  const details = error.details ?? {};
+  return JSON.stringify({
+    status: "failed",
+    text: error.message,
+    ...(typeof details.code === "string" ? { code: details.code } : {}),
+    ...(typeof details.retryable === "boolean"
+      ? { retryable: details.retryable }
+      : {}),
+    ...(typeof details.written === "boolean"
+      ? { written: details.written }
+      : {}),
+    ...(typeof details.expectedSha256 === "string"
+      ? { expectedSha256: details.expectedSha256 }
+      : {}),
+    ...(typeof details.currentSha256 === "string"
+      ? { currentSha256: details.currentSha256 }
+      : {}),
+    ...(typeof details.actualOccurrences === "number"
+      ? { actualOccurrences: details.actualOccurrences }
+      : {}),
+    diagnosticTruncated: true,
+  });
 }
 
 function schemaAcceptsNull(schema: unknown): boolean {
@@ -446,11 +478,14 @@ export class ModelToolSession {
       return text;
     } catch (error) {
       // SDK/provider errors may contain credentials or raw payloads. Publish no raw error.
+      if (!signal.aborted && error instanceof RepositoryToolError) {
+        const text = repositoryFailureResult(error);
+        await approval.update({ ...activity, status: "failed", output: text });
+        return text;
+      }
       const text = signal.aborted
         ? "Tool cancelled."
-        : error instanceof RepositoryToolError
-          ? error.message
-          : "Tool failed or timed out. No success confirmed.";
+        : "Tool failed or timed out. No success confirmed.";
       await approval.update({ ...activity, status: "failed", output: text });
       signal.throwIfAborted();
       return JSON.stringify({ status: "failed", text });

@@ -15,8 +15,20 @@ import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import type { ChatToolDefinition } from "../core/types.js";
 import type { RuntimeBudgets } from "../core/runtime-preferences.js";
 import { formatTerminalResult, runTerminalCommand } from "./terminal.js";
+import {
+  atomicAdoptText,
+  planTextEdit,
+  withFileEditLock,
+} from "./file-edit-engine.js";
 
-export class RepositoryToolError extends Error {}
+export class RepositoryToolError extends Error {
+  constructor(
+    message: string,
+    readonly details?: Record<string, unknown>,
+  ) {
+    super(message);
+  }
+}
 export interface NativeRepositoryTool {
   definition: ChatToolDefinition;
   run(
@@ -249,16 +261,6 @@ function filePage(
   return page;
 }
 
-function uniformLineEnding(content: string): "\r\n" | "\n" | undefined {
-  if (
-    content.includes("\r\n") &&
-    !/[\r\n]/.test(content.replaceAll("\r\n", ""))
-  )
-    return "\r\n";
-  if (content.includes("\n") && !content.includes("\r")) return "\n";
-  return undefined;
-}
-
 export function repositoryTools(
   cwd: string,
   env: NodeJS.ProcessEnv,
@@ -348,35 +350,40 @@ export function repositoryTools(
             }),
           };
         }
-        const { bytes, content } = readText(path, MAX_TEXT_FILE_BYTES);
-        if (hash(bytes) !== args.expected_sha256)
-          throw new RepositoryToolError(
-            "File changed since it was read. Read the relevant section again and prepare a new edit with its sha256; nothing written.",
-          );
-        const ending = uniformLineEnding(content);
-        const normalize = (text: string) =>
-          ending ? text.replace(/\r\n|\n/g, ending) : text;
-        const before = normalize(args.old_text as string);
-        const index = content.indexOf(before);
-        if (index < 0 || content.indexOf(before, index + 1) >= 0)
-          throw new RepositoryToolError(
-            index < 0
-              ? "old_text must match exactly once; no match found. Read only the relevant section and copy its exact text; nothing written."
-              : "old_text must match exactly once; multiple matches found. Include more unchanged context; nothing written.",
-          );
-        const updated =
-          content.slice(0, index) +
-          normalize(args.new_text as string) +
-          content.slice(index + before.length);
-        writeFileSync(path, updated, "utf8");
-        return {
-          failed: false,
-          text: JSON.stringify({
-            path: args.path,
-            edited: true,
-            sha256: hash(Buffer.from(updated)),
-          }),
-        };
+        return await withFileEditLock(path, async () => {
+          signal.throwIfAborted();
+          const { bytes, content } = readText(path, MAX_TEXT_FILE_BYTES);
+          const currentSha256 = hash(bytes);
+          const planned = planTextEdit({
+            content,
+            currentSha256,
+            expectedSha256: args.expected_sha256 as string,
+            oldText: args.old_text as string,
+            newText: args.new_text as string,
+          });
+          if (!planned.ok) {
+            const { message, ...details } = planned.failure;
+            throw new RepositoryToolError(message, details);
+          }
+          signal.throwIfAborted();
+          const adopted = atomicAdoptText({
+            path,
+            originalBytes: bytes,
+            candidateText: planned.plan.updated,
+          });
+          if (!adopted.ok) {
+            const { message, ...details } = adopted.failure;
+            throw new RepositoryToolError(message, details);
+          }
+          return {
+            failed: false,
+            text: JSON.stringify({
+              path: args.path,
+              edited: true,
+              sha256: adopted.sha256,
+            }),
+          };
+        });
       } catch (error) {
         if (error instanceof RepositoryToolError) throw error;
         const code = (error as NodeJS.ErrnoException).code;

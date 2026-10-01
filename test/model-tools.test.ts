@@ -9,6 +9,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   existsSync,
   rmSync,
   writeFileSync,
@@ -27,6 +28,10 @@ import {
   toolEnvironment,
   type ToolActivity,
 } from "../src/tools/model-tools.js";
+import {
+  atomicAdoptText,
+  EDIT_FAILURE_OUTPUT_BYTES,
+} from "../src/tools/file-edit-engine.js";
 import {
   bindRuntimeMcpArguments,
   presentMcpSchema,
@@ -182,7 +187,8 @@ test("sectional read/edit keeps large files out of context and chains whole-file
       new_text: "wrong",
     });
     assert.equal(stale.status, "failed");
-    assert.match(stale.text, /relevant section/);
+    assert.equal(stale.code, "stale_base");
+    assert.match(stale.currentSection.content, /changed/);
     const contextBytes = Buffer.byteLength(
       JSON.stringify([read, edited, chained]),
     );
@@ -488,7 +494,10 @@ test("file tools preserve UTF-8/CRLF, reject stale and ambiguous edits, existing
       readFileSync(join(cwd, "nested/new.txt"), "utf8"),
       content.replace("second", "changed"),
     );
-    assert.match((await execute("edit_file", edit)).text, /changed since/);
+    const staleEdit = await execute("edit_file", edit);
+    assert.equal(staleEdit.status, "failed");
+    assert.equal(staleEdit.code, "stale_base");
+    assert.equal(staleEdit.written, false);
     assert.equal(
       (
         await execute("create_file", {
@@ -643,13 +652,226 @@ test("sectional edit retains external-change, literal mixed-ending and approval 
     );
     const stale = await execute("edit_file", { ...edit, old_text: "second\n" });
     assert.equal(stale.status, "failed");
-    assert.match(stale.text, /changed since/);
+    assert.equal(stale.code, "stale_base");
+    assert.equal(stale.written, false);
     assert.equal(
       readFileSync(join(cwd, "mixed.txt"), "utf8"),
       content + "external write outside selected section\n",
     );
   } finally {
     await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("transactional native edit keeps success compact and failure recovery bounded", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-edit-recovery-"));
+  const tools = new ModelToolSession({ cwd, env: process.env });
+  try {
+    const port = await tools.prepare(
+      budgets,
+      { approve: async () => true, update: async () => undefined },
+      new AbortController().signal,
+    );
+    let id = 0;
+    const executeRaw = (name: string, args: unknown) =>
+      port.execute({
+        id: String(++id),
+        name,
+        arguments: JSON.stringify(args),
+      });
+    const execute = async (name: string, args: unknown) =>
+      JSON.parse(await executeRaw(name, args));
+
+    const target = join(cwd, "target.txt");
+    writeFileSync(target, "alpha\nBETA\ngamma\n");
+    const firstRead = JSON.parse(
+      (await execute("read_file", { path: "target.txt", offset: 1, limit: 1 }))
+        .text,
+    );
+    const successRaw = await executeRaw("edit_file", {
+      path: "target.txt",
+      expected_sha256: firstRead.sha256,
+      old_text: "BETA",
+      new_text: "BETA2",
+    });
+    const successBytes = Buffer.byteLength(successRaw, "utf8");
+    assert.ok(
+      successBytes <= 256,
+      "successful edit receipt grew to " + successBytes + " bytes",
+    );
+    const success = JSON.parse(successRaw);
+    assert.equal(success.status, "completed");
+    const receipt = JSON.parse(success.text);
+    assert.equal(receipt.edited, true);
+    assert.equal(readFileSync(target, "utf8"), "alpha\nBETA2\ngamma\n");
+
+    const staleRaw = await executeRaw("edit_file", {
+      path: "target.txt",
+      expected_sha256: firstRead.sha256,
+      old_text: "BETA2",
+      new_text: "BETA3",
+    });
+    const stale = JSON.parse(staleRaw);
+    assert.equal(stale.status, "failed");
+    assert.equal(stale.code, "stale_base");
+    assert.equal(stale.retryable, true);
+    assert.equal(stale.written, false);
+    assert.equal(stale.currentSha256, receipt.sha256);
+    assert.match(stale.currentSection.content, /BETA2/);
+    assert.ok(Buffer.byteLength(staleRaw, "utf8") <= EDIT_FAILURE_OUTPUT_BYTES);
+    assert.equal(readFileSync(target, "utf8"), "alpha\nBETA2\ngamma\n");
+
+    const noMatchRaw = await executeRaw("edit_file", {
+      path: "target.txt",
+      expected_sha256: receipt.sha256,
+      old_text: "BETAA2",
+      new_text: "BETA3",
+    });
+    const noMatch = JSON.parse(noMatchRaw);
+    assert.equal(noMatch.code, "no_exact_match");
+    assert.equal(noMatch.written, false);
+    assert.ok(noMatch.closestMatch.similarity >= 0.7);
+    assert.match(noMatch.closestMatch.content, /BETA2/);
+    assert.ok(
+      Buffer.byteLength(noMatchRaw, "utf8") <= EDIT_FAILURE_OUTPUT_BYTES,
+    );
+    assert.equal(readFileSync(target, "utf8"), "alpha\nBETA2\ngamma\n");
+
+    writeFileSync(target, "same\nmiddle\nsame\n");
+    const duplicateRead = JSON.parse(
+      (await execute("read_file", { path: "target.txt", limit: 1 })).text,
+    );
+    const ambiguousRaw = await executeRaw("edit_file", {
+      path: "target.txt",
+      expected_sha256: duplicateRead.sha256,
+      old_text: "same",
+      new_text: "changed",
+    });
+    const ambiguous = JSON.parse(ambiguousRaw);
+    assert.equal(ambiguous.code, "ambiguous_match");
+    assert.equal(ambiguous.actualOccurrences, 2);
+    assert.equal(ambiguous.matches.length, 2);
+    assert.equal(ambiguous.written, false);
+    assert.ok(
+      Buffer.byteLength(ambiguousRaw, "utf8") <= EDIT_FAILURE_OUTPUT_BYTES,
+    );
+    assert.equal(readFileSync(target, "utf8"), "same\nmiddle\nsame\n");
+
+    writeFileSync(target, "one\rtwo\r");
+    const crRead = JSON.parse(
+      (await execute("read_file", { path: "target.txt", offset: 1, limit: 1 }))
+        .text,
+    );
+    const crEdit = await execute("edit_file", {
+      path: "target.txt",
+      expected_sha256: crRead.sha256,
+      old_text: "two\n",
+      new_text: "TWO\n",
+    });
+    assert.equal(crEdit.status, "completed");
+    assert.equal(readFileSync(target, "utf8"), "one\rTWO\r");
+  } finally {
+    await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("same-path native edits serialize and stale loser cannot clobber winner", async () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-edit-lock-"));
+  const tools = new ModelToolSession({ cwd, env: process.env });
+  try {
+    const port = await tools.prepare(
+      budgets,
+      { approve: async () => true, update: async () => undefined },
+      new AbortController().signal,
+    );
+    const target = join(cwd, "race.txt");
+    writeFileSync(target, "left\nright\n");
+    const read = JSON.parse(
+      JSON.parse(
+        await port.execute({
+          id: "read",
+          name: "read_file",
+          arguments: JSON.stringify({ path: "race.txt", limit: 1 }),
+        }),
+      ).text,
+    );
+    const [aRaw, bRaw] = await Promise.all([
+      port.execute({
+        id: "edit-a",
+        name: "edit_file",
+        arguments: JSON.stringify({
+          path: "race.txt",
+          expected_sha256: read.sha256,
+          old_text: "left",
+          new_text: "LEFT",
+        }),
+      }),
+      port.execute({
+        id: "edit-b",
+        name: "edit_file",
+        arguments: JSON.stringify({
+          path: "race.txt",
+          expected_sha256: read.sha256,
+          old_text: "right",
+          new_text: "RIGHT",
+        }),
+      }),
+    ]);
+    const results = [JSON.parse(aRaw), JSON.parse(bRaw)];
+    assert.equal(
+      results.filter((result) => result.status === "completed").length,
+      1,
+    );
+    const stale = results.find((result) => result.code === "stale_base");
+    assert.ok(stale);
+    assert.equal(stale.written, false);
+    assert.ok(
+      ["LEFT\nright\n", "left\nRIGHT\n"].includes(readFileSync(target, "utf8")),
+    );
+  } finally {
+    await tools.close();
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test("atomic edit adoption failure preserves or restores the exact original bytes", () => {
+  const cwd = mkdtempSync(join(tmpdir(), "a008-edit-atomic-"));
+  try {
+    const target = join(cwd, "atomic.txt");
+    const original = Buffer.from("before\r\nexact\r\n", "utf8");
+    writeFileSync(target, original);
+
+    const refused = atomicAdoptText({
+      path: target,
+      originalBytes: original,
+      candidateText: "after\r\nexact\r\n",
+      adopt: () => {
+        throw new Error("forced adoption failure");
+      },
+    });
+    assert.equal(refused.ok, false);
+    if (!refused.ok) assert.equal(refused.failure.code, "adoption_failed");
+    assert.deepEqual(readFileSync(target), original);
+
+    const corrupted = atomicAdoptText({
+      path: target,
+      originalBytes: original,
+      candidateText: "after\r\nexact\r\n",
+      adopt: (_candidate, destination) => {
+        writeFileSync(destination, "corrupt", "utf8");
+      },
+    });
+    assert.equal(corrupted.ok, false);
+    if (!corrupted.ok)
+      assert.equal(corrupted.failure.code, "validation_failed");
+    assert.deepEqual(readFileSync(target), original);
+    assert.equal(
+      readdirSync(cwd).some((name) => name.startsWith(".a008-")),
+      false,
+    );
+  } finally {
     rmSync(cwd, { recursive: true, force: true });
   }
 });
