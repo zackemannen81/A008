@@ -8,12 +8,35 @@ export const REPOSITORY_ACTIONS = [
   { label: "Review changes", tool: "git", prompt: "Granska ändringarna i arbetskopian med git status, git diff och git diff --cached. Läs berörda filer vid behov och sammanfatta fynden." },
 ] as const;
 
-export type ToolDisplayStatus = "running" | "ok" | "recovered" | "failed" | "blocking";
+export type ToolDisplayStatus =
+  | "running"
+  | "ok"
+  | "warning"
+  | "recoverable"
+  | "failed"
+  | "blocking";
+
+const RECOVERABLE_OUTCOMES = new Set([
+  "stale_base",
+  "no_exact_match",
+  "ambiguous_match",
+  "count_mismatch",
+]);
 
 export function displayStatus(tool: RuntimeToolCall): ToolDisplayStatus {
-  if (tool.status === "running" || tool.status === "pending") return "running";
+  if (
+    tool.status === "running" ||
+    tool.status === "pending" ||
+    tool.status === "in_progress"
+  )
+    return "running";
+  if (tool.outcome === "command_nonzero") return "warning";
+  if (
+    tool.recoveredBy ||
+    (tool.outcome !== undefined && RECOVERABLE_OUTCOMES.has(tool.outcome))
+  )
+    return "recoverable";
   if (tool.status === "ok" || tool.status === "completed") return "ok";
-  if (tool.recoveredBy) return "recovered";
   return "failed";
 }
 
@@ -35,7 +58,7 @@ function displayText(tool: RuntimeToolCall): string {
 }
 
 function isBlocking(tool: RuntimeToolCall): boolean {
-  return displayStatus(tool) === "failed" && tool.recoveredBy === undefined;
+  return displayStatus(tool) === "failed";
 }
 
 export interface ToolSummaryDisclosure {
@@ -84,7 +107,7 @@ export function ToolActivity({
     const status = displayStatus(tool);
     result[status] += 1;
     return result;
-  }, { running: 0, ok: 0, recovered: 0, failed: 0, blocking: 0 });
+  }, { running: 0, ok: 0, warning: 0, recoverable: 0, failed: 0, blocking: 0 });
   const completed = counts.running === 0;
   return <section className="a008-tool-activity" aria-label="Tool activity">
     <details
@@ -100,16 +123,19 @@ export function ToolActivity({
     >
       <summary>{completed ? "✓" : "⚙"} Tools · {tools.length} calls · {completed ? "completed" : "running"}</summary>
       <div className="a008-tool-summary-counts">
-        {counts.ok} ok · {counts.recovered} recovered · {counts.failed} failed · {counts.running} running
+        {counts.ok} ok · {counts.warning} nonzero · {counts.recoverable} recoverable · {counts.failed} failed · {counts.running} running
       </div>
       <div className="a008-tool-groups">
         {Array.from(grouped, ([name, entries]) => {
-          const recovered = entries.filter(tool => displayStatus(tool) === "recovered").length;
+          const warning = entries.filter(tool => displayStatus(tool) === "warning").length;
+          const recoverable = entries.filter(tool => displayStatus(tool) === "recoverable").length;
           const failed = entries.filter(tool => isBlocking(tool)).length;
+          const running = entries.filter(tool => displayStatus(tool) === "running").length;
+          const ok = entries.length - warning - recoverable - failed - running;
           return <details key={name}>
-            <summary>{name} ×{entries.length} · ✓ {entries.length - recovered - failed} {recovered ? `· ↻ ${recovered}` : ""} {failed ? `· ✕ ${failed}` : ""}</summary>
+            <summary>{name} ×{entries.length} · ✓ {ok} {warning ? `· ⚠ ${warning}` : ""} {recoverable ? `· ↻ ${recoverable}` : ""} {failed ? `· ✕ ${failed}` : ""} {running ? `· ⚙ ${running}` : ""}</summary>
             {entries.map(tool => <div key={tool.id} className={`a008-tool-row a008-tool-${displayStatus(tool)}`}>
-              <span>{displayStatus(tool) === "recovered" ? "↻" : displayStatus(tool) === "ok" ? "✓" : displayStatus(tool) === "running" ? "⚙" : "✕"}</span>
+              <span>{displayStatus(tool) === "recoverable" ? "↻" : displayStatus(tool) === "warning" ? "⚠" : displayStatus(tool) === "ok" ? "✓" : displayStatus(tool) === "running" ? "⚙" : "✕"}</span>
               <span>{displayText(tool) || name}</span>
               <span>{rawStatus(tool)}{tool.status === "pending" ? " — awaiting approval" : ""}{duration(tool) ? ` · ${duration(tool)}` : ""}</span>
               <span className="a008-tool-legacy-label">{name} · {rawStatus(tool)}</span>

@@ -32,6 +32,9 @@ import type { HtmlArtifactCandidate } from "./artifact/code-artifact.js";
 import { ProjectsPage } from "./projects/projects-page.js";
 import { ProjectSidebar } from "./projects/project-sidebar.js";
 import { PlatformPage } from "./platform/platform-page.js";
+import { WorkersPage } from "./workers/workers-page.js";
+import { guiHttp } from "./client.js";
+import { listSidebarProjects } from "../../packages/client/src/index.js";
 import type { InstalledSkill } from "./skills/skills.js";
 import {
   clampSidebarWidth,
@@ -50,11 +53,12 @@ const STATUS_LABEL = {
 const REVIEW_PROMPT =
   "Granska ändringarna i arbetskopian med git status, git diff och git diff --cached. Läs berörda filer vid behov och sammanfatta fynden.";
 
-type Page = "chat" | "memory" | "tools" | "help" | "projects" | "platform";
+type Page = "chat" | "memory" | "tools" | "workers" | "help" | "projects" | "platform";
 const PAGE_TITLE: Record<Page, string> = {
   chat: "Conversation",
   memory: "Memory",
   tools: "Tools",
+  workers: "Workers",
   help: "Help",
   projects: "Projects",
   platform: "Platform",
@@ -95,10 +99,38 @@ export function App() {
   const [pendingArtifact, setPendingArtifact] =
     useState<HtmlArtifactCandidate>();
   const [selectedSkill, setSelectedSkill] = useState<InstalledSkill>();
+  const [multiAgentEnabled, setMultiAgentEnabled] = useState(false);
   const artifactSessionId = useRef<string | undefined>(session.sessionId);
   const cwd = session.details?.runtime.cwd;
   const workspace = cwd?.split(/[\\/]/u).filter(Boolean).at(-1);
   const chatWorkspace = session.durable?.getWorkspace();
+  const selectedProjectId = session.durable?.getSelectedProjectId();
+
+  useEffect(() => {
+    let current = true;
+    if (!session.durable || !selectedProjectId) {
+      setMultiAgentEnabled(false);
+      return;
+    }
+    void listSidebarProjects(guiHttp())
+      .then((sidebar) => {
+        if (!current) return;
+        const project = sidebar.projects.find(
+          (entry) => entry.projectId === selectedProjectId,
+        );
+        setMultiAgentEnabled(project?.continuity.multiAgent.enabled === true);
+      })
+      .catch(() => {
+        if (current) setMultiAgentEnabled(false);
+      });
+    return () => {
+      current = false;
+    };
+  }, [projectsRevision, selectedProjectId, session.durable]);
+
+  useEffect(() => {
+    if (!multiAgentEnabled && page === "workers") navigate("chat");
+  }, [multiAgentEnabled, page]);
 
   useEffect(() => {
     if (artifactSessionId.current === session.sessionId) return;
@@ -318,6 +350,14 @@ export function App() {
           >
             <span aria-hidden="true">⌘</span> Tools
           </button>
+          {session.durable && multiAgentEnabled ? (
+            <button
+              aria-current={page === "workers" ? "page" : undefined}
+              onClick={() => navigate("workers")}
+            >
+              <span aria-hidden="true">◫</span> Workers
+            </button>
+          ) : null}
           <button
             aria-current={page === "help" ? "page" : undefined}
             onClick={() => navigate("help")}
@@ -597,6 +637,21 @@ export function App() {
             session.details?.runtime.projectId ??
             undefined
           }
+        />
+      </main>
+      <main className="a008-help-main" hidden={page !== "workers"}>
+        <WorkersPage
+          active={page === "workers"}
+          projectId={session.durable?.getSelectedProjectId()}
+          model={session.model}
+          toolTimeoutMs={session.details?.runtimePreferences?.settings.budgets.toolTimeoutMs}
+          providerTimeoutMs={session.details?.runtimePreferences?.settings.budgets.providerTimeoutMs}
+          onFollow={async (conversationId) => {
+            const projectId = session.durable?.getSelectedProjectId();
+            if (!projectId || !session.durable) return;
+            await session.durable.selectChat(projectId, conversationId);
+            navigate("chat");
+          }}
         />
       </main>
       <main className="a008-help-main" hidden={page !== "help"}>

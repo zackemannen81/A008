@@ -20,7 +20,10 @@ import type {
   SessionSnapshot,
 } from "../core/session-control.js";
 import type { ChatMessage } from "../core/types.js";
-import type { GeneratedImage } from "../../packages/protocol/src/index.js";
+import {
+  toolOutcomeSchema,
+  type GeneratedImage,
+} from "../../packages/protocol/src/index.js";
 import { defaultCatalogPath } from "../core/user-catalog.js";
 import {
   defaultSecretsPath,
@@ -58,6 +61,26 @@ interface EngineSession {
   activities: Map<string, Extract<GuiHostServerMessage, { type: "tool" }>>;
   generations: Map<string, AbortController>;
   generationWork: Set<Promise<void>>;
+}
+
+function activityMetadata(text: string) {
+  try {
+    const value = JSON.parse(text) as {
+      outcome?: unknown;
+      modelVisibleBytes?: unknown;
+    };
+    const parsed = toolOutcomeSchema.safeParse(value.outcome);
+    return {
+      ...(parsed.success ? { outcome: parsed.data } : {}),
+      ...(typeof value.modelVisibleBytes === "number" &&
+      Number.isSafeInteger(value.modelVisibleBytes) &&
+      value.modelVisibleBytes >= 0
+        ? { modelVisibleBytes: value.modelVisibleBytes }
+        : {}),
+    };
+  } catch {
+    return {};
+  }
 }
 
 export interface EngineConversationSeed {
@@ -398,22 +421,39 @@ export class EngineHost {
         update.sessionUpdate === "tool_call_update"
       ) {
         const previous = session.activities.get(update.toolCallId);
+        const text =
+          update.content
+            ?.flatMap((c) =>
+              c.type === "content" && c.content.type === "text"
+                ? [c.content.text]
+                : [],
+            )
+            .join("\n") ??
+          previous?.text ??
+          "";
+        const status = update.status ?? previous?.status ?? "pending";
+        const now = Date.now();
+        const metadata = activityMetadata(text);
         const activity = {
           type: "tool" as const,
           sessionId: params.sessionId,
           id: update.toolCallId,
           title: update.title ?? previous?.title ?? "Tool",
-          status: update.status ?? previous?.status ?? "pending",
-          text:
-            update.content
-              ?.flatMap((c) =>
-                c.type === "content" && c.content.type === "text"
-                  ? [c.content.text]
-                  : [],
-              )
-              .join("\n") ??
-            previous?.text ??
-            "",
+          status,
+          text,
+          ...(metadata.outcome ?? previous?.outcome
+            ? { outcome: metadata.outcome ?? previous?.outcome }
+            : {}),
+          ...(metadata.modelVisibleBytes ?? previous?.modelVisibleBytes
+            ? {
+                modelVisibleBytes:
+                  metadata.modelVisibleBytes ?? previous?.modelVisibleBytes,
+              }
+            : {}),
+          startedAt: previous?.startedAt ?? now,
+          ...(["completed", "failed"].includes(status)
+            ? { finishedAt: previous?.finishedAt ?? now }
+            : {}),
         };
         session.activities.set(activity.id, activity);
         this.#emit(session, activity);

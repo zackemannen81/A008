@@ -382,12 +382,14 @@ Local snapshot processing reads at most 16 MiB plus one detection byte, independ
 of the model output budget. Hashing still reads local file bytes; only the selected
 section enters model context. Binary/non-UTF-8 files and larger snapshots are refused.
 `edit_file` uses the same snapshot ceiling rather than the output ceiling. It requires
-the whole-file hash and exactly one match, keeps compact success results with the new
-hash and allows chaining edits without redundant reads. Uniform LF/CRLF files normalize
-search/replacement line endings to their existing style; mixed styles stay literal.
-No fuzzy edits, automatic retry or concurrency transaction is introduced. On a stale
-hash, read the relevant section again. On no/multiple matches, correct/narrow the
-search context. Explicit whole-file newline conversion requires another tool.
+the whole-file hash and exactly one exact match, keeps compact success results with the
+new hash and allows chaining edits without redundant reads. Uniform LF/CRLF/CR files
+normalize request line endings to the file style; mixed styles stay literal. A008-0205
+adds process-local same-path serialization plus candidate write/validation and atomic
+same-directory adoption. Fuzzy similarity is diagnostic only and can never authorize a
+write. Stale, ambiguous and no-match outcomes are non-destructive and may include a
+bounded current section, occurrence anchors or closest-match/diff recovery capsule.
+A008-0207 owns final integration and live recovery-amplification verification.
 
 `exec_command` and `git` accept `max_output_bytes`, default 8192, bounded by
 `toolOutputBytes`. Their final result text is capped with explicit truncation;

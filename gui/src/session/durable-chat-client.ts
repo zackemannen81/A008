@@ -105,8 +105,49 @@ export class DurableChatClient {
   #durableSnapshot: GuiConversationView["snapshot"] | undefined;
   #submittedRun: string | undefined;
   #permissionRequests = new Map<string, Promise<void>>();
+  #progressRunId: string | undefined;
+  #progressFingerprint = "";
+  #lastProgressAt = 0;
   // Keep confirmed decisions across chat switches; stale snapshots can outlive POSTs.
   #resolvedPermissions = new Set<string>();
+
+  #runObservation(
+    run: PlatformV3Run,
+    activity?: GuiRunActivity,
+  ) {
+    const fingerprint = JSON.stringify([
+      run.status,
+      activity?.liveRevision,
+      activity?.cursor,
+      activity?.answer.length,
+      activity?.tools.map((tool) => [
+        tool.id,
+        tool.status,
+        tool.text.length,
+        tool.outcome,
+      ]),
+      activity?.permission?.id,
+    ]);
+    if (this.#progressRunId !== run.id) {
+      this.#progressRunId = run.id;
+      this.#progressFingerprint = fingerprint;
+      this.#lastProgressAt = Date.now();
+    } else if (this.#progressFingerprint !== fingerprint) {
+      this.#progressFingerprint = fingerprint;
+      this.#lastProgressAt = Date.now();
+    }
+    return {
+      id: run.id,
+      status: run.status,
+      model: run.model,
+      createdAt: run.createdAt,
+      updatedAt: run.updatedAt,
+      leaseGeneration: run.leaseGeneration,
+      lastProgressAt: this.#lastProgressAt || Date.now(),
+      ...(activity?.liveRevision ? { liveRevision: activity.liveRevision } : {}),
+      ...(activity?.cursor === undefined ? {} : { cursor: activity.cursor }),
+    };
+  }
 
   #pendingPermission(runId: string, permission: GuiRunActivity["permission"]) {
     return permission &&
@@ -186,6 +227,7 @@ export class DurableChatClient {
             ...(this.#durableSnapshot
               ? { details: this.#details(this.#durableSnapshot, activity) }
               : {}),
+            ...(this.#run ? { run: this.#runObservation(this.#run, activity) } : {}),
             thought: activity.thought,
             answer: activity.answer,
             tools: activity.tools,
@@ -325,6 +367,9 @@ export class DurableChatClient {
     this.#submittedRun = undefined;
     this.#run = undefined;
     this.#workspace = undefined;
+    this.#progressRunId = undefined;
+    this.#progressFingerprint = "";
+    this.#lastProgressAt = 0;
     this.#selection = { projectId };
     this.#publish({
       status: "connecting",
@@ -487,6 +532,7 @@ export class DurableChatClient {
         model,
         details,
         busy: active,
+        run: run ? this.#runObservation(run, currentActivity) : undefined,
         sessionId: id,
         process,
         recovery: runs

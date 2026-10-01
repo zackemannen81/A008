@@ -6,6 +6,16 @@ Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtn
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
 
+## Transactional native edit checkpoint — A008-0205 / successor A008-0207
+
+A008-0205 produced a verified predecessor checkpoint for transactional native text
+editing: exact-match planning, bounded stale/ambiguity/closest-match diagnostics,
+process-local same-path serialization and candidate validation with atomic same-directory
+adoption. Success remains compact and fuzzy matching never writes. Focused model-tool
+verification passes 26/26 after rebasing onto current main. The task is intentionally
+Superseded rather than Complete: A008-0207 owns final integration/product verification
+and the owner-requested Luna/Responses recovery-amplification benchmark.
+
 ## Embedded OpenAI Responses continuation measurement — A008-0206
 
 The default `embedded-acme` OpenAI route now exposes exact A008-0198 request
@@ -293,10 +303,11 @@ Task 4 is implemented by A008-0199. Neither live compaction nor process recovery
 - Recovery is conservative: read/list/create/edit expose verifiable local paths;
   opaque terminal/Git/external tool evidence, symlinks/submodules, scan limits and
   races outside the comparison window are not guaranteed recoverable.
-- Opt-in pressure requires an exactly measured route. The direct runtime and
-  tracing wrappers now forward provider measurements. The current embedded-ACME
-  adapter lacks this capability and fails closed when pressure is enabled.
-  Defaults remain disabled. No provider fallback or new route was introduced.
+- Opt-in pressure requires an exactly measured route. A008-0206 now provides
+  exact final-wire measurement for embedded ACME native OpenAI Responses,
+  including streaming, function tools and reasoning-summary augmentation.
+  Embedded NVIDIA/KIE/compatible routes still fail closed until they own an
+  equivalent exact serializer. Defaults remain disabled and no fallback is added.
 
 Verification details and final counts: [A008-0199 handoff](handoffs/A008-0199.md).
 
