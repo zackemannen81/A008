@@ -11,6 +11,8 @@ the template before push.
 
 ## Records
 
+- [A008-0204_electron-desktop-client.md](A008-0204_electron-desktop-client.md) - In Progress; Windows x64 Electron client using the existing GUI/host; runtime ownership unchanged.
+
 - [A008-0203_permission-replay.md](A008-0203_permission-replay.md) — Complete locally; suppress confirmed permission replays and stale prompts. [Archive](../finished/A008-0203_permission-replay.md), [handoff](../handoffs/A008-0203.md).
 
 - [A008-0202_mcp-strictness.md](A008-0202_mcp-strictness.md) — Complete locally; explicit MCP strict policy through ACME 0.1.7 with original-schema validation. [Archive](../finished/A008-0202_mcp-strictness.md), [handoff](../handoffs/A008-0202.md).

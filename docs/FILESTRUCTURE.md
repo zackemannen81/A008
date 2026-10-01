@@ -9,7 +9,8 @@ A008/
 ├── AGENTS.md                 repository working rules and authority order
 ├── README.md                 public project entry point
 ├── src/                      A008 runtime and application implementation
-├── gui/                      A008-owned web GUI
+clients/electron/         Windows x64 Electron desktop shell and host supervisor
+gui/                      A008-owned web GUI
 ├── packages/                 independently consumable protocol/client packages
 ├── scripts/                  build, verification, benchmark and packaging scripts
 ├── test/                     root runtime/integration/contract tests
