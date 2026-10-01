@@ -330,7 +330,7 @@ export function planTextEdit(input: {
           retryable: true,
           written: false,
           message:
-            "old_text matches more than once. Add unchanged surrounding context and retry; nothing written.",
+            "old_text must match exactly once; it currently matches more than once. Add unchanged surrounding context and retry; nothing written.",
           currentSha256: input.currentSha256,
           actualOccurrences: matches.count,
           matches: matches.offsets.map((offset) =>

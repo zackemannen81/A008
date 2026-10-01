@@ -44,6 +44,8 @@ gui/                      A008-owned web GUI
 - `tools/repository-tools.ts` — paginated native file reads with whole-file revisions,
   guarded edits and bounded Git output; `model-tools.ts` owns native/MCP registration,
   approvals and per-call output ceilings.
+- `tools/file-edit-engine.ts` — exact edit planning, bounded failure diagnostics,
+  same-path serialization and candidate validation/atomic adoption for native text edits.
 
 ## GUI
 

@@ -6,6 +6,16 @@ Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtn
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
 
+## Transactional native edit checkpoint — A008-0205 / successor A008-0207
+
+A008-0205 produced a verified predecessor checkpoint for transactional native text
+editing: exact-match planning, bounded stale/ambiguity/closest-match diagnostics,
+process-local same-path serialization and candidate validation with atomic same-directory
+adoption. Success remains compact and fuzzy matching never writes. Focused model-tool
+verification passes 26/26 after rebasing onto current main. The task is intentionally
+Superseded rather than Complete: A008-0207 owns final integration/product verification
+and the owner-requested Luna/Responses recovery-amplification benchmark.
+
 ## Embedded OpenAI Responses continuation measurement — A008-0206
 
 The default `embedded-acme` OpenAI route now exposes exact A008-0198 request

@@ -2875,3 +2875,12 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Named the property **task-scoped context envelopes / context sharding by task** and recorded its boundary in `MULTIAGENT.md`, `SYSTEMDOC.md` and `CURRENT_STATUS.md`.
 - Clarified that worker-local tool output, discovery and tentative conclusions are not shared truth; reusable results must return through normal handoff/evidence and knowledge/state integration before later retrieval can project them to other workers.
 - Documentation-only observation; no runtime behavior, memory schema, retrieval policy, provider route or worker process behavior changed.
+
+## 2026-10-01 — A008-0205 transactional edit checkpoint superseded
+
+- Preserved the partially implemented transactional native edit engine as a verified predecessor checkpoint rather than redefining its frozen charter.
+- Exact edits now use bounded deterministic recovery diagnostics, process-local same-path serialization, candidate validation and atomic same-directory adoption; fuzzy matching never writes and success remains compact.
+- Rebased on current main including A008-0206 and current ADRs. Focused verification: typecheck PASS, build PASS, model-tools 26/26 PASS, diff check PASS; 0 live provider calls / 0 SEK under 0205.
+- A008-0205 is Superseded by A008-0207, which owns final integration plus the owner-requested Luna/Responses recovery-amplification benchmark. Search/navigation and process-output optimization remain separate follow-up scope.
+- [Handoff](handoffs/A008-0205.md). [Archive](finished/A008-0205_transactional-file-editing.md).
+- Signature: ChatGPT (operator/implementer)
