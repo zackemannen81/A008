@@ -6,6 +6,20 @@ Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtn
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
 
+## Embedded OpenAI Responses continuation measurement — A008-0206
+
+The default `embedded-acme` OpenAI route now exposes exact A008-0198 request
+measurement using ACME 0.1.7's exported Responses serializer. Measurement is
+performed on the same final JSON body sent to `/v1/responses`, including
+stream mode, function-tool schemas and A008's streamed reasoning-summary
+augmentation. Luna therefore keeps native Responses and non-none reasoning;
+there is no Chat Completions or reasoning-off fallback.
+
+Embedded NVIDIA/KIE/compatible routes remain fail-closed for automatic
+continuation until their exact wire serializers are explicitly owned. Focused
+embedded-ACME + continuation tests pass 17/17 and the streamed Responses test
+proves measured UTF-8 bytes equal the provider-observed request body exactly.
+
 ## Windows desktop package — A008-0204
 
 `clients/electron` packages the existing GUI and a portable local host runtime

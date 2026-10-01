@@ -209,7 +209,7 @@ A008-0197 does not itself choose when to compact or authorize recovery/replay. A
 
 ## Automatic live-turn context pressure — A008-0198
 
-A008-0198 activates A008-0196/0197 only when runtime preferences configure both a finite soft pressure threshold and a larger hard serialized-request ceiling. Defaults remain disabled (0/0). After every completed tool round, `ChatSession` measures the next complete provider wire request through the selected transport's real serializer. OpenAI, NVIDIA, KIE and ACME expose exact serialized-body measurement; a route without measurement fails closed when automatic continuation is enabled.
+A008-0198 activates A008-0196/0197 only when runtime preferences configure both a finite soft pressure threshold and a larger hard serialized-request ceiling. Defaults remain disabled (0/0). After every completed tool round, `ChatSession` measures the next complete provider wire request through the selected transport's real serializer. Direct OpenAI/NVIDIA/KIE transports expose exact serialized-body measurement. A008-0206 adds exact measurement for the default embedded-ACME native OpenAI Responses route by reusing ACME's Responses serializer and A008's final reasoning-summary wire transform. Embedded NVIDIA/KIE/compatible routes still fail closed when automatic continuation is enabled until an exact serializer owner is wired.
 
 The first exact measurement binds the selected route identity for the live turn. Every later main request, reducer request and rebuilt candidate must report the same route identity. Route drift, unavailable measurement, invalid bounds or a request above the hard ceiling prevents dispatch.
 
@@ -222,8 +222,10 @@ Raw execution evidence and canonical conversation history are never rewritten by
 ADR 0057 refines ADR 0055 without granting tool replay. Automatic continuation
 still requires Task 3's opt-in pressure policy and an exactly measurable selected
 route. Direct dispatch, runtime timeout composition and debug tracing forward
-the underlying serializer's measurement. A route without it (including the
-current embedded-ACME adapter) fails closed; no estimated fallback is introduced.
+the underlying serializer's measurement. A008-0206 makes the embedded-ACME
+native OpenAI Responses route exactly measurable as well; embedded routes
+without an owned exact serializer still fail closed and no estimated fallback
+is introduced.
 
 At each compacted completed boundary, PlatformStore atomically validates the
 current lease, binds newly completed source interactions and the recent raw tail,

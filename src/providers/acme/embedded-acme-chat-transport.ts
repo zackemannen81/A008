@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { createAcmeModelRuntime, type AcmeModelRuntime } from "acme-engine";
+import {
+  buildResponsesBody,
+  OPENAI_RESPONSES_PATH,
+} from "@acme-engine/adapter-model-openai";
 import { ChatError, isChatError } from "../../core/errors.js";
+import { measureSerializedChatRequest } from "../../core/chat-request-budget.js";
 import {
   acmeProviderHint,
   catalogExecutionProvider,
@@ -351,6 +356,51 @@ function openAiReasoningSummaryBody(url: string, body: string): string {
   }
 }
 
+function measureEmbeddedOpenAiResponsesRequest(
+  request: ChatRequest,
+  catalog: UserCatalog,
+) {
+  const executionProvider = resolveExecutionProvider(request.model, catalog);
+  if (executionProvider !== "openai") {
+    throw new ChatError(
+      "configuration",
+      `Exact embedded ACME request measurement is not available for ${executionProvider} routes.`,
+    );
+  }
+
+  const executeBody = buildAcmeExecuteBody(request, {
+    requestKey: "measurement",
+    timeoutMs: 1,
+    catalog,
+  });
+  const modelRequest = executeBody.request as
+    | Parameters<typeof buildResponsesBody>[0]
+    | undefined;
+  if (modelRequest === undefined) {
+    throw new ChatError(
+      "configuration",
+      "Embedded ACME request measurement could not reconstruct the provider request.",
+    );
+  }
+
+  const built = buildResponsesBody(modelRequest, request.model);
+  const providerBody =
+    modelRequest.stream === false
+      ? built.body
+      : {
+          ...(built.body as Record<string, unknown>),
+          stream: true,
+        };
+  const serialized = openAiReasoningSummaryBody(
+    `https://api.openai.com${OPENAI_RESPONSES_PATH}`,
+    JSON.stringify(providerBody),
+  );
+  return measureSerializedChatRequest(
+    `embedded-acme:openai-responses:${request.model}`,
+    serialized,
+  );
+}
+
 function createA008FetchTransport(
   fetchImpl: typeof globalThis.fetch,
 ): ProviderTransport {
@@ -504,6 +554,13 @@ export class EmbeddedAcmeChatTransport implements ChatTransport {
     this.#runtimeFactory = options.runtimeFactory ?? createAcmeModelRuntime;
     this.#providerTransport = createA008FetchTransport(
       options.fetch ?? globalThis.fetch.bind(globalThis),
+    );
+  }
+
+  measureRequest(request: ChatRequest) {
+    return measureEmbeddedOpenAiResponsesRequest(
+      request,
+      loadUserCatalog(this.#catalogPath),
     );
   }
 

@@ -2,6 +2,16 @@
 
 Newest first. Append only: entries are never edited or reflowed after commit.
 
+## 2026-10-01 — A008-0206: embedded OpenAI Responses continuation measurement
+
+- Task: A008-0206; operator: ChatGPT; branch: `codex/A008-0206-responses-measurement`.
+- Wired exact serialized-request measurement for the default embedded-ACME native OpenAI Responses route using ACME 0.1.7's own Responses serializer and A008's final reasoning-summary transform.
+- Luna/Terra keep `/v1/responses`, function tools and non-none reasoning; no Chat Completions or reasoning-off fallback was introduced.
+- Embedded non-OpenAI routes remain fail-closed for A008-0198 until their exact serializer owner is wired.
+- Verification: root typecheck/build PASS; focused embedded-ACME + continuation suite 17/17 PASS; measured bytes equal raw provider-observed body; isolated live Luna/Responses run passed measurement and exceeded 70 native tool calls with A008-0198 enabled.
+- [Handoff](handoffs/A008-0206.md). [Archive](finished/A008-0206_embedded-openai-responses-continuation-measurement.md).
+- Signature: ChatGPT
+
 ## 2026-09-25 - A008-0181: Parameters multi-session root
 
 - Task: A008-0181; operator: A008; branch: `main`.

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 import type { AcmeModelRuntime } from "acme-engine";
 import { ChatError } from "../src/core/errors.js";
+import type { ChatRequest } from "../src/core/types.js";
 import {
   addUserChatModel,
   loadUserCatalog,
@@ -560,6 +561,7 @@ test("ACME 0.1.7 sends mixed strict modes and preserves non-strict schemas on bo
 test("streamed OpenAI reasoning summary reaches the transient reasoning channel", async () => {
   const { directory, path } = tempCatalog();
   const bodies: Record<string, any>[] = [];
+  const rawBodies: string[] = [];
   const deltas: string[] = [];
   try {
     saveUserCatalog(path, loadUserCatalog(path));
@@ -568,7 +570,9 @@ test("streamed OpenAI reasoning summary reaches the transient reasoning channel"
       catalogPath: path,
       requestKey: () => "openai-summary-fixture",
       fetch: async (_input, init) => {
-        bodies.push(JSON.parse(String(init?.body ?? "{}")));
+        const rawBody = String(init?.body ?? "{}");
+        rawBodies.push(rawBody);
+        bodies.push(JSON.parse(rawBody));
         const completed = {
           id: "resp_openai_summary",
           model: "gpt-5.6-luna",
@@ -601,19 +605,44 @@ test("streamed OpenAI reasoning summary reaches the transient reasoning channel"
       },
     });
 
-    const completion = await transport.complete(
-      {
-        model: "gpt-5.6-luna",
-        messages: [{ role: "user", content: "reason about this" }],
-        options: {
-          maxTokens: 128000,
-          reasoningEffort: "high",
-          stream: true,
+    const request: ChatRequest = {
+      model: "gpt-5.6-luna",
+      messages: [{ role: "user", content: "reason about this" }],
+      tools: [
+        {
+          name: "inspect",
+          description: "Inspect one target.",
+          parameters: {
+            type: "object",
+            properties: { target: { type: "string" } },
+            required: ["target"],
+            additionalProperties: false,
+          },
+          strict: true,
         },
+      ],
+      options: {
+        maxTokens: 128000,
+        reasoningEffort: "high",
+        stream: true,
       },
-      { onDelta: (delta) => deltas.push(`${delta.type}:${delta.text}`) },
-    );
+    };
+    const measured = transport.measureRequest?.(request);
+    assert.ok(measured);
 
+    const completion = await transport.complete(request, {
+      onDelta: (delta) => deltas.push(`${delta.type}:${delta.text}`),
+    });
+
+    assert.equal(
+      measured.routeId,
+      "embedded-acme:openai-responses:gpt-5.6-luna",
+    );
+    assert.equal(
+      measured.serializedBytes,
+      Buffer.byteLength(rawBodies[0]!, "utf8"),
+    );
+    assert.equal(Array.isArray(bodies[0]?.tools), true);
     assert.deepEqual(bodies[0]?.reasoning, {
       effort: "high",
       summary: "auto",
@@ -625,6 +654,27 @@ test("streamed OpenAI reasoning summary reaches the transient reasoning channel"
     ]);
     assert.equal(completion.reasoning, "Checked the relevant constraints.");
     assert.equal(completion.message.content, "Final answer.");
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("embedded request measurement fails closed for routes without an exact serializer owner", () => {
+  const { directory, path } = tempCatalog();
+  try {
+    const transport = new EmbeddedAcmeChatTransport({
+      env: { NVIDIA_API_KEY: "nvapi-fixture" },
+      catalogPath: path,
+    });
+    assert.throws(
+      () =>
+        transport.measureRequest?.({
+          model: "nvidia/nemotron-3.5-lightning-30b-a3b",
+          messages: [{ role: "user", content: "hello" }],
+          options: { stream: true },
+        }),
+      /Exact embedded ACME request measurement is not available for nvidia routes/u,
+    );
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
