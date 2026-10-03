@@ -164,38 +164,41 @@
 [data-a008-theme="cyberpunk"] {
   color-scheme: dark;
 
-  --a008-bg-app: #0f0717;
-  --a008-bg-sidebar: #130920;
+  --a008-bg-app: #08030f;       /* Ännu mörkare, nästan kolsyrad mörklila */
+  --a008-bg-sidebar: #0b0514;
 
-  --a008-surface-1: #1a0e28;
-  --a008-surface-2: #231336;
-  --a008-surface-3: #2e1a47;
-  --a008-surface-hover: rgba(255, 0, 127, 0.08);
-  --a008-surface-selected: rgba(255, 0, 127, 0.16);
+  --a008-surface-1: #12081d;
+  --a008-surface-2: #1b0d2d;
+  --a008-surface-3: #26133f;
+  --a008-surface-hover: rgba(255, 0, 128, 0.12);
+  --a008-surface-selected: rgba(255, 0, 128, 0.22);
 
-  --a008-border-subtle: rgba(255, 0, 127, 0.15);
-  --a008-border-default: rgba(255, 0, 127, 0.3);
-  --a008-border-active: rgba(0, 240, 255, 0.7);
+  --a008-border-subtle: rgba(255, 0, 128, 0.18);
+  --a008-border-default: rgba(255, 0, 128, 0.35);
+  --a008-border-active: rgba(0, 240, 255, 0.85);
 
-  --a008-text-primary: #f0edff;
-  --a008-text-secondary: #c4b8e0;
-  --a008-text-muted: #8b79a8;
-  --a008-text-disabled: #584970;
+  --a008-text-primary: #f4f0ff;
+  --a008-text-secondary: #c9bde6;
+  --a008-text-muted: #8e7aa8;
+  --a008-text-disabled: #54436b;
 
-  --a008-accent: #00f0ff;
-  --a008-accent-hover: #70f5ff;
-  --a008-on-accent: #0f0717;
-  --a008-accent-soft: rgba(0, 240, 255, 0.12);
-  --a008-focus-ring: rgba(0, 240, 255, 0.5);
+  --a008-accent: #00f0ff;         /* Stark cyan */
+  --a008-accent-hover: #7af8ff;
+  --a008-on-accent: #08030f;
+  --a008-accent-soft: rgba(0, 240, 255, 0.15);
+  --a008-focus-ring: rgba(0, 240, 255, 0.6);
 
   --a008-success: #00ff66;
   --a008-warning: #ffb800;
-  --a008-danger: #ff0055;
+  --a008-danger: #ff0055;        /* Het magenta/röd */
 
-  --a008-glow-accent: 0 0 12px rgba(0, 240, 255, 0.4), 0 0 24px rgba(255, 0, 127, 0.2);
-  --a008-shadow-panel: 0 16px 40px rgba(10, 3, 20, 0.7), 0 0 20px rgba(255, 0, 127, 0.1);
-  --a008-overlay: rgba(10, 3, 20, 0.8);
-  --a008-grid: rgba(255, 0, 127, 0.035);
+  /* Kraftigare glow och neon-effekter */
+  --a008-glow-accent: 0 0 16px rgba(0, 240, 255, 0.5), 0 0 32px rgba(255, 0, 128, 0.3);
+  --a008-shadow-panel: 0 16px 48px rgba(4, 1, 8, 0.85), 0 0 24px rgba(255, 0, 128, 0.15);
+  --a008-overlay: rgba(5, 2, 10, 0.85);
+  
+  /* Cyberpunk-rutnät i cyan/magenta istället för svagt grått */
+  --a008-grid: rgba(255, 0, 128, 0.04);
 
   --a008-viz-identity: #ff007f;
   --a008-viz-state: #00f0ff;

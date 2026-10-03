@@ -230,3 +230,12 @@ export function parallelEdgeCounts(edges: readonly MemoryEdge[]) {
   }
   return counts;
 }
+
+export interface GraphCluster {
+  readonly name: string;
+  x: number;
+  y: number;
+  readonly radius: number;
+  readonly count: number;
+  readonly leadId: string;
+}

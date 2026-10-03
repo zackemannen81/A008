@@ -40,7 +40,6 @@ export function MemoryGraph({
   const [hovered, setHovered] = useState<string>();
   const viewport = useRef<HTMLDivElement>(null);
   const id = useId();
-  // Selection changes emphasis, never the map's spatial reference.
   const layout = useMemo(
     () => layoutGraph(graph.nodes, graph.edges),
     [graph.nodes, graph.edges],
@@ -70,8 +69,6 @@ export function MemoryGraph({
   ].filter((value): value is string => value !== undefined && visible(value));
   const labels = layoutLabels(layout, graph.nodes, priority);
   const visiblePoints = layout.points.filter((point) => visible(point.id));
-  // Focus changes the camera, not record positions. Include labels in the frame
-  // so a small neighbourhood remains readable even on a narrow screen.
   const left = Math.min(
     ...visiblePoints.map((p) => p.x - 40),
     ...labels.map((l) => l.x - 12),
@@ -203,6 +200,8 @@ export function MemoryGraph({
                 <path d="M 0 0 L 10 5 L 0 10 z" />
               </marker>
             </defs>
+
+            {/* Kluster-bubblor i bakgrunden */}
             {!focused
               ? layout.clusters.map((cluster) => (
                   <g
@@ -219,11 +218,12 @@ export function MemoryGraph({
                       y={cluster.y - cluster.radius + 43}
                       className="memory-cluster-count"
                     >
-                      {cluster.count} nodes
+                      {cluster.count} records
                     </text>
                   </g>
                 ))
               : null}
+
             {hub && visible(hub.id) ? (
               <circle
                 cx={hub.x}
@@ -233,6 +233,7 @@ export function MemoryGraph({
                 aria-hidden="true"
               />
             ) : null}
+
             {graph.edges.map((edge) => {
               const a = points.get(edge.from),
                 b = points.get(edge.to);
