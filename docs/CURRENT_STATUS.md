@@ -44,7 +44,10 @@ The portable packager no longer requires removed engine documentation files
 and dereferences the npm workspace protocol package into the runtime bundle.
 See the A008-0204 handoff for exact checks and outstanding lifecycle/reconnect
 verification.
-## GUI-behörighetsbeslut — A008-0203
+## A008 GUI/Electron notifications — A008-0208
+
+The GUI now tracks active-to-terminal transitions of the currently observed durable run, distinguishes success, failure and uncertain outcomes, and displays transient notices without replaying on an initial terminal snapshot. Page-title attention is bounded and restored on focus/visibility. A user-enabled completion/failure tone is available in Parameters → Appearance and is off by default. The Electron shell requests bounded native window flashing from the existing page-title signal while unfocused; no host/protocol or renderer privilege changes. Cross-reload/global notification receipts are not implemented. Verification is pending in the task handoff.
+
 
 - Bekräftade godkännanden/avslag minns per körning och fråga i klientinstansen.
   Äldre live- eller polling-svar återvisar inte frågan och utlöser inte ny POST.

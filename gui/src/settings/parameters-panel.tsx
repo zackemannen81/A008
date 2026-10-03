@@ -16,6 +16,7 @@ import { RuntimeCapabilitiesPanel } from "./runtime-capabilities-panel.js";
 import { WorkspaceSessionsPanel } from "./workspace-sessions-panel.js";
 import { SkillsPanel } from "../skills/skills-panel.js";
 import type { InstalledSkill } from "../skills/skills.js";
+import { isNotificationSoundEnabled, setNotificationSoundEnabled } from "../session/notification-preferences.js";
 
 type ParameterPage =
   | "model"
@@ -433,6 +434,26 @@ function ParameterForm(props: {
   );
 }
 
+function NotificationSettings() {
+  const [sound, setSound] = useState(isNotificationSoundEnabled);
+  return (
+    <section className="a008-notification-settings" aria-label="Notifications">
+      <h3>Turn notifications</h3>
+      <p className="a008-parameter-footnote">
+        Sound is optional, defaults to off, and may be blocked by browser autoplay settings.
+      </p>
+      <label className="a008-parameter-toggle">
+        <span>Play sound on turn completion or failure</span>
+        <input type="checkbox" role="switch" checked={sound} onChange={(event) => {
+          const enabled = event.target.checked;
+          setNotificationSoundEnabled(enabled);
+          setSound(enabled);
+        }} />
+      </label>
+    </section>
+  );
+}
+
 export function ParametersPanel(props: {
   session: GuiSession;
   onClose: () => void;
@@ -599,6 +620,7 @@ export function ParametersPanel(props: {
         </div>
         <div hidden={page !== "appearance"}>
           <AppearancePanel />
+          <NotificationSettings />
         </div>
         {runtimePreferences &&
         (page === "semantic" ||

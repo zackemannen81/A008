@@ -5,9 +5,12 @@ import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ensureHost, probeHost, resolveHostEndpoint, type HostEndpoint, type HostProcess } from "./host-controller.ts";
 import { preventUntrustedNavigation } from "./renderer-security.ts";
+import { handleDesktopTitleChange } from "./window-attention.ts";
 
 let mainWindow: BrowserWindow | undefined;
 let loadingUrl: string | undefined;
+let stopAttention: (() => void) | undefined;
+let attentionActive = false;
 
 const profile = app.getPath("userData");
 if (!app.requestSingleInstanceLock({ profile })) {
@@ -54,6 +57,38 @@ function createWindow(hostOrigin: string): void {
     },
   });
   mainWindow = window;
+  window.on("focus", () => {
+    stopAttention?.();
+    stopAttention = undefined;
+    attentionActive = false;
+  });
+  window.webContents.on("page-title-updated", (event, title) => {
+    const isAttentionTitle = title.includes("A008_NOTIFICATION:");
+    const cleanTitle = title.replace("A008_NOTIFICATION:", "");
+    if (isAttentionTitle && !window.isFocused()) {
+      event.preventDefault();
+      if (attentionActive) return;
+      attentionActive = true;
+      stopAttention = handleDesktopTitleChange(window, cleanTitle, true);
+      const stop = stopAttention;
+      const boundedStop = () => {
+        stop();
+        attentionActive = false;
+        if (stopAttention === boundedStop) stopAttention = undefined;
+      };
+      stopAttention = boundedStop;
+      return;
+    }
+    if (attentionActive && !window.isFocused()) {
+      event.preventDefault();
+      return;
+    }
+    stopAttention?.();
+    stopAttention = undefined;
+    attentionActive = false;
+    window.setTitle(cleanTitle);
+    window.flashFrame(false);
+  });
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event, target) => {
     preventUntrustedNavigation(hostOrigin, target, event);

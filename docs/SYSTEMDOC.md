@@ -25,7 +25,8 @@ Forge's Windows x64 package carries the existing host, production runtime,
 Node executable and GUI assets under `resources`. Installer/signing/publishing
 are outside A008-0204. Electron adds no runtime, session, accepted-work or lease
 ownership.
-## MCP strict-policy (ADR 0060)
+`DurableChatClient` and `App` project terminal transition notifications from existing durable run observations. The renderer keeps a run-identity/status edge tracker for its lifetime, so initial completed history stays quiet and polling does not duplicate notices; this is not durable across reloads or shared among clients. The GUI shows a dismissible result, blinks a localized document title, and plays a generated brief Web Audio tone only when the Appearance preference `notifications.sound` is enabled. The preference is local, off by default, and preserves other `a008.preferences`; unavailable storage and rejected/unsupported audio are non-fatal. Title attention ends on window focus, visible-document transition or an eight-second timeout. Electron's existing BrowserWindow observes only its same-origin GUI page-title updates: while unfocused, it retains the outcome title and requests a bounded native frame flash. Focus or the timer stops flashing. Existing sandbox/context-isolation/Node restrictions remain; no preload, IPC, host endpoint or run lifecycle changes.
+
 
 MCP-serverposter i användarkatalogen och `/v1/mcp-servers` accepterar valfria
 `strict` och `toolStrict`. Verktygsundantag använder ursprungligt MCP-namn,

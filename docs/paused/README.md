@@ -8,5 +8,4 @@ charter, completed work, missing verification, next action, and resume condition
 
 ## Tasks
 
-No tasks currently paused. A008-0066 resumed and completed its remaining closure;
-see [its archive](../finished/A008-0066_runtime-preferences.md).
+- [A008-0207 — finalize transactional native edit recovery and measure Luna recovery amplification](A008-0207_finalize-edit-recovery-benchmark.md) — Paused by operator request while notification task A008-0208 runs; charter and prior checkpoint preserved. Resume after A008-0208 handoff.

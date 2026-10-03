@@ -1,6 +1,14 @@
-# Journal
+## 2026-10-03 — A008-0208: GUI and Electron turn outcome notifications
 
-Newest first. Append only: entries are never edited or reflowed after commit.
+- Task: A008-0208; operator: Rickard; local implementation in the conversation worktree.
+- Added renderer-lifetime active-to-terminal notifications for durable succeeded, failed and uncertain outcomes; initial terminal snapshots remain silent.
+- Added dismissible GUI status notice, bounded title blinking, and Appearance preference for an optional Web Audio tone (off by default; playback failures ignored).
+- Electron derives native frame flashing from a marker in the existing renderer title update, only while unfocused; attention is bounded to eight seconds and stops on focus. No preload/IPC or host/protocol changes.
+- Verification: Electron unit tests 7/7 PASS before final integration cleanup; GUI/Electron typecheck and GUI tests could not run because root/gui/Electron dependencies are absent. Electron typecheck found a syntax issue subsequently repaired; rerun gates remains required. No package installation or live calls.
+- A008-0207 paused by operator request; charter and prior work preserved under `docs/paused/`.
+- [Task](tasks/A008-0208_gui-and-electron-turn-notifications.md). [Handoff](handoffs/A008-0208.md).
+- Signature: A008
+
 
 ## 2026-10-01 — A008-0206: embedded OpenAI Responses continuation measurement
 
