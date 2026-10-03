@@ -49,6 +49,9 @@ gui/                      A008-owned web GUI
 
 ## GUI
 
+`gui/src/session/run-notifications.ts` owns renderer-lifetime durable-run outcome transitions, title attention and optional audio; `notification-preferences.ts` stores the sound choice in existing GUI preferences. `clients/electron/src/window-attention.ts` adapts same-origin page-title updates to bounded native frame flashing without preload or IPC.
+
+
 `gui/src/` contains the product GUI. Major current surfaces include:
 - `chat/`, `composer/`, `session/` — conversation/session UX.
 - `session/durable-chat-client.ts` and `use-durable-chat.ts` — normal GUI selection and durable-run observation; engine panels retain the existing V1 adapter.

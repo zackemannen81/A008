@@ -44,6 +44,9 @@ import {
   readSidebarWidth,
 } from "./brand/sidebar-state.js";
 
+import { RunOutcomeTracker, notificationMessage, notificationTitle, playOutcomeTone, startTitleAttention } from "./session/run-notifications.js";
+import { isNotificationSoundEnabled } from "./session/notification-preferences.js";
+
 const STATUS_LABEL = {
   idle: "Not connected",
   connecting: "Connecting",
@@ -99,12 +102,36 @@ export function App() {
   const [pendingArtifact, setPendingArtifact] =
     useState<HtmlArtifactCandidate>();
   const [selectedSkill, setSelectedSkill] = useState<InstalledSkill>();
+  const runOutcomeTracker = useRef(new RunOutcomeTracker());
+  const stopTitleAttention = useRef<(() => void) | undefined>(undefined);
+  const [notification, setNotification] = useState<{ outcome: "succeeded" | "failed" | "uncertain"; id: number }>();
+  const notificationId = useRef(0);
+  const [soundEnabled, setSoundEnabled] = useState(isNotificationSoundEnabled);
   const [multiAgentEnabled, setMultiAgentEnabled] = useState(false);
   const artifactSessionId = useRef<string | undefined>(session.sessionId);
   const cwd = session.details?.runtime.cwd;
   const workspace = cwd?.split(/[\\/]/u).filter(Boolean).at(-1);
   const chatWorkspace = session.durable?.getWorkspace();
   const selectedProjectId = session.durable?.getSelectedProjectId();
+
+  useEffect(() => {
+    const outcome = runOutcomeTracker.current.observe(session.run);
+    if (!outcome) return;
+    const id = ++notificationId.current;
+    setNotification({ outcome, id });
+    stopTitleAttention.current?.();
+    stopTitleAttention.current = startTitleAttention(document, window, outcome);
+    document.title = notificationTitle(outcome, "A008");
+    void playOutcomeTone(soundEnabled, outcome);
+  }, [session.run?.id, session.run?.status, soundEnabled]);
+
+  useEffect(() => () => stopTitleAttention.current?.(), []);
+
+  useEffect(() => {
+    if (!notification) return;
+    const timeout = window.setTimeout(() => setNotification(undefined), 8_000);
+    return () => window.clearTimeout(timeout);
+  }, [notification]);
 
   useEffect(() => {
     let current = true;
@@ -323,6 +350,12 @@ export function App() {
     >
       <div className="a008-crt-overlay" aria-hidden="true" />
       <ToolPermissionDialog session={session} />
+      {notification ? (
+        <div className={`a008-run-notification a008-run-notification-${notification.outcome}`} role="status">
+          <span>{notificationMessage(notification.outcome)}</span>
+          <button type="button" aria-label="Dismiss notification" onClick={() => setNotification(undefined)}>×</button>
+        </div>
+      ) : null}
       <aside
         className="a008-rail"
         id="a008-navigation"

@@ -41,7 +41,34 @@ body,
   height: 100%;
 }
 
-body {
+.a008-run-notification {
+  position: fixed;
+  z-index: 120;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: min(32rem, calc(100vw - 2rem));
+  padding: 0.8rem 1rem;
+  color: var(--a008-text-primary);
+  background: var(--a008-surface-3);
+  border: 1px solid var(--a008-border-default);
+  border-radius: 0.65rem;
+  box-shadow: 0 0.6rem 2rem #0008;
+}
+.a008-run-notification-succeeded { border-color: var(--a008-success); }
+.a008-run-notification-failed,
+.a008-run-notification-uncertain { border-color: var(--a008-danger); }
+.a008-run-notification button {
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+
   background: var(--a008-bg);
   color: var(--a008-fg);
 }

@@ -9,7 +9,9 @@ charter per worker. A worker may copy its charter into `docs/CURRENT_TASK.md`
 on its branch while working, then archives it to `docs/finished/` and restores
 the template before push.
 
-## Records
+- [A008-0208_gui-and-electron-turn-notifications.md](A008-0208_gui-and-electron-turn-notifications.md) — In Progress; transient success/failure/uncertain notices in the GUI with opt-in audio and Electron window attention. [handoff pending]
+- [A008-0207_finalize-edit-recovery-benchmark.md](../paused/A008-0207_finalize-edit-recovery-benchmark.md) — Paused by operator request while A008-0208 runs; implementation and verification remain outstanding.
+
 
 - [A008-0204_electron-desktop-client.md](A008-0204_electron-desktop-client.md) - In Progress; Windows x64 Electron client using the existing GUI/host; runtime ownership unchanged.
 

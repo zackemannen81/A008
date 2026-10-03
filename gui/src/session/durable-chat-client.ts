@@ -77,9 +77,12 @@ export function durableChatHttp(http: HttpClientOptions): HttpClientOptions {
   };
 }
 
+import { RunOutcomeTracker, playOutcomeTone, type RunOutcome } from "./run-notifications.js";
+
 export class DurableChatClient {
   readonly api;
   readonly #listeners = new Set<() => void>();
+  readonly #runOutcomeTracker = new RunOutcomeTracker();
   #state: GuiSessionState = {
     status: "idle",
     sessionId: undefined,
