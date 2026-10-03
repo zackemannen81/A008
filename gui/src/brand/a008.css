@@ -95,6 +95,12 @@ html[data-a008-theme="oldscool"] .a008-crt-overlay {
   mix-blend-mode: multiply;
 }
 
+html[data-a008-theme="cyberpunk"] .a008-composer-send,
+html[data-a008-theme="cyberpunk"] .a008-settings-connect {
+  border-color: var(--a008-accent);
+  box-shadow: var(--a008-glow-accent);
+}
+
 html[data-a008-theme="oldscool"] .a008-brand,
 html[data-a008-theme="oldscool"] .a008-header-status,
 html[data-a008-theme="oldscool"] .a008-settings-title,
@@ -521,3 +527,4 @@ html[data-a008-theme="oldscool"] .a008-settings-connect:focus-visible {
 .a008-tool-permission { width: min(44rem, 90vw); max-height: 85vh; overflow: auto; background: var(--a008-surface-2); color: var(--a008-text-primary); border: 1px solid var(--a008-border-default); padding: 1.5rem; }
 .a008-tool-permission::backdrop { background: var(--a008-overlay); }
 .a008-tool-permission footer { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: flex-end; }
+

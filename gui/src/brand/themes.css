@@ -160,3 +160,55 @@
   --a008-viz-label: #f3e4bc;
   --a008-viz-highlight: #d8ff8b;
 }
+
+[data-a008-theme="cyberpunk"] {
+  color-scheme: dark;
+
+  --a008-bg-app: #0f0717;
+  --a008-bg-sidebar: #130920;
+
+  --a008-surface-1: #1a0e28;
+  --a008-surface-2: #231336;
+  --a008-surface-3: #2e1a47;
+  --a008-surface-hover: rgba(255, 0, 127, 0.08);
+  --a008-surface-selected: rgba(255, 0, 127, 0.16);
+
+  --a008-border-subtle: rgba(255, 0, 127, 0.15);
+  --a008-border-default: rgba(255, 0, 127, 0.3);
+  --a008-border-active: rgba(0, 240, 255, 0.7);
+
+  --a008-text-primary: #f0edff;
+  --a008-text-secondary: #c4b8e0;
+  --a008-text-muted: #8b79a8;
+  --a008-text-disabled: #584970;
+
+  --a008-accent: #00f0ff;
+  --a008-accent-hover: #70f5ff;
+  --a008-on-accent: #0f0717;
+  --a008-accent-soft: rgba(0, 240, 255, 0.12);
+  --a008-focus-ring: rgba(0, 240, 255, 0.5);
+
+  --a008-success: #00ff66;
+  --a008-warning: #ffb800;
+  --a008-danger: #ff0055;
+
+  --a008-glow-accent: 0 0 12px rgba(0, 240, 255, 0.4), 0 0 24px rgba(255, 0, 127, 0.2);
+  --a008-shadow-panel: 0 16px 40px rgba(10, 3, 20, 0.7), 0 0 20px rgba(255, 0, 127, 0.1);
+  --a008-overlay: rgba(10, 3, 20, 0.8);
+  --a008-grid: rgba(255, 0, 127, 0.035);
+
+  --a008-viz-identity: #ff007f;
+  --a008-viz-state: #00f0ff;
+  --a008-viz-claim: #00ff66;
+  --a008-viz-event: #ffb800;
+  --a008-viz-artifact: #bd00ff;
+  --a008-viz-provenance: #00ffcc;
+  --a008-viz-history: #8b79a8;
+  --a008-viz-utterance: #ff70a6;
+  --a008-viz-canvas-inner: #1a0e28;
+  --a008-viz-canvas-outer: #0f0717;
+  --a008-viz-cluster: #d4a5ff;
+  --a008-viz-edge: #9461c1;
+  --a008-viz-label: #f0edff;
+  --a008-viz-highlight: #70f5ff;
+}

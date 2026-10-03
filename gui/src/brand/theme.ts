@@ -1,4 +1,4 @@
-export type AppThemeId = "neutral" | "deep-space" | "oldscool";
+export type AppThemeId = "neutral" | "deep-space" | "oldscool" | "cyberpunk";
 
 export interface AppTheme {
   readonly id: AppThemeId;
@@ -26,6 +26,12 @@ export const APP_THEMES: readonly AppTheme[] = [
     name: "Oldscool",
     description:
       "Dark CRT surfaces with phosphor-green controls and warm retro highlights.",
+  },
+  {
+    id: "cyberpunk",
+    name: "cyberpunk",
+    description:
+      "Deep dark purple glass surfaces with phosphor-neon controls and cold light-neon highlights.",
   },
 ];
 
@@ -74,7 +80,7 @@ export const REQUIRED_VIZ_THEME_TOKENS = [
 ] as const;
 
 export function parseAppThemeId(value: unknown): AppThemeId {
-  return value === "deep-space" || value === "oldscool"
+  return value === "deep-space" || value === "oldscool" || value === "cyberpunk"
     ? value
     : DEFAULT_APP_THEME;
 }
