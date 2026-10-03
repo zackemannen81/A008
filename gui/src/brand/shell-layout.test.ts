@@ -21,13 +21,14 @@ import { fileURLToPath } from "node:url";
  * being one.
  */
 const here = dirname(fileURLToPath(import.meta.url));
-const css = readFileSync(join(here, "a008.css"), "utf8");
+const a008Css = readFileSync(join(here, "a008.css"), "utf8");
+const workspaceCss = readFileSync(join(here, "workspace.css"), "utf8");
 
 function appRule(): string {
-  const start = css.indexOf(".a008-app {");
+  const start = a008Css.indexOf(".a008-app {");
   assert.notEqual(start, -1, ".a008-app rule must exist");
-  const end = css.indexOf("}", start);
-  return css.slice(start, end);
+  const end = a008Css.indexOf("}", start);
+  return a008Css.slice(start, end);
 }
 
 test("the shell grid caps its height so the transcript can overflow", () => {
@@ -46,13 +47,23 @@ test("the shell grid does not rely on min-height alone", () => {
   );
 });
 
+test("standalone navigation uses the configured sidebar width", () => {
+  assert.ok(workspaceCss.includes("grid-template-columns: var(--a008-sidebar-width) minmax(0, 1fr)"));
+  assert.ok(workspaceCss.includes(".a008-rail {\n  grid-column: 1"));
+});
+
+test("run notifications preserve the body styles", () => {
+  assert.ok(a008Css.includes("body {"));
+  assert.ok(a008Css.includes(".a008-run-notification {"));
+});
+
 test("the transcript still owns the scrolling", () => {
-  const start = css.indexOf(".a008-chat-transcript");
+  const start = a008Css.indexOf(".a008-chat-transcript");
   if (start === -1) {
     // The rule lives in gui/src/chat/chat-pane.css, which this module does not
     // own. Nothing to assert here.
     return;
   }
-  const rule = css.slice(start, css.indexOf("}", start));
+  const rule = a008Css.slice(start, a008Css.indexOf("}", start));
   assert.match(rule, /overflow/u);
 });
