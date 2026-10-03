@@ -41,6 +41,11 @@ body,
   height: 100%;
 }
 
+body {
+  background: var(--a008-bg);
+  color: var(--a008-fg);
+}
+
 .a008-run-notification {
   position: fixed;
   z-index: 120;
@@ -68,10 +73,6 @@ body,
   cursor: pointer;
 }
 
-
-  background: var(--a008-bg);
-  color: var(--a008-fg);
-}
 
 /*
  * Base shell constraints; workspace.css supplies the ADR 0030 composition.
