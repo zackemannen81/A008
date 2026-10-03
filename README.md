@@ -4,7 +4,24 @@ A008 is a provider-independent AI client with a shared runtime for projects, cha
 
 Media:  
 public/screenshots
-
+<table>
+  <tr>
+    <td align="center"><a href="screenshots/1.png" target="_blank"><img src="screenshots/1.png" width="140" alt="Bild 1"></a></td>
+    <td align="center"><a href="screenshots/2.png" target="_blank"><img src="screenshots/2.png" width="140" alt="Bild 2"></a></td>
+    <td align="center"><a href="screenshots/3.png" target="_blank"><img src="screenshots/3.png" width="140" alt="Bild 3"></a></td>
+    <td align="center"><a href="screenshots/4.png" target="_blank"><img src="screenshots/4.png" width="140" alt="Bild 4"></a></td>
+    <td align="center"><a href="screenshots/5.png" target="_blank"><img src="screenshots/5.png" width="140" alt="Bild 5"></a></td>
+    <td align="center"><a href="screenshots/6.png" target="_blank"><img src="screenshots/6.png" width="140" alt="Bild 6"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="screenshots/7.png" target="_blank"><img src="screenshots/7.png" width="140" alt="Bild 7"></a></td>
+    <td align="center"><a href="screenshots/8.png" target="_blank"><img src="screenshots/8.png" width="140" alt="Bild 8"></a></td>
+    <td align="center"><a href="screenshots/9.png" target="_blank"><img src="screenshots/9.png" width="140" alt="Bild 9"></a></td>
+    <td align="center"><a href="screenshots/10.png" target="_blank"><img src="screenshots/10.png" width="140" alt="Bild 10"></a></td>
+    <td align="center"><a href="screenshots/11.png" target="_blank"><img src="screenshots/11.png" width="140" alt="Bild 11"></a></td>
+    <td align="center"><a href="screenshots/12.png" target="_blank"><img src="screenshots/12.png" width="140" alt="Bild 12"></a></td>
+  </tr>
+</table>
 ## Implementation status
 
 The status below is based on an inventory of the repository’s code, not on older project documentation.
@@ -189,7 +206,8 @@ The Librarian tags and saves the new knowledge, and makes the old code/knowledge
 
 ### Flow diagram
 
-mermaid
+
+```mermaid
 flowchart LR
 
     %% =========================================================
@@ -377,12 +395,13 @@ flowchart LR
     Commit -->|"new evidence / reinforcement"| Active
     Active --> Lifecycle
     Dormant --> Lifecycle
+```
 
-
-text
+```text
 input -> retrieval -> budgeted context -> model execution
       -> post-output extraction -> relation classification
       -> runtime-owned commit -> current state/history
+```
 
 
 ### Knowledge, state, and provenance
