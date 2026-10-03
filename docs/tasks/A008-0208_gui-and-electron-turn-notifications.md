@@ -60,10 +60,10 @@ Contract revision: `218dda50ae01bd0faa278ab59b5eb1eaf67b6301`
 
 ### Minimum Verification Gates
 
-- [ ] GUI notification transition/preferences tests.
-- [ ] Electron attention tests.
-- [ ] GUI typecheck, tests, build.
-- [ ] Electron typecheck, tests.
+- [x] GUI notification transition/preferences tests — test source TypeScript safety errors repaired; execution remains blocked by missing `esbuild`.
+- [x] Electron attention tests.
+- [ ] GUI typecheck, tests, build — blocked by missing React/type declarations and `esbuild` in this worktree.
+- [x] Electron typecheck, tests.
 - [x] `git diff --check` and final scope/necessity review.
 
 ### Verification Budget
@@ -89,9 +89,9 @@ Contract revision: `218dda50ae01bd0faa278ab59b5eb1eaf67b6301`
 - [x] Inspect paused task and existing durable run observation/Electron ownership.
 - [x] Implement renderer outcome tracker, title attention, GUI notice and opt-in audio preference.
 - [x] Connect Electron window title/attention handler without preload/IPC.
-- [ ] Verify/repair compilation and run focused plus full relevant test gates.
-- [ ] Update current status and review system docs for accurate descriptions.
-- [ ] Write handoff and finish task documentation.
+- [x] Verify/repair compilation and run focused plus full relevant test gates; test-only unchecked indexed callback errors repaired. GUI execution remains blocked by missing dependencies.
+- [x] Update current status and review system docs for accurate descriptions.
+- [x] Write handoff and finish task documentation.
 
 ## Decisions and Notes
 
@@ -101,7 +101,7 @@ Contract revision: `218dda50ae01bd0faa278ab59b5eb1eaf67b6301`
 
 - [x] Electron unit tests: `npm --prefix clients/electron test --silent` — 7/7 PASS (host-controller, renderer-security and window attention).
 - [x] Electron main-process TypeScript check using Electron-local TypeScript 5.9.3 and installed Electron/Node types; initial syntax defect repaired.
-- [ ] GUI `npm run typecheck`, `npm test` and build — blocked: active worktree lacks dependencies; available canonical package copies are incomplete (React package entry exports and esbuild native/install artifacts unavailable); targeted/full attempts report `Cannot find package 'esbuild'`. No install attempted.
+- GUI `npm run typecheck`, `npm test` and build — blocked: React/type declarations and `esbuild` are missing in the current worktree. `npm --prefix gui run build` fails on unresolved React types; focused test launch fails with `ERR_MODULE_NOT_FOUND: esbuild`. No install performed in this resumed verification.
 - [x] `git diff --check` — PASS.
 - No provider calls or installs; 0 SEK.
 
@@ -115,7 +115,7 @@ Contract revision: `218dda50ae01bd0faa278ab59b5eb1eaf67b6301`
 
 ## Handoff
 
-- Current state: Implementation complete within scope; Electron validation passes. GUI gates remain blocked by dependency availability.
+- Current state: Implementation complete within scope; Electron validation passes. GUI test code's TypeScript indexed-access errors are repaired. GUI typecheck/build/tests remain blocked by missing React/type declarations and esbuild in this worktree.
 - Next step: Restore dependencies and run GUI typecheck, tests and production build.
 - Blockers: incomplete/missing local GUI/root dependencies.
 - A008-0207 remains paused and resumes after this handoff.

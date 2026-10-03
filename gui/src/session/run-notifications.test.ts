@@ -60,6 +60,7 @@ test("title attention blinks, then restores on focus or bounded timeout", () => 
   };
   const stop = startTitleAttention(document, window, "failed", scheduler);
   const blink = [...intervals.values()][0];
+  assert.ok(blink);
   blink();
   assert.match(document.title, /misslyckades/u);
   windowListeners.get("focus")?.();
@@ -69,14 +70,15 @@ test("title attention blinks, then restores on focus or bounded timeout", () => 
   stop();
 
   const stopOnVisibility = startTitleAttention(document, window, "succeeded", scheduler);
-  blink;
   document.visibilityState = "visible";
   documentListeners.get("visibilitychange")?.();
   assert.equal(document.title, "A008");
   stopOnVisibility();
 
   const stopOnTimeout = startTitleAttention(document, window, "uncertain", scheduler, 10);
-  [...timeouts.values()][0]();
+  const timeout = [...timeouts.values()][0];
+  assert.ok(timeout);
+  timeout();
   assert.equal(document.title, "A008");
   stopOnTimeout();
 });
