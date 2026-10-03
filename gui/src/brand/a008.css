@@ -40,7 +40,7 @@ body,
   margin: 0;
   height: 100%;
 }
-
+body{
 .a008-run-notification {
   position: fixed;
   z-index: 120;
