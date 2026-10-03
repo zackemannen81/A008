@@ -19,6 +19,7 @@ import { generatedImageLocatorSrc } from "../images/generate-image.js";
 import { AsciiLogo } from "../brand/ascii-logo.js";
 import { StartActions } from "./start-actions.js";
 import { EmptyStarfield } from "./starfield.js";
+import { CyberpunkFxBackground } from "./cyberpunkfx.js";
 import {
   htmlArtifactFromAnswer,
   parseAssistantAnswer,

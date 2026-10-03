@@ -963,3 +963,10 @@ html[data-a008-theme="oldscool"] .memory-button:not(.memory-button-quiet):focus-
     grid-column: 1 / -1;
   }
 }
+/* Kluster-cirklar i cyberpunk-temat */
+html[data-a008-theme="cyberpunk"] .memory-cluster circle {
+  fill: rgba(0, 240, 255, 0.3);
+  stroke: rgba(255, 0, 128, 0.85);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}

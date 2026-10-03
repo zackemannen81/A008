@@ -160,3 +160,58 @@
   --a008-viz-label: #f3e4bc;
   --a008-viz-highlight: #d8ff8b;
 }
+
+[data-a008-theme="cyberpunk"] {
+  color-scheme: dark;
+
+  --a008-bg-app: #08030f;       /* Ännu mörkare, nästan kolsyrad mörklila */
+  --a008-bg-sidebar: #0b0514;
+
+  --a008-surface-1: #12081d;
+  --a008-surface-2: #1b0d2d;
+  --a008-surface-3: #26133f;
+  --a008-surface-hover: rgba(255, 0, 128, 0.12);
+  --a008-surface-selected: rgba(255, 0, 128, 0.22);
+
+  --a008-border-subtle: rgba(255, 0, 128, 0.18);
+  --a008-border-default: rgba(255, 0, 128, 0.35);
+  --a008-border-active: rgba(0, 240, 255, 0.85);
+
+  --a008-text-primary: #f4f0ff;
+  --a008-text-secondary: #c9bde6;
+  --a008-text-muted: #8e7aa8;
+  --a008-text-disabled: #54436b;
+
+  --a008-accent: #00f0ff;         /* Stark cyan */
+  --a008-accent-hover: #7af8ff;
+  --a008-on-accent: #08030f;
+  --a008-accent-soft: rgba(0, 240, 255, 0.15);
+  --a008-focus-ring: rgba(0, 240, 255, 0.6);
+
+  --a008-success: #00ff66;
+  --a008-warning: #ffb800;
+  --a008-danger: #ff0055;        /* Het magenta/röd */
+
+  /* Kraftigare glow och neon-effekter */
+  --a008-glow-accent: 0 0 16px rgba(0, 240, 255, 0.5), 0 0 32px rgba(255, 0, 128, 0.3);
+  --a008-shadow-panel: 0 16px 48px rgba(4, 1, 8, 0.85), 0 0 24px rgba(255, 0, 128, 0.15);
+  --a008-overlay: rgba(5, 2, 10, 0.85);
+  
+  /* Cyberpunk-rutnät i cyan/magenta istället för svagt grått */
+  --a008-grid: rgba(255, 0, 128, 0.04);
+
+  --a008-viz-identity: #ff007f;
+  --a008-viz-state: #00f0ff;
+  --a008-viz-claim: #00ff66;
+  --a008-viz-event: #ffb800;
+  --a008-viz-artifact: #bd00ff;
+  --a008-viz-provenance: #00ffcc;
+  --a008-viz-history: #8b79a8;
+  --a008-viz-utterance: #ff70a6;
+  --a008-viz-canvas-inner: #1a0e28;
+  --a008-viz-canvas-outer: #0f0717;
+  --a008-viz-cluster: #d4a5ff;
+  --a008-viz-edge: #9461c1;
+  --a008-viz-label: #f0edff;
+  --a008-viz-highlight: #70f5ff;
+}

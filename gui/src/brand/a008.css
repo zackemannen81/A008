@@ -95,6 +95,44 @@ html[data-a008-theme="oldscool"] .a008-crt-overlay {
   mix-blend-mode: multiply;
 }
 
+html[data-a008-theme="cyberpunk"] .a008-composer-send,
+html[data-a008-theme="cyberpunk"] .a008-settings-connect {
+  border-color: var(--a008-accent);
+  box-shadow: var(--a008-glow-accent);
+}
+html[data-a008-theme="cyberpunk"] .a008-app {
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 0, 128, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Lägg till lätt CRT/Scanline-känsla även för cyberpunk om man vill ha maxad HUD-effekt */
+html[data-a008-theme="cyberpunk"]::after {
+  content: " ";
+  display: block;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 3px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  z-index: 99;
+}
+
+html[data-a008-theme="cyberpunk"] .a008-cyberpunk-logo {
+  filter: drop-shadow(0 0 16px rgba(255, 0, 128, 0.4)) drop-shadow(0 0 32px rgba(0, 240, 255, 0.3));
+  border-radius: 1rem;
+}
+
+html[data-a008-theme="cyberpunk"] .a008-empty-logo {
+  color: #ff007f;
+  text-shadow: 0 0 10px rgba(255, 0, 127, 0.6), 0 0 20px rgba(0, 240, 255, 0.4);
+}
+
 html[data-a008-theme="oldscool"] .a008-brand,
 html[data-a008-theme="oldscool"] .a008-header-status,
 html[data-a008-theme="oldscool"] .a008-settings-title,
@@ -521,3 +559,4 @@ html[data-a008-theme="oldscool"] .a008-settings-connect:focus-visible {
 .a008-tool-permission { width: min(44rem, 90vw); max-height: 85vh; overflow: auto; background: var(--a008-surface-2); color: var(--a008-text-primary); border: 1px solid var(--a008-border-default); padding: 1.5rem; }
 .a008-tool-permission::backdrop { background: var(--a008-overlay); }
 .a008-tool-permission footer { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: flex-end; }
+
