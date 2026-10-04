@@ -19,6 +19,7 @@ function draftConfig(): ProjectBootstrapConfig {
     repository: { initialize: true, name: "" },
     continuity: {
       docsFirst: true,
+      docsFirstMode: "standard",
       multiAgent: { enabled: false, maxWorkers: 4, workerCloneRoot: "" },
     },
     memory: { useGlobalA008Memory: true },
@@ -82,6 +83,7 @@ export function ProjectsPage(props: {
               ...draft,
               continuity: {
                 docsFirst: draft.continuity.docsFirst || multi,
+                docsFirstMode: draft.continuity.docsFirstMode ?? "standard",
                 multiAgent: multi
                   ? draft.continuity.multiAgent
                   : { enabled: false },
@@ -162,7 +164,25 @@ export function ProjectsPage(props: {
                 })
               }
             />
-            Use Docs-First Continuity Protocol
+          </label>
+          <label>
+            Docs-First template
+            <select
+              value={draft.continuity.docsFirstMode ?? "standard"}
+              disabled={multi}
+              onChange={(event) =>
+                update({
+                  ...draft,
+                  continuity: {
+                    ...draft.continuity,
+                    docsFirstMode: event.target.value as "standard" | "minimal",
+                  },
+                })
+              }
+            >
+              <option value="standard">Standard</option>
+              <option value="minimal">Minimal</option>
+            </select>
           </label>
           <label className="a008-project-check">
             <input

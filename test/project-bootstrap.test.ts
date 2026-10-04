@@ -32,7 +32,7 @@ function config(overrides: Record<string, unknown> = {}) {
   return parseProjectBootstrapConfig({
     projectName: "North Star",
     repository: { initialize: false },
-    continuity: { docsFirst: true, multiAgent: { enabled: false } },
+    continuity: { docsFirst: true, docsFirstMode: "standard", multiAgent: { enabled: false } },
     memory: { useGlobalA008Memory: true },
     ...overrides,
     rootFolder: root,
@@ -90,6 +90,23 @@ test("multi-agent without docs-first fails; enabling the add-on requires continu
   );
 });
 
+test("minimal docs-first uses the compact template", () => {
+  const parsed = config({
+    continuity: {
+      docsFirst: true,
+      docsFirstMode: "minimal",
+      multiAgent: { enabled: false },
+    },
+  });
+  const plan = previewProjectBootstrap(parsed, {
+    registryPath: join(tempDir(), "projects.json"),
+  });
+  const writes = plan.mutations.filter((item) => item.kind === "write");
+  assert.equal(
+    writes.some((item) => item.path.endsWith("docs/CURRENT_TASK.md")),
+    true,
+  );
+});
 test("preview matches the files execute writes", () => {
   const parsed = config();
   const store = { registryPath: join(tempDir(), "projects.json") };

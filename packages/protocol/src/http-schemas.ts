@@ -109,6 +109,7 @@ export const projectBootstrapConfigSchema = z.object({
   repository: z.object({ initialize: z.boolean(), name: text.optional() }),
   continuity: z.object({
     docsFirst: z.boolean(),
+    docsFirstMode: z.enum(["standard", "minimal"]).optional(),
     multiAgent: z.object({
       enabled: z.boolean(),
       maxWorkers: z.number().optional(),
@@ -159,7 +160,11 @@ export const registeredProjectSchema = z.object({
   createdAt: text,
   pinned: z.boolean().optional(),
   repository: z.object({ initialize: z.boolean(), name: text }),
-  continuity: z.object({ docsFirst: z.boolean(), multiAgent }),
+  continuity: z.object({
+    docsFirst: z.boolean(),
+    docsFirstMode: z.enum(["standard", "minimal"]).optional(),
+    multiAgent,
+  }),
   memory: z.object({ useGlobalA008Memory: z.boolean() }),
 });
 export type RegisteredProject = z.infer<typeof registeredProjectSchema>;
