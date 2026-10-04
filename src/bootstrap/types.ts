@@ -9,6 +9,7 @@ export type {
 export const PROJECT_REGISTRY_VERSION = 1 as const;
 export const DEFAULT_MAX_WORKERS = 4;
 export const MAX_WORKERS_CEILING = 5;
+export type DocsFirstMode = "standard" | "minimal";
 
 export interface ProjectRegistryDocument {
   readonly version: typeof PROJECT_REGISTRY_VERSION;

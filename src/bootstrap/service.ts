@@ -133,6 +133,7 @@ export function executeProjectBootstrap(
     },
     continuity: {
       docsFirst: config.continuity.docsFirst,
+      docsFirstMode: config.continuity.docsFirstMode ?? "standard",
       multiAgent: plan.multiAgent,
     },
     memory: { useGlobalA008Memory: config.memory.useGlobalA008Memory },

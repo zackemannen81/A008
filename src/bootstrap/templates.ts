@@ -6,8 +6,12 @@
 export function docsFirstFiles(input: {
   readonly projectName: string;
   readonly taskPrefix: string;
+  readonly mode?: "standard" | "minimal";
 }): Readonly<Record<string, string>> {
-  const { projectName, taskPrefix } = input;
+  const { projectName, taskPrefix, mode = "standard" } = input;
+  if (mode === "minimal") {
+    return minimalDocsFirstFiles();
+  }
   return {
     "AGENTS.md": `# AGENTS.md
 
@@ -157,6 +161,65 @@ Archived completed tasks. Immutable.
     "docs/paused/README.md": `# Paused Tasks
 
 Frozen parent tasks awaiting a resume condition.
+`,
+  };
+}
+
+function minimalDocsFirstFiles(): Readonly<Record<string, string>> {
+  return {
+    "AGENTS.md": `# AGENTS.md
+
+This repository uses the Docs-First Continuity Protocol in minimal mode.
+Every task begins in \`docs/CURRENT_TASK.md\`.
+
+## Start Here
+
+1. \`docs/CURRENT_TASK.md\`
+2. \`docs/TASK_WORKFLOW.md\`
+3. \`docs/CURRENT_STATUS.md\`
+4. \`docs/SYSTEMDOC.md\`
+5. \`docs/JOURNAL.md\`
+6. \`docs/FILESTRUCTURE.md\`
+`,
+    "docs/CURRENT_TASK.md": `# Current Task
+
+Task ID:
+Status: Draft
+Owner:
+Created:
+Last updated:
+
+## Task Summary
+
+Describe why this task is active and its intended outcome.
+
+## Definition of Done
+
+- [ ] State objective completion conditions.
+`,
+    "docs/TASK_WORKFLOW.md": `# Task Workflow
+
+Draft -> Ready -> In Progress -> Complete
+
+The active task is \`docs/CURRENT_TASK.md\`. Keep scope, verification and
+completion records in the repository so another actor can continue the work.
+`,
+    "docs/CURRENT_STATUS.md": `# Current Status
+
+Reality as of bootstrap. Record what exists and verified gaps here.
+`,
+    "docs/SYSTEMDOC.md": `# System Document
+
+Record durable behavior that actually exists here.
+`,
+    "docs/JOURNAL.md": `# Journal
+
+Newest first. Append dated work waves here.
+`,
+    "docs/FILESTRUCTURE.md": `# File Structure
+
+- \`AGENTS.md\` — entry point
+- \`docs/\` — minimal docs-first control plane
 `,
   };
 }

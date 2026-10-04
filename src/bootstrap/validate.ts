@@ -116,6 +116,14 @@ export function parseProjectBootstrapConfig(
     continuityRaw.docsFirst ?? false,
     "Docs-First Continuity Protocol",
   );
+  const docsFirstModeRaw = continuityRaw.docsFirstMode ?? "standard";
+  if (docsFirstModeRaw !== "standard" && docsFirstModeRaw !== "minimal") {
+    throw new ChatError(
+      "configuration",
+      "Docs-First mode must be standard or minimal.",
+    );
+  }
+  const docsFirstMode = docsFirstModeRaw;
   const multiRaw =
     continuityRaw.multiAgent !== null &&
     typeof continuityRaw.multiAgent === "object" &&
@@ -185,6 +193,7 @@ export function parseProjectBootstrapConfig(
     },
     continuity: {
       docsFirst: docsFirst || multiEnabled,
+      docsFirstMode,
       multiAgent: multiEnabled
         ? {
             enabled: true,
