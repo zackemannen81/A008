@@ -1,4 +1,13 @@
-## 2026-10-03 — A008-0208: GUI and Electron turn outcome notifications
+## 2026-10-04 — A008-0209: Electron first-run setup and Windows installer
+
+- Added Electron Forge Squirrel maker metadata and `make:win32:x64`, producing the configured `A008-Setup.exe` artifact after host preparation.
+- Added post-install setup for local theme, write-only provider credentials, chat/semantic model defaults, user name/custom instructions and parallel-session root; defaults skip provider/workspace writes and setup can be reopened from Edit.
+- Verification: Electron tests 7/7 PASS; diff check PASS; GUI/Electron typecheck and GUI setup execution blocked by absent dependencies (`React` types, `esbuild`, Electron/Node types); no provider calls, 0 SEK.
+- Signing, publishing, auto-update and provider account/key creation remain separate work.
+- [Task](tasks/A008-0209_electron-first-run-setup-and-installer.md). [Handoff](handoffs/A008-0209.md).
+- Signature: A008
+
+
 
 - Task: A008-0208; operator: Rickard; local implementation in the conversation worktree.
 - Added renderer-lifetime active-to-terminal notifications for durable succeeded, failed and uncertain outcomes; initial terminal snapshots remain silent.

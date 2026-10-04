@@ -9,7 +9,8 @@ charter per worker. A worker may copy its charter into `docs/CURRENT_TASK.md`
 on its branch while working, then archives it to `docs/finished/` and restores
 the template before push.
 
-- [A008-0208_gui-and-electron-turn-notifications.md](A008-0208_gui-and-electron-turn-notifications.md) — In Progress; transient success/failure/uncertain notices in the GUI with opt-in audio and Electron window attention. [handoff pending]
+- [A008-0209_electron-first-run-setup-and-installer.md](A008-0209_electron-first-run-setup-and-installer.md) — Complete; Windows Squirrel installer and post-install setup for local provider, model, identity, theme and parallel-session defaults. [handoff](../handoffs/A008-0209.md)
+- [A008-0208_gui-and-electron-turn-notifications.md](A008-0208_gui-and-electron-turn-notifications.md) — Complete locally; transient success/failure/uncertain notices in the GUI with opt-in audio and Electron window attention. [handoff](../handoffs/A008-0208.md)
 - [A008-0207_finalize-edit-recovery-benchmark.md](../paused/A008-0207_finalize-edit-recovery-benchmark.md) — Paused by operator request while A008-0208 runs; implementation and verification remain outstanding.
 
 

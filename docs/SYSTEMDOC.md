@@ -4,6 +4,12 @@ Granskad: 2026-09-30; A008-0203 hindrar upprepad leverans av behandlade GUI-godk
 Källrevision: `921fa53` + A008-0203 på `codex/a008-0203-permission-replay`.
 Verifiering och avgränsningar: se CURRENT_STATUS och task-handoffs.
 
+## Electron first-run setup and installer — A008-0209
+
+`clients/electron` now sets A008 product metadata and uses `@electron-forge/maker-squirrel`. `make:win32:x64` first builds the existing portable host resources and then produces the Windows installer; the configured setup artifact is `A008-Setup.exe`. No signing, publishing or auto-update is included.
+
+The bundled GUI presents a renderer-side first-run setup after the host is ready. It reuses existing host routes for write-only provider secrets, global runtime instructions/semantic model and parallel worktree root, while theme and chat-model defaults remain local renderer preferences. The user name is composed into the existing persistent instruction field. `Use defaults` marks setup complete without writing provider or workspace values. The setup can be reopened from Edit → First-run setup. No API key is part of the installer, process arguments or logs.
+
 ## Electron desktop client — A008-0204
 
 `clients/electron` is a thin Windows x64 shell around existing `gui/` and the

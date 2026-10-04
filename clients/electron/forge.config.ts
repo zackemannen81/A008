@@ -2,13 +2,23 @@ import type { ForgeConfig } from "@electron-forge/shared-types";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { VitePlugin } from "@electron-forge/plugin-vite";
+import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    name: "A008",
+    executableName: "A008",
     extraResource: ["artifacts/a008-engine-win32-x64"],
   },
   rebuildConfig: {},
+  makers: [
+    new MakerSquirrel({
+      name: "a008",
+      setupExe: "A008-Setup.exe",
+      setupMsi: "A008-Setup.msi",
+    }),
+  ],
   plugins: [
     new VitePlugin({
       build: [{ entry: "src/main.ts", config: "vite.main.config.ts" }],

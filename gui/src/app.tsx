@@ -46,6 +46,8 @@ import {
 
 import { RunOutcomeTracker, notificationMessage, notificationTitle, playOutcomeTone, startTitleAttention } from "./session/run-notifications.js";
 import { isNotificationSoundEnabled } from "./session/notification-preferences.js";
+import { FirstRunSetup } from "./onboarding/setup-dialog.js";
+import "./onboarding/first-run-setup.css";
 
 const STATUS_LABEL = {
   idle: "Not connected",
@@ -106,8 +108,15 @@ export function App() {
   const stopTitleAttention = useRef<(() => void) | undefined>(undefined);
   const [notification, setNotification] = useState<{ outcome: "succeeded" | "failed" | "uncertain"; id: number }>();
   const notificationId = useRef(0);
-  const [soundEnabled, setSoundEnabled] = useState(isNotificationSoundEnabled);
+  const [soundEnabled] = useState(isNotificationSoundEnabled);
   const [multiAgentEnabled, setMultiAgentEnabled] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("a008.first-run-setup") ?? "null")?.completed !== true;
+    } catch {
+      return true;
+    }
+  });
   const artifactSessionId = useRef<string | undefined>(session.sessionId);
   const cwd = session.details?.runtime.cwd;
   const workspace = cwd?.split(/[\\/]/u).filter(Boolean).at(-1);
@@ -195,12 +204,13 @@ export function App() {
   }
 
   function runMenuAction(
-    action: "new-chat" | "files" | "parameters" | "toggle-sidebar" | "help",
+    action: "new-chat" | "files" | "parameters" | "setup" | "toggle-sidebar" | "help",
   ) {
     setApplicationMenu(undefined);
     if (action === "new-chat") navigate("chat");
     if (action === "files") openTools("files");
     if (action === "parameters") openParameters();
+    if (action === "setup") setSetupOpen(true);
     if (action === "toggle-sidebar") toggleSidebar();
     if (action === "help") navigate("help");
   }
@@ -526,7 +536,11 @@ export function App() {
                   ["files", "Files"],
                 ],
               ],
-              ["edit", "Edit", [["parameters", "Parameters"]]],
+              [
+                "edit",
+                "Edit",
+                [["parameters", "Parameters"], ["setup", "First-run setup"]],
+              ],
               [
                 "view",
                 "View",
@@ -815,6 +829,16 @@ export function App() {
             setParametersOpen(false);
             (parametersTrigger.current ?? parametersButton.current)?.focus();
           }}
+        />
+      ) : null}
+      {setupOpen && session.status === "ready" ? (
+        <FirstRunSetup
+          session={session}
+          runtimePreferences={
+            session.details?.runtimePreferences ??
+            session.durable?.getRuntimePreferences()
+          }
+          onComplete={() => setSetupOpen(false)}
         />
       ) : null}
     </div>
