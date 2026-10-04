@@ -78,6 +78,7 @@ export function durableChatHttp(http: HttpClientOptions): HttpClientOptions {
 }
 
 import { RunOutcomeTracker, playOutcomeTone, type RunOutcome } from "./run-notifications.js";
+import { readDefaultChatModel } from "../onboarding/setup-state.js";
 
 export class DurableChatClient {
   readonly api;
@@ -86,7 +87,7 @@ export class DurableChatClient {
   #state: GuiSessionState = {
     status: "idle",
     sessionId: undefined,
-    model: DEFAULT_GUI_MODEL,
+    model: readDefaultChatModel() ?? DEFAULT_GUI_MODEL,
     thought: "",
     answer: "",
     error: undefined,

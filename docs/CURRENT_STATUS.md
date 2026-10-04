@@ -30,6 +30,12 @@ continuation until their exact wire serializers are explicitly owned. Focused
 embedded-ACME + continuation tests pass 17/17 and the streamed Responses test
 proves measured UTF-8 bytes equal the provider-observed request body exactly.
 
+## Windows first-run setup and installer — A008-0209
+
+The Electron client now declares product metadata and an Electron Forge Squirrel maker. `npm --prefix clients/electron run make:win32:x64` is the installer command; `npm --prefix clients/electron run package:win32:x64` remains the unpacked package command. The installer artifact is `A008-Setup.exe` under Forge output. Signing, publishing and auto-update remain deferred.
+
+The GUI includes a post-install first-run setup overlay. It stores only completion/default-chat selection in renderer preferences, writes themes through existing local preference storage, writes provider credentials through the existing host-owned write-only provider route, writes name/custom instructions and semantic model through host-owned runtime preferences, and writes the parallel worktree root through the existing workspace route. `Use defaults` completes without provider or workspace writes. Setup can be reopened from Edit → First-run setup. API keys are never embedded in the installer or logged.
+
 ## Windows desktop package — A008-0204
 
 `clients/electron` packages the existing GUI and a portable local host runtime
@@ -37,13 +43,15 @@ in a Forge Windows x64 directory. The shell reuses the host by its current
 `/health` identity and served HTML surface, or launches the bundled Node host
 on the configured loopback endpoint. Host ownership and authentication remain
 unchanged; BrowserWindow close/reload is not host shutdown. Renderer privileges
-and navigation are restricted, with no preload API. Installer, signing and
-publishing are deferred.
+and navigation are restricted, with no preload API. Installer/signing/publishing
+were deferred by A008-0204 and are now provided by A008-0209 as a separate
+installer slice.
 
 The portable packager no longer requires removed engine documentation files
 and dereferences the npm workspace protocol package into the runtime bundle.
 See the A008-0204 handoff for exact checks and outstanding lifecycle/reconnect
 verification.
+
 ## A008 GUI/Electron notifications — A008-0208
 
 The GUI now tracks active-to-terminal transitions of the currently observed durable run, distinguishes success, failure and uncertain outcomes, and displays transient notices without replaying on an initial terminal snapshot. Page-title attention is bounded and restored on focus/visibility. A user-enabled completion/failure tone is available in Parameters → Appearance and is off by default. The Electron shell requests bounded native window flashing from the existing page-title signal while unfocused; no host/protocol or renderer privilege changes. Cross-reload/global notification receipts are not implemented. Verification is pending in the task handoff.
