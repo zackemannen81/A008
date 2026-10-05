@@ -1,4 +1,4 @@
-import type { RunContinuationPolicy } from "./chat-continuation.js";
+import type { RunContinuationPolicy, RunExecutionStateSeed } from "./chat-continuation.js";
 
 export type ChatRole = "system" | "user" | "assistant";
 
@@ -66,6 +66,12 @@ export interface ChatTools {
   readonly maximumCalls: number;
   /** Opt-in, ephemeral compaction for completed tool interactions in this turn. */
   readonly continuation?: RunContinuationPolicy;
+  /** Trusted per-run status, separate from model-reduced continuation evidence. */
+  readonly executionState?: {
+    readonly objective: string;
+    readonly seed: RunExecutionStateSeed;
+    readonly maximumBytes?: number;
+  };
   execute(call: ChatToolCall, signal?: AbortSignal): Promise<string>;
 }
 

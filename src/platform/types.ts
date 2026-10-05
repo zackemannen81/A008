@@ -1,8 +1,5 @@
 import type { ChatContent } from "../core/types.js";
-import type {
-  RunContinuationState,
-  RunToolInteraction,
-} from "../core/chat-continuation.js";
+import type { RunExecutionStateSeed, RunContinuationState, RunToolInteraction } from "../core/chat-continuation.js";
 import type { PromptImageAttachment, SessionParameters } from "../../packages/protocol/src/index.js";
 
 export interface PlatformContinuationCheckpoint {

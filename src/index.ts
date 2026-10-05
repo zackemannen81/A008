@@ -1,13 +1,18 @@
 export { ChatSession } from "./core/chat-session.js";
 export {
   RUN_CONTINUATION_STATE_VERSION,
+  RUN_EXECUTION_STATE_MAXIMUM_BYTES,
   serializeRunContinuationState,
+  serializeRunExecutionState,
   validateRunContinuationState,
 } from "./core/chat-continuation.js";
 export type {
   RunContinuationEntry,
   RunContinuationPolicy,
   RunContinuationState,
+  RunExecutionState,
+  RunExecutionStateSeed,
+  RunLockedDecision,
   RunToolInteraction,
 } from "./core/chat-continuation.js";
 export type {

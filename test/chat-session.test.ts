@@ -9,15 +9,142 @@ import type {
   ChatTransport,
 } from "../src/core/types.js";
 
+test("execution-state projection is fresh on every tool round and never committed", async () => {
+  const requests: ChatRequest[] = [];
+  let round = 0;
+  const session = new ChatSession({
+    model: "provider/model",
+    transport: {
+      async complete(request) {
+        requests.push(request);
+        round += 1;
+        return round === 1
+          ? { message: { role: "assistant", content: "" }, toolCalls: [{ id: "exec-state-1", name: "inspect", arguments: "{}" }] }
+          : { message: { role: "assistant", content: "done" } };
+      },
+    },
+  });
+  await session.send("implement task", {
+    tools: {
+      definitions: [{ name: "inspect", description: "Inspect", parameters: { type: "object", properties: {} } }],
+      maximumCalls: 2,
+      executionState: {
+        objective: "implement requested feature",
+        seed: {
+          current_phase: "implementation",
+          current_step: "inspect implementation",
+          next_action: "edit the owning module",
+          locked_decisions: [{ decision: "workspace_strategy", value: "clean task worktree" }],
+        },
+      },
+      async execute() { return "inspection complete"; },
+    },
+  });
+  const first = JSON.stringify(requests[0]?.messages);
+  const second = JSON.stringify(requests[1]?.messages);
+  assert.match(first, /DO NOT RE-EVALUATE/);
+  assert.match(first, /clean task worktree/);
+  assert.doesNotMatch(first, /inspection complete/);
+  assert.match(second, /inspection complete/);
+  assert.match(second, /completed_steps/);
+  assert.equal(requests[1]?.messages.filter((message) => message.role === "user").length, 1);
+  assert.deepEqual(session.messages, [
+    { role: "user", content: "implement task" },
+    { role: "assistant", content: "done" },
+  ]);
+});
+
+test("execution-state projection rejects oversized or malformed locked decisions", async () => {
+  const { serializeRunExecutionState } = await import("../src/core/chat-continuation.js");
+  assert.throws(() => serializeRunExecutionState({
+    objective: "objective",
+    seed: { current_phase: "implementation", locked_decisions: [{ decision: "branch", value: "main" }, { decision: "branch", value: "other" }] },
+    completed_steps: [],
+  }), /duplicate locked decision/);
+  assert.throws(() => serializeRunExecutionState({
+    objective: "x".repeat(512),
+    seed: { current_phase: "implementation" },
+    completed_steps: [],
+    maximumBytes: 20,
+  }), /exceeds 20 UTF-8 bytes/);
+});
+
+test("recovery rebuild includes checkpointed completed actions and trusted locks", async () => {
+  const requests: ChatRequest[] = [];
+  const state = {
+    version: "a008_run_continuation_state_v1" as const,
+    runId: "recovered-run",
+    verifiedFacts: [{ id: "fact-1", statement: "source retained", sourceRefs: ["recovered-run:1"] }],
+    hypotheses: [],
+    completedActions: [{ id: "action-1", statement: "Updated the parser", sourceRefs: ["recovered-run:1"] }],
+  };
+  const session = new ChatSession({
+    model: "provider/model",
+    transport: {
+      measureRequest(request) {
+        return { routeId: "route-1", serializedBytes: Buffer.byteLength(JSON.stringify(request), "utf8") };
+      },
+      async complete(request) {
+        requests.push(request);
+        return { message: { role: "assistant", content: "continued" } };
+      },
+    },
+  });
+  await session.send("continue implementation", {
+    tools: {
+      definitions: [{ name: "inspect", description: "Inspect", parameters: { type: "object", properties: {} } }],
+      maximumCalls: 4,
+      executionState: {
+        objective: "finish the requested implementation",
+        seed: {
+          current_phase: "recovery",
+          locked_decisions: [{ decision: "workspace_strategy", value: "verified session worktree" }],
+        },
+      },
+      continuation: {
+        recentRawInteractions: 1,
+        maximumStateBytes: 4096,
+        pressure: {
+          routeBudget: { pressureBytes: 10000, maximumBytes: 20000, reducerInputBytes: 10000, reducerOutputTokens: 32 },
+          async persistCheckpoint() {},
+        },
+        recovery: {
+          resume: {
+            version: 1,
+            state,
+            recentInteractions: [{
+              id: "recovered-run:2",
+              messages: [
+                { role: "assistant", content: "completed inspection", toolCalls: [{ id: "already-completed", name: "inspect", arguments: "{}" }] },
+                { role: "tool", toolCallId: "already-completed", content: "checkpoint result" },
+              ],
+            }],
+            completedInteractions: 2,
+            usedToolCallIds: ["already-completed", "previous-call"],
+            routeId: "route-1",
+          },
+          beforeEffect: async () => {},
+        },
+        async compact() { return state; },
+      },
+      async execute() { return "unused"; },
+    },
+  });
+  const messages = requests[0]!.messages;
+  const system = messages.find((message) => message.role === "system");
+  assert.match(String(system?.content), /Updated the parser/);
+  assert.match(String(system?.content), /verified session worktree/);
+  assert.match(String(system?.content), /DO NOT RE-EVALUATE/);
+  assert.equal(messages.filter((message) => message.role === "user").length, 2);
+});
+
 test("session commits user and assistant messages after success", async () => {
   const requests: ChatRequest[] = [];
   const transport: ChatTransport = {
     async complete(request, callbacks?: ChatCallbacks) {
       requests.push(request);
       callbacks?.onDelta?.({ type: "content", text: "hello" });
-      return {
-        message: { role: "assistant", content: "hello" },
-      };
+      return { message: { role: "assistant", content: "hello" } };
     },
   };
   const deltas: string[] = [];
@@ -27,11 +154,7 @@ test("session commits user and assistant messages after success", async () => {
     systemMessage: "system",
     generation: { temperature: 0.5 },
   });
-
-  await session.send("  hi  ", {
-    onDelta: (delta) => deltas.push(delta.text),
-  });
-
+  await session.send("  hi  ", { onDelta: (delta) => deltas.push(delta.text) });
   assert.deepEqual(deltas, ["hello"]);
   assert.deepEqual(session.messages, [
     { role: "system", content: "system" },
