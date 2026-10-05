@@ -31,6 +31,7 @@ The status below is based on an inventory of the repository’s code, not on old
 | Shared runtime | Implemented | `ProjectRuntimeRegistry`, `EngineHost`, project-bound sessions, workspace/chat ownership, and portable engine bundle. |
 | Projects | Implemented | Create projects, register existing directories, open projects, project registry, saved conversations, and workspace sessions. |
 | Chat/sessions | Implemented | Normal standalone GUI uses host-owned durable conversations/runs with isolated worktrees, process-per-session execution, background observation, stored model/parameters, and image attachments. V1/V2/ACP remain compatibility surfaces. |
+| Turn Runtime context optimizing | Implemented | During a turn, context will automaticly optimize both regular context and realtime tool runs. See hand-offs: A008-0193, A008-0205, A008-0203|
 | Memory view | Implemented | Read-only Overview, Relationship Map/graph, and Knowledge Manager with search, filters, domain/status, and pagination. |
 | CLI | Implemented | Interactive chat, `/help`, `/model`, `/status`, `/history`, `/undo`, `/reset`, `/cwd`, `/tools`, `/shell`, and `/exit`. |
 | Web GUI | Implemented | A008-owned React/Vite GUI with Chat, Memory, Tools, Help, Projects, Settings, Upload, Files, Terminal, Browser, and Code Canvas. |
@@ -41,6 +42,11 @@ The status below is based on an inventory of the repository’s code, not on old
 | SQLite | Implemented | `better-sqlite3` is used for local semantic memory and, when enabled, Platform V3 conversations/runs/leases/receipts/outbox. |
 | SQLite optional | Implemented | Memory uses configured SQLite or in-memory mode; public V3 remains configuration-gated, while normal standalone durable GUI chat can initialize its shared local Platform backend on first access. |
 | Background instances | Implemented | The host runs process-per-session workers for durable project sessions; normal GUI submissions and observations use the shared Platform store/coordinator. |
+| Themes | Implemented | There is something for everyone. |
+| Custom instructions | Implemented | No more "you're a helpful assistant...." |
+| Docs-first continuity protocol - Standard or Minimal | Implemented | A repository-native protocol for project continuity, bounded context and resumable work. (minimal saves alot of context)|
+| Docs-first-multiagent-orchestrator-addon | Implemented | multiagent-orchestrator-addon (need to know basis context optimizing) |
+| ACME-Engine execution | Implemented | Both strict and non-strict deterministic execution npmp integration running on ACME-Engine |
 
 ## Workflows and surfaces
 
