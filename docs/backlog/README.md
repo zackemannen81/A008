@@ -5,12 +5,15 @@ Member state: required. Every member declares a `Status:` line.
 
 These proposals are in project direction but are not active. Activation claims
 an A008 task ID and creates a reviewed charter. A proposal keeps its stable path
-when its status changes.
+when its status changes. A008-0210 has been activated, then paused before
+implementation because the current host cannot verify the main-chat role; see
+[the paused task](../paused/A008-0210_remove-delete-project-chats.md) and
+[handoff](../handoffs/A008-0210.md). The operator has approved investigating a
+native OS confirmation surface under A008-0212; this alone does not resolve the
+host-to-broker trust boundary.
 
-## Proposals
-
-| Proposal | Status | Outcome |
-| --- | --- | --- |
+| [`remove-project-chat-with-main-chat-confirmation.md`](remove-project-chat-with-main-chat-confirmation.md) | Paused as A008-0210 | Main-chat-only confirmation is requested; implementation awaits a host-verifiable identity/authorization boundary. |
+| [`project-open-create-delete-actions.md`](project-open-create-delete-actions.md) | Active as A008-0211 (charter local) | Root/main chat uses original checkout; parallel chats use worktrees; open root, delete eligible chat with clean worktree, and unlink project without deleting files. For this scope, host verifies main-chat origin and user approves exact target in native OS dialog; A008-0212 owns durable identity/broker prerequisite. |
 | [`semantic-model-parity-fixture.md`](semantic-model-parity-fixture.md) | Proposed | Make Luna semantic fixture select its independent semantic model explicitly; observed during A008-0202. |
 | [`http-contract-visited-route-coverage.md`](http-contract-visited-route-coverage.md) | Proposed | Repair three existing HTTP/protocol fixture inventory mismatches observed during A008-0201; preserve meaningful route coverage. |
 | [`legacy-credential-remediation.md`](legacy-credential-remediation.md) | Completed | Credential revoked/rotated; secure provider-neutral intake delivered by A008-0003. |
