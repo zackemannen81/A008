@@ -24,13 +24,19 @@ implementation, gamla uppgifter och historiska dokument skapar inte nya krav.
 - **PC-LF-04 — ACME owns model execution.** ACME utför modell-/providerarbete
   och rapporterar exekveringsresultat. A008 äger sessioner, verktygsbehörighet,
   minne och semantisk policy.
-- **PC-LF-05 — Durable project sessions.** Varje ny projektsession får en egen
-  beständig identitet, chatthistorik och Git-worktree vid skapandet. Sessionen
-  består när dess process eller en ansluten klient avslutas.
-- **PC-LF-06 — Isolated workspaces.** Varje projektsession har en egen branch
-  och arbetskatalog under användarens session-rot. Verktyg och underprocesser
-  använder sessionens workspace som CWD. Saknad worktree får aldrig orsaka en
-  tyst övergång till projekt-roten.
+- **PC-LF-05 — Durable project sessions and main chat.** Each registered
+  project has one durable main chat with its own session identity and history.
+  Its working directory is the project's original local checkout; it does not
+  create or require a Git worktree. Parallel project chats have independent
+  durable identities and histories and use isolated Git worktrees. Both types
+  survive process/client exit.
+- **PC-LF-06 — Explicit session working-directory modes.** A main chat runs
+  explicitly in the registered project root. Each parallel chat has its own
+  branch and working directory under the user's session root. Tools and child
+  processes use the selected chat's recorded working directory. Missing or
+  invalid location never silently falls back to another directory. Main-chat
+  writes are to the original checkout and are not isolated from other project
+  activity; the UI must distinguish this from parallel worktree chats.
 - **PC-LF-07 — Local state remains authoritative.** Lokal lagring äger
   beständigt tillstånd. Eventuell synkronisering överför uttryckliga data och
   händelser utan att ett fjärrsystem blir nödvändig lokal sanningsägare.
@@ -47,10 +53,12 @@ implementation, gamla uppgifter och historiska dokument skapar inte nya krav.
   dokumenttext och minnesträffar får inte återaktivera gamla krav. Målbild och
   implementerat beteende dokumenteras separat.
 
-PC-LF-05/06 ersätter sina tidigare formuleringar. Session och workspace är
-fortfarande skilda begrepp men allokeras tillsammans för nya projektsessioner.
-Den tidigare regeln om workspace först vid skrivning och den generella
-clone/copy-fallbacken ingår inte i denna grund.
+PC-LF-05/06 distinguish the project's durable root/main chat from parallel
+worktree chats. The main chat intentionally uses the original checkout; it is
+not an isolated workspace. Parallel sessions remain isolated worktrees, and
+a missing selected working directory never triggers cross-mode fallback. This
+replaces the former requirement that every new project session receive a
+worktree.
 
 ## Begrepp
 
