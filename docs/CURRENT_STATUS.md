@@ -6,10 +6,11 @@ Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtn
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
 
-## Ephemeral execution state — A008-0213 (in progress)
+## Project root/main identity and confirmation — A008-0211/0212 (in progress)
 
-Implementation now routes a compact ephemeral state block into the existing system context for each durable GUI tool-run provider request. Workspace locks are sourced from the coordinator's verified workspace record. Checkpointed completed-action restoration and serializer edge cases have deterministic core tests. The implementation is still local to an active task worktree, so final integrated behavior/status and efficacy are not claimed. Remaining: a full coordinator/session-process request/recovery integration test, root typecheck/build (currently fails on unrelated `src/bootstrap/plan.ts:22`, `exactOptionalPropertyTypes`, undefined `mode`), and operator observation in ordinary model-backed use. Focused core suites and package builds are recorded in `docs/CURRENT_TASK.md`.
+The approved direction defines one durable root/main conversation per project in the original checkout, distinct from isolated parallel worktrees. Rickard approved an exact-target Yes in a host-owned native OS dialog for A008-0211 destructive actions; the request must first be host-verified as originating from that project's durable main chat. The current Platform store has no host-owned main-vs-parallel role, and Electron's main dialog is not connected to the separate, independently reusable GUI host through an authenticated out-of-band broker channel. Renderer/HTTP claims are not authority. A008-0212 is the active prerequisite; destructive project actions remain unimplemented pending a proven identity/broker boundary. This decision does not amend A008-0210's separately frozen main-chat UI confirmation requirement.
 
+## Transactional native edit checkpoint — A008-0205 / successor A008-0207
 
 A008-0205 produced a verified predecessor checkpoint for transactional native text
 editing: exact-match planning, bounded stale/ambiguity/closest-match diagnostics,

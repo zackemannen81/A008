@@ -67,7 +67,7 @@ worktree.
 | Session-rot | Global användarinställning för nya arbetskataloger, exempelvis `C:\code\a008-sessions`. Ligger utanför projektens repositoryträd. |
 | Projekt | Registrerad identitet `projectId` med en projekt-rot. |
 | Projekt-rot | Projektets ursprungliga lokala Git-checkout. |
-| Session | Beständig arbetskontext med `sessionId`, historik och workspace. Chatt är dess GUI-presentation. |
+| Session | Durable project conversation with a stable `sessionId`, history and an explicit mode: project root/main or parallel worktree. Chat is its GUI presentation. |
 | Workspace | Registrerad worktree med `workspaceId`, sökväg, branch och startrevision. |
 | Sessionsinstans | En viss livstid för körprocessen, identifierad av `instanceId`. |
 | Process | OS-processen med ett tillfälligt `processId`/PID som OS kan återanvända. |

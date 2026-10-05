@@ -4,7 +4,10 @@ Granskad: 2026-09-30; A008-0203 hindrar upprepad leverans av behandlade GUI-godk
 Källrevision: `921fa53` + A008-0203 på `codex/a008-0203-permission-replay`.
 Verifiering och avgränsningar: se CURRENT_STATUS och task-handoffs.
 
-## Electron first-run setup and installer — A008-0209
+## Project root/main identity and confirmation — A008-0211/0212 (in progress)
+
+The approved product contract distinguishes one durable project root/main conversation from parallel worktree conversations. Rickard approved a host-owned native OS dialog as the exact-target Yes surface for destructive actions in A008-0211, provided the host first verifies the request originated from the project's durable main chat. The current Platform schema stores project/workspace binding only; it has no authoritative root/main role. Electron main has a native `dialog` API but no renderer IPC bridge, and the GUI host is a separate process that may be independently reused. There is no authenticated out-of-band host-to-Electron confirmation channel today. Consequently native UI or renderer/HTTP approval is not yet a host-verifiable authorization boundary; destructive actions remain blocked. A008-0212 is the prerequisite to persist identity and prove an exact-target, expiring, single-use broker channel that rejects direct caller forgery. This A008-0211 direction does not amend A008-0210's frozen main-chat UI gate. See its charter and handoff for current evidence.
+
 
 `clients/electron` now sets A008 product metadata and uses `@electron-forge/maker-squirrel`. `make:win32:x64` first builds the existing portable host resources and then produces the Windows installer; the configured setup artifact is `A008-Setup.exe`. No signing, publishing or auto-update is included.
 
