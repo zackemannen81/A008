@@ -22,7 +22,7 @@ export function plannedFiles(
       docsFirstFiles({
         projectName: config.projectName,
         taskPrefix: taskPrefixFromName(config.projectName),
-        mode: config.continuity.docsFirstMode,
+        mode: config.continuity.docsFirstMode ?? "standard",
       }),
     );
   }
