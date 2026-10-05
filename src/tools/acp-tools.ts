@@ -26,6 +26,8 @@ export async function prepareAcpTools(
   requestPermission?: RequestToolPermission,
   writeContinuationCheckpoint?: ContinuationCheckpointWriter,
   recovery?: RunContinuationRecoveryBridge,
+  executionObjective?: string,
+  executionStateSeed?: import("../core/chat-continuation.js").RunExecutionStateSeed,
 ) {
   const toolCall = (activity: ToolActivity) => ({
     toolCallId: activity.id,
@@ -115,11 +117,17 @@ export async function prepareAcpTools(
     },
     signal,
   );
+  const executionState = executionObjective === undefined
+    ? undefined
+    : {
+        objective: executionObjective,
+        seed: executionStateSeed ?? { current_phase: "execution" },
+      };
   const pressure = budgets.continuationPressureBytes;
   const maximum = budgets.continuationMaximumBytes;
   if (pressure === 0 && maximum === 0) {
     if (recovery?.resume) throw new ChatError("configuration", "Continuation recovery requires enabled pressure policy.");
-    return prepared;
+    return executionState ? { ...prepared, executionState } : prepared;
   }
   if (writeContinuationCheckpoint === undefined) {
     throw new ChatError(

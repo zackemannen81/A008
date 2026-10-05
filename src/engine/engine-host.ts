@@ -53,6 +53,8 @@ interface EngineSession {
   notify?: ToolNotifier;
   continuationCheckpoint?: ContinuationCheckpointWriter;
   continuationRecovery?: RunContinuationRecoveryBridge;
+  executionObjective?: string;
+  executionStateSeed?: import("../core/chat-continuation.js").RunExecutionStateSeed;
   listeners: Set<Listener>;
   active?: Promise<unknown>;
   input?: string;
@@ -96,6 +98,9 @@ export interface EngineNewSessionOptions {
   /** Host-owned durable checkpoint bridge for live-turn continuation. */
   readonly continuationCheckpoint?: ContinuationCheckpointWriter;
   readonly continuationRecovery?: RunContinuationRecoveryBridge;
+  /** Runtime-trusted ephemeral objective/state for the active tool run. */
+  readonly executionObjective?: string;
+  readonly executionStateSeed?: import("../core/chat-continuation.js").RunExecutionStateSeed;
 }
 
 export interface EngineHostOptions {
@@ -217,6 +222,8 @@ export class EngineHost {
         ? {}
         : { continuationCheckpoint: options.continuationCheckpoint }),
       ...(options.continuationRecovery ? { continuationRecovery: options.continuationRecovery } : {}),
+      ...(options.executionObjective === undefined ? {} : { executionObjective: options.executionObjective }),
+      ...(options.executionStateSeed === undefined ? {} : { executionStateSeed: structuredClone(options.executionStateSeed) }),
       listeners: new Set(),
       activities: new Map(),
       generations: new Map(),
@@ -487,6 +494,8 @@ export class EngineHost {
           session.requestPermission,
           session.continuationCheckpoint,
           session.continuationRecovery,
+          session.executionObjective,
+          session.executionStateSeed,
         ),
     );
     session.active = work;
