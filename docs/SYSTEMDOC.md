@@ -196,6 +196,10 @@ processstatus/PID, uttryckligt processstopp och kontroll för granskade effekter
 Värdshutdown avbryter och inväntar ägda processer och slutliga lagringsskrivningar.
 Värden kan köras utan ett öppet GUI; stängning av själva värden är ett annat steg.
 
+## Run-local execution-state projection — A008-0213
+
+The current worktree contains A008-0213 implementation changes that are not yet integrated. The intended durable GUI tool-run path passes runtime-owned objective/seed through `SessionProcessRun`/`GuiRunSession`/`EngineHost` into `ChatSession`, which rebuilds a bounded projection in the existing system context for each provider request. Workspace identity/mode/path and available branch/base commit are runtime locked values. Completed actions from a verified continuation checkpoint are projected on recovery. The state is transient, not canonical chat history or semantic memory; no model-generated state can change locks, and existing recovery fencing/no-replay behavior remains. Treat these implementation notes as provisional until the task's end-to-end verification and integration are complete.
+
 ## Run-local continuation context — A008-0196
 
 `src/core/chat-continuation.ts` defines a versioned, UTF-8-bounded `RunContinuationState` with distinct verified facts, hypotheses and completed actions. Every entry must cite retained source interactions. The opt-in `ChatTools.continuation` policy in `src/core/chat-session.ts` offers only complete rounds older than the configured raw tail to a caller-owned reducer. Output is validated for run ID, shape, byte limit and resolvable source refs before projected provider context is replaced. Recent rounds remain raw; in-flight tool operations are never passed to the reducer. Canonical raw messages stay untouched. Without the explicit policy, existing full wire history is preserved. Continuation data is sent as untrusted user context, not system instruction or semantic memory.

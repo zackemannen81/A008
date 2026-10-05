@@ -531,6 +531,18 @@ export class PlatformCoordinator {
           ...(run.attachment === undefined ? {} : { attachment: run.attachment }),
           history: prepared.history,
           tools: run.principalId === PLATFORM_GUI_OWNER,
+          executionObjective: prepared.text,
+          executionStateSeed: {
+            current_phase: recovery ? "recovery" : "implementation",
+            current_step: recovery ? "Resume from verified continuation checkpoint" : "Continue the accepted run",
+            next_action: recovery ? "Continue from the verified checkpoint; do not replay prior tools" : "Advance the objective using tools as needed",
+            locked_decisions: [
+              { decision: "workspace_id", value: run.workspaceId },
+              { decision: "workspace_strategy", value: `${workspace.workspaceMode}: ${workspace.workspacePath}` },
+              ...(workspace.branchName ? [{ decision: "workspace_branch", value: workspace.branchName }] : []),
+              ...(workspace.baseCommit ? [{ decision: "workspace_base_commit", value: workspace.baseCommit }] : []),
+            ],
+          },
           ...(recovery ? { continuationResume: recovery.recovery } : {}),
           recoveryRequired: this.#store
             .listRuns(scope)

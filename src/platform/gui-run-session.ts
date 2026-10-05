@@ -49,6 +49,8 @@ export class GuiRunSession {
       parameters: SessionParameters;
       conversationId: string;
       history: readonly PlatformTextHistoryMessage[];
+      executionObjective?: string;
+      executionStateSeed?: import("../core/chat-continuation.js").RunExecutionStateSeed;
       onActivity?: (activity: GuiRunActivity) => void;
       continuationCheckpoint?: ContinuationCheckpointWriter;
       continuationRecovery?: RunContinuationRecoveryBridge;
@@ -137,6 +139,8 @@ export class GuiRunSession {
         {
           initialModel: this.input.model,
           ...(this.input.continuationRecovery ? { continuationRecovery: this.input.continuationRecovery } : {}),
+          ...(this.input.executionObjective === undefined ? {} : { executionObjective: this.input.executionObjective }),
+          ...(this.input.executionStateSeed === undefined ? {} : { executionStateSeed: this.input.executionStateSeed }),
           conversationSeed: {
             conversationId: this.input.conversationId,
             messages: this.input.history,

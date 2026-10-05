@@ -1,6 +1,76 @@
 import { ChatError } from "./errors.js";
 import type { ChatWireMessage } from "./types.js";
 
+export interface RunLockedDecision {
+  readonly decision: string;
+  readonly value: string;
+}
+
+/** Runtime-owned, ephemeral execution guidance; never semantic memory. */
+export interface RunExecutionState {
+  readonly objective: string;
+  readonly current_phase: string;
+  readonly current_step?: string;
+  readonly completed_steps: readonly string[];
+  readonly blocked_by: readonly string[];
+  readonly next_action?: string;
+  readonly locked_decisions: readonly RunLockedDecision[];
+}
+
+export interface RunExecutionStateSeed {
+  readonly current_phase: string;
+  readonly current_step?: string;
+  readonly blocked_by?: readonly string[];
+  readonly next_action?: string;
+  /** Only explicit runtime/operator-owned decisions may be supplied here. */
+  readonly locked_decisions?: readonly RunLockedDecision[];
+}
+
+export const RUN_EXECUTION_STATE_MAXIMUM_BYTES = 4096;
+
+/** Serialize a bounded projection using runtime status and observed tool outcomes only. */
+export function serializeRunExecutionState(input: {
+  readonly objective: string;
+  readonly seed: RunExecutionStateSeed;
+  readonly completed_steps: readonly string[];
+  readonly maximumBytes?: number;
+}): string {
+  const maximumBytes = input.maximumBytes ?? RUN_EXECUTION_STATE_MAXIMUM_BYTES;
+  const text = (value: unknown, field: string, max = 512): string => {
+    if (typeof value !== "string" || value.trim().length === 0 || value.length > max)
+      invalid(`execution state ${field} must be a non-empty string up to ${max} characters.`);
+    return value.trim();
+  };
+  if (!Number.isSafeInteger(maximumBytes) || maximumBytes < 1 || !Array.isArray(input.completed_steps) || input.completed_steps.length > 64)
+    invalid("execution state exceeds its shape limits.");
+  const decisions = input.seed.locked_decisions ?? [];
+  if (!Array.isArray(decisions) || decisions.length > 16) invalid("execution state locked_decisions exceeds its shape limits.");
+  const seen = new Set<string>();
+  const locked_decisions = decisions.map((item, index) => {
+    if (!isRecord(item) || Object.keys(item).some(key => key !== "decision" && key !== "value"))
+      invalid(`execution state locked_decisions[${index}] has an unsupported shape.`);
+    const decision = text(item.decision, `locked_decisions[${index}].decision`, 80);
+    if (seen.has(decision)) invalid(`execution state contains duplicate locked decision ${decision}.`);
+    seen.add(decision);
+    return { decision, value: text(item.value, `locked_decisions[${index}].value`, 256) };
+  });
+  const state: RunExecutionState = {
+    objective: text(input.objective.slice(0, 512), "objective", 512),
+    current_phase: text(input.seed.current_phase, "current_phase", 80),
+    ...(input.seed.current_step === undefined && input.completed_steps.length === 0
+      ? {}
+      : { current_step: text(input.seed.current_step ?? "Review the latest completed tool result", "current_step", 256) }),
+    completed_steps: input.completed_steps.map((step, index) => text(step, `completed_steps[${index}]`, 160)),
+    blocked_by: (input.seed.blocked_by ?? []).map((item, index) => text(item, `blocked_by[${index}]`, 160)),
+    ...(input.seed.next_action === undefined ? {} : { next_action: text(input.seed.next_action, "next_action", 256) }),
+    locked_decisions,
+  };
+  const serialized = JSON.stringify(state);
+  if (Buffer.byteLength(serialized, "utf8") > maximumBytes)
+    invalid(`serialized execution state exceeds ${maximumBytes} UTF-8 bytes.`);
+  return serialized;
+}
+
 export const RUN_CONTINUATION_STATE_VERSION =
   "a008_run_continuation_state_v1" as const;
 

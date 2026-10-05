@@ -117,6 +117,8 @@ const rpc = new SessionIpc(
           cwd,
           model: run.model,
           parameters: run.parameters,
+          ...(run.executionObjective === undefined ? {} : { executionObjective: run.executionObjective }),
+          ...(run.executionStateSeed === undefined ? {} : { executionStateSeed: run.executionStateSeed }),
           recoveryRequired: run.recoveryRequired ?? false,
           conversationId: sessionId,
           history: run.history,

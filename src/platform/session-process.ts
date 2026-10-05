@@ -13,7 +13,7 @@ import type { StagePostOutputKnowledgeInput } from "../orchestration/post-output
 import { parseRuntimeId } from "../identity/runtime-id.js";
 import { killProcessTree } from "../tools/terminal.js";
 import type { PromptImageAttachment, SessionParameters } from "../../packages/protocol/src/index.js";
-import type { RunContinuationCheckpointWrite, RunContinuationRecovery } from "../core/chat-continuation.js";
+import type { RunContinuationCheckpointWrite, RunContinuationRecovery, RunExecutionStateSeed } from "../core/chat-continuation.js";
 
 export interface SessionProcessIdentity {
   readonly sessionId: string;
@@ -40,6 +40,8 @@ export interface SessionProcessRun {
   text: string;
   attachment?: PromptImageAttachment;
   tools: boolean;
+  executionObjective?: string;
+  executionStateSeed?: RunExecutionStateSeed;
   recoveryRequired?: boolean;
   continuationResume?: RunContinuationRecovery;
 }

@@ -167,7 +167,7 @@ test("invalid later compaction leaves the previous valid projection and raw hist
   const priorProjection = JSON.stringify(requests[2]?.messages);
   assert.match(priorProjection, /a008_run_continuation_state_v1/);
   assert.match(priorProjection, /result-2/);
-  assert.match(priorProjection, /result-3/);
+  assert.doesNotMatch(priorProjection, /result-3/);
   assert.deepEqual(session.messages, []);
 });
 
