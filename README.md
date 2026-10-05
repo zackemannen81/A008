@@ -62,6 +62,8 @@ Normal standalone GUI chat uses durable project conversations/runs behind the au
 
 The memory view is for diagnostics and reading. It exposes Overview, Relationship Map as stored nodes/associations, and Knowledge Manager with search, filters, status, domain, and detailed inspection. The view is read-only; it is not a visual knowledge-editing tool.
 
+<a href="screenshots/docs-first_minimal-setup-completed.png" target="_blank"><img src="screenshots/docs-first_minimal-setup-completed.png" width="5120" alt="Bild memory"></a>
+
 ## Agent features and capabilities
 
 | Capability | Status | Details |
