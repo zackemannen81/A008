@@ -2,7 +2,7 @@
 
 Task ID: A008-0210
 Parent Task: None
-Status: In Progress
+Status: Stopped, superseded by A008-0214
 Owner: Rickard (operator); A008 (implementation)
 Created: 2026-10-04
 Last updated: 2026-10-05
