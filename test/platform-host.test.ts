@@ -116,10 +116,15 @@ for (const scenario of ["continue-110-rounds", "workspace-mutation", "missing-wo
     let beforeInstance = "";
     let sessionId = "";
     let workspacePath = "";
+    let workspaceId = "";
+    let workspaceMode = "";
+    let workspaceBranch: string | undefined;
+    let workspaceBaseCommit: string | undefined;
     let databasePath = "";
     let stopProcess: (() => Promise<unknown>) | undefined;
     const runtimeIds = new Set<string>();
     const mainRequestBytes: number[] = [];
+    const executionStates: { objective: string; current_phase: string; completed_steps: string[]; locked_decisions: { decision: string; value: string }[] }[] = [];
     const executedIds = new Set<string>();
     const provider = await startSessionControlProvider(async payload => {
       const last = payload.messages.at(-1);
@@ -131,9 +136,36 @@ for (const scenario of ["continue-110-rounds", "workspace-mutation", "missing-wo
       if (reduction) {
         runtimeIds.add(reduction.runId);
         const refs = [...new Set([...(reduction.previous?.verifiedFacts.flatMap(fact => fact.sourceRefs) ?? []), ...reduction.interactions.map(interaction => interaction.id)])];
-        return { role: "assistant", content: JSON.stringify({ version: RUN_CONTINUATION_STATE_VERSION, runId: reduction.runId, verifiedFacts: [{ id: "file", statement: "The evidence file was read successfully.", sourceRefs: refs }], hypotheses: [], completedActions: [] }) };
+        return { role: "assistant", content: JSON.stringify({ version: RUN_CONTINUATION_STATE_VERSION, runId: reduction.runId, verifiedFacts: [{ id: "file", statement: "The evidence file was read successfully.", sourceRefs: refs }], hypotheses: [], completedActions: [{ id: "read-action", statement: "Completed fixture file read", sourceRefs: refs }] }) };
       }
+      if (!Array.isArray(payload.tools)) return { role: "assistant", content: "{}" };
       mainRequestBytes.push(Buffer.byteLength(JSON.stringify(payload)));
+      const systemContext = payload.messages.find((message: { role: string }) => message.role === "system")?.content;
+      assert.equal(typeof systemContext, "string", "execution state is delivered through the system context");
+      if (!String(systemContext).includes("DO NOT RE-EVALUATE"))
+        throw new Error(`No execution projection in provider request: ${JSON.stringify({ tools: payload.tools, messages: payload.messages.map((message: { role: string; content?: unknown }) => ({ role: message.role, content: String(message.content).slice(0, 250) })) })}`);
+      const jsonStart = String(systemContext).indexOf('{"objective":');
+      assert.notEqual(jsonStart, -1, "provider request includes a structured execution-state projection");
+      let state: typeof executionStates[number] | undefined;
+      for (let end = jsonStart + 1; end <= String(systemContext).length; end += 1) {
+        if (String(systemContext)[end - 1] !== "}") continue;
+        try {
+          state = JSON.parse(String(systemContext).slice(jsonStart, end)) as typeof executionStates[number];
+          break;
+        } catch { /* Keep scanning until the complete state object closes. */ }
+      }
+      assert.ok(state, "execution state is complete JSON in the provider request");
+      assert.match(String(systemContext), /DO NOT RE-EVALUATE/);
+      assert.equal(state.objective, "Read the evidence file through the complete test sequence.");
+      assert.equal(state.current_phase, crashed ? "recovery" : "implementation");
+      if (crashed) assert.ok(state.completed_steps.length > 0, "checkpointed execution steps survive process recovery");
+      assert.deepEqual(state.locked_decisions, [
+        { decision: "workspace_id", value: workspaceId },
+        { decision: "workspace_strategy", value: `${workspaceMode}: ${workspacePath}` },
+        ...(workspaceBranch ? [{ decision: "workspace_branch", value: workspaceBranch }] : []),
+        ...(workspaceBaseCommit ? [{ decision: "workspace_base_commit", value: workspaceBaseCommit }] : []),
+      ], "locks must match coordinator-verified workspace identity and metadata across IPC and recovery");
+      executionStates.push(state);
       const tail = payload.messages.filter((message: { role: string }) => message.role === "tool");
       assert.ok(tail.length <= 2, "compaction keeps one recent raw round after the initial two");
       const completed = Number(String(tail.at(-1)?.tool_call_id ?? "read-0").slice(5));
@@ -170,7 +202,12 @@ for (const scenario of ["continue-110-rounds", "workspace-mutation", "missing-wo
     try {
       await client.connect(); await client.selectChat(project.projectId, undefined, true);
       sessionId = client.getSnapshot().sessionId!;
-      workspacePath = client.getWorkspace()!.workspacePath;
+      const workspace = client.getWorkspace()!;
+      workspacePath = workspace.workspacePath;
+      workspaceId = workspace.id;
+      workspaceMode = workspace.workspaceMode;
+      workspaceBranch = workspace.branchName;
+      workspaceBaseCommit = workspace.baseCommit;
       stopProcess = () => client.stopProcess();
       await client.prompt("Read the evidence file through the complete test sequence.");
       // Exercise host ownership without GUI polling; acknowledge only actual pending approvals.
@@ -201,6 +238,9 @@ for (const scenario of ["continue-110-rounds", "workspace-mutation", "missing-wo
           assert.equal(executedIds.size, 110); assert.ok(checkpoints >= 100); assert.equal(runtimeIds.size, 1);
           assert.equal(store.readActivity(scope, run.id)?.tools.length, 110);
           assert.equal(store.getConversation(scope, sessionId).messages.filter(message => message.role === "assistant").length, 1);
+          assert.ok(executionStates.some(state => state.current_phase === "implementation"));
+          assert.ok(executionStates.some(state => state.current_phase === "recovery" && state.completed_steps.includes("Completed fixture file read")));
+          assert.ok(executionStates.every(state => state.locked_decisions.length >= 2));
           assert.ok(mainRequestBytes.every(bytes => bytes <= 50000));
         } else {
           assert.equal(run.status, "needs_reconciliation"); assert.equal(run.leaseGeneration, 1);

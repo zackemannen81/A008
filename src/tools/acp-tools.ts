@@ -137,6 +137,7 @@ export async function prepareAcpTools(
   }
   return {
     ...prepared,
+    ...(executionState ? { executionState } : {}),
     continuation: {
       ...(recovery ? { recovery } : {}),
       recentRawInteractions: budgets.continuationRecentRawInteractions,
