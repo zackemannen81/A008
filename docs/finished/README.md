@@ -2,7 +2,7 @@
 
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 
-Latest archive: [A008-0203_permission-replay.md](A008-0203_permission-replay.md) — Complete locally; resolved GUI permission replay suppression.
+Latest archive: [A008-0213_run-local-execution-state-projection.md](A008-0213_run-local-execution-state-projection.md) — Complete locally; durable provider requests carry bounded runtime execution state across tool rounds and process recovery.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

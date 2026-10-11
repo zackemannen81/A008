@@ -6,6 +6,10 @@ Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtn
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
 
+## Run-local execution-state projection — A008-0213 (verified in task worktree; awaiting integration)
+
+The implementation projects accepted-run objective, implementation/recovery phase, observed tool outcomes, next action and runtime-owned locked workspace identity into each durable GUI provider request. The compact state is transient and is not written to committed conversation history or semantic memory. The coordinator-to-session-process integration is covered by the real 110-round checkpoint recovery scenario: the same verified workspace locks reach provider requests before and after process replacement; recovery state is present and no tool is replayed. Root build/typecheck and focused continuation/session suites passed; no live provider calls were made. A008-0213 archive and handoff are prepared in this worktree; this remains unintegrated behavior.
+
 ## Project root/main identity and confirmation — A008-0211/0212 (in progress)
 
 The approved direction defines one durable root/main conversation per project in the original checkout, distinct from isolated parallel worktrees. Rickard approved an exact-target Yes in a host-owned native OS dialog for A008-0211 destructive actions; the request must first be host-verified as originating from that project's durable main chat. The current Platform store has no host-owned main-vs-parallel role, and Electron's main dialog is not connected to the separate, independently reusable GUI host through an authenticated out-of-band broker channel. Renderer/HTTP claims are not authority. A008-0212 is the active prerequisite; destructive project actions remain unimplemented pending a proven identity/broker boundary. This decision does not amend A008-0210's separately frozen main-chat UI confirmation requirement.

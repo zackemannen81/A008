@@ -106,9 +106,9 @@ Contract revision: `e407cfa990c7bcfd90f22f7faaeaefc26dd68f71` (approved clause t
 - [x] Add projection serializer/formatter with compact structured shape, unknown omission semantics and explicit `DO NOT RE-EVALUATE` for trusted locks only.
 - [x] Inject/recompute the projection into durable GUI provider requests after each tool round and on recovery rebuild, without changing canonical chat history.
 - [x] Add deterministic tests for projection fields, update per round, lock schema/duplication and byte limit, committed-history isolation, checkpointed-action recovery, and existing continuation semantics.
-- [ ] Add/complete an end-to-end durable session-process test proving coordinator-owned workspace locks reach provider requests across actual child-process IPC and recovery.
-- [ ] Update SYSTEMDOC/CURRENT_STATUS with final integrated behavior and follow-up evidence; avoid recording working-tree changes as integrated status.
-- [ ] Run focused tests, root typecheck/build and diff review; prepare handoff/archive at completion.
+- [x] Add/complete an end-to-end durable session-process test proving coordinator-owned workspace locks reach provider requests across actual child-process IPC and recovery (`test/platform-host.test.ts`, real A008-0199 110-round process replacement scenario).
+- [x] Update SYSTEMDOC/CURRENT_STATUS with final implemented behavior and verified evidence; avoid recording unintegrated behavior as merged.
+- [x] Run focused tests, root typecheck/build and diff review; prepare handoff/archive at completion.
 
 ## Decisions and Notes
 
@@ -118,6 +118,7 @@ Contract revision: `e407cfa990c7bcfd90f22f7faaeaefc26dd68f71` (approved clause t
 - Missing runtime-authoritative task/worktree facts are omitted; the projection must never guess values or infer that a plan is already locked. Durable GUI runs lock verified workspace identity/mode/path and available branch/base commit; product task ID is omitted because PlatformRun has no authoritative charter-ID binding.
 - The objective is the accepted run text. Current phase is runtime-supplied (implementation/recovery); current step and next action advance from observed completed tool outcomes, not model-introspected chain-of-thought.
 - Continue-existing safety rules: checkpoint data is not replay authority, unknown external effects remain fenced, and semantic memory is not a destination for execution metadata.
+- **Local completion (2026-10-09):** implemented the run-local provider projection and fixed the pressure-enabled durable GUI branch that omitted it. The 110-round child-process recovery/provider-request test, focused continuation suites, root typecheck/build and diff hygiene pass; no live provider calls. Archive and handoff are written in this worktree; integration to `main` remains pending. Manual efficacy observation is optional operator follow-up.
 
 ## Charter Amendment Log
 
@@ -126,30 +127,30 @@ Contract revision: `e407cfa990c7bcfd90f22f7faaeaefc26dd68f71` (approved clause t
 ## Verification
 
 - [x] Review actual changes against the necessity arguments and the frozen scope: projection is optional per run, only durable GUI composition supplies it, lock source is the coordinator-verified workspace record, and no task-ID is guessed.
-- [x] `npm run build:client` — PASS (protocol and client packages).
-- [x] `git diff --check` — PASS.
-- [x] `node --test dist/test/chat-session.test.js dist/test/chat-continuation.test.js dist/test/chat-continuation-pressure.test.js` — PASS (all tests in the three suites; compiled tree includes the execution-state projection changes).
-- [ ] `npm run typecheck` / `npm run build` — BLOCKED by pre-existing `src/bootstrap/plan.ts:22` exact-optional-property error (`mode` may be undefined); no task-file diagnostics remain after fixes.
-- [ ] Durable session-process workspace-lock/recovery end-to-end request assertion — not yet added/run.
+- [x] `npm run typecheck -- --pretty false` — PASS.
+- [x] `npm run build -- --pretty false` — PASS.
+- [x] `node --test dist/test/chat-session.test.js dist/test/chat-continuation.test.js dist/test/chat-continuation-pressure.test.js` — PASS (all tests in the three suites).
+- [x] `node --test --test-reporter=tap --test-name-pattern="A008-0199 real process checkpoint recovery: continue-110-rounds" dist/test/platform-host.test.js` — PASS; real durable GUI host/session child, 110 tool rounds, process replacement after round 55, coordinator-owned workspace locks present and unchanged in actual provider requests before/after recovery, run identity/tool history preserved and no tool replay. The recovery request has `current_phase: recovery` with checkpoint-derived completed steps.
+- [x] `git diff --check` — PASS; `node --check test/platform-host.test.ts` — PASS.
 - [ ] Manual observation in ordinary model-backed execution — not run; operator follow-up, not an automated gate.
-- Skipped: full platform-host suite timed out after multiple recovery/process tests passed; no completion claim. Live provider checks were not required or run.
+- Skipped: full platform-host suite and live provider checks; no live provider calls were required or run.
 
 ## Documentation Updates
 
-- [x] `docs/CURRENT_STATUS.md`
-- [x] `docs/SYSTEMDOC.md`
-- [x] `docs/JOURNAL.md` (working implementation note; final integration entry still follows project merge policy)
+- [x] `docs/CURRENT_STATUS.md` — task-scoped implementation/evidence note added in this worktree; awaiting integration.
+- [x] `docs/SYSTEMDOC.md` — task-scoped implementation/evidence note added in this worktree; awaiting integration.
+- [ ] `docs/JOURNAL.md` — operator appends the integration record on merge per workflow.
 - [ ] `docs/FILESTRUCTURE.md` when structure changes
 - [ ] ADRs and collection indexes when needed
 
 ## Handoff and Follow-ups
 
-- Current state: In Progress; runtime projection implementation is present in the working tree.
-- Next recommended step: add/run the focused coordinator-to-session-process request/recovery integration assertion, then rerun required gates once the unrelated bootstrap type error is resolved or isolated.
-- Blockers: Root `typecheck`/`build` is blocked by `src/bootstrap/plan.ts:22`, outside frozen task scope. Full platform-host test command exceeded the tool time limit.
+- Current state: Implementation and local verification complete in the session worktree; final archive and handoff written. Awaiting review/integration to `main`; task implementation and A008-0213 charter are frozen.
+- Next recommended step: operator reviews the path-scoped diff, integrates the implementation and documentation according to repository workflow, restores/activates the appropriate task on main, then proceeds with A008-0214's supersede process.
+- Blockers: None for A008-0213's automated DoD. Full platform-host suite and optional manual efficacy observation were not run; the required real 110-round durable process/recovery integration was run and passed. No live-provider verification was required.
 - Child tasks: None currently required.
-- Resume condition: continue this same A008-0213 session worktree with task charter retained.
-- Open questions: No product scope questions; manual efficacy observation remains operator follow-up.
+- Resume condition: integration review of this A008-0213 worktree; no further implementation is pending in scope.
+- Open questions: Manual efficacy observation remains operator follow-up and is not a completion gate.
 
 ## Finalize When Complete
 

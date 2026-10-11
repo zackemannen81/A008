@@ -3,8 +3,7 @@
 Discoverability: naming convention `A008-NNNN.md`.
 Member state: required. Every member declares a `Status:` line.
 
-Latest implementation handoff: [A008-0203](A008-0203.md) — Complete locally;
-confirmed permission decisions are not resent from stale GUI observations.
+Latest implementation handoff: [A008-0213](A008-0213.md) — Run-local execution-state projection reaches durable provider requests across tool rounds and verified process recovery.
 
 Latest specification handoff: [A008-0159](A008-0159.md) — platform v1.2,
 model-aware delegated verification budgets and aligned working rules;
