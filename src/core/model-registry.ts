@@ -137,10 +137,23 @@ export const OPENAI_GPT_56_LUNA: ModelProfile = Object.freeze({
   verifiedOn: "2026-09-09",
 });
 export const OPENAI_GPT_6_LUNA: ModelProfile = Object.freeze({
-  id: "gpt-6-luna",
+  id: "openai_gpt-6-luna",
   name: "OpenAI GPT-6 Luna",
   provider: "openai",
   executionProvider: "openai",
+  defaults: Object.freeze({
+    maxTokens: 128_000,
+    reasoningEffort: "medium",
+    stream: true,
+  }),
+  inputModalities: Object.freeze(["text", "image"] as const),
+  verifiedOn: "2026-09-09",
+});
+export const KIE_GPT_6_LUNA: ModelProfile = Object.freeze({
+  id: "gpt-6-luna",
+  name: "Kie.ai GPT-6 Luna",
+  provider: "kie",
+  executionProvider: "kie",
   defaults: Object.freeze({
     maxTokens: 128_000,
     reasoningEffort: "medium",
@@ -228,5 +241,6 @@ export const defaultModelRegistry = new ModelRegistry([
   POOLSIDE_LAGUNA_XS,
   OPENAI_GPT_56_LUNA,
   OPENAI_GPT_6_LUNA,
+  KIE_GPT_6_LUNA,
   OPENAI_GPT_56_TERRA,
 ]);

@@ -94,11 +94,13 @@ function modelCapabilities(profile: ModelProfile): {
   readonly maxOutputTokens: number;
 } {
   const executionProvider = profileExecutionProvider(profile);
+  const isKieLuna = executionProvider === "kie" && profile.id === "gpt-6-luna";
+  const supportsTools = executionProvider !== "kie" || isKieLuna;
+  
   return {
     structuredOutput: false,
-    tools: executionProvider !== "kie",
-    vision:
-      executionProvider !== "kie" && profile.inputModalities.includes("image"),
+    tools: supportsTools,
+    vision: supportsTools && profile.inputModalities.includes("image"),
     maxOutputTokens: generationCapabilities(profile.id).maxTokens,
   };
 }

@@ -80,6 +80,7 @@ export function generationCapabilities(model: string): GenerationCapabilities {
         verifiedOn: "2026-09-09",
       };
     case "gpt-6-luna":
+    case "openai_gpt-6-luna":
       return {
         ...common,
         maxTokens: 128000,

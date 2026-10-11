@@ -92,6 +92,8 @@ test("shipped profiles declare executionProvider separately from vendor provider
   const expected: Record<string, { provider: string; execution: string }> = {
     "gpt-5.6-luna": { provider: "openai", execution: "openai" },
     "gpt-5.6-terra": { provider: "openai", execution: "openai" },
+    "gpt-6-luna": { provider: "kie", execution: "kie" },
+    "openai_gpt-6-luna": { provider: "openai", execution: "openai" },
     "nvidia/nemotron-3.5-lightning-30b-a3b": {
       provider: "nvidia",
       execution: "nvidia",
@@ -160,8 +162,10 @@ test("every image-capable model is reachable and every text model is honest", ()
   assert.deepEqual(withImage.sort(), [
     "gpt-5.6-luna",
     "gpt-5.6-terra",
+    "gpt-6-luna",
     "moonshotai/kimi-k3",
     "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+    "openai_gpt-6-luna",
   ]);
 
   // Only the omni model claims video and audio.
