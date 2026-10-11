@@ -457,11 +457,36 @@ function createA008FetchTransport(
           body: openAiReasoningSummaryBody(url, request.body),
           signal,
         });
+        
+        let bodyText = await response.text();
+        if (url.includes("api.kie.ai")) {
+          try {
+            const parsedResp = JSON.parse(bodyText);
+            if (parsedResp.choices && Array.isArray(parsedResp.choices)) {
+              bodyText = JSON.stringify({
+                id: parsedResp.id || "kie-mapped",
+                model: parsedResp.model || "gpt-6-luna",
+                status: "completed",
+                output: parsedResp.choices.map((c: any) => ({
+                  type: "output_text",
+                  text: c.message?.content || ""
+                })),
+                usage: parsedResp.usage
+              });
+            } else if (parsedResp.error && typeof parsedResp.error === "object") {
+              if (!parsedResp.error.code) parsedResp.error.code = "kie_error";
+              if (!parsedResp.error.message) parsedResp.error.message = "Unknown Kie error";
+              if (!parsedResp.status) parsedResp.status = "failed";
+              bodyText = JSON.stringify(parsedResp);
+            }
+          } catch (e) {}
+        }
+
         return {
           kind: "response",
           status: response.status,
           headers: headerRecord(response.headers),
-          body: await response.text(),
+          body: bodyText,
         };
       } catch (error) {
         return {
