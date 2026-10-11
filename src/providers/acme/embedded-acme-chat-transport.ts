@@ -460,6 +460,30 @@ function createA008FetchTransport(
         
         let bodyText = await response.text();
         if (url.includes("api.kie.ai")) {
+          // Kie may return an SSE stream even for non-streaming requests.
+          if (bodyText.includes("event: response.completed")) {
+            const lines = bodyText.split("\n");
+            let completedData = "";
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              if (line !== undefined && line.startsWith("event: response.completed")) {
+                const dataLine = lines[i + 1];
+                if (dataLine && dataLine.startsWith("data: ")) {
+                  completedData = dataLine.substring(6);
+                }
+                break;
+              }
+            }
+            if (completedData) {
+              try {
+                const parsedEvent = JSON.parse(completedData);
+                if (parsedEvent.response) {
+                  bodyText = JSON.stringify(parsedEvent.response);
+                }
+              } catch (e) {}
+            }
+          }
+
           try {
             const parsedResp = JSON.parse(bodyText);
             if (parsedResp.choices && Array.isArray(parsedResp.choices)) {
@@ -477,6 +501,8 @@ function createA008FetchTransport(
               if (!parsedResp.error.code) parsedResp.error.code = "kie_error";
               if (!parsedResp.error.message) parsedResp.error.message = "Unknown Kie error";
               if (!parsedResp.status) parsedResp.status = "failed";
+              if (!parsedResp.id) parsedResp.id = "kie-error";
+              if (!parsedResp.model) parsedResp.model = "gpt-6-luna";
               bodyText = JSON.stringify(parsedResp);
             }
           } catch (e) {}
