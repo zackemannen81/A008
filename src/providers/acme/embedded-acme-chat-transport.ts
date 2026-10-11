@@ -588,13 +588,43 @@ function createA008FetchTransport(
       }
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let streamBuffer = "";
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+          const textChunk = decoder.decode(value, { stream: true });
+          
+          if (url.includes("api.kie.ai")) {
+            streamBuffer += textChunk;
+            if (streamBuffer.includes("event: error")) {
+              const lines = streamBuffer.split("\n");
+              for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (line !== undefined && line.startsWith("event: error")) {
+                  const dataLine = lines[i + 1];
+                  if (dataLine && dataLine.startsWith("data: ")) {
+                    try {
+                      const errObj = JSON.parse(dataLine.substring(6));
+                      throw new ChatError(
+                        "provider",
+                        `Kie.ai upstream error: ${errObj.message || errObj.code || "Unknown stream error"}`
+                      );
+                    } catch (e) {
+                      if (isChatError(e)) throw e;
+                    }
+                  }
+                }
+              }
+            }
+            if (streamBuffer.length > 4096) {
+              streamBuffer = streamBuffer.substring(streamBuffer.length - 2048);
+            }
+          }
+          
           yield {
             kind: "chunk",
-            text: decoder.decode(value, { stream: true }),
+            text: textChunk,
           };
         }
         const tail = decoder.decode();
