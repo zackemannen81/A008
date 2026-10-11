@@ -94,11 +94,13 @@ function modelCapabilities(profile: ModelProfile): {
   readonly maxOutputTokens: number;
 } {
   const executionProvider = profileExecutionProvider(profile);
+  const isKieLuna = executionProvider === "kie" && profile.id === "gpt-6-luna";
+  const supportsTools = executionProvider !== "kie" || isKieLuna;
+  
   return {
     structuredOutput: false,
-    tools: executionProvider !== "kie",
-    vision:
-      executionProvider !== "kie" && profile.inputModalities.includes("image"),
+    tools: supportsTools,
+    vision: supportsTools && profile.inputModalities.includes("image"),
     maxOutputTokens: generationCapabilities(profile.id).maxTokens,
   };
 }
@@ -176,10 +178,13 @@ export function buildEmbeddedAcmeRuntimeConfig(options: {
     }));
 
   const openAiProfiles = profiles
-    .filter(
-      (profile) =>
-        resolveExecutionProvider(profile.id, options.catalog) === "openai",
-    )
+    .filter((profile) => {
+      const provider = resolveExecutionProvider(profile.id, options.catalog);
+      return (
+        provider === "openai" ||
+        (provider === "kie" && profile.id === "gpt-6-luna")
+      );
+    })
     .map((profile) => ({
       selection: selection(profile),
       model: profile.id,
@@ -188,7 +193,8 @@ export function buildEmbeddedAcmeRuntimeConfig(options: {
 
   const kieProfiles = profiles.filter(
     (profile) =>
-      resolveExecutionProvider(profile.id, options.catalog) === "kie",
+      resolveExecutionProvider(profile.id, options.catalog) === "kie" &&
+      profile.id !== "gpt-6-luna",
   );
 
   const kieCompatible =
@@ -361,7 +367,7 @@ function measureEmbeddedOpenAiResponsesRequest(
   catalog: UserCatalog,
 ) {
   const executionProvider = resolveExecutionProvider(request.model, catalog);
-  if (executionProvider !== "openai") {
+  if (executionProvider !== "openai" && executionProvider !== "kie") {
     throw new ChatError(
       "configuration",
       `Exact embedded ACME request measurement is not available for ${executionProvider} routes.`,
@@ -391,8 +397,12 @@ function measureEmbeddedOpenAiResponsesRequest(
           ...(built.body as Record<string, unknown>),
           stream: true,
         };
+  const baseUrl =
+    executionProvider === "kie"
+      ? "https://api.kie.ai/codex"
+      : "https://api.openai.com";
   const serialized = openAiReasoningSummaryBody(
-    `https://api.openai.com${OPENAI_RESPONSES_PATH}`,
+    `${baseUrl}${OPENAI_RESPONSES_PATH}`,
     JSON.stringify(providerBody),
   );
   return measureSerializedChatRequest(
@@ -403,6 +413,8 @@ function measureEmbeddedOpenAiResponsesRequest(
 
 function createA008FetchTransport(
   fetchImpl: typeof globalThis.fetch,
+  kieKey: string | undefined,
+  catalogPath: string,
 ): ProviderTransport {
   return {
     async send(request: ProviderTransportRequest) {
@@ -416,11 +428,33 @@ function createA008FetchTransport(
       }
       const timeout = AbortSignal.timeout(request.timeoutMs);
       const signal = AbortSignal.any([request.signal, timeout]);
+      
+      let url = request.url;
+      let headers = { ...request.headers };
+
+      if (url === "https://api.openai.com/v1/responses") {
+        try {
+          const parsed = JSON.parse(request.body) as Record<string, unknown>;
+          if (typeof parsed.model === "string") {
+            const catalog = loadUserCatalog(catalogPath);
+            const provider = resolveExecutionProvider(parsed.model, catalog);
+            if (provider === "kie") {
+              url = `https://api.kie.ai/codex${OPENAI_RESPONSES_PATH}`;
+              if (kieKey) {
+                headers["authorization"] = `Bearer ${kieKey}`;
+              }
+            }
+          }
+        } catch {
+          // Ignore parse errors.
+        }
+      }
+
       try {
-        const response = await fetchImpl(request.url, {
+        const response = await fetchImpl(url, {
           method: request.method,
-          headers: { ...request.headers },
-          body: openAiReasoningSummaryBody(request.url, request.body),
+          headers,
+          body: openAiReasoningSummaryBody(url, request.body),
           signal,
         });
         return {
@@ -451,12 +485,34 @@ function createA008FetchTransport(
       }
       const timeout = AbortSignal.timeout(request.timeoutMs);
       const signal = AbortSignal.any([request.signal, timeout]);
+      
+      let url = request.url;
+      let headers = { ...request.headers };
+
+      if (url === "https://api.openai.com/v1/responses") {
+        try {
+          const parsed = JSON.parse(request.body) as Record<string, unknown>;
+          if (typeof parsed.model === "string") {
+            const catalog = loadUserCatalog(catalogPath);
+            const provider = resolveExecutionProvider(parsed.model, catalog);
+            if (provider === "kie") {
+              url = `https://api.kie.ai/codex${OPENAI_RESPONSES_PATH}`;
+              if (kieKey) {
+                headers["authorization"] = `Bearer ${kieKey}`;
+              }
+            }
+          }
+        } catch {
+          // Ignore parse errors.
+        }
+      }
+
       let response: Response;
       try {
-        response = await fetchImpl(request.url, {
+        response = await fetchImpl(url, {
           method: request.method,
-          headers: { ...request.headers },
-          body: openAiReasoningSummaryBody(request.url, request.body),
+          headers,
+          body: openAiReasoningSummaryBody(url, request.body),
           signal,
         });
       } catch (error) {
@@ -554,6 +610,8 @@ export class EmbeddedAcmeChatTransport implements ChatTransport {
     this.#runtimeFactory = options.runtimeFactory ?? createAcmeModelRuntime;
     this.#providerTransport = createA008FetchTransport(
       options.fetch ?? globalThis.fetch.bind(globalThis),
+      requireKey(options.env, "KIE_API_KEY"),
+      this.#catalogPath,
     );
   }
 
