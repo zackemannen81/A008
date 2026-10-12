@@ -108,6 +108,46 @@ function continuationSourceRefs(
   ].flatMap((entry) => entry.sourceRefs);
 }
 
+function retryDelayMs(error: unknown, attempt: number): number {
+  if (!(error instanceof ChatError) || !error.retryable) return 0;
+  if (error.code === "rate_limit" || error.status === 429) {
+    return Math.min(2_000, 250 * 2 ** attempt);
+  }
+  return 0;
+}
+
+async function completeWithBoundedRetry(
+  transport: ChatTransport,
+  request: import("./types.js").ChatRequest,
+  callbacks: Parameters<ChatTransport["complete"]>[1],
+  signal: AbortSignal | undefined,
+): Promise<ChatCompletion> {
+  const maximumAttempts = 2;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await transport.complete(request, callbacks);
+    } catch (error) {
+      if (!(error instanceof ChatError) || !error.retryable || attempt >= maximumAttempts - 1) {
+        throw error;
+      }
+      const delay = retryDelayMs(error, attempt);
+      if (delay > 0) {
+        await new Promise<void>((resolve, reject) => {
+          const timer = setTimeout(resolve, delay);
+          if (signal === undefined) return;
+          const abort = () => {
+            clearTimeout(timer);
+            reject(signal.reason ?? new ChatError("cancelled", "Retry cancelled."));
+          };
+          if (signal.aborted) abort();
+          else signal.addEventListener("abort", abort, { once: true });
+        });
+      }
+      signal?.throwIfAborted();
+    }
+  }
+}
+
 export class ChatSession {
   readonly #model: string;
   readonly #transport: ChatTransport;
@@ -453,7 +493,8 @@ export class ChatSession {
         if (currentBudget) {
           measureRequest(currentRequest, currentBudget.maximumBytes);
         }
-        completion = await this.#transport.complete(
+        completion = await completeWithBoundedRetry(
+          this.#transport,
           currentRequest,
           options.onDelta === undefined
             ? undefined
@@ -464,6 +505,7 @@ export class ChatSession {
                   options.onDelta?.(delta);
                 },
               },
+          options.signal,
         );
         options.signal?.throwIfAborted();
         if (completion.message.role !== "assistant") {
