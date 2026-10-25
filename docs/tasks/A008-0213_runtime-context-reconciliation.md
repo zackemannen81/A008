@@ -2,7 +2,7 @@
 
 Task ID: A008-0213
 Parent Task: None
-Status: Paused
+Status: Complete
 Owner: Rickard / A008
 Created: 2026-10-05
 Last updated: 2026-10-05
@@ -160,3 +160,12 @@ Contract revision: `e407cfa990c7bcfd90f22f7faaeaefc26dd68f71` (approved clause t
 ## 2026-10-25 priority prerequisite
 
 Owner authorized A008-0216 to repair runtime context projection and tool orchestration. Preserve existing 0213 implementation; resume its remaining verification after 0216 completion. No new memory model or incremental semantic intake is authorized by this child.
+
+## 2026-10-25 reconciliation after prerequisite
+
+A008-0216 is complete locally. The immutable 0213 Complete archive was already
+present on remote main before this child began; its earlier active snapshot was
+stale. The prerequisite is removed and the remaining root/IPC/workspace-lock/recovery
+gates pass under 0216 (including 110 real process rounds with replacement).
+This record preserves the earlier snapshot; it does not reopen or rewrite the
+immutable completed task. No active parent work remains to resume.

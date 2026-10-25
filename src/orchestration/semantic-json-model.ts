@@ -398,9 +398,8 @@ export class ModelBackedPostOutputKnowledgeAnalyzer implements PostOutputKnowled
           ? POST_OUTPUT_KNOWLEDGE_ANALYZER_INSTRUCTION
           : KNOWLEDGE_EXTRACTOR_INSTRUCTION,
       // Source extraction remains source-only. Dialogue extraction reuses the
-      // same retrieved knowledge selected for the worker, but keeps the engine-
-      // oriented currentState/claim projection needed for state updates and
-      // reinforcement; it never performs a second read.
+      // same minimal projection selected for the worker. Identity resolution
+      // happens below; it never performs a second read.
       serializedInput:
         input.kind === "source"
           ? JSON.stringify({ locator: input.locator, content: input.content })
@@ -413,6 +412,24 @@ export class ModelBackedPostOutputKnowledgeAnalyzer implements PostOutputKnowled
             }),
       ...(context.signal === undefined ? {} : { signal: context.signal }),
     });
+    // Model references are one-based positions, never persistent IDs/addresses.
+    // Expand only here; downstream validation still owns admissibility and slots.
+    if (input.kind === "dialogue" && typeof untrusted === "object" && untrusted !== null && !Array.isArray(untrusted)) {
+      const result = { ...(untrusted as Record<string, unknown>) };
+      for (const [field, reference] of [["reinforcements", "knowledgeId"], ["state_updates", "semanticAddress"]] as const) {
+        if (!Array.isArray(result[field])) continue;
+        result[field] = result[field].map((entry: unknown) => {
+          if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return entry;
+          const value = entry as Record<string, unknown>;
+          const ref = value[reference];
+          if (typeof ref !== "string" || !/^[1-9][0-9]*$/.test(ref)) return entry;
+          const target = input.retrievedContext.items[Number(ref) - 1];
+          if (!target) return entry;
+          return { ...value, [reference]: reference === "knowledgeId" ? target.id : target.kind === "state" ? target.semanticAddress : undefined };
+        });
+      }
+      return result as unknown as PostOutputKnowledgeAnalysis;
+    }
     return untrusted as PostOutputKnowledgeAnalysis;
   }
 }
@@ -490,6 +507,7 @@ import { RETRIEVAL_SCOPE_INSTRUCTION } from "../prompt-contracts/RETRIEVAL_SCOPE
 export { RETRIEVAL_SCOPE_INSTRUCTION };
 
 export interface RetrievalScopeRequest {
+  readonly currentScope?: string;
   readonly message: string;
   readonly knownDomains: readonly string[];
   readonly knownTags: readonly string[];
@@ -537,6 +555,7 @@ export class ModelBackedRetrievalScopeClassifier implements RetrievalScopeClassi
       systemInstruction: RETRIEVAL_SCOPE_INSTRUCTION,
       serializedInput: JSON.stringify({
         message: request.message,
+        ...(request.currentScope === undefined ? {} : { currentScope: request.currentScope }),
         // Bounded because the vocabulary grows without limit and this is a
         // prompt, not a database dump. Domains are the smaller and more
         // load-bearing axis, so they are offered whole for far longer than tags.

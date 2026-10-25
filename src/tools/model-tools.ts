@@ -446,6 +446,10 @@ export class ModelToolSession {
     return {
       definitions: [...this.#tools.values()].map((tool) => tool.definition),
       maximumCalls: budgets.maximumToolCalls,
+      recordSelection: async (call: ChatToolCall, result: string) => {
+        await approval.update({ id: call.id, name: call.name, input: call.arguments, cwd: this.#cwd, status: "pending" });
+        await approval.update({ id: call.id, name: call.name, input: call.arguments, cwd: this.#cwd, status: "completed", output: result });
+      },
       execute: async (call, callSignal) =>
         this.#execute(call, budgets, approval, callSignal ?? signal),
     };

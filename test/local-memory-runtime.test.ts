@@ -170,13 +170,8 @@ test("trusted conversation seed reaches the next turn without workspace persiste
   const fixture = isolatedMemoryEnv();
   const transport = memoryAwareFakeTransport({
     chat: (request) => {
-      assert.deepEqual(
-        request.messages
-          .filter((message) => message.role !== "system")
-          .slice(0, 2)
-          .map((message) => message.content),
-        ["Seeded question.", "Seeded answer."],
-      );
+      assert.match(request.messages[0]!.content, /Seeded question/);
+      assert.match(request.messages[0]!.content, /Seeded answer/);
       assert.match(request.messages.at(-1)?.content ?? "", /New question\./u);
       return { content: "New answer." };
     },
@@ -232,7 +227,7 @@ test("seeded conversations remain isolated", async () => {
   const fixture = isolatedMemoryEnv();
   const transport = memoryAwareFakeTransport({
     chat: (request) => ({
-      content: request.messages.some((message) => message.content === "Seed B")
+      content: request.messages.some((message) => message.content.includes("Seed B"))
         ? "Answer B"
         : "Answer A",
     }),
@@ -423,7 +418,7 @@ test("two-turn runtime commits an explicit user assertion and rereads it", async
     assert.equal(
       chatRequests[1]?.messages.filter((message) => message.role !== "system")
         .length,
-      3,
+      1,
     );
   } finally {
     runtime.close();

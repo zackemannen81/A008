@@ -21,6 +21,12 @@ gui/                      A008-owned web GUI
 
 ## Runtime source
 
+`core/runtime-tool-context.ts` owns per-run schema selection/catalog projection;
+`core/current-scope.ts` bounds recent dialogue excerpts. The embedded ACME
+`providers/acme/responses-continuation.ts` carries native opaque continuation items
+between completed tool rounds using per-execution async context. These modules do
+not own semantic memory or tool execution permissions.
+
 `src/` is organized by responsibility rather than by historical task:
 - `acp/` — ACP compatibility/server surfaces.
 - `bootstrap/` — project bootstrap and registry helpers.

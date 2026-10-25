@@ -1,5 +1,41 @@
 # System Document — aktuell implementation
 
+## Runtime working context — A008-0216
+
+The product CLI/ACP/GUI tool path now provides a names/short-descriptions catalog
+and `a008_select_tools`. A selection loads up to sixteen unchanged schemas at once
+and replaces the previous selection. Unloaded tools cannot execute. Selection is
+recorded as terminal raw evidence, has no external effects and does not request
+tool execution approval. Actual selected tools retain their original validation,
+strictness, approval, workspace and output bounds. Discovery counts toward the
+existing call budget; oversized catalogs/schemas fail before provider dispatch.
+
+ChatSession incrementally reduces completed rounds even with 0/0 pressure settings.
+The latest complete round remains raw (or zero if explicitly configured), including
+all parallel calls and outputs. Raw evidence and internal sourceRefs remain owned
+by existing runtime/checkpoint paths; the worker summary contains statements only.
+Reducer requests omit opaque native continuation/reasoning fields. Invalid/oversized
+summaries fail closed. Exact route measurement/checkpoint persistence remains opt-in
+and retains its existing fences; working context alone is not crash recovery.
+
+Worker and extractor now share `label` plus conditional history/provenance. Extractor
+references use one-based array positions; runtime expands them to persistent IDs
+and semantic addresses before the unchanged commit/reinforcement validators. The
+label of a historical fallback explicitly says Historical. Context budgeting and
+trace serialization use the shared allowlist rather than extractor-oriented records.
+
+Recent dialogue enters a bounded `currentScope` excerpt of up to two turns, separate
+from the clean current message, without replaying raw dialogue messages. Retrieval
+classification sees the same bounded scope in addition to its existing vocabulary
+and domain signals. No retrieval ranking or memory lifecycle policy changes.
+
+Embedded native Responses preserves original function-call and opaque reasoning
+items in per-execution async context and attaches them to the matching recent
+round. The same body augmentation runs for measurement and dispatch; store=false
+and encrypted reasoning continuation avoid an accumulating server history chain.
+Original call IDs/results remain paired. These items are not committed chat or
+semantic memory. See ADR 0063 and the A008-0216 handoff for verification.
+
 Granskad: 2026-09-30; A008-0203 hindrar upprepad leverans av behandlade GUI-godkännanden.
 Källrevision: `921fa53` + A008-0203 på `codex/a008-0203-permission-replay`.
 Verifiering och avgränsningar: se CURRENT_STATUS och task-handoffs.
@@ -339,19 +375,11 @@ på olika adresser behåller separata identiteter. En rå yttring som stödjer e
 vald claim följer inte med som en andra kopia. Specifika taggträffar begränsar
 överspill från breda domänträffar; detta är ingen generell semantisk reranker.
 
-[serialization.ts](../src/memory/serialization.ts) separerar nu worker-presentation
-från extractor-presentation utan att ändra retrieval eller memory-engine. Worker-
-envelopen skickar `id`, tillgänglig `semanticAddress`, den retrieved postens
-läsbara `label` samt villkorad `history`/`provenance`. Extractorn behåller den
-engine-orienterade `currentState`/`claim`-representationen som används för state
-updates och reinforcement. Det yttre worker-kuvertet heter
-`A008_memory_context_v2` och innehåller användarens meddelande separat. Tags,
-domains, kind, evidenceId, scope och authority skickas inte till workern.
-
-Historikfrågor får relevant `history`; käll-/verifieringsfrågor och osäkra eller
-omtvistade claims kan få `provenance`. Äldre tillstånd kvalificeras med tid;
-konkurrerande claims med samma adress behåller sin konfliktinformation.
-Interna turn-locatorer återges som samtalskälla. Filkällor behåller sin locator.
+[serialization.ts](../src/memory/serialization.ts) now shares the label allowlist
+between worker and extractor (A008-0216). Persistent IDs, semantic addresses and
+full state/claim remain internal. Extractor positions resolve to internal identity
+before the existing reinforcement/state-update validation. Conditional history
+and provenance preserve necessary source/workspace qualifications.
 Urvalet följer befintliga intents och underlag: det skapar ingen saknad källa
 eller workspace-information. Poster som inte ryms i kontextbudgeten utelämnas
 med intern diagnostik, även om det gäller den första posten.

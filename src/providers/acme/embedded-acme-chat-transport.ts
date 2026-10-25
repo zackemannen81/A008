@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { responsesExecution, responsesContinuationBody, captureResponsesOutput } from "./responses-continuation.js";
 import { createAcmeModelRuntime, type AcmeModelRuntime } from "acme-engine";
 import {
   buildResponsesBody,
@@ -403,7 +404,7 @@ function measureEmbeddedOpenAiResponsesRequest(
       : "https://api.openai.com";
   const serialized = openAiReasoningSummaryBody(
     `${baseUrl}${OPENAI_RESPONSES_PATH}`,
-    JSON.stringify(providerBody),
+    responsesContinuationBody(JSON.stringify(providerBody), request),
   );
   return measureSerializedChatRequest(
     `embedded-acme:openai-responses:${request.model}`,
@@ -454,11 +455,12 @@ function createA008FetchTransport(
         const response = await fetchImpl(url, {
           method: request.method,
           headers,
-          body: openAiReasoningSummaryBody(url, request.body),
+          body: openAiReasoningSummaryBody(url, url.endsWith(OPENAI_RESPONSES_PATH) ? responsesContinuationBody(request.body, responsesExecution.getStore()?.request) : request.body),
           signal,
         });
         
         let bodyText = await response.text();
+        if (url.endsWith(OPENAI_RESPONSES_PATH)) captureResponsesOutput(bodyText);
         if (url.includes("api.kie.ai")) {
           // Kie may return an SSE stream even for non-streaming requests.
           if (bodyText.includes("event: response.completed")) {
@@ -563,7 +565,7 @@ function createA008FetchTransport(
         response = await fetchImpl(url, {
           method: request.method,
           headers,
-          body: openAiReasoningSummaryBody(url, request.body),
+          body: openAiReasoningSummaryBody(url, url.endsWith(OPENAI_RESPONSES_PATH) ? responsesContinuationBody(request.body, responsesExecution.getStore()?.request) : request.body),
           signal,
         });
       } catch (error) {
@@ -589,11 +591,21 @@ function createA008FetchTransport(
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let streamBuffer = "";
+      let continuationBuffer = "";
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
           const textChunk = decoder.decode(value, { stream: true });
+          if (url.endsWith(OPENAI_RESPONSES_PATH)) {
+            continuationBuffer += textChunk;
+            const boundary = continuationBuffer.search(/\r?\n\r?\n/);
+            if (boundary >= 0) {
+              const frames = continuationBuffer.split(/\r?\n\r?\n/);
+              continuationBuffer = frames.pop() ?? "";
+              captureResponsesOutput(frames.join("\n\n"));
+            }
+          }
           
           if (url.includes("api.kie.ai")) {
             streamBuffer += textChunk;
@@ -628,6 +640,7 @@ function createA008FetchTransport(
           };
         }
         const tail = decoder.decode();
+        if (url.endsWith(OPENAI_RESPONSES_PATH)) captureResponsesOutput(continuationBuffer + tail);
         if (tail.length > 0) yield { kind: "chunk", text: tail };
         yield { kind: "response-end" };
       } catch (error) {
@@ -761,7 +774,8 @@ export class EmbeddedAcmeChatTransport implements ChatTransport {
     const emitDeltas = request.options?.stream !== false;
 
     try {
-      const result = await runtime.execute(executionRequest(body), {
+      const scope: { request: ChatRequest; output?: readonly Record<string, unknown>[] } = { request };
+      const result = await responsesExecution.run(scope, () => runtime.execute(executionRequest(body), {
         ...(request.signal === undefined ? {} : { signal: request.signal }),
         onEvent: (event) => {
           if (event.type === "reasoning-delta") {
@@ -777,12 +791,12 @@ export class EmbeddedAcmeChatTransport implements ChatTransport {
             callbacks.onDelta?.({ type: "content", text: event.text });
           }
         },
-      });
+      }));
       if (result.status !== "succeeded") {
         throw chatErrorFromAcmeFailure(result.error, result, true);
       }
       const completion = completionFromAcmeResponse(result.response, result);
-      return reasoning.length === 0 ? completion : { ...completion, reasoning };
+      return { ...completion, ...(reasoning.length ? { reasoning } : {}), ...(scope.output?.length ? { responseItems: scope.output } : {}) };
     } catch (cause) {
       if (isChatError(cause)) throw cause;
       throw new ChatError(

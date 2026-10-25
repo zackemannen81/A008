@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { createInterface } from "node:readline/promises";
+import { runtimeWorkingContext } from "./core/runtime-tool-context.js";
 import { ModelToolSession } from "./tools/model-tools.js";
 import { pathToFileURL } from "node:url";
 import { parseSlash, SLASH_HELP } from "./cli/slash.js";
@@ -377,7 +378,7 @@ async function runChat(
                 },
               },
               signal,
-            ),
+            ).then(prepared => ({ ...prepared, workingContext: runtimeWorkingContext(budgets) })),
           onDelta: (delta) => {
             if (delta.type === "reasoning") {
               if (!reasoningStarted) {

@@ -1,6 +1,13 @@
 import { createServer, type ServerResponse } from "node:http";
 import { once } from "node:events";
 
+/** Synthetic model follows product discovery without bypassing actual dispatch. */
+export function fixtureToolSelection(payload: Record<string, any>, names: readonly string[]) {
+  if (!payload.tools?.some((tool: any) => tool.function?.name === "a008_select_tools") ||
+      names.every(name => payload.tools.some((tool: any) => tool.function?.name === name))) return undefined;
+  return { role: "assistant", content: "", tool_calls: [{ id: `fixture-select-${payload.messages.length}`, type: "function", function: { name: "a008_select_tools", arguments: JSON.stringify({ names }) } }] };
+}
+
 /** Loopback-only provider for session-control proof; payloads are synthetic. */
 export async function startSessionControlProvider(
   chatReply?: (
@@ -18,8 +25,11 @@ export async function startSessionControlProvider(
     requests.push(payload);
     const last = payload.messages?.at(-1)?.content ?? "";
     let operation: string | undefined;
+    let reduction: Record<string, any> | undefined;
     try {
-      operation = JSON.parse(last).operation;
+      const input = JSON.parse(last);
+      operation = input.operation;
+      if (input.runId && Array.isArray(input.interactions) && !payload.tools?.length && !(input.schema && chatReply)) reduction = input;
     } catch {
       /* chat text */
     }
@@ -30,9 +40,18 @@ export async function startSessionControlProvider(
       response.writeHead(500).end(JSON.stringify({ error: "synthetic memory failure" }));
       return;
     }
-    if (operation !== undefined) {
+    if (operation !== undefined || reduction) {
       const result =
-        operation === "knowledge_analysis"
+        reduction ? {
+          version: "a008_run_continuation_state_v1", runId: reduction.runId,
+          verifiedFacts: [], hypotheses: [], completedActions: [{
+            id: "fixture-completed", statement: "Prior fixture tool rounds completed; use the latest raw result for the next step.",
+            sourceRefs: [...new Set([
+              ...[...(reduction.previous?.verifiedFacts ?? []), ...(reduction.previous?.hypotheses ?? []), ...(reduction.previous?.completedActions ?? [])].flatMap((entry: any) => entry.sourceRefs),
+              ...reduction.interactions.map((entry: any) => entry.id),
+            ])],
+          }],
+        } : operation === "knowledge_analysis"
           ? []
           : operation === "relation_classification"
             ? { type: "new" }

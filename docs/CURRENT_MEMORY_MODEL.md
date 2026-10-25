@@ -1,5 +1,16 @@
 # A008 — Knowledge, State, Memory & Context Model
 
+### Runtime projection clarification (A008-0216, 2026-10-25)
+
+Model-facing retrieved items contain `label` by default. Relevant history and
+provenance qualify the selected knowledge; IDs, evidence, addresses and full stored
+records remain internal. Worker and extractor share this projection. The extractor
+uses item positions for runtime identity resolution; reinforcement, state updates,
+classification, retrieval selection and decay retain their existing authority.
+Run-local tool progress and opaque provider continuation tokens are execution state,
+not knowledge. Recent dialogue is a bounded untrusted scope excerpt, never durable
+semantic truth. ADR 0063 and SYSTEMDOC describe the runtime implementation.
+
 Status: Normativ målmodell
 Syfte: Kanonisk beskrivning av hur A008 representerar kunskap, current state, history, provenance, adaptivt minne, retrieval och context.
 
@@ -1615,17 +1626,10 @@ De bestämmer aldrig Current State.
 
 Efter retrieval byggs den faktiska model-contexten.
 
-Ägarbeslut 2026-09-27, A008-0193: retrieval och memory-engine behåller sin rika
-interna representation. Endast det worker-/userMessage-vända minneskuvertet
-ändrar presentation.
-
-Worker-bas:
-
-- `id`: exakt retrieved-item-identitet, med intern koppling till knowledge/evidence
-  för reuse, deduplicering och reinforcement.
-- `semanticAddress`: endast när adressen är upplöst.
-- `label`: den läsbara label som redan finns på den retrieved posten. Worker får
-  inte ersätta labeln med ett frikopplat `currentState`-värde eller `claim`-fält.
+ADR 0061 and A008-0216 retain the rich internal representation while worker and
+extractor share one model-facing allowlist. The default item contains only label,
+the readable representation of the retrieved knowledge. Persistent IDs, semantic
+addresses, evidence and full state/claim records remain internal.
 
 Worker-valfritt:
 
@@ -1634,10 +1638,9 @@ Worker-valfritt:
 - `provenance`: relevant källa, attribution och kvalifikationer när det behövs
   för tolkning, verifiering eller konfliktförståelse.
 
-Extractor använder samma librarian-valda retrieval-resultat utan en andra read,
-men behåller den engine-orienterade `currentState`/`claim`-projektionen som krävs
-för state updates, exact reinforcement och intern lifecycle-semantik. Detta ändrar
-inte knowledge store, state/claim-lifecycle, retrieval, supersede eller commit.
+Extractor reuses the same selected knowledge without a second read. Its positional
+references resolve internally before the existing state-update/reinforcement
+validators; storage, lifecycle, retrieval, supersede and commit are unchanged.
 
 En entity-/domänträff är kandidatupptäckt, inte automatisk kontextadmission.
 Specifika frågeträffar prioriteras framför bred domänspillover. Två olika
@@ -1866,11 +1869,11 @@ userMessage
 responseText
 ```
 
-Modellens `retrievedContext` följer fältlistan i sektion 41. Extractorn får
-återanvända `id` och upplöst `semanticAddress` men inte hitta på identiteter.
-För reinforcement är `knowledgeId` exakt retrieved-item-`id`. A008 behåller
-evidence-ID och övrig intern metadata för validering/commit; de skickas inte
-som extra fält till arbetsmodellen eller extractorn.
+Model-facing retrievedContext follows ADR 0061: label and conditional history/provenance.
+Extractor references are one-based positions serialized as strings. Runtime resolves
+these to existing knowledge IDs/state addresses before the unchanged validators.
+Evidence IDs, classification metadata and full state/claim values are not extra
+model fields.
 
 Retrieved metadata ska komma från respektive lagrad post. Sökfrågans tags och
 entities får inte kopieras till alla retrieved items som om de beskrev lagrad
@@ -1911,7 +1914,9 @@ utan att användaren upprepar påståendet. Enbart topical overlap är inte reus
 
 Knowledge som redan fanns i retrieved context ska inte skapas igen bara för att workern upprepar den. Om samma knowledge faktiskt återanvändes eller återbekräftades i den fullbordade turnen blir den i stället en reinforcement-kandidat. State change vid samma semantic address är inte en duplicate utan en state-update-kandidat.
 
-En `state_update` får bara uppdatera en current-state-post som faktiskt fanns i samma retrieved baseline. Semantic address ska kopieras exakt från baseline och den strukturerade `attribute_binding`-propositionen måste beskriva samma slot. Intake validerar detta fail-closed innan relation classification/commit. Generic turn-wide workflow labels ska inte stampas på varje artifact, och runtime ska inte maskera utebliven klassificering med en påhittad catch-all-domain.
+A state_update may only target current state actually retrieved in the same baseline.
+The extractor supplies the target's item position; runtime resolves its exact address.
+The structured attribute_binding must still describe that same slot. Intake validerar detta fail-closed innan relation classification/commit. Generic turn-wide workflow labels ska inte stampas på varje artifact, och runtime ska inte maskera utebliven klassificering med en påhittad catch-all-domain.
 
 Commit-time dedupe kvarstår alltid: extraction-time jämförelsen ersätter aldrig global/relevant dedupe mot knowledge store.
 

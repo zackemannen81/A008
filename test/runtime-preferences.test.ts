@@ -74,7 +74,8 @@ function instruction(request: Pick<ChatRequest, "messages">): string {
     (message) => message.role === "system",
   );
   assert.equal(system.length, 1);
-  return system[0]!.content;
+  // These tests own the configured instruction snapshot, not ephemeral scope data.
+  return system[0]!.content.split("\n\nCurrent scope (")[0]!;
 }
 function assertGlobalInstruction(
   request: Pick<ChatRequest, "messages">,

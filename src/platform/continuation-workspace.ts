@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { RunToolInteraction } from "../core/chat-continuation.js";
+import { SELECT_TOOLS } from "../core/runtime-tool-context.js";
 
 export interface ContinuationWorkspaceEvidence {
   readonly paths: readonly string[];
@@ -22,6 +23,8 @@ export function continuationArtifactPaths(
     for (const message of interaction.messages) {
       if (message.role !== "assistant" || !("toolCalls" in message)) continue;
       for (const call of message.toolCalls) {
+        // Runtime-owned metadata selection has no filesystem/external effect.
+        if (call.name === SELECT_TOOLS) continue;
         try {
           if (
             !["read_file", "list_files", "create_file", "edit_file"].includes(

@@ -96,7 +96,7 @@ function project(
   return projectionItems({ taskId, payload: source, measurer, ...options });
 }
 
-test("model envelope sends only ID/address and one string; metadata stays internal", () => {
+test("model envelope sends labels; identity and metadata stay internal", () => {
   const result = project(
     payload({ state: [state("task.status", "Complete")] }),
     {
@@ -114,9 +114,7 @@ test("model envelope sends only ID/address and one string; metadata stays intern
   assert.deepEqual(result.items[0]?.tags, ["private-tag"]);
   assert.deepEqual(contextItemsForModel(result.items), [
     {
-      id: "state:task",
-      semanticAddress: "task.status",
-      currentState: "Complete",
+      label: "state:task",
     },
   ]);
   const serialized = serializeContextProjection({
@@ -136,7 +134,7 @@ test("model envelope sends only ID/address and one string; metadata stays intern
   }
 });
 
-test("worker envelope uses retrieved label instead of state value while extractor keeps state semantics", () => {
+test("worker and extractor share the retrieved label instead of the raw state value", () => {
   const result = project(
     payload({ state: [state("partikelvirvel.center_audio_control", true)] }),
     {
@@ -150,16 +148,12 @@ test("worker envelope uses retrieved label instead of state value while extracto
   );
   assert.deepEqual(contextItemsForWorker(result.items), [
     {
-      id: "state:center-audio",
-      semanticAddress: "partikelvirvel.center_audio_control",
       label: "Partikelvirvelns center kan styras av ljudet.",
     },
   ]);
   assert.deepEqual(contextItemsForModel(result.items), [
     {
-      id: "state:center-audio",
-      semanticAddress: "partikelvirvel.center_audio_control",
-      currentState: "true",
+      label: "Partikelvirvelns center kan styras av ljudet.",
     },
   ]);
 });
@@ -219,7 +213,7 @@ test("latest applicable claim replaces older claim without turning into state", 
     },
   );
   assert.deepEqual(contextItemsForModel(result.items), [
-    { id: "new", semanticAddress: "item.status", claim: "Latest assertion" },
+    { label: "new" },
   ]);
 });
 
@@ -235,7 +229,7 @@ test("null/false/zero and empty containers remain actual state content", () => {
       contextItemsForModel(
         project(payload({ state: [state("value", value)] })).items,
       ),
-      [{ id: "state:0", semanticAddress: "value", currentState: expected }],
+      [{ label: expected }],
     );
   }
   assert.equal(
@@ -299,8 +293,8 @@ test("closed history without HEAD uses the latest qualified assertion", () => {
   const item = contextItemsForModel(result.items)[0]!;
   assert.equal(result.items.length, 1);
   assert.equal("currentState" in item, false);
-  assert.ok("claim" in item);
-  assert.match(item.claim, /^Historical:.*Complete/u);
+  assert.ok("label" in item);
+  assert.match(item.label, /^Historical:.*Complete/u);
   assert.ok(item.history?.some((entry) => entry.includes("Ready")));
 });
 
@@ -483,7 +477,7 @@ test("budget measures minimal output and does not send an oversized first item",
   );
 });
 
-test("worker gets readable labels while extractor keeps engine state semantics", async () => {
+test("worker and extractor share readable labels and conditional qualifications", async () => {
   const items: ContextKnowledgeItem[] = [
     {
       id: "state:known",
@@ -519,7 +513,7 @@ test("worker gets readable labels while extractor keeps engine state semantics",
         new_knowledge: [],
         state_updates: [],
         relation_updates: [],
-        reinforcements: [{ knowledgeId: "state:known" }],
+        reinforcements: [{ knowledgeId: "1" }],
       };
     },
   });
@@ -532,8 +526,6 @@ test("worker gets readable labels while extractor keeps engine state semantics",
   assert.deepEqual(JSON.parse(worker.userEnvelope).retrievedContext, {
     items: [
       {
-        id: "state:known",
-        semanticAddress: "task.status",
         label: "Task status is complete.",
         history: ["Yesterday: Ready"],
         provenance: ["Source: task.md"],
@@ -543,9 +535,7 @@ test("worker gets readable labels while extractor keeps engine state semantics",
   assert.deepEqual(JSON.parse(extractor).retrievedContext, {
     items: [
       {
-        id: "state:known",
-        semanticAddress: "task.status",
-        currentState: "Complete",
+        label: "Task status is complete.",
         history: ["Yesterday: Ready"],
         provenance: ["Source: task.md"],
       },
@@ -612,9 +602,9 @@ test("real read keeps HEAD, optional history and source; never reinforces just b
   const current = await reader.read(request("What color is Widget now?"));
   assert.deepEqual(
     contextItemsForModel(current.projection.projection.items).map((item) =>
-      "currentState" in item ? item.currentState : item.claim,
+      item.label,
     ),
-    ["blue"],
+    ["Widget is blue"],
   );
   const historical = await reader.read(
     request("What color did Widget have before?"),

@@ -55,6 +55,7 @@ export type ChatWireMessage =
       readonly content: string;
       readonly toolCalls: readonly ChatToolCall[];
       readonly reasoning?: string;
+      readonly responseItems?: readonly Record<string, unknown>[];
     }
   | {
       readonly role: "tool";
@@ -62,6 +63,15 @@ export type ChatWireMessage =
       readonly content: string;
     };
 export interface ChatTools {
+  /** Record runtime-only selection in the existing raw tool evidence stream. */
+  readonly recordSelection?: (call: ChatToolCall, result: string) => Promise<void>;
+  /** Product runtime: compact catalog, demand-loaded schemas and completed work. */
+  readonly workingContext?: {
+    readonly maximumRequestBytes?: number;
+    readonly maximumStateBytes: number;
+    readonly reducerInputBytes: number;
+    readonly reducerOutputTokens: number;
+  };
   readonly definitions: readonly ChatToolDefinition[];
   readonly maximumCalls: number;
   /** Opt-in, ephemeral compaction for completed tool interactions in this turn. */
@@ -127,6 +137,8 @@ export interface ChatExecutionEvidence {
 }
 
 export interface ChatCompletion {
+  /** Opaque native continuation items; excluded from committed chat. */
+  readonly responseItems?: readonly Record<string, unknown>[];
   readonly message: ChatTextMessage;
   readonly reasoning?: string;
   readonly finishReason?: string | null;

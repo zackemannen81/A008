@@ -507,9 +507,7 @@ test("model-backed adapters allocate stable semantic-only inputs on one shared g
       retrievedContext: {
         items: [
           {
-            id: "state:memory-mode",
-            semanticAddress: "memory.mode",
-            currentState: "context-first",
+            label: "context-first",
           },
         ],
       },
@@ -584,12 +582,12 @@ test("the dialogue extractor freezes librarian identity and state-update rules",
   const instruction = KNOWLEDGE_EXTRACTOR_INSTRUCTION;
   assert.match(
     instruction,
-    /Items: id, optional semanticAddress, currentState OR claim text, optional history\/provenance/iu,
+    /Items contain label and optional relevant history\/provenance/iu,
   );
-  assert.match(instruction, /"knowledgeId":"exact retrieved item id"/iu);
+  assert.match(instruction, /"knowledgeId":"one-based item position"/iu);
   assert.match(
     instruction,
-    /update MUST copy semanticAddress exactly from the retrieved item/iu,
+    /Set semanticAddress to that item's one-based position/iu,
   );
   assert.match(
     instruction,
