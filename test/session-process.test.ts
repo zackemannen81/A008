@@ -271,13 +271,13 @@ test("ADR 0055: one SQLite owner retains independent workspace states and readab
     const model = contextItemsForModel(read.projection.projection.items);
     assert.ok(
       model.some(
-        (item) => "currentState" in item && item.currentState === "green",
+        (item) => item.label.includes("Widget color is green"),
       ),
       JSON.stringify(model),
     );
     assert.ok(
       model.some(
-        (item) => "currentState" in item && item.currentState === "red",
+        (item) => item.label.includes("Widget color is red"),
       ),
       JSON.stringify(model),
     );

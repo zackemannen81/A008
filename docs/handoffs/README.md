@@ -3,7 +3,7 @@
 Discoverability: naming convention `A008-NNNN.md`.
 Member state: required. Every member declares a `Status:` line.
 
-Latest implementation handoff: [A008-0213](A008-0213.md) — Run-local execution-state projection reaches durable provider requests across tool rounds and verified process recovery.
+Latest implementation handoff: [A008-0216](A008-0216.md) — Runtime context projection, demand-loaded tool schemas and incremental completed work; 110-round process recovery verified.
 
 Latest specification handoff: [A008-0159](A008-0159.md) — platform v1.2,
 model-aware delegated verification budgets and aligned working rules;

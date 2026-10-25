@@ -6,6 +6,7 @@ Senast uppdaterat: 2026-10-01, A008-0207 preflight.
 
 | ADR | Status | Omfattning |
 | --- | --- | --- |
+| [0063 — Runtime working context](0063-runtime-working-context.md) | Accepted | Label-only model projection, demand-loaded schemas, incremental completed-work context and preserved native Responses tool cycles. |
 | [0060 — Explicit MCP tool strictness](0060-explicit-mcp-tool-strictness.md) | Accepted | Strict som standard, server-/verktygsval och lokal validering före MCP-exekvering via ACME 0.1.7. |
 | [0055 — Beständiga sessioner och utbytbara sessionsprocesser](0055-durable-sessions-and-process-ownership.md) | Accepted | Ny arkitekturgrund, ägarskap, egen worktree och process vid nästa meddelande. |
 | [0056 — Minimal memory context](0056-minimal-memory-context.md) | Accepted | Minimalt modellkuvert, relevant urval och bevarad koppling för reinforcement. |

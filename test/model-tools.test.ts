@@ -43,7 +43,7 @@ import { cleanPowerShellStderr, runTerminalCommand } from "../src/tools/terminal
 import { prepareAcpTools } from "../src/tools/acp-tools.js";
 import { isolatedMemoryEnv } from "./helpers.js";
 import { startGuiHost } from "../src/gui-host/server.js";
-import { startSessionControlProvider } from "./fixtures/session-control-provider.js";
+import { startSessionControlProvider, fixtureToolSelection } from "./fixtures/session-control-provider.js";
 import { WireClient } from "./fixtures/gui-wire-client.js";
 import { EmbeddedAcmeChatTransport } from "../src/providers/acme/embedded-acme-chat-transport.js";
 
@@ -1031,12 +1031,12 @@ test(
   async () => {
     let step = 0;
     const provider = await startSessionControlProvider((payload) => {
-      const observed = payload.messages.filter((m: any) => m.role === "tool");
+      const selection = fixtureToolSelection(payload, ["read_file", "list_files", "create_file", "edit_file", "git", "exec_command"]);
+      if (selection) return selection;
+      const observed = payload.messages.filter((m: any) => m.role === "tool" && !m.tool_call_id.startsWith("fixture-select-"));
       if (
         payload.messages
-          .filter((m: any) => m.role === "user")
-          .at(-1)
-          .content.includes("DENY-WRITE")
+          .some((m: any) => m.role === "user" && m.content.includes("DENY-WRITE"))
       ) {
         if (observed.length) {
           assert.match(observed.at(-1).content, /denied/);
@@ -1198,7 +1198,7 @@ test(
       assert.equal(readFileSync(join(cwd, "hello.txt"), "utf8"), "after\n");
       assert.equal(
         client.frames.filter(
-          (frame) => frame.type === "tool" && frame.status === "completed",
+          (frame) => frame.type === "tool" && frame.status === "completed" && frame.title !== "a008_select_tools",
         ).length,
         7,
       );

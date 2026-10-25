@@ -1,5 +1,16 @@
 # Current Status — A008
 
+## Runtime context correction — A008-0216 (local implementation)
+
+Worker, extractor and serialized retrieval traces now use the same label-only
+allowlist with conditional qualifications. Persistent knowledge identity is resolved
+internally from extractor item positions. Product CLI/ACP/GUI offers a compact tool
+catalog and selected schemas; completed work is reduced incrementally with a recent
+complete raw round. Embedded native Responses preserves opaque continuation items
+and exact call bindings. Existing approval and conservative recovery authority
+remain. This entry describes the local branch, not an installed/released runtime;
+verification and remaining limits are recorded in its handoff.
+
 Granskad: 2026-09-30
 Källrevision: `921fa53` + A008-0203 på `codex/a008-0203-permission-replay`.
 Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtning med effektspärr och workspace-verifiering).
@@ -119,7 +130,7 @@ The GUI now tracks active-to-terminal transitions of the currently observed dura
   mindre/större explicit gräns inom runtime-budgeten. Trunkering markeras.
 - Verktygsbeskrivningar styr mot små sektioner, återanvända revisioner, avgränsade
   sökningar/diffar och MCP för kompletterande förmågor. Ingen automatisk
-  MCP-filtrering införs; aktiverade scheman kostar fortfarande kontext.
+  MCP filtering was not introduced in 0200; 0216 now loads selected schemas on demand.
 - Lokal 10 000-radersfixture: 248 890 byte helfil jämfört med 692 byte för en
   sektionsläsning och två edit-resultat. Detta mäter resultatbyte, inte token
   eller verklig modellprestanda. ACME strict-serialisering kontrollerad med fake fetch.
@@ -161,11 +172,10 @@ Verifiering och detaljer finns i [A008-0191-handoff](handoffs/A008-0191.md) och
 
 ## Minneskontext — A008-0193
 
-Worker och extractor använder samma librarian-valda retrieval-resultat men olika
-presentationer. Worker/userMessage-envelope skickar `id`, tillgänglig
-`semanticAddress`, postens läsbara `label` samt villkorad `history`/`provenance`.
-Extractor behåller `currentState`/`claim`-representationen som behövs för
-state updates och reinforcement. Intern metadata skickas inte till workern. Aktuell state prioriteras,
+Worker and extractor now share librarian-selected knowledge and the same minimal
+presentation: label plus conditional history/provenance. A008-0216 replaces the
+split serializer. Runtime resolves positional references to internal identity
+before the existing validation/commit gates. Current state takes precedence;
 oberoende adresser med samma värde hålls isär och dubbla råyttringar undertrycks.
 Specifika taggträffar begränsar breda domänträffar. Befintlig ID-mappning för
 förstärkning finns kvar; läsning förstärker inte.

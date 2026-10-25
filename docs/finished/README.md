@@ -2,7 +2,7 @@
 
 Discoverability: naming convention `A008-NNNN_task-slug.md`.
 
-Latest archive: [A008-0213_run-local-execution-state-projection.md](A008-0213_run-local-execution-state-projection.md) — Complete locally; durable provider requests carry bounded runtime execution state across tool rounds and process recovery.
+Latest archive: [A008-0216_runtime-working-context.md](A008-0216_runtime-working-context.md) — Complete locally; minimal knowledge projection, selected tool schemas and compact completed work with preserved recovery.
 Member state: required. Every member declares a `Status:` line.
 
 Archived tasks are immutable historical context. They are never renamed or

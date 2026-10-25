@@ -1,4 +1,5 @@
 import { DeterministicRetrievalPlanner } from "../deterministic-retrieval-planner.js";
+import { currentScope } from "../../core/current-scope.js";
 import {
   serializeContextProjection,
   Utf8ByteContextMeasurer,
@@ -100,6 +101,7 @@ export class KnowledgeMemoryReader {
       const draft = await this.#scopeClassifier.classify(
         {
           message: request.message,
+          currentScope: currentScope(request.recentTurns ?? []),
           knownDomains: vocabulary.domains,
           knownTags: vocabulary.tags,
           currentDomains: this.#scopes.current(request.conversationId),

@@ -4,6 +4,7 @@ import type {
   SessionNotification,
 } from "@agentclientprotocol/sdk";
 import { ChatError } from "../core/errors.js";
+import { runtimeWorkingContext } from "../core/runtime-tool-context.js";
 import type { RuntimeBudgets } from "../core/runtime-preferences.js";
 import type { RunContinuationCheckpointWrite, RunContinuationRecoveryBridge } from "../core/chat-continuation.js";
 import type { ModelToolSession, ToolActivity } from "./model-tools.js";
@@ -127,7 +128,7 @@ export async function prepareAcpTools(
   const maximum = budgets.continuationMaximumBytes;
   if (pressure === 0 && maximum === 0) {
     if (recovery?.resume) throw new ChatError("configuration", "Continuation recovery requires enabled pressure policy.");
-    return executionState ? { ...prepared, executionState } : prepared;
+    return { ...prepared, workingContext: runtimeWorkingContext(budgets), ...(executionState ? { executionState } : {}) };
   }
   if (writeContinuationCheckpoint === undefined) {
     throw new ChatError(
@@ -137,6 +138,7 @@ export async function prepareAcpTools(
   }
   return {
     ...prepared,
+    workingContext: runtimeWorkingContext(budgets),
     ...(executionState ? { executionState } : {}),
     continuation: {
       ...(recovery ? { recovery } : {}),

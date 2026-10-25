@@ -14,31 +14,15 @@ export function knowledgeText(value: unknown): string {
   return String(value);
 }
 
-/** Extractor-facing projection. Keep engine-oriented state/claim semantics here. */
+/** Shared model-facing allowlist. Identity and state/claim records stay internal. */
 export function contextItemsForModel(items: readonly ContextKnowledgeItem[]) {
-  return items.map((item) => ({
-    id: item.id,
-    ...(item.semanticAddress === undefined
-      ? {}
-      : { semanticAddress: item.semanticAddress }),
-    ...(item.kind === "state"
-      ? {
-          currentState: knowledgeText(
-            item.currentState === undefined
-              ? item.proposition
-              : item.currentState,
-          ),
-        }
-      : { claim: item.proposition }),
-    ...(item.history?.length ? { history: [...item.history] } : {}),
-    ...(item.provenance?.length ? { provenance: [...item.provenance] } : {}),
-  }));
+  return contextItemsForWorker(items);
 }
 
 /** Worker/user-message projection: semantic identity plus the retrieved record's readable label. */
 export function contextItemsForWorker(items: readonly ContextKnowledgeItem[]) {
   return items.map((item) => ({
-        label: item.label ?? item.proposition,
+    label: item.label ?? item.proposition,
     ...(item.history?.length ? { history: [...item.history] } : {}),
     ...(item.provenance?.length ? { provenance: [...item.provenance] } : {}),
   }));

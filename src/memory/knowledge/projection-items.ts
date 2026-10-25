@@ -156,6 +156,7 @@ export function projectionItems(
           item: {
             ...entry.item,
             kind: "claim",
+            label: `Historical: ${dated(entry.item.label ?? entry.item.proposition, entry.interval)}`,
             proposition: `Historical: ${dated(entry.item.proposition, entry.interval)}`,
           },
         });

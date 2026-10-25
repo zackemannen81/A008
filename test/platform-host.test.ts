@@ -27,7 +27,7 @@ import {
   spawnPlatformHost,
   startPlatformHostProcess,
 } from "./fixtures/platform-host-process.js";
-import { startSessionControlProvider } from "./fixtures/session-control-provider.js";
+import { startSessionControlProvider, fixtureToolSelection } from "./fixtures/session-control-provider.js";
 import { ProjectRuntimeRegistry } from "../src/engine/project-runtime-registry.js";
 import {
   DurableChatClient,
@@ -127,6 +127,8 @@ for (const scenario of ["continue-110-rounds", "workspace-mutation", "missing-wo
     const executionStates: { objective: string; current_phase: string; completed_steps: string[]; locked_decisions: { decision: string; value: string }[] }[] = [];
     const executedIds = new Set<string>();
     const provider = await startSessionControlProvider(async payload => {
+      const selection = fixtureToolSelection(payload, ["read_file"]);
+      if (selection) return selection;
       const last = payload.messages.at(-1);
       let reduction: { runId: string; previous: RunContinuationState | null; interactions: { id: string }[] } | undefined;
       try {
@@ -168,7 +170,8 @@ for (const scenario of ["continue-110-rounds", "workspace-mutation", "missing-wo
       executionStates.push(state);
       const tail = payload.messages.filter((message: { role: string }) => message.role === "tool");
       assert.ok(tail.length <= 2, "compaction keeps one recent raw round after the initial two");
-      const completed = Number(String(tail.at(-1)?.tool_call_id ?? "read-0").slice(5));
+      const latestRead = tail.filter((message: { tool_call_id: string }) => message.tool_call_id.startsWith("read-")).at(-1);
+      const completed = latestRead ? Number(String(latestRead.tool_call_id).slice(5)) : executedIds.size;
       if (completed > 0 && completed % 25 === 0) t.diagnostic(`Completed round ${completed}; replacement ${crashed}; wire bytes ${mainRequestBytes.at(-1)}`);
       if (completed === crashAfter && !crashed) {
         crashed = true;
@@ -236,7 +239,7 @@ for (const scenario of ["continue-110-rounds", "workspace-mutation", "missing-wo
           assert.notEqual(identity.processId, beforePid); assert.notEqual(identity.instanceId, beforeInstance);
           assert.equal(run.leaseGeneration, 2); assert.equal(run.status, "succeeded");
           assert.equal(executedIds.size, 110); assert.ok(checkpoints >= 100); assert.equal(runtimeIds.size, 1);
-          assert.equal(store.readActivity(scope, run.id)?.tools.length, 110);
+          assert.equal(store.readActivity(scope, run.id)?.tools.filter(tool => tool.title !== "a008_select_tools").length, 110);
           assert.equal(store.getConversation(scope, sessionId).messages.filter(message => message.role === "assistant").length, 1);
           assert.ok(executionStates.some(state => state.current_phase === "implementation"));
           assert.ok(executionStates.some(state => state.current_phase === "recovery" && state.completed_steps.includes("Completed fixture file read")));
