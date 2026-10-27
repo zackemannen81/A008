@@ -192,7 +192,7 @@ for (const scenario of ["continue-110-rounds", "workspace-mutation", "missing-wo
       assert.ok(!executedIds.has(id), `completed tool ${id} must not be replayed`);
       executedIds.add(id);
       return { role: "assistant", content: "", tool_calls: [{ id, type: "function", function: { name: "read_file", arguments: '{"path":".gitkeep"}' } }] };
-    });
+    }, undefined, true);
     const fixture = hostEnv(provider.endpoint, { A008_CHAT_TRANSPORT: "direct", A008_PLATFORM_TURN_TIMEOUT_MS: "220000" });
     databasePath = fixture.env.A008_PLATFORM_PATH!;
     const prefs = new RuntimePreferencesStore(fixture.env, 120000);
@@ -2100,3 +2100,84 @@ test(
     }
   },
 );
+
+for (const failure of ["invalid-json", "process-loss"] as const) {
+  test(`A008-0218 durable reducer ${failure} without pressure checkpoints or tool replay`, { timeout: 90000 }, async () => {
+    let databasePath = "", conversationId = "";
+    let reductions = 0, issued = 0;
+    let repair = false;
+    const provider = await startSessionControlProvider((payload) => {
+      let input: any;
+      try { input = JSON.parse(payload.messages.at(-1).content); } catch { /* normal chat */ }
+      if (input?.runId && input.interactions) {
+        reductions++;
+        if (failure === "invalid-json" && !repair) return { role: "assistant", content: "invalid JSON" };
+        if (failure === "process-loss" && reductions === 1) {
+          const db = new Database(databasePath, { readonly: true });
+          const proc = JSON.parse((db.prepare("SELECT identity_json FROM A008_session_instances WHERE session_id = ?").get(conversationId) as { identity_json: string }).identity_json) as { processId: number };
+          db.close();
+          if (process.platform === "win32") spawnSync("taskkill.exe", ["/PID", String(proc.processId), "/T", "/F"], { windowsHide: true, stdio: "ignore" });
+          else process.kill(proc.processId, "SIGKILL");
+          return { role: "assistant", content: "interrupted" };
+        }
+        return { role: "assistant", content: JSON.stringify({ version: RUN_CONTINUATION_STATE_VERSION, runId: input.runId, verifiedFacts: [], hypotheses: [], completedActions: [{ id: "done", statement: "Prior completed steps are retained", sourceRefs: input.requiredSourceRefs }] }) };
+      }
+      const selection = fixtureToolSelection(payload, ["create_file"]);
+      if (selection) return selection;
+      if (issued === 0) {
+        issued++;
+        return { role: "assistant", content: "", tool_calls: [{ id: "write-once", type: "function", function: { name: "create_file", arguments: JSON.stringify({ path: "once.txt", content: "exactly one completed creation" }) } }] };
+      }
+      return { role: "assistant", content: "Finished preserved work." };
+    }, undefined, true);
+    const fixture = hostEnv(provider.endpoint, { A008_CHAT_TRANSPORT: "direct" });
+    databasePath = fixture.env.A008_PLATFORM_PATH!;
+    const project = bootstrap(fixture.env, fixture.directory, `reducer-${failure}`);
+    const host = await startGuiHost({ env: fixture.env, port: 0, cwd: fixture.directory });
+    const origin = `http://127.0.0.1:${host.port}`;
+    const client = new DurableChatClient({ origin, credentials: cookieCredentials(), fetch: globalThis.fetch as unknown as ClientFetch }, { read: () => undefined, write() {} }, 20);
+    try {
+      await client.connect(); await client.selectChat(project.projectId, undefined, true);
+      conversationId = client.getSnapshot().sessionId!;
+      const cwd = client.getWorkspace()!.workspacePath;
+      await client.prompt("Create the file once and finish.");
+      let pausedRevision: number | undefined;
+      let savedRunId = "";
+      await waitFor("durable reducer outcome", async () => {
+        await client.refresh();
+        const state = client.getSnapshot();
+        if (state.permission) await client.resolveToolPermission("allow_once");
+        const db = new Database(databasePath, { readonly: true });
+        const row = db.prepare("SELECT id, status, revision, error_code, error_message FROM A008_platform_runs WHERE conversation_id = ?").get(conversationId) as any;
+        db.close();
+        if (!row) return false;
+        savedRunId ||= row.id;
+        assert.equal(row.id, savedRunId);
+        if (row.status === "failed") throw new Error(row.error_message);
+        if (row.error_code === "REDUCTION_PAUSED" && !repair) {
+          assert.equal(failure, "invalid-json", `${row.error_message}; reductions=${reductions}`);
+          assert.equal(reductions, 2);
+          assert.equal(state.recovery?.length ?? 0, 0);
+          assert.equal(state.reductionPause?.runId, row.id);
+          pausedRevision = row.revision;
+          repair = true;
+          await client.resumeReduction();
+        }
+        return row.status === "succeeded";
+      }, 75000);
+      assert.equal(issued, 1);
+      assert.equal(readFileSync(join(cwd, "once.txt"), "utf8"), "exactly one completed creation");
+      const db = new Database(databasePath, { readonly: true });
+      const row = db.prepare("SELECT id, lease_generation FROM A008_platform_runs WHERE conversation_id = ?").get(conversationId) as any;
+      assert.equal(row.lease_generation, 2);
+      assert.equal(row.id, savedRunId);
+      const snapshot = db.prepare("SELECT activity_json FROM A008_session_activity_current WHERE run_id = ?").get(row.id) as any;
+      assert.equal(JSON.parse(snapshot.activity_json).tools.filter((tool: any) => tool.id === "write-once").length, 1);
+      db.close();
+      if (pausedRevision !== undefined) {
+        const stale = await fetch(`${origin}/v1/chat/v3/runs/${encodeURIComponent(savedRunId)}/reduction-resume`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ expectedRevision: pausedRevision }) });
+        assert.equal(stale.status, 409);
+      }
+    } finally { client.dispose(); await host.close(); await provider.close(); rmSync(fixture.directory, { recursive: true, force: true }); }
+  });
+}

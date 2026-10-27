@@ -319,3 +319,15 @@ test("client package source stays platform-independent", () => {
     assert.doesNotMatch(source, /from ["']react["']/u);
   }
 });
+
+test("reducer resume validates revision and sends one same-run request without automatic retry", async () => {
+  const calls: { url: string; body: unknown }[] = [];
+  const client = createPlatformV3Client({ origin: "https://platform.example", credentials: bearerCredentials("fixture"), fetch: async (url, init) => {
+    calls.push({ url, body: JSON.parse(String(init?.body)) });
+    return { ok: false, status: 409, statusText: "Conflict", json: async () => ({ error: { code: "REVISION_CONFLICT", message: "Already resumed" } }) };
+  } });
+  assert.throws(() => client.resumeReduction("run_1", { expectedRevision: -1 }));
+  assert.equal(calls.length, 0);
+  await assert.rejects(client.resumeReduction("run_1", { expectedRevision: 7 }), (error: unknown) => error instanceof PlatformV3ClientError && error.code === "REVISION_CONFLICT");
+  assert.deepEqual(calls, [{ url: "https://platform.example/v3/runs/run_1/reduction-resume", body: { expectedRevision: 7 } }]);
+});

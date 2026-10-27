@@ -10,6 +10,9 @@ export const sessionProcessSchema = z.strictObject({
 export const sessionProcessResponseSchema = z.strictObject({
   process: sessionProcessSchema.nullable(),
 });
+export const sessionReductionResumeSchema = z.strictObject({
+  expectedRevision: z.number().int().nonnegative(),
+});
 export const sessionEffectReviewSchema = z.strictObject({
   expectedRevision: z.number().int().nonnegative(),
   effectsReviewed: z.literal(true),

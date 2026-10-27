@@ -66,6 +66,10 @@ export interface ChatTools {
   /** Record runtime-only selection in the existing raw tool evidence stream. */
   readonly recordSelection?: (call: ChatToolCall, result: string) => Promise<void>;
   /** Product runtime: compact catalog, demand-loaded schemas and completed work. */
+  readonly durableWorkingContext?: {
+    readonly persist: (input: import("./chat-continuation.js").RunContinuationCheckpointWrite) => Promise<void>;
+    readonly recovery?: import("./chat-continuation.js").RunContinuationRecoveryBridge;
+  };
   readonly workingContext?: {
     readonly maximumRequestBytes?: number;
     readonly maximumStateBytes: number;
@@ -114,6 +118,7 @@ export interface ChatRequest {
   readonly imageAttachments?: readonly ChatImageAttachment[];
   readonly tools?: readonly ChatToolDefinition[];
   readonly options?: ChatGenerationOptions;
+  readonly outputSchema?: { readonly name: string; readonly schema: Readonly<Record<string, unknown>> };
   readonly signal?: AbortSignal;
 }
 

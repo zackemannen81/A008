@@ -44,6 +44,8 @@ export interface SessionProcessRun {
   executionStateSeed?: RunExecutionStateSeed;
   recoveryRequired?: boolean;
   continuationResume?: RunContinuationRecovery;
+  /** Set by the parent from actual checkpoint/fence callback availability. */
+  durableContinuation?: boolean;
 }
 
 /** Owned by the exclusive local host, never by an observer or GUI window. */
@@ -242,7 +244,7 @@ export class SessionProcess {
       signal.throwIfAborted();
       return await this.#rpc.request<PlatformTextTurnResult>(
         "run",
-        run,
+        { ...run, durableContinuation: onContinuationCheckpoint !== undefined && beforeEffect !== undefined },
         signal,
       );
     } catch (error) {

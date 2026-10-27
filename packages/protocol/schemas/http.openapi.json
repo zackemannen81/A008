@@ -2639,6 +2639,13 @@
               "docsFirst": {
                 "type": "boolean"
               },
+              "docsFirstMode": {
+                "type": "string",
+                "enum": [
+                  "standard",
+                  "minimal"
+                ]
+              },
               "multiAgent": {
                 "type": "object",
                 "properties": {
@@ -2906,6 +2913,13 @@
               "docsFirst": {
                 "type": "boolean"
               },
+              "docsFirstMode": {
+                "type": "string",
+                "enum": [
+                  "standard",
+                  "minimal"
+                ]
+              },
               "multiAgent": {
                 "oneOf": [
                   {
@@ -3030,6 +3044,13 @@
                   "properties": {
                     "docsFirst": {
                       "type": "boolean"
+                    },
+                    "docsFirstMode": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "minimal"
+                      ]
                     },
                     "multiAgent": {
                       "oneOf": [
@@ -3161,6 +3182,13 @@
                   "properties": {
                     "docsFirst": {
                       "type": "boolean"
+                    },
+                    "docsFirstMode": {
+                      "type": "string",
+                      "enum": [
+                        "standard",
+                        "minimal"
+                      ]
                     },
                     "multiAgent": {
                       "oneOf": [
@@ -3701,6 +3729,13 @@
                 "properties": {
                   "docsFirst": {
                     "type": "boolean"
+                  },
+                  "docsFirstMode": {
+                    "type": "string",
+                    "enum": [
+                      "standard",
+                      "minimal"
+                    ]
                   },
                   "multiAgent": {
                     "$ref": "#/components/schemas/projectCreated/$defs/__schema1"

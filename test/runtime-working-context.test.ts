@@ -151,3 +151,59 @@ test("invalid or cancelled compaction cannot dispatch more work or replay comple
     assert.equal(session.messages.length, 0);
   }
 });
+
+import type { RunContinuationCheckpointWrite, RunContinuationRecovery } from "../src/core/chat-continuation.js";
+import { reduceWorkingState } from "../src/core/working-state-reducer.js";
+
+test("durable reduction exhaustion resumes the same completed work without replay", async () => {
+  let saved: RunContinuationCheckpointWrite | undefined;
+  let effects = 0, reducerCalls = 0, rounds = 0;
+  let malformed = true;
+  const transport = { async complete(request: ChatRequest) {
+    if (!request.tools) {
+      reducerCalls++;
+      if (malformed) return { message: { role: "assistant" as const, content: "broken" } };
+      const input = JSON.parse(request.messages[1]!.content);
+      return { message: { role: "assistant" as const, content: JSON.stringify({ version: "a008_run_continuation_state_v1", runId: input.runId, verifiedFacts: [], hypotheses: [], completedActions: [{ id: "done", statement: "completed", sourceRefs: input.requiredSourceRefs }] }) } };
+    }
+    rounds++;
+    if (rounds > 2) return { message: { role: "assistant" as const, content: "done" } };
+    return { message: { role: "assistant" as const, content: "" }, toolCalls: [{ id: `call_${rounds}`, name: rounds === 1 ? SELECT_TOOLS : "tool_1", arguments: rounds === 1 ? '{"names":["tool_1"]}' : '{"value":"x"}' }] };
+  } };
+  const persist = async (checkpoint: RunContinuationCheckpointWrite) => {
+    assert.equal(checkpoint.expectedGeneration, saved?.recovery?.reduction?.generation ?? 0);
+    saved = structuredClone(checkpoint);
+  };
+  const makeTools = (resume?: RunContinuationRecovery) => ({ definitions, maximumCalls: 10, workingContext,
+    durableWorkingContext: { persist, recovery: { ...(resume ? { resume } : {}), beforeEffect: async () => {} } },
+    async execute() { effects++; return "completed effect"; },
+  });
+  await assert.rejects(new ChatSession({ model: "fixture", transport }).send("work", { tools: makeTools() }), /reduction paused/);
+  assert.equal(effects, 1); assert.equal(reducerCalls, 2);
+  assert.equal(saved!.recovery!.reduction!.attempts, 2);
+  assert.equal(saved!.recovery!.recentInteractions.length, 2);
+  // Process replacement alone cannot reset exhausted attempt accounting.
+  await assert.rejects(new ChatSession({ model: "fixture", transport }).send("work", { tools: makeTools(saved!.recovery) }), /reduction paused/);
+  assert.equal(reducerCalls, 2); assert.equal(effects, 1);
+  // Host-authorized resume resets only the reducer attempt allowance.
+  malformed = false;
+  const resume = structuredClone(saved!.recovery!);
+  const authorized = { ...resume, reduction: { ...resume.reduction!, attempts: 0 } };
+  const result = await new ChatSession({ model: "fixture", transport }).send("work", { tools: makeTools(authorized) });
+  assert.equal(result.message.content, "done");
+  assert.equal(effects, 1); assert.equal(rounds, 3);
+  assert.equal(saved!.recovery!.reduction!.phase, "ready");
+});
+
+for (const failure of ["truncation", "syntax", "sources", "oversized"] as const) {
+  test(`reducer bounds retry and validates ${failure}`, async () => {
+    const tokens: number[] = [];
+    const state = { version: "a008_run_continuation_state_v1", runId: "run", verifiedFacts: [], hypotheses: [], completedActions: [{ id: "one", statement: "done", sourceRefs: ["run:1"] }] };
+    const result = await reduceWorkingState({ model: "fixture", runId: "run", previous: null, interactions: [], maximumStateBytes: 1000, inputBytes: 10000, outputTokens: 4096, validSourceRefs: new Set(["run:1"]), requiredSourceRefs: new Set(["run:1"]), attempts: 0, truncated: false, beforeAttempt: async () => {}, transport: { async complete(request) {
+      tokens.push(request.options!.maxTokens!);
+      return { message: { role: "assistant", content: tokens.length > 1 ? JSON.stringify(state) : failure === "syntax" || failure === "truncation" ? "{" : JSON.stringify({ ...state, completedActions: [{ ...state.completedActions[0], ...(failure === "sources" ? { sourceRefs: ["invented"] } : { statement: "x".repeat(2000) }) }] }) }, ...(failure === "truncation" && tokens.length === 1 ? { finishReason: "length" } : {}) };
+    } } });
+    assert.equal(result.runId, "run");
+    assert.deepEqual(tokens, failure === "truncation" ? [2048, 4096] : [2048, 2048]);
+  });
+}

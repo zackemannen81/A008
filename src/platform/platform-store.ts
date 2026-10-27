@@ -1064,6 +1064,7 @@ export class PlatformStore {
   saveContinuationCheckpoint(
     scope: PlatformScope,
     input: SavePlatformContinuationCheckpoint,
+    pendingJournal = false,
   ): PlatformContinuationCheckpoint {
     this.#requireOpen();
     this.#validateScope(scope);
@@ -1080,7 +1081,7 @@ export class PlatformStore {
         maximumBytes: input.maximumStateBytes,
       });
       const sourceRefs = [...new Set(continuationStateSourceRefs(state))].sort();
-      if (sourceRefs.length === 0) {
+      if (sourceRefs.length === 0 && !pendingJournal) {
         throw new PlatformStoreError("INVALID_REQUEST", "A persisted continuation checkpoint must cite durable source events.");
       }
       const maximumStateBytes = input.maximumStateBytes;
@@ -1195,6 +1196,24 @@ export class PlatformStore {
           "INVALID_REQUEST",
           "Recovery/checkpoint state mismatch.",
         );
+      const previousJournal = this.#database.prepare("SELECT recovery_json FROM A008_continuation_recovery WHERE run_id = ? ORDER BY sequence DESC LIMIT 1").get(run.id) as { recovery_json: string } | undefined;
+      if (previousJournal && (JSON.parse(previousJournal.recovery_json) as RunContinuationRecovery).reduction && !recovery?.reduction)
+        throw new PlatformStoreError("REVISION_CONFLICT", "A journal-backed run requires revision-bound reduction metadata.");
+      if (recovery?.reduction) {
+        const previous = this.#database.prepare("SELECT recovery_json, epoch FROM A008_continuation_recovery WHERE run_id = ? ORDER BY sequence DESC LIMIT 1").get(run.id) as { recovery_json: string; epoch: number } | undefined;
+        const last = previous ? JSON.parse(previous.recovery_json) as RunContinuationRecovery : undefined;
+        const generation = last?.reduction?.generation ?? 0;
+        if ((last && last.state.runId !== recovery.state.runId) ||
+            (recovery.reduction.phase === "ready" && (last?.reduction?.phase !== "pending" || last.completedInteractions !== recovery.completedInteractions)))
+          throw new PlatformStoreError("REVISION_CONFLICT", "Reduction candidate does not match a pending source boundary.");
+        if (checkpoint.expectedGeneration !== generation || recovery.reduction.generation !== generation + 1 ||
+            (last && recovery.completedInteractions < last.completedInteractions) ||
+            (last && recovery.completedInteractions === last.completedInteractions && previous!.epoch !== this.#continuationEpoch(run.id)))
+          throw new PlatformStoreError("REVISION_CONFLICT", "Stale reducer source revision, generation or effect fence.");
+        if (last?.reduction && recovery.completedInteractions === last.completedInteractions &&
+            recovery.reduction.phase === "pending" && recovery.reduction.attempts < last.reduction.attempts)
+          throw new PlatformStoreError("REVISION_CONFLICT", "Reducer attempts cannot reset without explicit resume.");
+      }
       const interactions = [
         ...checkpoint.sourceInteractions,
         ...(recovery?.recentInteractions ?? []),
@@ -1213,7 +1232,7 @@ export class PlatformStore {
         runtimeRunId: checkpoint.runId,
         state: checkpoint.state,
         maximumStateBytes: checkpoint.maximumStateBytes,
-      });
+      }, recovery?.reduction !== undefined);
       if (!recovery) return;
       const prior = this.#database
         .prepare(
@@ -1227,6 +1246,14 @@ export class PlatformStore {
           : undefined,
       );
       const evidence = inspectContinuationWorkspace(cwd, artifacts);
+      if (recovery.reduction && prior) {
+        const previous = this.#database.prepare("SELECT recovery_json FROM A008_continuation_recovery WHERE run_id = ? ORDER BY sequence DESC LIMIT 1").get(run.id) as { recovery_json: string };
+        const last = JSON.parse(previous.recovery_json) as RunContinuationRecovery;
+        const before = JSON.parse(prior.evidence_json) as ContinuationWorkspaceEvidence;
+        if (last.reduction?.sourceRevision === recovery.reduction.sourceRevision &&
+            (before.verifiable !== evidence.verifiable || before.digest !== evidence.digest || before.revision !== evidence.revision))
+          throw new PlatformStoreError("REVISION_CONFLICT", "Workspace changed during reduction; prior journal retained for reconciliation.");
+      }
       this.#currentLease(scope, lease, this.#now());
       this.#database
         .prepare(
@@ -1348,13 +1375,45 @@ export class PlatformStore {
           "Recovery no longer owns this unfinished turn.",
         );
       }
-      this.#advanceContinuationFence(run.id);
+      if (!candidate.recovery.reduction) this.#advanceContinuationFence(run.id);
       this.#database
         .prepare(
           "UPDATE A008_platform_runs SET status = 'queued', error_code = NULL, error_message = NULL WHERE id = ?",
         )
         .run(run.id);
       return this.claimRun(scope, input);
+    });
+  }
+
+  pauseReduction(scope: PlatformScope, input: LeaseWrite, message: string): void {
+    this.#immediate(() => {
+      const run = this.#currentLease(scope, input, this.#now());
+      this.#requireRevision(run, input.expectedRevision);
+      if (run.status !== "running" || !this.readContinuationRecovery(scope, run.id)?.recovery.reduction)
+        throw new PlatformStoreError("LEASE_LOST", "No durable reducer boundary is available.");
+      this.#database.prepare("UPDATE A008_platform_runs SET status = 'needs_reconciliation', lease_owner_token = NULL, lease_expires_at = NULL, revision = ?, error_code = 'REDUCTION_PAUSED', error_message = ?, updated_at = ? WHERE id = ?")
+        .run(run.revision + 1, message, this.#now(), run.id);
+      this.#appendEvent(scope, run.conversation_id, run.id, "run.updated", run.revision + 1, this.#now());
+    });
+  }
+
+  resumeReduction(scope: PlatformScope, runId: string, expectedRevision: number): PlatformRun {
+    return this.#immediate(() => {
+      const run = this.#runRow(scope, runId);
+      this.#requireRevision(run, expectedRevision);
+      const saved = this.readContinuationRecovery(scope, runId);
+      if (run.status !== "needs_reconciliation" || run.error_code !== "REDUCTION_PAUSED" || !saved?.recovery.reduction)
+        throw new PlatformStoreError("INVALID_REQUEST", "This run has no paused reduction to resume.");
+      const recovery = { ...saved.recovery, reduction: { ...saved.recovery.reduction, attempts: 0, truncated: false, generation: saved.recovery.reduction.generation + 1 } };
+      const previous = this.#database.prepare("SELECT maximum_state_bytes, evidence_json, epoch FROM A008_continuation_recovery WHERE run_id = ? AND sequence = ?").get(runId, saved.sequence) as { maximum_state_bytes: number; evidence_json: string; epoch: number };
+      const next = this.saveContinuationCheckpoint(scope, { runId, turnId: runId, workspaceId: run.workspace_id,
+        runtimeRunId: recovery.state.runId, state: recovery.state, maximumStateBytes: previous.maximum_state_bytes }, true);
+      this.#database.prepare("INSERT INTO A008_continuation_recovery (run_id, sequence, epoch, maximum_state_bytes, recovery_json, evidence_json) VALUES (?, ?, ?, ?, ?, ?)")
+        .run(runId, next.sequence, previous.epoch, previous.maximum_state_bytes, JSON.stringify(recovery), previous.evidence_json);
+      this.#database.prepare("UPDATE A008_platform_runs SET revision = ?, error_code = NULL, error_message = NULL, updated_at = ? WHERE id = ?")
+        .run(run.revision + 1, this.#now(), runId);
+      this.#appendEvent(scope, run.conversation_id, runId, "run.updated", run.revision + 1, this.#now());
+      return this.#run(scope, runId);
     });
   }
 

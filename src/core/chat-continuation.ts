@@ -112,11 +112,18 @@ export interface RunContinuationCheckpointWrite {
   readonly sourceInteractions: readonly RunToolInteraction[];
   readonly maximumStateBytes: number;
   readonly recovery?: RunContinuationRecovery;
+  /** Compare-and-swap projection generation for journal-backed boundaries. */
+  readonly expectedGeneration?: number;
 }
 
 /** Rebuild data for a completed boundary, never a list of operations to execute. */
 export interface RunContinuationRecovery {
   readonly version: 1;
+  readonly reduction?: {
+    readonly version: 1; readonly sourceRevision: number; readonly generation: number;
+    readonly phase: "pending" | "ready"; readonly attempts: number; readonly truncated: boolean;
+    readonly selectedTools: readonly string[];
+  };
   readonly state: RunContinuationState;
   readonly recentInteractions: readonly RunToolInteraction[];
   readonly completedInteractions: number;
@@ -136,13 +143,19 @@ export function validateContinuationRecovery(
 ): RunContinuationRecovery {
   if (value.version !== 1 || !Number.isSafeInteger(value.completedInteractions) ||
       value.completedInteractions < 1 || !Array.isArray(value.recentInteractions) ||
-      value.recentInteractions.length >= value.completedInteractions ||
+      (value.reduction ? value.recentInteractions.length > value.completedInteractions : value.recentInteractions.length >= value.completedInteractions) ||
       !Array.isArray(value.usedToolCallIds) || value.usedToolCallIds.some(id => typeof id !== "string" || !id || id.length > 256) ||
       new Set(value.usedToolCallIds).size !== value.usedToolCallIds.length ||
       value.usedToolCallIds.length < value.completedInteractions ||
       typeof value.routeId !== "string" || !value.routeId) {
     invalid("invalid recovery boundary.");
   }
+  if (value.reduction && (value.reduction.version !== 1 || value.reduction.sourceRevision !== value.completedInteractions ||
+      !Number.isSafeInteger(value.reduction.generation) || value.reduction.generation < 1 ||
+      !["pending", "ready"].includes(value.reduction.phase) || !Number.isSafeInteger(value.reduction.attempts) ||
+      value.reduction.attempts < 0 || value.reduction.attempts > 2 || typeof value.reduction.truncated !== "boolean" ||
+      !Array.isArray(value.reduction.selectedTools) || value.reduction.selectedTools.length > 16 ||
+      value.reduction.selectedTools.some(name => typeof name !== "string"))) invalid("invalid reduction journal metadata.");
   const compacted = value.completedInteractions - value.recentInteractions.length;
   const refs = new Set(Array.from({ length: compacted }, (_, i) => `${value.state.runId}:${i + 1}`));
   validateRunContinuationState(value.state, { runId: value.state.runId, validSourceRefs: refs, requiredSourceRefs: refs, maximumBytes: maximumStateBytes });

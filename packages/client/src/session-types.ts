@@ -47,6 +47,7 @@ export interface GuiRunObservation {
 
 export interface GuiSessionState {
   readonly run?: GuiRunObservation | undefined;
+  readonly reductionPause?: { readonly runId: string; readonly revision: number } | undefined;
   readonly recovery?:
     | readonly { readonly runId: string; readonly revision: number }[]
     | undefined;

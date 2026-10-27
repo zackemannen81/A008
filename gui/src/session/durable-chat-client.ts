@@ -381,6 +381,7 @@ export class DurableChatClient {
       details: undefined,
       process: undefined,
       recovery: undefined,
+      reductionPause: undefined,
       busy: false,
       permission: undefined,
       tools: [],
@@ -540,8 +541,9 @@ export class DurableChatClient {
         sessionId: id,
         process,
         recovery: runs
-          .filter((entry) => entry.status === "needs_reconciliation")
+          .filter((entry) => entry.status === "needs_reconciliation" && entry.error?.code !== "REDUCTION_PAUSED")
           .map((entry) => ({ runId: entry.id, revision: entry.revision })),
+        reductionPause: run?.status === "needs_reconciliation" && run.error?.code === "REDUCTION_PAUSED" ? { runId: run.id, revision: run.revision } : undefined,
         thought: currentActivity?.thought ?? "",
         answer: currentActivity?.answer ?? "",
         tools: currentActivity?.tools ?? [],
@@ -554,7 +556,9 @@ export class DurableChatClient {
           ? false
           : this.#state.pendingTextUncommitted,
         error:
-          run?.status === "needs_reconciliation"
+          run?.error?.code === "REDUCTION_PAUSED"
+            ? run.error.message
+            : run?.status === "needs_reconciliation"
             ? "Execution outcome is uncertain; this run will not be replayed."
             : this.#state.pendingTextUncommitted && !accepted
               ? (this.#state.error ?? run?.error?.message)
@@ -596,6 +600,17 @@ export class DurableChatClient {
     } catch (error) {
       this.#error(error);
     }
+  };
+  resumeReduction = async (): Promise<void> => {
+    const paused = this.#state.reductionPause;
+    if (!paused) return;
+    try {
+      const { response, body } = await requestJson(this.http,
+        `/v1/chat/v3/runs/${encodeURIComponent(paused.runId)}/reduction-resume`,
+        { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ expectedRevision: paused.revision }) });
+      if (!response.ok) throw new Error(messageFromBody(body, "Cannot resume saved reduction."));
+      await this.refresh();
+    } catch (error) { this.#error(error); }
   };
   acknowledgeEffects = async (): Promise<void> => {
     try {

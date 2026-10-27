@@ -352,3 +352,14 @@ Corrected the internal OpenAI Luna ID leaking into the Responses request.
 Installed-ACME local HTTP fixtures verify OpenAI/Kie endpoint and credential
 separation, both streaming modes and exact wire measurement. Root build and
 32 focused tests pass. Live provider acceptance remains unverified.
+
+## Durable reducer pause/recovery — A008-0218 (local delivery)
+
+Completed GUI tool rounds now survive malformed reduction and process replacement
+independently of pressure settings. Revision-bound pending/ready checkpoints retain
+raw results, duplicate protection, tool selection and attempt accounting. Explicit
+GUI resume reuses the same run; unknown effects still require reconciliation.
+The embedded OpenAI reducer requests strict JSON; retries and output growth have
+finite bounds and state size stays fixed. Local fault injection proves malformed
+JSON and process-loss recovery with one file creation, not repeated tool effects.
+Live provider acceptance and model-summary quality are not asserted.

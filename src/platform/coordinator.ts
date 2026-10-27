@@ -689,7 +689,10 @@ export class PlatformCoordinator {
         try {
           const latest = this.#store.getRun(scope, run.id);
           if (latest.status === "running") {
-            this.#store.failRun(scope, {
+            if (error instanceof Error && error.name === "ReductionPausedError") {
+              this.#store.pauseReduction(scope, { runId: run.id, ownerToken: this.#ownerToken, generation, expectedRevision: latest.revision }, error.message);
+              await session.stop();
+            } else this.#store.failRun(scope, {
               runId: run.id,
               ownerToken: this.#ownerToken,
               generation,

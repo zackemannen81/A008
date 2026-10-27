@@ -99,7 +99,7 @@ function modelCapabilities(profile: ModelProfile): {
   const supportsTools = executionProvider !== "kie" || isKieLuna;
   
   return {
-    structuredOutput: false,
+    structuredOutput: executionProvider === "openai",
     tools: supportsTools,
     vision: supportsTools && profile.inputModalities.includes("image"),
     maxOutputTokens: generationCapabilities(profile.id).maxTokens,

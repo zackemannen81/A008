@@ -798,3 +798,30 @@ for (const model of ["openai_gpt-6-luna", "gpt-6-luna"]) {
     });
   }
 }
+
+import { workingStateSchema } from "../src/core/working-state-reducer.js";
+
+test("direct OpenAI reduction uses strict structured Responses and exact wire measurement", async () => {
+  const { directory, path } = tempCatalog();
+  const state = { version: "a008_run_continuation_state_v1", runId: "run", verifiedFacts: [], hypotheses: [], completedActions: [] };
+  let wire = "";
+  try {
+    const transport = new EmbeddedAcmeChatTransport({ env: { OPENAI_API_KEY: "fixture" }, catalogPath: path,
+      fetch: async (url, init) => {
+        assert.equal(String(url), "https://api.openai.com/v1/responses");
+        wire = String(init?.body);
+        const body = JSON.parse(wire);
+        assert.equal(body.model, "gpt-6-luna");
+        assert.equal(body.text.format.type, "json_schema");
+        assert.equal(body.text.format.strict, true);
+        assert.equal(body.text.format.schema.additionalProperties, false);
+        return new Response(JSON.stringify({ id: "response", model: "gpt-6-luna", status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify(state) }] }], usage: { input_tokens: 10, output_tokens: 10, total_tokens: 20 } }), { headers: { "content-type": "application/json" } });
+      },
+    });
+    const request: ChatRequest = { model: "openai_gpt-6-luna", messages: [{ role: "user", content: "Return state JSON" }], options: { stream: false, maxTokens: 1024, reasoningEffort: "none" }, outputSchema: { name: "a008_working_state", schema: workingStateSchema } };
+    const measured = transport.measureRequest(request);
+    const result = await transport.complete(request);
+    assert.deepEqual(JSON.parse(result.message.content), state);
+    assert.equal(measured.serializedBytes, Buffer.byteLength(wire));
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});

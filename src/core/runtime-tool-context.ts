@@ -34,6 +34,8 @@ export class RuntimeToolContext {
     })));
   }
 
+  get selectedNames(): readonly string[] { return this.#selected.map(tool => tool.name); }
+
   get definitions(): readonly ChatToolDefinition[] {
     return [selector, ...this.#selected];
   }

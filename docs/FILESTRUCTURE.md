@@ -110,3 +110,7 @@ docs/
 ### Documentation ownership rule
 
 Prefer updating `PROJECT_BRIEF.md`, `CURRENT_STATUS.md`, `SYSTEMDOC.md`, `CURRENT_MEMORY_MODEL.md`, or this map over creating a new root-level topic document. Accepted ADRs record bounded durable decisions. Historical records remain available under task/history/legacy collections but do not override current owners.
+
+A008-0218 adds `src/core/working-state-reducer.ts` for bounded validated reduction.
+Existing PlatformStore recovery tables also hold pending execution boundaries and
+revision/attempt metadata; no second journal service or scheduler was introduced.
