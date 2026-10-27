@@ -486,3 +486,10 @@ Det tidigare långa systemdokumentet bevaras som
 [historisk ögonblicksbild](evidence/A008-0188/previous-SYSTEMDOC.md).
 Det innehåller tidsbundna och delvis motstridiga påståenden och ska endast läsas
 för specifik historisk spårning, inte som aktuell arkitekturauktoritet.
+
+## Direct OpenAI Luna wire selection — A008-0217
+
+The embedded ACME route maps internal selection `openai_gpt-6-luna` to provider
+model `gpt-6-luna`. Transport routing retains the original execution selection,
+so OpenAI uses its own endpoint/credential even though Kie shares the wire model
+name. Request measurement uses the same alias. Saved model choices are unchanged.

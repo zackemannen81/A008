@@ -345,3 +345,10 @@ selected core/runtime suites **107/107**, full platform-host **17/17**, full GUI
 **218/218**. Real 110-round continuation replaces the process after round 55,
 preserves one run and 110 tool results, and keeps all measured main requests
 below 50,000 bytes. No live-provider calls; **0 SEK**.
+
+## Direct OpenAI Luna mapping repair — A008-0217
+
+Corrected the internal OpenAI Luna ID leaking into the Responses request.
+Installed-ACME local HTTP fixtures verify OpenAI/Kie endpoint and credential
+separation, both streaming modes and exact wire measurement. Root build and
+32 focused tests pass. Live provider acceptance remains unverified.

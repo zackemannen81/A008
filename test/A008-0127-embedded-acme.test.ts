@@ -749,3 +749,52 @@ test("embedded ACME executes a persisted OpenRouter compatible route exactly", a
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+for (const model of ["openai_gpt-6-luna", "gpt-6-luna"]) {
+  for (const stream of [false, true]) {
+    test(`Luna preserves selected provider with wire alias: ${model}, stream=${stream}`, async () => {
+      const { directory, path } = tempCatalog();
+      const isOpenAi = model === "openai_gpt-6-luna";
+      let rawBody = "";
+      let calls = 0;
+      try {
+        const transport = new EmbeddedAcmeChatTransport({
+          env: { OPENAI_API_KEY: "openai-fixture", KIE_API_KEY: "kie-fixture" },
+          catalogPath: path,
+          fetch: async (url, init) => {
+            calls++;
+            assert.equal(String(url), isOpenAi
+              ? "https://api.openai.com/v1/responses"
+              : "https://api.kie.ai/codex/v1/responses");
+            assert.equal(new Headers(init?.headers).get("authorization"),
+              isOpenAi ? "Bearer openai-fixture" : "Bearer kie-fixture");
+            rawBody = String(init?.body);
+            assert.equal(JSON.parse(rawBody).model, "gpt-6-luna");
+            const response = {
+              id: "resp_luna_alias", model: "gpt-6-luna", status: "completed",
+              output: [{ type: "message", content: [{ type: "output_text", text: "done" }] }],
+              usage: { input_tokens: 2, output_tokens: 1, total_tokens: 3 },
+            };
+            return new Response(stream
+              ? `data: ${JSON.stringify({ type: "response.completed", response })}\n\n`
+              : JSON.stringify(response), {
+              status: 200,
+              headers: { "content-type": stream ? "text/event-stream" : "application/json" },
+            });
+          },
+        });
+        const request: ChatRequest = {
+          model, messages: [{ role: "user", content: "hello" }],
+          options: { stream, maxTokens: 32, reasoningEffort: "medium" },
+        };
+        const measured = transport.measureRequest(request);
+        const result = await transport.complete(request);
+        assert.equal(result.message.content, "done");
+        assert.equal(calls, 1);
+        assert.equal(measured.serializedBytes, Buffer.byteLength(rawBody, "utf8"));
+      } finally {
+        rmSync(directory, { recursive: true, force: true });
+      }
+    });
+  }
+}
