@@ -99,7 +99,7 @@ function modelCapabilities(profile: ModelProfile): {
   const supportsTools = executionProvider !== "kie" || isKieLuna;
   
   return {
-    structuredOutput: false,
+    structuredOutput: executionProvider === "openai",
     tools: supportsTools,
     vision: supportsTools && profile.inputModalities.includes("image"),
     maxOutputTokens: generationCapabilities(profile.id).maxTokens,
@@ -146,6 +146,10 @@ function selection(profile: ModelProfile): {
   };
 }
 
+function responsesModelName(model: string): string {
+  return model === "openai_gpt-6-luna" ? "gpt-6-luna" : model;
+}
+
 function requireKey(
   env: NodeJS.ProcessEnv,
   name: string,
@@ -188,7 +192,7 @@ export function buildEmbeddedAcmeRuntimeConfig(options: {
     })
     .map((profile) => ({
       selection: selection(profile),
-      model: profile.id,
+      model: responsesModelName(profile.id),
       capabilities: modelCapabilities(profile),
     }));
 
@@ -390,7 +394,7 @@ function measureEmbeddedOpenAiResponsesRequest(
     );
   }
 
-  const built = buildResponsesBody(modelRequest, request.model);
+  const built = buildResponsesBody(modelRequest, responsesModelName(request.model));
   const providerBody =
     modelRequest.stream === false
       ? built.body
@@ -438,7 +442,10 @@ function createA008FetchTransport(
           const parsed = JSON.parse(request.body) as Record<string, unknown>;
           if (typeof parsed.model === "string") {
             const catalog = loadUserCatalog(catalogPath);
-            const provider = resolveExecutionProvider(parsed.model, catalog);
+            const provider = resolveExecutionProvider(
+              responsesExecution.getStore()?.request.model ?? parsed.model,
+              catalog,
+            );
             if (provider === "kie") {
               url = `https://api.kie.ai/codex${OPENAI_RESPONSES_PATH}`;
               if (kieKey) {
@@ -547,7 +554,10 @@ function createA008FetchTransport(
           const parsed = JSON.parse(request.body) as Record<string, unknown>;
           if (typeof parsed.model === "string") {
             const catalog = loadUserCatalog(catalogPath);
-            const provider = resolveExecutionProvider(parsed.model, catalog);
+            const provider = resolveExecutionProvider(
+              responsesExecution.getStore()?.request.model ?? parsed.model,
+              catalog,
+            );
             if (provider === "kie") {
               url = `https://api.kie.ai/codex${OPENAI_RESPONSES_PATH}`;
               if (kieKey) {

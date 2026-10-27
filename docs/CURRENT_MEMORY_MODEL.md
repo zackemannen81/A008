@@ -2728,3 +2728,11 @@ Relevant Current State
 och slutligen:
 
 > **A008 ska inte försöka minnas allt i varje ögonblick. Det ska behålla allt som knowledge, veta vad som är current, veta varför det tror det, och vid varje uppgift återkalla exakt det som betyder något.**
+
+### Reducer durability clarification — A008-0218
+
+The execution journal, working-context projection and semantic knowledge remain
+separate owners. Failed model reduction cannot authorize replay or commit semantic
+knowledge. Pending raw rounds and the last validated projection are durable runtime
+evidence; ordinary memory extraction retains its existing post-answer lifecycle.
+ADR 0064 refines ADR 0063's failure behavior to a durable resumable pause.

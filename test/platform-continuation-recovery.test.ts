@@ -383,3 +383,50 @@ test("opaque tool evidence remains explicitly unverifiable and later work preven
   assert.equal(reviewed.status, "failed");
   assert.equal(reviewed.effectStatus, "known");
 });
+
+test("pending reduction journal survives reopen; stale candidates and effect fences reject adoption", (t) => {
+  const f = fixture(); t.after(f.dispose);
+  const empty = { ...f.checkpoint.state, verifiedFacts: [] };
+  const pending: RunContinuationCheckpointWrite = {
+    ...f.checkpoint, state: empty, expectedGeneration: 0,
+    sourceInteractions: [...f.checkpoint.sourceInteractions, ...f.checkpoint.recovery!.recentInteractions],
+    recovery: { ...f.checkpoint.recovery!, state: empty,
+      recentInteractions: [...f.checkpoint.sourceInteractions, ...f.checkpoint.recovery!.recentInteractions],
+      reduction: { version: 1, sourceRevision: 2, generation: 1, phase: "pending", attempts: 1, truncated: false, selectedTools: [] } },
+  };
+  f.store.saveContinuationBoundary(scope, f.lease(), pending, f.cwd);
+  assert.throws(() => f.store.saveContinuationBoundary(scope, f.lease(), pending, f.cwd), /Stale/);
+  const reopened = new PlatformStore({ filename: f.filename, clock: () => 1000 });
+  assert.equal(reopened.readContinuationRecovery(scope, f.run.id)!.recovery.recentInteractions.length, 2);
+  reopened.close();
+  f.store.pauseReduction(scope, f.lease(), "fixture pause");
+  const paused = f.store.getRun(scope, f.run.id);
+  assert.equal(paused.error?.code, "REDUCTION_PAUSED");
+  f.store.resumeReduction(scope, f.run.id, paused.revision);
+  assert.throws(() => f.store.resumeReduction(scope, f.run.id, paused.revision), /revision/i);
+  const saved = f.store.readContinuationRecovery(scope, f.run.id)!;
+  assert.equal(saved.recovery.reduction!.attempts, 0);
+  assert.equal(saved.recovery.reduction!.generation, 2);
+  const claim = f.store.claimContinuationRecovery(scope, { runId: f.run.id, ownerToken: "next", leaseDurationMs: 10000, expectedRevision: f.store.getRun(scope, f.run.id).revision, sequence: saved.sequence });
+  const lease = () => ({ runId: f.run.id, ownerToken: "next", generation: claim.lease.generation, expectedRevision: f.store.getRun(scope, f.run.id).revision });
+  f.store.recordDispatch(scope, lease());
+  f.store.fenceContinuation(scope, lease());
+  const late = { ...pending, expectedGeneration: 2, recovery: { ...saved.recovery, reduction: { ...saved.recovery.reduction!, generation: 3 } } };
+  assert.throws(() => f.store.saveContinuationBoundary(scope, lease(), late, f.cwd), /Stale/);
+  assert.equal(f.store.readContinuationRecovery(scope, f.run.id), undefined);
+});
+
+test("workspace mutation during reduction cannot replace the saved source boundary", (t) => {
+  const f = fixture(); t.after(f.dispose);
+  const first: RunContinuationCheckpointWrite = { ...f.checkpoint, expectedGeneration: 0,
+    recovery: { ...f.checkpoint.recovery!, reduction: { version: 1, sourceRevision: 2, generation: 1, phase: "pending", attempts: 1, truncated: false, selectedTools: [] } } };
+  f.store.saveContinuationBoundary(scope, f.lease(), first, f.cwd);
+  writeFileSync(join(f.cwd, "evidence.txt"), "external edit during reduction");
+  const late = { ...first, expectedGeneration: 1,
+    recovery: { ...first.recovery!, reduction: { ...first.recovery!.reduction!, generation: 2, phase: "ready" as const } } };
+  assert.throws(() => f.store.saveContinuationBoundary(scope, f.lease(), late, f.cwd), /Workspace changed/);
+  const saved = f.store.readContinuationRecovery(scope, f.run.id)!;
+  assert.equal(saved.sequence, 1);
+  assert.equal(saved.recovery.reduction!.phase, "pending");
+  assert.notEqual(inspectContinuationWorkspace(f.cwd, saved.evidence).digest, saved.evidence.digest);
+});

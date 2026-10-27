@@ -213,6 +213,42 @@
         },
         "text": {
           "$ref": "#/$defs/__schema1"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "tool_success",
+            "command_success",
+            "command_nonzero",
+            "edit_success",
+            "stale_base",
+            "no_exact_match",
+            "ambiguous_match",
+            "count_mismatch",
+            "spawn_failed",
+            "protocol_error",
+            "invalid_arguments",
+            "timeout",
+            "cancelled",
+            "stalled",
+            "process_lost",
+            "denied"
+          ]
+        },
+        "modelVisibleBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "startedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "finishedAt": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "required": [

@@ -287,7 +287,9 @@ export function buildAcmeExecuteBody(
   const generation = request.options ?? {};
   const acmeRequest: Record<string, unknown> = {
     messages,
-    output: { mode: "text" },
+    output: request.outputSchema
+      ? { mode: "json", schemaName: request.outputSchema.name, jsonSchema: request.outputSchema.schema }
+      : { mode: "text" },
     ...(typeof generation.stream === "boolean"
       ? { stream: generation.stream }
       : {}),
@@ -322,6 +324,7 @@ export function buildAcmeExecuteBody(
     body.correlationId = options.correlationId;
   }
   const requiredCapabilities: Record<string, boolean> = {};
+  if (request.outputSchema) requiredCapabilities.structuredOutput = true;
   if (request.tools !== undefined && request.tools.length > 0)
     requiredCapabilities.tools = true;
   if (request.imageAttachments?.length) requiredCapabilities.vision = true;

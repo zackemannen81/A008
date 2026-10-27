@@ -127,8 +127,9 @@ export async function prepareAcpTools(
   const pressure = budgets.continuationPressureBytes;
   const maximum = budgets.continuationMaximumBytes;
   if (pressure === 0 && maximum === 0) {
-    if (recovery?.resume) throw new ChatError("configuration", "Continuation recovery requires enabled pressure policy.");
-    return { ...prepared, workingContext: runtimeWorkingContext(budgets), ...(executionState ? { executionState } : {}) };
+    return { ...prepared, workingContext: runtimeWorkingContext(budgets),
+      ...(writeContinuationCheckpoint ? { durableWorkingContext: { persist: writeContinuationCheckpoint, ...(recovery ? { recovery } : {}) } } : {}),
+      ...(executionState ? { executionState } : {}) };
   }
   if (writeContinuationCheckpoint === undefined) {
     throw new ChatError(
@@ -140,6 +141,7 @@ export async function prepareAcpTools(
     ...prepared,
     workingContext: runtimeWorkingContext(budgets),
     ...(executionState ? { executionState } : {}),
+    durableWorkingContext: { persist: writeContinuationCheckpoint, ...(recovery ? { recovery } : {}) },
     continuation: {
       ...(recovery ? { recovery } : {}),
       recentRawInteractions: budgets.continuationRecentRawInteractions,

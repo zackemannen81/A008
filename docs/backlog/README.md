@@ -26,3 +26,4 @@ host-to-broker trust boundary.
 
 ## History / _legacy
 for reference purpose you can find old longer authority docs under _legacy
+| [`gui-graph-project-fixtures.md`](gui-graph-project-fixtures.md) | Proposed | Two unchanged GUI graph/project fixture mismatches observed during A008-0218. |

@@ -3,6 +3,7 @@ import {
   sessionProcessResponseSchema,
   sessionActivityEventsSchema,
   sessionEffectReviewSchema,
+  sessionReductionResumeSchema,
 } from "./session-lifecycle.js";
 import {
   chatContentSchema,
@@ -87,6 +88,7 @@ export const PLATFORM_V3_ERROR_CODES = [
   "NEEDS_RECONCILIATION",
   "INTERRUPTED_REVIEWED",
   "SESSION_RUN_FAILED",
+  "REDUCTION_PAUSED",
   "INTERNAL_ERROR",
 ] as const;
 export const platformV3ErrorCodeSchema = z.enum(PLATFORM_V3_ERROR_CODES);
@@ -276,6 +278,7 @@ export function platformV3JsonSchemas() {
       "session-process-response": sessionProcessResponseSchema,
       "session-activity-events": sessionActivityEventsSchema,
       "session-effect-review": sessionEffectReviewSchema,
+      "session-reduction-resume": sessionReductionResumeSchema,
       "platform-v3-conversation": platformV3ConversationSchema,
       "platform-v3-run": platformV3RunSchema,
       "platform-v3-command-receipt": platformV3CommandReceiptSchema,
@@ -365,6 +368,12 @@ export function platformV3OpenApiDocument() {
             },
             ...errorResponses,
           },
+        },
+      },
+      "/v3/runs/{runId}/reduction-resume": {
+        post: { parameters: [idParameter("runId")],
+          requestBody: { required: true, content: json("session-reduction-resume") },
+          responses: { 200: { description: "Resume saved reduction without replaying tools", content: json("platform-v3-run-response") }, ...errorResponses },
         },
       },
       "/v3/runs/{runId}/effect-review": {

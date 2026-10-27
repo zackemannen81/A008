@@ -52,3 +52,10 @@ Process recovery and negative paths verify the existing fences.
 No live provider latency, token-cost saving or KIE acceptance claim follows from
 local fixtures. Reducing completed rounds adds bounded model work and is not an
 incremental semantic-memory-intake pipeline.
+
+## Refinement
+
+ADR 0064 (2026-10-27, owner-approved A008-0218) replaces terminal reducer failure
+with a durable resumable pause for product sessions with a checkpoint owner.
+Completed-round persistence no longer depends on pressure thresholds. The
+bounded-context and no-replay principles above remain in force.

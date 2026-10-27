@@ -421,6 +421,12 @@ export function App() {
           onOpened={projectOpened}
           onChat={() => navigate("chat")}
         />
+          {session.durable && session.reductionPause && (
+            <div role="alert">
+              <p>Context reduction paused. Completed work is saved.</p>
+              <button type="button" onClick={() => void session.durable?.resumeReduction()}>Resume saved work</button>
+            </div>
+          )}
         <details className="a008-runtime-details">
           <summary>Runtime details</summary>
           {session.durable && Boolean(session.recovery?.length) && (

@@ -18,6 +18,7 @@
         "NEEDS_RECONCILIATION",
         "INTERRUPTED_REVIEWED",
         "SESSION_RUN_FAILED",
+        "REDUCTION_PAUSED",
         "INTERNAL_ERROR"
       ]
     },

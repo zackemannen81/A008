@@ -1,5 +1,6 @@
 import {
   sessionProcessResponseSchema,
+  sessionReductionResumeSchema,
   sessionActivityEventsSchema,
   sessionEffectReviewSchema,
   type SessionProcessResponse,
@@ -103,6 +104,7 @@ export interface PlatformV3Client {
     signal?: AbortSignal,
   ): Promise<PlatformV3RunCreateResponse>;
   getRun(runId: string, signal?: AbortSignal): Promise<PlatformV3RunResponse>;
+  resumeReduction(runId: string, input: { expectedRevision: number }, signal?: AbortSignal): Promise<PlatformV3RunResponse>;
   cancelRun(
     runId: string,
     input: PlatformV3RunCancelRequest,
@@ -297,6 +299,10 @@ export function createPlatformV3Client(
         platformV3RunResponseSchema,
         withSignal(signal),
       ),
+    resumeReduction: (runId, input, signal) => {
+      const body = requestInput(sessionReductionResumeSchema, input);
+      return requestPlatformV3(options, `/v3/runs/${pathSegment(runId, "runId")}/reduction-resume`, platformV3RunResponseSchema, { method: "POST", body: JSON.stringify(body), ...withSignal(signal) });
+    },
     cancelRun: (runId, input, signal) => {
       const body = requestInput(platformV3RunCancelRequestSchema, input);
       return requestPlatformV3(

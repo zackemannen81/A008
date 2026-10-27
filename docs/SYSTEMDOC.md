@@ -486,3 +486,49 @@ Det tidigare långa systemdokumentet bevaras som
 [historisk ögonblicksbild](evidence/A008-0188/previous-SYSTEMDOC.md).
 Det innehåller tidsbundna och delvis motstridiga påståenden och ska endast läsas
 för specifik historisk spårning, inte som aktuell arkitekturauktoritet.
+
+## Direct OpenAI Luna wire selection — A008-0217
+
+The embedded ACME route maps internal selection `openai_gpt-6-luna` to provider
+model `gpt-6-luna`. Transport routing retains the original execution selection,
+so OpenAI uses its own endpoint/credential even though Kie shares the wire model
+name. Request measurement uses the same alias. Saved model choices are unchanged.
+
+## Durable reducer boundaries — A008-0218
+
+Completed product GUI tool rounds are durably saved through the existing
+PlatformStore checkpoint/recovery owner before reduction, including when
+continuation pressure thresholds are 0/0. The saved boundary contains the prior
+validated state, uncompacted complete raw rounds, consumed call IDs, selected tool
+names, source revision and reduction generation/attempt metadata. An initially
+empty projection is allowed only with a validated journal supplement. Ordinary
+checkpoint writes still require source references. Existing raw terminal tool
+activity remains authoritative evidence; summaries are derived execution context.
+
+Before each reducer dispatch the next attempt count is committed. Reduction gets
+at most two attempts; initial generation uses half of the configured
+continuationReducerOutputTokens hard ceiling, with the full ceiling only after a
+confirmed finishReason=length. Input size and continuationStateBytes remain hard
+limits; the requested target is 75% of the state byte ceiling. The default embedded
+ACME OpenAI profiles use strict Responses JSON schema and no reasoning for this
+bounded reducer. A008 still validates version, run identity, shape, byte size and
+source coverage. This does not prove the factual accuracy of model summaries.
+
+Pending and ready boundaries commit under the current lease with compare-and-swap
+on generation and source revision; same-source writes also verify the effect fence
+and workspace evidence. A ready result must match a pending boundary. Stale or
+changed-workspace candidates cannot replace the earlier saved journal. Explicit
+resume appends a new generation rather than overwriting the old checkpoint.
+
+Exhaustion becomes needs_reconciliation with REDUCTION_PAUSED (not terminal failed).
+The GUI exposes Resume saved work, using POST /v3/runs/{runId}/reduction-resume with
+expectedRevision. The command restores a bounded attempt allowance; the existing
+coordinator verifies workspace/ownership and resumes the same run. It does not
+submit a new user message or execute retained tool calls. Unexpected process loss
+can resume a saved eligible pending boundary without resetting its attempts.
+
+Unknown effects, changed or unverifiable workspaces, explicit cancellation/stop,
+and stale leases retain ADR 0057 conservative behavior. Arbitrary external effects
+are not exactly-once; generic terminal/MCP effects can still require reconciliation.
+CLI/ACP or standalone child callers without a durable owner get bounded reduction
+but no durable recovery promise. Semantic knowledge processing is unchanged.

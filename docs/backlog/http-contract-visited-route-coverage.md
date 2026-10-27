@@ -21,3 +21,12 @@ Not active: unrelated to GUI message/streaming regression repair. Dependencies:
 current route schemas and isolated filesystem/skill/workspace fixtures.
 Suggested verification: run `node --test dist/test/http-contract.test.js dist/test/protocol-contract.test.js` after
 build and confirm the entire visited-route inventory matches the registry.
+
+## A008-0218 verification observation (2026-10-27)
+
+The same missing-workspaceId fixtures also fail the existing SDK test
+`Platform V3 client validates every contract operation and preserves injected credentials`
+in `test/A008-0149-client-sdk.test.ts`. Its pre-existing v3Conversation/v3Run
+fixtures remain unchanged by 0218; the new reducer-resume SDK test is independent.
+The HTTP visited-route and protocol inventory failures remain the previously
+recorded runtime-preferences mismatch, not a reducer-resume route failure.

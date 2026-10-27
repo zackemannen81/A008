@@ -38,6 +38,7 @@ import { DEFAULT_MODEL_ID } from "../core/model-registry.js";
 import { parseSessionParameters } from "../core/generation-controls.js";
 import {
   sessionEffectReviewSchema,
+  sessionReductionResumeSchema,
   sessionProcessResponseSchema,
   sessionActivityEventsSchema,
 } from "../../packages/protocol/src/session-lifecycle.js";
@@ -159,6 +160,15 @@ export async function handlePlatformV3Http(options: {
         page,
         config.maxResponseBytes,
       );
+      return;
+    }
+    const reductionResume = /^\/v3\/runs\/([^/]+)\/reduction-resume$/u.exec(pathname);
+    if (reductionResume && request.method === "POST") {
+      const body = await readJson(request, config, sessionReductionResumeSchema);
+      const found = findRun(backend, options.auth, principal, pathId(reductionResume[1], "runId"), options.projectsPath);
+      const run = await backend.coordinator.admit(() => backend.store.resumeReduction(found.scope, found.run.id, body.expectedRevision));
+      backend.coordinator.kick();
+      sendChecked(sendJson, response, 200, platformV3RunResponseSchema, { run }, config.maxResponseBytes);
       return;
     }
     const reviewMatch = /^\/v3\/runs\/([^/]+)\/effect-review$/u.exec(pathname);

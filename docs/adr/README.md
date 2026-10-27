@@ -6,7 +6,6 @@ Senast uppdaterat: 2026-10-01, A008-0207 preflight.
 
 | ADR | Status | Omfattning |
 | --- | --- | --- |
-| [0063 — Runtime working context](0063-runtime-working-context.md) | Accepted | Label-only model projection, demand-loaded schemas, incremental completed-work context and preserved native Responses tool cycles. |
 | [0060 — Explicit MCP tool strictness](0060-explicit-mcp-tool-strictness.md) | Accepted | Strict som standard, server-/verktygsval och lokal validering före MCP-exekvering via ACME 0.1.7. |
 | [0055 — Beständiga sessioner och utbytbara sessionsprocesser](0055-durable-sessions-and-process-ownership.md) | Accepted | Ny arkitekturgrund, ägarskap, egen worktree och process vid nästa meddelande. |
 | [0056 — Minimal memory context](0056-minimal-memory-context.md) | Accepted | Minimalt modellkuvert, relevant urval och bevarad koppling för reinforcement. |
@@ -15,6 +14,10 @@ Senast uppdaterat: 2026-10-01, A008-0207 preflight.
 | [0059 — Durable GUI live observation](0059-durable-gui-live-observation.md) | Accepted | Händelsestyrd live-observation och auktoritativ meddelandehistorik utan att ändra bakgrundskörningens ägarskap. |
 | [0061 — Minimal memory context](0061-minimal-memory-context.md) | Accepted; supersedes 0056 | Minimal model-facing memory items with conditional history/provenance. |
 | [0062 — OpenAI API calls](0062-openai-api-calls.md) | Accepted | Prefer native Responses whenever the selected model supports it; no Chat Completions fallback for ordinary supported turns. |
+| [0063 — Runtime working context](0063-runtime-working-context.md) | Accepted | Label-only model projection, demand-loaded schemas, incremental completed-work context and preserved native Responses tool cycles. |
+| [0063 — Runtime working context](0063-runtime-working-context.md) | Accepted; failure behavior refined by 0064 | Compact per-run model context and demand-loaded tool schemas. |
+| [0064 — Durable reducer recovery](0064-durable-reducer-recovery.md) | Accepted | Durable completed rounds, generation-bound projection adoption and explicit reducer resume. |
+
 Detta är hela den aktiva ADR-mängden. Numreringen fortsätter för att historiska
 ID:n ska förbli entydiga; den börjar inte om på 0001.
 
@@ -32,3 +35,4 @@ Historiska uppgifter och sök-/minnesträffar återaktiverar dem inte.
 
 Arkiveringen tar inte bort kod eller användardata och återinför inte äldre
 begränsningar. Funktioner och migrationer bedöms mot aktuell produktgrund.
+

@@ -17,7 +17,7 @@ export class SessionProcessDisconnectedError extends Error {
 }
 type Message = { version: 1; instanceId: string; id: string } & (
   | { type: "request"; method: string; payload: unknown }
-  | { type: "response"; value?: unknown; error?: string }
+  | { type: "response"; value?: unknown; error?: string; reductionPaused?: boolean }
   | { type: "cancel" }
 );
 
@@ -109,7 +109,7 @@ export class SessionIpc {
     }
     if (message.type === "response") {
       const pending = this.#pending.get(message.id);
-      if (message.error) pending?.reject(new Error(message.error));
+      if (message.error) { const error = new Error(message.error); if (message.reductionPaused) error.name = "ReductionPausedError"; pending?.reject(error); }
       else pending?.resolve(message.value);
       this.#pending.delete(message.id);
       return;
@@ -141,6 +141,7 @@ export class SessionIpc {
         instanceId: this.instanceId,
         id: message.id,
         type: "response",
+        ...(error instanceof Error && error.name === "ReductionPausedError" ? { reductionPaused: true } : {}),
         error:
           error instanceof Error
             ? error.message

@@ -14,6 +14,7 @@ export async function startSessionControlProvider(
     payload: Record<string, any>,
   ) => Record<string, unknown> | undefined | Promise<Record<string, unknown> | undefined>,
   streamReply?: (payload: Record<string, any>, response: ServerResponse) => Promise<void>,
+  delegateReduction = false,
 ) {
   const requests: Record<string, any>[] = [];
   let chatInFlight = 0;
@@ -29,7 +30,7 @@ export async function startSessionControlProvider(
     try {
       const input = JSON.parse(last);
       operation = input.operation;
-      if (input.runId && Array.isArray(input.interactions) && !payload.tools?.length && !(input.schema && chatReply)) reduction = input;
+      if (input.runId && Array.isArray(input.interactions) && !payload.tools?.length && !delegateReduction) reduction = input;
     } catch {
       /* chat text */
     }

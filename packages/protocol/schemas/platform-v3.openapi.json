@@ -307,6 +307,114 @@
         }
       }
     },
+    "/v3/runs/{runId}/reduction-resume": {
+      "post": {
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/session-reduction-resume"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resume saved reduction without replaying tools",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-run-response"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Platform V3 error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/platform-v3-error-response"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v3/runs/{runId}/effect-review": {
       "post": {
         "parameters": [
@@ -1486,6 +1594,24 @@
                           },
                           "text": {
                             "type": "string"
+                          },
+                          "outcome": {
+                            "type": "string"
+                          },
+                          "modelVisibleBytes": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "startedAt": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "finishedAt": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
                           }
                         },
                         "required": [
@@ -1566,6 +1692,21 @@
         "required": [
           "expectedRevision",
           "effectsReviewed"
+        ],
+        "additionalProperties": false
+      },
+      "session-reduction-resume": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "expectedRevision"
         ],
         "additionalProperties": false
       },
@@ -1888,6 +2029,7 @@
                   "NEEDS_RECONCILIATION",
                   "INTERRUPTED_REVIEWED",
                   "SESSION_RUN_FAILED",
+                  "REDUCTION_PAUSED",
                   "INTERNAL_ERROR"
                 ]
               },
@@ -2053,6 +2195,7 @@
               "NEEDS_RECONCILIATION",
               "INTERRUPTED_REVIEWED",
               "SESSION_RUN_FAILED",
+              "REDUCTION_PAUSED",
               "INTERNAL_ERROR"
             ]
           },
@@ -2091,6 +2234,7 @@
                   "NEEDS_RECONCILIATION",
                   "INTERRUPTED_REVIEWED",
                   "SESSION_RUN_FAILED",
+                  "REDUCTION_PAUSED",
                   "INTERNAL_ERROR"
                 ]
               },
@@ -2871,6 +3015,7 @@
                       "NEEDS_RECONCILIATION",
                       "INTERRUPTED_REVIEWED",
                       "SESSION_RUN_FAILED",
+                      "REDUCTION_PAUSED",
                       "INTERNAL_ERROR"
                     ]
                   },
@@ -3064,6 +3209,7 @@
                       "NEEDS_RECONCILIATION",
                       "INTERRUPTED_REVIEWED",
                       "SESSION_RUN_FAILED",
+                      "REDUCTION_PAUSED",
                       "INTERNAL_ERROR"
                     ]
                   },

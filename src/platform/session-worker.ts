@@ -122,14 +122,14 @@ const rpc = new SessionIpc(
           recoveryRequired: run.recoveryRequired ?? false,
           conversationId: sessionId,
           history: run.history,
-          continuationRecovery: {
+          ...(run.durableContinuation ? { continuationRecovery: {
             ...(run.continuationResume ? { resume: run.continuationResume } : {}),
             beforeEffect: async () => {
               await activityTail;
               if (activityFailure !== undefined) throw activityFailure;
               await rpc.request("continuation.beforeEffect", { runId: run.runId });
             },
-          },
+          } } : {}),
           onActivity: (activity) => {
             activityTail = activityTail.then(async () => {
               if (activityFailure !== undefined) return;
@@ -143,14 +143,14 @@ const rpc = new SessionIpc(
               }
             });
           },
-          continuationCheckpoint: async (checkpoint) => {
+          ...(run.durableContinuation ? { continuationCheckpoint: async (checkpoint: import("../core/chat-continuation.js").RunContinuationCheckpointWrite) => {
             await activityTail;
             if (activityFailure !== undefined) throw activityFailure;
             await rpc.request("continuation.checkpoint", {
               runId: run.runId,
               value: checkpoint,
             });
-          },
+          } } : {}),
         });
         return await gui.complete(run.text, signal, run.attachment);
       }
