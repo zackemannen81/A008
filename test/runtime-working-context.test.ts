@@ -16,6 +16,41 @@ const definitions: ChatToolDefinition[] = Array.from({ length: 106 }, (_, i) => 
   parameters: { type: "object", properties: { value: { type: "string", description: "schema detail ".repeat(60) } }, required: ["value"], additionalProperties: false },
 }));
 
+test("working reduction receives the actual question and carries concrete findings across schema selection", async () => {
+  const objective = "How can I add a short trail to both projectile kinds?";
+  const finding = "src/projectiles.js: updateProjectiles(dt) moves both kinds; renderProjectiles(view) updates bounded instances; MAX_PROJECTILES=64.";
+  let round = 0, reductions = 0, reads = 0;
+  const session = new ChatSession({ model: "fixture", transport: { async complete(request) {
+    if (!request.tools) {
+      const input = JSON.parse(request.messages[1]!.content);
+      assert.equal(input.objective, objective);
+      const observed = JSON.stringify(input.interactions).includes("MAX_PROJECTILES=64");
+      const prior = input.previous?.verifiedFacts ?? [];
+      if (reductions++ > 1) assert.equal(prior[0]?.statement, finding);
+      return { message: { role: "assistant", content: JSON.stringify({
+        version: "a008_run_continuation_state_v1", runId: input.runId,
+        verifiedFacts: observed ? [{ id: "integration", statement: finding, sourceRefs: input.interactions.map((i: { id: string }) => i.id) }] : prior,
+        hypotheses: [], completedActions: [{ id: "done", statement: "The source was inspected; schema selection grants no new file observations.", sourceRefs: input.requiredSourceRefs }],
+      }) } };
+    }
+    round++;
+    if (round === 5) {
+      assert.ok(request.messages.some(m => m.content.includes(finding)));
+      assert.equal(request.messages.filter(m => m.role === "tool").length, 1);
+      assert.equal(request.tools[1]?.name, "tool_2");
+      return { message: { role: "assistant", content: "Use bounded trail segments updated by updateProjectiles(dt)." } };
+    }
+    const selection = round !== 2;
+    return { message: { role: "assistant", content: "" }, toolCalls: [{
+      id: `call-${round}`, name: selection ? SELECT_TOOLS : "tool_1",
+      arguments: selection ? JSON.stringify({ names: [round < 3 ? "tool_1" : "tool_2"] }) : '{"value":"src/projectiles.js"}',
+    }] };
+  } } });
+  await session.send(objective, { tools: { definitions, maximumCalls: 8, workingContext, async execute() { reads++; return finding; } } });
+  assert.equal(reads, 1);
+  assert.equal(reductions, 3);
+});
+
 test("106-tool runtime discovers once and sends compact current work after ten effects", async () => {
   const requests: ChatRequest[] = [];
   let rounds = 0;
@@ -199,7 +234,7 @@ for (const failure of ["truncation", "syntax", "sources", "oversized"] as const)
   test(`reducer bounds retry and validates ${failure}`, async () => {
     const tokens: number[] = [];
     const state = { version: "a008_run_continuation_state_v1", runId: "run", verifiedFacts: [], hypotheses: [], completedActions: [{ id: "one", statement: "done", sourceRefs: ["run:1"] }] };
-    const result = await reduceWorkingState({ model: "fixture", runId: "run", previous: null, interactions: [], maximumStateBytes: 1000, inputBytes: 10000, outputTokens: 4096, validSourceRefs: new Set(["run:1"]), requiredSourceRefs: new Set(["run:1"]), attempts: 0, truncated: false, beforeAttempt: async () => {}, transport: { async complete(request) {
+    const result = await reduceWorkingState({ model: "fixture", runId: "run", objective: "Inspect the fixture", previous: null, interactions: [], maximumStateBytes: 1000, inputBytes: 10000, outputTokens: 4096, validSourceRefs: new Set(["run:1"]), requiredSourceRefs: new Set(["run:1"]), attempts: 0, truncated: false, beforeAttempt: async () => {}, transport: { async complete(request) {
       tokens.push(request.options!.maxTokens!);
       return { message: { role: "assistant", content: tokens.length > 1 ? JSON.stringify(state) : failure === "syntax" || failure === "truncation" ? "{" : JSON.stringify({ ...state, completedActions: [{ ...state.completedActions[0], ...(failure === "sources" ? { sourceRefs: ["invented"] } : { statement: "x".repeat(2000) }) }] }) }, ...(failure === "truncation" && tokens.length === 1 ? { finishReason: "length" } : {}) };
     } } });

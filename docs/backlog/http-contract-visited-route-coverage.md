@@ -30,3 +30,13 @@ in `test/A008-0149-client-sdk.test.ts`. Its pre-existing v3Conversation/v3Run
 fixtures remain unchanged by 0218; the new reducer-resume SDK test is independent.
 The HTTP visited-route and protocol inventory failures remain the previously
 recorded runtime-preferences mismatch, not a reducer-resume route failure.
+
+2026-10-28: three platform-host fixtures also fail identically in an isolated
+checkout of pre-0218 implementation commit `5d9b441`: `history-only reads, process
+crash, replacement and reviewed effects`, `normal sidebar chats isolate tools`,
+and `projects and conversations run concurrently`. The first two issue native
+tools before schema selection; the last assumes full history rather than bounded
+dialogue projection. Current full host run: 17 pass / 3 fail; baseline selected
+run: 0 pass / same 3 fail. Repair these fixtures against the accepted runtime
+context/tool-selection contract in a separate bounded task. Do not weaken tool
+selection or reintroduce full history to satisfy old fixtures.

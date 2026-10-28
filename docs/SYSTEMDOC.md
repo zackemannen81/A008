@@ -532,3 +532,11 @@ and stale leases retain ADR 0057 conservative behavior. Arbitrary external effec
 are not exactly-once; generic terminal/MCP effects can still require reconciliation.
 CLI/ACP or standalone child callers without a durable owner get bounded reduction
 but no durable recovery promise. Semantic knowledge processing is unchanged.
+
+Reduction input also includes the current user question so retention can be
+task-relevant. Its prompt asks for concrete paths/symbols/behavior and observed
+outcomes, distinguishes truncated evidence, and preserves earlier useful findings
+instead of replacing them with inspection narration. The worker is told that this
+is prior work in the same task and that loaded schemas need not be reselected.
+These are model instructions; structural/source validation does not establish
+summary completeness or guarantee absence of repeated model actions.
