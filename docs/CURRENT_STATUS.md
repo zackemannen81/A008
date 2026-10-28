@@ -363,3 +363,9 @@ The embedded OpenAI reducer requests strict JSON; retries and output growth have
 finite bounds and state size stays fixed. Local fault injection proves malformed
 JSON and process-loss recovery with one file creation, not repeated tool effects.
 Live provider acceptance and model-summary quality are not asserted.
+
+2026-10-28 follow-up: a user-reported repetitive run retained checkpoints but
+summarized concrete observations too broadly. The reducer now receives the current
+question and instructions to retain actionable findings; worker guidance avoids
+restarting completed discovery. Synthetic multi-reduction context propagation
+passes. Live Luna repetition/summary quality still needs observation after restart.
