@@ -430,18 +430,20 @@ export class DurableChatClient {
       currentId: this.#selection?.projectId ?? null,
       projects: await Promise.all(
         sidebar.projects.map(async (project) => {
-          const { conversations } = await this.api.listConversations(
-            project.projectId,
-          );
+          const conversations = await this.api.listConversations(project.projectId)
+            .then((result) => result.conversations)
+            .catch(() => undefined);
           return {
             ...project,
             conversations: await Promise.all(
-              conversations.map(async (chat) => {
+              (conversations ?? []).map(async (chat) => {
                 const runId = [...chat.messages]
                   .reverse()
                   .find((message) => message.runId)?.runId;
                 const run = runId
-                  ? (await this.api.getRun(runId)).run
+                  ? await this.api.getRun(runId)
+                      .then((result) => result.run)
+                      .catch(() => undefined)
                   : undefined;
                 const status =
                   run &&

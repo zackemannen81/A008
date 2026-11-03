@@ -17,6 +17,7 @@ import {
   platformV3JsonSchemas,
   platformV3OpenApiDocument,
   platformV3RunCreateRequestSchema,
+  platformV3RunSchema,
 } from "../packages/protocol/src/index.js";
 import { parseClientMessage } from "../src/gui-host/protocol.js";
 
@@ -301,4 +302,34 @@ test("platform V3 generated artifacts match the shared protocol owner", () => {
     ),
   );
   assert.ok(openApi.paths["/v3/events"]?.get);
+});
+
+test("persisted uncertain continuation run remains readable through strict V3 response validation", () => {
+  const run = {
+    id: "run-1",
+    tenantId: "local",
+    projectId: "project-1",
+    conversationId: "conversation-1",
+    workspaceId: "workspace-1",
+    principalId: "owner-gui",
+    commandId: "command-1",
+    model: "gpt-6-luna",
+    status: "needs_reconciliation",
+    revision: 3,
+    createdAt: 1,
+    updatedAt: 2,
+    leaseGeneration: 1,
+    effectStatus: "unknown",
+    answerStatus: "pending",
+    memoryStatus: "pending",
+    error: {
+      code: "CONTINUATION_UNCERTAIN",
+      message: "Checkpoint recovery could not be confirmed.",
+    },
+  };
+  assert.equal(platformV3RunSchema.safeParse(run).success, true);
+  assert.equal(platformV3RunSchema.safeParse({
+    ...run,
+    error: { code: "ANY_OTHER_ERROR", message: "Unexpected" },
+  }).success, false);
 });

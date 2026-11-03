@@ -2899,3 +2899,11 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - A008-0205 is Superseded by A008-0207, which owns final integration plus the owner-requested Luna/Responses recovery-amplification benchmark. Search/navigation and process-output optimization remain separate follow-up scope.
 - [Handoff](handoffs/A008-0205.md). [Archive](finished/A008-0205_transactional-file-editing.md).
 - Signature: ChatGPT (operator/implementer)
+
+## 2026-11-03 — A008-0219 repaired project-sidebar read failure
+
+- Reproduced strict V3 run rejection for an actual persisted `CONTINUATION_UNCERTAIN` record, with an affected conversation referenced by the sidebar.
+- Added the error to the shared protocol and regenerated schemas; isolated failed optional run status and individual conversation-list requests so one bad read does not discard all projects.
+- Protocol regression and GUI partial-failure tests pass, client and GUI builds pass; known pre-existing protocol fixture failures are recorded in the task archive. No user databases, provider state, or credentials changed.
+- Integrated existing A008-0216/0217/0218 branch work locally on the owner's request. See [handoff](handoffs/A008-0219.md) and [archive](finished/A008-0219_project-sidebar-crash-repair.md).
+- Signature: ChatGPT (operator/implementer)

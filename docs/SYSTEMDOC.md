@@ -1,5 +1,9 @@
 # System Document — aktuell implementation
 
+## Durable project sidebar error isolation — A008-0219
+
+The V3 run error contract recognizes `CONTINUATION_UNCERTAIN` (written by persisted continuation-recovery rejection). GUI project-sidebar enrichment treats per-project conversation list and per-chat optional run-status lookup failures independently so a single HTTP error does not prevent rendering all registered projects. Failed conversation reads display an empty set for that project in the current refresh; they do not change or delete stored conversations. The next refresh retries normally. No schema migration or recovery-policy change.
+
 ## Runtime working context — A008-0216
 
 The product CLI/ACP/GUI tool path now provides a names/short-descriptions catalog

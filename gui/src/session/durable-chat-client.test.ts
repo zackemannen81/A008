@@ -344,3 +344,53 @@ test("A008-0195: durable configure and image prompt use session-owned V3 contrac
     client.dispose();
   }
 });
+
+
+test("durable project sidebar remains usable when one run or conversation listing fails", async () => {
+  const projects = ["alpha", "beta"].map((id) => ({
+    projectId: id,
+    name: id,
+    rootFolder: `C:/code/${id}`,
+    continuity: { docsFirst: false, multiAgent: { enabled: false } },
+    memory: { useGlobalA008Memory: true },
+    conversations: [],
+  }));
+  const calls: string[] = [];
+  const client = new DurableChatClient(
+    {
+      origin: "http://fixture",
+      credentials: cookieCredentials(),
+      fetch: async (input) => {
+        const path = new URL(input, "http://fixture").pathname;
+        calls.push(path);
+        if (path === "/v1/projects/sidebar")
+          return Response.json({ currentId: "alpha", projects });
+        if (path === "/v1/chat/v3/projects/alpha/conversations")
+          return Response.json({ conversations: [{
+            id: "conversation-a", tenantId: "local", projectId: "alpha",
+            workspaceId: "workspace-a", title: "Alpha chat", createdAt: 1,
+            updatedAt: 2, revision: 1, messages: [{
+              id: "message-a", role: "user", content: "Question",
+              createdAt: 1, runId: "run-invalid",
+            }],
+          }] });
+        if (path === "/v1/chat/v3/runs/run-invalid" ||
+            path === "/v1/chat/v3/projects/beta/conversations")
+          return Response.json({
+            error: { code: "INTERNAL_ERROR", message: "Unavailable" },
+          }, { status: 500 });
+        throw new Error(`Unexpected request: ${path}`);
+      },
+    },
+    { read: () => undefined, write() {} },
+  );
+  try {
+    const sidebar = await client.sidebar();
+    assert.equal(sidebar.projects.length, 2);
+    assert.deepEqual(sidebar.projects[0]?.conversations.map((chat) => chat.title), ["Alpha chat"]);
+    assert.deepEqual(sidebar.projects[1]?.conversations, []);
+    assert.ok(calls.includes("/v1/chat/v3/runs/run-invalid"));
+  } finally {
+    client.dispose();
+  }
+});

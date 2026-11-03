@@ -143,6 +143,7 @@
                 "CAPACITY_EXCEEDED",
                 "LEASE_LOST",
                 "NEEDS_RECONCILIATION",
+                "CONTINUATION_UNCERTAIN",
                 "INTERRUPTED_REVIEWED",
                 "SESSION_RUN_FAILED",
                 "REDUCTION_PAUSED",

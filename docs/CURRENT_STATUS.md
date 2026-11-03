@@ -1,5 +1,9 @@
 # Current Status — A008
 
+## Project sidebar recovery — A008-0219 (2026-11-03)
+
+A persisted `CONTINUATION_UNCERTAIN` run error was rejected by the strict V3 wire schema; the durable project sidebar discarded all projects when an individual read failed. The error is now admitted as a known run code, and per-project conversation and optional run-status lookups are isolated. All registered projects remain visible when another project's conversation endpoint fails. No stored data was rewritten. Local regression and builds passed; see A008-0219 handoff for baseline test exclusions.
+
 ## Runtime context correction — A008-0216 (local implementation)
 
 Worker, extractor and serialized retrieval traces now use the same label-only
