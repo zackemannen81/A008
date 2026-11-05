@@ -1,5 +1,9 @@
 # System Document — aktuell implementation
 
+## Reducer-pause lease lifecycle — A008-0220
+
+On a `ReductionPausedError`, the coordinator first persists `REDUCTION_PAUSED`, then cancels the run lease-renewal and timeout timers synchronously before awaiting session shutdown. This prevents an obsolete renewal from aborting the paused run and calling `disableContinuationRecovery` on its checkpoint. Legitimate aborts, cancels and unknown external effects retain their existing safety fences; no previously fenced checkpoint is reauthorized.
+
 ## Durable project sidebar error isolation — A008-0219
 
 The V3 run error contract recognizes `CONTINUATION_UNCERTAIN` (written by persisted continuation-recovery rejection). GUI project-sidebar enrichment treats per-project conversation list and per-chat optional run-status lookup failures independently so a single HTTP error does not prevent rendering all registered projects. Failed conversation reads display an empty set for that project in the current refresh; they do not change or delete stored conversations. The next refresh retries normally. No schema migration or recovery-policy change.

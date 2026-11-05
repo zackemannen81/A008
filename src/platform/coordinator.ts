@@ -691,6 +691,11 @@ export class PlatformCoordinator {
           if (latest.status === "running") {
             if (error instanceof Error && error.name === "ReductionPausedError") {
               this.#store.pauseReduction(scope, { runId: run.id, ownerToken: this.#ownerToken, generation, expectedRevision: latest.revision }, error.message);
+              // Pausing deliberately releases the lease. Stop renewing it before
+              // awaiting process shutdown, or the stale renewal aborts the run
+              // and the finally block fences the checkpoint we just preserved.
+              clearInterval(renew);
+              clearTimeout(timeout);
               await session.stop();
             } else this.#store.failRun(scope, {
               runId: run.id,

@@ -2130,7 +2130,12 @@ for (const failure of ["invalid-json", "process-loss"] as const) {
       }
       return { role: "assistant", content: "Finished preserved work." };
     }, undefined, true);
-    const fixture = hostEnv(provider.endpoint, { A008_CHAT_TRANSPORT: "direct" });
+    const fixture = hostEnv(provider.endpoint, {
+      A008_CHAT_TRANSPORT: "direct",
+      ...(failure === "invalid-json"
+        ? { A008_PLATFORM_RENEW_MS: "100", A008_PLATFORM_LEASE_MS: "30000" }
+        : {}),
+    });
     databasePath = fixture.env.A008_PLATFORM_PATH!;
     const project = bootstrap(fixture.env, fixture.directory, `reducer-${failure}`);
     const host = await startGuiHost({ env: fixture.env, port: 0, cwd: fixture.directory });
@@ -2160,6 +2165,15 @@ for (const failure of ["invalid-json", "process-loss"] as const) {
           assert.equal(state.recovery?.length ?? 0, 0);
           assert.equal(state.reductionPause?.runId, row.id);
           pausedRevision = row.revision;
+          // A paused reducer has released its lease. Its renew timer must not
+          // abort the paused turn and invalidate the durable recovery fence.
+          await new Promise<void>((resolve) => setTimeout(resolve, 125));
+          const pausedDb = new Database(databasePath, { readonly: true });
+          try {
+            const fence = pausedDb.prepare("SELECT epoch FROM A008_continuation_fences WHERE run_id = ?").get(row.id) as { epoch: number };
+            const saved = pausedDb.prepare("SELECT epoch FROM A008_continuation_recovery WHERE run_id = ? ORDER BY sequence DESC LIMIT 1").get(row.id) as { epoch: number };
+            assert.equal(fence.epoch, saved.epoch, "Paused recovery must not be fenced by the expired renewal timer");
+          } finally { pausedDb.close(); }
           repair = true;
           await client.resumeReduction();
         }

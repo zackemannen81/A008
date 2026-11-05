@@ -1,5 +1,9 @@
 # Current Status — A008
 
+## Paused reducer lease recovery — A008-0220 (2026-11-05)
+
+Coordinator reducer pauses used to release the run lease and then await session stop with renewal still active. A renewal failure could abort the run and fence its saved continuation, making the Resume button ineffective. The coordinator now cancels lease and timeout timers immediately after a durable pause before stopping the child. Existing Oldschool run with fence epoch 53 vs recovery epoch 52 and unverifiable artifact evidence cannot be automatically restored without bypassing effect safeguards. No live run state was overwritten.
+
 ## Project sidebar recovery — A008-0219 (2026-11-03)
 
 A persisted `CONTINUATION_UNCERTAIN` run error was rejected by the strict V3 wire schema; the durable project sidebar discarded all projects when an individual read failed. The error is now admitted as a known run code, and per-project conversation and optional run-status lookups are isolated. All registered projects remain visible when another project's conversation endpoint fails. No stored data was rewritten. Local regression and builds passed; see A008-0219 handoff for baseline test exclusions.

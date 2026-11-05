@@ -2907,3 +2907,11 @@ Added semantic retrieval necessity (`retrieve`), bounded narrow scope labels, ex
 - Protocol regression and GUI partial-failure tests pass, client and GUI builds pass; known pre-existing protocol fixture failures are recorded in the task archive. No user databases, provider state, or credentials changed.
 - Integrated existing A008-0216/0217/0218 branch work locally on the owner's request. See [handoff](handoffs/A008-0219.md) and [archive](finished/A008-0219_project-sidebar-crash-repair.md).
 - Signature: ChatGPT (operator/implementer)
+
+## 2026-11-05 — A008-0220 reducer pause lease race
+
+- Inspected a paused Oldschool run after the operator reported that Resume failed. Actual durable recovery fence had advanced from saved epoch 52 to 53; the saved recovery was marked unverifiable. No manual fence reset or replay attempted.
+- Fixed late renewal race by stopping run lease/timeout timers as soon as durable reducer pause is committed, before stopping its session process.
+- Extended the invalid-JSON host regression with short lease renewals, a deliberate wait before Resume and a fence consistency assertion.
+- No user database, prior activity or provider configuration changed. See [handoff](handoffs/A008-0220.md) and [archive](finished/A008-0220_paused-reducer-lease-fence.md).
+- Signature: ChatGPT (operator/implementer)
