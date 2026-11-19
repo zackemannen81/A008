@@ -233,3 +233,4 @@ never whether work is active or complete. Task state belongs in
 | A008-0218 | Durable reducer pause and revision-bound recovery | Codex (operator) | 2026-10-27 | Owner-approved execution journal, atomic reducer activation, bounded retries and no tool replay |
 | A008-0219 | restore durable project sidebar after uncertain continuation | Rickard (operator); ChatGPT (implementation) | 2026-11-03 | fix persisted V3 error-code schema mismatch; keep project list usable through individual read failures |
 | A008-0220 | preserve reducer pause from stale lease renewal | Rickard (operator); ChatGPT (implementation) | 2026-11-05 | stop lease timers before process shutdown so paused checkpoint is not accidentally fenced |
+| A008-0221 | bounded vision and MCP binary model payload | Rickard (operator); ChatGPT (implementation) | 2026-11-19 | reduce repeated large inline vision payload; strip binary Base64 from model-visible MCP results without replaying effects |

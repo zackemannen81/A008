@@ -1,5 +1,11 @@
 # System Document — aktuell implementation
 
+## Bounded model vision and MCP result payload — A008-0221 (local branch)
+
+Native stored PNG/JPEG/WebP images larger than 1,000,000 bytes are resized and encoded as WebP with a finite 1 MB provider-only ceiling, before the image data URL is assembled. The original source artifact and its locator are unchanged. Small images and GIFs retain their original bytes; failed optimization is reported as a configuration error without silently sending an oversized replacement. The portable runtime now directly depends on @napi-rs/canvas 1.0.8.
+
+MCP tool results retain textual blocks, metadata, outcomes and artifact paths but omit Base64 from image/audio content blocks when preparing model-visible text and activity records. The model gets a small structured omission marker instead of a truncated JSON-encoded image. No image recognition claim is made for the omitted blob; actual image viewing must use an explicit supported viewer/attachment path. Streaming and continuation/recovery policy are unchanged.
+
 ## Reducer-pause lease lifecycle — A008-0220
 
 On a `ReductionPausedError`, the coordinator first persists `REDUCTION_PAUSED`, then cancels the run lease-renewal and timeout timers synchronously before awaiting session shutdown. This prevents an obsolete renewal from aborting the paused run and calling `disableContinuationRecovery` on its checkpoint. Legitimate aborts, cancels and unknown external effects retain their existing safety fences; no previously fenced checkpoint is reauthorized.

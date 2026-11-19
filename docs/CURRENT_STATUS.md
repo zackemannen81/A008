@@ -1,5 +1,9 @@
 # Current Status — A008
 
+## Oversized vision/MCP payload repair — A008-0221 (local branch, 2026-11-19)
+
+A repeated stored PNG attachment contributed roughly 25.8 MB to model requests and led to request-budget failures; an MCP screen.capture response also returned Base64 binary that was truncated mid-JSON. The local branch `fix/a008-0221-vision-tool-payload` re-encodes oversized model-only images to bounded WebP and replaces MCP binary content blocks with metadata-only markers. Original source files remain unchanged, and durable tool recovery is not relaxed. Focused tests: 63/63; related runtime/ACP: 51/51. Changes are compiled locally but the running GUI host/child must be restarted to use the new code. Provider-side SSE truncation itself is not proven resolved; operator live verification is outstanding.
+
 ## Paused reducer lease recovery — A008-0220 (2026-11-05)
 
 Coordinator reducer pauses used to release the run lease and then await session stop with renewal still active. A renewal failure could abort the run and fence its saved continuation, making the Resume button ineffective. The coordinator now cancels lease and timeout timers immediately after a durable pause before stopping the child. Existing Oldschool run with fence epoch 53 vs recovery epoch 52 and unverifiable artifact evidence cannot be automatically restored without bypassing effect safeguards. No live run state was overwritten.
