@@ -1,5 +1,9 @@
 # System Document — aktuell implementation
 
+## Validated reducer recovery — A008-0222
+
+During reduction a structurally valid model proposal is checked against real required sourceRef IDs. If IDs were omitted, only actual prior verified entries or persisted completed tool-round output can supply source coverage; malformed or fabricated sources never become facts. When both reducer attempts fail or exhaust their token cap, A008 may build a bounded observational ledger from exact durable, already-executed tool rounds, with reported outcomes and limited source excerpts. This fallback requires a durable working-context checkpoint owner, cannot replay tool effects, and will fail closed if a required source is unobserved or even the minimal ledger cannot fit. Non-durable sessions preserve their previous strict failure behavior. Existing workspace verification for opaque Git/MCP effects remains unchanged.
+
 ## Bounded model vision and MCP result payload — A008-0221 (local branch)
 
 Native stored PNG/JPEG/WebP images larger than 1,000,000 bytes are resized and encoded as WebP with a finite 1 MB provider-only ceiling, before the image data URL is assembled. The original source artifact and its locator are unchanged. Small images and GIFs retain their original bytes; failed optimization is reported as a configuration error without silently sending an oversized replacement. The portable runtime now directly depends on @napi-rs/canvas 1.0.8.

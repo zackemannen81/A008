@@ -498,6 +498,7 @@ export class ChatSession {
             validSourceRefs: new Set(rawInteractions.map(item => item.id)),
             requiredSourceRefs: new Set([...continuationSourceRefs(continuationState), ...candidates.map(item => item.id)]),
             attempts: reductionAttempts, truncated: reductionTruncated,
+            allowEvidenceFallback: durable !== undefined,
             ...(options.signal ? { signal: options.signal } : {}),
             ...(pressure ? { measure: measureRequest } : {}),
             beforeAttempt: async (attempts, truncated) => { reductionAttempts = attempts; reductionTruncated = truncated; await persistBoundary("pending"); },
