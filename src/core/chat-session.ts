@@ -402,9 +402,13 @@ export class ChatSession {
       try {
         await durable.persist({ runId, state, sourceInteractions: recentInteractions,
           maximumStateBytes: tools!.continuation!.maximumStateBytes, recovery, expectedGeneration: projectionGeneration });
-      } catch {
+      } catch (error) {
         options.signal?.throwIfAborted();
-        throw new ReductionPausedError("could not commit a verified execution boundary");
+        const typed = error instanceof Error ? error as Error & { code?: unknown } : null;
+        const diagnostic = typed
+          ? `${typed.name}${typeof typed.code === "string" ? `/${typed.code}` : ""}: ${typed.message}`
+          : "unknown checkpoint error";
+        throw new ReductionPausedError(`could not commit a verified execution boundary (${diagnostic.replace(/\s+/g, " ").slice(0, 280)})`);
       }
       projectionGeneration++;
     };

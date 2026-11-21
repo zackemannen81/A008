@@ -111,6 +111,8 @@ docs/
 
 Prefer updating `PROJECT_BRIEF.md`, `CURRENT_STATUS.md`, `SYSTEMDOC.md`, `CURRENT_MEMORY_MODEL.md`, or this map over creating a new root-level topic document. Accepted ADRs record bounded durable decisions. Historical records remain available under task/history/legacy collections but do not override current owners.
 
+A008-0224 extends `src/platform/continuation-workspace.ts` with narrow read-only Git classification, runtime-only workflow tool recognition and bounded failed-fingerprint diagnostics. Test: `test/continuation-readonly-tool-evidence.test.ts`; details in `docs/tasks/A008-0224_readonly-evidence-recovery.md`.
+
 A008-0223 adds `src/core/task-workflow.ts` for run-local initial planning, evidence-bound checklist updates and chronological, self-contained provider context. Test coverage lives in `test/self-contained-workflow.test.ts`; workflow state is persisted inside the existing continuation recovery record.
 
 A008-0218 adds `src/core/working-state-reducer.ts` for bounded validated reduction.

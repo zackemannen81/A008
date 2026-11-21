@@ -1,5 +1,9 @@
 # System Document — aktuell implementation
 
+## Read-only Git evidence and checkpoint diagnostics — A008-0224
+
+`continuationArtifactPaths` treats only a strict read-only Git command/option allowlist plus runtime-owned `a008_select_tools` and `a008_update_workflow` as having no external filesystem effect. Git checkout/reset/commit/push/config and unknown flags remain opaque. Workspace evidence is still verified through current Git HEAD/index, tracked and untracked files and previously observed paths. Opaque effects or fingerprint inspection failures still return `verifiable:false`; a fixed `reason` distinguishes policy causes, repository mismatch, limits and exceptions without storing file contents. The ChatSession durable boundary catch now passes through the bounded underlying exception class/code/message rather than hiding it. No replay/authorization or persisted schema version change.
+
 ## Self-contained execution working document (A008-0223)
 
 For product working-context runs, A008 issues one bounded, tool-free provider request to propose a task description, up to 12 checklist items and the first next action from the composed user/retrieval request. Strict validation and a safe generic fallback prevent bad planning output from blocking the run. The plan is run-local execution metadata, not semantic memory and never a new permission source. The base instructions and retrieval pipeline remain unchanged.
