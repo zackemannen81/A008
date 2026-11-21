@@ -1,5 +1,6 @@
 import { ChatError } from "./errors.js";
 import type { ChatWireMessage } from "./types.js";
+import { validateTaskWorkflow, type TaskWorkflow } from "./task-workflow.js";
 
 export interface RunLockedDecision {
   readonly decision: string;
@@ -92,6 +93,8 @@ export interface RunContinuationState {
 /** A complete provider tool round retained as the raw source of continuation evidence. */
 export interface RunToolInteraction {
   readonly id: string;
+  /** Context that motivated the round; observational, not a verified conclusion. */
+  readonly purpose?: string;
   readonly messages: readonly ChatWireMessage[];
 }
 
@@ -128,6 +131,7 @@ export interface RunContinuationRecovery {
   readonly recentInteractions: readonly RunToolInteraction[];
   readonly completedInteractions: number;
   readonly usedToolCallIds: readonly string[];
+  readonly workflow?: TaskWorkflow;
   readonly routeId: string;
 }
 
@@ -172,7 +176,16 @@ export function validateContinuationRecovery(
       tailIds.add(call.id);
     }
   }
-  return structuredClone(value);
+  const workflow = value.workflow === undefined ? undefined : validateTaskWorkflow(value.workflow);
+  if (workflow) {
+    const availableRefs = new Set([...refs, ...value.recentInteractions.map(item => item.id)]);
+    if (workflow.checklist.some(item => item.sourceRefs.some(ref => !availableRefs.has(ref))))
+      invalid("workflow checklist cites unavailable run source evidence.");
+  }
+  return structuredClone({
+    ...value,
+    ...(workflow === undefined ? {} : { workflow }),
+  });
 }
 
 export interface RunContinuationPressurePolicy {

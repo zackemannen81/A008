@@ -75,6 +75,8 @@ export interface ChatTools {
     readonly maximumStateBytes: number;
     readonly reducerInputBytes: number;
     readonly reducerOutputTokens: number;
+    /** Stateful, self-contained run working document. */
+    readonly workflowEnabled?: boolean;
   };
   readonly definitions: readonly ChatToolDefinition[];
   readonly maximumCalls: number;

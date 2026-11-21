@@ -88,7 +88,7 @@ function summaryOfInteraction(
       );
     });
   }
-  return `Recorded tool round ${interaction.id}. ${events.join(" | ") || "No tool-call detail available."}`;
+  return `Recorded tool round ${interaction.id}. Purpose: ${(interaction.purpose ?? "Unspecified").slice(0, 320)}. ${events.join(" | ") || "No tool-call detail available."}`;
 }
 
 function makeEntry(
