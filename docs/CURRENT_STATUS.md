@@ -1,5 +1,9 @@
 # Current Status — A008
 
+## A008-0225 — internal workflow receipt and restart entrypoint (2026-11-21)
+
+After 20 successful ordinary tool calls in the first new Zac status task, a checkpoint failed with `Source tool is not retained terminal raw evidence for this run`. The local `a008_update_workflow` call was not published to durable UI activity; the host correctly refused to bind it. It now publishes a terminal receipt through `recordSelection` before checkpoint persistence, with no weakened verification for external effects. Worktree-root equality was changed to canonical, platform-aware path comparison. A repo-root `RESTART-A008.cmd` / `restart-a008.ps1` provides guarded one-click host restart. The interrupted run is not replayed; full host suite remains separately non-green and a new long Luna run is needed.
+
 ## A008-0224 read-only recovery observation (2026-11-21)
 
 The first long status-report task under A008-0223 completed 33 successful tool calls in ~2m10s with improved forward progress, then stopped at a generic failed checkpoint boundary. Read-only Git calls were classed as opaque and the new internal workflow-status tool was not exempt; this fix whitelists strictly read-only Git arguments and local checklist-status updates while preserving fail-closed handling for writes/unknown options. It adds fixed workspace fingerprint failure reasons and bounded checkpoint validation errors. Importantly the earliest checkpoint was already unverifiable even before Git; the original cause of that transient fingerprint cannot be retroactively established. The worktree now fingerprints successfully, and future failures will be diagnostic. No old uncertain run is replayed.

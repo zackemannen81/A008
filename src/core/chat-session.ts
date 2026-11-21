@@ -744,7 +744,12 @@ export class ChatSession {
           } else {
             result = await tools.execute(effectiveCall, options.signal);
           }
-          if (toolContext && call.name === SELECT_TOOLS) await tools.recordSelection?.(effectiveCall, result);
+          // The internal workflow update is a real completed tool round in the
+          // durable journal. Publish its terminal receipt through the same
+          // host activity path as SELECT_TOOLS before checkpoint binding.
+          if (toolContext && (call.name === SELECT_TOOLS ||
+              (workflowEnabled && call.name === WORKFLOW_PROGRESS_TOOL)))
+            await tools.recordSelection?.(effectiveCall, result);
           options.signal?.throwIfAborted();
           if (executionState && !workflowEnabled) {
             completedSteps.push(`Tool ${call.name} returned a result`);

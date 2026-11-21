@@ -223,7 +223,9 @@ export function inspectContinuationWorkspace(
         stdio: ["ignore", "pipe", "ignore"],
       });
     // A deleted worktree must not accidentally resolve its parent repository.
-    if (realpathSync(git(["rev-parse", "--show-toplevel"]).trim()) !== root)
+    // path.relative uses platform-aware path comparisons (including Win32 case
+    // handling), while realpath resolves junctions before the containment check.
+    if (relative(root, realpathSync(git(["rev-parse", "--show-toplevel"]).trim())) !== "")
       return unavailable("workspace-git-root-mismatch");
     const revision = git(["rev-parse", "HEAD"]).trim();
     const files = new Set(

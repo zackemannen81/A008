@@ -162,6 +162,7 @@ test("checklist completion requires successful saved tool evidence", () => {
 });
 
 test("initial planning, one successful read and evidence-backed status persist in every new prompt", async () => {
+  const persistedRuntimeReceipts: string[] = [];
   let planning = 0,
     effects = 0,
     rounds = 0;
@@ -243,6 +244,11 @@ test("initial planning, one successful read and evidence-backed status persist i
       definitions,
       maximumCalls: 12,
       workingContext: context,
+      async recordSelection(call, result) {
+        // Host persists terminal activity for both runtime-owned tool types.
+        assert.ok(result.length > 0);
+        persistedRuntimeReceipts.push(call.name);
+      },
       async execute() {
         effects++;
         return JSON.stringify({ status: "completed", text: "Task is draft" });
@@ -252,6 +258,7 @@ test("initial planning, one successful read and evidence-backed status persist i
   assert.equal(result.message.content, "Ready to draft.");
   assert.equal(planning, 1);
   assert.equal(effects, 1);
+  assert.deepEqual(persistedRuntimeReceipts, [SELECT_TOOLS, WORKFLOW_PROGRESS_TOOL]);
   assert.equal(observed.length, 4);
   assert.equal(observed[0].originalRequest, "Write a GDD for the game.");
   assert.equal(observed[0].checklist[0].checked, false);

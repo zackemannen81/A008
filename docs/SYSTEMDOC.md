@@ -1,5 +1,9 @@
 # System Document — aktuell implementation
 
+## Durable workflow progress receipt (A008-0225)
+
+`ChatSession` calls `recordSelection` for both `a008_select_tools` and `a008_update_workflow` before saving a durable continuation boundary, so each locally executed tool is backed by a terminal GUI activity event. The PlatformStore source-binding test remains strict; no synthetic receipts or replay of external effects. Worktree-root fingerprinting uses `path.relative(realpath(root), realpath(gitRoot)) === ""` for platform-aware canonical identity. The repo-root `RESTART-A008.cmd` delegates to `restart-a008.ps1` and the Node SQLite guard `check-a008-active.cjs`, which validates ownership of port 8787, refuses to interrupt active runs absent deliberate `-Force`, restarts the Node GUI host and checks HTTP availability.
+
 ## Read-only Git evidence and checkpoint diagnostics — A008-0224
 
 `continuationArtifactPaths` treats only a strict read-only Git command/option allowlist plus runtime-owned `a008_select_tools` and `a008_update_workflow` as having no external filesystem effect. Git checkout/reset/commit/push/config and unknown flags remain opaque. Workspace evidence is still verified through current Git HEAD/index, tracked and untracked files and previously observed paths. Opaque effects or fingerprint inspection failures still return `verifiable:false`; a fixed `reason` distinguishes policy causes, repository mismatch, limits and exceptions without storing file contents. The ChatSession durable boundary catch now passes through the bounded underlying exception class/code/message rather than hiding it. No replay/authorization or persisted schema version change.
