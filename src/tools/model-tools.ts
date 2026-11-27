@@ -98,6 +98,36 @@ export function toolEnvironment(
   );
 }
 
+/**
+ * MCP image/audio data is not textual model context. Keep the MCP tool's
+ * human-readable metadata and artifact paths, but never echo binary Base64
+ * into the next provider request or into the activity inspector.
+ */
+export function modelFacingMcpResult(result: unknown): string {
+  if (!result || typeof result !== "object" || Array.isArray(result))
+    return JSON.stringify(result ?? null);
+  const record = result as Record<string, unknown>;
+  if (!Array.isArray(record.content)) return JSON.stringify(record);
+  const content = record.content.map((part: unknown) => {
+    if (!part || typeof part !== "object" || Array.isArray(part)) return part;
+    const value = part as Record<string, unknown>;
+    if (
+      (value.type === "image" || value.type === "audio") &&
+      typeof value.data === "string"
+    ) {
+      return {
+        type: value.type,
+        ...(typeof value.mimeType === "string" ? { mimeType: value.mimeType } : {}),
+        binaryOmitted: true,
+        approximateBytes: Math.floor(value.data.length * 0.75),
+        note: "Binary payload omitted from text context; use the artifact path or a supported image viewer when needed.",
+      };
+    }
+    return part;
+  });
+  return JSON.stringify({ ...record, content });
+}
+
 export function boundedToolText(
   text: string,
   maximum: number,
@@ -423,7 +453,7 @@ export class ModelToolSession {
                 );
                 return {
                   failed: result.isError === true,
-                  text: JSON.stringify(result),
+                  text: modelFacingMcpResult(result),
                 };
               },
               {

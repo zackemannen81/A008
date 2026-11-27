@@ -90,6 +90,7 @@ import {
   IMAGE_PNG,
   IMAGE_WEBP,
 } from "../ingest/types.js";
+import { prepareVisionImage } from "./vision-image.js";
 import { MemoryAwareChatSession } from "../orchestration/memory-aware-chat-session.js";
 import type { MemoryReadPort } from "../orchestration/memory-aware-chat-session.js";
 import {
@@ -1362,9 +1363,10 @@ export class LocalMemoryRuntime {
         `Native vision attachment must be PNG, JPEG, WebP or GIF; stored source is ${mediaType}.`,
       );
     }
+    const vision = prepareVisionImage(bytes, mediaType);
     return {
-      mediaType,
-      dataRef: `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`,
+      mediaType: vision.mediaType,
+      dataRef: `data:${vision.mediaType};base64,${vision.bytes.toString("base64")}`,
     };
   }
 

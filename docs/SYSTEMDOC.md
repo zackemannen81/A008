@@ -1,5 +1,31 @@
 # System Document — aktuell implementation
 
+## Durable workflow progress receipt (A008-0225)
+
+`ChatSession` calls `recordSelection` for both `a008_select_tools` and `a008_update_workflow` before saving a durable continuation boundary, so each locally executed tool is backed by a terminal GUI activity event. The PlatformStore source-binding test remains strict; no synthetic receipts or replay of external effects. Worktree-root fingerprinting uses `path.relative(realpath(root), realpath(gitRoot)) === ""` for platform-aware canonical identity. The repo-root `RESTART-A008.cmd` delegates to `restart-a008.ps1` and the Node SQLite guard `check-a008-active.cjs`, which validates ownership of port 8787, refuses to interrupt active runs absent deliberate `-Force`, restarts the Node GUI host and checks HTTP availability.
+
+## Read-only Git evidence and checkpoint diagnostics — A008-0224
+
+`continuationArtifactPaths` treats only a strict read-only Git command/option allowlist plus runtime-owned `a008_select_tools` and `a008_update_workflow` as having no external filesystem effect. Git checkout/reset/commit/push/config and unknown flags remain opaque. Workspace evidence is still verified through current Git HEAD/index, tracked and untracked files and previously observed paths. Opaque effects or fingerprint inspection failures still return `verifiable:false`; a fixed `reason` distinguishes policy causes, repository mismatch, limits and exceptions without storing file contents. The ChatSession durable boundary catch now passes through the bounded underlying exception class/code/message rather than hiding it. No replay/authorization or persisted schema version change.
+
+## Self-contained execution working document (A008-0223)
+
+For product working-context runs, A008 issues one bounded, tool-free provider request to propose a task description, up to 12 checklist items and the first next action from the composed user/retrieval request. Strict validation and a safe generic fallback prevent bad planning output from blocking the run. The plan is run-local execution metadata, not semantic memory and never a new permission source. The base instructions and retrieval pipeline remain unchanged.
+
+Every provider tool request carries the original user message and committed retrieval context plus a self-contained current execution document: task description, explicit checklist, chronological source-bound compacted action findings, verified facts, hypotheses, recent raw tool results, and the next action. Each tool round keeps its purpose; no reference to invisible provider context is needed. An always-loaded internal `a008_update_workflow` tool records model-proposed milestone completion only when cited source refs match persisted tool rounds reporting success; it updates next action, never project files. The workflow is validated and stored in the existing durable recovery JSON. On process replacement it is restored without replanning, and old effects are not replayed.
+
+The runtime respects the configured recent raw interaction window (default 8) and reduces in batches or earlier under pressure instead of reducing after every call. This behavior is gated to product working-context runs; other existing test/legacy routes keep their old compaction cadence. The prior strict reducer, recovery, no-replay and route-byte guards still apply. Model-progress semantics are evidence-linked but not proof that an arbitrary user milestone is substantively finished; status verification only checks reported successful tool evidence. No live provider acceptance is claimed until operator testing.
+
+## Validated reducer recovery — A008-0222
+
+During reduction a structurally valid model proposal is checked against real required sourceRef IDs. If IDs were omitted, only actual prior verified entries or persisted completed tool-round output can supply source coverage; malformed or fabricated sources never become facts. When both reducer attempts fail or exhaust their token cap, A008 may build a bounded observational ledger from exact durable, already-executed tool rounds, with reported outcomes and limited source excerpts. This fallback requires a durable working-context checkpoint owner, cannot replay tool effects, and will fail closed if a required source is unobserved or even the minimal ledger cannot fit. Non-durable sessions preserve their previous strict failure behavior. Existing workspace verification for opaque Git/MCP effects remains unchanged.
+
+## Bounded model vision and MCP result payload — A008-0221 (local branch)
+
+Native stored PNG/JPEG/WebP images larger than 1,000,000 bytes are resized and encoded as WebP with a finite 1 MB provider-only ceiling, before the image data URL is assembled. The original source artifact and its locator are unchanged. Small images and GIFs retain their original bytes; failed optimization is reported as a configuration error without silently sending an oversized replacement. The portable runtime now directly depends on @napi-rs/canvas 1.0.8.
+
+MCP tool results retain textual blocks, metadata, outcomes and artifact paths but omit Base64 from image/audio content blocks when preparing model-visible text and activity records. The model gets a small structured omission marker instead of a truncated JSON-encoded image. No image recognition claim is made for the omitted blob; actual image viewing must use an explicit supported viewer/attachment path. Streaming and continuation/recovery policy are unchanged.
+
 ## Reducer-pause lease lifecycle — A008-0220
 
 On a `ReductionPausedError`, the coordinator first persists `REDUCTION_PAUSED`, then cancels the run lease-renewal and timeout timers synchronously before awaiting session shutdown. This prevents an obsolete renewal from aborting the paused run and calling `disableContinuationRecovery` on its checkpoint. Legitimate aborts, cancels and unknown external effects retain their existing safety fences; no previously fenced checkpoint is reauthorized.

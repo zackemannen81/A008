@@ -5,7 +5,7 @@ export const SELECT_TOOLS = "a008_select_tools";
 export function runtimeWorkingContext(budgets: {
   chatInputBytes: number; continuationStateBytes: number; continuationReducerInputBytes: number; continuationReducerOutputTokens: number;
 }) {
-  return { maximumRequestBytes: budgets.chatInputBytes, maximumStateBytes: budgets.continuationStateBytes, reducerInputBytes: budgets.continuationReducerInputBytes, reducerOutputTokens: budgets.continuationReducerOutputTokens };
+  return { maximumRequestBytes: budgets.chatInputBytes, maximumStateBytes: budgets.continuationStateBytes, reducerInputBytes: budgets.continuationReducerInputBytes, reducerOutputTokens: budgets.continuationReducerOutputTokens, workflowEnabled: true };
 }
 const selector: ChatToolDefinition = {
   name: SELECT_TOOLS,
@@ -22,13 +22,16 @@ const selector: ChatToolDefinition = {
 export class RuntimeToolContext {
   readonly catalog: string;
   readonly #all: Map<string, ChatToolDefinition>;
+  readonly #always: readonly ChatToolDefinition[];
   #selected: readonly ChatToolDefinition[] = [];
 
-  constructor(definitions: readonly ChatToolDefinition[]) {
-    this.#all = new Map(definitions.map(def => [def.name, def]));
-    if (this.#all.size !== definitions.length || this.#all.has(SELECT_TOOLS))
+  constructor(definitions: readonly ChatToolDefinition[], always: readonly ChatToolDefinition[] = []) {
+    const all = [...definitions, ...always];
+    this.#always = always;
+    this.#all = new Map(all.map(def => [def.name, def]));
+    if (this.#all.size !== all.length || this.#all.has(SELECT_TOOLS))
       throw new ChatError("configuration", "Tool catalog contains duplicate or reserved names.");
-    this.catalog = JSON.stringify(definitions.map(def => ({
+    this.catalog = JSON.stringify(all.map(def => ({
       name: def.name,
       description: def.description.slice(0, 240),
     })));
@@ -37,7 +40,7 @@ export class RuntimeToolContext {
   get selectedNames(): readonly string[] { return this.#selected.map(tool => tool.name); }
 
   get definitions(): readonly ChatToolDefinition[] {
-    return [selector, ...this.#selected];
+    return [selector, ...this.#always, ...this.#selected.filter(def => !this.#always.some(item => item.name === def.name))];
   }
 
   select(call: ChatToolCall): string {

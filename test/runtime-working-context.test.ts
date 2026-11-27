@@ -209,7 +209,7 @@ test("durable reduction exhaustion resumes the same completed work without repla
     assert.equal(checkpoint.expectedGeneration, saved?.recovery?.reduction?.generation ?? 0);
     saved = structuredClone(checkpoint);
   };
-  const makeTools = (resume?: RunContinuationRecovery) => ({ definitions, maximumCalls: 10, workingContext,
+  const makeTools = (resume?: RunContinuationRecovery) => ({ definitions, maximumCalls: 10, workingContext: { ...workingContext, maximumStateBytes: 300 },
     durableWorkingContext: { persist, recovery: { ...(resume ? { resume } : {}), beforeEffect: async () => {} } },
     async execute() { effects++; return "completed effect"; },
   });
