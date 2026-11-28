@@ -9,15 +9,28 @@ charter per worker. A worker may copy its charter into `docs/CURRENT_TASK.md`
 on its branch while working, then archives it to `docs/finished/` and restores
 the template before push.
 
-- [A008-0212_project-main-identity-confirmation.md](A008-0212_project-main-identity-confirmation.md) — In Progress child of A008-0211; durable root/main identity and one-use confirmation prerequisite. Native OS dialog approved for investigation, but trusted host-broker implementation remains pending. [handoff](../handoffs/A008-0212.md)
-- [A008-0211_project-actions-and-session-lifecycle.md](A008-0211_project-actions-and-session-lifecycle.md) — In Progress program for opening the project root, root-CWD main chat, parallel chat/worktree deletion and registration-only project unlink. Rickard approved a native OS Yes dialog after host verification of main-chat request origin; A008-0212's durable identity/broker prerequisite remains unimplemented. [handoff](../handoffs/A008-0211.md)
+## Current disposition at `91e3f3a` (PR #161)
+
+- **A008-0221–0225:** implementations are in PR #161 / current `main`, but the immutable charters and handoffs retain their branch-time statuses (local/not integrated, In Progress, or implemented locally with live Luna rerun pending). Treat those records as historical evidence, not current integration state. These tasks remain not Complete and have no finished archives. The last broad host/session run (A008-0224) was 81/87; no post-merge rerun or fresh long-provider run is recorded. Records: [0221 charter](A008-0221_vision-and-tool-payload-bounds.md) / [handoff](../handoffs/A008-0221.md); [0222 charter](A008-0222_reducer-evidence-recovery.md) / [handoff](../handoffs/A008-0222.md); [0223 charter](A008-0223_self-contained-execution-workflow.md) / [handoff](../handoffs/A008-0223.md); [0224 charter](A008-0224_readonly-evidence-recovery.md) / [handoff](../handoffs/A008-0224.md); [0225 charter](A008-0225_workflow-receipts-and-host-restart.md) / [handoff](../handoffs/A008-0225.md).
+- **A008-0217–0220:** their implementation commits are ancestors of the current main baseline. The archives mark A008-0217–0219 Complete and A008-0220 Complete (local integration). The handoffs retain task-specific verification limits; integration is not new post-merge acceptance. See the [handoff index](../handoffs/README.md) and [archive index](../finished/README.md).
+- **A008-0216:** [charter](A008-0216_runtime-working-context.md), [archive](../finished/A008-0216_runtime-working-context.md), and [handoff](../handoffs/A008-0216.md) — integrated and Complete; task-worktree verification evidence is preserved in the archive and handoff.
+- **A008-0215:** [charter](A008-0215_turn-resilience-dynamic-tools-incremental-memory.md) — Ready (Emergency Exception) is stale; related slices were delivered later, but completion of its full original scope is not established. Preserve it as history and do not reactivate unchanged.
+- **A008-0213:** integrated, Complete and archived; recorded verification was task-worktree evidence and made no live-provider calls.
+- **A008-0214:** allocated as the consolidation of A008-0210–0212; A008-0213 is complete. No 0214 charter, handoff or archive exists in this checkout, so the replacement work is not active pending operator review and a published charter.
+- **A008-0210:** separately paused before implementation; its frozen requirements are unchanged.
+- **A008-0204:** implementation is present in the current baseline; the task is not archived/Complete and its remaining lifecycle/reconnect acceptance is in the handoff.
+
+The original charter entries below retain their historical scope and decisions; use this disposition and `CURRENT_STATUS.md` for current status.
+
+- [A008-0212_project-main-identity-confirmation.md](A008-0212_project-main-identity-confirmation.md) — Stopped/superseded by allocated A008-0214; former identity/broker prerequisite, not active. Preserve original charter. [handoff](../handoffs/A008-0212.md)
+- [A008-0211_project-actions-and-session-lifecycle.md](A008-0211_project-actions-and-session-lifecycle.md) — Stopped/superseded by allocated A008-0214; original project-root/main and project-action scope is not active pending a reviewed replacement charter. [handoff](../handoffs/A008-0211.md)
 - [A008-0210_remove-delete-project-chats.md](../paused/A008-0210_remove-delete-project-chats.md) — Paused before implementation; current platform cannot distinguish a main chat from a parallel/worker chat at the host authorization boundary. [handoff](../handoffs/A008-0210.md).
 - [A008-0209_electron-first-run-setup-and-installer.md](A008-0209_electron-first-run-setup-and-installer.md) — Complete; Windows Squirrel installer and post-install setup for local provider, model, identity, theme and parallel-session defaults. [handoff](../handoffs/A008-0209.md)
 - [A008-0208_gui-and-electron-turn-notifications.md](A008-0208_gui-and-electron-turn-notifications.md) — Complete locally; transient success/failure/uncertain notices in the GUI with opt-in audio and Electron window attention. [handoff](../handoffs/A008-0208.md)
 - [A008-0207_finalize-edit-recovery-benchmark.md](../paused/A008-0207_finalize-edit-recovery-benchmark.md) — Paused by operator request while A008-0208 runs; implementation and verification remain outstanding.
 
 
-- [A008-0204_electron-desktop-client.md](A008-0204_electron-desktop-client.md) - In Progress; Windows x64 Electron client using the existing GUI/host; runtime ownership unchanged.
+- [A008-0204_electron-desktop-client.md](A008-0204_electron-desktop-client.md) — Implementation is present in the current baseline; task is not archived/Complete and remaining lifecycle/reconnect acceptance is documented in its handoff.
 
 - [A008-0203_permission-replay.md](A008-0203_permission-replay.md) — Complete locally; suppress confirmed permission replays and stale prompts. [Archive](../finished/A008-0203_permission-replay.md), [handoff](../handoffs/A008-0203.md).
 
@@ -27,13 +40,13 @@ the template before push.
 
 - [A008-0200_bounded-tool-context.md](A008-0200_bounded-tool-context.md) — Complete locally; sectional reads with whole-file hashes, compact edits and bounded command output. [Archive](../finished/A008-0200_bounded-tool-context.md), [handoff](../handoffs/A008-0200.md).
 
-- [A008-0199_Task4.md](A008-0199_Task4.md) — Complete locally; conservative checkpoint recovery with durable effect fencing, workspace evidence and real 110-round process-replacement proof. [Archive](../finished/A008-0199_Task4.md), [handoff](../handoffs/A008-0199.md).
+- [A008-0199_Task4.md](A008-0199_Task4.md) — Complete; implementation is integrated in the current baseline. The archived 110-round process-replacement proof and handoff report task-worktree verification; no fresh post-merge acceptance is implied. [Archive](../finished/A008-0199_Task4.md), [handoff](../handoffs/A008-0199.md).
 
-- [A008-0198_Task3.md](A008-0198_Task3.md) — Complete on task branch; automatic completed-tool-round pressure measurement, durable checkpoint-before-adoption and repeated bounded same-run context rebuild. [Archive](../finished/A008-0198_Task3.md), [handoff](../handoffs/A008-0198.md).
+- [A008-0198_Task3.md](A008-0198_Task3.md) — Complete; implementation is integrated in the current baseline. The archive and handoff record task-branch evidence for automatic completed-tool-round pressure measurement, durable checkpoint-before-adoption and repeated bounded same-run context rebuild; no fresh post-merge acceptance is implied. [Archive](../finished/A008-0198_Task3.md), [handoff](../handoffs/A008-0198.md).
 
-- [A008-0197_Task2.md](A008-0197_Task2.md) — Complete on task branch; durable validated continuation checkpoints with exact A008-0196 interaction-to-raw-event provenance binding, latest-valid fallback and semantic-memory isolation. [Archive](../finished/A008-0197_Task2.md), [handoff](../handoffs/A008-0197.md).
+- [A008-0197_Task2.md](A008-0197_Task2.md) — Complete; implementation is integrated in the current baseline. The archive and handoff record task-branch evidence for durable validated continuation checkpoints, exact A008-0196 interaction-to-raw-event provenance binding, latest-valid fallback and semantic-memory isolation; no fresh post-merge acceptance is implied. [Archive](../finished/A008-0197_Task2.md), [handoff](../handoffs/A008-0197.md).
 
-- [A008-0196_bounded-intra-turn-context.md](A008-0196_bounded-intra-turn-context.md) — Complete on task branch; bounded run-local continuation state with cumulative source preservation, correct provider ordering and preserved raw tail. [Archive](../finished/A008-0196_bounded-intra-turn-context.md), [handoff](../handoffs/A008-0196.md).
+- [A008-0196_bounded-intra-turn-context.md](A008-0196_bounded-intra-turn-context.md) — Complete; implementation is integrated in the current baseline. The archive and handoff record task-branch evidence for bounded run-local continuation state, cumulative source preservation, correct provider ordering and preserved raw tail; no fresh post-merge acceptance is implied. [Archive](../finished/A008-0196_bounded-intra-turn-context.md), [handoff](../handoffs/A008-0196.md).
 
 - [A008-0175_atomic-dialogue-extraction.md](A008-0175_atomic-dialogue-extraction.md) — Complete on task branch; coherent report eligibility, atomic bindings and owner label ranges. [Archive](../finished/A008-0175_atomic-dialogue-extraction.md), [handoff](../handoffs/A008-0175.md).
 
@@ -70,11 +83,11 @@ the template before push.
 
 - [A008-0094_project-bootstrap.md](A008-0094_project-bootstrap.md)
   — Complete; [archive](../finished/A008-0094_project-bootstrap.md). Direction:
-  [ADR 0039](../adr/0039-project-bootstrap.md).
+  [ADR 0039](../adr/_legacy/0039-project-bootstrap.md).
 
 - [A008-0093_global-app-theme-system.md](A008-0093_global-app-theme-system.md)
   — Complete; [archive](../finished/A008-0093_global-app-theme-system.md).
-  Direction: [ADR 0038](../adr/0038-global-app-theme-system.md).
+  Direction: [ADR 0038](../adr/_legacy/0038-global-app-theme-system.md).
 
 - [A008-0080_coherent-instruction.md](A008-0080_coherent-instruction.md) — Complete;
   [archive](../finished/A008-0080_coherent-instruction.md), verified L1 under

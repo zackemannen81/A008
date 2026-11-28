@@ -3,7 +3,9 @@
 Discoverability: naming convention `A008-NNNN.md`.
 Member state: required. Every member declares a `Status:` line.
 
-Latest implementation handoff: [A008-0216](A008-0216.md) — Runtime context projection, demand-loaded tool schemas and incremental completed work; 110-round process recovery verified.
+Latest implementation handoff: [A008-0225](A008-0225.md) — terminal workflow receipts and guarded host restart; integrated in PR #161. See `CURRENT_STATUS.md` for the verification boundary and remaining acceptance work.
+
+Latest broad host/session evidence: [A008-0224](A008-0224.md) — 81/87 before the final merge, with six failures; no post-merge rerun is recorded.
 
 Latest specification handoff: [A008-0159](A008-0159.md) — platform v1.2,
 model-aware delegated verification budgets and aligned working rules;
@@ -17,10 +19,10 @@ authority. Workers do not append `docs/JOURNAL.md`.
 
 ## Required fields
 
-Latest persistence handoff: [A008-0101](A008-0101.md) — incremental SQLite
+Latest SQLite knowledge-persistence handoff: [A008-0101](A008-0101.md) — incremental SQLite
 knowledge writes; merged through PR #44, host restarted and health/auth verified.
 
-Latest local handoffs: [A008-0093](A008-0093.md) — global Neutral/Deep Space
+Selected historical local handoffs: [A008-0093](A008-0093.md) — global Neutral/Deep Space
 theme system;
 [A008-0071](A008-0071.md) — NVIDIA catalog and images;
 [A008-0070](A008-0070.md) — workbench, Help and memory map;

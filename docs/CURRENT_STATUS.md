@@ -1,5 +1,27 @@
 # Current Status — A008
 
+## Current integration baseline and verification state
+
+This review is against `91e3f3a28e0dc1cb2998aa54d59b805a0e67aa27`, the local `HEAD` and `origin/main` merge commit for PR #161 (A008-0221–0225). The code is present in the checked-out `origin/main` baseline; that does not by itself complete the task charters or prove end-to-end acceptance.
+
+| Dimension | Observed state |
+| --- | --- |
+| Implemented | A008-0216 provides selected tool schemas and incremental completed-work context; A008-0217 maps the direct OpenAI Luna wire model; A008-0218 adds durable reducer pause/recovery; A008-0219 isolates project-sidebar lookup failures; A008-0220 protects paused checkpoints from lease shutdown; A008-0221–0225 add bounded payload handling, evidence-backed reducer recovery, durable workflow context, narrow read-only recovery evidence, and workflow receipts/guarded restart. |
+| Merged | Git ancestry confirms A008-0217–0220 implementation commits are in the current `main` baseline. A008-0221–0225 are merged by PR #161; A008-0216 is also integrated. |
+| Verified | Handoffs record task-worktree checks, not a fresh post-merge acceptance gate. A008-0225 reports 42/42 focused tests and a restart smoke response of HTTP 200. The latest recorded broad host/session run (A008-0224, before merge) was 81/87 with six failures; no post-merge rerun is recorded. Exact task limits are summarized below and in the handoffs. |
+| Complete | Archives mark A008-0216–0219 Complete and A008-0220 Complete (local integration). A008-0221–0225 have no immutable finished archives and remain short of formal completion/acceptance. |
+
+### Operational assessment (owner-reported, not formal acceptance)
+
+The owner reports that A008 is approaching practical stability and generally follows the intended current design, while residual sporadic failures/crashes remain around context reduction and summarization during long, tool-heavy turns. Smaller flow defects and ACME integration/compatibility issues may also remain. This is practical-use evidence, not a formal acceptance result. KIE.ai/provider instability motivated focused repair work, but these records do not establish one proven provider-side root cause or guarantee that it is resolved.
+
+### Outstanding acceptance evidence
+
+- No fresh long live-provider/Luna run is recorded after PR #161; the 0221 image replay and 0223 workflow-persistence observation remain unverified with a real run.
+- The six A008-0224 broad-suite failures were not resolved or rerun in A008-0225's handoff. The recorded failures include the 110-round checkpoint fixture, two reducer effect-file fixtures, two host authorization/concurrency fixtures, and one historical activity-event fixture.
+- Focused task-worktree tests are evidence for those revisions, not a fresh verification of the merged `91e3f3a` baseline.
+- `docs/CURRENT_TASK.md` is the empty template. No task is formally active on this checkout.
+
 ## A008-0225 — internal workflow receipt and restart entrypoint (2026-11-21)
 
 After 20 successful ordinary tool calls in the first new Zac status task, a checkpoint failed with `Source tool is not retained terminal raw evidence for this run`. The local `a008_update_workflow` call was not published to durable UI activity; the host correctly refused to bind it. It now publishes a terminal receipt through `recordSelection` before checkpoint persistence, with no weakened verification for external effects. Worktree-root equality was changed to canonical, platform-aware path comparison. A repo-root `RESTART-A008.cmd` / `restart-a008.ps1` provides guarded one-click host restart. The interrupted run is not replayed; full host suite remains separately non-green and a new long Luna run is needed.
@@ -8,17 +30,17 @@ After 20 successful ordinary tool calls in the first new Zac status task, a chec
 
 The first long status-report task under A008-0223 completed 33 successful tool calls in ~2m10s with improved forward progress, then stopped at a generic failed checkpoint boundary. Read-only Git calls were classed as opaque and the new internal workflow-status tool was not exempt; this fix whitelists strictly read-only Git arguments and local checklist-status updates while preserving fail-closed handling for writes/unknown options. It adds fixed workspace fingerprint failure reasons and bounded checkpoint validation errors. Importantly the earliest checkpoint was already unverifiable even before Git; the original cause of that transient fingerprint cannot be retroactively established. The worktree now fingerprints successfully, and future failures will be diagnostic. No old uncertain run is replayed.
 
-## A008-0223 self-contained execution context (local implementation, 2026-11-21)
+## A008-0223 self-contained execution context (merged in PR #161; 2026-11-21)
 
-A008 now constructs one bounded task plan per working run from the original user request and existing retrieved context. A runtime-owned task workflow contains its description, checklist, evidence-bound checked items and next concrete action, and is embedded in every new provider request together with chronological completed work, verified findings, source references and recent raw tool outcomes. Source tool rounds store the working purpose. The checklist can be updated using an always-available internal status tool; host only accepts completion updates citing a persisted, reported-successful tool round. Workflow JSON survives in the existing continuation recovery journal and is restored without another planning call or replay. Recent raw rounds are batched based on the configured window, with earlier compaction under route pressure; non-workflow callers retain legacy behavior. This is a local experimental change on `fix/a008-0223-self-contained-workflow`; live Luna behavior remains unverified, and the user owns base-prompt simplification separately.
+A008 now constructs one bounded task plan per working run from the original user request and existing retrieved context. A runtime-owned task workflow contains its description, checklist, evidence-bound checked items and next concrete action, and is embedded in every new provider request together with chronological completed work, verified findings, source references and recent raw tool outcomes. Source tool rounds store the working purpose. The checklist can be updated using an always-available internal status tool; host only accepts completion updates citing a persisted, reported-successful tool round. Workflow JSON survives in the existing continuation recovery journal and is restored without another planning call or replay. Recent raw rounds are batched based on the configured window, with earlier compaction under route pressure; non-workflow callers retain legacy behavior. Live Luna behavior remains unverified; the user owns base-prompt simplification separately.
 
-## A008-0222 reducer hardening — local branch, 2026-11-21
+## A008-0222 reducer hardening — merged in PR #161 (2026-11-21)
 
 Owner-reported Zac McKracken sessions paused repeatedly at reducer invalid state/response despite HTTP 200 model replies. The reducer now validates strict candidate source bindings, recovers omitted required references only from saved tool-round evidence or earlier verified state, and can fall back to a byte-bounded, source-backed observed ledger if both model attempts fail AND a durable continuation journal owns the effects. Without that journal, on unsupported sources, or when even the minimal ledger cannot fit, it still pauses safely. No previous tool call is replayed. Exact validation errors are retained in paused diagnostics instead of hidden behind a generic reason. Tests: 19/19 reducer/working context; 63/63 session/tools/ACME/ACP; 22/22 platform recovery/checkpoint. An existing paused checkpoint with unverifiable opaque effects remains blocked; the change does not bypass workspace verification. Database safety backup exists under .a008/backups. GUI host was restarted after commit; new Node PID 6880 is listening on 127.0.0.1:8787 and responded HTTP 200. Actual provider-side reducer behavior remains to be verified in a fresh run; prior unverifiable checkpoints remain blocked.
 
-## Oversized vision/MCP payload repair — A008-0221 (local branch, 2026-11-19)
+## Oversized vision/MCP payload repair — A008-0221 (merged in PR #161; 2026-11-19)
 
-A repeated stored PNG attachment contributed roughly 25.8 MB to model requests and led to request-budget failures; an MCP screen.capture response also returned Base64 binary that was truncated mid-JSON. The local branch `fix/a008-0221-vision-tool-payload` re-encodes oversized model-only images to bounded WebP and replaces MCP binary content blocks with metadata-only markers. Original source files remain unchanged, and durable tool recovery is not relaxed. Focused tests: 63/63; related runtime/ACP: 51/51. Changes are compiled locally but the running GUI host/child must be restarted to use the new code. Provider-side SSE truncation itself is not proven resolved; operator live verification is outstanding.
+A repeated stored PNG attachment contributed roughly 25.8 MB to model requests and led to request-budget failures; an MCP screen.capture response also returned Base64 binary that was truncated mid-JSON. The merged A008-0221 implementation re-encodes oversized model-only images to bounded WebP and replaces MCP binary content blocks with metadata-only markers. Original source files remain unchanged, and durable tool recovery is not relaxed. Focused tests: 63/63; related runtime/ACP: 51/51. These are task-worktree results, not post-merge acceptance evidence. The required long-provider replay remains outstanding; provider-side SSE truncation itself is not proven resolved.
 
 ## Paused reducer lease recovery — A008-0220 (2026-11-05)
 
@@ -28,7 +50,15 @@ Coordinator reducer pauses used to release the run lease and then await session 
 
 A persisted `CONTINUATION_UNCERTAIN` run error was rejected by the strict V3 wire schema; the durable project sidebar discarded all projects when an individual read failed. The error is now admitted as a known run code, and per-project conversation and optional run-status lookups are isolated. All registered projects remain visible when another project's conversation endpoint fails. No stored data was rewritten. Local regression and builds passed; see A008-0219 handoff for baseline test exclusions.
 
-## Runtime context correction — A008-0216 (local implementation)
+## A008-0218 durable reducer pause and recovery (integrated; Complete archive)
+
+The implementation preserves completed raw rounds across reducer failure, adopts projections only against the matching source revision and effect/workspace fences, and supports bounded same-run resume without replaying completed tools. Its archive records the task as Complete. The handoff reports task-worktree results: the broad host suite was 17/20 and the GUI suite 233/235; an invalid-reducer test timed out during concurrent verification but passed in isolation. No live-provider call was made. These results are not a fresh post-merge acceptance run.
+
+## A008-0217 direct OpenAI Luna wire mapping (integrated; Complete archive)
+
+The selected internal OpenAI GPT-6 Luna model is mapped to the provider wire name `gpt-6-luna` without changing provider selection or KIE.ai routing; request measurement follows the actual wire payload. The archive records the task as Complete. Its handoff reports root build/typecheck and 32 focused tests, but no live-provider acceptance. These are task-worktree results, not a post-merge rerun.
+
+## Runtime context correction — A008-0216 (integrated; Complete archive)
 
 Worker, extractor and serialized retrieval traces now use the same label-only
 allowlist with conditional qualifications. Persistent knowledge identity is resolved
@@ -36,22 +66,26 @@ internally from extractor item positions. Product CLI/ACP/GUI offers a compact t
 catalog and selected schemas; completed work is reduced incrementally with a recent
 complete raw round. Embedded native Responses preserves opaque continuation items
 and exact call bindings. Existing approval and conservative recovery authority
-remain. This entry describes the local branch, not an installed/released runtime;
+remain. A008-0216 is integrated in the current main baseline and archived as Complete;
 verification and remaining limits are recorded in its handoff.
 
-Granskad: 2026-09-30
+## A008-0215 charter disposition
+
+The Ready (Emergency Exception) charter predates later, related slices now integrated through A008-0216 and A008-0221–0225. It is not an active task; completion of its full original scope has not been established. Preserve the charter unchanged as history and do not reactivate it unchanged. Any residual work should be mapped against current behavior and assigned a new reviewed charter.
+
+Historisk statusbaslinje; granskad 2026-09-30 och ersatt av integrationsoversikten ovan.
 Källrevision: `921fa53` + A008-0203 på `codex/a008-0203-permission-replay`.
 Senaste arkitekturimplementation: A008-0199 (checkpointbunden processåterhämtning med effektspärr och workspace-verifiering).
 Senaste minneskontextimplementation: A008-0193 (retrieved labels in worker envelope).
 A008-0196/0197/0198 provide bounded run-local context, durable checkpoints and automatic live-turn compaction. A008-0199 adds conservative process-loss recovery from a verified completed boundary. Tool replay remains excluded.
 
-## Run-local execution-state projection — A008-0213 (verified in task worktree; awaiting integration)
+## Run-local execution-state projection — A008-0213 (integrated; Complete archive)
 
-The implementation projects accepted-run objective, implementation/recovery phase, observed tool outcomes, next action and runtime-owned locked workspace identity into each durable GUI provider request. The compact state is transient and is not written to committed conversation history or semantic memory. The coordinator-to-session-process integration is covered by the real 110-round checkpoint recovery scenario: the same verified workspace locks reach provider requests before and after process replacement; recovery state is present and no tool is replayed. Root build/typecheck and focused continuation/session suites passed; no live provider calls were made. A008-0213 archive and handoff are prepared in this worktree; this remains unintegrated behavior.
+The implementation projects accepted-run objective, implementation/recovery phase, observed tool outcomes, next action and runtime-owned locked workspace identity into each durable GUI provider request. The compact state is transient and is not written to committed conversation history or semantic memory. The coordinator-to-session-process integration is covered by the real 110-round checkpoint recovery scenario: the same verified workspace locks reach provider requests before and after process replacement; recovery state is present and no tool is replayed. Root build/typecheck and focused continuation/session suites passed; no live provider calls were made. The implementation is integrated in the current main baseline and the task is recorded Complete in its archive; no live-provider calls were part of the recorded verification.
 
-## Project root/main identity and confirmation — A008-0211/0212 (in progress)
+## Project root/main identity and confirmation — A008-0211/0212 (stopped; superseded by A008-0214)
 
-The approved direction defines one durable root/main conversation per project in the original checkout, distinct from isolated parallel worktrees. Rickard approved an exact-target Yes in a host-owned native OS dialog for A008-0211 destructive actions; the request must first be host-verified as originating from that project's durable main chat. The current Platform store has no host-owned main-vs-parallel role, and Electron's main dialog is not connected to the separate, independently reusable GUI host through an authenticated out-of-band broker channel. Renderer/HTTP claims are not authority. A008-0212 is the active prerequisite; destructive project actions remain unimplemented pending a proven identity/broker boundary. This decision does not amend A008-0210's separately frozen main-chat UI confirmation requirement.
+The approved direction defines one durable root/main conversation per project in the original checkout, distinct from isolated parallel worktrees. Rickard approved an exact-target Yes in a host-owned native OS dialog for A008-0211 destructive actions; the request must first be host-verified as originating from that project's durable main chat. The current Platform store has no host-owned main-vs-parallel role, and Electron's main dialog is not connected to the separate, independently reusable GUI host through an authenticated out-of-band broker channel. Renderer/HTTP claims are not authority. A008-0211 and A008-0212 are stopped/superseded by allocated A008-0214 per the task records. A008-0214 is listed in TASK_IDS, but no corresponding charter, handoff or archive was found in this checkout; A008-0213 is complete, so the operator must publish/review the replacement charter before activating the consolidated work. Destructive project actions remain unimplemented, and the host identity/broker boundary remains unresolved. This does not amend A008-0210's separately frozen main-chat UI confirmation requirement.
 
 ## Transactional native edit checkpoint — A008-0205 / successor A008-0207
 

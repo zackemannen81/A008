@@ -1,14 +1,15 @@
 # Runtime context compaction and budget recovery
 
-Status: Completed locally through A008-0196–0199
+Status: Completed and integrated through A008-0196–0199
 Source: `docs/temp/# A008 Runtime Context Compaction & Budget Recover.md`
 Recorded: 2026-09-28
 
-Completed: 2026-09-30. Tasks 1–3 are integrated; Task 4 is implemented and
-verified locally on `codex/a008-0199-interrupted-turn-recovery`. See
-[A008-0199 handoff](../handoffs/A008-0199.md) for evidence and explicit recovery
-limits. The proposal below remains historical planning input; shipped behavior
-is owned by SYSTEMDOC and the completed task records.
+Completed: 2026-09-30. All four task slices are recorded Complete and their
+implementation is integrated in the current main baseline. The immutable task
+archives and handoffs retain the scope and verification evidence; that evidence
+is from implementation work and is not a fresh post-merge acceptance rerun.
+This proposal remains historical planning input. Shipped behavior is owned by
+SYSTEMDOC and the completed task records.
 
 ## Proposed outcome
 
@@ -125,9 +126,10 @@ session/run recovery.
 - UI visualization, client recovery controls, semantic-memory redesign,
   conversation summarization and retention/deletion policy are out of scope.
 
-## Activation
+## Current disposition
 
-The operator should claim four distinct IDs on `main`, then create four
-independently reviewable Draft charters in dependency order. Activate only the
-next slice after current code/contracts, Necessity Gate, verification gates and
-interaction with the existing durable run/session owner have been reviewed.
+The planned sequence is complete through A008-0196–0199 and integrated in the
+current baseline. These four task records are not new work to claim or repeat.
+Keep the proposal as historical planning context; assess any remaining stability
+or verification gap against current code and completed-task evidence, then create
+a newly reviewed charter only if a distinct, still-unresolved outcome remains.
