@@ -1,15 +1,10 @@
 # Host fixture secrets isolation
 
-Status: Open
+Status: Open — revalidation against current main required
 
 ## Discovery context
 
-A008-0166 isolated `A008_CATALOG_PATH` for `isolatedMemoryEnv`. The same
-A008-0149 real-host fixture still leaves `A008_SECRETS_PATH` unset. Host
-startup can read `~/.a008/secrets.json` for KIE, OpenAI, OpenRouter, Groq,
-Gemini, and OpenCode when those environment keys are absent. NVIDIA is covered
-because the fixture sets `NVIDIA_API_KEY`. The charter required this to be
-reported rather than absorbed.
+A008-0164 (platform host) and A008-0166 (catalog fixture isolation) are complete. The current `test/helpers.ts` `isolatedMemoryEnv` sets a temporary `A008_CATALOG_PATH` but does not set `A008_SECRETS_PATH`. `test/A008-0149-client-v2-host.test.ts` uses this helper to start a real GUI host without a secrets-path override. `defaultSecretsPath()` therefore resolves to `~/.a008/secrets.json`; host provider-key resolution may load operator credentials from that default file when environment keys are absent. This remains a test-fixture isolation risk to revalidate, not evidence of a product credential leak.
 
 ## Proposed outcome
 
@@ -20,15 +15,14 @@ resolution.
 
 ## Why it is not active
 
-A008-0164 is implementing the platform host against the current helper.
-Changing `isolatedMemoryEnv` in parallel would overlap that verification
-surface. This stays backlog until that host task has merged or the operator
-assigns a non-overlapping child.
+The former A008-0164 overlap is resolved, but this proposal has no current
+A008 task ID or reviewed charter. Keep it as an unallocated fixture-isolation
+candidate until the owner reviews and assigns a bounded task.
 
 ## Dependencies
 
-- A008-0166 merged behavior of `isolatedMemoryEnv`.
-- No live provider call is required. The check is local file isolation.
+- A008-0164 and A008-0166 are complete; no live product-provider call is needed.
+- Preserve product secret resolution; scope is test-fixture isolation only.
 
 ## Suggested verification
 

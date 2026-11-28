@@ -20,7 +20,7 @@ The runtime respects the configured recent raw interaction window (default 8) an
 
 During reduction a structurally valid model proposal is checked against real required sourceRef IDs. If IDs were omitted, only actual prior verified entries or persisted completed tool-round output can supply source coverage; malformed or fabricated sources never become facts. When both reducer attempts fail or exhaust their token cap, A008 may build a bounded observational ledger from exact durable, already-executed tool rounds, with reported outcomes and limited source excerpts. This fallback requires a durable working-context checkpoint owner, cannot replay tool effects, and will fail closed if a required source is unobserved or even the minimal ledger cannot fit. Non-durable sessions preserve their previous strict failure behavior. Existing workspace verification for opaque Git/MCP effects remains unchanged.
 
-## Bounded model vision and MCP result payload — A008-0221 (local branch)
+## Bounded model vision and MCP result payload — A008-0221 (integrated in PR #161; task-worktree verification)
 
 Native stored PNG/JPEG/WebP images larger than 1,000,000 bytes are resized and encoded as WebP with a finite 1 MB provider-only ceiling, before the image data URL is assembled. The original source artifact and its locator are unchanged. Small images and GIFs retain their original bytes; failed optimization is reported as a configuration error without silently sending an oversized replacement. The portable runtime now directly depends on @napi-rs/canvas 1.0.8.
 
@@ -574,3 +574,43 @@ instead of replacing them with inspection narration. The worker is told that thi
 is prior work in the same task and that loaded schemas need not be reselected.
 These are model instructions; structural/source validation does not establish
 summary completeness or guarantee absence of repeated model actions.
+
+## Integrated provider and durable-turn safeguards (A008-0216–0225)
+
+A008-0216 projects a compact tool catalog and selected schemas into CLI/ACP/GUI
+requests, uses label-only context projections, and reduces completed work
+incrementally while retaining a recent complete raw round. Approval and
+conservative recovery authority remain unchanged.
+
+A008-0217 maps the selected internal OpenAI GPT-6 Luna identifier to the provider
+wire model `gpt-6-luna` without changing provider selection or KIE.ai routing; the
+measurement path follows the actual request bytes.
+
+A008-0218 persists pre-reduction boundaries, adopts reducer output atomically
+against source revision and effect/workspace fences, and exposes bounded same-run
+resume after a durable pause. Resume does not submit a new user message or replay
+completed tools. Unknown effects and unverifiable workspaces still require
+reconciliation.
+
+A008-0219 admits the persisted `CONTINUATION_UNCERTAIN` run code in the V3
+contract and isolates sidebar project/conversation/run lookups, so one failed
+lookup does not suppress the remaining project list. A008-0220 stops lease and
+timeout renewal immediately after a reducer pause is durably saved, before child
+shutdown can accidentally fence that checkpoint.
+
+A008-0221 bounds oversized model-only image inputs and replaces MCP image/audio
+Base64 blocks in model-visible results with metadata; original attachment files
+and effect-recovery rules are unchanged. A008-0222 validates reducer source
+bindings and may construct a bounded observed-evidence ledger only when a durable
+continuation journal owns the effects and the evidence fits. Otherwise the run
+pauses safely; it does not replay tools.
+
+A008-0223 carries a run-bound workflow (original objective, checklist, verified
+evidence, and next action) into provider requests and persists it in the existing
+continuation recovery record. Completion updates must cite persisted successful
+tool evidence. A008-0224 recognizes only a narrow set of strictly read-only Git
+operations and internal workflow observations as safe checkpoint evidence; writes
+and unknown options remain opaque, while checkpoint/fingerprint failures receive
+bounded diagnostic reasons. A008-0225 emits a terminal receipt for internal
+workflow updates before durable source binding and provides guarded host-restart
+entrypoints. None of these changes weakens effect or workspace fences.
